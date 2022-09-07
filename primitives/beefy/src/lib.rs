@@ -28,10 +28,12 @@ pub use beefy_primitives::{
 	ValidatorSetId, BEEFY_ENGINE_ID,
 };
 pub use pallet_beefy_mmr::BeefyEcdsaToEthereum;
-pub use pallet_mmr::verify_leaf_proof as verify_mmr_leaf_proof;
-pub use pallet_mmr::primitives::{DataOrHash as MmrDataOrHash, Proof as MmrProof};
+pub use pallet_mmr::{
+	primitives::{DataOrHash as MmrDataOrHash, Proof as MmrProof},
+	verify_leaf_proof as verify_mmr_leaf_proof,
+};
 
-use bp_runtime::{BlockNumberOf, Chain, HashOf};
+use bp_runtime::{BasicOperatingMode, BlockNumberOf, Chain, HashOf};
 use codec::{Decode, Encode};
 use frame_support::Parameter;
 use scale_info::TypeInfo;
@@ -105,12 +107,12 @@ impl BeefyRuntimeAppPublic<H256> for beefy_primitives::crypto::AuthorityId {
 		// why it is here:
 		//
 		// 1) we need to call `sp_io::crypto::ecdsa_verify_prehashed` to be sure that the host
-		// function is    used to verify signature;
+		// function is used to verify signature;
 		// 2) there's no explicit conversions from app-crypto sig+key types to matching underlying
-		// types; 3) `ecdsa_verify_prehashed` works with underlying ECDSA types;
+		// types;
+		// 3) `ecdsa_verify_prehashed` works with underlying ECDSA types;
 		// 4) hence this "convert".
-		const PROOF: &'static str =
-			"static assertion guarantees that both underlying types are equal; \
+		const PROOF: &str = "static assertion guarantees that both underlying types are equal; \
 			conversion between same types can't fail; \
 			qed";
 		let ecdsa_signature = sp_core::ecdsa::Signature::try_from(sig.as_ref()).expect(PROOF);
@@ -242,8 +244,8 @@ impl<BeefyValidatorId> BeefyMmrLeafUnpacked<BeefyValidatorId> {
 #[derive(Encode, Decode, RuntimeDebug, PartialEq, Eq, Clone, TypeInfo)]
 #[cfg_attr(feature = "std", derive(serde::Serialize, serde::Deserialize))]
 pub struct InitializationData<BlockNumber, ValidatorId> {
-	/// Should the pallet block transaction immediately after initialization.
-	pub is_halted: bool,
+	/// Pallet operating mode.
+	pub operating_mode: BasicOperatingMode,
 	/// Number of the best block, finalized by BEEFY.
 	pub best_beefy_block_number: BlockNumber,
 	/// BEEFY validator set that will be finalizing descendants of the `best_beefy_block_number`

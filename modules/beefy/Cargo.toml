@@ -36,6 +36,7 @@ pallet-beefy-mmr = { git = "https://github.com/paritytech/substrate", branch = "
 pallet-mmr = { git = "https://github.com/paritytech/substrate", branch = "master" }
 rand = "0.8"
 sp-io = { git = "https://github.com/paritytech/substrate", branch = "master" }
+bp-test-utils = { path = "../../primitives/test-utils" }
 
 [features]
 default = ["std"]

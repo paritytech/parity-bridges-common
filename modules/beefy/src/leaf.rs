@@ -19,7 +19,7 @@
 use crate::{
 	BridgedBeefyMmrHasher, BridgedBeefyMmrLeaf, BridgedBeefyMmrLeafUnpacked,
 	BridgedBeefyValidatorIdToMerkleLeaf, BridgedBeefyValidatorSet, BridgedBlockHash,
-	BridgedBlockNumber, Config, Error,
+	BridgedBlockNumber, Config, Error, LOG_TARGET,
 };
 
 use bp_beefy::{
@@ -71,7 +71,7 @@ where
 	);
 	// technically it is not an error, but we'd like to reduce tx size on real chains
 	ensure!(
-		!mmr_leaf.next_validators().is_some() || is_updating_validator_set,
+		mmr_leaf.next_validators().is_none() || is_updating_validator_set,
 		Error::<T, I>::RedundantNextValidatorsProvided,
 	);
 	ensure!(
@@ -91,7 +91,7 @@ where
 	>(mmr_root, MmrDataOrHash::Hash(mmr_leaf_hash), mmr_proof)
 	.map_err(|e| {
 		log::error!(
-			target: "runtime::bridge-beefy",
+			target: LOG_TARGET,
 			"MMR proof of leaf {:?} (root: {:?} leaf: {} total: {} len: {}) verification has failed with error: {:?}",
 			mmr_leaf_hash,
 			mmr_root,
@@ -114,7 +114,7 @@ where
 			.map(BridgedBeefyValidatorIdToMerkleLeaf::<T, I>::convert)
 			.collect::<Vec<_>>();
 		let next_validator_addresses_root: BeefyMmrHash =
-			beefy_merkle_root::<BridgedBeefyMmrHasher<T, I>, _, _>(next_validator_addresses).into();
+			beefy_merkle_root::<BridgedBeefyMmrHasher<T, I>, _, _>(next_validator_addresses);
 		ensure!(
 			next_validator_addresses_root == raw_mmr_leaf.beefy_next_authority_set.root,
 			Error::<T, I>::InvalidNextValidatorSetRoot
@@ -147,11 +147,7 @@ fn decode_raw_mmr_leaf<T: Config<I>, I: 'static>(
 		// this shall never happen, because (as of now) leaf version is simple `u8`
 		// and we can't fail to decode `u8`. So this is here to support potential
 		// future changes
-		log::error!(
-			target: "runtime::bridge-beefy",
-			"MMR leaf version decode has failed with error: {:?}",
-			e,
-		);
+		log::error!(target: LOG_TARGET, "MMR leaf version decode has failed with error: {:?}", e,);
 
 		Error::<T, I>::FailedToDecodeMmrLeafVersion
 	})?;
@@ -162,11 +158,7 @@ fn decode_raw_mmr_leaf<T: Config<I>, I: 'static>(
 
 	// decode the whole leaf
 	BridgedBeefyMmrLeaf::<T, I>::decode(&mut &encoded_leaf[..]).map_err(|e| {
-		log::error!(
-			target: "runtime::bridge-beefy",
-			"MMR leaf decode has failed with error: {:?}",
-			e,
-		);
+		log::error!(target: LOG_TARGET, "MMR leaf decode has failed with error: {:?}", e,);
 
 		Error::<T, I>::FailedToDecodeMmrLeaf
 	})
@@ -283,7 +275,7 @@ mod tests {
 				.custom_header()
 				.customize_leaf(|leaf| {
 					let mut raw_leaf = BridgedRawMmrLeaf::decode(&mut &leaf.leaf()[..]).unwrap();
-					raw_leaf.parent_number_and_hash.0 = raw_leaf.parent_number_and_hash.0 + 1;
+					raw_leaf.parent_number_and_hash.0 += 1;
 					leaf.set_leaf(raw_leaf.encode())
 				})
 				.finalize()

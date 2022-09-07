@@ -18,7 +18,7 @@
 
 use crate::{
 	BridgedBeefyCommitmentHasher, BridgedBeefySignedCommitment, BridgedBeefyValidatorSet,
-	BridgedBlockNumber, Config, Error,
+	BridgedBlockNumber, Config, Error, LOG_TARGET,
 };
 
 use bp_beefy::{BeefyMmrHash, BeefyRuntimeAppPublic};
@@ -71,7 +71,7 @@ pub fn verify_beefy_signed_commitment<T: Config<I>, I: 'static>(
 				}
 			} else {
 				log::debug!(
-					target: "runtime::bridge-beefy",
+					target: LOG_TARGET,
 					"Signed commitment contains incorrect signature of validator {} ({:?}): {:?}",
 					validator_index,
 					validator_public,
@@ -254,10 +254,7 @@ mod tests {
 			&BridgedBeefyValidatorSet::<TestRuntime, ()>::new(validator_ids(0, 8), 0).unwrap(),
 			&sign_commitment(
 				Commitment {
-					payload: BeefyPayload::new(
-						MMR_ROOT_PAYLOAD_ID,
-						BeefyMmrHash::from([42u8; 32]).encode(),
-					),
+					payload: BeefyPayload::new(MMR_ROOT_PAYLOAD_ID, [42u8; 32].encode()),
 					block_number: 20,
 					validator_set_id: 0,
 				},
@@ -268,10 +265,7 @@ mod tests {
 
 		assert_eq!(
 			artifacts,
-			CommitmentVerificationArtifacts {
-				finalized_block_number: 20,
-				mmr_root: BeefyMmrHash::from([42u8; 32]),
-			}
+			CommitmentVerificationArtifacts { finalized_block_number: 20, mmr_root: [42u8; 32] }
 		);
 	}
 }

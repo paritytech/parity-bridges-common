@@ -22,6 +22,7 @@ use crate::mock::{
 	BridgedValidatorIdToMerkleLeaf, EXPECTED_MMR_LEAF_MAJOR_VERSION,
 };
 
+use crate::LOG_TARGET;
 use beefy_primitives::mmr::{BeefyNextAuthoritySet, MmrLeafVersion};
 use bp_beefy::{
 	BeefyMmrHash, BeefyMmrProof, BeefyPayload, Commitment, ValidatorSetId, MMR_ROOT_PAYLOAD_ID,
@@ -139,8 +140,7 @@ impl ChainBuilder {
 			next_validators_len,
 		);
 
-		HeaderBuilder::with_chain(self, true, new_validator_set_id, new_validator_keys.clone())
-			.finalize()
+		HeaderBuilder::with_chain(self, true, new_validator_set_id, new_validator_keys).finalize()
 	}
 
 	/// Append single default header without commitment.
@@ -239,7 +239,7 @@ impl HeaderBuilder {
 		let raw_leaf_hash = BridgedMmrHasher::hash(self.leaf.leaf());
 		let node = BridgedMmrNode::Hash(raw_leaf_hash.into());
 		log::trace!(
-			target: "runtime::bridge-beefy",
+			target: LOG_TARGET,
 			"Inserting MMR leaf with hash {} for header {}",
 			node.hash(),
 			self.header.number(),
@@ -257,7 +257,7 @@ impl HeaderBuilder {
 			items: proof.proof_items().iter().map(|i| i.hash().to_fixed_bytes()).collect(),
 		}));
 		log::trace!(
-			target: "runtime::bridge-beefy",
+			target: LOG_TARGET,
 			"Proof of leaf {}/{} (for header {}) has {} items. Root: {}",
 			leaf_index,
 			leaf_count,
@@ -276,7 +276,7 @@ impl HeaderBuilder {
 		}
 
 		if let Some(new_validator_keys) = self.new_validator_keys {
-			self.chain.validator_set_id = self.chain.validator_set_id + 1;
+			self.chain.validator_set_id += 1;
 			self.chain.validator_keys = self.chain.next_validator_keys;
 			self.chain.next_validator_keys = new_validator_keys;
 		}

@@ -5890,6 +5890,7 @@ dependencies = [
  "beefy-primitives",
  "bp-beefy",
  "bp-runtime",
+ "bp-test-utils",
  "ckb-merkle-mountain-range",
  "env_logger 0.8.4",
  "frame-support",

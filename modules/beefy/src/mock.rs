@@ -17,11 +17,11 @@
 use crate as beefy;
 use crate::{
 	BridgedBeefyCommitmentHasher, BridgedBeefyMmrHasher, BridgedBeefyMmrLeafUnpacked,
-	BridgedBeefySignedCommitment, BridgedBeefyValidatorIdToMerkleLeaf,
+	BridgedBeefySignedCommitment, BridgedBeefyValidatorIdToMerkleLeaf, LOG_TARGET,
 };
 
 use bp_beefy::{BeefyMmrHash, ChainWithBeefy, Commitment, MmrDataOrHash};
-use bp_runtime::Chain;
+use bp_runtime::{BasicOperatingMode, Chain};
 use codec::Encode;
 use frame_support::{construct_runtime, parameter_types, weights::Weight};
 use libsecp256k1::{sign, Message, PublicKey, SecretKey};
@@ -43,8 +43,12 @@ pub type BridgedCommitment = BridgedBeefySignedCommitment<TestRuntime, ()>;
 pub type BridgedCommitmentHasher = BridgedBeefyCommitmentHasher<TestRuntime, ()>;
 pub type BridgedMmrHasher = BridgedBeefyMmrHasher<TestRuntime, ()>;
 pub type BridgedMmrLeaf = BridgedBeefyMmrLeafUnpacked<TestRuntime, ()>;
-pub type BridgedRawMmrLeaf =
-	beefy_primitives::mmr::MmrLeaf<BridgedBlockNumber, BridgedBlockHash, BeefyMmrHash, BeefyMmrHash>;
+pub type BridgedRawMmrLeaf = beefy_primitives::mmr::MmrLeaf<
+	BridgedBlockNumber,
+	BridgedBlockHash,
+	BeefyMmrHash,
+	BeefyMmrHash,
+>;
 pub type BridgedMmrNode = MmrDataOrHash<sp_runtime::traits::Keccak256, BridgedRawMmrLeaf>;
 pub type BridgedValidatorIdToMerkleLeaf = BridgedBeefyValidatorIdToMerkleLeaf<TestRuntime, ()>;
 
@@ -146,7 +150,7 @@ pub fn run_test_with_initialize<T>(initial_validators_count: usize, test: impl F
 		crate::Pallet::<TestRuntime>::initialize(
 			Origin::root(),
 			bp_beefy::InitializationData {
-				is_halted: false,
+				operating_mode: BasicOperatingMode::Normal,
 				best_beefy_block_number: 0,
 				current_validator_set: (0, validator_ids(0, initial_validators_count)),
 				next_validator_set: (1, validator_ids(0, initial_validators_count)),
@@ -226,10 +230,10 @@ pub fn sign_commitment(
 		let mut raw_signature_with_recovery = [recovery_id.serialize(); 65];
 		raw_signature_with_recovery[..64].copy_from_slice(&signature.serialize());
 		log::trace!(
-			target: "runtime::bridge-beefy",
+			target: LOG_TARGET,
 			"Validator {} ({:?}) has signed commitment hash ({:?}): {:?}",
 			validator,
-			hex::encode(validator_key_to_public(validator_key.clone()).serialize_compressed()),
+			hex::encode(validator_key_to_public(*validator_key).serialize_compressed()),
 			hex::encode(commitment_hash.serialize()),
 			hex::encode(signature.serialize()),
 		);
