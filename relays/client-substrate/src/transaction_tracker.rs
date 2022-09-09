@@ -144,7 +144,9 @@ async fn watch_transaction_status<C: Chain, S: Stream<Item = TransactionStatusOf
 				// nothing important (for us) has happened
 			},
 			Some(TransactionStatusOf::<C>::InBlock(block_hash)) => {
-				// TODO: read matching system event and log it here
+				// TODO: read matching system event (ExtrinsicSuccess or ExtrinsicFailed), log it
+				// here and use it later (on finality) for reporting invalid transaction
+				// https://github.com/paritytech/parity-bridges-common/issues/1464
 				log::trace!(
 					target: "bridge",
 					"{} transaction {:?} has been included in block: {:?}",
@@ -210,6 +212,7 @@ async fn watch_transaction_status<C: Chain, S: Stream<Item = TransactionStatusOf
 mod tests {
 	use super::*;
 	use crate::test_chain::TestChain;
+	use futures::FutureExt;
 	use sc_transaction_pool_api::TransactionStatus;
 
 	fn tx_hash() -> HashOf<TestChain> {
@@ -226,9 +229,10 @@ mod tests {
 			watch_transaction_status::<TestChain, _>(
 				tx_hash(),
 				futures::stream::iter([TransactionStatus::Finalized(block_hash())])
+					.chain(futures::stream::pending())
 			)
-			.await,
-			InvalidationStatus::Finalized,
+			.now_or_never(),
+			Some(InvalidationStatus::Finalized),
 		);
 	}
 
@@ -238,9 +242,122 @@ mod tests {
 			watch_transaction_status::<TestChain, _>(
 				tx_hash(),
 				futures::stream::iter([TransactionStatus::Invalid])
+					.chain(futures::stream::pending())
 			)
-			.await,
-			InvalidationStatus::Invalid,
+			.now_or_never(),
+			Some(InvalidationStatus::Invalid),
+		);
+	}
+
+	#[async_std::test]
+	async fn waits_on_future() {
+		assert_eq!(
+			watch_transaction_status::<TestChain, _>(
+				tx_hash(),
+				futures::stream::iter([TransactionStatus::Future])
+					.chain(futures::stream::pending())
+			)
+			.now_or_never(),
+			None,
+		);
+	}
+
+	#[async_std::test]
+	async fn waits_on_ready() {
+		assert_eq!(
+			watch_transaction_status::<TestChain, _>(
+				tx_hash(),
+				futures::stream::iter([TransactionStatus::Ready]).chain(futures::stream::pending())
+			)
+			.now_or_never(),
+			None,
+		);
+	}
+
+	#[async_std::test]
+	async fn waits_on_broadcast() {
+		assert_eq!(
+			watch_transaction_status::<TestChain, _>(
+				tx_hash(),
+				futures::stream::iter([TransactionStatus::Broadcast(Default::default())])
+					.chain(futures::stream::pending())
+			)
+			.now_or_never(),
+			None,
+		);
+	}
+
+	#[async_std::test]
+	async fn waits_on_in_block() {
+		assert_eq!(
+			watch_transaction_status::<TestChain, _>(
+				tx_hash(),
+				futures::stream::iter([TransactionStatus::InBlock(Default::default())])
+					.chain(futures::stream::pending())
+			)
+			.now_or_never(),
+			None,
+		);
+	}
+
+	#[async_std::test]
+	async fn waits_on_retracted() {
+		assert_eq!(
+			watch_transaction_status::<TestChain, _>(
+				tx_hash(),
+				futures::stream::iter([TransactionStatus::Retracted(Default::default())])
+					.chain(futures::stream::pending())
+			)
+			.now_or_never(),
+			None,
+		);
+	}
+
+	#[async_std::test]
+	async fn lost_on_finality_timeout() {
+		assert_eq!(
+			watch_transaction_status::<TestChain, _>(
+				tx_hash(),
+				futures::stream::iter([TransactionStatus::FinalityTimeout(Default::default())])
+					.chain(futures::stream::pending())
+			)
+			.now_or_never(),
+			Some(InvalidationStatus::Lost),
+		);
+	}
+
+	#[async_std::test]
+	async fn lost_on_usurped() {
+		assert_eq!(
+			watch_transaction_status::<TestChain, _>(
+				tx_hash(),
+				futures::stream::iter([TransactionStatus::Usurped(Default::default())])
+					.chain(futures::stream::pending())
+			)
+			.now_or_never(),
+			Some(InvalidationStatus::Lost),
+		);
+	}
+
+	#[async_std::test]
+	async fn lost_on_dropped() {
+		assert_eq!(
+			watch_transaction_status::<TestChain, _>(
+				tx_hash(),
+				futures::stream::iter([TransactionStatus::Dropped])
+					.chain(futures::stream::pending())
+			)
+			.now_or_never(),
+			Some(InvalidationStatus::Lost),
+		);
+	}
+
+	#[async_std::test]
+	async fn lost_on_subscription_error() {
+		assert_eq!(
+			watch_transaction_status::<TestChain, _>(tx_hash(), futures::stream::iter([]))
+				.now_or_never(),
+			Some(InvalidationStatus::Lost),
 		);
 	}
 }
