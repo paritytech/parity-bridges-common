@@ -24,12 +24,10 @@ use crate::{
 };
 
 use async_trait::async_trait;
-use bp_parachains::{
-	best_parachain_head_hash_storage_key_at_target, BestParaHeadHash, ImportedParaHeadsKeyProvider,
-};
+use bp_parachains::{BestParaHeadHash, ImportedParaHeadsKeyProvider, ParasInfoKeyProvider};
 use bp_polkadot_core::parachains::{ParaHash, ParaHeadsProof, ParaId};
 use bp_runtime::HeaderIdProvider;
-use codec::{Decode, Encode};
+use codec::Decode;
 use parachains_relay::{
 	parachains_loop::TargetClient, parachains_loop_metrics::ParachainsLoopMetrics,
 };
@@ -122,12 +120,16 @@ where
 		metrics: Option<&ParachainsLoopMetrics>,
 		para_id: ParaId,
 	) -> Result<Option<BestParaHeadHash>, Self::Error> {
-		let best_para_head_hash_key = best_parachain_head_hash_storage_key_at_target(
-			P::SourceRelayChain::PARACHAINS_FINALITY_PALLET_NAME,
-			para_id,
-		);
-		let best_para_head_hash: Option<BestParaHeadHash> =
-			self.client.storage_value(best_para_head_hash_key, Some(at_block.1)).await?;
+		let best_para_head_hash: Option<BestParaHeadHash> = self
+			.client
+			.storage_map_value::<ParasInfoKeyProvider>(
+				P::SourceRelayChain::PARACHAINS_FINALITY_PALLET_NAME,
+				&para_id,
+				Some(at_block.1),
+			)
+			.await?
+			.map(|para_info| para_info.best_head_hash);
+
 		if let (Some(metrics), &Some(ref best_para_head_hash)) = (metrics, &best_para_head_hash) {
 			let imported_para_head = self
 				.client
@@ -141,7 +143,7 @@ where
 				.and_then(|maybe_encoded_head| match maybe_encoded_head {
 					Some(encoded_head) =>
 						HeaderOf::<P::SourceParachain>::decode(&mut &encoded_head.0[..])
-							.map(|head| Some(head))
+							.map(Some)
 							.map_err(Self::Error::ResponseParseFailed),
 					None => Ok(None),
 				})
@@ -182,18 +184,15 @@ where
 		self.client
 			.submit_signed_extrinsic(
 				self.transaction_params.signer.public().into(),
+				SignParam::<P::TransactionSignScheme> {
+					spec_version,
+					transaction_version,
+					genesis_hash,
+					signer: transaction_params.signer,
+				},
 				move |best_block_id, transaction_nonce| {
-					Ok(Bytes(
-						P::TransactionSignScheme::sign_transaction(SignParam {
-							spec_version,
-							transaction_version,
-							genesis_hash,
-							signer: transaction_params.signer,
-							era: TransactionEra::new(best_block_id, transaction_params.mortality),
-							unsigned: UnsignedTransaction::new(call.into(), transaction_nonce),
-						})?
-						.encode(),
-					))
+					Ok(UnsignedTransaction::new(call.into(), transaction_nonce)
+						.era(TransactionEra::new(best_block_id, transaction_params.mortality)))
 				},
 			)
 			.await

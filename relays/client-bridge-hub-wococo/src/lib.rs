@@ -82,20 +82,23 @@ impl TransactionSignScheme for BridgeHubWococo {
 	type AccountKeyPair = sp_core::sr25519::Pair;
 	type SignedTransaction = runtime::UncheckedExtrinsic;
 
-	fn sign_transaction(param: SignParam<Self>) -> Result<Self::SignedTransaction, SubstrateError> {
+	fn sign_transaction(
+		param: SignParam<Self>,
+		unsigned: UnsignedTransaction<Self::Chain>,
+	) -> Result<Self::SignedTransaction, SubstrateError> {
 		// TODO:check-parameter
 		// TODO: log: param.spec_version, param.transaction_version vs
 		// bp_bridge_hub_wococo::VERSION.spec_version,
 		// bp_bridge_hub_wococo::VERSION.transaction_version,
 		let raw_payload = SignedPayload::new(
-			param.unsigned.call,
+			unsigned.call,
 			bp_bridge_hub_wococo::SignedExtensions::new(
 				param.spec_version,
 				param.transaction_version,
-				param.era,
+				unsigned.era,
 				param.genesis_hash,
-				param.unsigned.nonce,
-				param.unsigned.tip,
+				unsigned.nonce,
+				unsigned.tip,
 			),
 		)?;
 
@@ -126,17 +129,13 @@ impl TransactionSignScheme for BridgeHubWococo {
 
 	fn parse_transaction(tx: Self::SignedTransaction) -> Option<UnsignedTransaction<Self::Chain>> {
 		let extra = &tx.signature.as_ref()?.2;
-		Some(UnsignedTransaction {
-			call: tx.function.into(),
-			// TODO:check-parameter -> with this, test bellow does not work
-			// nonce: Compact::<IndexOf<Self::Chain>>::decode(&mut
-			// &extra.nonce().encode()[..]).ok()?.into(),
-			// tip: Compact::<BalanceOf<Self::Chain>>::decode(&mut &extra.tip().encode()[..])
-			// 	.ok()?
-			// 	.into(),
-			nonce: extra.nonce(),
-			tip: extra.tip(),
-		})
+		// TODO:check-parameter -> with this, test bellow does not work
+		// nonce: Compact::<IndexOf<Self::Chain>>::decode(&mut
+		// &extra.nonce().encode()[..]).ok()?.into(),
+		// tip: Compact::<BalanceOf<Self::Chain>>::decode(&mut &extra.tip().encode()[..])
+		// 	.ok()?
+		// 	.into(),
+		Some(UnsignedTransaction::new(tx.function.into(), extra.nonce()).tip(extra.tip()))
 	}
 }
 
@@ -152,15 +151,17 @@ mod tests {
 				.into(),
 			nonce: 777,
 			tip: 888,
-		};
-		let signed_transaction = BridgeHubWococo::sign_transaction(SignParam {
-			spec_version: 42,
-			transaction_version: 50000,
-			genesis_hash: [42u8; 32].into(),
-			signer: sp_core::sr25519::Pair::from_seed_slice(&[1u8; 32]).unwrap(),
 			era: TransactionEra::immortal(),
-			unsigned: unsigned.clone(),
-		})
+		};
+		let signed_transaction = BridgeHubWococo::sign_transaction(
+			SignParam {
+				spec_version: 42,
+				transaction_version: 50000,
+				genesis_hash: [42u8; 32].into(),
+				signer: sp_core::sr25519::Pair::from_seed_slice(&[1u8; 32]).unwrap(),
+			},
+			unsigned.clone(),
+		)
 		.unwrap();
 		let parsed_transaction = BridgeHubWococo::parse_transaction(signed_transaction).unwrap();
 		assert_eq!(parsed_transaction, unsigned);

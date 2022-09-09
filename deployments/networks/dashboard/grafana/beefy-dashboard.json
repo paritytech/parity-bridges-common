@@ -429,7 +429,7 @@
         "for": "5m",
         "frequency": "1m",
         "handler": 1,
-        "name": "Beefy Skipped Sessions alert",
+        "name": "Beefy Lagging Sessions alert",
         "noDataState": "no_data",
         "notifications": []
       },
@@ -493,12 +493,12 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "substrate_beefy_skipped_sessions{chain=\"rialto_local\"}",
+          "expr": "substrate_beefy_lagging_sessions{chain=\"rialto_local\"}",
           "legendFormat": "Rialto(Charlie)",
           "refId": "A"
         },
         {
-          "expr": "substrate_beefy_skipped_sessions{chain=\"millau_local\"}",
+          "expr": "substrate_beefy_lagging_sessions{chain=\"millau_local\"}",
           "legendFormat": "Millau(Charlie)",
           "refId": "B"
         }
@@ -515,7 +515,7 @@
       "timeFrom": null,
       "timeRegions": [],
       "timeShift": null,
-      "title": "Beefy Skipped Sessions",
+      "title": "Beefy Lagging Sessions",
       "tooltip": {
         "shared": true,
         "sort": 0,
