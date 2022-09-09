@@ -80,7 +80,7 @@ pub mod pallet {
 	#[pallet::event]
 	#[pallet::generate_deposit(pub(super) fn deposit_event)]
 	pub enum Event<T: Config<I>, I: 'static = ()> {
-		/// The caller has provided head of untracked parachain.
+		/// The caller has provided head of parachain that the pallet is not configured to track.
 		UntrackedParachainRejected { parachain: ParaId },
 		/// The caller has declared that he has provided given parachain head, but it is missing
 		/// from the storage proof.
