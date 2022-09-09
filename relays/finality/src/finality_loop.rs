@@ -210,7 +210,8 @@ pub(crate) struct FinalityLoopState<'a, P: FinalitySyncPipeline, FinalityProofsS
 	pub(crate) submitted_header_number: Option<P::Number>,
 }
 
-async fn run_until_connection_lost<P: FinalitySyncPipeline>(
+/// Run finality relay loop until connection to one of nodes is lost.
+pub(crate) async fn run_until_connection_lost<P: FinalitySyncPipeline>(
 	source_client: impl SourceClient<P>,
 	target_client: impl TargetClient<P>,
 	sync_params: FinalitySyncParams,
