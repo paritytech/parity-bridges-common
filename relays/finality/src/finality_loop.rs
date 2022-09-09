@@ -299,15 +299,6 @@ pub(crate) async fn run_until_connection_lost<P: FinalitySyncPipeline>(
 					);
 
 					return Err(FailedClient::Both);
-				} else {
-					// TODO: remove me
-					log::trace!(
-						target: "bridge",
-						"Finality synchronization from {} to {} IS NOT STALLED (SHALL ONLY BE HITTED ONCE): {:?}",
-						P::SOURCE_NAME,
-						P::TARGET_NAME,
-						last_submitted_header_number
-					);
 				}
 			},
 			_ = async_std::task::sleep(next_tick).fuse() => {},
