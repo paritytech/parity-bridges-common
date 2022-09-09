@@ -202,17 +202,6 @@ async fn watch_transaction_status<C: Chain, S: Stream<Item = TransactionStatusOf
 				// Let's wait a bit and report a stall
 				return InvalidationStatus::Lost
 			},
-			/*Err(e) => {
-				// we have failed to receive a transaction status. Let's wait a bit and report a stall
-				log::trace!(
-					target: "bridge",
-					"{} transaction {:?} status subscription has failed with error: {:?}",
-					C::NAME,
-					transaction_hash,
-					e,
-				);
-				return InvalidationStatus::Lost;
-			},*/
 		}
 	}
 }
