@@ -213,77 +213,54 @@ async fn watch_transaction_status<C: Chain, S: Stream<Item = TransactionStatusOf
 mod tests {
 	use super::*;
 	use crate::test_chain::TestChain;
-	use futures::FutureExt;
+	use futures::{FutureExt, SinkExt};
+	use relay_utils::TransactionTracker as _;
 	use sc_transaction_pool_api::TransactionStatus;
 
-	fn tx_hash() -> HashOf<TestChain> {
-		Default::default()
-	}
+	async fn on_transaction_status(
+		status: TransactionStatus<HashOf<TestChain>, HashOf<TestChain>>,
+	) -> Option<TrackedTransactionStatus> {
+		let (mut sender, receiver) = futures::channel::mpsc::channel(1);
+		let tx_tracker = TransactionTracker::<TestChain>::new(
+			Duration::from_secs(0),
+			Default::default(),
+			Subscription(async_std::sync::Mutex::new(receiver)),
+		);
 
-	fn block_hash() -> HashOf<TestChain> {
-		Default::default()
+		sender.send(Some(status)).await.unwrap();
+		tx_tracker.wait().now_or_never()
 	}
 
 	#[async_std::test]
 	async fn returns_finalized_on_finalized() {
 		assert_eq!(
-			watch_transaction_status::<TestChain, _>(
-				tx_hash(),
-				futures::stream::iter([TransactionStatus::Finalized(block_hash())])
-					.chain(futures::stream::pending())
-			)
-			.now_or_never(),
-			Some(InvalidationStatus::Finalized),
+			on_transaction_status(TransactionStatus::Finalized(Default::default())).await,
+			Some(TrackedTransactionStatus::Finalized),
 		);
 	}
 
 	#[async_std::test]
 	async fn returns_invalid_on_invalid() {
 		assert_eq!(
-			watch_transaction_status::<TestChain, _>(
-				tx_hash(),
-				futures::stream::iter([TransactionStatus::Invalid])
-					.chain(futures::stream::pending())
-			)
-			.now_or_never(),
-			Some(InvalidationStatus::Invalid),
+			on_transaction_status(TransactionStatus::Invalid).await,
+			Some(TrackedTransactionStatus::Lost),
 		);
 	}
 
 	#[async_std::test]
 	async fn waits_on_future() {
-		assert_eq!(
-			watch_transaction_status::<TestChain, _>(
-				tx_hash(),
-				futures::stream::iter([TransactionStatus::Future])
-					.chain(futures::stream::pending())
-			)
-			.now_or_never(),
-			None,
-		);
+		assert_eq!(on_transaction_status(TransactionStatus::Future).await, None,);
 	}
 
 	#[async_std::test]
 	async fn waits_on_ready() {
-		assert_eq!(
-			watch_transaction_status::<TestChain, _>(
-				tx_hash(),
-				futures::stream::iter([TransactionStatus::Ready]).chain(futures::stream::pending())
-			)
-			.now_or_never(),
-			None,
-		);
+		assert_eq!(on_transaction_status(TransactionStatus::Ready).await, None,);
 	}
 
 	#[async_std::test]
 	async fn waits_on_broadcast() {
 		assert_eq!(
-			watch_transaction_status::<TestChain, _>(
-				tx_hash(),
-				futures::stream::iter([TransactionStatus::Broadcast(Default::default())])
-					.chain(futures::stream::pending())
-			)
-			.now_or_never(),
+			on_transaction_status(TransactionStatus::Broadcast(Default::default())).await,
 			None,
 		);
 	}
@@ -291,12 +268,7 @@ mod tests {
 	#[async_std::test]
 	async fn waits_on_in_block() {
 		assert_eq!(
-			watch_transaction_status::<TestChain, _>(
-				tx_hash(),
-				futures::stream::iter([TransactionStatus::InBlock(Default::default())])
-					.chain(futures::stream::pending())
-			)
-			.now_or_never(),
+			on_transaction_status(TransactionStatus::InBlock(Default::default())).await,
 			None,
 		);
 	}
@@ -304,12 +276,7 @@ mod tests {
 	#[async_std::test]
 	async fn waits_on_retracted() {
 		assert_eq!(
-			watch_transaction_status::<TestChain, _>(
-				tx_hash(),
-				futures::stream::iter([TransactionStatus::Retracted(Default::default())])
-					.chain(futures::stream::pending())
-			)
-			.now_or_never(),
+			on_transaction_status(TransactionStatus::Retracted(Default::default())).await,
 			None,
 		);
 	}
@@ -317,46 +284,31 @@ mod tests {
 	#[async_std::test]
 	async fn lost_on_finality_timeout() {
 		assert_eq!(
-			watch_transaction_status::<TestChain, _>(
-				tx_hash(),
-				futures::stream::iter([TransactionStatus::FinalityTimeout(Default::default())])
-					.chain(futures::stream::pending())
-			)
-			.now_or_never(),
-			Some(InvalidationStatus::Lost),
+			on_transaction_status(TransactionStatus::FinalityTimeout(Default::default())).await,
+			Some(TrackedTransactionStatus::Lost),
 		);
 	}
 
 	#[async_std::test]
 	async fn lost_on_usurped() {
 		assert_eq!(
-			watch_transaction_status::<TestChain, _>(
-				tx_hash(),
-				futures::stream::iter([TransactionStatus::Usurped(Default::default())])
-					.chain(futures::stream::pending())
-			)
-			.now_or_never(),
-			Some(InvalidationStatus::Lost),
+			on_transaction_status(TransactionStatus::Usurped(Default::default())).await,
+			Some(TrackedTransactionStatus::Lost),
 		);
 	}
 
 	#[async_std::test]
 	async fn lost_on_dropped() {
 		assert_eq!(
-			watch_transaction_status::<TestChain, _>(
-				tx_hash(),
-				futures::stream::iter([TransactionStatus::Dropped])
-					.chain(futures::stream::pending())
-			)
-			.now_or_never(),
-			Some(InvalidationStatus::Lost),
+			on_transaction_status(TransactionStatus::Dropped).await,
+			Some(TrackedTransactionStatus::Lost),
 		);
 	}
 
 	#[async_std::test]
 	async fn lost_on_subscription_error() {
 		assert_eq!(
-			watch_transaction_status::<TestChain, _>(tx_hash(), futures::stream::iter([]))
+			watch_transaction_status::<TestChain, _>(Default::default(), futures::stream::iter([]))
 				.now_or_never(),
 			Some(InvalidationStatus::Lost),
 		);
