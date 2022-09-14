@@ -48,11 +48,8 @@ notice = "warn"
 # A list of advisory IDs to ignore. Note that ignored advisories will still
 # output a note when they are encountered.
 ignore = [
-    "RUSTSEC-2020-0070",
     # Comes from honggfuzz via storage-proof-fuzzer: 'memmap'
     "RUSTSEC-2020-0077",
-    # net2 (origin: Substrate RPC crates)
-    "RUSTSEC-2020-0016",
     # time (origin: Substrate RPC + benchmarking crates)
     "RUSTSEC-2020-0071",
     # chrono (origin: Substrate benchmarking + cli + ...)
