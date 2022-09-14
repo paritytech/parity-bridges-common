@@ -29,7 +29,7 @@ use futures::{select, Future, FutureExt, Stream, StreamExt};
 use num_traits::{One, Saturating};
 use relay_utils::{
 	metrics::MetricsParams, relay_loop::Client as RelayClient, retry_backoff, FailedClient,
-	HeaderId, MaybeConnectionError, TransactionTracker,
+	HeaderId, MaybeConnectionError, TrackedTransactionStatus, TransactionTracker,
 };
 use std::{
 	pin::Pin,
@@ -290,7 +290,7 @@ pub(crate) async fn run_until_connection_lost<P: FinalitySyncPipeline>(
 		// wait till exit signal, or new source block
 		select! {
 			transaction_status = last_transaction_tracker => {
-				if transaction_status.is_err() {
+				if transaction_status == TrackedTransactionStatus::Lost {
 					log::error!(
 						target: "bridge",
 						"Finality synchronization from {} to {} has stalled. Going to restart",

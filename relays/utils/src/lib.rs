@@ -120,13 +120,20 @@ pub trait MaybeConnectionError {
 	fn is_connection_error(&self) -> bool;
 }
 
+/// Final status of the tracked transaction.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum TrackedTransactionStatus {
+	/// Transaction has been lost.
+	Lost,
+	/// Transaction has been mined and finalized.
+	Finalized,
+}
+
 /// Transaction tracker.
 #[async_trait]
 pub trait TransactionTracker: Send {
 	/// Wait until transaction is either finalized or invalidated/lost.
-	///
-	/// Returns `Ok(())` if transaction has been finalized and `Err(())` if it has been invalidated.
-	async fn wait(self) -> Result<(), ()>;
+	async fn wait(self) -> TrackedTransactionStatus;
 }
 
 /// Stringified error that may be either connection-related or not.

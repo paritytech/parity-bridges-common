@@ -27,7 +27,7 @@ use polkadot_runtime_common::{
 };
 use polkadot_runtime_parachains::paras::ParaLifecycle;
 use relay_substrate_client::{AccountIdOf, CallOf, Chain, Client, SignParam, UnsignedTransaction};
-use relay_utils::TransactionTracker;
+use relay_utils::{TrackedTransactionStatus, TransactionTracker};
 use rialto_runtime::SudoCall;
 use sp_core::{
 	storage::{well_known_keys::CODE, StorageKey},
@@ -114,7 +114,7 @@ impl RegisterParachain {
 				ParaRegistrarCall::reserve {}.into();
 			let reserve_parachain_signer = relay_sign.clone();
 			let (spec_version, transaction_version) = relay_client.simple_runtime_version().await?;
-			relay_client
+			let reserve_result = relay_client
 				.submit_and_watch_signed_extrinsic(
 					relay_sudo_account.clone(),
 					SignParam::<Relaychain> {
@@ -132,10 +132,12 @@ impl RegisterParachain {
 				)
 				.await?
 				.wait()
-				.await
-				.map_err(|_| {
-					anyhow::format_err!("Failed to finalize `reserve-parachain-id` transaction")
-				})?;
+				.await;
+			if reserve_result == TrackedTransactionStatus::Lost {
+				return Err(anyhow::format_err!(
+					"Failed to finalize `reserve-parachain-id` transaction"
+				))
+			}
 			log::info!(target: "bridge", "Reserved parachain id: {:?}", para_id);
 
 			// step 2: register parathread
@@ -161,7 +163,7 @@ impl RegisterParachain {
 			}
 			.into();
 			let register_parathread_signer = relay_sign.clone();
-			relay_client
+			let register_result = relay_client
 				.submit_and_watch_signed_extrinsic(
 					relay_sudo_account.clone(),
 					SignParam::<Relaychain> {
@@ -179,10 +181,12 @@ impl RegisterParachain {
 				)
 				.await?
 				.wait()
-				.await
-				.map_err(|_| {
-					anyhow::format_err!("Failed to finalize `register-parathread` transaction")
-				})?;
+				.await;
+			if register_result == TrackedTransactionStatus::Lost {
+				return Err(anyhow::format_err!(
+					"Failed to finalize `register-parathread` transaction"
+				))
+			}
 			log::info!(target: "bridge", "Registered parachain: {:?}. Waiting for onboarding", para_id);
 
 			// wait until parathread is onboarded

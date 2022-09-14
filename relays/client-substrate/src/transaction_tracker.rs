@@ -20,6 +20,7 @@ use crate::{Chain, HashOf, Subscription, TransactionStatusOf};
 
 use async_trait::async_trait;
 use futures::{Stream, StreamExt};
+use relay_utils::TrackedTransactionStatus;
 use std::time::Duration;
 
 /// Substrate transaction tracker implementation.
@@ -61,15 +62,15 @@ impl<C: Chain> TransactionTracker<C> {
 
 #[async_trait]
 impl<C: Chain> relay_utils::TransactionTracker for TransactionTracker<C> {
-	async fn wait(self) -> Result<(), ()> {
+	async fn wait(self) -> TrackedTransactionStatus {
 		let invalidation_status = watch_transaction_status::<C, _>(
 			self.transaction_hash,
 			self.subscription.into_stream(),
 		)
 		.await;
 		match invalidation_status {
-			InvalidationStatus::Finalized => Ok(()),
-			InvalidationStatus::Invalid => Err(()),
+			InvalidationStatus::Finalized => TrackedTransactionStatus::Finalized,
+			InvalidationStatus::Invalid => TrackedTransactionStatus::Lost,
 			InvalidationStatus::Lost => {
 				async_std::task::sleep(self.stall_timeout).await;
 				// if someone is still watching for our transaction, then we're reporting
@@ -81,7 +82,7 @@ impl<C: Chain> relay_utils::TransactionTracker for TransactionTracker<C> {
 					self.transaction_hash,
 				);
 
-				Err(())
+				TrackedTransactionStatus::Lost
 			},
 		}
 	}

@@ -34,7 +34,7 @@ use futures::{FutureExt, Stream, StreamExt};
 use parking_lot::Mutex;
 use relay_utils::{
 	relay_loop::Client as RelayClient, FailedClient, HeaderId, MaybeConnectionError,
-	TransactionTracker,
+	TrackedTransactionStatus, TransactionTracker,
 };
 use std::{
 	collections::HashMap,
@@ -48,17 +48,17 @@ type TestNumber = u64;
 type TestHash = u64;
 
 #[derive(Clone, Debug)]
-struct TestTransactionTracker(Result<(), ()>);
+struct TestTransactionTracker(TrackedTransactionStatus);
 
 impl Default for TestTransactionTracker {
 	fn default() -> TestTransactionTracker {
-		TestTransactionTracker(Ok(()))
+		TestTransactionTracker(TrackedTransactionStatus::Finalized)
 	}
 }
 
 #[async_trait]
 impl TransactionTracker for TestTransactionTracker {
-	async fn wait(self) -> Result<(), ()> {
+	async fn wait(self) -> TrackedTransactionStatus {
 		self.0
 	}
 }
@@ -224,7 +224,7 @@ fn prepare_test_clients(
 
 		target_best_block_id: HeaderId(5, 5),
 		target_headers: vec![],
-		target_transaction_tracker: TestTransactionTracker(Ok(())),
+		target_transaction_tracker: TestTransactionTracker(TrackedTransactionStatus::Finalized),
 	}));
 	(
 		TestSourceClient {
@@ -574,7 +574,7 @@ fn different_forks_at_source_and_at_target_are_detected() {
 #[test]
 fn stalls_when_transaction_tracker_returns_error() {
 	let (_, result) = run_sync_loop(|data| {
-		data.target_transaction_tracker = TestTransactionTracker(Err(()));
+		data.target_transaction_tracker = TestTransactionTracker(TrackedTransactionStatus::Lost);
 		data.target_best_block_id = HeaderId(5, 5);
 		data.target_best_block_id.0 == 16
 	});
