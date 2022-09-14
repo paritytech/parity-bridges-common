@@ -58,7 +58,9 @@ ignore = [
     "RUSTSEC-2021-0130",
     # ansi_term (The maintainer has adviced that this crate is deprecated and will not receive any maintenance.
     # Once other crates will move to some alternative, we'll do that too)
-    "RUSTSEC-2021-0139"
+    "RUSTSEC-2021-0139",
+    # rocksdb (origin: Substrate and Polkadot kvdb-rocksdb - we need to upgrade soon)
+    "RUSTSEC-2022-0046"
 ]
 # Threshold for security vulnerabilities, any vulnerability with a CVSS score
 # lower than the range specified will be ignored. Note that ignored advisories
