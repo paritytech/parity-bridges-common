@@ -129,14 +129,6 @@ pub trait TransactionTracker: Send {
 	async fn wait(self) -> Result<(), ()>;
 }
 
-// implementation that may be used by tests or for cases when we can't track our transaction
-#[async_trait]
-impl TransactionTracker for () {
-	async fn wait(self) -> Result<(), ()> {
-		futures::future::pending().await
-	}
-}
-
 /// Stringified error that may be either connection-related or not.
 #[derive(Error, Debug)]
 pub enum StringifiedMaybeConnectionError {
