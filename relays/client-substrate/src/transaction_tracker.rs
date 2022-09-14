@@ -58,19 +58,19 @@ impl<C: Chain> TransactionTracker<C> {
 	) -> Self {
 		Self { stall_timeout, transaction_hash, subscription }
 	}
-}
 
-#[async_trait]
-impl<C: Chain> relay_utils::TransactionTracker for TransactionTracker<C> {
-	async fn wait(self) -> TrackedTransactionStatus {
+	/// Wait for final transaction status and return it along with last known internal invalidation
+	/// status.
+	async fn do_wait(self) -> (TrackedTransactionStatus, InvalidationStatus) {
 		let invalidation_status = watch_transaction_status::<C, _>(
 			self.transaction_hash,
 			self.subscription.into_stream(),
 		)
 		.await;
 		match invalidation_status {
-			InvalidationStatus::Finalized => TrackedTransactionStatus::Finalized,
-			InvalidationStatus::Invalid => TrackedTransactionStatus::Lost,
+			InvalidationStatus::Finalized =>
+				(TrackedTransactionStatus::Finalized, invalidation_status),
+			InvalidationStatus::Invalid => (TrackedTransactionStatus::Lost, invalidation_status),
 			InvalidationStatus::Lost => {
 				async_std::task::sleep(self.stall_timeout).await;
 				// if someone is still watching for our transaction, then we're reporting
@@ -82,9 +82,16 @@ impl<C: Chain> relay_utils::TransactionTracker for TransactionTracker<C> {
 					self.transaction_hash,
 				);
 
-				TrackedTransactionStatus::Lost
+				(TrackedTransactionStatus::Lost, invalidation_status)
 			},
 		}
+	}
+}
+
+#[async_trait]
+impl<C: Chain> relay_utils::TransactionTracker for TransactionTracker<C> {
+	async fn wait(self) -> TrackedTransactionStatus {
+		self.do_wait().await.0
 	}
 }
 
@@ -214,12 +221,11 @@ mod tests {
 	use super::*;
 	use crate::test_chain::TestChain;
 	use futures::{FutureExt, SinkExt};
-	use relay_utils::TransactionTracker as _;
 	use sc_transaction_pool_api::TransactionStatus;
 
 	async fn on_transaction_status(
 		status: TransactionStatus<HashOf<TestChain>, HashOf<TestChain>>,
-	) -> Option<TrackedTransactionStatus> {
+	) -> Option<(TrackedTransactionStatus, InvalidationStatus)> {
 		let (mut sender, receiver) = futures::channel::mpsc::channel(1);
 		let tx_tracker = TransactionTracker::<TestChain>::new(
 			Duration::from_secs(0),
@@ -228,14 +234,14 @@ mod tests {
 		);
 
 		sender.send(Some(status)).await.unwrap();
-		tx_tracker.wait().now_or_never()
+		tx_tracker.do_wait().now_or_never()
 	}
 
 	#[async_std::test]
 	async fn returns_finalized_on_finalized() {
 		assert_eq!(
 			on_transaction_status(TransactionStatus::Finalized(Default::default())).await,
-			Some(TrackedTransactionStatus::Finalized),
+			Some((TrackedTransactionStatus::Finalized, InvalidationStatus::Finalized)),
 		);
 	}
 
@@ -243,7 +249,7 @@ mod tests {
 	async fn returns_invalid_on_invalid() {
 		assert_eq!(
 			on_transaction_status(TransactionStatus::Invalid).await,
-			Some(TrackedTransactionStatus::Lost),
+			Some((TrackedTransactionStatus::Lost, InvalidationStatus::Invalid)),
 		);
 	}
 
@@ -285,7 +291,7 @@ mod tests {
 	async fn lost_on_finality_timeout() {
 		assert_eq!(
 			on_transaction_status(TransactionStatus::FinalityTimeout(Default::default())).await,
-			Some(TrackedTransactionStatus::Lost),
+			Some((TrackedTransactionStatus::Lost, InvalidationStatus::Lost)),
 		);
 	}
 
@@ -293,7 +299,7 @@ mod tests {
 	async fn lost_on_usurped() {
 		assert_eq!(
 			on_transaction_status(TransactionStatus::Usurped(Default::default())).await,
-			Some(TrackedTransactionStatus::Lost),
+			Some((TrackedTransactionStatus::Lost, InvalidationStatus::Lost)),
 		);
 	}
 
@@ -301,7 +307,7 @@ mod tests {
 	async fn lost_on_dropped() {
 		assert_eq!(
 			on_transaction_status(TransactionStatus::Dropped).await,
-			Some(TrackedTransactionStatus::Lost),
+			Some((TrackedTransactionStatus::Lost, InvalidationStatus::Lost)),
 		);
 	}
 
