@@ -75,7 +75,16 @@ impl<C: Chain> TransactionTracker<C> {
 		futures::pin_mut!(wait_for_stall_timeout, wait_for_invalidation);
 
 		match futures::future::select(wait_for_stall_timeout, wait_for_invalidation).await {
-			Either::Left((_, _)) => (TrackedTransactionStatus::Lost, None),
+			Either::Left((_, _)) => {
+				log::trace!(
+					target: "bridge",
+					"{} transaction {:?} is considered lost after timeout (no status response from the node)",
+					C::NAME,
+					self.transaction_hash,
+				);
+
+				(TrackedTransactionStatus::Lost, None)
+			},
 			Either::Right((invalidation_status, _)) => match invalidation_status {
 				InvalidationStatus::Finalized =>
 					(TrackedTransactionStatus::Finalized, Some(invalidation_status)),
