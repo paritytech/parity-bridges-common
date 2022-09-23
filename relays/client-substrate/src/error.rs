@@ -63,6 +63,9 @@ pub enum Error {
 	/// The Substrate transaction is invalid.
 	#[error("Substrate transaction is invalid: {0:?}")]
 	TransactionInvalid(#[from] TransactionValidityError),
+	/// Required transaction is not found in its block.
+	#[error("Substrate transaction is missing from its block")]
+	TransactionMissingFromTheBlock,
 	/// Custom logic error.
 	#[error("{0}")]
 	Custom(String),
