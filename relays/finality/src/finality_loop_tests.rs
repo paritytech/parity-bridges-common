@@ -581,3 +581,13 @@ fn stalls_when_transaction_tracker_returns_error() {
 
 	assert_eq!(result, Err(FailedClient::Both));
 }
+
+#[test]
+fn stalls_when_transaction_tracker_returns_finalized_but_transaction_fails() {
+	let (_, result) = run_sync_loop(|data| {
+		data.target_best_block_id = HeaderId(5, 5);
+		data.target_best_block_id.0 == 16
+	});
+
+	assert_eq!(result, Err(FailedClient::Both));
+}
