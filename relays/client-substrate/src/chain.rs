@@ -131,9 +131,17 @@ pub type WeightToFeeOf<C> = <C as Chain>::WeightToFee;
 /// Transaction status of the chain.
 pub type TransactionStatusOf<C> = TransactionStatus<HashOf<C>, HashOf<C>>;
 
+/// Substrate-based chain with `frame_system` pallet.
+pub trait ChainWithSystemPallet: Chain {
+	/// Index of the `frame_system` pallet in the `construct_runtime!(..)` construction.
+	const SYSTEM_PALLET_INDEX: u8;
+	/// Name of the `frame_system` pallet in the `construct_runtime!(..)` construction.
+	const SYSTEM_PALLET_NAME: &'static str;
+}
+
 /// Substrate-based chain with `AccountData` generic argument of `frame_system::AccountInfo` set to
 /// the `pallet_balances::AccountData<Balance>`.
-pub trait ChainWithBalances: Chain {
+pub trait ChainWithBalances: ChainWithSystemPallet {
 	/// Return runtime storage key for getting `frame_system::AccountInfo` of given account.
 	fn account_info_storage_key(account_id: &Self::AccountId) -> StorageKey;
 }

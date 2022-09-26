@@ -20,7 +20,7 @@ use bp_messages::MessageNonce;
 use codec::Encode;
 use frame_support::weights::Weight;
 use relay_substrate_client::{
-	Chain, ChainBase, ChainWithBalances, ChainWithMessages, Error as SubstrateError, SignParam,
+	Chain, ChainBase, ChainWithBalances, ChainWithMessages, ChainWithSystemPallet, Error as SubstrateError, SignParam,
 	TransactionSignScheme, UnsignedTransaction,
 };
 use sp_core::{storage::StorageKey, Pair};
@@ -67,6 +67,11 @@ impl Chain for RialtoParachain {
 	type SignedBlock = rialto_parachain_runtime::SignedBlock;
 	type Call = rialto_parachain_runtime::Call;
 	type WeightToFee = bp_rialto_parachain::WeightToFee;
+}
+
+impl ChainWithSystemPallet for RialtoParachain {
+	const SYSTEM_PALLET_INDEX: u8 = 0;
+	const SYSTEM_PALLET_NAME: &'static str = "System";
 }
 
 impl ChainWithBalances for RialtoParachain {

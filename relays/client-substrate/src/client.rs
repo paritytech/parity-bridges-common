@@ -17,7 +17,7 @@
 //! Substrate node client.
 
 use crate::{
-	chain::{Chain, ChainWithBalances},
+	chain::{Chain, ChainWithBalances, ChainWithSystemPallet},
 	rpc::{
 		SubstrateAuthorClient, SubstrateChainClient, SubstrateFrameSystemClient,
 		SubstrateGrandpaClient, SubstrateStateClient, SubstrateSystemClient,
@@ -467,7 +467,8 @@ impl<C: Chain> Client<C> {
 		prepare_extrinsic: impl FnOnce(HeaderIdOf<C>, C::Index) -> Result<UnsignedTransaction<C>>
 			+ Send
 			+ 'static,
-	) -> Result<TransactionTracker<C, Self>> {
+	) -> Result<TransactionTracker<C, Self>> where C: ChainWithSystemPallet,
+	{
 		let self_clone = self.clone();
 		let _guard = self.submit_signed_extrinsic_lock.lock().await;
 		let transaction_nonce = self.next_account_index(extrinsic_signer).await?;

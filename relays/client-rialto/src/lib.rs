@@ -20,7 +20,7 @@ use bp_messages::MessageNonce;
 use codec::{Compact, Decode, Encode};
 use frame_support::weights::Weight;
 use relay_substrate_client::{
-	BalanceOf, Chain, ChainBase, ChainWithBalances, ChainWithGrandpa, ChainWithMessages,
+	BalanceOf, Chain, ChainBase, ChainWithBalances, ChainWithGrandpa, ChainWithMessages, ChainWithSystemPallet,
 	Error as SubstrateError, IndexOf, RelayChain, SignParam, TransactionSignScheme,
 	UnsignedTransaction,
 };
@@ -93,6 +93,11 @@ impl ChainWithMessages for Rialto {
 	const MAX_UNCONFIRMED_MESSAGES_IN_CONFIRMATION_TX: MessageNonce =
 		bp_rialto::MAX_UNCONFIRMED_MESSAGES_IN_CONFIRMATION_TX;
 	type WeightInfo = ();
+}
+
+impl ChainWithSystemPallet for Rialto {
+	const SYSTEM_PALLET_INDEX: u8 = 0;
+	const SYSTEM_PALLET_NAME: &'static str = "System";
 }
 
 impl ChainWithBalances for Rialto {

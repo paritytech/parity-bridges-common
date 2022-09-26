@@ -8536,6 +8536,7 @@ dependencies = [
  "bp-header-chain",
  "bp-messages",
  "bp-runtime",
+ "env_logger 0.8.4",
  "finality-relay",
  "frame-support",
  "frame-system",

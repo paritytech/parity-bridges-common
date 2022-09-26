@@ -20,7 +20,7 @@ use bp_messages::MessageNonce;
 use codec::{Compact, Decode, Encode};
 use frame_support::weights::Weight;
 use relay_substrate_client::{
-	BalanceOf, Chain, ChainBase, ChainWithBalances, ChainWithGrandpa, ChainWithMessages,
+	BalanceOf, Chain, ChainBase, ChainWithBalances, ChainWithGrandpa, ChainWithMessages, ChainWithSystemPallet,
 	Error as SubstrateError, IndexOf, SignParam, TransactionSignScheme, UnsignedTransaction,
 };
 use sp_core::{storage::StorageKey, Pair};
@@ -86,6 +86,11 @@ impl Chain for Millau {
 	type SignedBlock = millau_runtime::SignedBlock;
 	type Call = millau_runtime::Call;
 	type WeightToFee = bp_millau::WeightToFee;
+}
+
+impl ChainWithSystemPallet for Millau {
+	const SYSTEM_PALLET_INDEX: u8 = 0;
+	const SYSTEM_PALLET_NAME: &'static str = "System";
 }
 
 impl ChainWithBalances for Millau {
