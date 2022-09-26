@@ -16,35 +16,12 @@
 
 //! Helper for tracking transaction invalidation events.
 
-use crate::{Chain, Client, Error, HashOf, Subscription, TransactionStatusOf};
+use crate::{Chain, HashOf, Subscription, TransactionStatusOf};
 
 use async_trait::async_trait;
 use futures::{future::Either, Future, FutureExt, Stream, StreamExt};
 use relay_utils::TrackedTransactionStatus;
-use sp_runtime::DispatchResult;
 use std::time::Duration;
-
-/// Transaction tracker environment.
-#[async_trait]
-pub trait Environment<C: Chain>: Send + Sync {
-	/// Return dispatch resultof given extrinsic at given block.
-	async fn extrinsic_dispatch_result(
-		&self,
-		block_hash: HashOf<C>,
-		transaction_hash: HashOf<C>,
-	) -> Result<DispatchResult, Error>;
-}
-
-#[async_trait]
-impl<C: Chain> Environment<C> for Client<C> {
-	async fn extrinsic_dispatch_result(
-		&self,
-		block_hash: HashOf<C>,
-		transaction_hash: HashOf<C>,
-	) -> Result<DispatchResult, Error> {
-		unimplemented!("TODO")
-	}
-}
 
 /// Substrate transaction tracker implementation.
 ///
@@ -66,22 +43,20 @@ impl<C: Chain> Environment<C> for Client<C> {
 ///    it is lost.
 ///
 /// This struct implements third option as it seems to be the most optimal.
-pub struct TransactionTracker<C: Chain, E> {
-	environment: E,
+pub struct TransactionTracker<C: Chain> {
 	transaction_hash: HashOf<C>,
 	stall_timeout: Duration,
 	subscription: Subscription<TransactionStatusOf<C>>,
 }
 
-impl<C: Chain, E: Environment<C>> TransactionTracker<C, E> {
+impl<C: Chain> TransactionTracker<C> {
 	/// Create transaction tracker.
 	pub fn new(
-		environment: E,
 		stall_timeout: Duration,
 		transaction_hash: HashOf<C>,
 		subscription: Subscription<TransactionStatusOf<C>>,
 	) -> Self {
-		Self { environment, stall_timeout, transaction_hash, subscription }
+		Self { stall_timeout, transaction_hash, subscription }
 	}
 
 	/// Wait for final transaction status and return it along with last known internal invalidation
@@ -93,8 +68,7 @@ impl<C: Chain, E: Environment<C>> TransactionTracker<C, E> {
 	) -> (TrackedTransactionStatus, Option<InvalidationStatus>) {
 		// sometimes we want to wait for the rest of the stall timeout even if
 		// `wait_for_invalidation` has been "select"ed first => it is shared
-		let wait_for_invalidation = watch_transaction_status::<C, _, _>(
-			self.environment,
+		let wait_for_invalidation = watch_transaction_status::<C, _>(
 			self.transaction_hash,
 			self.subscription.into_stream(),
 		);
@@ -137,7 +111,7 @@ impl<C: Chain, E: Environment<C>> TransactionTracker<C, E> {
 }
 
 #[async_trait]
-impl<C: Chain, E: Environment<C>> relay_utils::TransactionTracker for TransactionTracker<C, E> {
+impl<C: Chain> relay_utils::TransactionTracker for TransactionTracker<C> {
 	async fn wait(self) -> TrackedTransactionStatus {
 		let wait_for_stall_timeout = async_std::task::sleep(self.stall_timeout).shared();
 		let wait_for_stall_timeout_rest = wait_for_stall_timeout.clone();
@@ -161,16 +135,10 @@ enum InvalidationStatus {
 }
 
 /// Watch for transaction status until transaction is finalized or we lose track of its status.
-async fn watch_transaction_status<
-	C: Chain,
-	E: Environment<C>,
-	S: Stream<Item = TransactionStatusOf<C>>,
->(
-	environment: E,
+async fn watch_transaction_status<C: Chain, S: Stream<Item = TransactionStatusOf<C>>>(
 	transaction_hash: HashOf<C>,
 	subscription: S,
 ) -> InvalidationStatus {
-	let mut extrinsic_dispatch_result = None;
 	futures::pin_mut!(subscription);
 
 	loop {
@@ -185,25 +153,7 @@ async fn watch_transaction_status<
 					transaction_hash,
 					block_hash,
 				);
-
-				// we either know dispatch result and then we may return "proper" status to the
-				// caller, or we simply return "Finalized", hoping that
-				match extrinsic_dispatch_result {
-					Some(Ok(_)) => {
-						// we know that the transaction has succeeded => let's return `Finalized`
-						return InvalidationStatus::Finalized
-					},
-					Some(Err(_)) => {
-						// we know that the transaction has failed => let's return `Invalid`
-						return InvalidationStatus::Invalid
-					},
-					None => {
-						// we don't know if our transaction has succeeded or failed => let's return
-						// `Lost` and wait for the rest of stall timeout before returning to the
-						// caller
-						return InvalidationStatus::Lost
-					},
-				}
+				return InvalidationStatus::Finalized
 			},
 			Some(TransactionStatusOf::<C>::Invalid) => {
 				// if node says that the transaction is invalid, there are still chances that
@@ -226,36 +176,15 @@ async fn watch_transaction_status<
 				// nothing important (for us) has happened
 			},
 			Some(TransactionStatusOf::<C>::InBlock(block_hash)) => {
-				let mut s_extrinsic_dispatch_result = String::default();
-
-				// we are reading dispatch result here, because there may be a situation when the
-				// state will be already discarded when we receive a finalization notification.
-				// Reading it here decreases chances of seeing this error.
-				extrinsic_dispatch_result =
-					match environment.extrinsic_dispatch_result(block_hash, transaction_hash).await
-					{
-						Ok(result) => {
-							s_extrinsic_dispatch_result = format!("{:?}", result);
-							Some(result)
-						},
-						Err(e) => {
-							// we have failed to read extrinsic status at given block, so we have
-							// two options here: 1) consider transaction as succeeded - but then if
-							// it has actually failed, the relay    loop may stall forever if there
-							// are no concurrent relayers running; 2) consider transaction as failed
-							// - it seems better, but let's not fail right now and    wait for stall
-							// timeout to expire
-							s_extrinsic_dispatch_result = "<unknown>".into();
-							None
-						},
-					};
+				// TODO: read matching system event (ExtrinsicSuccess or ExtrinsicFailed), log it
+				// here and use it later (on finality) for reporting invalid transaction
+				// https://github.com/paritytech/parity-bridges-common/issues/1464
 				log::trace!(
 					target: "bridge",
-					"{} transaction {:?} has been included in block: {:?}. Result: {}",
+					"{} transaction {:?} has been included in block: {:?}",
 					C::NAME,
 					transaction_hash,
 					block_hash,
-					s_extrinsic_dispatch_result,
 				);
 			},
 			Some(TransactionStatusOf::<C>::Retracted(block_hash)) => {
