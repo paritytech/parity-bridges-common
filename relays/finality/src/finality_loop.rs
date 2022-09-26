@@ -291,7 +291,7 @@ pub(crate) async fn run_until_connection_lost<P: FinalitySyncPipeline>(
 		select! {
 			transaction_status = last_transaction_tracker => {
 				match transaction_status {
-					TrackedTransactionStatus::Finalized => {
+					TrackedTransactionStatus::Finalized(_) => {
 						// transaction has been finalized, but it may have been finalized in the "failed" state. So
 						// let's check if the block number has been actually updated. If it is not, then we are stalled.
 						//
@@ -300,7 +300,7 @@ pub(crate) async fn run_until_connection_lost<P: FinalitySyncPipeline>(
 						target_client
 							.best_finalized_source_block_id()
 							.await
-							.map_err(|e| format!("{:?}", e))
+							.map_err(|e| format!("failed to read best block from target node: {:?}", e))
 							.and_then(|best_id_at_target| {
 								let last_submitted_header_number = last_submitted_header_number
 									.expect("always Some when last_transaction_tracker is set;\

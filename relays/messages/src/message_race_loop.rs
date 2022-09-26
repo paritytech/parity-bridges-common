@@ -419,7 +419,7 @@ pub async fn run<P: MessageRace, SC: SourceClient<P>, TC: TargetClient<P>>(
 				).fail_if_connection_error(FailedClient::Target)?;
 			},
 			target_transaction_status = target_tx_tracker => {
-				if target_transaction_status == TrackedTransactionStatus::Lost {
+				if matches!(target_transaction_status, TrackedTransactionStatus::Lost) {
 					log::warn!(
 						target: "bridge",
 						"{} -> {} race has stalled. State: {:?}. Strategy: {:?}",

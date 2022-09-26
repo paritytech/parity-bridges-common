@@ -529,17 +529,19 @@ pub(crate) mod tests {
 	}
 
 	#[derive(Clone, Debug)]
-	pub struct TestTransactionTracker(TrackedTransactionStatus);
+	pub struct TestTransactionTracker(TrackedTransactionStatus<TestTargetHeaderId>);
 
 	impl Default for TestTransactionTracker {
 		fn default() -> TestTransactionTracker {
-			TestTransactionTracker(TrackedTransactionStatus::Finalized)
+			TestTransactionTracker(TrackedTransactionStatus::Finalized(Default::default()))
 		}
 	}
 
 	#[async_trait]
 	impl TransactionTracker for TestTransactionTracker {
-		async fn wait(self) -> TrackedTransactionStatus {
+		type HeaderId = TestTargetHeaderId;
+
+		async fn wait(self) -> TrackedTransactionStatus<TestTargetHeaderId> {
 			self.0
 		}
 	}
@@ -551,14 +553,14 @@ pub(crate) mod tests {
 		source_state: SourceClientState<TestMessageLane>,
 		source_latest_generated_nonce: MessageNonce,
 		source_latest_confirmed_received_nonce: MessageNonce,
-		source_tracked_transaction_status: TrackedTransactionStatus,
+		source_tracked_transaction_status: TrackedTransactionStatus<TestTargetHeaderId>,
 		submitted_messages_receiving_proofs: Vec<TestMessagesReceivingProof>,
 		is_target_fails: bool,
 		is_target_reconnected: bool,
 		target_state: SourceClientState<TestMessageLane>,
 		target_latest_received_nonce: MessageNonce,
 		target_latest_confirmed_received_nonce: MessageNonce,
-		target_tracked_transaction_status: TrackedTransactionStatus,
+		target_tracked_transaction_status: TrackedTransactionStatus<TestTargetHeaderId>,
 		submitted_messages_proofs: Vec<TestMessagesProof>,
 		target_to_source_header_required: Option<TestTargetHeaderId>,
 		target_to_source_header_requirements: Vec<TestTargetHeaderId>,
@@ -574,14 +576,20 @@ pub(crate) mod tests {
 				source_state: Default::default(),
 				source_latest_generated_nonce: 0,
 				source_latest_confirmed_received_nonce: 0,
-				source_tracked_transaction_status: TrackedTransactionStatus::Finalized,
+				source_tracked_transaction_status: TrackedTransactionStatus::Finalized(HeaderId(
+					0,
+					Default::default(),
+				)),
 				submitted_messages_receiving_proofs: Vec::new(),
 				is_target_fails: false,
 				is_target_reconnected: false,
 				target_state: Default::default(),
 				target_latest_received_nonce: 0,
 				target_latest_confirmed_received_nonce: 0,
-				target_tracked_transaction_status: TrackedTransactionStatus::Finalized,
+				target_tracked_transaction_status: TrackedTransactionStatus::Finalized(HeaderId(
+					0,
+					Default::default(),
+				)),
 				submitted_messages_proofs: Vec::new(),
 				target_to_source_header_required: None,
 				target_to_source_header_requirements: Vec::new(),
@@ -976,7 +984,8 @@ pub(crate) mod tests {
 			},
 			Arc::new(move |data: &mut TestClientData| {
 				if data.is_source_reconnected {
-					data.source_tracked_transaction_status = TrackedTransactionStatus::Finalized;
+					data.source_tracked_transaction_status =
+						TrackedTransactionStatus::Finalized(Default::default());
 				}
 				if data.is_source_reconnected && data.is_target_reconnected {
 					source_exit_sender.unbounded_send(()).unwrap();
@@ -984,7 +993,8 @@ pub(crate) mod tests {
 			}),
 			Arc::new(move |data: &mut TestClientData| {
 				if data.is_target_reconnected {
-					data.target_tracked_transaction_status = TrackedTransactionStatus::Finalized;
+					data.target_tracked_transaction_status =
+						TrackedTransactionStatus::Finalized(Default::default());
 				}
 				if data.is_source_reconnected && data.is_target_reconnected {
 					target_exit_sender.unbounded_send(()).unwrap();

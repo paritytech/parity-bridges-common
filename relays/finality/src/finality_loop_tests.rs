@@ -48,17 +48,19 @@ type TestNumber = u64;
 type TestHash = u64;
 
 #[derive(Clone, Debug)]
-struct TestTransactionTracker(TrackedTransactionStatus);
+struct TestTransactionTracker(TrackedTransactionStatus<HeaderId<TestHash, TestNumber>>);
 
 impl Default for TestTransactionTracker {
 	fn default() -> TestTransactionTracker {
-		TestTransactionTracker(TrackedTransactionStatus::Finalized)
+		TestTransactionTracker(TrackedTransactionStatus::Finalized(Default::default()))
 	}
 }
 
 #[async_trait]
 impl TransactionTracker for TestTransactionTracker {
-	async fn wait(self) -> TrackedTransactionStatus {
+	type HeaderId = HeaderId<TestHash, TestNumber>;
+
+	async fn wait(self) -> TrackedTransactionStatus<HeaderId<TestHash, TestNumber>> {
 		self.0
 	}
 }
@@ -224,7 +226,9 @@ fn prepare_test_clients(
 
 		target_best_block_id: HeaderId(5, 5),
 		target_headers: vec![],
-		target_transaction_tracker: TestTransactionTracker(TrackedTransactionStatus::Finalized),
+		target_transaction_tracker: TestTransactionTracker(TrackedTransactionStatus::Finalized(
+			Default::default(),
+		)),
 	}));
 	(
 		TestSourceClient {
