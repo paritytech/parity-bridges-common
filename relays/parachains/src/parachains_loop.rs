@@ -596,8 +596,16 @@ where
 		// if underlying transaction tracker has reported that the transaction is lost, we may
 		// then restart our sync
 		let transaction_tracker = self.transaction_tracker.clone();
-		if let Poll::Ready(TrackedTransactionStatus::Lost) = poll!(transaction_tracker) {
-			return SubmittedHeadsStatus::Final(TrackedTransactionStatus::Lost)
+		match poll!(transaction_tracker) {
+			Poll::Ready(TrackedTransactionStatus::Lost) => {
+				return SubmittedHeadsStatus::Final(TrackedTransactionStatus::Lost)
+			},
+			Poll::Ready(TrackedTransactionStatus::Finalized) => {
+				// so we are here and our transaction is mined+finalized, but some of heads were not
+				// updated => we're considering our loop as stalled
+				return SubmittedHeadsStatus::Final(TrackedTransactionStatus::Lost)
+			},
+			_ => (),
 		}
 
 		SubmittedHeadsStatus::Waiting(self)
@@ -644,12 +652,15 @@ mod tests {
 	}
 
 	#[derive(Clone, Debug)]
-	struct TestTransactionTracker(TrackedTransactionStatus);
+	struct TestTransactionTracker(Option<TrackedTransactionStatus>);
 
 	#[async_trait]
 	impl TransactionTracker for TestTransactionTracker {
 		async fn wait(self) -> TrackedTransactionStatus {
-			self.0
+			match self.0 {
+				Some(status) => status,
+				None => futures::future::pending().await,
+			}
 		}
 	}
 
@@ -785,7 +796,7 @@ mod tests {
 			if let Some(mut exit_signal_sender) = data.exit_signal_sender.take() {
 				exit_signal_sender.send(()).await.unwrap();
 			}
-			Ok(TestTransactionTracker(TrackedTransactionStatus::Finalized))
+			Ok(TestTransactionTracker(Some(TrackedTransactionStatus::Finalized)))
 		}
 	}
 
@@ -938,8 +949,29 @@ mod tests {
 		SubmittedHeadsTracker::new(
 			vec![ParaId(PARA_ID), ParaId(PARA_1_ID)],
 			SOURCE_BLOCK_NUMBER,
-			TestTransactionTracker(TrackedTransactionStatus::Finalized),
+			TestTransactionTracker(None),
 		)
+	}
+
+	fn all_expected_tracker_heads() -> BTreeMap<ParaId, Option<BestParaHeadHash>> {
+		vec![
+			(
+				ParaId(PARA_ID),
+				Some(BestParaHeadHash {
+					at_relay_block_number: SOURCE_BLOCK_NUMBER,
+					head_hash: PARA_0_HASH,
+				}),
+			),
+			(
+				ParaId(PARA_1_ID),
+				Some(BestParaHeadHash {
+					at_relay_block_number: SOURCE_BLOCK_NUMBER,
+					head_hash: PARA_0_HASH,
+				}),
+			),
+		]
+		.into_iter()
+		.collect()
 	}
 
 	impl From<SubmittedHeadsStatus<TestParachainsPipeline>> for Option<BTreeSet<ParaId>> {
@@ -1005,51 +1037,40 @@ mod tests {
 	async fn tx_tracker_update_when_all_heads_are_updated() {
 		assert_eq!(
 			Option::<BTreeSet<_>>::None,
-			test_tx_tracker()
-				.update(
-					&vec![
-						(
-							ParaId(PARA_ID),
-							Some(BestParaHeadHash {
-								at_relay_block_number: SOURCE_BLOCK_NUMBER,
-								head_hash: PARA_0_HASH,
-							})
-						),
-						(
-							ParaId(PARA_1_ID),
-							Some(BestParaHeadHash {
-								at_relay_block_number: SOURCE_BLOCK_NUMBER,
-								head_hash: PARA_0_HASH,
-							})
-						),
-					]
-					.into_iter()
-					.collect()
-				)
-				.await
-				.into(),
+			test_tx_tracker().update(&all_expected_tracker_heads()).await.into(),
 		);
 	}
 
 	#[async_std::test]
-	async fn tx_tracker_update_when_tx_is_stalled() {
+	async fn tx_tracker_update_when_tx_is_lost() {
 		let mut tx_tracker = test_tx_tracker();
 		tx_tracker.transaction_tracker =
 			futures::future::ready(TrackedTransactionStatus::Lost).boxed().shared();
-		assert_eq!(
-			Option::<BTreeSet<_>>::None,
-			tx_tracker.update(&vec![].into_iter().collect()).await.into(),
-		);
+		assert!(matches!(
+			tx_tracker.update(&vec![].into_iter().collect()).await,
+			SubmittedHeadsStatus::Final(TrackedTransactionStatus::Lost),
+		));
 	}
 
 	#[async_std::test]
-	async fn tx_tracker_update_when_tx_is_finalized() {
+	async fn tx_tracker_update_when_tx_is_finalized_but_heads_are_not_updated() {
 		let mut tx_tracker = test_tx_tracker();
 		tx_tracker.transaction_tracker =
 			futures::future::ready(TrackedTransactionStatus::Finalized).boxed().shared();
 		assert!(matches!(
 			tx_tracker.update(&vec![].into_iter().collect()).await,
-			SubmittedHeadsStatus::Waiting(_),
+			SubmittedHeadsStatus::Final(TrackedTransactionStatus::Lost),
+		));
+	}
+
+	#[async_std::test]
+	async fn tx_tracker_update_when_tx_is_finalized_and_heads_are_updated() {
+		let mut tx_tracker = test_tx_tracker();
+		tx_tracker.transaction_tracker =
+			futures::future::ready(TrackedTransactionStatus::Finalized).boxed().shared();
+		assert!(matches!(
+			tx_tracker.update(&all_expected_tracker_heads()).await,
+			SubmittedHeadsStatus::Final(TrackedTransactionStatus::Finalized),
 		));
 	}
 
