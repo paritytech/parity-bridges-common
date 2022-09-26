@@ -129,7 +129,7 @@ pub struct NoncesSubmitArtifacts<T> {
 #[async_trait]
 pub trait SourceClient<P: MessageLane>: RelayClient {
 	/// Transaction tracker to track submitted transactions.
-	type TransactionTracker: TransactionTracker;
+	type TransactionTracker: TransactionTracker<HeaderId = SourceHeaderIdOf<P>>;
 
 	/// Returns state of the client.
 	async fn state(&self) -> Result<SourceClientState<P>, Self::Error>;
@@ -182,7 +182,7 @@ pub trait SourceClient<P: MessageLane>: RelayClient {
 #[async_trait]
 pub trait TargetClient<P: MessageLane>: RelayClient {
 	/// Transaction tracker to track submitted transactions.
-	type TransactionTracker: TransactionTracker;
+	type TransactionTracker: TransactionTracker<HeaderId = TargetHeaderIdOf<P>>;
 
 	/// Returns state of the client.
 	async fn state(&self) -> Result<TargetClientState<P>, Self::Error>;
