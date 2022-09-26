@@ -17,7 +17,7 @@
 //! Types used to connect to the Westend chain.
 
 use frame_support::weights::Weight;
-use relay_substrate_client::{Chain, ChainBase, ChainWithBalances, ChainWithGrandpa, ChainWithSystemPallet, RelayChain};
+use relay_substrate_client::{Chain, ChainBase, ChainWithBalances, ChainWithGrandpa, RelayChain};
 use sp_core::storage::StorageKey;
 use std::time::Duration;
 
@@ -73,11 +73,6 @@ impl RelayChain for Westend {
 impl ChainWithGrandpa for Westend {
 	const WITH_CHAIN_GRANDPA_PALLET_NAME: &'static str =
 		bp_westend::WITH_WESTEND_GRANDPA_PALLET_NAME;
-}
-
-impl ChainWithSystemPallet for Westend {
-	const SYSTEM_PALLET_INDEX: u8 = 0;
-	const SYSTEM_PALLET_NAME: &'static str = "System";
 }
 
 impl ChainWithBalances for Westend {

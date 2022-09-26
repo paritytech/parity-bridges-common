@@ -17,7 +17,7 @@
 //! Types used to connect to the Rococo-Substrate chain.
 
 use frame_support::weights::Weight;
-use relay_substrate_client::{Chain, ChainBase, ChainWithBalances, ChainWithGrandpa, ChainWithSystemPallet};
+use relay_substrate_client::{Chain, ChainBase, ChainWithBalances, ChainWithGrandpa};
 use sp_core::storage::StorageKey;
 use std::time::Duration;
 
@@ -66,11 +66,6 @@ impl Chain for Rococo {
 
 impl ChainWithGrandpa for Rococo {
 	const WITH_CHAIN_GRANDPA_PALLET_NAME: &'static str = bp_rococo::WITH_ROCOCO_GRANDPA_PALLET_NAME;
-}
-
-impl ChainWithSystemPallet for Rococo {
-	const SYSTEM_PALLET_INDEX: u8 = 0;
-	const SYSTEM_PALLET_NAME: &'static str = "System";
 }
 
 impl ChainWithBalances for Rococo {

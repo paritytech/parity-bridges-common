@@ -16,13 +16,12 @@
 
 //! Helper for tracking transaction invalidation events.
 
-use crate::{BlockWithJustification, Chain, ChainWithSystemPallet, Client, Error, HashOf, Subscription, TransactionStatusOf};
+use crate::{Chain, Client, Error, HashOf, Subscription, TransactionStatusOf};
 
 use async_trait::async_trait;
-use bp_runtime::HasherOf;
 use futures::{future::Either, Future, FutureExt, Stream, StreamExt};
 use relay_utils::TrackedTransactionStatus;
-use sp_runtime::{traits::Hash, DispatchResult};
+use sp_runtime::DispatchResult;
 use std::time::Duration;
 
 /// Transaction tracker environment.
@@ -37,19 +36,12 @@ pub trait Environment<C: Chain>: Send + Sync {
 }
 
 #[async_trait]
-impl<C: ChainWithSystemPallet> Environment<C> for Client<C> {
+impl<C: Chain> Environment<C> for Client<C> {
 	async fn extrinsic_dispatch_result(
 		&self,
 		block_hash: HashOf<C>,
 		transaction_hash: HashOf<C>,
 	) -> Result<DispatchResult, Error> {
-		let block = self.get_block(Some(block_hash)).await?;
-		let transaction_index = block
-			.extrinsics()
-			.iter()
-			.position(|xt| HasherOf::<C>::hash(xt) == transaction_hash)
-			.ok_or(Error::TransactionMissingFromTheBlock)?;
-		C::find_extrinsic_event
 		unimplemented!("TODO")
 	}
 }
@@ -325,29 +317,12 @@ mod tests {
 	use crate::test_chain::TestChain;
 	use futures::{FutureExt, SinkExt};
 	use sc_transaction_pool_api::TransactionStatus;
-	use sp_runtime::DispatchError;
-
-	struct TestEnvironment(Result<DispatchResult, Error>);
-
-	#[async_trait]
-	impl Environment<TestChain> for TestEnvironment {
-		async fn extrinsic_dispatch_result(
-			&self,
-			_block_hash: HashOf<TestChain>,
-			_transaction_hash: HashOf<TestChain>,
-		) -> Result<DispatchResult, Error> {
-			log::trace!(target: "bridge", "=== XXX: {:?}", self.0);
-			self.0.as_ref().map_err(|_| Error::TransactionMissingFromTheBlock).map(Clone::clone)
-		}
-	}
 
 	async fn on_transaction_status(
-		statuses: Vec<TransactionStatus<HashOf<TestChain>, HashOf<TestChain>>>,
-		dispatch_result: Result<DispatchResult, Error>,
+		status: TransactionStatus<HashOf<TestChain>, HashOf<TestChain>>,
 	) -> Option<(TrackedTransactionStatus, InvalidationStatus)> {
-		let (mut sender, receiver) = futures::channel::mpsc::channel(4);
-		let tx_tracker = TransactionTracker::<TestChain, _>::new(
-			TestEnvironment(dispatch_result),
+		let (mut sender, receiver) = futures::channel::mpsc::channel(1);
+		let tx_tracker = TransactionTracker::<TestChain>::new(
 			Duration::from_secs(0),
 			Default::default(),
 			Subscription(async_std::sync::Mutex::new(receiver)),
@@ -355,9 +330,7 @@ mod tests {
 
 		let wait_for_stall_timeout = futures::future::pending();
 		let wait_for_stall_timeout_rest = futures::future::ready(());
-		for status in statuses {
-			sender.send(Some(status)).await.unwrap();
-		}
+		sender.send(Some(status)).await.unwrap();
 		tx_tracker
 			.do_wait(wait_for_stall_timeout, wait_for_stall_timeout_rest)
 			.now_or_never()
@@ -365,60 +338,35 @@ mod tests {
 	}
 
 	#[async_std::test]
-	async fn returns_finalized_on_when_included_and_finalized_with_success() {
+	async fn returns_finalized_on_finalized() {
 		assert_eq!(
-			on_transaction_status(vec![
-				TransactionStatus::InBlock(Default::default()),
-				TransactionStatus::Finalized(Default::default())
-			], Ok(Ok(().into()))).await,
+			on_transaction_status(TransactionStatus::Finalized(Default::default())).await,
 			Some((TrackedTransactionStatus::Finalized, InvalidationStatus::Finalized)),
-		);
-	}
-
-	#[async_std::test]
-	async fn returns_invalid_on_when_included_and_finalized_with_error() {
-		assert_eq!(
-			on_transaction_status(vec![
-				TransactionStatus::InBlock(Default::default()),
-				TransactionStatus::Finalized(Default::default())
-			], Ok(Err(DispatchError::BadOrigin))).await,
-			Some((TrackedTransactionStatus::Lost, InvalidationStatus::Invalid)),
-		);
-	}
-
-	#[async_std::test]
-	async fn returns_lost_on_when_included_and_finalized_with_unknown_dispatch_result() {
-		assert_eq!(
-			on_transaction_status(vec![
-				TransactionStatus::InBlock(Default::default()),
-				TransactionStatus::Finalized(Default::default())
-			], Err(Error::TransactionMissingFromTheBlock)).await,
-			Some((TrackedTransactionStatus::Lost, InvalidationStatus::Lost)),
 		);
 	}
 
 	#[async_std::test]
 	async fn returns_invalid_on_invalid() {
 		assert_eq!(
-			on_transaction_status(vec![TransactionStatus::Invalid], Ok(Ok(().into()))).await,
+			on_transaction_status(TransactionStatus::Invalid).await,
 			Some((TrackedTransactionStatus::Lost, InvalidationStatus::Invalid)),
 		);
 	}
 
 	#[async_std::test]
 	async fn waits_on_future() {
-		assert_eq!(on_transaction_status(vec![TransactionStatus::Future], Ok(Ok(().into()))).await, None,);
+		assert_eq!(on_transaction_status(TransactionStatus::Future).await, None,);
 	}
 
 	#[async_std::test]
 	async fn waits_on_ready() {
-		assert_eq!(on_transaction_status(vec![TransactionStatus::Ready], Ok(Ok(().into()))).await, None,);
+		assert_eq!(on_transaction_status(TransactionStatus::Ready).await, None,);
 	}
 
 	#[async_std::test]
 	async fn waits_on_broadcast() {
 		assert_eq!(
-			on_transaction_status(vec![TransactionStatus::Broadcast(Default::default())], Ok(Ok(().into()))).await,
+			on_transaction_status(TransactionStatus::Broadcast(Default::default())).await,
 			None,
 		);
 	}
@@ -426,7 +374,7 @@ mod tests {
 	#[async_std::test]
 	async fn waits_on_in_block() {
 		assert_eq!(
-			on_transaction_status(vec![TransactionStatus::InBlock(Default::default())], Ok(Ok(().into()))).await,
+			on_transaction_status(TransactionStatus::InBlock(Default::default())).await,
 			None,
 		);
 	}
@@ -434,7 +382,7 @@ mod tests {
 	#[async_std::test]
 	async fn waits_on_retracted() {
 		assert_eq!(
-			on_transaction_status(vec![TransactionStatus::Retracted(Default::default())], Ok(Ok(().into()))).await,
+			on_transaction_status(TransactionStatus::Retracted(Default::default())).await,
 			None,
 		);
 	}
@@ -442,7 +390,7 @@ mod tests {
 	#[async_std::test]
 	async fn lost_on_finality_timeout() {
 		assert_eq!(
-			on_transaction_status(vec![TransactionStatus::FinalityTimeout(Default::default())], Ok(Ok(().into()))).await,
+			on_transaction_status(TransactionStatus::FinalityTimeout(Default::default())).await,
 			Some((TrackedTransactionStatus::Lost, InvalidationStatus::Lost)),
 		);
 	}
@@ -450,7 +398,7 @@ mod tests {
 	#[async_std::test]
 	async fn lost_on_usurped() {
 		assert_eq!(
-			on_transaction_status(vec![TransactionStatus::Usurped(Default::default())], Ok(Ok(().into()))).await,
+			on_transaction_status(TransactionStatus::Usurped(Default::default())).await,
 			Some((TrackedTransactionStatus::Lost, InvalidationStatus::Lost)),
 		);
 	}
@@ -458,7 +406,7 @@ mod tests {
 	#[async_std::test]
 	async fn lost_on_dropped() {
 		assert_eq!(
-			on_transaction_status(vec![TransactionStatus::Dropped], Ok(Ok(().into()))).await,
+			on_transaction_status(TransactionStatus::Dropped).await,
 			Some((TrackedTransactionStatus::Lost, InvalidationStatus::Lost)),
 		);
 	}
@@ -466,11 +414,8 @@ mod tests {
 	#[async_std::test]
 	async fn lost_on_subscription_error() {
 		assert_eq!(
-			watch_transaction_status::<TestChain, _, _>(
-				TestEnvironment(Ok(Ok(().into()))),
-				Default::default(),
-				futures::stream::iter([])
-			).now_or_never(),
+			watch_transaction_status::<TestChain, _>(Default::default(), futures::stream::iter([]))
+				.now_or_never(),
 			Some(InvalidationStatus::Lost),
 		);
 	}
@@ -478,8 +423,7 @@ mod tests {
 	#[async_std::test]
 	async fn lost_on_timeout_when_waiting_for_invalidation_status() {
 		let (_sender, receiver) = futures::channel::mpsc::channel(1);
-		let tx_tracker = TransactionTracker::<TestChain, _>::new(
-			TestEnvironment(Ok(Ok(().into()))),
+		let tx_tracker = TransactionTracker::<TestChain>::new(
 			Duration::from_secs(0),
 			Default::default(),
 			Subscription(async_std::sync::Mutex::new(receiver)),

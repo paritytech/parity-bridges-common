@@ -17,7 +17,7 @@
 //! Types used to connect to the Kusama chain.
 
 use frame_support::weights::Weight;
-use relay_substrate_client::{Chain, ChainBase, ChainWithBalances, ChainWithGrandpa, ChainWithSystemPallet};
+use relay_substrate_client::{Chain, ChainBase, ChainWithBalances, ChainWithGrandpa};
 use sp_core::storage::StorageKey;
 use std::time::Duration;
 
@@ -63,11 +63,6 @@ impl Chain for Kusama {
 
 impl ChainWithGrandpa for Kusama {
 	const WITH_CHAIN_GRANDPA_PALLET_NAME: &'static str = bp_kusama::WITH_KUSAMA_GRANDPA_PALLET_NAME;
-}
-
-impl ChainWithSystemPallet for Kusama {
-	const SYSTEM_PALLET_INDEX: u8 = 0;
-	const SYSTEM_PALLET_NAME: &'static str = "System";
 }
 
 impl ChainWithBalances for Kusama {

@@ -21,7 +21,7 @@
 
 #![cfg(any(feature = "test-helpers", test))]
 
-use crate::{Chain, ChainWithBalances, ChainWithSystemPallet};
+use crate::{Chain, ChainWithBalances};
 use frame_support::weights::{IdentityFee, Weight};
 use std::time::Duration;
 
@@ -61,11 +61,6 @@ impl Chain for TestChain {
 	>;
 	type Call = ();
 	type WeightToFee = IdentityFee<u32>;
-}
-
-impl ChainWithSystemPallet for TestChain {
-	const SYSTEM_PALLET_INDEX: u8 = 0;
-	const SYSTEM_PALLET_NAME: &'static str = "System";
 }
 
 impl ChainWithBalances for TestChain {
