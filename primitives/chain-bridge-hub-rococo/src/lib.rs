@@ -17,6 +17,8 @@
 //! Module with configuration which reflects BridgeHubRococo runtime setup (AccountId, Headers,
 //! Hashes...)
 
+#![cfg_attr(not(feature = "std"), no_std)]
+
 pub use bp_polkadot_core::*;
 use bp_runtime::decl_bridge_finality_runtime_apis;
 use frame_support::{parameter_types, sp_runtime::MultiAddress};
