@@ -85,7 +85,7 @@ impl<C: Chain, E: Environment<C>> TransactionTracker<C, E> {
 	) -> (TrackedTransactionStatus<HeaderIdOf<C>>, Option<InvalidationStatus<HeaderIdOf<C>>>) {
 		// sometimes we want to wait for the rest of the stall timeout even if
 		// `wait_for_invalidation` has been "select"ed first => it is shared
-		let wait_for_invalidation = watch_transaction_status::<C, _>(
+		let wait_for_invalidation = watch_transaction_status::<_, C, _>(
 			self.environment,
 			self.transaction_hash,
 			self.subscription.into_stream(),
@@ -155,8 +155,12 @@ enum InvalidationStatus<BlockId> {
 }
 
 /// Watch for transaction status until transaction is finalized or we lose track of its status.
-async fn watch_transaction_status<C: Chain, S: Stream<Item = TransactionStatusOf<C>>>(
-	environment: impl Environment<C>,
+async fn watch_transaction_status<
+	E: Environment<C>,
+	C: Chain,
+	S: Stream<Item = TransactionStatusOf<C>>,
+>(
+	environment: E,
 	transaction_hash: HashOf<C>,
 	subscription: S,
 ) -> InvalidationStatus<HeaderIdOf<C>> {
@@ -333,7 +337,7 @@ mod tests {
 	#[async_std::test]
 	async fn returns_lost_on_finalized_and_environment_error() {
 		assert_eq!(
-			watch_transaction_status::<TestChain, _>(
+			watch_transaction_status::<_, TestChain, _>(
 				TestEnvironment(Err(Error::UninitializedBridgePallet)),
 				Default::default(),
 				futures::stream::iter([TransactionStatus::Finalized(Default::default())])
@@ -412,7 +416,7 @@ mod tests {
 	#[async_std::test]
 	async fn lost_on_subscription_error() {
 		assert_eq!(
-			watch_transaction_status::<TestChain, _>(
+			watch_transaction_status::<_, TestChain, _>(
 				TestEnvironment(Ok(HeaderId(0, Default::default()))),
 				Default::default(),
 				futures::stream::iter([])
