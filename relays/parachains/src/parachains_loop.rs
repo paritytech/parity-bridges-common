@@ -535,8 +535,16 @@ enum SubmittedHeadsStatus<P: ParachainsPipeline> {
 /// Type of the transaction tracker that the `SubmittedHeadsTracker` is using.
 ///
 /// It needs to be shared because of `poll` macro and our consuming `update` method.
-type SharedTransactionTracker = Shared<
-	Pin<Box<dyn Future<Output = TrackedTransactionStatus<HeaderIdOf<P::TargetChain>>> + Send>>,
+type SharedTransactionTracker<P> = Shared<
+	Pin<
+		Box<
+			dyn Future<
+					Output = TrackedTransactionStatus<
+						HeaderIdOf<<P as ParachainsPipeline>::TargetChain>,
+					>,
+				> + Send,
+		>,
+	>,
 >;
 
 /// Submitted parachain heads transaction.
@@ -548,7 +556,7 @@ struct SubmittedHeadsTracker<P: ParachainsPipeline> {
 	/// Future that waits for submitted transaction finality or loss.
 	///
 	/// It needs to be shared because of `poll` macro and our consuming `update` method.
-	transaction_tracker: SharedTransactionTracker,
+	transaction_tracker: SharedTransactionTracker<P>,
 }
 
 impl<P: ParachainsPipeline> SubmittedHeadsTracker<P>
