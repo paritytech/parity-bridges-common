@@ -710,15 +710,10 @@ dependencies = [
 name = "bp-kusama"
 version = "0.1.0"
 dependencies = [
- "bp-messages",
  "bp-polkadot-core",
  "bp-runtime",
- "frame-support",
  "smallvec",
  "sp-api",
- "sp-runtime",
- "sp-std",
- "sp-version",
 ]
 
 [[package]]
@@ -779,15 +774,10 @@ dependencies = [
 name = "bp-polkadot"
 version = "0.1.0"
 dependencies = [
- "bp-messages",
  "bp-polkadot-core",
  "bp-runtime",
- "frame-support",
  "smallvec",
  "sp-api",
- "sp-runtime",
- "sp-std",
- "sp-version",
 ]
 
 [[package]]
@@ -853,16 +843,10 @@ dependencies = [
 name = "bp-rococo"
 version = "0.1.0"
 dependencies = [
- "bp-messages",
  "bp-polkadot-core",
  "bp-runtime",
- "frame-support",
- "parity-scale-codec",
  "smallvec",
  "sp-api",
- "sp-runtime",
- "sp-std",
- "sp-version",
 ]
 
 [[package]]
@@ -907,28 +891,21 @@ dependencies = [
  "bp-header-chain",
  "bp-polkadot-core",
  "bp-runtime",
- "frame-support",
  "parity-scale-codec",
  "scale-info",
  "smallvec",
  "sp-api",
  "sp-runtime",
- "sp-std",
- "sp-version",
 ]
 
 [[package]]
 name = "bp-wococo"
 version = "0.1.0"
 dependencies = [
- "bp-messages",
  "bp-polkadot-core",
  "bp-rococo",
  "bp-runtime",
- "parity-scale-codec",
  "sp-api",
- "sp-runtime",
- "sp-std",
 ]
 
 [[package]]
