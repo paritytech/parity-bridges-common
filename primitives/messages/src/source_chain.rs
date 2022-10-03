@@ -278,8 +278,8 @@ impl<Payload, AccountId> TargetHeaderChain<Payload, AccountId> for ForbidOutboun
 	}
 }
 
-impl<SenderOrigin, Payload, Fee>
-	LaneMessageVerifier<SenderOrigin, Payload, Fee> for ForbidOutboundMessages
+impl<SenderOrigin, Payload, Fee> LaneMessageVerifier<SenderOrigin, Payload, Fee>
+	for ForbidOutboundMessages
 {
 	type Error = &'static str;
 
