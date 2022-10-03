@@ -298,7 +298,7 @@ impl TargetHeaderChain<TestPayload, TestRelayer> for TestTargetHeaderChain {
 #[derive(Debug, Default)]
 pub struct TestLaneMessageVerifier;
 
-impl LaneMessageVerifier<Origin, AccountId, TestPayload, TestMessageFee>
+impl LaneMessageVerifier<Origin, TestPayload, TestMessageFee>
 	for TestLaneMessageVerifier
 {
 	type Error = &'static str;
