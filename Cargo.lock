@@ -712,7 +712,6 @@ version = "0.1.0"
 dependencies = [
  "bp-polkadot-core",
  "bp-runtime",
- "smallvec",
  "sp-api",
 ]
 
@@ -723,7 +722,6 @@ dependencies = [
  "bitvec",
  "bp-runtime",
  "frame-support",
- "frame-system",
  "hex",
  "hex-literal",
  "impl-trait-for-tuples",
@@ -766,7 +764,6 @@ dependencies = [
  "frame-support",
  "parity-scale-codec",
  "scale-info",
- "serde",
  "sp-core",
 ]
 
@@ -793,11 +790,9 @@ dependencies = [
  "parity-util-mem",
  "scale-info",
  "serde",
- "sp-api",
  "sp-core",
  "sp-runtime",
  "sp-std",
- "sp-version",
 ]
 
 [[package]]
@@ -845,7 +840,6 @@ version = "0.1.0"
 dependencies = [
  "bp-polkadot-core",
  "bp-runtime",
- "smallvec",
  "sp-api",
 ]
 
@@ -888,12 +882,10 @@ dependencies = [
 name = "bp-westend"
 version = "0.1.0"
 dependencies = [
- "bp-header-chain",
  "bp-polkadot-core",
  "bp-runtime",
  "parity-scale-codec",
  "scale-info",
- "smallvec",
  "sp-api",
  "sp-runtime",
 ]
@@ -903,7 +895,6 @@ name = "bp-wococo"
 version = "0.1.0"
 dependencies = [
  "bp-polkadot-core",
- "bp-rococo",
  "bp-runtime",
  "sp-api",
 ]
@@ -921,12 +912,10 @@ dependencies = [
  "hash-db",
  "log",
  "millau-runtime",
- "num-traits",
  "pallet-balances",
  "pallet-bridge-grandpa",
  "pallet-bridge-messages",
  "pallet-bridge-parachains",
- "pallet-transaction-payment",
  "pallet-xcm",
  "parity-scale-codec",
  "scale-info",
@@ -934,10 +923,8 @@ dependencies = [
  "sp-core",
  "sp-io",
  "sp-runtime",
- "sp-state-machine",
  "sp-std",
  "sp-trie",
- "sp-version",
  "static_assertions",
  "xcm",
  "xcm-builder",
@@ -1892,28 +1879,6 @@ dependencies = [
  "sp-inherents",
  "sp-std",
  "sp-timestamp",
-]
-
-[[package]]
-name = "cumulus-primitives-utility"
-version = "0.1.0"
-source = "git+https://github.com/paritytech/cumulus?branch=gav-xcm-v3#516669814078a308e8de659979aa0f97e8d67eff"
-dependencies = [
- "cumulus-primitives-core",
- "frame-support",
- "log",
- "parity-scale-codec",
- "polkadot-core-primitives",
- "polkadot-parachain",
- "polkadot-primitives",
- "polkadot-runtime-common",
- "sp-io",
- "sp-runtime",
- "sp-std",
- "sp-trie",
- "xcm",
- "xcm-builder",
- "xcm-executor",
 ]
 
 [[package]]
@@ -3677,21 +3642,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "jsonrpc-core"
-version = "18.0.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "14f7f76aef2d054868398427f6c54943cf3d1caa9a7ec7d0c38d69df97a965eb"
-dependencies = [
- "futures",
- "futures-executor",
- "futures-util",
- "log",
- "serde",
- "serde_derive",
- "serde_json",
-]
-
-[[package]]
 name = "jsonrpsee"
 version = "0.15.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4907,15 +4857,12 @@ dependencies = [
  "beefy-gadget",
  "beefy-gadget-rpc",
  "beefy-primitives",
- "bp-millau",
- "bp-runtime",
  "clap 3.2.18",
  "frame-benchmarking",
  "frame-benchmarking-cli",
  "jsonrpsee",
  "millau-runtime",
  "node-inspect",
- "pallet-bridge-messages",
  "pallet-mmr-rpc",
  "pallet-transaction-payment-rpc",
  "sc-basic-authorship",
@@ -4947,7 +4894,6 @@ name = "millau-runtime"
 version = "0.1.0"
 dependencies = [
  "beefy-primitives",
- "bp-header-chain",
  "bp-messages",
  "bp-millau",
  "bp-polkadot-core",
@@ -4964,7 +4910,6 @@ dependencies = [
  "frame-system",
  "frame-system-rpc-runtime-api",
  "hex-literal",
- "libsecp256k1",
  "log",
  "pallet-aura",
  "pallet-balances",
@@ -4986,12 +4931,10 @@ dependencies = [
  "pallet-xcm",
  "parity-scale-codec",
  "scale-info",
- "serde",
  "sp-api",
  "sp-block-builder",
  "sp-consensus-aura",
  "sp-core",
- "sp-finality-grandpa",
  "sp-inherents",
  "sp-io",
  "sp-mmr-primitives",
@@ -5000,7 +4943,6 @@ dependencies = [
  "sp-session",
  "sp-std",
  "sp-transaction-pool",
- "sp-trie",
  "sp-version",
  "static_assertions",
  "substrate-wasm-builder",
@@ -5683,10 +5625,8 @@ dependencies = [
  "frame-support",
  "frame-system",
  "log",
- "num-traits",
  "parity-scale-codec",
  "scale-info",
- "serde",
  "sp-core",
  "sp-finality-grandpa",
  "sp-io",
@@ -5711,7 +5651,6 @@ dependencies = [
  "pallet-balances",
  "parity-scale-codec",
  "scale-info",
- "serde",
  "sp-core",
  "sp-io",
  "sp-runtime",
@@ -5734,8 +5673,6 @@ dependencies = [
  "pallet-bridge-grandpa",
  "parity-scale-codec",
  "scale-info",
- "serde",
- "sp-core",
  "sp-io",
  "sp-runtime",
  "sp-std",
@@ -5753,12 +5690,10 @@ dependencies = [
  "frame-support",
  "frame-system",
  "log",
- "num-traits",
  "pallet-balances",
  "pallet-bridge-messages",
  "parity-scale-codec",
  "scale-info",
- "serde",
  "sp-arithmetic",
  "sp-core",
  "sp-io",
@@ -6395,15 +6330,11 @@ version = "0.1.0"
 dependencies = [
  "async-std",
  "async-trait",
- "backoff",
  "bp-parachains",
  "bp-polkadot-core",
  "futures",
- "linked-hash-map",
  "log",
- "num-traits",
  "parity-scale-codec",
- "parking_lot 0.11.2",
  "relay-substrate-client",
  "relay-utils",
  "sp-core",
@@ -7806,121 +7737,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "polkadot-test-runtime"
-version = "0.9.27"
-source = "git+https://github.com/paritytech//polkadot?branch=locked-for-gav-xcm-v3-and-bridges#dd02a13f43b4fabb5293027d6977b59fb0050eed"
-dependencies = [
- "beefy-primitives",
- "bitvec",
- "frame-election-provider-support",
- "frame-executive",
- "frame-support",
- "frame-system",
- "frame-system-rpc-runtime-api",
- "log",
- "pallet-authority-discovery",
- "pallet-authorship",
- "pallet-babe",
- "pallet-balances",
- "pallet-grandpa",
- "pallet-indices",
- "pallet-offences",
- "pallet-session",
- "pallet-staking",
- "pallet-staking-reward-curve",
- "pallet-sudo",
- "pallet-timestamp",
- "pallet-transaction-payment",
- "pallet-transaction-payment-rpc-runtime-api",
- "pallet-vesting",
- "pallet-xcm",
- "parity-scale-codec",
- "polkadot-parachain",
- "polkadot-primitives",
- "polkadot-runtime-common",
- "polkadot-runtime-parachains",
- "rustc-hex",
- "scale-info",
- "serde",
- "serde_derive",
- "smallvec",
- "sp-api",
- "sp-authority-discovery",
- "sp-block-builder",
- "sp-consensus-babe",
- "sp-core",
- "sp-inherents",
- "sp-io",
- "sp-mmr-primitives",
- "sp-offchain",
- "sp-runtime",
- "sp-session",
- "sp-staking",
- "sp-std",
- "sp-transaction-pool",
- "sp-version",
- "substrate-wasm-builder",
- "test-runtime-constants",
- "xcm",
- "xcm-builder",
- "xcm-executor",
-]
-
-[[package]]
-name = "polkadot-test-service"
-version = "0.9.27"
-source = "git+https://github.com/paritytech//polkadot?branch=locked-for-gav-xcm-v3-and-bridges#dd02a13f43b4fabb5293027d6977b59fb0050eed"
-dependencies = [
- "frame-benchmarking",
- "frame-system",
- "futures",
- "hex",
- "pallet-balances",
- "pallet-staking",
- "pallet-transaction-payment",
- "polkadot-node-primitives",
- "polkadot-node-subsystem",
- "polkadot-overseer",
- "polkadot-parachain",
- "polkadot-primitives",
- "polkadot-rpc",
- "polkadot-runtime-common",
- "polkadot-runtime-parachains",
- "polkadot-service",
- "polkadot-test-runtime",
- "rand 0.8.5",
- "sc-authority-discovery",
- "sc-chain-spec",
- "sc-cli",
- "sc-client-api",
- "sc-consensus",
- "sc-consensus-babe",
- "sc-executor",
- "sc-finality-grandpa",
- "sc-network",
- "sc-network-common",
- "sc-service",
- "sc-tracing",
- "sc-transaction-pool",
- "sp-arithmetic",
- "sp-authority-discovery",
- "sp-blockchain",
- "sp-consensus",
- "sp-consensus-babe",
- "sp-core",
- "sp-finality-grandpa",
- "sp-inherents",
- "sp-keyring",
- "sp-runtime",
- "sp-state-machine",
- "substrate-test-client",
- "tempfile",
- "test-runtime-constants",
- "tokio",
- "tracing-gum",
-]
-
-[[package]]
 name = "polling"
 version = "2.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -8530,7 +8346,6 @@ dependencies = [
  "sc-chain-spec",
  "sc-rpc-api",
  "sc-transaction-pool-api",
- "serde",
  "sp-core",
  "sp-finality-grandpa",
  "sp-rpc",
@@ -8575,7 +8390,6 @@ dependencies = [
  "relay-substrate-client",
  "relay-utils",
  "sp-core",
- "sp-runtime",
 ]
 
 [[package]]
@@ -8640,78 +8454,34 @@ dependencies = [
 name = "rialto-bridge-node"
 version = "0.1.0"
 dependencies = [
- "beefy-gadget",
- "beefy-gadget-rpc",
  "beefy-primitives",
- "bp-rialto",
- "bp-runtime",
  "clap 3.2.18",
  "frame-benchmarking",
  "frame-benchmarking-cli",
- "frame-system-rpc-runtime-api",
- "futures",
- "jsonrpc-core",
- "kvdb",
- "kvdb-rocksdb",
- "lru 0.7.8",
  "node-inspect",
- "pallet-bridge-messages",
- "pallet-mmr-rpc",
- "pallet-transaction-payment-rpc",
- "pallet-transaction-payment-rpc-runtime-api",
  "polkadot-node-core-pvf",
  "polkadot-primitives",
  "polkadot-runtime-parachains",
  "polkadot-service",
  "rialto-runtime",
- "sc-authority-discovery",
- "sc-basic-authorship",
  "sc-cli",
- "sc-client-api",
- "sc-consensus",
- "sc-consensus-babe",
- "sc-consensus-slots",
- "sc-consensus-uncles",
  "sc-executor",
- "sc-finality-grandpa",
- "sc-finality-grandpa-rpc",
- "sc-keystore",
- "sc-network",
- "sc-rpc",
  "sc-service",
- "sc-telemetry",
- "sc-transaction-pool",
  "serde_json",
- "sp-api",
  "sp-authority-discovery",
- "sp-authorship",
- "sp-block-builder",
- "sp-blockchain",
- "sp-consensus",
  "sp-consensus-babe",
  "sp-core",
  "sp-finality-grandpa",
- "sp-inherents",
- "sp-mmr-primitives",
- "sp-offchain",
  "sp-runtime",
- "sp-session",
- "sp-timestamp",
- "sp-transaction-pool",
  "substrate-build-script-utils",
- "substrate-frame-rpc-system",
- "substrate-prometheus-endpoint",
- "thiserror",
 ]
 
 [[package]]
 name = "rialto-parachain-collator"
 version = "0.1.0"
 dependencies = [
- "bp-rialto-parachain",
  "clap 3.2.18",
  "cumulus-client-cli",
- "cumulus-client-collator",
  "cumulus-client-consensus-aura",
  "cumulus-client-consensus-common",
  "cumulus-client-network",
@@ -8720,20 +8490,15 @@ dependencies = [
  "cumulus-primitives-parachain-inherent",
  "cumulus-relay-chain-inprocess-interface",
  "cumulus-relay-chain-interface",
- "derive_more",
  "frame-benchmarking",
  "frame-benchmarking-cli",
- "hex-literal",
  "jsonrpsee",
  "log",
- "pallet-bridge-messages",
  "pallet-transaction-payment-rpc",
  "parity-scale-codec",
  "polkadot-cli",
- "polkadot-parachain",
  "polkadot-primitives",
  "polkadot-service",
- "polkadot-test-service",
  "rialto-parachain-runtime",
  "sc-basic-authorship",
  "sc-chain-spec",
@@ -8741,7 +8506,6 @@ dependencies = [
  "sc-client-api",
  "sc-consensus",
  "sc-executor",
- "sc-keystore",
  "sc-network",
  "sc-rpc",
  "sc-rpc-api",
@@ -8752,11 +8516,9 @@ dependencies = [
  "serde",
  "sp-api",
  "sp-block-builder",
- "sp-blockchain",
  "sp-consensus",
  "sp-consensus-aura",
  "sp-core",
- "sp-inherents",
  "sp-keystore",
  "sp-offchain",
  "sp-runtime",
@@ -8785,13 +8547,13 @@ dependencies = [
  "cumulus-pallet-xcmp-queue",
  "cumulus-primitives-core",
  "cumulus-primitives-timestamp",
- "cumulus-primitives-utility",
  "frame-benchmarking",
  "frame-executive",
  "frame-support",
  "frame-system",
  "frame-system-benchmarking",
  "frame-system-rpc-runtime-api",
+ "hex-literal",
  "log",
  "pallet-aura",
  "pallet-balances",
@@ -8808,7 +8570,6 @@ dependencies = [
  "parity-scale-codec",
  "polkadot-parachain",
  "scale-info",
- "serde",
  "sp-api",
  "sp-block-builder",
  "sp-consensus-aura",
@@ -8832,7 +8593,6 @@ name = "rialto-runtime"
 version = "0.1.0"
 dependencies = [
  "beefy-primitives",
- "bp-header-chain",
  "bp-messages",
  "bp-millau",
  "bp-relayers",
@@ -8845,8 +8605,6 @@ dependencies = [
  "frame-support",
  "frame-system",
  "frame-system-rpc-runtime-api",
- "hex-literal",
- "libsecp256k1",
  "log",
  "pallet-authority-discovery",
  "pallet-babe",
@@ -8870,13 +8628,11 @@ dependencies = [
  "polkadot-runtime-common",
  "polkadot-runtime-parachains",
  "scale-info",
- "serde",
  "sp-api",
  "sp-authority-discovery",
  "sp-block-builder",
  "sp-consensus-babe",
  "sp-core",
- "sp-finality-grandpa",
  "sp-inherents",
  "sp-io",
  "sp-mmr-primitives",
@@ -8885,7 +8641,6 @@ dependencies = [
  "sp-session",
  "sp-std",
  "sp-transaction-pool",
- "sp-trie",
  "sp-version",
  "static_assertions",
  "substrate-wasm-builder",
@@ -9449,17 +9204,6 @@ dependencies = [
  "sp-runtime",
  "sp-state-machine",
  "sp-timestamp",
- "thiserror",
-]
-
-[[package]]
-name = "sc-consensus-uncles"
-version = "0.10.0-dev"
-source = "git+https://github.com/paritytech//substrate?branch=sv-locked-for-gav-xcm-v3-and-bridges#57e3486d9c7bb4deaef33cf9ba2da083b4e40314"
-dependencies = [
- "sc-client-api",
- "sp-authorship",
- "sp-runtime",
  "thiserror",
 ]
 
@@ -11509,10 +11253,8 @@ dependencies = [
  "anyhow",
  "async-std",
  "async-trait",
- "bp-header-chain",
  "bp-messages",
  "bp-millau",
- "bp-parachains",
  "bp-polkadot-core",
  "bp-rialto",
  "bp-rialto-parachain",
@@ -11521,7 +11263,6 @@ dependencies = [
  "bp-westend",
  "bridge-runtime-common",
  "finality-grandpa",
- "finality-relay",
  "frame-support",
  "futures",
  "hex",
@@ -11531,7 +11272,6 @@ dependencies = [
  "millau-runtime",
  "num-format",
  "num-traits",
- "pallet-balances",
  "pallet-bridge-messages",
  "pallet-bridge-parachains",
  "parachains-relay",
@@ -11540,7 +11280,6 @@ dependencies = [
  "polkadot-primitives",
  "polkadot-runtime-common",
  "polkadot-runtime-parachains",
- "rand 0.8.5",
  "relay-millau-client",
  "relay-rialto-client",
  "relay-rialto-parachain-client",
@@ -11550,7 +11289,6 @@ dependencies = [
  "rialto-parachain-runtime",
  "rialto-runtime",
  "sp-core",
- "sp-io",
  "sp-keyring",
  "sp-runtime",
  "sp-version",
@@ -11624,32 +11362,6 @@ dependencies = [
  "sp-std",
  "sp-trie",
  "trie-db",
-]
-
-[[package]]
-name = "substrate-test-client"
-version = "2.0.1"
-source = "git+https://github.com/paritytech//substrate?branch=sv-locked-for-gav-xcm-v3-and-bridges#57e3486d9c7bb4deaef33cf9ba2da083b4e40314"
-dependencies = [
- "async-trait",
- "futures",
- "hex",
- "parity-scale-codec",
- "sc-client-api",
- "sc-client-db",
- "sc-consensus",
- "sc-executor",
- "sc-offchain",
- "sc-service",
- "serde",
- "serde_json",
- "sp-blockchain",
- "sp-consensus",
- "sp-core",
- "sp-keyring",
- "sp-keystore",
- "sp-runtime",
- "sp-state-machine",
 ]
 
 [[package]]
@@ -11769,18 +11481,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2dfed899f0eb03f32ee8c6a0aabdb8a7949659e3466561fc0adf54e26d88c5f4"
 dependencies = [
  "winapi-util",
-]
-
-[[package]]
-name = "test-runtime-constants"
-version = "0.9.27"
-source = "git+https://github.com/paritytech//polkadot?branch=locked-for-gav-xcm-v3-and-bridges#dd02a13f43b4fabb5293027d6977b59fb0050eed"
-dependencies = [
- "frame-support",
- "polkadot-primitives",
- "polkadot-runtime-common",
- "smallvec",
- "sp-runtime",
 ]
 
 [[package]]
