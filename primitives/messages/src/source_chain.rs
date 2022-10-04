@@ -62,7 +62,7 @@ pub struct RelayerRewards<Balance> {
 /// can't change. Wrong implementation may lead to invalid lane states (i.e. lane
 /// that's stuck) and/or processing messages without paying fees.
 ///
-/// The `Payload` type here means the payload of the mesage that is sent from the
+/// The `Payload` type here means the payload of the message that is sent from the
 /// source chain to the target chain. The `AccountId` type here means the account
 /// type used by the source chain.
 pub trait TargetHeaderChain<Payload, AccountId> {
