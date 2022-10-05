@@ -33,4 +33,7 @@ use bp_runtime::decl_bridge_finality_runtime_apis;
 
 pub type BridgeHubWococo = bp_bridge_hub_rococo::BridgeHubRococo;
 
+/// Identifier of BridgeHubWococo in the Wococo relay chain.
+pub const BRIDGE_HUB_WOCOCO_PARACHAIN_ID: u32 = 1013;
+
 decl_bridge_finality_runtime_apis!(wococo);
