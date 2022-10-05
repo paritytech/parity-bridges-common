@@ -11588,6 +11588,8 @@ dependencies = [
  "anyhow",
  "async-std",
  "async-trait",
+ "bp-bridge-hub-rococo",
+ "bp-bridge-hub-wococo",
  "bp-header-chain",
  "bp-messages",
  "bp-millau",
