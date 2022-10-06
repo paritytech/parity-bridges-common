@@ -74,7 +74,6 @@ impl Chain for BridgeHubRococo {
 
 	type SignedBlock = bp_bridge_hub_rococo::SignedBlock;
 	type Call = runtime::Call;
-	type WeightToFee = bp_bridge_hub_rococo::WeightToFee;
 }
 
 impl TransactionSignScheme for BridgeHubRococo {

@@ -22,6 +22,7 @@ strum = { version = "0.21.0", features = ["derive"] }
 
 bp-bridge-hub-rococo = { path = "../../primitives/chain-bridge-hub-rococo" }
 bp-bridge-hub-wococo = { path = "../../primitives/chain-bridge-hub-wococo" }
+bp-header-chain = { path = "../../primitives/header-chain" }
 bp-messages = { path = "../../primitives/messages" }
 bp-millau = { path = "../../primitives/chain-millau" }
 bp-polkadot-core = { path = "../../primitives/polkadot-core" }

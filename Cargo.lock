@@ -859,6 +859,7 @@ version = "0.1.0"
 dependencies = [
  "bp-polkadot-core",
  "bp-runtime",
+ "frame-support",
  "sp-api",
 ]
 
@@ -914,6 +915,7 @@ name = "bp-wococo"
 version = "0.1.0"
 dependencies = [
  "bp-polkadot-core",
+ "bp-rococo",
  "bp-runtime",
  "sp-api",
 ]
@@ -8273,7 +8275,6 @@ dependencies = [
  "sp-core",
  "sp-finality-grandpa",
  "sp-runtime",
- "sp-version",
 ]
 
 [[package]]
@@ -8289,7 +8290,6 @@ dependencies = [
  "scale-info",
  "sp-core",
  "sp-runtime",
- "sp-version",
 ]
 
 [[package]]
@@ -11311,6 +11311,7 @@ dependencies = [
  "async-trait",
  "bp-bridge-hub-rococo",
  "bp-bridge-hub-wococo",
+ "bp-header-chain",
  "bp-messages",
  "bp-millau",
  "bp-polkadot-core",

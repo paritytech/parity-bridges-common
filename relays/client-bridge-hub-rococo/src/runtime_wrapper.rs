@@ -21,27 +21,10 @@
 use bp_polkadot_core::PolkadotLike;
 use codec::{Decode, Encode};
 use scale_info::TypeInfo;
-use sp_runtime::create_runtime_str;
-use sp_version::RuntimeVersion;
 
 pub use bp_bridge_hub_rococo::SS58Prefix;
 use bp_polkadot_core::parachains::{ParaHash, ParaHeadsProof, ParaId};
 use bp_runtime::Chain;
-
-// TODO: we meed to keep this up-to-date with
-// [github.com/paritytech/cumulus/parachains/runtimes/bridge-hubs/bridge-hub-rococo/lib.rs::VERSION]
-/// This runtime version.
-pub const VERSION: RuntimeVersion = RuntimeVersion {
-	spec_name: create_runtime_str!("bridge-hub-rococo"),
-	impl_name: create_runtime_str!("bridge-hub-rococo"),
-	authoring_version: 1,
-	spec_version: 1,
-	impl_version: 0,
-	// TODO:check-parameter
-	apis: /*RUNTIME_API_VERSIONS*/ sp_version::create_apis_vec![[]],
-	transaction_version: 1,
-	state_version: 1,
-};
 
 // TODO:check-parameter - check SignedExtension
 /// Unchecked BridgeHubRococo extrinsic.

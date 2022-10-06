@@ -22,7 +22,7 @@ use relay_wococo_client::Wococo;
 use sp_version::RuntimeVersion;
 
 impl CliChain for Wococo {
-	const RUNTIME_VERSION: RuntimeVersion = bp_wococo::VERSION;
+	const RUNTIME_VERSION: Option<RuntimeVersion> = None;
 
 	type KeyPair = sp_core::sr25519::Pair;
 	type MessagePayload = Vec<u8>;
@@ -33,7 +33,7 @@ impl CliChain for Wococo {
 }
 
 impl CliChain for BridgeHubWococo {
-	const RUNTIME_VERSION: RuntimeVersion = relay_bridge_hub_wococo_client::runtime::VERSION;
+	const RUNTIME_VERSION: Option<RuntimeVersion> = None;
 
 	type KeyPair = sp_core::sr25519::Pair;
 	type MessagePayload = Vec<u8>;

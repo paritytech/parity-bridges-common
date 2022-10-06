@@ -14,14 +14,13 @@
 // You should have received a copy of the GNU General Public License
 // along with Parity Bridges Common.  If not, see <http://www.gnu.org/licenses/>.
 
-// TODO: join with primitives do we need this here or move to the primitives?
+// TODO:check-parameter - join with primitives do we need this here or move to the primitives?
 
 //! Types that are specific to the BridgeHubWococo runtime.
 
 pub use bp_bridge_hub_wococo::SS58Prefix;
 
 // We reuse everything from rococo runtime wrapper
-pub const VERSION: sp_version::RuntimeVersion = relay_bridge_hub_rococo_client::runtime::VERSION;
 pub type Call = relay_bridge_hub_rococo_client::runtime::Call;
 pub type UncheckedExtrinsic = bp_bridge_hub_wococo::UncheckedExtrinsic<Call>;
 pub type BridgeGrandpaRococoCall = relay_bridge_hub_rococo_client::runtime::BridgeGrandpaRococoCall;

@@ -22,8 +22,7 @@ use relay_rococo_client::Rococo;
 use sp_version::RuntimeVersion;
 
 impl CliChain for Rococo {
-	// TODO: maybe not needed?
-	const RUNTIME_VERSION: RuntimeVersion = bp_rococo::VERSION;
+	const RUNTIME_VERSION: Option<RuntimeVersion> = None;
 
 	type KeyPair = sp_core::sr25519::Pair;
 	type MessagePayload = Vec<u8>;
@@ -34,7 +33,7 @@ impl CliChain for Rococo {
 }
 
 impl CliChain for BridgeHubRococo {
-	const RUNTIME_VERSION: RuntimeVersion = relay_bridge_hub_rococo_client::runtime::VERSION;
+	const RUNTIME_VERSION: Option<RuntimeVersion> = None;
 
 	type KeyPair = sp_core::sr25519::Pair;
 	type MessagePayload = Vec<u8>;
