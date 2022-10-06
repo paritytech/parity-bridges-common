@@ -20,7 +20,7 @@
 //! associated data - like messages, lane state, etc) to the target node by
 //! generating and submitting proof.
 
-use crate::message_lane_loop::ClientState;
+use crate::message_lane_loop::{ClientState, NoncesSubmitArtifacts};
 
 use async_trait::async_trait;
 use bp_messages::MessageNonce;
@@ -28,7 +28,10 @@ use futures::{
 	future::FutureExt,
 	stream::{FusedStream, StreamExt},
 };
-use relay_utils::{process_future_result, retry_backoff, FailedClient, MaybeConnectionError};
+use relay_utils::{
+	process_future_result, retry_backoff, FailedClient, MaybeConnectionError,
+	TrackedTransactionStatus, TransactionTracker,
+};
 use std::{
 	fmt::Debug,
 	ops::RangeInclusive,
@@ -124,6 +127,8 @@ pub trait TargetClient<P: MessageRace> {
 	type Error: std::fmt::Debug + MaybeConnectionError;
 	/// Type of the additional data from the target client, used by the race.
 	type TargetNoncesData: std::fmt::Debug;
+	/// Transaction tracker to track submitted transactions.
+	type TransactionTracker: TransactionTracker<HeaderId = P::TargetHeaderId>;
 
 	/// Ask headers relay to relay finalized headers up to (and including) given header
 	/// from race source to race target.
@@ -141,7 +146,7 @@ pub trait TargetClient<P: MessageRace> {
 		generated_at_block: P::SourceHeaderId,
 		nonces: RangeInclusive<MessageNonce>,
 		proof: P::Proof,
-	) -> Result<RangeInclusive<MessageNonce>, Self::Error>;
+	) -> Result<NoncesSubmitArtifacts<Self::TransactionTracker>, Self::Error>;
 }
 
 /// Race strategy.
@@ -222,7 +227,6 @@ pub async fn run<P: MessageRace, SC: SourceClient<P>, TC: TargetClient<P>>(
 	race_source_updated: impl FusedStream<Item = SourceClientState<P>>,
 	race_target: TC,
 	race_target_updated: impl FusedStream<Item = TargetClientState<P>>,
-	stall_timeout: Duration,
 	mut strategy: impl RaceStrategy<
 		P::SourceHeaderId,
 		P::TargetHeaderId,
@@ -234,7 +238,6 @@ pub async fn run<P: MessageRace, SC: SourceClient<P>, TC: TargetClient<P>>(
 ) -> Result<(), FailedClient> {
 	let mut progress_context = Instant::now();
 	let mut race_state = RaceState::default();
-	let mut stall_countdown = Instant::now();
 
 	let mut source_retry_backoff = retry_backoff();
 	let mut source_client_is_online = true;
@@ -250,6 +253,7 @@ pub async fn run<P: MessageRace, SC: SourceClient<P>, TC: TargetClient<P>>(
 	let target_best_nonces = futures::future::Fuse::terminated();
 	let target_finalized_nonces = futures::future::Fuse::terminated();
 	let target_submit_proof = futures::future::Fuse::terminated();
+	let target_tx_tracker = futures::future::Fuse::terminated();
 	let target_go_offline_future = futures::future::Fuse::terminated();
 
 	futures::pin_mut!(
@@ -261,6 +265,7 @@ pub async fn run<P: MessageRace, SC: SourceClient<P>, TC: TargetClient<P>>(
 		target_best_nonces,
 		target_finalized_nonces,
 		target_submit_proof,
+		target_tx_tracker,
 		target_go_offline_future,
 	);
 
@@ -343,11 +348,7 @@ pub async fn run<P: MessageRace, SC: SourceClient<P>, TC: TargetClient<P>>(
 							nonces,
 						);
 
-						let prev_best_at_target = strategy.best_at_target();
 						strategy.best_target_nonces_updated(nonces, &mut race_state);
-						if strategy.best_at_target() != prev_best_at_target {
-							stall_countdown = Instant::now();
-						}
 					},
 					&mut target_go_offline_future,
 					async_std::task::sleep,
@@ -394,28 +395,74 @@ pub async fn run<P: MessageRace, SC: SourceClient<P>, TC: TargetClient<P>>(
 					&mut source_go_offline_future,
 					async_std::task::sleep,
 					|| format!("Error generating proof at {}", P::source_name()),
-				).fail_if_connection_error(FailedClient::Source)?;
+				).fail_if_error(FailedClient::Source).map(|_| true)?;
 			},
 			proof_submit_result = target_submit_proof => {
 				target_client_is_online = process_future_result(
 					proof_submit_result,
 					&mut target_retry_backoff,
-					|nonces_range| {
+					|artifacts: NoncesSubmitArtifacts<TC::TransactionTracker>| {
 						log::debug!(
 							target: "bridge",
 							"Successfully submitted proof of nonces {:?} to {}",
-							nonces_range,
+							artifacts.nonces,
 							P::target_name(),
 						);
 
 						race_state.nonces_to_submit = None;
-						race_state.nonces_submitted = Some(nonces_range);
-						stall_countdown = Instant::now();
+						race_state.nonces_submitted = Some(artifacts.nonces);
+						target_tx_tracker.set(artifacts.tx_tracker.wait().fuse());
 					},
 					&mut target_go_offline_future,
 					async_std::task::sleep,
 					|| format!("Error submitting proof {}", P::target_name()),
-				).fail_if_connection_error(FailedClient::Target)?;
+				).fail_if_error(FailedClient::Target).map(|_| true)?;
+			},
+			target_transaction_status = target_tx_tracker => {
+				match (target_transaction_status, race_state.nonces_submitted.as_ref()) {
+					(TrackedTransactionStatus::Finalized(at_block), Some(nonces_submitted)) => {
+						// our transaction has been mined, but was it successful or not? let's check the best
+						// nonce at the target node.
+						race_target.nonces(at_block, false)
+							.await
+							.map_err(|e| format!("failed to read nonces from target node: {:?}", e))
+							.and_then(|(_, nonces_at_target)| {
+								if nonces_at_target.latest_nonce < *nonces_submitted.end() {
+									Err(format!(
+										"best nonce at target after tx is {:?} and we've submitted {:?}",
+										nonces_at_target.latest_nonce,
+										nonces_submitted.end(),
+									))
+								} else {
+									Ok(())
+								}
+							})
+							.map_err(|e| {
+								log::error!(
+									target: "bridge",
+									"{} -> {} race has stalled. Transaction failed: {}. Going to restart",
+									P::source_name(),
+									P::target_name(),
+									e,
+								);
+
+								FailedClient::Both
+							})?;
+					},
+					(TrackedTransactionStatus::Lost, _) => {
+						log::warn!(
+							target: "bridge",
+							"{} -> {} race has stalled. State: {:?}. Strategy: {:?}",
+							P::source_name(),
+							P::target_name(),
+							race_state,
+							strategy,
+						);
+
+						return Err(FailedClient::Both);
+					},
+					_ => (),
+				}
 			},
 
 			// when we're ready to retry request
@@ -428,24 +475,6 @@ pub async fn run<P: MessageRace, SC: SourceClient<P>, TC: TargetClient<P>>(
 		}
 
 		progress_context = print_race_progress::<P, _>(progress_context, &strategy);
-
-		if stall_countdown.elapsed() > stall_timeout {
-			log::warn!(
-				target: "bridge",
-				"{} -> {} race has stalled. State: {:?}. Strategy: {:?}",
-				P::source_name(),
-				P::target_name(),
-				race_state,
-				strategy,
-			);
-
-			return Err(FailedClient::Both)
-		} else if race_state.nonces_to_submit.is_none() &&
-			race_state.nonces_submitted.is_none() &&
-			strategy.is_empty()
-		{
-			stall_countdown = Instant::now();
-		}
 
 		if source_client_is_online {
 			source_client_is_online = false;

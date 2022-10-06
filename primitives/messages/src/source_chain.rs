@@ -61,6 +61,10 @@ pub struct RelayerRewards<Balance> {
 /// All implementations of this trait should only work with finalized data that
 /// can't change. Wrong implementation may lead to invalid lane states (i.e. lane
 /// that's stuck) and/or processing messages without paying fees.
+///
+/// The `Payload` type here means the payload of the message that is sent from the
+/// source chain to the target chain. The `AccountId` type here means the account
+/// type used by the source chain.
 pub trait TargetHeaderChain<Payload, AccountId> {
 	/// Error type.
 	type Error: Debug + Into<&'static str>;
@@ -96,7 +100,7 @@ pub trait TargetHeaderChain<Payload, AccountId> {
 /// Lane3 until some block, ...), then it may be built using this verifier.
 ///
 /// Any fee requirements should also be enforced here.
-pub trait LaneMessageVerifier<SenderOrigin, Submitter, Payload, Fee> {
+pub trait LaneMessageVerifier<SenderOrigin, Payload, Fee> {
 	/// Error type.
 	type Error: Debug + Into<&'static str>;
 
@@ -278,8 +282,8 @@ impl<Payload, AccountId> TargetHeaderChain<Payload, AccountId> for ForbidOutboun
 	}
 }
 
-impl<SenderOrigin, Submitter, Payload, Fee>
-	LaneMessageVerifier<SenderOrigin, Submitter, Payload, Fee> for ForbidOutboundMessages
+impl<SenderOrigin, Payload, Fee> LaneMessageVerifier<SenderOrigin, Payload, Fee>
+	for ForbidOutboundMessages
 {
 	type Error = &'static str;
 

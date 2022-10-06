@@ -46,9 +46,11 @@ pub trait WeightInfo {
 	{{~/each}}
 }
 
-/// Weights for `{{pallet}}` using the Millau node and recommended hardware.
-pub struct MillauWeight<T>(PhantomData<T>);
-impl<T: frame_system::Config> WeightInfo for MillauWeight<T> {
+/// Weights for `{{pallet}}` that are generated using one of the Bridge testnets.
+///
+/// Those weights are test only and must never be used in production. 
+pub struct BridgeWeight<T>(PhantomData<T>);
+impl<T: frame_system::Config> WeightInfo for BridgeWeight<T> {
 	{{~#each benchmarks as |benchmark|}}
 	fn {{benchmark.name~}}
 	(

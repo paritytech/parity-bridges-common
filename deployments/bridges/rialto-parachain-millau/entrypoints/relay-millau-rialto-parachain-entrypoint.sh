@@ -38,5 +38,6 @@ sleep 6
 	--rialto-parachain-transactions-mortality=64 \
 	--rialto-host rialto-node-alice \
 	--rialto-port 9944 \
+	--relayer-mode=altruistic \
 	--lane=00000000 \
 	--prometheus-host=0.0.0.0

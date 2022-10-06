@@ -122,18 +122,21 @@ pub trait MaybeConnectionError {
 
 /// Final status of the tracked transaction.
 #[derive(Debug, Clone, Copy, PartialEq)]
-pub enum TrackedTransactionStatus {
+pub enum TrackedTransactionStatus<BlockId> {
 	/// Transaction has been lost.
 	Lost,
-	/// Transaction has been mined and finalized.
-	Finalized,
+	/// Transaction has been mined and finalized at given block.
+	Finalized(BlockId),
 }
 
 /// Transaction tracker.
 #[async_trait]
 pub trait TransactionTracker: Send {
+	/// Header id, used by the chain.
+	type HeaderId: Clone + Send;
+
 	/// Wait until transaction is either finalized or invalidated/lost.
-	async fn wait(self) -> TrackedTransactionStatus;
+	async fn wait(self) -> TrackedTransactionStatus<Self::HeaderId>;
 }
 
 /// Stringified error that may be either connection-related or not.
@@ -233,6 +236,16 @@ impl ProcessFutureResult {
 		match self {
 			ProcessFutureResult::Success => true,
 			ProcessFutureResult::Failed | ProcessFutureResult::ConnectionFailed => false,
+		}
+	}
+
+	/// Returns `Ok(())` if future has succeeded.
+	/// Returns `Err(failed_client)` otherwise.
+	pub fn fail_if_error(self, failed_client: FailedClient) -> Result<(), FailedClient> {
+		if self.is_ok() {
+			Ok(())
+		} else {
+			Err(failed_client)
 		}
 	}
 

@@ -233,7 +233,7 @@ impl messages::BridgedChainWithMessages for Millau {
 	}
 }
 
-impl TargetHeaderChain<ToMillauMessagePayload, bp_millau::AccountId> for Millau {
+impl TargetHeaderChain<ToMillauMessagePayload, bp_rialto::AccountId> for Millau {
 	type Error = &'static str;
 	// The proof is:
 	// - hash of the header this proof has been created with;
@@ -315,7 +315,7 @@ mod tests {
 
 	#[test]
 	fn ensure_rialto_message_lane_weights_are_correct() {
-		type Weights = pallet_bridge_messages::weights::MillauWeight<Runtime>;
+		type Weights = pallet_bridge_messages::weights::BridgeWeight<Runtime>;
 
 		pallet_bridge_messages::ensure_weights_are_correct::<Weights>(
 			bp_rialto::DEFAULT_MESSAGE_DELIVERY_TX_WEIGHT,
