@@ -32,10 +32,11 @@ use async_std::{
 };
 use async_trait::async_trait;
 use bp_polkadot_core::parachains::ParaHash;
+use bp_runtime::HeaderIdProvider;
 use futures::{select, FutureExt};
 use num_traits::Zero;
 use pallet_bridge_parachains::{RelayBlockHash, RelayBlockHasher, RelayBlockNumber};
-use parachains_relay::parachains_loop::{ParachainSyncParams, TargetClient};
+use parachains_relay::parachains_loop::{AvailableHeader, ParachainSyncParams, TargetClient};
 use relay_substrate_client::{
 	AccountIdOf, AccountKeyPairOf, BlockNumberOf, Chain, Client, Error as SubstrateError, HashOf,
 	TransactionSignScheme,
@@ -43,7 +44,6 @@ use relay_substrate_client::{
 use relay_utils::{
 	metrics::MetricsParams, relay_loop::Client as RelayClient, FailedClient, HeaderId,
 };
-use sp_runtime::traits::Header as HeaderT;
 use std::fmt::Debug;
 
 /// On-demand Substrate <-> Substrate parachain finality relay.
@@ -143,7 +143,7 @@ async fn background_task<P: SubstrateParachainsPipeline>(
 
 	let mut relay_state = RelayState::Idle;
 	let mut required_parachain_header_number = Zero::zero();
-	let required_para_header_number_ref = Arc::new(Mutex::new(None));
+	let required_para_header_number_ref = Arc::new(Mutex::new(AvailableHeader::Unavailable));
 
 	let mut restart_relay = true;
 	let parachains_relay_task = futures::future::Fuse::terminated();
@@ -151,7 +151,7 @@ async fn background_task<P: SubstrateParachainsPipeline>(
 
 	let mut parachains_source = ParachainsSource::<P>::new(
 		source_relay_client.clone(),
-		Some(required_para_header_number_ref.clone()),
+		required_para_header_number_ref.clone(),
 	);
 	let mut parachains_target =
 		ParachainsTarget::<P>::new(target_client.clone(), target_transaction_params.clone());
@@ -253,7 +253,8 @@ async fn background_task<P: SubstrateParachainsPipeline>(
 					.await;
 			},
 			RelayState::RelayingParaHeader(required_para_header) => {
-				*required_para_header_number_ref.lock().await = Some(required_para_header);
+				*required_para_header_number_ref.lock().await =
+					AvailableHeader::Available(required_para_header);
 			},
 		}
 
@@ -262,7 +263,7 @@ async fn background_task<P: SubstrateParachainsPipeline>(
 			let stall_timeout = relay_substrate_client::transaction_stall_timeout(
 				target_transactions_mortality,
 				P::TargetChain::AVERAGE_BLOCK_INTERVAL,
-				crate::STALL_TIMEOUT,
+				relay_utils::STALL_TIMEOUT,
 			);
 
 			log::info!(
@@ -387,16 +388,11 @@ where
 
 	let best_finalized_relay_header =
 		source.client().best_finalized_header().await.map_err(map_source_err)?;
-	let best_finalized_relay_block_id =
-		HeaderId(*best_finalized_relay_header.number(), best_finalized_relay_header.hash());
+	let best_finalized_relay_block_id = best_finalized_relay_header.id();
 	let para_header_at_source = source
-		.on_chain_parachain_header(
-			best_finalized_relay_block_id,
-			P::SOURCE_PARACHAIN_PARA_ID.into(),
-		)
+		.on_chain_para_head_id(best_finalized_relay_block_id, P::SOURCE_PARACHAIN_PARA_ID.into())
 		.await
-		.map_err(map_source_err)?
-		.map(|h| HeaderId(*h.number(), h.hash()));
+		.map_err(map_source_err)?;
 
 	let relay_header_at_source = best_finalized_relay_block_id.0;
 	let relay_header_at_target =
@@ -409,10 +405,9 @@ where
 		.map_err(map_target_err)?;
 
 	let para_header_at_relay_header_at_target = source
-		.on_chain_parachain_header(relay_header_at_target, P::SOURCE_PARACHAIN_PARA_ID.into())
+		.on_chain_para_head_id(relay_header_at_target, P::SOURCE_PARACHAIN_PARA_ID.into())
 		.await
-		.map_err(map_source_err)?
-		.map(|h| HeaderId(*h.number(), h.hash()));
+		.map_err(map_source_err)?;
 
 	Ok(RelayData {
 		required_para_header: required_header_number,
@@ -434,42 +429,30 @@ where
 	ParaNumber: Copy + PartialOrd + Zero,
 	RelayNumber: Copy + Debug + Ord,
 {
-	// this switch is responsible for processing `RelayingRelayHeader` state
-	match state {
-		RelayState::Idle | RelayState::RelayingParaHeader(_) => (),
-		RelayState::RelayingRelayHeader(relay_header_number) => {
-			if data.relay_header_at_target < relay_header_number {
-				// required relay header hasn't yet been relayed
-				return RelayState::RelayingRelayHeader(relay_header_number)
-			}
+	// Process the `RelayingRelayHeader` state.
+	if let &RelayState::RelayingRelayHeader(relay_header_number) = &state {
+		if data.relay_header_at_target < relay_header_number {
+			// The required relay header hasn't yet been relayed. Ask / wait for it.
+			return state
+		}
 
-			// we may switch to `RelayingParaHeader` if parachain head is available
-			if let Some(para_header_at_relay_header_at_target) =
-				data.para_header_at_relay_header_at_target.clone()
-			{
-				state = RelayState::RelayingParaHeader(para_header_at_relay_header_at_target);
-			} else {
-				// otherwise, we'd need to restart (this may happen only if parachain has been
-				// deregistered)
-				state = RelayState::Idle;
-			}
-		},
+		// We may switch to `RelayingParaHeader` if parachain head is available.
+		state = data
+			.para_header_at_relay_header_at_target
+			.clone()
+			.map_or(RelayState::Idle, RelayState::RelayingParaHeader);
 	}
 
-	// this switch is responsible for processing `RelayingParaHeader` state
-	let para_header_at_target_or_zero = data.para_header_at_target.unwrap_or_else(Zero::zero);
-	match state {
-		RelayState::Idle => (),
-		RelayState::RelayingRelayHeader(_) => unreachable!("processed by previous match; qed"),
-		RelayState::RelayingParaHeader(para_header_id) => {
-			if para_header_at_target_or_zero < para_header_id.0 {
-				// parachain header hasn't yet been relayed
-				return RelayState::RelayingParaHeader(para_header_id)
-			}
-		},
+	// Process the `RelayingParaHeader` state.
+	if let RelayState::RelayingParaHeader(para_header_id) = &state {
+		let para_header_at_target_or_zero = data.para_header_at_target.unwrap_or_else(Zero::zero);
+		if para_header_at_target_or_zero < para_header_id.0 {
+			// The required parachain header hasn't yet been relayed. Ask / wait for it.
+			return state
+		}
 	}
 
-	// if we haven't read para head from the source, we can't yet do anyhting
+	// if we haven't read para head from the source, we can't yet do anything
 	let para_header_at_source = match data.para_header_at_source {
 		Some(ref para_header_at_source) => para_header_at_source.clone(),
 		None => return RelayState::Idle,

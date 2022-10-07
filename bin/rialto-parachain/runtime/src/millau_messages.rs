@@ -19,7 +19,7 @@
 // TODO: this is almost exact copy of `millau_messages.rs` from Rialto runtime.
 // Should be extracted to a separate crate and reused here.
 
-use crate::Runtime;
+use crate::{OriginCaller, Runtime};
 
 use bp_messages::{
 	source_chain::{SenderOrigin, TargetHeaderChain},
@@ -27,7 +27,9 @@ use bp_messages::{
 	InboundLaneData, LaneId, Message, MessageNonce, Parameter as MessagesParameter,
 };
 use bp_runtime::{Chain, ChainId, MILLAU_CHAIN_ID, RIALTO_PARACHAIN_CHAIN_ID};
-use bridge_runtime_common::messages::{self, MessageBridge, MessageTransaction};
+use bridge_runtime_common::messages::{
+	self, BasicConfirmationTransactionEstimation, MessageBridge, MessageTransaction,
+};
 use codec::{Decode, Encode};
 use frame_support::{
 	parameter_types,
@@ -38,6 +40,8 @@ use scale_info::TypeInfo;
 use sp_runtime::{traits::Saturating, FixedPointNumber, FixedU128};
 use sp_std::convert::TryFrom;
 
+/// Default lane that is used to send messages to Millau.
+pub const DEFAULT_XCM_LANE_TO_MILLAU: LaneId = [0, 0, 0, 0];
 /// Initial value of `MillauToRialtoParachainConversionRate` parameter.
 pub const INITIAL_MILLAU_TO_RIALTO_PARACHAIN_CONVERSION_RATE: FixedU128 =
 	FixedU128::from_inner(FixedU128::DIV);
@@ -82,6 +86,10 @@ pub type FromMillauMessagesProof = messages::target::FromBridgedChainMessagesPro
 pub type ToMillauMessagesDeliveryProof =
 	messages::source::FromBridgedChainMessagesDeliveryProof<bp_millau::Hash>;
 
+/// Maximal outbound payload size of Rialto -> Millau messages.
+pub type ToMillauMaximalOutboundPayloadSize =
+	messages::source::FromThisChainMaximalOutboundPayloadSize<WithMillauMessageBridge>;
+
 /// Millau <-> RialtoParachain message bridge.
 #[derive(RuntimeDebug, Clone, Copy)]
 pub struct WithMillauMessageBridge;
@@ -123,31 +131,34 @@ impl messages::ChainWithMessages for RialtoParachain {
 impl messages::ThisChainWithMessages for RialtoParachain {
 	type Call = crate::Call;
 	type Origin = crate::Origin;
+	type ConfirmationTransactionEstimation = BasicConfirmationTransactionEstimation<
+		Self::AccountId,
+		{ bp_rialto_parachain::MAX_SINGLE_MESSAGE_DELIVERY_CONFIRMATION_TX_WEIGHT },
+		{ bp_millau::EXTRA_STORAGE_PROOF_SIZE },
+		{ bp_rialto_parachain::TX_EXTRA_BYTES },
+	>;
 
 	fn is_message_accepted(send_origin: &Self::Origin, lane: &LaneId) -> bool {
-		send_origin.linked_account().is_some() && (*lane == [0, 0, 0, 0] || *lane == [0, 0, 0, 1])
+		let here_location = xcm::v3::MultiLocation::from(crate::UniversalLocation::get());
+		match send_origin.caller {
+			OriginCaller::PolkadotXcm(pallet_xcm::Origin::Xcm(ref location))
+				if *location == here_location =>
+			{
+				log::trace!(target: "runtime::bridge", "Verifying message sent using XCM pallet to Millau");
+			},
+			_ => {
+				// keep in mind that in this case all messages are free (in term of fees)
+				// => it's just to keep testing bridge on our test deployments until we'll have a
+				// better option
+				log::trace!(target: "runtime::bridge", "Verifying message sent using messages pallet to Millau");
+			},
+		}
+
+		*lane == [0, 0, 0, 0] || *lane == [0, 0, 0, 1]
 	}
 
 	fn maximal_pending_messages_at_outbound_lane() -> MessageNonce {
 		MessageNonce::MAX
-	}
-
-	fn estimate_delivery_confirmation_transaction() -> MessageTransaction<Weight> {
-		let inbound_data_size =
-			InboundLaneData::<bp_rialto_parachain::AccountId>::encoded_size_hint(
-				bp_rialto_parachain::MAXIMAL_ENCODED_ACCOUNT_ID_SIZE,
-				1,
-				1,
-			)
-			.unwrap_or(u32::MAX);
-
-		MessageTransaction {
-			dispatch_weight:
-				bp_rialto_parachain::MAX_SINGLE_MESSAGE_DELIVERY_CONFIRMATION_TX_WEIGHT,
-			size: inbound_data_size
-				.saturating_add(bp_millau::EXTRA_STORAGE_PROOF_SIZE)
-				.saturating_add(bp_rialto_parachain::TX_EXTRA_BYTES),
-		}
 	}
 
 	fn transaction_payment(
@@ -232,7 +243,7 @@ impl messages::BridgedChainWithMessages for Millau {
 	}
 }
 
-impl TargetHeaderChain<ToMillauMessagePayload, bp_millau::AccountId> for Millau {
+impl TargetHeaderChain<ToMillauMessagePayload, bp_rialto_parachain::AccountId> for Millau {
 	type Error = &'static str;
 	// The proof is:
 	// - hash of the header this proof has been created with;

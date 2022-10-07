@@ -20,10 +20,10 @@
 
 use crate::{
 	finality_loop::{
-		prune_recent_finality_proofs, read_finality_proofs_from_stream, run, run_loop_iteration,
-		select_better_recent_finality_proof, select_header_to_submit, FinalityLoopState,
-		FinalityProofs, FinalitySyncParams, RestartableFinalityProofsStream, SourceClient,
-		TargetClient,
+		prune_recent_finality_proofs, read_finality_proofs_from_stream, run_loop_iteration,
+		run_until_connection_lost, select_better_recent_finality_proof, select_header_to_submit,
+		FinalityLoopState, FinalityProofs, FinalitySyncParams, RestartableFinalityProofsStream,
+		SourceClient, TargetClient,
 	},
 	sync_loop_metrics::SyncLoopMetrics,
 	FinalityProof, FinalitySyncPipeline, SourceHeader,
@@ -33,7 +33,8 @@ use async_trait::async_trait;
 use futures::{FutureExt, Stream, StreamExt};
 use parking_lot::Mutex;
 use relay_utils::{
-	metrics::MetricsParams, relay_loop::Client as RelayClient, HeaderId, MaybeConnectionError,
+	relay_loop::Client as RelayClient, FailedClient, HeaderId, MaybeConnectionError,
+	TrackedTransactionStatus, TransactionTracker,
 };
 use std::{
 	collections::HashMap,
@@ -45,6 +46,24 @@ use std::{
 type IsMandatory = bool;
 type TestNumber = u64;
 type TestHash = u64;
+
+#[derive(Clone, Debug)]
+struct TestTransactionTracker(TrackedTransactionStatus<HeaderId<TestHash, TestNumber>>);
+
+impl Default for TestTransactionTracker {
+	fn default() -> TestTransactionTracker {
+		TestTransactionTracker(TrackedTransactionStatus::Finalized(Default::default()))
+	}
+}
+
+#[async_trait]
+impl TransactionTracker for TestTransactionTracker {
+	type HeaderId = HeaderId<TestHash, TestNumber>;
+
+	async fn wait(self) -> TrackedTransactionStatus<HeaderId<TestHash, TestNumber>> {
+		self.0
+	}
+}
 
 #[derive(Debug, Clone)]
 enum TestError {
@@ -104,6 +123,7 @@ struct ClientsData {
 
 	target_best_block_id: HeaderId<TestHash, TestNumber>,
 	target_headers: Vec<(TestSourceHeader, TestFinalityProof)>,
+	target_transaction_tracker: TestTransactionTracker,
 }
 
 #[derive(Clone)]
@@ -127,7 +147,7 @@ impl SourceClient<TestFinalitySyncPipeline> for TestSourceClient {
 
 	async fn best_finalized_block_number(&self) -> Result<TestNumber, TestError> {
 		let mut data = self.data.lock();
-		(self.on_method_call)(&mut *data);
+		(self.on_method_call)(&mut data);
 		Ok(data.source_best_block_number)
 	}
 
@@ -136,13 +156,13 @@ impl SourceClient<TestFinalitySyncPipeline> for TestSourceClient {
 		number: TestNumber,
 	) -> Result<(TestSourceHeader, Option<TestFinalityProof>), TestError> {
 		let mut data = self.data.lock();
-		(self.on_method_call)(&mut *data);
+		(self.on_method_call)(&mut data);
 		data.source_headers.get(&number).cloned().ok_or(TestError::NonConnection)
 	}
 
 	async fn finality_proofs(&self) -> Result<Self::FinalityProofsStream, TestError> {
 		let mut data = self.data.lock();
-		(self.on_method_call)(&mut *data);
+		(self.on_method_call)(&mut data);
 		Ok(futures::stream::iter(data.source_proofs.clone()).boxed())
 	}
 }
@@ -164,11 +184,13 @@ impl RelayClient for TestTargetClient {
 
 #[async_trait]
 impl TargetClient<TestFinalitySyncPipeline> for TestTargetClient {
+	type TransactionTracker = TestTransactionTracker;
+
 	async fn best_finalized_source_block_id(
 		&self,
 	) -> Result<HeaderId<TestHash, TestNumber>, TestError> {
 		let mut data = self.data.lock();
-		(self.on_method_call)(&mut *data);
+		(self.on_method_call)(&mut data);
 		Ok(data.target_best_block_id)
 	}
 
@@ -176,12 +198,13 @@ impl TargetClient<TestFinalitySyncPipeline> for TestTargetClient {
 		&self,
 		header: TestSourceHeader,
 		proof: TestFinalityProof,
-	) -> Result<(), TestError> {
+	) -> Result<TestTransactionTracker, TestError> {
 		let mut data = self.data.lock();
-		(self.on_method_call)(&mut *data);
+		(self.on_method_call)(&mut data);
 		data.target_best_block_id = HeaderId(header.number(), header.hash());
 		data.target_headers.push((header, proof));
-		Ok(())
+		(self.on_method_call)(&mut data);
+		Ok(data.target_transaction_tracker.clone())
 	}
 }
 
@@ -203,6 +226,9 @@ fn prepare_test_clients(
 
 		target_best_block_id: HeaderId(5, 5),
 		target_headers: vec![],
+		target_transaction_tracker: TestTransactionTracker(TrackedTransactionStatus::Finalized(
+			Default::default(),
+		)),
 	}));
 	(
 		TestSourceClient {
@@ -224,7 +250,7 @@ fn test_sync_params() -> FinalitySyncParams {
 
 fn run_sync_loop(
 	state_function: impl Fn(&mut ClientsData) -> bool + Send + Sync + 'static,
-) -> ClientsData {
+) -> (ClientsData, Result<(), FailedClient>) {
 	let (exit_sender, exit_receiver) = futures::channel::mpsc::unbounded();
 	let (source_client, target_client) = prepare_test_clients(
 		exit_sender,
@@ -243,21 +269,21 @@ fn run_sync_loop(
 	let sync_params = test_sync_params();
 
 	let clients_data = source_client.data.clone();
-	let _ = async_std::task::block_on(run(
+	let result = async_std::task::block_on(run_until_connection_lost(
 		source_client,
 		target_client,
 		sync_params,
-		MetricsParams::disabled(),
+		None,
 		exit_receiver.into_future().map(|(_, _)| ()),
 	));
 
 	let clients_data = clients_data.lock().clone();
-	clients_data
+	(clients_data, result)
 }
 
 #[test]
 fn finality_sync_loop_works() {
-	let client_data = run_sync_loop(|data| {
+	let (client_data, result) = run_sync_loop(|data| {
 		// header#7 has persistent finality proof, but it isn't mandatory => it isn't submitted,
 		// because header#8 has persistent finality proof && it is mandatory => it is submitted
 		// header#9 has persistent finality proof, but it isn't mandatory => it is submitted,
@@ -286,6 +312,7 @@ fn finality_sync_loop_works() {
 		data.target_best_block_id.0 == 16
 	});
 
+	assert_eq!(result, Ok(()));
 	assert_eq!(
 		client_data.target_headers,
 		vec![
@@ -538,7 +565,7 @@ fn different_forks_at_source_and_at_target_are_detected() {
 			progress: &mut progress,
 			finality_proofs_stream: &mut finality_proofs_stream,
 			recent_finality_proofs: &mut recent_finality_proofs,
-			last_transaction: None,
+			submitted_header_number: None,
 		},
 		&test_sync_params(),
 		&Some(metrics_sync.clone()),
@@ -546,4 +573,25 @@ fn different_forks_at_source_and_at_target_are_detected() {
 	.unwrap();
 
 	assert!(!metrics_sync.is_using_same_fork());
+}
+
+#[test]
+fn stalls_when_transaction_tracker_returns_error() {
+	let (_, result) = run_sync_loop(|data| {
+		data.target_transaction_tracker = TestTransactionTracker(TrackedTransactionStatus::Lost);
+		data.target_best_block_id = HeaderId(5, 5);
+		data.target_best_block_id.0 == 16
+	});
+
+	assert_eq!(result, Err(FailedClient::Both));
+}
+
+#[test]
+fn stalls_when_transaction_tracker_returns_finalized_but_transaction_fails() {
+	let (_, result) = run_sync_loop(|data| {
+		data.target_best_block_id = HeaderId(5, 5);
+		data.target_best_block_id.0 == 16
+	});
+
+	assert_eq!(result, Err(FailedClient::Both));
 }

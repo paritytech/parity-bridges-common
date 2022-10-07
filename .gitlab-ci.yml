@@ -47,7 +47,7 @@ default:
     when:
       - runner_system_failure
       - unknown_failure
-      - api_failure 
+      - api_failure
   interruptible:                   true
   tags:
     - linux-docker
@@ -145,7 +145,6 @@ test:
 #    RUSTFLAGS:                     "-D warnings"
   script:                          &test-script
     - time cargo fetch
-    - time cargo fetch --manifest-path=`cargo metadata --format-version=1 | jq --compact-output --raw-output  ".packages[] | select(.name == \"polkadot-test-runtime\").manifest_path"`
     - time cargo fetch --manifest-path=`cargo metadata --format-version=1 | jq --compact-output --raw-output  ".packages[] | select(.name == \"polkadot-runtime\").manifest_path"`
     - time cargo fetch --manifest-path=`cargo metadata --format-version=1 | jq --compact-output --raw-output  ".packages[] | select(.name == \"kusama-runtime\").manifest_path"`
     - CARGO_NET_OFFLINE=true SKIP_POLKADOT_RUNTIME_WASM_BUILD=1 SKIP_KUSAMA_RUNTIME_WASM_BUILD=1 SKIP_POLKADOT_TEST_RUNTIME_WASM_BUILD=1 time cargo test --verbose --workspace
@@ -196,7 +195,6 @@ build:
   # master
   script:                          &build-script
     - time cargo fetch
-    - time cargo fetch --manifest-path=`cargo metadata --format-version=1 | jq --compact-output --raw-output  ".packages[] | select(.name == \"polkadot-test-runtime\").manifest_path"`
     - time cargo fetch --manifest-path=`cargo metadata --format-version=1 | jq --compact-output --raw-output  ".packages[] | select(.name == \"polkadot-runtime\").manifest_path"`
     - time cargo fetch --manifest-path=`cargo metadata --format-version=1 | jq --compact-output --raw-output  ".packages[] | select(.name == \"kusama-runtime\").manifest_path"`
     - CARGO_NET_OFFLINE=true SKIP_POLKADOT_RUNTIME_WASM_BUILD=1 SKIP_KUSAMA_RUNTIME_WASM_BUILD=1 SKIP_POLKADOT_TEST_RUNTIME_WASM_BUILD=1 time cargo build --release --verbose --workspace

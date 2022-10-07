@@ -25,7 +25,9 @@ use bp_messages::{
 };
 use bp_polkadot_core::parachains::ParaId;
 use bp_runtime::{Chain, ChainId, MILLAU_CHAIN_ID, RIALTO_PARACHAIN_CHAIN_ID};
-use bridge_runtime_common::messages::{self, MessageBridge, MessageTransaction};
+use bridge_runtime_common::messages::{
+	self, BasicConfirmationTransactionEstimation, MessageBridge, MessageTransaction,
+};
 use codec::{Decode, Encode};
 use frame_support::{
 	parameter_types,
@@ -36,6 +38,8 @@ use scale_info::TypeInfo;
 use sp_runtime::{traits::Saturating, FixedPointNumber, FixedU128};
 use sp_std::convert::TryFrom;
 
+/// Default lane that is used to send messages to Rialto parachain.
+pub const DEFAULT_XCM_LANE_TO_RIALTO_PARACHAIN: LaneId = [0, 0, 0, 0];
 /// Weight of 2 XCM instructions is for simple `Trap(42)` program, coming through bridge
 /// (it is prepended with `UniversalOrigin` instruction). It is used just for simplest manual
 /// tests, confirming that we don't break encoding somewhere between.
@@ -84,6 +88,10 @@ pub type FromRialtoParachainMessageDispatch = messages::target::FromBridgedChain
 	frame_support::traits::ConstU64<BASE_XCM_WEIGHT_TWICE>,
 >;
 
+/// Maximal outbound payload size of Millau -> RialtoParachain messages.
+pub type ToRialtoParachainMaximalOutboundPayloadSize =
+	messages::source::FromThisChainMaximalOutboundPayloadSize<WithRialtoParachainMessageBridge>;
+
 /// Millau <-> RialtoParachain message bridge.
 #[derive(RuntimeDebug, Clone, Copy)]
 pub struct WithRialtoParachainMessageBridge;
@@ -124,29 +132,19 @@ impl messages::ChainWithMessages for Millau {
 impl messages::ThisChainWithMessages for Millau {
 	type Call = crate::Call;
 	type Origin = crate::Origin;
+	type ConfirmationTransactionEstimation = BasicConfirmationTransactionEstimation<
+		Self::AccountId,
+		{ bp_millau::MAX_SINGLE_MESSAGE_DELIVERY_CONFIRMATION_TX_WEIGHT },
+		{ bp_rialto_parachain::EXTRA_STORAGE_PROOF_SIZE },
+		{ bp_millau::TX_EXTRA_BYTES },
+	>;
 
 	fn is_message_accepted(_send_origin: &Self::Origin, lane: &LaneId) -> bool {
-		*lane == [0, 0, 0, 0] || *lane == [0, 0, 0, 1]
+		*lane == DEFAULT_XCM_LANE_TO_RIALTO_PARACHAIN || *lane == [0, 0, 0, 1]
 	}
 
 	fn maximal_pending_messages_at_outbound_lane() -> MessageNonce {
 		MessageNonce::MAX
-	}
-
-	fn estimate_delivery_confirmation_transaction() -> MessageTransaction<Weight> {
-		let inbound_data_size = InboundLaneData::<bp_millau::AccountId>::encoded_size_hint(
-			bp_millau::MAXIMAL_ENCODED_ACCOUNT_ID_SIZE,
-			1,
-			1,
-		)
-		.unwrap_or(u32::MAX);
-
-		MessageTransaction {
-			dispatch_weight: bp_millau::MAX_SINGLE_MESSAGE_DELIVERY_CONFIRMATION_TX_WEIGHT,
-			size: inbound_data_size
-				.saturating_add(bp_rialto_parachain::EXTRA_STORAGE_PROOF_SIZE)
-				.saturating_add(bp_millau::TX_EXTRA_BYTES),
-		}
 	}
 
 	fn transaction_payment(transaction: MessageTransaction<Weight>) -> bp_millau::Balance {
@@ -231,9 +229,7 @@ impl messages::BridgedChainWithMessages for RialtoParachain {
 	}
 }
 
-impl TargetHeaderChain<ToRialtoParachainMessagePayload, bp_rialto_parachain::AccountId>
-	for RialtoParachain
-{
+impl TargetHeaderChain<ToRialtoParachainMessagePayload, bp_millau::AccountId> for RialtoParachain {
 	type Error = &'static str;
 	// The proof is:
 	// - hash of the header this proof has been created with;

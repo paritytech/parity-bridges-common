@@ -22,32 +22,35 @@ use async_std::sync::{Arc, Mutex};
 use async_trait::async_trait;
 use bp_parachains::parachain_head_storage_key_at_source;
 use bp_polkadot_core::parachains::{ParaHash, ParaHead, ParaHeadsProof, ParaId};
+use bp_runtime::HeaderIdProvider;
 use codec::Decode;
-use parachains_relay::parachains_loop::{ParaHashAtSource, SourceClient};
+use parachains_relay::{
+	parachains_loop::{AvailableHeader, SourceClient},
+	parachains_loop_metrics::ParachainsLoopMetrics,
+};
 use relay_substrate_client::{
 	Chain, Client, Error as SubstrateError, HeaderIdOf, HeaderOf, RelayChain,
 };
 use relay_utils::relay_loop::Client as RelayClient;
-use sp_runtime::traits::Header as HeaderT;
 
 /// Shared updatable reference to the maximal parachain header id that we want to sync from the
 /// source.
-pub type RequiredHeaderIdRef<C> = Arc<Mutex<Option<HeaderIdOf<C>>>>;
+pub type RequiredHeaderIdRef<C> = Arc<Mutex<AvailableHeader<HeaderIdOf<C>>>>;
 
 /// Substrate client as parachain heads source.
 #[derive(Clone)]
 pub struct ParachainsSource<P: SubstrateParachainsPipeline> {
 	client: Client<P::SourceRelayChain>,
-	maximal_header_id: Option<RequiredHeaderIdRef<P::SourceParachain>>,
+	max_head_id: RequiredHeaderIdRef<P::SourceParachain>,
 }
 
 impl<P: SubstrateParachainsPipeline> ParachainsSource<P> {
 	/// Creates new parachains source client.
 	pub fn new(
 		client: Client<P::SourceRelayChain>,
-		maximal_header_id: Option<RequiredHeaderIdRef<P::SourceParachain>>,
+		max_head_id: RequiredHeaderIdRef<P::SourceParachain>,
 	) -> Self {
-		ParachainsSource { client, maximal_header_id }
+		ParachainsSource { client, max_head_id }
 	}
 
 	/// Returns reference to the underlying RPC client.
@@ -56,11 +59,11 @@ impl<P: SubstrateParachainsPipeline> ParachainsSource<P> {
 	}
 
 	/// Return decoded head of given parachain.
-	pub async fn on_chain_parachain_header(
+	pub async fn on_chain_para_head_id(
 		&self,
 		at_block: HeaderIdOf<P::SourceRelayChain>,
 		para_id: ParaId,
-	) -> Result<Option<HeaderOf<P::SourceParachain>>, SubstrateError> {
+	) -> Result<Option<HeaderIdOf<P::SourceParachain>>, SubstrateError> {
 		let storage_key =
 			parachain_head_storage_key_at_source(P::SourceRelayChain::PARAS_PALLET_NAME, para_id);
 		let para_head = self.client.raw_storage_value(storage_key, Some(at_block.1)).await?;
@@ -69,8 +72,8 @@ impl<P: SubstrateParachainsPipeline> ParachainsSource<P> {
 			Some(para_head) => para_head,
 			None => return Ok(None),
 		};
-
-		Ok(Some(Decode::decode(&mut &para_head.0[..])?))
+		let para_head: HeaderOf<P::SourceParachain> = Decode::decode(&mut &para_head.0[..])?;
+		Ok(Some(para_head.id()))
 	}
 }
 
@@ -100,8 +103,9 @@ where
 	async fn parachain_head(
 		&self,
 		at_block: HeaderIdOf<P::SourceRelayChain>,
+		metrics: Option<&ParachainsLoopMetrics>,
 		para_id: ParaId,
-	) -> Result<ParaHashAtSource, Self::Error> {
+	) -> Result<AvailableHeader<ParaHash>, Self::Error> {
 		// we don't need to support many parachains now
 		if para_id.0 != P::SOURCE_PARACHAIN_PARA_ID {
 			return Err(SubstrateError::Custom(format!(
@@ -111,56 +115,74 @@ where
 			)))
 		}
 
-		Ok(match self.on_chain_parachain_header(at_block, para_id).await? {
-			Some(parachain_header) => {
-				let mut parachain_head = ParaHashAtSource::Some(parachain_header.hash());
-				// never return head that is larger than requested. This way we'll never sync
-				// headers past `maximal_header_id`
-				if let Some(ref maximal_header_id) = self.maximal_header_id {
-					let maximal_header_id = *maximal_header_id.lock().await;
-					match maximal_header_id {
-						Some(maximal_header_id)
-							if *parachain_header.number() > maximal_header_id.0 =>
-						{
-							// we don't want this header yet => let's report previously requested
-							// header
-							parachain_head = ParaHashAtSource::Some(maximal_header_id.1);
-						},
-						Some(_) => (),
-						None => {
-							// on-demand relay has not yet asked us to sync anything let's do that
-							parachain_head = ParaHashAtSource::Unavailable;
-						},
-					}
-				}
+		let mut para_head_id = AvailableHeader::Missing;
+		if let Some(on_chain_para_head_id) = self.on_chain_para_head_id(at_block, para_id).await? {
+			// Never return head that is larger than requested. This way we'll never sync
+			// headers past `max_header_id`.
+			para_head_id = match *self.max_head_id.lock().await {
+				AvailableHeader::Unavailable => AvailableHeader::Unavailable,
+				AvailableHeader::Missing => {
+					// `max_header_id` is not set. There is no limit.
+					AvailableHeader::Available(on_chain_para_head_id)
+				},
+				AvailableHeader::Available(max_head_id) => {
+					// We report at most `max_header_id`.
+					AvailableHeader::Available(std::cmp::min(on_chain_para_head_id, max_head_id))
+				},
+			}
+		}
 
-				parachain_head
-			},
-			None => ParaHashAtSource::None,
-		})
+		if let (Some(metrics), AvailableHeader::Available(para_head_id)) = (metrics, para_head_id) {
+			metrics.update_best_parachain_block_at_source(para_id, para_head_id.0);
+		}
+
+		Ok(para_head_id.map(|para_head_id| para_head_id.1))
 	}
 
 	async fn prove_parachain_heads(
 		&self,
 		at_block: HeaderIdOf<P::SourceRelayChain>,
 		parachains: &[ParaId],
-	) -> Result<ParaHeadsProof, Self::Error> {
-		let storage_keys = parachains
-			.iter()
-			.map(|para_id| {
-				parachain_head_storage_key_at_source(
-					P::SourceRelayChain::PARAS_PALLET_NAME,
-					*para_id,
-				)
-			})
-			.collect();
+	) -> Result<(ParaHeadsProof, Vec<ParaHash>), Self::Error> {
+		let parachain = ParaId(P::SOURCE_PARACHAIN_PARA_ID);
+		if parachains != [parachain] {
+			return Err(SubstrateError::Custom(format!(
+				"Trying to prove unexpected parachains {:?}. Expected {:?}",
+				parachains, parachain,
+			)))
+		}
+
+		let parachain = parachains[0];
+		let storage_key =
+			parachain_head_storage_key_at_source(P::SourceRelayChain::PARAS_PALLET_NAME, parachain);
 		let parachain_heads_proof = self
 			.client
-			.prove_storage(storage_keys, at_block.1)
+			.prove_storage(vec![storage_key.clone()], at_block.1)
 			.await?
 			.iter_nodes()
 			.collect();
 
-		Ok(ParaHeadsProof(parachain_heads_proof))
+		// why we're reading parachain head here once again (it has already been read at the
+		// `parachain_head`)? that's because `parachain_head` sometimes returns obsolete parachain
+		// head and loop sometimes asks to prove this obsolete head and gets other (actual) head
+		// instead
+		//
+		// => since we want to provide proper hashes in our `submit_parachain_heads` call, we're
+		// rereading actual value here
+		let parachain_head = self
+			.client
+			.raw_storage_value(storage_key, Some(at_block.1))
+			.await?
+			.map(|h| ParaHead::decode(&mut &h.0[..]))
+			.transpose()?
+			.ok_or_else(|| {
+				SubstrateError::Custom(format!(
+					"Failed to read expected parachain {:?} head at {:?}",
+					parachain, at_block
+				))
+			})?;
+		let parachain_head_hash = parachain_head.hash();
+
+		Ok((ParaHeadsProof(parachain_heads_proof), vec![parachain_head_hash]))
 	}
 }

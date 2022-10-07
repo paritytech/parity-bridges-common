@@ -22,12 +22,41 @@ use crate::cli::{
 	CliChain,
 };
 use bp_messages::LaneId;
+use bp_rialto_parachain::RIALTO_PARACHAIN_ID;
 use bp_runtime::EncodedOrDecodedCall;
 use relay_millau_client::Millau;
 use relay_substrate_client::BalanceOf;
 use sp_version::RuntimeVersion;
+use xcm::latest::prelude::*;
 
 impl CliEncodeMessage for Millau {
+	fn encode_send_xcm(
+		message: xcm::VersionedXcm<()>,
+		bridge_instance_index: u8,
+	) -> anyhow::Result<EncodedOrDecodedCall<Self::Call>> {
+		let dest = match bridge_instance_index {
+			bridge::MILLAU_TO_RIALTO_INDEX =>
+				(Parent, X1(GlobalConsensus(millau_runtime::xcm_config::RialtoNetwork::get()))),
+			bridge::MILLAU_TO_RIALTO_PARACHAIN_INDEX => (
+				Parent,
+				X2(
+					GlobalConsensus(millau_runtime::xcm_config::RialtoNetwork::get()),
+					Parachain(RIALTO_PARACHAIN_ID),
+				),
+			),
+			_ => anyhow::bail!(
+				"Unsupported target bridge pallet with instance index: {}",
+				bridge_instance_index
+			),
+		};
+
+		Ok(millau_runtime::Call::XcmPallet(millau_runtime::XcmCall::send {
+			dest: Box::new(dest.into()),
+			message: Box::new(message),
+		})
+		.into())
+	}
+
 	fn encode_send_message_call(
 		lane: LaneId,
 		payload: RawMessage,
@@ -61,7 +90,7 @@ impl CliEncodeMessage for Millau {
 }
 
 impl CliChain for Millau {
-	const RUNTIME_VERSION: RuntimeVersion = millau_runtime::VERSION;
+	const RUNTIME_VERSION: Option<RuntimeVersion> = Some(millau_runtime::VERSION);
 
 	type KeyPair = sp_core::sr25519::Pair;
 	type MessagePayload = Vec<u8>;

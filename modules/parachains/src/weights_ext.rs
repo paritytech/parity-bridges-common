@@ -16,7 +16,7 @@
 
 //! Weight-related utilities.
 
-use crate::weights::{MillauWeight, WeightInfo};
+use crate::weights::{BridgeWeight, WeightInfo};
 
 use bp_runtime::Size;
 use frame_support::weights::{RuntimeDbWeight, Weight};
@@ -56,7 +56,7 @@ pub trait WeightInfoExt: WeightInfo {
 		let expected_proof_size = parachains_count
 			.saturating_mul(DEFAULT_PARACHAIN_HEAD_SIZE)
 			.saturating_add(Self::expected_extra_storage_proof_size());
-		let actual_proof_size = proof.size_hint();
+		let actual_proof_size = proof.size();
 		let proof_size_overhead = Self::storage_proof_size_overhead(
 			actual_proof_size.saturating_sub(expected_proof_size),
 		);
@@ -66,6 +66,17 @@ pub trait WeightInfoExt: WeightInfo {
 			.saturating_mul(Self::parachain_head_pruning_weight(db_weight));
 
 		base_weight.saturating_add(proof_size_overhead).saturating_add(pruning_weight)
+	}
+
+	/// Returns weight of single parachain head storage update.
+	///
+	/// This weight only includes db write operations that happens if parachain head is actually
+	/// updated. All extra weights (weight of storage proof validation, additional checks, ...) is
+	/// not included.
+	fn parachain_head_storage_write_weight(db_weight: RuntimeDbWeight) -> Weight {
+		// it's just a couple of operations - we need to write the hash (`ImportedParaHashes`) and
+		// the head itself (`ImportedParaHeads`. Pruning is not included here
+		db_weight.writes(2)
 	}
 
 	/// Returns weight of single parachain head pruning.
@@ -90,7 +101,7 @@ impl WeightInfoExt for () {
 	}
 }
 
-impl<T: frame_system::Config> WeightInfoExt for MillauWeight<T> {
+impl<T: frame_system::Config> WeightInfoExt for BridgeWeight<T> {
 	fn expected_extra_storage_proof_size() -> u32 {
 		EXTRA_STORAGE_PROOF_SIZE
 	}

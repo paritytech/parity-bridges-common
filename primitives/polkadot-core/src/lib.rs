@@ -18,6 +18,7 @@
 
 use bp_messages::MessageNonce;
 use bp_runtime::{Chain, EncodedOrDecodedCall};
+use codec::Compact;
 use frame_support::{
 	dispatch::Dispatchable,
 	parameter_types,
@@ -28,7 +29,6 @@ use frame_support::{
 	Blake2_128Concat, RuntimeDebug, StorageHasher, Twox128,
 };
 use frame_system::limits;
-use parity_scale_codec::Compact;
 use scale_info::{StaticTypeInfo, TypeInfo};
 use sp_core::Hasher as HasherT;
 use sp_runtime::{
@@ -64,11 +64,6 @@ pub mod parachains;
 /// nearest future. If it'll ever break this barrier, then we'll need to update this constant
 /// at next runtime upgrade.
 pub const EXTRA_STORAGE_PROOF_SIZE: u32 = 1024;
-
-/// Maximal size (in bytes) of encoded (using `Encode::encode()`) account id.
-///
-/// All polkadot-like chains are using same crypto.
-pub const MAXIMAL_ENCODED_ACCOUNT_ID_SIZE: u32 = 32;
 
 /// All Polkadot-like chains allow normal extrinsics to fill block up to 75 percent.
 ///
@@ -261,16 +256,14 @@ pub struct SignedExtensions<Call> {
 	_data: sp_std::marker::PhantomData<Call>,
 }
 
-impl<Call> parity_scale_codec::Encode for SignedExtensions<Call> {
+impl<Call> codec::Encode for SignedExtensions<Call> {
 	fn using_encoded<R, F: FnOnce(&[u8]) -> R>(&self, f: F) -> R {
 		self.encode_payload.using_encoded(f)
 	}
 }
 
-impl<Call> parity_scale_codec::Decode for SignedExtensions<Call> {
-	fn decode<I: parity_scale_codec::Input>(
-		input: &mut I,
-	) -> Result<Self, parity_scale_codec::Error> {
+impl<Call> codec::Decode for SignedExtensions<Call> {
+	fn decode<I: codec::Input>(input: &mut I) -> Result<Self, codec::Error> {
 		SignedExtra::decode(input).map(|encode_payload| SignedExtensions {
 			encode_payload,
 			additional_signed: None,
@@ -328,14 +321,7 @@ impl<Call> SignedExtensions<Call> {
 
 impl<Call> sp_runtime::traits::SignedExtension for SignedExtensions<Call>
 where
-	Call: parity_scale_codec::Codec
-		+ sp_std::fmt::Debug
-		+ Sync
-		+ Send
-		+ Clone
-		+ Eq
-		+ PartialEq
-		+ StaticTypeInfo,
+	Call: codec::Codec + sp_std::fmt::Debug + Sync + Send + Clone + Eq + PartialEq + StaticTypeInfo,
 	Call: Dispatchable,
 {
 	const IDENTIFIER: &'static str = "Not needed.";
@@ -395,15 +381,6 @@ impl Chain for PolkadotLike {
 	}
 }
 
-/// Convert a 256-bit hash into an AccountId.
-pub struct AccountIdConverter;
-
-impl Convert<sp_core::H256, AccountId> for AccountIdConverter {
-	fn convert(hash: sp_core::H256) -> AccountId {
-		hash.to_fixed_bytes().into()
-	}
-}
-
 /// Return a storage key for account data.
 ///
 /// This is based on FRAME storage-generation code from Substrate:
@@ -413,7 +390,7 @@ impl Convert<sp_core::H256, AccountId> for AccountIdConverter {
 pub fn account_info_storage_key(id: &AccountId) -> Vec<u8> {
 	let module_prefix_hashed = Twox128::hash(b"System");
 	let storage_prefix_hashed = Twox128::hash(b"Account");
-	let key_hashed = parity_scale_codec::Encode::using_encoded(id, Blake2_128Concat::hash);
+	let key_hashed = codec::Encode::using_encoded(id, Blake2_128Concat::hash);
 
 	let mut final_key = Vec::with_capacity(
 		module_prefix_hashed.len() + storage_prefix_hashed.len() + key_hashed.len(),
@@ -429,18 +406,6 @@ pub fn account_info_storage_key(id: &AccountId) -> Vec<u8> {
 #[cfg(test)]
 mod tests {
 	use super::*;
-	use sp_runtime::codec::Encode;
-
-	#[test]
-	fn maximal_encoded_account_id_size_is_correct() {
-		let actual_size = AccountId::from([0u8; 32]).encode().len();
-		assert!(
-			actual_size <= MAXIMAL_ENCODED_ACCOUNT_ID_SIZE as usize,
-			"Actual size of encoded account id for Polkadot-like chains ({}) is larger than expected {}",
-			actual_size,
-			MAXIMAL_ENCODED_ACCOUNT_ID_SIZE,
-		);
-	}
 
 	#[test]
 	fn should_generate_storage_key() {

@@ -14,9 +14,7 @@
 // You should have received a copy of the GNU General Public License
 // along with Parity Bridges Common.  If not, see <http://www.gnu.org/licenses/>.
 
-use crate::cli::{
-	Balance, ParachainConnectionParams, RelaychainConnectionParams, RelaychainSigningParams,
-};
+use crate::cli::{chain_schema::*, Balance};
 
 use codec::Encode;
 use frame_support::Twox64Concat;
@@ -28,14 +26,12 @@ use polkadot_runtime_common::{
 	paras_registrar::Call as ParaRegistrarCall, slots::Call as ParaSlotsCall,
 };
 use polkadot_runtime_parachains::paras::ParaLifecycle;
-use relay_substrate_client::{
-	AccountIdOf, CallOf, Chain, Client, HashOf, SignParam, Subscription, TransactionSignScheme,
-	TransactionStatusOf, UnsignedTransaction,
-};
+use relay_substrate_client::{AccountIdOf, CallOf, Chain, Client, SignParam, UnsignedTransaction};
+use relay_utils::{TrackedTransactionStatus, TransactionTracker};
 use rialto_runtime::SudoCall;
 use sp_core::{
 	storage::{well_known_keys::CODE, StorageKey},
-	Bytes, Pair,
+	Pair,
 };
 use structopt::StructOpt;
 use strum::{EnumString, EnumVariantNames, VariantNames};
@@ -94,9 +90,9 @@ impl RegisterParachain {
 	/// Run the command.
 	pub async fn run(self) -> anyhow::Result<()> {
 		select_bridge!(self.parachain, {
-			let relay_client = self.relay_connection.to_client::<Relaychain>().await?;
+			let relay_client = self.relay_connection.into_client::<Relaychain>().await?;
 			let relay_sign = self.relay_sign.to_keypair::<Relaychain>()?;
-			let para_client = self.para_connection.to_client::<Parachain>().await?;
+			let para_client = self.para_connection.into_client::<Parachain>().await?;
 
 			// hopefully we're the only actor that is registering parachain right now
 			// => read next parachain id
@@ -118,30 +114,30 @@ impl RegisterParachain {
 				ParaRegistrarCall::reserve {}.into();
 			let reserve_parachain_signer = relay_sign.clone();
 			let (spec_version, transaction_version) = relay_client.simple_runtime_version().await?;
-			wait_until_transaction_is_finalized::<Relaychain>(
-				relay_client
-					.submit_and_watch_signed_extrinsic(
-						relay_sudo_account.clone(),
-						move |_, transaction_nonce| {
-							Ok(Bytes(
-								Relaychain::sign_transaction(SignParam {
-									spec_version,
-									transaction_version,
-									genesis_hash: relay_genesis_hash,
-									signer: reserve_parachain_signer,
-									era: relay_substrate_client::TransactionEra::immortal(),
-									unsigned: UnsignedTransaction::new(
-										reserve_parachain_id_call.into(),
-										transaction_nonce,
-									),
-								})?
-								.encode(),
-							))
-						},
-					)
-					.await?,
-			)
-			.await?;
+			let reserve_result = relay_client
+				.submit_and_watch_signed_extrinsic(
+					relay_sudo_account.clone(),
+					SignParam::<Relaychain> {
+						spec_version,
+						transaction_version,
+						genesis_hash: relay_genesis_hash,
+						signer: reserve_parachain_signer,
+					},
+					move |_, transaction_nonce| {
+						Ok(UnsignedTransaction::new(
+							reserve_parachain_id_call.into(),
+							transaction_nonce,
+						))
+					},
+				)
+				.await?
+				.wait()
+				.await;
+			if reserve_result == TrackedTransactionStatus::Lost {
+				return Err(anyhow::format_err!(
+					"Failed to finalize `reserve-parachain-id` transaction"
+				))
+			}
 			log::info!(target: "bridge", "Reserved parachain id: {:?}", para_id);
 
 			// step 2: register parathread
@@ -167,30 +163,30 @@ impl RegisterParachain {
 			}
 			.into();
 			let register_parathread_signer = relay_sign.clone();
-			wait_until_transaction_is_finalized::<Relaychain>(
-				relay_client
-					.submit_and_watch_signed_extrinsic(
-						relay_sudo_account.clone(),
-						move |_, transaction_nonce| {
-							Ok(Bytes(
-								Relaychain::sign_transaction(SignParam {
-									spec_version,
-									transaction_version,
-									genesis_hash: relay_genesis_hash,
-									signer: register_parathread_signer,
-									era: relay_substrate_client::TransactionEra::immortal(),
-									unsigned: UnsignedTransaction::new(
-										register_parathread_call.into(),
-										transaction_nonce,
-									),
-								})?
-								.encode(),
-							))
-						},
-					)
-					.await?,
-			)
-			.await?;
+			let register_result = relay_client
+				.submit_and_watch_signed_extrinsic(
+					relay_sudo_account.clone(),
+					SignParam::<Relaychain> {
+						spec_version,
+						transaction_version,
+						genesis_hash: relay_genesis_hash,
+						signer: register_parathread_signer,
+					},
+					move |_, transaction_nonce| {
+						Ok(UnsignedTransaction::new(
+							register_parathread_call.into(),
+							transaction_nonce,
+						))
+					},
+				)
+				.await?
+				.wait()
+				.await;
+			if register_result == TrackedTransactionStatus::Lost {
+				return Err(anyhow::format_err!(
+					"Failed to finalize `register-parathread` transaction"
+				))
+			}
 			log::info!(target: "bridge", "Registered parachain: {:?}. Waiting for onboarding", para_id);
 
 			// wait until parathread is onboarded
@@ -233,22 +229,18 @@ impl RegisterParachain {
 			.into();
 			let force_lease_signer = relay_sign.clone();
 			relay_client
-				.submit_signed_extrinsic(relay_sudo_account.clone(), move |_, transaction_nonce| {
-					Ok(Bytes(
-						Relaychain::sign_transaction(SignParam {
-							spec_version,
-							transaction_version,
-							genesis_hash: relay_genesis_hash,
-							signer: force_lease_signer,
-							era: relay_substrate_client::TransactionEra::immortal(),
-							unsigned: UnsignedTransaction::new(
-								force_lease_call.into(),
-								transaction_nonce,
-							),
-						})?
-						.encode(),
-					))
-				})
+				.submit_signed_extrinsic(
+					relay_sudo_account,
+					SignParam::<Relaychain> {
+						spec_version,
+						transaction_version,
+						genesis_hash: relay_genesis_hash,
+						signer: force_lease_signer,
+					},
+					move |_, transaction_nonce| {
+						Ok(UnsignedTransaction::new(force_lease_call.into(), transaction_nonce))
+					},
+				)
 				.await?;
 			log::info!(target: "bridge", "Registered parachain leases: {:?}. Waiting for onboarding", para_id);
 
@@ -267,46 +259,6 @@ impl RegisterParachain {
 
 			Ok(())
 		})
-	}
-}
-
-/// Wait until transaction is included into finalized block.
-///
-/// Returns the hash of the finalized block with transaction.
-pub(crate) async fn wait_until_transaction_is_finalized<C: Chain>(
-	subscription: Subscription<TransactionStatusOf<C>>,
-) -> anyhow::Result<HashOf<C>> {
-	loop {
-		let transaction_status = subscription.next().await?;
-		match transaction_status {
-			Some(TransactionStatusOf::<C>::FinalityTimeout(_)) |
-			Some(TransactionStatusOf::<C>::Usurped(_)) |
-			Some(TransactionStatusOf::<C>::Dropped) |
-			Some(TransactionStatusOf::<C>::Invalid) |
-			None =>
-				return Err(anyhow::format_err!(
-					"We've been waiting for finalization of {} transaction, but it now has the {:?} status",
-					C::NAME,
-					transaction_status,
-				)),
-			Some(TransactionStatusOf::<C>::Finalized(block_hash)) => {
-				log::trace!(
-					target: "bridge",
-					"{} transaction has been finalized at block {}",
-					C::NAME,
-					block_hash,
-				);
-				return Ok(block_hash)
-			},
-			_ => {
-				log::trace!(
-					target: "bridge",
-					"Received intermediate status of {} transaction: {:?}",
-					C::NAME,
-					transaction_status,
-				);
-			},
-		}
 	}
 }
 
@@ -343,9 +295,6 @@ async fn wait_para_state<Relaychain: Chain>(
 #[cfg(test)]
 mod tests {
 	use super::*;
-	use crate::cli::{
-		ParachainRuntimeVersionParams, RelaychainRuntimeVersionParams, RuntimeVersionType,
-	};
 
 	#[test]
 	fn register_rialto_parachain() {

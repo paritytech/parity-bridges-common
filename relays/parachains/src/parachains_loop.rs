@@ -22,13 +22,21 @@ use bp_polkadot_core::{
 	parachains::{ParaHash, ParaHeadsProof, ParaId},
 	BlockNumber as RelayBlockNumber,
 };
-use futures::{future::FutureExt, select};
+use futures::{
+	future::{FutureExt, Shared},
+	poll, select,
+};
 use relay_substrate_client::{BlockNumberOf, Chain, HeaderIdOf};
-use relay_utils::{metrics::MetricsParams, relay_loop::Client as RelayClient, FailedClient};
+use relay_utils::{
+	metrics::MetricsParams, relay_loop::Client as RelayClient, FailedClient,
+	TrackedTransactionStatus, TransactionTracker,
+};
 use std::{
 	collections::{BTreeMap, BTreeSet},
 	future::Future,
-	time::{Duration, Instant},
+	pin::Pin,
+	task::Poll,
+	time::Duration,
 };
 
 /// Parachain heads synchronization params.
@@ -52,21 +60,35 @@ pub enum ParachainSyncStrategy {
 	All,
 }
 
-/// Parachain head hash, available at the source (relay) chain.
+/// Parachain header availability at a certain chain.
 #[derive(Clone, Copy, Debug)]
-pub enum ParaHashAtSource {
-	/// There's no parachain head at the source chain.
-	///
-	/// Normally it means that the parachain is not registered there.
-	None,
-	/// Parachain head with given hash is available at the source chain.
-	Some(ParaHash),
-	/// The source client refuses to report parachain head hash at this moment.
+pub enum AvailableHeader<T> {
+	/// The client refuses to report parachain head at this moment.
 	///
 	/// It is a "mild" error, which may appear when e.g. on-demand parachains relay is used.
 	/// This variant must be treated as "we don't want to update parachain head value at the
 	/// target chain at this moment".
 	Unavailable,
+	/// There's no parachain header at the relay chain.
+	///
+	/// Normally it means that the parachain is not registered there.
+	Missing,
+	/// Parachain head with given hash is available at the source chain.
+	Available(T),
+}
+
+impl<T> AvailableHeader<T> {
+	/// Transform contained value.
+	pub fn map<F, U>(self, f: F) -> AvailableHeader<U>
+	where
+		F: FnOnce(T) -> U,
+	{
+		match self {
+			AvailableHeader::Unavailable => AvailableHeader::Unavailable,
+			AvailableHeader::Missing => AvailableHeader::Missing,
+			AvailableHeader::Available(val) => AvailableHeader::Available(f(val)),
+		}
+	}
 }
 
 /// Source client used in parachain heads synchronization loop.
@@ -76,23 +98,34 @@ pub trait SourceClient<P: ParachainsPipeline>: RelayClient {
 	async fn ensure_synced(&self) -> Result<bool, Self::Error>;
 
 	/// Get parachain head hash at given block.
+	///
+	/// The implementation may call `ParachainsLoopMetrics::update_best_parachain_block_at_source`
+	/// on provided `metrics` object to update corresponding metric value.
 	async fn parachain_head(
 		&self,
 		at_block: HeaderIdOf<P::SourceChain>,
+		metrics: Option<&ParachainsLoopMetrics>,
 		para_id: ParaId,
-	) -> Result<ParaHashAtSource, Self::Error>;
+	) -> Result<AvailableHeader<ParaHash>, Self::Error>;
 
 	/// Get parachain heads proof.
+	///
+	/// The number and order of entries in the resulting parachain head hashes vector must match the
+	/// number and order of parachains in the `parachains` vector. The incorrect implementation will
+	/// result in panic.
 	async fn prove_parachain_heads(
 		&self,
 		at_block: HeaderIdOf<P::SourceChain>,
 		parachains: &[ParaId],
-	) -> Result<ParaHeadsProof, Self::Error>;
+	) -> Result<(ParaHeadsProof, Vec<ParaHash>), Self::Error>;
 }
 
 /// Target client used in parachain heads synchronization loop.
 #[async_trait]
 pub trait TargetClient<P: ParachainsPipeline>: RelayClient {
+	/// Transaction tracker to track submitted transactions.
+	type TransactionTracker: TransactionTracker<HeaderId = HeaderIdOf<P::TargetChain>>;
+
 	/// Get best block id.
 	async fn best_block(&self) -> Result<HeaderIdOf<P::TargetChain>, Self::Error>;
 
@@ -103,9 +136,13 @@ pub trait TargetClient<P: ParachainsPipeline>: RelayClient {
 	) -> Result<HeaderIdOf<P::SourceChain>, Self::Error>;
 
 	/// Get parachain head hash at given block.
+	///
+	/// The implementation may call `ParachainsLoopMetrics::update_best_parachain_block_at_target`
+	/// on provided `metrics` object to update corresponding metric value.
 	async fn parachain_head(
 		&self,
 		at_block: HeaderIdOf<P::TargetChain>,
+		metrics: Option<&ParachainsLoopMetrics>,
 		para_id: ParaId,
 	) -> Result<Option<BestParaHeadHash>, Self::Error>;
 
@@ -113,9 +150,9 @@ pub trait TargetClient<P: ParachainsPipeline>: RelayClient {
 	async fn submit_parachain_heads_proof(
 		&self,
 		at_source_block: HeaderIdOf<P::SourceChain>,
-		updated_parachains: Vec<ParaId>,
+		updated_parachains: Vec<(ParaId, ParaHash)>,
 		proof: ParaHeadsProof,
-	) -> Result<(), Self::Error>;
+	) -> Result<Self::TransactionTracker, Self::Error>;
 }
 
 /// Return prefix that will be used by default to expose Prometheus metrics of the parachains
@@ -158,7 +195,7 @@ async fn run_until_connection_lost<P: ParachainsPipeline>(
 	source_client: impl SourceClient<P>,
 	target_client: impl TargetClient<P>,
 	sync_params: ParachainSyncParams,
-	_metrics: Option<ParachainsLoopMetrics>,
+	metrics: Option<ParachainsLoopMetrics>,
 	exit_signal: impl Future<Output = ()> + Send,
 ) -> Result<(), FailedClient>
 where
@@ -170,7 +207,7 @@ where
 		P::TargetChain::AVERAGE_BLOCK_INTERVAL,
 	);
 
-	let mut tx_tracker: Option<TransactionTracker<P>> = None;
+	let mut submitted_heads_tracker: Option<SubmittedHeadsTracker<P>> = None;
 
 	futures::pin_mut!(exit_signal);
 
@@ -213,12 +250,36 @@ where
 			log::warn!(target: "bridge", "Failed to read best {} block: {:?}", P::SourceChain::NAME, e);
 			FailedClient::Target
 		})?;
-		let heads_at_target =
-			read_heads_at_target(&target_client, &best_target_block, &sync_params.parachains)
-				.await?;
-		tx_tracker = tx_tracker.take().and_then(|tx_tracker| tx_tracker.update(&heads_at_target));
-		if tx_tracker.is_some() {
-			continue
+		let heads_at_target = read_heads_at_target(
+			&target_client,
+			metrics.as_ref(),
+			&best_target_block,
+			&sync_params.parachains,
+		)
+		.await?;
+
+		// check if our transaction has been mined
+		if let Some(tracker) = submitted_heads_tracker.take() {
+			match tracker.update(&best_target_block, &heads_at_target).await {
+				SubmittedHeadsStatus::Waiting(tracker) => {
+					// no news about our transaction and we shall keep waiting
+					submitted_heads_tracker = Some(tracker);
+					continue
+				},
+				SubmittedHeadsStatus::Final(TrackedTransactionStatus::Finalized(_)) => {
+					// all heads have been updated, we don't need this tracker anymore
+				},
+				SubmittedHeadsStatus::Final(TrackedTransactionStatus::Lost) => {
+					log::warn!(
+						target: "bridge",
+						"Parachains synchronization from {} to {} has stalled. Going to restart",
+						P::SourceChain::NAME,
+						P::TargetChain::NAME,
+					);
+
+					return Err(FailedClient::Both)
+				},
+			}
 		}
 
 		// we have no active transaction and may need to update heads, but do we have something for
@@ -238,6 +299,7 @@ where
 			})?;
 		let heads_at_source = read_heads_at_source(
 			&source_client,
+			metrics.as_ref(),
 			&best_finalized_relay_block,
 			&sync_params.parachains,
 		)
@@ -261,7 +323,7 @@ where
 		);
 
 		if is_update_required {
-			let heads_proofs = source_client
+			let (heads_proofs, head_hashes) = source_client
 				.prove_parachain_heads(best_finalized_relay_block, &updated_ids)
 				.await
 				.map_err(|e| {
@@ -279,10 +341,17 @@ where
 				P::SourceChain::NAME,
 				P::TargetChain::NAME,
 			);
-			target_client
+
+			assert_eq!(
+				head_hashes.len(),
+				updated_ids.len(),
+				"Incorrect parachains SourceClient implementation"
+			);
+
+			let transaction_tracker = target_client
 				.submit_parachain_heads_proof(
 					best_finalized_relay_block,
-					updated_ids.clone(),
+					updated_ids.iter().cloned().zip(head_hashes).collect(),
 					heads_proofs,
 				)
 				.await
@@ -296,11 +365,10 @@ where
 					);
 					FailedClient::Target
 				})?;
-
-			tx_tracker = Some(TransactionTracker::<P>::new(
+			submitted_heads_tracker = Some(SubmittedHeadsTracker::<P>::new(
 				updated_ids,
 				best_finalized_relay_block.0,
-				sync_params.stall_timeout,
+				transaction_tracker,
 			));
 		}
 	}
@@ -308,7 +376,7 @@ where
 
 /// Given heads at source and target clients, returns set of heads that are out of sync.
 fn select_parachains_to_update<P: ParachainsPipeline>(
-	heads_at_source: BTreeMap<ParaId, ParaHashAtSource>,
+	heads_at_source: BTreeMap<ParaId, AvailableHeader<ParaHash>>,
 	heads_at_target: BTreeMap<ParaId, Option<BestParaHeadHash>>,
 	best_finalized_relay_block: HeaderIdOf<P::SourceChain>,
 ) -> Vec<ParaId>
@@ -334,12 +402,12 @@ where
 		.zip(heads_at_target.into_iter())
 		.filter(|((para, head_at_source), (_, head_at_target))| {
 			let needs_update = match (head_at_source, head_at_target) {
-				(ParaHashAtSource::Unavailable, _) => {
+				(AvailableHeader::Unavailable, _) => {
 					// source client has politely asked us not to update current parachain head
 					// at the target chain
 					false
 				},
-				(ParaHashAtSource::Some(head_at_source), Some(head_at_target))
+				(AvailableHeader::Available(head_at_source), Some(head_at_target))
 					if head_at_target.at_relay_block_number < best_finalized_relay_block.0 &&
 						head_at_target.head_hash != *head_at_source =>
 				{
@@ -347,22 +415,22 @@ where
 					// client
 					true
 				},
-				(ParaHashAtSource::Some(_), Some(_)) => {
+				(AvailableHeader::Available(_), Some(_)) => {
 					// this is normal case when relay has recently updated heads, when parachain is
-					// not progressing or when our source client is
+					// not progressing, or when our source client is still syncing
 					false
 				},
-				(ParaHashAtSource::Some(_), None) => {
+				(AvailableHeader::Available(_), None) => {
 					// parachain is not yet known to the target client. This is true when parachain
 					// or bridge has been just onboarded/started
 					true
 				},
-				(ParaHashAtSource::None, Some(_)) => {
+				(AvailableHeader::Missing, Some(_)) => {
 					// parachain/parathread has been offboarded removed from the system. It needs to
 					// be propageted to the target client
 					true
 				},
-				(ParaHashAtSource::None, None) => {
+				(AvailableHeader::Missing, None) => {
 					// all's good - parachain is unknown to both clients
 					false
 				},
@@ -381,7 +449,7 @@ where
 
 			needs_update
 		})
-		.map(|((para_id, _), _)| para_id)
+		.map(|((para, _), _)| para)
 		.collect()
 }
 
@@ -398,12 +466,13 @@ fn is_update_required(sync_params: &ParachainSyncParams, updated_ids: &[ParaId])
 /// Guarantees that the returning map will have an entry for every parachain from `parachains`.
 async fn read_heads_at_source<P: ParachainsPipeline>(
 	source_client: &impl SourceClient<P>,
+	metrics: Option<&ParachainsLoopMetrics>,
 	at_relay_block: &HeaderIdOf<P::SourceChain>,
 	parachains: &[ParaId],
-) -> Result<BTreeMap<ParaId, ParaHashAtSource>, FailedClient> {
+) -> Result<BTreeMap<ParaId, AvailableHeader<ParaHash>>, FailedClient> {
 	let mut para_head_hashes = BTreeMap::new();
 	for para in parachains {
-		let para_head = source_client.parachain_head(*at_relay_block, *para).await;
+		let para_head = source_client.parachain_head(*at_relay_block, metrics, *para).await;
 		match para_head {
 			Ok(para_head) => {
 				para_head_hashes.insert(*para, para_head);
@@ -428,12 +497,13 @@ async fn read_heads_at_source<P: ParachainsPipeline>(
 /// Guarantees that the returning map will have an entry for every parachain from `parachains`.
 async fn read_heads_at_target<P: ParachainsPipeline>(
 	target_client: &impl TargetClient<P>,
+	metrics: Option<&ParachainsLoopMetrics>,
 	at_block: &HeaderIdOf<P::TargetChain>,
 	parachains: &[ParaId],
 ) -> Result<BTreeMap<ParaId, Option<BestParaHeadHash>>, FailedClient> {
 	let mut para_best_head_hashes = BTreeMap::new();
 	for para in parachains {
-		let para_best_head = target_client.parachain_head(*at_block, *para).await;
+		let para_best_head = target_client.parachain_head(*at_block, metrics, *para).await;
 		match para_best_head {
 			Ok(para_best_head) => {
 				para_best_head_hashes.insert(*para, para_best_head);
@@ -454,19 +524,42 @@ async fn read_heads_at_target<P: ParachainsPipeline>(
 	Ok(para_best_head_hashes)
 }
 
-/// Parachain heads transaction tracker.
-struct TransactionTracker<P: ParachainsPipeline> {
+/// Submitted heads status.
+enum SubmittedHeadsStatus<P: ParachainsPipeline> {
+	/// Heads are not yet updated.
+	Waiting(SubmittedHeadsTracker<P>),
+	/// Heads transaction has either been finalized or lost (i.e. received its "final" status).
+	Final(TrackedTransactionStatus<HeaderIdOf<P::TargetChain>>),
+}
+
+/// Type of the transaction tracker that the `SubmittedHeadsTracker` is using.
+///
+/// It needs to be shared because of `poll` macro and our consuming `update` method.
+type SharedTransactionTracker<P> = Shared<
+	Pin<
+		Box<
+			dyn Future<
+					Output = TrackedTransactionStatus<
+						HeaderIdOf<<P as ParachainsPipeline>::TargetChain>,
+					>,
+				> + Send,
+		>,
+	>,
+>;
+
+/// Submitted parachain heads transaction.
+struct SubmittedHeadsTracker<P: ParachainsPipeline> {
 	/// Ids of parachains which heads were updated in the tracked transaction.
 	awaiting_update: BTreeSet<ParaId>,
 	/// Number of relay chain block that has been used to craft parachain heads proof.
 	relay_block_number: BlockNumberOf<P::SourceChain>,
-	/// Transaction submit time.
-	submitted_at: Instant,
-	/// Transaction death time.
-	death_time: Instant,
+	/// Future that waits for submitted transaction finality or loss.
+	///
+	/// It needs to be shared because of `poll` macro and our consuming `update` method.
+	transaction_tracker: SharedTransactionTracker<P>,
 }
 
-impl<P: ParachainsPipeline> TransactionTracker<P>
+impl<P: ParachainsPipeline> SubmittedHeadsTracker<P>
 where
 	P::SourceChain: Chain<BlockNumber = RelayBlockNumber>,
 {
@@ -474,22 +567,21 @@ where
 	pub fn new(
 		awaiting_update: impl IntoIterator<Item = ParaId>,
 		relay_block_number: BlockNumberOf<P::SourceChain>,
-		stall_timeout: Duration,
+		transaction_tracker: impl TransactionTracker<HeaderId = HeaderIdOf<P::TargetChain>> + 'static,
 	) -> Self {
-		let now = Instant::now();
-		TransactionTracker {
+		SubmittedHeadsTracker {
 			awaiting_update: awaiting_update.into_iter().collect(),
 			relay_block_number,
-			submitted_at: now,
-			death_time: now + stall_timeout,
+			transaction_tracker: transaction_tracker.wait().fuse().boxed().shared(),
 		}
 	}
 
-	/// Returns `None` if all parachain heads have been updated or we consider our transaction dead.
-	pub fn update(
+	/// Returns `None` if all submitted parachain heads have been updated.
+	pub async fn update(
 		mut self,
+		at_target_block: &HeaderIdOf<P::TargetChain>,
 		heads_at_target: &BTreeMap<ParaId, Option<BestParaHeadHash>>,
-	) -> Option<Self> {
+	) -> SubmittedHeadsStatus<P> {
 		// remove all pending heads that were synced
 		for (para, best_para_head) in heads_at_target {
 			if best_para_head
@@ -514,23 +606,26 @@ where
 
 		// if we have synced all required heads, we are done
 		if self.awaiting_update.is_empty() {
-			return None
+			return SubmittedHeadsStatus::Final(TrackedTransactionStatus::Finalized(
+				*at_target_block,
+			))
 		}
 
-		// if our transaction is dead now, we may start over again
-		let now = Instant::now();
-		if now >= self.death_time {
-			log::warn!(
-				target: "bridge",
-				"Parachain heads update transaction {} has been lost: no updates for {}s",
-				P::TargetChain::NAME,
-				(now - self.submitted_at).as_secs(),
-			);
-
-			return None
+		// if underlying transaction tracker has reported that the transaction is lost, we may
+		// then restart our sync
+		let transaction_tracker = self.transaction_tracker.clone();
+		match poll!(transaction_tracker) {
+			Poll::Ready(TrackedTransactionStatus::Lost) =>
+				return SubmittedHeadsStatus::Final(TrackedTransactionStatus::Lost),
+			Poll::Ready(TrackedTransactionStatus::Finalized(_)) => {
+				// so we are here and our transaction is mined+finalized, but some of heads were not
+				// updated => we're considering our loop as stalled
+				return SubmittedHeadsStatus::Final(TrackedTransactionStatus::Lost)
+			},
+			_ => (),
 		}
 
-		Some(self)
+		SubmittedHeadsStatus::Waiting(self)
 	}
 }
 
@@ -574,9 +669,24 @@ mod tests {
 	}
 
 	#[derive(Clone, Debug)]
+	struct TestTransactionTracker(Option<TrackedTransactionStatus<HeaderIdOf<TestChain>>>);
+
+	#[async_trait]
+	impl TransactionTracker for TestTransactionTracker {
+		type HeaderId = HeaderIdOf<TestChain>;
+
+		async fn wait(self) -> TrackedTransactionStatus<HeaderIdOf<TestChain>> {
+			match self.0 {
+				Some(status) => status,
+				None => futures::future::pending().await,
+			}
+		}
+	}
+
+	#[derive(Clone, Debug)]
 	struct TestClientData {
 		source_sync_status: Result<bool, TestError>,
-		source_heads: BTreeMap<u32, Result<ParaHashAtSource, TestError>>,
+		source_heads: BTreeMap<u32, Result<AvailableHeader<ParaHash>, TestError>>,
 		source_proofs: BTreeMap<u32, Result<Vec<u8>, TestError>>,
 
 		target_best_block: Result<HeaderIdOf<TestChain>, TestError>,
@@ -591,7 +701,7 @@ mod tests {
 		pub fn minimal() -> Self {
 			TestClientData {
 				source_sync_status: Ok(true),
-				source_heads: vec![(PARA_ID, Ok(ParaHashAtSource::Some(PARA_0_HASH)))]
+				source_heads: vec![(PARA_ID, Ok(AvailableHeader::Available(PARA_0_HASH)))]
 					.into_iter()
 					.collect(),
 				source_proofs: vec![(PARA_ID, Ok(PARA_0_HASH.encode()))].into_iter().collect(),
@@ -638,11 +748,12 @@ mod tests {
 		async fn parachain_head(
 			&self,
 			_at_block: HeaderIdOf<TestChain>,
+			_metrics: Option<&ParachainsLoopMetrics>,
 			para_id: ParaId,
-		) -> Result<ParaHashAtSource, TestError> {
+		) -> Result<AvailableHeader<ParaHash>, TestError> {
 			match self.data.lock().await.source_heads.get(&para_id.0).cloned() {
 				Some(result) => result,
-				None => Ok(ParaHashAtSource::None),
+				None => Ok(AvailableHeader::Missing),
 			}
 		}
 
@@ -650,7 +761,7 @@ mod tests {
 			&self,
 			_at_block: HeaderIdOf<TestChain>,
 			parachains: &[ParaId],
-		) -> Result<ParaHeadsProof, TestError> {
+		) -> Result<(ParaHeadsProof, Vec<ParaHash>), TestError> {
 			let mut proofs = Vec::new();
 			for para_id in parachains {
 				proofs.push(
@@ -664,12 +775,14 @@ mod tests {
 						.ok_or(TestError::MissingParachainHeadProof)?,
 				);
 			}
-			Ok(ParaHeadsProof(proofs))
+			Ok((ParaHeadsProof(proofs), vec![Default::default(); parachains.len()]))
 		}
 	}
 
 	#[async_trait]
 	impl TargetClient<TestParachainsPipeline> for TestClient {
+		type TransactionTracker = TestTransactionTracker;
+
 		async fn best_block(&self) -> Result<HeaderIdOf<TestChain>, TestError> {
 			self.data.lock().await.target_best_block.clone()
 		}
@@ -684,6 +797,7 @@ mod tests {
 		async fn parachain_head(
 			&self,
 			_at_block: HeaderIdOf<TestChain>,
+			_metrics: Option<&ParachainsLoopMetrics>,
 			para_id: ParaId,
 		) -> Result<Option<BestParaHeadHash>, TestError> {
 			self.data.lock().await.target_heads.get(&para_id.0).cloned().transpose()
@@ -692,15 +806,18 @@ mod tests {
 		async fn submit_parachain_heads_proof(
 			&self,
 			_at_source_block: HeaderIdOf<TestChain>,
-			_updated_parachains: Vec<ParaId>,
+			_updated_parachains: Vec<(ParaId, ParaHash)>,
 			_proof: ParaHeadsProof,
-		) -> Result<(), Self::Error> {
-			self.data.lock().await.target_submit_result.clone()?;
+		) -> Result<TestTransactionTracker, Self::Error> {
+			let mut data = self.data.lock().await;
+			data.target_submit_result.clone()?;
 
-			if let Some(mut exit_signal_sender) = self.data.lock().await.exit_signal_sender.take() {
+			if let Some(mut exit_signal_sender) = data.exit_signal_sender.take() {
 				exit_signal_sender.send(()).await.unwrap();
 			}
-			Ok(())
+			Ok(TestTransactionTracker(Some(
+				TrackedTransactionStatus::Finalized(Default::default()),
+			)))
 		}
 	}
 
@@ -849,29 +966,62 @@ mod tests {
 	const PARA_1_ID: u32 = PARA_ID + 1;
 	const SOURCE_BLOCK_NUMBER: u32 = 100;
 
-	fn test_tx_tracker() -> TransactionTracker<TestParachainsPipeline> {
-		TransactionTracker::new(
+	fn test_tx_tracker() -> SubmittedHeadsTracker<TestParachainsPipeline> {
+		SubmittedHeadsTracker::new(
 			vec![ParaId(PARA_ID), ParaId(PARA_1_ID)],
 			SOURCE_BLOCK_NUMBER,
-			Duration::from_secs(1),
+			TestTransactionTracker(None),
 		)
 	}
 
-	#[test]
-	fn tx_tracker_update_when_nothing_is_updated() {
+	fn all_expected_tracker_heads() -> BTreeMap<ParaId, Option<BestParaHeadHash>> {
+		vec![
+			(
+				ParaId(PARA_ID),
+				Some(BestParaHeadHash {
+					at_relay_block_number: SOURCE_BLOCK_NUMBER,
+					head_hash: PARA_0_HASH,
+				}),
+			),
+			(
+				ParaId(PARA_1_ID),
+				Some(BestParaHeadHash {
+					at_relay_block_number: SOURCE_BLOCK_NUMBER,
+					head_hash: PARA_0_HASH,
+				}),
+			),
+		]
+		.into_iter()
+		.collect()
+	}
+
+	impl From<SubmittedHeadsStatus<TestParachainsPipeline>> for Option<BTreeSet<ParaId>> {
+		fn from(status: SubmittedHeadsStatus<TestParachainsPipeline>) -> Option<BTreeSet<ParaId>> {
+			match status {
+				SubmittedHeadsStatus::Waiting(tracker) => Some(tracker.awaiting_update),
+				_ => None,
+			}
+		}
+	}
+
+	#[async_std::test]
+	async fn tx_tracker_update_when_nothing_is_updated() {
 		assert_eq!(
-			test_tx_tracker()
-				.update(&vec![].into_iter().collect())
-				.map(|t| t.awaiting_update),
 			Some(test_tx_tracker().awaiting_update),
+			test_tx_tracker()
+				.update(&HeaderId(0, Default::default()), &vec![].into_iter().collect())
+				.await
+				.into(),
 		);
 	}
 
-	#[test]
-	fn tx_tracker_update_when_one_of_heads_is_updated_to_previous_value() {
+	#[async_std::test]
+	async fn tx_tracker_update_when_one_of_heads_is_updated_to_previous_value() {
 		assert_eq!(
+			Some(test_tx_tracker().awaiting_update),
 			test_tx_tracker()
 				.update(
+					&HeaderId(0, Default::default()),
 					&vec![(
 						ParaId(PARA_ID),
 						Some(BestParaHeadHash {
@@ -882,16 +1032,18 @@ mod tests {
 					.into_iter()
 					.collect()
 				)
-				.map(|t| t.awaiting_update),
-			Some(test_tx_tracker().awaiting_update),
+				.await
+				.into(),
 		);
 	}
 
-	#[test]
-	fn tx_tracker_update_when_one_of_heads_is_updated() {
+	#[async_std::test]
+	async fn tx_tracker_update_when_one_of_heads_is_updated() {
 		assert_eq!(
+			Some(vec![ParaId(PARA_1_ID)].into_iter().collect::<BTreeSet<_>>()),
 			test_tx_tracker()
 				.update(
+					&HeaderId(0, Default::default()),
 					&vec![(
 						ParaId(PARA_ID),
 						Some(BestParaHeadHash {
@@ -902,55 +1054,70 @@ mod tests {
 					.into_iter()
 					.collect()
 				)
-				.map(|t| t.awaiting_update),
-			Some(vec![ParaId(PARA_1_ID)].into_iter().collect()),
+				.await
+				.into(),
 		);
 	}
 
-	#[test]
-	fn tx_tracker_update_when_all_heads_are_updated() {
+	#[async_std::test]
+	async fn tx_tracker_update_when_all_heads_are_updated() {
 		assert_eq!(
+			Option::<BTreeSet<_>>::None,
 			test_tx_tracker()
-				.update(
-					&vec![
-						(
-							ParaId(PARA_ID),
-							Some(BestParaHeadHash {
-								at_relay_block_number: SOURCE_BLOCK_NUMBER,
-								head_hash: PARA_0_HASH,
-							})
-						),
-						(
-							ParaId(PARA_1_ID),
-							Some(BestParaHeadHash {
-								at_relay_block_number: SOURCE_BLOCK_NUMBER,
-								head_hash: PARA_0_HASH,
-							})
-						),
-					]
-					.into_iter()
-					.collect()
-				)
-				.map(|t| t.awaiting_update),
-			None,
+				.update(&HeaderId(0, Default::default()), &all_expected_tracker_heads())
+				.await
+				.into(),
 		);
 	}
 
-	#[test]
-	fn tx_tracker_update_when_tx_is_stalled() {
+	#[async_std::test]
+	async fn tx_tracker_update_when_tx_is_lost() {
 		let mut tx_tracker = test_tx_tracker();
-		tx_tracker.death_time = Instant::now();
-		assert_eq!(
-			tx_tracker.update(&vec![].into_iter().collect()).map(|t| t.awaiting_update),
-			None,
-		);
+		tx_tracker.transaction_tracker =
+			futures::future::ready(TrackedTransactionStatus::Lost).boxed().shared();
+		assert!(matches!(
+			tx_tracker
+				.update(&HeaderId(0, Default::default()), &vec![].into_iter().collect())
+				.await,
+			SubmittedHeadsStatus::Final(TrackedTransactionStatus::Lost),
+		));
+	}
+
+	#[async_std::test]
+	async fn tx_tracker_update_when_tx_is_finalized_but_heads_are_not_updated() {
+		let mut tx_tracker = test_tx_tracker();
+		tx_tracker.transaction_tracker =
+			futures::future::ready(TrackedTransactionStatus::Finalized(Default::default()))
+				.boxed()
+				.shared();
+		assert!(matches!(
+			tx_tracker
+				.update(&HeaderId(0, Default::default()), &vec![].into_iter().collect())
+				.await,
+			SubmittedHeadsStatus::Final(TrackedTransactionStatus::Lost),
+		));
+	}
+
+	#[async_std::test]
+	async fn tx_tracker_update_when_tx_is_finalized_and_heads_are_updated() {
+		let mut tx_tracker = test_tx_tracker();
+		tx_tracker.transaction_tracker =
+			futures::future::ready(TrackedTransactionStatus::Finalized(Default::default()))
+				.boxed()
+				.shared();
+		assert!(matches!(
+			tx_tracker
+				.update(&HeaderId(0, Default::default()), &all_expected_tracker_heads())
+				.await,
+			SubmittedHeadsStatus::Final(TrackedTransactionStatus::Finalized(_)),
+		));
 	}
 
 	#[test]
 	fn parachain_is_not_updated_if_it_is_unknown_to_both_clients() {
 		assert_eq!(
 			select_parachains_to_update::<TestParachainsPipeline>(
-				vec![(ParaId(PARA_ID), ParaHashAtSource::None)].into_iter().collect(),
+				vec![(ParaId(PARA_ID), AvailableHeader::Missing)].into_iter().collect(),
 				vec![(ParaId(PARA_ID), None)].into_iter().collect(),
 				HeaderId(10, Default::default()),
 			),
@@ -962,7 +1129,7 @@ mod tests {
 	fn parachain_is_not_updated_if_it_has_been_updated_at_better_relay_block() {
 		assert_eq!(
 			select_parachains_to_update::<TestParachainsPipeline>(
-				vec![(ParaId(PARA_ID), ParaHashAtSource::Some(PARA_0_HASH))]
+				vec![(ParaId(PARA_ID), AvailableHeader::Available(PARA_0_HASH))]
 					.into_iter()
 					.collect(),
 				vec![(
@@ -981,7 +1148,7 @@ mod tests {
 	fn parachain_is_not_updated_if_hash_is_the_same_at_next_relay_block() {
 		assert_eq!(
 			select_parachains_to_update::<TestParachainsPipeline>(
-				vec![(ParaId(PARA_ID), ParaHashAtSource::Some(PARA_0_HASH))]
+				vec![(ParaId(PARA_ID), AvailableHeader::Available(PARA_0_HASH))]
 					.into_iter()
 					.collect(),
 				vec![(
@@ -1000,7 +1167,7 @@ mod tests {
 	fn parachain_is_updated_after_offboarding() {
 		assert_eq!(
 			select_parachains_to_update::<TestParachainsPipeline>(
-				vec![(ParaId(PARA_ID), ParaHashAtSource::None)].into_iter().collect(),
+				vec![(ParaId(PARA_ID), AvailableHeader::Missing)].into_iter().collect(),
 				vec![(
 					ParaId(PARA_ID),
 					Some(BestParaHeadHash {
@@ -1020,7 +1187,7 @@ mod tests {
 	fn parachain_is_updated_after_onboarding() {
 		assert_eq!(
 			select_parachains_to_update::<TestParachainsPipeline>(
-				vec![(ParaId(PARA_ID), ParaHashAtSource::Some(PARA_0_HASH))]
+				vec![(ParaId(PARA_ID), AvailableHeader::Available(PARA_0_HASH))]
 					.into_iter()
 					.collect(),
 				vec![(ParaId(PARA_ID), None)].into_iter().collect(),
@@ -1034,7 +1201,7 @@ mod tests {
 	fn parachain_is_updated_if_newer_head_is_known() {
 		assert_eq!(
 			select_parachains_to_update::<TestParachainsPipeline>(
-				vec![(ParaId(PARA_ID), ParaHashAtSource::Some(PARA_1_HASH))]
+				vec![(ParaId(PARA_ID), AvailableHeader::Available(PARA_1_HASH))]
 					.into_iter()
 					.collect(),
 				vec![(
@@ -1053,7 +1220,7 @@ mod tests {
 	fn parachain_is_not_updated_if_source_head_is_unavailable() {
 		assert_eq!(
 			select_parachains_to_update::<TestParachainsPipeline>(
-				vec![(ParaId(PARA_ID), ParaHashAtSource::Unavailable)].into_iter().collect(),
+				vec![(ParaId(PARA_ID), AvailableHeader::Unavailable)].into_iter().collect(),
 				vec![(
 					ParaId(PARA_ID),
 					Some(BestParaHeadHash { at_relay_block_number: 0, head_hash: PARA_0_HASH })

@@ -13,7 +13,7 @@
 
 //! Message delivery race delivers proof-of-messages from "lane.source" to "lane.target".
 
-use std::{collections::VecDeque, marker::PhantomData, ops::RangeInclusive, time::Duration};
+use std::{collections::VecDeque, marker::PhantomData, ops::RangeInclusive};
 
 use async_trait::async_trait;
 use futures::stream::FusedStream;
@@ -24,7 +24,7 @@ use relay_utils::FailedClient;
 use crate::{
 	message_lane::{MessageLane, SourceHeaderIdOf, TargetHeaderIdOf},
 	message_lane_loop::{
-		MessageDeliveryParams, MessageDetailsMap, MessageProofParameters,
+		MessageDeliveryParams, MessageDetailsMap, MessageProofParameters, NoncesSubmitArtifacts,
 		SourceClient as MessageLaneSourceClient, SourceClientState,
 		TargetClient as MessageLaneTargetClient, TargetClientState,
 	},
@@ -43,7 +43,6 @@ pub async fn run<P: MessageLane, Strategy: RelayStrategy>(
 	source_state_updates: impl FusedStream<Item = SourceClientState<P>>,
 	target_client: impl MessageLaneTargetClient<P>,
 	target_state_updates: impl FusedStream<Item = TargetClientState<P>>,
-	stall_timeout: Duration,
 	metrics_msg: Option<MessageLaneLoopMetrics>,
 	params: MessageDeliveryParams<Strategy>,
 ) -> Result<(), FailedClient> {
@@ -56,11 +55,10 @@ pub async fn run<P: MessageLane, Strategy: RelayStrategy>(
 		source_state_updates,
 		MessageDeliveryRaceTarget {
 			client: target_client.clone(),
-			metrics_msg,
+			metrics_msg: metrics_msg.clone(),
 			_phantom: Default::default(),
 		},
 		target_state_updates,
-		stall_timeout,
 		MessageDeliveryStrategy::<P, Strategy, _, _> {
 			lane_source_client: source_client,
 			lane_target_client: target_client,
@@ -74,6 +72,7 @@ pub async fn run<P: MessageLane, Strategy: RelayStrategy>(
 			latest_confirmed_nonces_at_source: VecDeque::new(),
 			target_nonces: None,
 			strategy: BasicStrategy::new(),
+			metrics_msg,
 		},
 	)
 	.await
@@ -173,6 +172,7 @@ where
 {
 	type Error = C::Error;
 	type TargetNoncesData = DeliveryRaceTargetNoncesData;
+	type TransactionTracker = C::TransactionTracker;
 
 	async fn require_source_header(&self, id: SourceHeaderIdOf<P>) {
 		self.client.require_source_header_on_target(id).await
@@ -214,7 +214,7 @@ where
 		generated_at_block: SourceHeaderIdOf<P>,
 		nonces: RangeInclusive<MessageNonce>,
 		proof: P::MessagesProof,
-	) -> Result<RangeInclusive<MessageNonce>, Self::Error> {
+	) -> Result<NoncesSubmitArtifacts<Self::TransactionTracker>, Self::Error> {
 		self.client.submit_messages_proof(generated_at_block, nonces, proof).await
 	}
 }
@@ -255,6 +255,8 @@ struct MessageDeliveryStrategy<P: MessageLane, Strategy: RelayStrategy, SC, TC> 
 	target_nonces: Option<TargetClientNonces<DeliveryRaceTargetNoncesData>>,
 	/// Basic delivery strategy.
 	strategy: MessageDeliveryStrategyBase<P>,
+	/// Message lane metrics.
+	metrics_msg: Option<MessageLaneLoopMetrics>,
 }
 
 type MessageDeliveryStrategyBase<P> = BasicStrategy<
@@ -519,6 +521,7 @@ where
 			lane_target_client: lane_target_client.clone(),
 			nonces_queue: source_queue.clone(),
 			nonces_queue_range: 0..maximal_source_queue_index + 1,
+			metrics: self.metrics_msg.clone(),
 		};
 
 		let mut strategy = EnforcementStrategy::new(self.relay_strategy.clone());
@@ -631,6 +634,7 @@ mod tests {
 			latest_confirmed_nonces_at_source: vec![(header_id(1), 19)].into_iter().collect(),
 			lane_source_client: TestSourceClient::default(),
 			lane_target_client: TestTargetClient::default(),
+			metrics_msg: None,
 			target_nonces: Some(TargetClientNonces {
 				latest_nonce: 19,
 				nonces_data: DeliveryRaceTargetNoncesData {

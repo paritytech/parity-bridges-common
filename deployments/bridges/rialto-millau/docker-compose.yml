@@ -19,9 +19,10 @@ services:
       LETSENCRYPT_EMAIL: admin@parity.io
 
   relay-millau-rialto: &sub-bridge-relay
-    image: paritytech/substrate-relay
+    image: ${SUBSTRATE_RELAY_IMAGE:-paritytech/substrate-relay}
     entrypoint: /entrypoints/relay-millau-rialto-entrypoint.sh
     volumes:
+      - ./bridges/common:/common
       - ./bridges/rialto-millau/entrypoints:/entrypoints
     environment:
       RUST_LOG: rpc=trace,bridge=trace
@@ -84,6 +85,7 @@ services:
   relay-messages-rialto-to-millau-generator:
     <<: *sub-bridge-relay
     environment:
+      RUST_LOG: bridge=trace
       MSG_EXCHANGE_GEN_SECONDARY_LANE: "00000001"
     entrypoint: /entrypoints/relay-messages-to-millau-generator-entrypoint.sh
     ports:

@@ -26,11 +26,15 @@
 #[cfg(feature = "std")]
 include!(concat!(env!("OUT_DIR"), "/wasm_binary.rs"));
 
-use crate::millau_messages::{ToMillauMessagePayload, WithMillauMessageBridge};
+use crate::millau_messages::{
+	ToMillauMessagePayload, WithMillauMessageBridge, DEFAULT_XCM_LANE_TO_MILLAU,
+};
 
 use bridge_runtime_common::messages::{
-	source::estimate_message_dispatch_and_delivery_fee, MessageBridge,
+	source::{estimate_message_dispatch_and_delivery_fee, XcmBridge, XcmBridgeAdapter},
+	MessageBridge,
 };
+use cumulus_pallet_parachain_system::AnyRelayNumber;
 use sp_api::impl_runtime_apis;
 use sp_core::{crypto::KeyTypeId, OpaqueMetadata};
 use sp_runtime::{
@@ -46,6 +50,7 @@ use sp_version::NativeVersion;
 use sp_version::RuntimeVersion;
 
 // A few exports that help ease life for downstream crates.
+use bp_runtime::{HeaderId, HeaderIdProvider};
 pub use frame_support::{
 	construct_runtime, match_types, parameter_types,
 	traits::{Everything, IsInVec, Nothing, Randomness},
@@ -71,8 +76,10 @@ pub use bp_rialto_parachain::{
 
 pub use pallet_bridge_grandpa::Call as BridgeGrandpaCall;
 pub use pallet_bridge_messages::Call as MessagesCall;
+pub use pallet_xcm::Call as XcmCall;
 
 // Polkadot & XCM imports
+use bridge_runtime_common::CustomNetworkId;
 use pallet_xcm::XcmPassthrough;
 use polkadot_parachain::primitives::Sibling;
 use xcm::latest::prelude::*;
@@ -268,6 +275,7 @@ impl pallet_transaction_payment::Config for Runtime {
 	type WeightToFee = IdentityFee<Balance>;
 	type LengthToFee = IdentityFee<Balance>;
 	type FeeMultiplierUpdate = ();
+	type Event = Event;
 }
 
 impl pallet_sudo::Config for Runtime {
@@ -289,6 +297,7 @@ impl cumulus_pallet_parachain_system::Config for Runtime {
 	type ReservedDmpWeight = ReservedDmpWeight;
 	type XcmpMessageHandler = XcmpQueue;
 	type ReservedXcmpWeight = ReservedXcmpWeight;
+	type CheckAssociatedRelayNumber = AnyRelayNumber;
 }
 
 impl parachain_info::Config for Runtime {}
@@ -299,9 +308,13 @@ impl pallet_randomness_collective_flip::Config for Runtime {}
 
 parameter_types! {
 	pub const RelayLocation: MultiLocation = MultiLocation::parent();
-	pub const RelayNetwork: NetworkId = NetworkId::Polkadot;
+	pub const RelayNetwork: NetworkId = CustomNetworkId::Rialto.as_network_id();
 	pub RelayOrigin: Origin = cumulus_pallet_xcm::Origin::Relay.into();
 	pub UniversalLocation: InteriorMultiLocation = X1(Parachain(ParachainInfo::parachain_id().into()));
+	/// The Millau network ID.
+	pub const MillauNetwork: NetworkId = CustomNetworkId::Millau.as_network_id();
+	/// The RialtoParachain network ID.
+	pub const ThisNetwork: NetworkId = CustomNetworkId::RialtoParachain.as_network_id();
 }
 
 /// Type for specifying how a `MultiLocation` can be converted into an `AccountId`. This is used
@@ -409,6 +422,7 @@ impl Config for XcmConfig {
 	type FeeManager = ();
 	type MessageExporter = ();
 	type UniversalAliases = Nothing;
+	type CallDispatcher = Call;
 }
 
 /// No local origins on this chain are allowed to dispatch XCM sends/executions.
@@ -417,11 +431,35 @@ pub type LocalOriginToLocation = SignedToAccountId32<Origin, AccountId, RelayNet
 /// The means for routing XCM messages which are not for local execution into the right message
 /// queues.
 pub type XcmRouter = (
-	// Two routers - use UMP to communicate with the relay chain:
-	cumulus_primitives_utility::ParentAsUmp<ParachainSystem, (), ()>,
-	// ..and XCMP to communicate with the sibling chains.
-	XcmpQueue,
+	// Bridge is used to communicate with other relay chain (Millau).
+	XcmBridgeAdapter<ToMillauBridge>,
 );
+
+/// With-Millau bridge.
+pub struct ToMillauBridge;
+
+impl XcmBridge for ToMillauBridge {
+	type MessageBridge = WithMillauMessageBridge;
+	type MessageSender = pallet_bridge_messages::Pallet<Runtime, WithMillauMessagesInstance>;
+
+	fn universal_location() -> InteriorMultiLocation {
+		UniversalLocation::get()
+	}
+
+	fn verify_destination(dest: &MultiLocation) -> bool {
+		matches!(*dest, MultiLocation { parents: 1, interior: X1(GlobalConsensus(r)) } if r == MillauNetwork::get())
+	}
+
+	fn build_destination() -> MultiLocation {
+		let dest: InteriorMultiLocation = MillauNetwork::get().into();
+		let here = UniversalLocation::get();
+		dest.relative_to(&here)
+	}
+
+	fn xcm_lane() -> bp_messages::LaneId {
+		DEFAULT_XCM_LANE_TO_MILLAU
+	}
+}
 
 impl pallet_xcm::Config for Runtime {
 	type Event = Event;
@@ -474,6 +512,13 @@ impl pallet_aura::Config for Runtime {
 	type MaxAuthorities = MaxAuthorities;
 }
 
+impl pallet_bridge_relayers::Config for Runtime {
+	type Event = Event;
+	type Reward = Balance;
+	type PaymentProcedure = bp_relayers::MintReward<pallet_balances::Pallet<Runtime>, AccountId>;
+	type WeightInfo = ();
+}
+
 parameter_types! {
 	/// This is a pretty unscientific cap.
 	///
@@ -493,7 +538,7 @@ impl pallet_bridge_grandpa::Config for Runtime {
 	type BridgedChain = bp_millau::Millau;
 	type MaxRequests = MaxRequests;
 	type HeadersToKeep = HeadersToKeep;
-	type WeightInfo = pallet_bridge_grandpa::weights::MillauWeight<Runtime>;
+	type WeightInfo = pallet_bridge_grandpa::weights::BridgeWeight<Runtime>;
 }
 
 parameter_types! {
@@ -514,12 +559,13 @@ pub type WithMillauMessagesInstance = ();
 
 impl pallet_bridge_messages::Config<WithMillauMessagesInstance> for Runtime {
 	type Event = Event;
-	type WeightInfo = pallet_bridge_messages::weights::MillauWeight<Runtime>;
+	type WeightInfo = pallet_bridge_messages::weights::BridgeWeight<Runtime>;
 	type Parameter = millau_messages::RialtoParachainToMillauMessagesParameter;
 	type MaxMessagesToPruneAtOnce = MaxMessagesToPruneAtOnce;
 	type MaxUnrewardedRelayerEntriesAtInboundLane = MaxUnrewardedRelayerEntriesAtInboundLane;
 	type MaxUnconfirmedMessagesAtInboundLane = MaxUnconfirmedMessagesAtInboundLane;
 
+	type MaximalOutboundPayloadSize = crate::millau_messages::ToMillauMaximalOutboundPayloadSize;
 	type OutboundPayload = crate::millau_messages::ToMillauMessagePayload;
 	type OutboundMessageFee = Balance;
 
@@ -527,11 +573,14 @@ impl pallet_bridge_messages::Config<WithMillauMessagesInstance> for Runtime {
 	type InboundMessageFee = bp_millau::Balance;
 	type InboundRelayer = bp_millau::AccountId;
 
-	type AccountIdConverter = bp_rialto_parachain::AccountIdConverter;
-
 	type TargetHeaderChain = crate::millau_messages::Millau;
 	type LaneMessageVerifier = crate::millau_messages::ToMillauMessageVerifier;
-	type MessageDeliveryAndDispatchPayment = ();
+	type MessageDeliveryAndDispatchPayment =
+		pallet_bridge_relayers::MessageDeliveryAndDispatchPaymentAdapter<
+			Runtime,
+			WithMillauMessagesInstance,
+			GetDeliveryConfirmationTransactionFee,
+		>;
 	type OnMessageAccepted = ();
 	type OnDeliveryConfirmed = ();
 
@@ -551,7 +600,7 @@ construct_runtime!(
 		Timestamp: pallet_timestamp::{Pallet, Call, Storage, Inherent},
 		Sudo: pallet_sudo::{Pallet, Call, Storage, Config<T>, Event<T>},
 		RandomnessCollectiveFlip: pallet_randomness_collective_flip::{Pallet, Storage},
-		TransactionPayment: pallet_transaction_payment::{Pallet, Storage},
+		TransactionPayment: pallet_transaction_payment::{Pallet, Storage, Event<T>},
 
 		ParachainSystem: cumulus_pallet_parachain_system::{Pallet, Call, Storage, Inherent, Event<T>} = 20,
 		ParachainInfo: parachain_info::{Pallet, Storage, Config} = 21,
@@ -568,6 +617,7 @@ construct_runtime!(
 		DmpQueue: cumulus_pallet_dmp_queue::{Pallet, Call, Storage, Event<T>} = 53,
 
 		// Millau bridge modules.
+		BridgeRelayers: pallet_bridge_relayers::{Pallet, Call, Storage, Event<T>},
 		BridgeMillauGrandpa: pallet_bridge_grandpa::{Pallet, Call, Storage},
 		BridgeMillauMessages: pallet_bridge_messages::{Pallet, Call, Storage, Event<T>, Config<T>},
 	}
@@ -683,8 +733,8 @@ impl_runtime_apis! {
 	}
 
 	impl bp_millau::MillauFinalityApi<Block> for Runtime {
-		fn best_finalized() -> Option<(bp_millau::BlockNumber, bp_millau::Hash)> {
-			BridgeMillauGrandpa::best_finalized().map(|header| (header.number, header.hash()))
+		fn best_finalized() -> Option<HeaderId<bp_millau::Hash, bp_millau::BlockNumber>> {
+			BridgeMillauGrandpa::best_finalized().map(|header| header.id())
 		}
 	}
 
@@ -727,6 +777,13 @@ impl_runtime_apis! {
 
 	#[cfg(feature = "runtime-benchmarks")]
 	impl frame_benchmarking::Benchmark<Block> for Runtime {
+		fn benchmark_metadata(_extra: bool) -> (
+			Vec<frame_benchmarking::BenchmarkList>,
+			Vec<frame_support::traits::StorageInfo>,
+		) {
+			todo!("TODO: fix or remove")
+		}
+
 		fn dispatch_benchmark(
 			config: frame_benchmarking::BenchmarkConfig
 		) -> Result<Vec<frame_benchmarking::BenchmarkBatch>, sp_runtime::RuntimeString> {
@@ -788,3 +845,72 @@ cumulus_pallet_parachain_system::register_validate_block!(
 	BlockExecutor = cumulus_pallet_aura_ext::BlockExecutor::<Runtime, Executive>,
 	CheckInherents = CheckInherents,
 );
+
+#[cfg(test)]
+mod tests {
+	use super::*;
+	use bp_messages::{
+		target_chain::{DispatchMessage, DispatchMessageData, MessageDispatch},
+		MessageKey,
+	};
+	use bp_runtime::messages::MessageDispatchResult;
+	use bridge_runtime_common::messages::target::FromBridgedChainMessageDispatch;
+	use codec::Encode;
+
+	fn new_test_ext() -> sp_io::TestExternalities {
+		sp_io::TestExternalities::new(
+			frame_system::GenesisConfig::default().build_storage::<Runtime>().unwrap(),
+		)
+	}
+
+	#[test]
+	fn xcm_messages_to_millau_are_sent() {
+		new_test_ext().execute_with(|| {
+			// the encoded message (origin ++ xcm) is 0x010109020419A8
+			let dest = (Parent, X1(GlobalConsensus(MillauNetwork::get())));
+			let xcm: Xcm<()> = vec![Instruction::Trap(42)].into();
+
+			let send_result = send_xcm::<XcmRouter>(dest.into(), xcm);
+			let expected_fee = MultiAssets::from((Here, Fungibility::Fungible(4_259_858_152_u128)));
+			let expected_hash =
+				([0u8, 0u8, 0u8, 0u8], 1u64).using_encoded(sp_io::hashing::blake2_256);
+			assert_eq!(send_result, Ok((expected_hash, expected_fee)),);
+		})
+	}
+
+	#[test]
+	fn xcm_messages_from_millau_are_dispatched() {
+		type XcmExecutor = xcm_executor::XcmExecutor<XcmConfig>;
+		type MessageDispatcher = FromBridgedChainMessageDispatch<
+			WithMillauMessageBridge,
+			XcmExecutor,
+			XcmWeigher,
+			frame_support::traits::ConstU64<BASE_XCM_WEIGHT>,
+		>;
+
+		new_test_ext().execute_with(|| {
+			let location: MultiLocation =
+				(Parent, X1(GlobalConsensus(MillauNetwork::get()))).into();
+			let xcm: Xcm<Call> = vec![Instruction::Trap(42)].into();
+
+			let mut incoming_message = DispatchMessage {
+				key: MessageKey { lane_id: [0, 0, 0, 0], nonce: 1 },
+				data: DispatchMessageData { payload: Ok((location, xcm).into()), fee: 0 },
+			};
+
+			let dispatch_weight = MessageDispatcher::dispatch_weight(&mut incoming_message);
+			assert_eq!(dispatch_weight, 1_000_000_000);
+
+			let dispatch_result =
+				MessageDispatcher::dispatch(&AccountId::from([0u8; 32]), incoming_message);
+			assert_eq!(
+				dispatch_result,
+				MessageDispatchResult {
+					dispatch_result: true,
+					unspent_weight: 0,
+					dispatch_fee_paid_during_dispatch: false,
+				}
+			);
+		})
+	}
+}

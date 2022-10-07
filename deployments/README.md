@@ -43,14 +43,15 @@ and Grafana. We cover these in more details in the [Monitoring](#monitoring) sec
 the monitoring Compose file is _not_ optional, and must be included for bridge deployments.
 
 ### Running and Updating Deployments
-We currently support two bridge deployments
+We currently support three bridge deployments
 1. Rialto Substrate to Millau Substrate
+2. Rialto Parachain Substrate to Millau Substrate
 2. Westend Substrate to Millau Substrate
 
 These bridges can be deployed using our [`./run.sh`](./run.sh) script.
 
-The first argument it takes is the name of the bridge you want to run. Right now we only support two
-bridges: `rialto-millau` and `westend-millau`.
+The first argument it takes is the name of the bridge you want to run. Right now we only support three
+bridges: `rialto-millau`, `rialto-parachain-millau` and `westend-millau`.
 
 ```bash
 ./run.sh rialto-millau
@@ -81,11 +82,15 @@ not strictly required.
 
 Rialto authorities are named: `Alice`, `Bob`, `Charlie`, `Dave`, `Eve`.
 Millau authorities are named: `Alice`, `Bob`, `Charlie`, `Dave`, `Eve`.
+RialtoParachain authorities are named: `Alice`, `Bob`.
+
+`Sudo` is a sudo account on all chains.
 
 Both authorities and following accounts have enough funds (for test purposes) on corresponding Substrate chains:
 
-- on Rialto: `Ferdie`, `George`, `Harry`.
-- on Millau: `Ferdie`, `George`, `Harry`.
+- on Rialto: `Ferdie`.
+- on Millau: `Ferdie`.
+- on RialtoParachain: `Charlie`, `Dave`, `Eve`, `Ferdie`.
 
 Names of accounts on Substrate (Rialto and Millau) chains may be prefixed with `//` and used as
 seeds for the `sr25519` keys. This seed may also be used in the signer argument in Substrate relays.
@@ -97,7 +102,7 @@ Example:
 	--source-port 9944 \
 	--target-host millau-node-alice \
 	--target-port 9944 \
-	--source-signer //Harry \
+	--source-signer //Ferdie \
 	--prometheus-host=0.0.0.0
 ```
 
@@ -106,27 +111,29 @@ is not recommended, because this may lead to nonces conflict.
 
 Following accounts are used when `rialto-millau` bridge is running:
 
-- Millau's `Charlie` signs complex headers+messages relay transactions on Millau chain;
-- Rialto's `Charlie` signs complex headers+messages relay transactions on Rialto chain;
-- Millau's `Dave` signs Millau transactions which contain messages for Rialto;
-- Rialto's `Dave` signs Rialto transactions which contain messages for Millau;
-- Millau's `Eve` signs relay transactions with message delivery confirmations (lane 00000001) from Rialto to Millau;
-- Rialto's `Eve` signs relay transactions with messages (lane 00000001) from Millau to Rialto;
-- Millau's `Ferdie` signs relay transactions with messages (lane 00000001) from Rialto to Millau;
-- Rialto's `Ferdie` signs relay transactions with message delivery confirmations (lane 00000001) from Millau to Rialto;
-- Millau's `RialtoMessagesOwner` signs relay transactions with updated Rialto -> Millau conversion rate;
-- Rialto's `MillauMessagesOwner` signs relay transactions with updated Millau -> Rialto conversion rate.
+- Millau's `Rialto.HeadersAndMessagesRelay` signs complex headers+messages relay transactions on Millau chain;
+- Rialto's `Millau.HeadersAndMessagesRelay` signs complex headers+messages relay transactions on Rialto chain;
+- Millau's `Rialto.MessagesSender` signs Millau transactions which contain messages for Rialto;
+- Rialto's `Millau.MessagesSender` signs Rialto transactions which contain messages for Millau;
+- Millau's `Rialto.OutboundMessagesRelay.Lane00000001` signs relay transactions with message delivery confirmations (lane 00000001) from Rialto to Millau;
+- Rialto's `Millau.InboundMessagesRelay.Lane00000001` signs relay transactions with messages (lane 00000001) from Millau to Rialto;
+- Millau's `Millau.OutboundMessagesRelay.Lane00000001` signs relay transactions with messages (lane 00000001) from Rialto to Millau;
+- Rialto's `Rialto.InboundMessagesRelay.Lane00000001` signs relay transactions with message delivery confirmations (lane 00000001) from Millau to Rialto;
+- Millau's `Rialto.MessagesOwner` signs relay transactions with updated Rialto -> Millau conversion rate;
+- Rialto's `Millau.MessagesOwner` signs relay transactions with updated Millau -> Rialto conversion rate.
 
 Following accounts are used when `westend-millau` bridge is running:
 
-- Millau's `George` and `Harry` are signing relay transactions with new Westend headers.
+- Millau's `Westend.GrandpaOwner` is signing with-Westend GRANDPA pallet initialization transaction.
+- Millau's `Westend.HeadersRelay1` and `Westend.HeadersRelay2` are signing transactions with new Westend headers.
+- Millau's `Westend.WestmintHeaders1` and `Westend.WestmintHeaders2` is signing transactions with new Westming headers.
 
 Following accounts are used when `rialto-parachain-millau` bridge is running:
 
-- RialtoParachain's `Bob` signs RialtoParachain transactions which contain messages for Millau;
-- Millau's `Bob` signs Millau transactions which contain messages for RialtoParachain;
-- Millau's `Iden` signs complex headers+parachains+messages relay transactions on Millau chain;
-- RialtoParachain's `George` signs complex headers+messages relay transactions on RialtoParachain chain.
+- RialtoParachain's `Millau.MessagesSender` signs RialtoParachain transactions which contain messages for Millau;
+- Millau's `RialtoParachain.MessagesSender` signs Millau transactions which contain messages for RialtoParachain;
+- Millau's `RialtoParachain.HeadersAndMessagesRelay` signs complex headers+parachains+messages relay transactions on Millau chain;
+- RialtoParachain's `Millau.HeadersAndMessagesRelay` signs complex headers+messages relay transactions on RialtoParachain chain.
 
 ### Docker Usage
 When the network is running you can query logs from individual nodes using:
@@ -152,7 +159,7 @@ docker-compose up -d  # Start the nodes in detached mode.
 docker-compose down   # Stop the network.
 ```
 
-Note that for the you'll need to add the appropriate `-f` arguments that were mentioned in the
+Note that you'll also need to add the appropriate `-f` arguments that were mentioned in the
 [Bridges](#bridges) section. You can read more about using multiple Compose files
 [here](https://docs.docker.com/compose/extends/#multiple-compose-files). One thing worth noting is
 that the _order_ the compose files are specified in matters. A different order will result in a
@@ -179,7 +186,7 @@ docker build . -t local/<project_you're_building> --build-arg=PROJECT=<project>
 This will build a local image of a particular component with a tag of
 `local/<project_you're_building>`. This tag can be used in Docker Compose files.
 
-You can configure the build using using Docker
+You can configure the build using Docker
 [build arguments](https://docs.docker.com/engine/reference/commandline/build/#set-build-time-variables---build-arg).
 Here are the arguments currently supported:
   - `BRIDGE_REPO`: Git repository of the bridge node and relay code
@@ -250,5 +257,5 @@ and import the [`./types.json`](./types.json)
 
 ## Scripts
 
-The are some bash scripts in `scripts` folder that allow testing `Relay`
+There are some bash scripts in `scripts` folder that allow testing `Relay`
 without running the entire network within docker. Use if needed for development.

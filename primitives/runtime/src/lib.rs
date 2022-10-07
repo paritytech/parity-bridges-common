@@ -18,19 +18,27 @@
 
 #![cfg_attr(not(feature = "std"), no_std)]
 
-use codec::Encode;
-use frame_support::{RuntimeDebug, StorageHasher};
+use codec::{Decode, Encode, FullCodec, MaxEncodedLen};
+use frame_support::{
+	log, pallet_prelude::DispatchResult, PalletError, RuntimeDebug, StorageHasher, StorageValue,
+};
+use frame_system::RawOrigin;
+use scale_info::TypeInfo;
 use sp_core::{hash::H256, storage::StorageKey};
 use sp_io::hashing::blake2_256;
-use sp_std::{convert::TryFrom, vec, vec::Vec};
+use sp_runtime::traits::{BadOrigin, Header as HeaderT};
+use sp_std::{convert::TryFrom, fmt::Debug, vec, vec::Vec};
 
 pub use chain::{
 	AccountIdOf, AccountPublicOf, BalanceOf, BlockNumberOf, Chain, EncodedOrDecodedCall, HashOf,
 	HasherOf, HeaderOf, IndexOf, SignatureOf, TransactionEraOf,
 };
 pub use frame_support::storage::storage_prefix as storage_value_final_key;
+use num_traits::{CheckedSub, One};
+use sp_runtime::transaction_validity::TransactionValidity;
 pub use storage_proof::{
-	Error as StorageProofError, ProofSize as StorageProofSize, StorageProofChecker,
+	record_all_keys as record_all_trie_keys, Error as StorageProofError,
+	ProofSize as StorageProofSize, StorageProofChecker,
 };
 
 #[cfg(feature = "std")]
@@ -40,6 +48,9 @@ pub mod messages;
 
 mod chain;
 mod storage_proof;
+
+// Re-export macro to aviod include paste dependency everywhere
+pub use sp_runtime::paste;
 
 /// Use this when something must be shared among all instances.
 pub const NO_INSTANCE_ID: ChainId = [0, 0, 0, 0];
@@ -75,8 +86,31 @@ pub const ACCOUNT_DERIVATION_PREFIX: &[u8] = b"pallet-bridge/account-derivation/
 pub const ROOT_ACCOUNT_DERIVATION_PREFIX: &[u8] = b"pallet-bridge/account-derivation/root";
 
 /// Generic header Id.
-#[derive(RuntimeDebug, Default, Clone, Copy, Eq, Hash, PartialEq)]
+#[derive(
+	RuntimeDebug, Default, Clone, Encode, Decode, Copy, Eq, Hash, PartialEq, PartialOrd, Ord,
+)]
 pub struct HeaderId<Hash, Number>(pub Number, pub Hash);
+
+/// Generic header id provider.
+pub trait HeaderIdProvider<Header: HeaderT> {
+	// Get the header id.
+	fn id(&self) -> HeaderId<Header::Hash, Header::Number>;
+
+	// Get the header id for the parent block.
+	fn parent_id(&self) -> Option<HeaderId<Header::Hash, Header::Number>>;
+}
+
+impl<Header: HeaderT> HeaderIdProvider<Header> for Header {
+	fn id(&self) -> HeaderId<Header::Hash, Header::Number> {
+		HeaderId(*self.number(), self.hash())
+	}
+
+	fn parent_id(&self) -> Option<HeaderId<Header::Hash, Header::Number>> {
+		self.number()
+			.checked_sub(&One::one())
+			.map(|parent_number| HeaderId(parent_number, *self.parent_hash()))
+	}
+}
 
 /// Unique identifier of the chain.
 ///
@@ -122,33 +156,20 @@ where
 	.into()
 }
 
-/// Derive the account ID of the shared relayer fund account.
-///
-/// This account is used to collect fees for relayers that are passing messages across the bridge.
-///
-/// The account ID can be the same across different instances of `pallet-bridge-messages` if the
-/// same `bridge_id` is used.
-pub fn derive_relayer_fund_account_id(bridge_id: ChainId) -> H256 {
-	("relayer-fund-account", bridge_id).using_encoded(blake2_256).into()
-}
-
 /// Anything that has size.
 pub trait Size {
-	/// Return approximate size of this object (in bytes).
-	///
-	/// This function should be lightweight. The result should not necessary be absolutely
-	/// accurate.
-	fn size_hint(&self) -> u32;
+	/// Return size of this object (in bytes).
+	fn size(&self) -> u32;
 }
 
 impl Size for () {
-	fn size_hint(&self) -> u32 {
+	fn size(&self) -> u32 {
 		0
 	}
 }
 
 impl Size for Vec<u8> {
-	fn size_hint(&self) -> u32 {
+	fn size(&self) -> u32 {
 		self.len() as _
 	}
 }
@@ -157,13 +178,13 @@ impl Size for Vec<u8> {
 pub struct PreComputedSize(pub usize);
 
 impl Size for PreComputedSize {
-	fn size_hint(&self) -> u32 {
+	fn size(&self) -> u32 {
 		u32::try_from(self.0).unwrap_or(u32::MAX)
 	}
 }
 
 /// Era of specific transaction.
-#[derive(RuntimeDebug, Clone, Copy)]
+#[derive(RuntimeDebug, Clone, Copy, PartialEq)]
 pub enum TransactionEra<BlockNumber, BlockHash> {
 	/// Transaction is immortal.
 	Immortal,
@@ -185,6 +206,14 @@ impl<BlockNumber: Copy + Into<u64>, BlockHash: Copy> TransactionEra<BlockNumber,
 	/// Create new immortal transaction era.
 	pub fn immortal() -> Self {
 		TransactionEra::Immortal
+	}
+
+	/// Returns mortality period if transaction is mortal.
+	pub fn mortality_period(&self) -> Option<u32> {
+		match *self {
+			TransactionEra::Immortal => None,
+			TransactionEra::Mortal(_, period) => Some(period),
+		}
 	}
 
 	/// Returns era that is used by FRAME-based runtimes.
@@ -255,6 +284,174 @@ pub fn storage_value_key(pallet_prefix: &str, value_name: &str) -> StorageKey {
 	final_key[16..].copy_from_slice(&storage_hash);
 
 	StorageKey(final_key)
+}
+
+/// Can be use to access the runtime storage key of a `StorageMap`.
+pub trait StorageMapKeyProvider {
+	/// The name of the variable that holds the `StorageMap`.
+	const MAP_NAME: &'static str;
+
+	/// The same as `StorageMap::Hasher1`.
+	type Hasher: StorageHasher;
+	/// The same as `StorageMap::Key1`.
+	type Key: FullCodec;
+	/// The same as `StorageMap::Value`.
+	type Value: FullCodec;
+
+	/// This is a copy of the
+	/// `frame_support::storage::generator::StorageMap::storage_map_final_key`.
+	///
+	/// We're using it because to call `storage_map_final_key` directly, we need access
+	/// to the runtime and pallet instance, which (sometimes) is impossible.
+	fn final_key(pallet_prefix: &str, key: &Self::Key) -> StorageKey {
+		storage_map_final_key::<Self::Hasher>(pallet_prefix, Self::MAP_NAME, &key.encode())
+	}
+}
+
+/// Can be use to access the runtime storage key of a `StorageDoubleMap`.
+pub trait StorageDoubleMapKeyProvider {
+	/// The name of the variable that holds the `StorageDoubleMap`.
+	const MAP_NAME: &'static str;
+
+	/// The same as `StorageDoubleMap::Hasher1`.
+	type Hasher1: StorageHasher;
+	/// The same as `StorageDoubleMap::Key1`.
+	type Key1: FullCodec;
+	/// The same as `StorageDoubleMap::Hasher2`.
+	type Hasher2: StorageHasher;
+	/// The same as `StorageDoubleMap::Key2`.
+	type Key2: FullCodec;
+	/// The same as `StorageDoubleMap::Value`.
+	type Value: FullCodec;
+
+	/// This is a copy of the
+	/// `frame_support::storage::generator::StorageDoubleMap::storage_double_map_final_key`.
+	///
+	/// We're using it because to call `storage_double_map_final_key` directly, we need access
+	/// to the runtime and pallet instance, which (sometimes) is impossible.
+	fn final_key(pallet_prefix: &str, key1: &Self::Key1, key2: &Self::Key2) -> StorageKey {
+		let key1_hashed = Self::Hasher1::hash(&key1.encode());
+		let key2_hashed = Self::Hasher2::hash(&key2.encode());
+		let pallet_prefix_hashed = frame_support::Twox128::hash(pallet_prefix.as_bytes());
+		let storage_prefix_hashed = frame_support::Twox128::hash(Self::MAP_NAME.as_bytes());
+
+		let mut final_key = Vec::with_capacity(
+			pallet_prefix_hashed.len() +
+				storage_prefix_hashed.len() +
+				key1_hashed.as_ref().len() +
+				key2_hashed.as_ref().len(),
+		);
+
+		final_key.extend_from_slice(&pallet_prefix_hashed[..]);
+		final_key.extend_from_slice(&storage_prefix_hashed[..]);
+		final_key.extend_from_slice(key1_hashed.as_ref());
+		final_key.extend_from_slice(key2_hashed.as_ref());
+
+		StorageKey(final_key)
+	}
+}
+
+/// Error generated by the `OwnedBridgeModule` trait.
+#[derive(Encode, Decode, TypeInfo, PalletError)]
+pub enum OwnedBridgeModuleError {
+	/// All pallet operations are halted.
+	Halted,
+}
+
+/// Operating mode for a bridge module.
+pub trait OperatingMode: Send + Copy + Debug + FullCodec {
+	// Returns true if the bridge module is halted.
+	fn is_halted(&self) -> bool;
+}
+
+/// Basic operating modes for a bridges module (Normal/Halted).
+#[derive(Encode, Decode, Clone, Copy, PartialEq, Eq, RuntimeDebug, TypeInfo, MaxEncodedLen)]
+#[cfg_attr(feature = "std", derive(serde::Serialize, serde::Deserialize))]
+pub enum BasicOperatingMode {
+	/// Normal mode, when all operations are allowed.
+	Normal,
+	/// The pallet is halted. All operations (except operating mode change) are prohibited.
+	Halted,
+}
+
+impl Default for BasicOperatingMode {
+	fn default() -> Self {
+		Self::Normal
+	}
+}
+
+impl OperatingMode for BasicOperatingMode {
+	fn is_halted(&self) -> bool {
+		*self == BasicOperatingMode::Halted
+	}
+}
+
+/// Bridge module that has owner and operating mode
+pub trait OwnedBridgeModule<T: frame_system::Config> {
+	/// The target that will be used when publishing logs related to this module.
+	const LOG_TARGET: &'static str;
+
+	type OwnerStorage: StorageValue<T::AccountId, Query = Option<T::AccountId>>;
+	type OperatingMode: OperatingMode;
+	type OperatingModeStorage: StorageValue<Self::OperatingMode, Query = Self::OperatingMode>;
+
+	/// Check if the module is halted.
+	fn is_halted() -> bool {
+		Self::OperatingModeStorage::get().is_halted()
+	}
+
+	/// Ensure that the origin is either root, or `PalletOwner`.
+	fn ensure_owner_or_root(origin: T::Origin) -> Result<(), BadOrigin> {
+		match origin.into() {
+			Ok(RawOrigin::Root) => Ok(()),
+			Ok(RawOrigin::Signed(ref signer))
+				if Self::OwnerStorage::get().as_ref() == Some(signer) =>
+				Ok(()),
+			_ => Err(BadOrigin),
+		}
+	}
+
+	/// Ensure that the module is not halted.
+	fn ensure_not_halted() -> Result<(), OwnedBridgeModuleError> {
+		match Self::is_halted() {
+			true => Err(OwnedBridgeModuleError::Halted),
+			false => Ok(()),
+		}
+	}
+
+	/// Change the owner of the module.
+	fn set_owner(origin: T::Origin, maybe_owner: Option<T::AccountId>) -> DispatchResult {
+		Self::ensure_owner_or_root(origin)?;
+		match maybe_owner {
+			Some(owner) => {
+				Self::OwnerStorage::put(&owner);
+				log::info!(target: Self::LOG_TARGET, "Setting pallet Owner to: {:?}", owner);
+			},
+			None => {
+				Self::OwnerStorage::kill();
+				log::info!(target: Self::LOG_TARGET, "Removed Owner of pallet.");
+			},
+		}
+
+		Ok(())
+	}
+
+	/// Halt or resume all/some module operations.
+	fn set_operating_mode(
+		origin: T::Origin,
+		operating_mode: Self::OperatingMode,
+	) -> DispatchResult {
+		Self::ensure_owner_or_root(origin)?;
+		Self::OperatingModeStorage::put(operating_mode);
+		log::info!(target: Self::LOG_TARGET, "Setting operating mode to {:?}.", operating_mode);
+		Ok(())
+	}
+}
+
+/// A trait for querying whether a runtime call is valid.
+pub trait FilterCall<Call> {
+	/// Checks if a runtime call is valid.
+	fn validate(call: &Call) -> TransactionValidity;
 }
 
 #[cfg(test)]

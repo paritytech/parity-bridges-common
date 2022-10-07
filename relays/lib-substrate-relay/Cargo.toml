@@ -10,10 +10,10 @@ anyhow = "1.0"
 thiserror = "1.0.26"
 async-std = "1.9.0"
 async-trait = "0.1"
-codec = { package = "parity-scale-codec", version = "3.0.0" }
+codec = { package = "parity-scale-codec", version = "3.1.5" }
 futures = "0.3.12"
 num-traits = "0.2"
-log = "0.4.14"
+log = "0.4.17"
 
 # Bridge dependencies
 
@@ -22,7 +22,7 @@ bp-parachains = { path = "../../primitives/parachains" }
 bp-polkadot-core = { path = "../../primitives/polkadot-core" }
 bridge-runtime-common = { path = "../../bin/runtime-common" }
 
-finality-grandpa = { version = "0.15.0" }
+finality-grandpa = { version = "0.16.0" }
 finality-relay = { path = "../finality" }
 parachains-relay = { path = "../parachains" }
 relay-utils = { path = "../utils" }
@@ -51,6 +51,7 @@ bp-rialto = { path = "../../primitives/chain-rialto" }
 bp-rococo = { path = "../../primitives/chain-rococo" }
 bp-wococo = { path = "../../primitives/chain-wococo" }
 pallet-transaction-payment = { git = "https://github.com/paritytech/substrate", branch = "master" }
+relay-rialto-client = { path = "../client-rialto" }
 relay-rococo-client = { path = "../client-rococo" }
 relay-wococo-client = { path = "../client-wococo" }
 rialto-runtime = { path = "../../bin/rialto/runtime" }

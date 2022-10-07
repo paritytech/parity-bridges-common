@@ -16,32 +16,21 @@
 
 //! Chain-specific relayer configuration.
 
-pub mod kusama_headers_to_polkadot;
-pub mod kusama_messages_to_polkadot;
 pub mod millau_headers_to_rialto;
 pub mod millau_headers_to_rialto_parachain;
 pub mod millau_messages_to_rialto;
 pub mod millau_messages_to_rialto_parachain;
-pub mod polkadot_headers_to_kusama;
-pub mod polkadot_messages_to_kusama;
 pub mod rialto_headers_to_millau;
 pub mod rialto_messages_to_millau;
 pub mod rialto_parachain_messages_to_millau;
 pub mod rialto_parachains_to_millau;
-pub mod rococo_headers_to_wococo;
-pub mod rococo_messages_to_wococo;
 pub mod westend_headers_to_millau;
-pub mod wococo_headers_to_rococo;
-pub mod wococo_messages_to_rococo;
+pub mod westend_parachains_to_millau;
 
-mod kusama;
 mod millau;
-mod polkadot;
 mod rialto;
 mod rialto_parachain;
-mod rococo;
 mod westend;
-mod wococo;
 
 #[cfg(test)]
 mod tests {
@@ -82,14 +71,15 @@ mod tests {
 	fn rialto_tx_extra_bytes_constant_is_correct() {
 		let rialto_call =
 			rialto_runtime::Call::System(rialto_runtime::SystemCall::remark { remark: vec![] });
-		let rialto_tx = Rialto::sign_transaction(SignParam {
-			spec_version: 1,
-			transaction_version: 1,
-			genesis_hash: Default::default(),
-			signer: sp_keyring::AccountKeyring::Alice.pair(),
-			era: relay_substrate_client::TransactionEra::immortal(),
-			unsigned: UnsignedTransaction::new(rialto_call.clone().into(), 0),
-		})
+		let rialto_tx = Rialto::sign_transaction(
+			SignParam {
+				spec_version: 1,
+				transaction_version: 1,
+				genesis_hash: Default::default(),
+				signer: sp_keyring::AccountKeyring::Alice.pair(),
+			},
+			UnsignedTransaction::new(rialto_call.clone().into(), 0),
+		)
 		.unwrap();
 		let extra_bytes_in_transaction = rialto_tx.encode().len() - rialto_call.encode().len();
 		assert!(
@@ -104,14 +94,15 @@ mod tests {
 	fn millau_tx_extra_bytes_constant_is_correct() {
 		let millau_call =
 			millau_runtime::Call::System(millau_runtime::SystemCall::remark { remark: vec![] });
-		let millau_tx = Millau::sign_transaction(SignParam {
-			spec_version: 0,
-			transaction_version: 0,
-			genesis_hash: Default::default(),
-			signer: sp_keyring::AccountKeyring::Alice.pair(),
-			era: relay_substrate_client::TransactionEra::immortal(),
-			unsigned: UnsignedTransaction::new(millau_call.clone().into(), 0),
-		})
+		let millau_tx = Millau::sign_transaction(
+			SignParam {
+				spec_version: 0,
+				transaction_version: 0,
+				genesis_hash: Default::default(),
+				signer: sp_keyring::AccountKeyring::Alice.pair(),
+			},
+			UnsignedTransaction::new(millau_call.clone().into(), 0),
+		)
 		.unwrap();
 		let extra_bytes_in_transaction = millau_tx.encode().len() - millau_call.encode().len();
 		assert!(
@@ -119,104 +110,6 @@ mod tests {
 			"Hardcoded number of extra bytes in Millau transaction {} is lower than actual value: {}",
 			bp_millau::TX_EXTRA_BYTES,
 			extra_bytes_in_transaction,
-		);
-	}
-}
-
-#[cfg(test)]
-mod rococo_tests {
-	use bp_header_chain::justification::GrandpaJustification;
-	use codec::Encode;
-
-	#[test]
-	fn scale_compatibility_of_bridges_call() {
-		// given
-		let header = sp_runtime::generic::Header {
-			parent_hash: Default::default(),
-			number: Default::default(),
-			state_root: Default::default(),
-			extrinsics_root: Default::default(),
-			digest: sp_runtime::generic::Digest { logs: vec![] },
-		};
-
-		let justification = GrandpaJustification {
-			round: 0,
-			commit: finality_grandpa::Commit {
-				target_hash: Default::default(),
-				target_number: Default::default(),
-				precommits: vec![],
-			},
-			votes_ancestries: vec![],
-		};
-
-		let actual = relay_rococo_client::runtime::BridgeGrandpaWococoCall::submit_finality_proof(
-			Box::new(header.clone()),
-			justification.clone(),
-		);
-		let expected =
-			millau_runtime::BridgeGrandpaCall::<millau_runtime::Runtime>::submit_finality_proof {
-				finality_target: Box::new(header),
-				justification,
-			};
-
-		// when
-		let actual_encoded = actual.encode();
-		let expected_encoded = expected.encode();
-
-		// then
-		assert_eq!(
-			actual_encoded, expected_encoded,
-			"\n\nEncoding difference.\nGot {:#?} \nExpected: {:#?}",
-			actual, expected
-		);
-	}
-}
-
-#[cfg(test)]
-mod westend_tests {
-	use bp_header_chain::justification::GrandpaJustification;
-	use codec::Encode;
-
-	#[test]
-	fn scale_compatibility_of_bridges_call() {
-		// given
-		let header = sp_runtime::generic::Header {
-			parent_hash: Default::default(),
-			number: Default::default(),
-			state_root: Default::default(),
-			extrinsics_root: Default::default(),
-			digest: sp_runtime::generic::Digest { logs: vec![] },
-		};
-
-		let justification = GrandpaJustification {
-			round: 0,
-			commit: finality_grandpa::Commit {
-				target_hash: Default::default(),
-				target_number: Default::default(),
-				precommits: vec![],
-			},
-			votes_ancestries: vec![],
-		};
-
-		let actual = relay_kusama_client::runtime::BridgePolkadotGrandpaCall::submit_finality_proof(
-			Box::new(header.clone()),
-			justification.clone(),
-		);
-		let expected =
-			millau_runtime::BridgeGrandpaCall::<millau_runtime::Runtime>::submit_finality_proof {
-				finality_target: Box::new(header),
-				justification,
-			};
-
-		// when
-		let actual_encoded = actual.encode();
-		let expected_encoded = expected.encode();
-
-		// then
-		assert_eq!(
-			actual_encoded, expected_encoded,
-			"\n\nEncoding difference.\nGot {:#?} \nExpected: {:#?}",
-			actual, expected
 		);
 	}
 }

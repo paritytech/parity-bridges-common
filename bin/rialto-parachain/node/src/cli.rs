@@ -50,7 +50,7 @@ pub enum Subcommand {
 	/// Revert the chain to a previous state.
 	Revert(sc_cli::RevertCmd),
 
-	/// The custom benchmark subcommmand benchmarking runtime pallets.
+	/// The custom benchmark subcommand benchmarking runtime pallets.
 	#[clap(subcommand)]
 	Benchmark(frame_benchmarking_cli::BenchmarkCmd),
 }
@@ -59,7 +59,7 @@ pub enum Subcommand {
 #[derive(Debug, Parser)]
 pub struct ExportGenesisStateCommand {
 	/// Output file name or stdout if unspecified.
-	#[clap(parse(from_os_str))]
+	#[clap(action)]
 	pub output: Option<PathBuf>,
 
 	/// Id of the parachain this state is for.
@@ -81,7 +81,7 @@ pub struct ExportGenesisStateCommand {
 #[derive(Debug, Parser)]
 pub struct ExportGenesisWasmCommand {
 	/// Output file name or stdout if unspecified.
-	#[clap(parse(from_os_str))]
+	#[clap(action)]
 	pub output: Option<PathBuf>,
 
 	/// Write output in binary. Default is to write in hex.
@@ -116,7 +116,7 @@ pub struct Cli {
 
 #[derive(Debug)]
 pub struct RelayChainCli {
-	/// The actual relay chain cli object.
+	/// The actual relay chain CLI object.
 	pub base: polkadot_cli::RunCmd,
 
 	/// Optional chain id that should be passed to the relay chain.

@@ -24,7 +24,9 @@ use bp_messages::{
 	InboundLaneData, LaneId, Message, MessageNonce, Parameter as MessagesParameter,
 };
 use bp_runtime::{Chain, ChainId, MILLAU_CHAIN_ID, RIALTO_CHAIN_ID};
-use bridge_runtime_common::messages::{self, MessageBridge, MessageTransaction};
+use bridge_runtime_common::messages::{
+	self, BasicConfirmationTransactionEstimation, MessageBridge, MessageTransaction,
+};
 use codec::{Decode, Encode};
 use frame_support::{
 	parameter_types,
@@ -78,6 +80,10 @@ pub type FromMillauMessagesProof = messages::target::FromBridgedChainMessagesPro
 pub type ToMillauMessagesDeliveryProof =
 	messages::source::FromBridgedChainMessagesDeliveryProof<bp_millau::Hash>;
 
+/// Maximal outbound payload size of Rialto -> Millau messages.
+pub type ToMillauMaximalOutboundPayloadSize =
+	messages::source::FromThisChainMaximalOutboundPayloadSize<WithMillauMessageBridge>;
+
 /// Millau <-> Rialto message bridge.
 #[derive(RuntimeDebug, Clone, Copy)]
 pub struct WithMillauMessageBridge;
@@ -118,6 +124,12 @@ impl messages::ChainWithMessages for Rialto {
 impl messages::ThisChainWithMessages for Rialto {
 	type Origin = crate::Origin;
 	type Call = crate::Call;
+	type ConfirmationTransactionEstimation = BasicConfirmationTransactionEstimation<
+		Self::AccountId,
+		{ bp_rialto::MAX_SINGLE_MESSAGE_DELIVERY_CONFIRMATION_TX_WEIGHT },
+		{ bp_millau::EXTRA_STORAGE_PROOF_SIZE },
+		{ bp_rialto::TX_EXTRA_BYTES },
+	>;
 
 	fn is_message_accepted(send_origin: &Self::Origin, lane: &LaneId) -> bool {
 		let here_location =
@@ -141,22 +153,6 @@ impl messages::ThisChainWithMessages for Rialto {
 
 	fn maximal_pending_messages_at_outbound_lane() -> MessageNonce {
 		MessageNonce::MAX
-	}
-
-	fn estimate_delivery_confirmation_transaction() -> MessageTransaction<Weight> {
-		let inbound_data_size = InboundLaneData::<bp_rialto::AccountId>::encoded_size_hint(
-			bp_rialto::MAXIMAL_ENCODED_ACCOUNT_ID_SIZE,
-			1,
-			1,
-		)
-		.unwrap_or(u32::MAX);
-
-		MessageTransaction {
-			dispatch_weight: bp_rialto::MAX_SINGLE_MESSAGE_DELIVERY_CONFIRMATION_TX_WEIGHT,
-			size: inbound_data_size
-				.saturating_add(bp_millau::EXTRA_STORAGE_PROOF_SIZE)
-				.saturating_add(bp_rialto::TX_EXTRA_BYTES),
-		}
 	}
 
 	fn transaction_payment(transaction: MessageTransaction<Weight>) -> bp_rialto::Balance {
@@ -237,7 +233,7 @@ impl messages::BridgedChainWithMessages for Millau {
 	}
 }
 
-impl TargetHeaderChain<ToMillauMessagePayload, bp_millau::AccountId> for Millau {
+impl TargetHeaderChain<ToMillauMessagePayload, bp_rialto::AccountId> for Millau {
 	type Error = &'static str;
 	// The proof is:
 	// - hash of the header this proof has been created with;
@@ -319,7 +315,7 @@ mod tests {
 
 	#[test]
 	fn ensure_rialto_message_lane_weights_are_correct() {
-		type Weights = pallet_bridge_messages::weights::MillauWeight<Runtime>;
+		type Weights = pallet_bridge_messages::weights::BridgeWeight<Runtime>;
 
 		pallet_bridge_messages::ensure_weights_are_correct::<Weights>(
 			bp_rialto::DEFAULT_MESSAGE_DELIVERY_TX_WEIGHT,
@@ -342,12 +338,10 @@ mod tests {
 		);
 
 		let max_incoming_inbound_lane_data_proof_size =
-			bp_messages::InboundLaneData::<()>::encoded_size_hint(
-				bp_rialto::MAXIMAL_ENCODED_ACCOUNT_ID_SIZE,
+			bp_messages::InboundLaneData::<()>::encoded_size_hint_u32(
 				bp_rialto::MAX_UNREWARDED_RELAYERS_IN_CONFIRMATION_TX as _,
 				bp_rialto::MAX_UNCONFIRMED_MESSAGES_IN_CONFIRMATION_TX as _,
-			)
-			.unwrap_or(u32::MAX);
+			);
 		pallet_bridge_messages::ensure_able_to_receive_confirmation::<Weights>(
 			bp_rialto::Rialto::max_extrinsic_size(),
 			bp_rialto::Rialto::max_extrinsic_weight(),
@@ -367,7 +361,6 @@ mod tests {
 			bridge: WithMillauMessageBridge,
 			this_chain: bp_rialto::Rialto,
 			bridged_chain: bp_millau::Millau,
-			this_chain_account_id_converter: bp_rialto::AccountIdConverter
 		);
 
 		assert_complete_bridge_constants::<

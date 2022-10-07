@@ -14,17 +14,30 @@
 // You should have received a copy of the GNU General Public License
 // along with Parity Bridges Common.  If not, see <http://www.gnu.org/licenses/>.
 
-use crate::cli::{
-	bridge::FullBridge,
-	encode_message::{self, CliEncodeMessage},
-	estimate_fee::{estimate_message_delivery_and_dispatch_fee, ConversionRateOverride},
-	Balance, HexBytes, HexLaneId, SourceConnectionParams, SourceSigningParams,
+use crate::{
+	chains::{
+		millau_headers_to_rialto::MillauToRialtoCliBridge,
+		millau_headers_to_rialto_parachain::MillauToRialtoParachainCliBridge,
+		rialto_headers_to_millau::RialtoToMillauCliBridge,
+		rialto_parachains_to_millau::RialtoParachainToMillauCliBridge,
+	},
+	cli::{
+		bridge::{FullBridge, MessagesCliBridge},
+		chain_schema::*,
+		encode_message::{self, CliEncodeMessage, RawMessage},
+		estimate_fee::{estimate_message_delivery_and_dispatch_fee, ConversionRateOverride},
+		Balance, CliChain, HexLaneId,
+	},
 };
-use codec::Encode;
-use relay_substrate_client::{Chain, SignParam, TransactionSignScheme, UnsignedTransaction};
+use async_trait::async_trait;
+use codec::{Decode, Encode};
+use relay_substrate_client::{
+	AccountIdOf, AccountKeyPairOf, Chain, ChainBase, SignParam, TransactionSignScheme,
+	UnsignedTransaction,
+};
 use sp_core::{Bytes, Pair};
 use sp_runtime::AccountId32;
-use std::fmt::Debug;
+use std::fmt::{Debug, Display};
 use structopt::StructOpt;
 use strum::{EnumString, EnumVariantNames, VariantNames};
 
@@ -57,6 +70,10 @@ pub struct SendMessage {
 	source: SourceConnectionParams,
 	#[structopt(flatten)]
 	source_sign: SourceSigningParams,
+	/// Send message using XCM pallet instead. By default message is sent using
+	/// bridge messages pallet.
+	#[structopt(long)]
+	use_xcm_pallet: bool,
 	/// Hex-encoded lane id. Defaults to `00000000`.
 	#[structopt(long, default_value = "00000000")]
 	lane: HexLaneId,
@@ -75,104 +92,140 @@ pub struct SendMessage {
 	message: crate::cli::encode_message::Message,
 }
 
-impl SendMessage {
-	/// Run the command.
-	pub async fn run(self) -> anyhow::Result<()> {
-		crate::select_full_bridge!(self.bridge, {
-			let payload = encode_message::encode_message::<Source, Target>(&self.message)?;
+#[async_trait]
+trait MessageSender: MessagesCliBridge
+where
+	Self::Source: ChainBase<Index = u32>
+		+ TransactionSignScheme<Chain = Self::Source>
+		+ CliChain<KeyPair = AccountKeyPairOf<Self::Source>>
+		+ CliEncodeMessage,
+	<Self::Source as ChainBase>::Balance: Display + From<u64> + Into<u128>,
+	<Self::Source as Chain>::Call: Sync,
+	<Self::Source as TransactionSignScheme>::SignedTransaction: Sync,
+	AccountIdOf<Self::Source>: From<<AccountKeyPairOf<Self::Source> as Pair>::Public>,
+	AccountId32: From<<AccountKeyPairOf<Self::Source> as Pair>::Public>,
+{
+	async fn send_message(data: SendMessage) -> anyhow::Result<()> {
+		let payload = encode_message::encode_message::<Self::Source, Self::Target>(&data.message)?;
 
-			let source_client = self.source.to_client::<Source>().await?;
-			let source_sign = self.source_sign.to_keypair::<Source>()?;
+		let source_client = data.source.into_client::<Self::Source>().await?;
+		let source_sign = data.source_sign.to_keypair::<Self::Source>()?;
 
-			let lane = self.lane.clone().into();
-			let conversion_rate_override = self.conversion_rate_override;
-			let fee = match self.fee {
-				Some(fee) => fee,
-				None => Balance(
-					estimate_message_delivery_and_dispatch_fee::<Source, Target, _>(
-						&source_client,
-						conversion_rate_override,
-						ESTIMATE_MESSAGE_FEE_METHOD,
-						lane,
-						payload.clone(),
-					)
-					.await? as _,
-				),
-			};
-			let payload_len = payload.encode().len();
-			#[allow(clippy::useless_conversion)]
-			let send_message_call = Source::encode_send_message_call(
-				self.lane.0,
+		let lane = data.lane.clone().into();
+		let conversion_rate_override = data.conversion_rate_override;
+		let fee = match data.fee {
+			Some(fee) => fee,
+			None => Balance(
+				estimate_message_delivery_and_dispatch_fee::<Self::Source, Self::Target, _>(
+					&source_client,
+					conversion_rate_override,
+					Self::ESTIMATE_MESSAGE_FEE_METHOD,
+					lane,
+					&payload,
+				)
+				.await?
+				.into(),
+			),
+		};
+		let payload_len = payload.encoded_size();
+		let send_message_call = if data.use_xcm_pallet {
+			Self::Source::encode_send_xcm(
+				decode_xcm(payload)?,
+				data.bridge.bridge_instance_index(),
+			)?
+		} else {
+			Self::Source::encode_send_message_call(
+				data.lane.0,
 				payload,
 				fee.cast().into(),
-				self.bridge.bridge_instance_index(),
-			)?;
+				data.bridge.bridge_instance_index(),
+			)?
+		};
 
-			let source_genesis_hash = *source_client.genesis_hash();
-			let (spec_version, transaction_version) =
-				source_client.simple_runtime_version().await?;
-			let estimated_transaction_fee = source_client
-				.estimate_extrinsic_fee(Bytes(
-					Source::sign_transaction(SignParam {
+		let source_genesis_hash = *source_client.genesis_hash();
+		let (spec_version, transaction_version) = source_client.simple_runtime_version().await?;
+		let estimated_transaction_fee = source_client
+			.estimate_extrinsic_fee(Bytes(
+				Self::Source::sign_transaction(
+					SignParam {
 						spec_version,
 						transaction_version,
 						genesis_hash: source_genesis_hash,
 						signer: source_sign.clone(),
-						era: relay_substrate_client::TransactionEra::immortal(),
-						unsigned: UnsignedTransaction::new(send_message_call.clone(), 0),
-					})?
-					.encode(),
-				))
-				.await?;
-			source_client
-				.submit_signed_extrinsic(source_sign.public().into(), move |_, transaction_nonce| {
-					let signed_source_call = Source::sign_transaction(SignParam {
-						spec_version,
-						transaction_version,
-						genesis_hash: source_genesis_hash,
-						signer: source_sign.clone(),
-						era: relay_substrate_client::TransactionEra::immortal(),
-						unsigned: UnsignedTransaction::new(send_message_call, transaction_nonce),
-					})?
-					.encode();
-
+					},
+					UnsignedTransaction::new(send_message_call.clone(), 0),
+				)?
+				.encode(),
+			))
+			.await?;
+		source_client
+			.submit_signed_extrinsic(
+				source_sign.public().into(),
+				SignParam::<Self::Source> {
+					spec_version,
+					transaction_version,
+					genesis_hash: source_genesis_hash,
+					signer: source_sign.clone(),
+				},
+				move |_, transaction_nonce| {
+					let unsigned = UnsignedTransaction::new(send_message_call, transaction_nonce);
 					log::info!(
 						target: "bridge",
 						"Sending message to {}. Lane: {:?}. Size: {}. Fee: {}",
-						Target::NAME,
+						Self::Target::NAME,
 						lane,
 						payload_len,
 						fee,
 					);
 					log::info!(
 						target: "bridge",
-						"The source account ({:?}) balance will be reduced by (at most) {} (message fee) + {} (tx fee	) = {} {} tokens",
-						AccountId32::from(source_sign.public()),
+						"The source account ({:?}) balance will be reduced by (at most) {} (message fee)
+					+ {} (tx fee	) = {} {} tokens", 				AccountId32::from(source_sign.public()),
 						fee.0,
 						estimated_transaction_fee.inclusion_fee(),
-						fee.0.saturating_add(estimated_transaction_fee.inclusion_fee() as _),
-						Source::NAME,
-					);
-					log::info!(
-						target: "bridge",
-						"Signed {} Call: {:?}",
-						Source::NAME,
-						HexBytes::encode(&signed_source_call)
+						fee.0.saturating_add(estimated_transaction_fee.inclusion_fee().into()),
+						Self::Source::NAME,
 					);
 
-					Ok(Bytes(signed_source_call))
-				})
-				.await?;
-		});
+					Ok(unsigned)
+				},
+			)
+			.await?;
 
 		Ok(())
 	}
 }
 
+impl MessageSender for MillauToRialtoCliBridge {}
+impl MessageSender for RialtoToMillauCliBridge {}
+impl MessageSender for MillauToRialtoParachainCliBridge {}
+impl MessageSender for RialtoParachainToMillauCliBridge {}
+
+impl SendMessage {
+	/// Run the command.
+	pub async fn run(self) -> anyhow::Result<()> {
+		match self.bridge {
+			FullBridge::MillauToRialto => MillauToRialtoCliBridge::send_message(self),
+			FullBridge::RialtoToMillau => RialtoToMillauCliBridge::send_message(self),
+			FullBridge::MillauToRialtoParachain =>
+				MillauToRialtoParachainCliBridge::send_message(self),
+			FullBridge::RialtoParachainToMillau =>
+				RialtoParachainToMillauCliBridge::send_message(self),
+		}
+		.await
+	}
+}
+
+/// Decode SCALE encoded raw XCM message.
+fn decode_xcm(message: RawMessage) -> anyhow::Result<xcm::VersionedXcm<()>> {
+	Decode::decode(&mut &message[..])
+		.map_err(|e| anyhow::format_err!("Failed to decode XCM program: {:?}", e))
+}
+
 #[cfg(test)]
 mod tests {
 	use super::*;
-	use crate::cli::ExplicitOrMaximal;
+	use crate::cli::{ExplicitOrMaximal, HexBytes};
 
 	#[test]
 	fn send_raw_rialto_to_millau() {

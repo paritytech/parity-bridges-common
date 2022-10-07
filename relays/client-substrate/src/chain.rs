@@ -15,9 +15,11 @@
 // along with Parity Bridges Common.  If not, see <http://www.gnu.org/licenses/>.
 
 use bp_messages::MessageNonce;
-use bp_runtime::{Chain as ChainBase, EncodedOrDecodedCall, HashOf, TransactionEraOf};
+use bp_runtime::{
+	Chain as ChainBase, EncodedOrDecodedCall, HashOf, TransactionEra, TransactionEraOf,
+};
 use codec::{Codec, Encode};
-use frame_support::weights::{Weight, WeightToFeePolynomial};
+use frame_support::weights::{Weight, WeightToFee};
 use jsonrpsee::core::{DeserializeOwned, Serialize};
 use num_traits::Zero;
 use sc_transaction_pool_api::TransactionStatus;
@@ -52,16 +54,11 @@ pub trait Chain: ChainBase + Clone {
 	const AVERAGE_BLOCK_INTERVAL: Duration;
 	/// Maximal expected storage proof overhead (in bytes).
 	const STORAGE_PROOF_OVERHEAD: u32;
-	/// Maximal size (in bytes) of SCALE-encoded account id on this chain.
-	const MAXIMAL_ENCODED_ACCOUNT_ID_SIZE: u32;
 
 	/// Block type.
 	type SignedBlock: Member + Serialize + DeserializeOwned + BlockWithJustification<Self::Header>;
 	/// The aggregated `Call` type.
 	type Call: Clone + Codec + Dispatchable + Debug + Send;
-
-	/// Type that is used by the chain, to convert from weight to fee.
-	type WeightToFee: WeightToFeePolynomial<Balance = Self::Balance>;
 }
 
 /// Substrate-based relay chain that supports parachains.
@@ -120,6 +117,8 @@ pub trait ChainWithMessages: Chain {
 	/// `ChainWithMessages`.
 	const MAX_UNCONFIRMED_MESSAGES_IN_CONFIRMATION_TX: MessageNonce;
 
+	/// Type that is used by the chain, to convert from weight to fee.
+	type WeightToFee: WeightToFee<Balance = Self::Balance>;
 	/// Weights of message pallet calls.
 	type WeightInfo: pallet_bridge_messages::WeightInfoExt;
 }
@@ -127,7 +126,7 @@ pub trait ChainWithMessages: Chain {
 /// Call type used by the chain.
 pub type CallOf<C> = <C as Chain>::Call;
 /// Weight-to-Fee type used by the chain.
-pub type WeightToFeeOf<C> = <C as Chain>::WeightToFee;
+pub type WeightToFeeOf<C> = <C as ChainWithMessages>::WeightToFee;
 /// Transaction status of the chain.
 pub type TransactionStatusOf<C> = TransactionStatus<HashOf<C>, HashOf<C>>;
 
@@ -160,12 +159,14 @@ pub struct UnsignedTransaction<C: Chain> {
 	pub nonce: C::Index,
 	/// Tip included into transaction.
 	pub tip: C::Balance,
+	/// Transaction era used by the chain.
+	pub era: TransactionEraOf<C>,
 }
 
 impl<C: Chain> UnsignedTransaction<C> {
-	/// Create new unsigned transaction with given call, nonce and zero tip.
+	/// Create new unsigned transaction with given call, nonce, era and zero tip.
 	pub fn new(call: EncodedOrDecodedCall<C::Call>, nonce: C::Index) -> Self {
-		Self { call, nonce, tip: Zero::zero() }
+		Self { call, nonce, era: TransactionEra::Immortal, tip: Zero::zero() }
 	}
 
 	/// Set transaction tip.
@@ -174,13 +175,20 @@ impl<C: Chain> UnsignedTransaction<C> {
 		self.tip = tip;
 		self
 	}
+
+	/// Set transaction era.
+	#[must_use]
+	pub fn era(mut self, era: TransactionEraOf<C>) -> Self {
+		self.era = era;
+		self
+	}
 }
 
 /// Account key pair used by transactions signing scheme.
 pub type AccountKeyPairOf<S> = <S as TransactionSignScheme>::AccountKeyPair;
 
 /// Substrate-based chain transactions signing scheme.
-pub trait TransactionSignScheme {
+pub trait TransactionSignScheme: 'static {
 	/// Chain that this scheme is to be used.
 	type Chain: Chain;
 	/// Type of key pairs used to sign transactions.
@@ -189,7 +197,10 @@ pub trait TransactionSignScheme {
 	type SignedTransaction: Clone + Debug + Codec + Send + 'static;
 
 	/// Create transaction for given runtime call, signed by given account.
-	fn sign_transaction(param: SignParam<Self>) -> Result<Self::SignedTransaction, crate::Error>
+	fn sign_transaction(
+		param: SignParam<Self>,
+		unsigned: UnsignedTransaction<Self::Chain>,
+	) -> Result<Self::SignedTransaction, crate::Error>
 	where
 		Self: Sized;
 
@@ -215,10 +226,6 @@ pub struct SignParam<T: TransactionSignScheme> {
 	pub genesis_hash: <T::Chain as ChainBase>::Hash,
 	/// Signer account
 	pub signer: T::AccountKeyPair,
-	/// Transaction era used by the chain.
-	pub era: TransactionEraOf<T::Chain>,
-	/// Transaction before it is signed.
-	pub unsigned: UnsignedTransaction<T::Chain>,
 }
 
 impl<Block: BlockT> BlockWithJustification<Block::Header> for SignedBlock<Block> {
