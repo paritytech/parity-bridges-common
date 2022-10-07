@@ -524,7 +524,7 @@ pub mod pallet {
 	) {
 		let start_number = *init_params.header.number();
 		let end_number = start_number + T::HeadersToKeep::get().into();
-		initialize_bridge::<T, I>(init_params);
+		initialize_bridge::<T, I>(init_params).expect("benchmarks are correct");
 
 		let mut number = start_number;
 		while number < end_number {
@@ -537,7 +537,11 @@ pub mod pallet {
 				Default::default(),
 			);
 			let hash = header.hash();
-			insert_header::<T, I>(header, hash);
+			insert_header::<T, I>(
+				StoredBridgedHeader::try_from_bridged_header(header)
+					.expect("only used from benchmarks; benchmarks are correct; qed"),
+				hash,
+			);
 		}
 	}
 }
@@ -619,7 +623,8 @@ pub fn initialize_for_benchmarks<T: Config<I>, I: 'static>(header: BridgedHeader
 		                                          * benchmarks */
 		set_id: 0,
 		operating_mode: bp_runtime::BasicOperatingMode::Normal,
-	});
+	})
+	.expect("only used from benchmarks; benchmarks are correct; qed");
 }
 
 #[cfg(test)]
