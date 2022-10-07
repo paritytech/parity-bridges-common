@@ -112,7 +112,7 @@ pub mod pallet {
 		///
 		/// This constant must be selected with care. The pallet requires mandatory headers to be
 		/// submitted to be able to proceed. Mandatory headers contain public keys of all GRANDPA
-		/// authorities. E.g. for 1024 authorities, the size of encoded keys will be at least ~32kb.
+		/// authorities. E.g. for 1024 authorities, the size of encoded keys will be at least 32 KB.
 		/// The same header may also contain other digest items as well, so some reserve here
 		/// is required.
 		#[pallet::constant]
