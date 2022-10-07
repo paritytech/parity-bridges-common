@@ -147,8 +147,7 @@ pub trait Chain: Send + Sync + 'static {
 	type Header: Parameter
 		+ HeaderT<Number = Self::BlockNumber, Hash = Self::Hash>
 		+ HeaderIdProvider<Self::Header>
-		+ MaybeSerializeDeserialize
-		+ MaxEncodedLen;
+		+ MaybeSerializeDeserialize;
 
 	/// The user account identifier type for the runtime.
 	type AccountId: Parameter

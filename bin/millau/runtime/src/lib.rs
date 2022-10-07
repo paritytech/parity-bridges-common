@@ -431,6 +431,8 @@ impl pallet_bridge_grandpa::Config for Runtime {
 	type BridgedChain = bp_rialto::Rialto;
 	type MaxRequests = MaxRequests;
 	type HeadersToKeep = HeadersToKeep;
+	type MaxBridgedAuthorities = frame_support::traits::ConstU32<5>;
+	type MaxBridgedHeaderSize = frame_support::traits::ConstU32<512>;
 
 	type WeightInfo = pallet_bridge_grandpa::weights::BridgeWeight<Runtime>;
 }
@@ -440,6 +442,8 @@ impl pallet_bridge_grandpa::Config<WestendGrandpaInstance> for Runtime {
 	type BridgedChain = bp_westend::Westend;
 	type MaxRequests = MaxRequests;
 	type HeadersToKeep = HeadersToKeep;
+	type MaxBridgedAuthorities = frame_support::traits::ConstU32<2048>;
+	type MaxBridgedHeaderSize = frame_support::traits::ConstU32<65536>;
 
 	type WeightInfo = pallet_bridge_grandpa::weights::BridgeWeight<Runtime>;
 }

@@ -538,6 +538,8 @@ impl pallet_bridge_grandpa::Config for Runtime {
 	type BridgedChain = bp_millau::Millau;
 	type MaxRequests = MaxRequests;
 	type HeadersToKeep = HeadersToKeep;
+	type MaxBridgedAuthorities = frame_support::traits::ConstU32<5>;
+	type MaxBridgedHeaderSize = frame_support::traits::ConstU32<512>;
 	type WeightInfo = pallet_bridge_grandpa::weights::BridgeWeight<Runtime>;
 }
 
