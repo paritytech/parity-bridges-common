@@ -23,6 +23,7 @@ use codec::{Decode, Encode};
 use scale_info::TypeInfo;
 
 pub use bp_bridge_hub_rococo::SS58Prefix;
+use bp_messages::UnrewardedRelayersState;
 use bp_polkadot_core::parachains::{ParaHash, ParaHeadsProof, ParaId};
 use bp_runtime::Chain;
 
@@ -49,17 +50,24 @@ pub enum Call {
 	System(SystemCall),
 	/// Wococo bridge pallet.
 	#[codec(index = 41)]
-	BridgeGrandpaWococo(BridgeGrandpaWococoCall),
+	BridgeWococoGrandpa(BridgeWococoGrandpaCall),
 	/// Rococo bridge pallet.
 	#[codec(index = 43)]
-	BridgeGrandpaRococo(BridgeGrandpaRococoCall),
+	BridgeRococoGrandpa(BridgeRococoGrandpaCall),
 
 	/// Wococo parachain bridge pallet.
 	#[codec(index = 42)]
-	BridgeParachainWococo(BridgeParachainCall),
+	BridgeWococoParachain(BridgeParachainCall),
 	/// Rococo parachain bridge pallet.
 	#[codec(index = 44)]
-	BridgeParachainRococo(BridgeParachainCall),
+	BridgeRococoParachain(BridgeParachainCall),
+
+	/// Wococo messages bridge pallet.
+	#[codec(index = 46)]
+	BridgeWococoMessages(BridgeWococoMessagesCall),
+	/// Rococo messages bridge pallet.
+	#[codec(index = 45)]
+	BridgeRococoMessages(BridgeRococoMessagesCall),
 }
 
 #[derive(Encode, Decode, Debug, PartialEq, Eq, Clone, TypeInfo)]
@@ -71,7 +79,7 @@ pub enum SystemCall {
 
 #[derive(Encode, Decode, Debug, PartialEq, Eq, Clone, TypeInfo)]
 #[allow(non_camel_case_types)]
-pub enum BridgeGrandpaWococoCall {
+pub enum BridgeWococoGrandpaCall {
 	#[codec(index = 0)]
 	submit_finality_proof(
 		Box<<PolkadotLike as Chain>::Header>,
@@ -83,7 +91,7 @@ pub enum BridgeGrandpaWococoCall {
 
 #[derive(Encode, Decode, Debug, PartialEq, Eq, Clone, TypeInfo)]
 #[allow(non_camel_case_types)]
-pub enum BridgeGrandpaRococoCall {
+pub enum BridgeRococoGrandpaCall {
 	#[codec(index = 0)]
 	submit_finality_proof(
 		Box<<PolkadotLike as Chain>::Header>,
@@ -104,6 +112,50 @@ pub enum BridgeParachainCall {
 		(RelayBlockNumber, RelayBlockHash),
 		Vec<(ParaId, ParaHash)>,
 		ParaHeadsProof,
+	),
+}
+
+#[derive(Encode, Decode, Debug, PartialEq, Eq, Clone, TypeInfo)]
+#[allow(non_camel_case_types)]
+pub enum BridgeWococoMessagesCall {
+	#[codec(index = 5)]
+	receive_messages_proof(
+		relay_substrate_client::AccountIdOf<bp_bridge_hub_wococo::BridgeHubWococo>,
+		bridge_runtime_common::messages::target::FromBridgedChainMessagesProof<
+			relay_substrate_client::HashOf<bp_bridge_hub_wococo::BridgeHubWococo>,
+		>,
+		u32,
+		bp_messages::Weight,
+	),
+
+	#[codec(index = 6)]
+	receive_messages_delivery_proof(
+		bridge_runtime_common::messages::source::FromBridgedChainMessagesDeliveryProof<
+			relay_substrate_client::HashOf<bp_bridge_hub_wococo::BridgeHubWococo>,
+		>,
+		UnrewardedRelayersState,
+	),
+}
+
+#[derive(Encode, Decode, Debug, PartialEq, Eq, Clone, TypeInfo)]
+#[allow(non_camel_case_types)]
+pub enum BridgeRococoMessagesCall {
+	#[codec(index = 5)]
+	receive_messages_proof(
+		relay_substrate_client::AccountIdOf<bp_bridge_hub_rococo::BridgeHubRococo>,
+		bridge_runtime_common::messages::target::FromBridgedChainMessagesProof<
+			relay_substrate_client::HashOf<bp_bridge_hub_rococo::BridgeHubRococo>,
+		>,
+		u32,
+		bp_messages::Weight,
+	),
+
+	#[codec(index = 6)]
+	receive_messages_delivery_proof(
+		bridge_runtime_common::messages::source::FromBridgedChainMessagesDeliveryProof<
+			relay_substrate_client::HashOf<bp_bridge_hub_rococo::BridgeHubRococo>,
+		>,
+		UnrewardedRelayersState,
 	),
 }
 
@@ -154,7 +206,7 @@ mod tests {
 			set_id: 6,
 			operating_mode: BasicOperatingMode::Normal,
 		};
-		let call = BridgeGrandpaRococoCall::initialize(init_data);
+		let call = BridgeRococoGrandpaCall::initialize(init_data);
 		let tx = Call::BridgeGrandpaRococo(call);
 
 		// encode call as hex string

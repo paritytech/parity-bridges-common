@@ -12,6 +12,7 @@ license = "GPL-3.0-or-later WITH Classpath-exception-2.0"
 
 bp-polkadot-core = { path = "../../primitives/polkadot-core", default-features = false }
 bp-runtime = { path = "../../primitives/runtime", default-features = false }
+bp-messages = { path = "../../primitives/messages", default-features = false }
 
 # Substrate Based Dependencies
 
@@ -22,6 +23,7 @@ sp-api = { git = "https://github.com/paritytech/substrate", branch = "master", d
 default = ["std"]
 std = [
 	"bp-polkadot-core/std",
+	"bp-messages/std",
 	"bp-runtime/std",
 	"frame-support/std",
 	"sp-api/std",

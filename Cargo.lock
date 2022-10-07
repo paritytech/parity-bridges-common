@@ -691,6 +691,7 @@ dependencies = [
 name = "bp-bridge-hub-rococo"
 version = "0.1.0"
 dependencies = [
+ "bp-messages",
  "bp-polkadot-core",
  "bp-runtime",
  "frame-support",
@@ -702,7 +703,9 @@ name = "bp-bridge-hub-wococo"
 version = "0.1.0"
 dependencies = [
  "bp-bridge-hub-rococo",
+ "bp-messages",
  "bp-runtime",
+ "frame-support",
  "sp-api",
 ]
 
@@ -8267,7 +8270,7 @@ dependencies = [
  "bp-messages",
  "bp-polkadot-core",
  "bp-runtime",
- "frame-support",
+ "bridge-runtime-common",
  "parity-scale-codec",
  "relay-substrate-client",
  "relay-utils",
@@ -8282,7 +8285,7 @@ name = "relay-bridge-hub-wococo-client"
 version = "0.1.0"
 dependencies = [
  "bp-bridge-hub-wococo",
- "frame-support",
+ "bp-messages",
  "parity-scale-codec",
  "relay-bridge-hub-rococo-client",
  "relay-substrate-client",

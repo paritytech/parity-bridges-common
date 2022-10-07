@@ -14,10 +14,10 @@ relay-utils = { path = "../utils" }
 # Bridge dependencies
 
 bp-bridge-hub-wococo = { path = "../../primitives/chain-bridge-hub-wococo" }
+bp-messages = { path = "../../primitives/messages" }
 relay-bridge-hub-rococo-client = { path = "../client-bridge-hub-rococo" }
 
 # Substrate Dependencies
 
-frame-support = { git = "https://github.com/paritytech/substrate", branch = "master" }
 sp-core = { git = "https://github.com/paritytech/substrate", branch = "master" }
 sp-runtime = { git = "https://github.com/paritytech/substrate", branch = "master" }

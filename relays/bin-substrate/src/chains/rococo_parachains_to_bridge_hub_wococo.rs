@@ -53,7 +53,7 @@ impl SubmitParachainHeadsCallBuilder<BridgeHubRococoToBridgeHubWococo>
 		parachains: Vec<(ParaId, ParaHash)>,
 		parachain_heads_proof: ParaHeadsProof,
 	) -> CallOf<relay_bridge_hub_wococo_client::BridgeHubWococo> {
-		relay_bridge_hub_wococo_client::runtime::Call::BridgeParachainRococo(
+		relay_bridge_hub_wococo_client::runtime::Call::BridgeRococoParachain(
 			relay_bridge_hub_wococo_client::runtime::BridgeParachainCall::submit_parachain_heads(
 				(at_relay_block.0, at_relay_block.1),
 				parachains,
@@ -63,7 +63,7 @@ impl SubmitParachainHeadsCallBuilder<BridgeHubRococoToBridgeHubWococo>
 	}
 }
 
-//// `BridgeHubParachain` to `BridgeHubParachain` bridge definition.
+/// `BridgeHubParachain` to `BridgeHubParachain` bridge definition.
 pub struct BridgeHubRococoToBridgeHubWococoCliBridge {}
 
 impl ParachainToRelayHeadersCliBridge for BridgeHubRococoToBridgeHubWococoCliBridge {

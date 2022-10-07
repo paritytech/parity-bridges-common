@@ -16,10 +16,10 @@
 
 //! Types used to connect to the BridgeHub-Rococo-Substrate parachain.
 
+use bp_messages::{MessageNonce, Weight};
 use codec::Encode;
-use frame_support::weights::Weight;
 use relay_substrate_client::{
-	Chain, ChainBase, Error as SubstrateError, SignParam, TransactionSignScheme,
+	Chain, ChainBase, ChainWithMessages, Error as SubstrateError, SignParam, TransactionSignScheme,
 	UnsignedTransaction,
 };
 use sp_core::Pair;
@@ -136,6 +136,28 @@ impl TransactionSignScheme for BridgeHubRococo {
 		// 	.into(),
 		Some(UnsignedTransaction::new(tx.function.into(), extra.nonce()).tip(extra.tip()))
 	}
+}
+
+impl ChainWithMessages for BridgeHubRococo {
+	const WITH_CHAIN_MESSAGES_PALLET_NAME: &'static str =
+		bp_bridge_hub_rococo::WITH_BRIDGE_HUB_ROCOCO_MESSAGES_PALLET_NAME;
+
+	const TO_CHAIN_MESSAGE_DETAILS_METHOD: &'static str =
+		bp_bridge_hub_rococo::TO_BRIDGE_HUB_ROCOCO_MESSAGE_DETAILS_METHOD;
+	const FROM_CHAIN_MESSAGE_DETAILS_METHOD: &'static str =
+		bp_bridge_hub_rococo::FROM_BRIDGE_HUB_ROCOCO_MESSAGE_DETAILS_METHOD;
+
+	const PAY_INBOUND_DISPATCH_FEE_WEIGHT_AT_CHAIN: Weight =
+		bp_bridge_hub_rococo::PAY_INBOUND_DISPATCH_FEE_WEIGHT;
+	const MAX_UNREWARDED_RELAYERS_IN_CONFIRMATION_TX: MessageNonce =
+		bp_bridge_hub_rococo::MAX_UNREWARDED_RELAYERS_IN_CONFIRMATION_TX;
+	const MAX_UNCONFIRMED_MESSAGES_IN_CONFIRMATION_TX: MessageNonce =
+		bp_bridge_hub_rococo::MAX_UNCONFIRMED_MESSAGES_IN_CONFIRMATION_TX;
+
+	// TODO:check-parameter
+	type WeightToFee = bp_bridge_hub_rococo::WeightToFee;
+	// TODO:check-parameter
+	type WeightInfo = ();
 }
 
 #[cfg(test)]

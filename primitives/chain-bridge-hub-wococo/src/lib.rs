@@ -28,12 +28,19 @@ pub use bp_bridge_hub_rococo::{
 	Hashing, Header, Nonce, SS58Prefix, Signature, SignedBlock, SignedExtensions,
 	UncheckedExtrinsic, WeightToFee, EXTRA_STORAGE_PROOF_SIZE,
 	MAX_UNCONFIRMED_MESSAGES_IN_CONFIRMATION_TX, MAX_UNREWARDED_RELAYERS_IN_CONFIRMATION_TX,
+	PAY_INBOUND_DISPATCH_FEE_WEIGHT,
 };
-use bp_runtime::decl_bridge_finality_runtime_apis;
+use bp_messages::*;
+use bp_runtime::{decl_bridge_finality_runtime_apis, decl_bridge_messages_runtime_apis};
+use frame_support::{sp_runtime::FixedU128, Parameter};
 
 pub type BridgeHubWococo = bp_bridge_hub_rococo::BridgeHubRococo;
 
 /// Identifier of BridgeHubWococo in the Wococo relay chain.
 pub const BRIDGE_HUB_WOCOCO_PARACHAIN_ID: u32 = 1013;
 
+/// Name of the With-BridgeHubWococo messages pallet instance that is deployed at bridged chains.
+pub const WITH_BRIDGE_HUB_WOCOCO_MESSAGES_PALLET_NAME: &str = "BridgeWococoMessages";
+
 decl_bridge_finality_runtime_apis!(wococo);
+decl_bridge_messages_runtime_apis!(bridge_hub_wococo);

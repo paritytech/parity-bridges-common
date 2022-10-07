@@ -33,6 +33,7 @@ pub enum FullBridge {
 	RialtoToMillau,
 	MillauToRialtoParachain,
 	RialtoParachainToMillau,
+	BridgeHubRococoToBridgeHubWococo,
 }
 
 impl FullBridge {
@@ -43,6 +44,8 @@ impl FullBridge {
 			Self::RialtoToMillau => RIALTO_TO_MILLAU_INDEX,
 			Self::MillauToRialtoParachain => MILLAU_TO_RIALTO_PARACHAIN_INDEX,
 			Self::RialtoParachainToMillau => RIALTO_PARACHAIN_TO_MILLAU_INDEX,
+			Self::BridgeHubRococoToBridgeHubWococo =>
+				unimplemented!("TODO: (bridge_instance_index) do we need it or refactor or remove?"),
 		}
 	}
 }

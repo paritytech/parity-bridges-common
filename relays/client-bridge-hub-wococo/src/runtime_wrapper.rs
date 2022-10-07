@@ -23,6 +23,8 @@ pub use bp_bridge_hub_wococo::SS58Prefix;
 // We reuse everything from rococo runtime wrapper
 pub type Call = relay_bridge_hub_rococo_client::runtime::Call;
 pub type UncheckedExtrinsic = bp_bridge_hub_wococo::UncheckedExtrinsic<Call>;
-pub type BridgeGrandpaRococoCall = relay_bridge_hub_rococo_client::runtime::BridgeGrandpaRococoCall;
+pub type BridgeGrandpaRococoCall = relay_bridge_hub_rococo_client::runtime::BridgeRococoGrandpaCall;
 pub type BridgeParachainCall = relay_bridge_hub_rococo_client::runtime::BridgeParachainCall;
+pub type BridgeRococoMessagesCall =
+	relay_bridge_hub_rococo_client::runtime::BridgeRococoMessagesCall;
 pub type SystemCall = relay_bridge_hub_rococo_client::runtime::SystemCall;

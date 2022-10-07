@@ -125,6 +125,8 @@ impl EstimateFee {
 				MillauToRialtoParachainCliBridge::estimate_fee(self),
 			FullBridge::RialtoParachainToMillau =>
 				RialtoParachainToMillauCliBridge::estimate_fee(self),
+			FullBridge::BridgeHubRococoToBridgeHubWococo =>
+				unimplemented!("TODO: (EstimateFee) do we need it or refactor or remove?"),
 		}
 		.await
 	}
