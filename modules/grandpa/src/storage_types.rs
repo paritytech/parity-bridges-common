@@ -42,7 +42,7 @@ impl<T: Config<I>, I: 'static> StoredAuthoritySet<T, I> {
 	/// Try to create a new bounded GRANDPA Authority Set from unbounded list.
 	///
 	/// Returns error if number of authorities in the provided list is too large.
-	pub fn new(authorities: AuthorityList, set_id: SetId) -> Result<Self, ()> {
+	pub fn try_new(authorities: AuthorityList, set_id: SetId) -> Result<Self, ()> {
 		Ok(Self { authorities: TryFrom::try_from(authorities)?, set_id })
 	}
 }

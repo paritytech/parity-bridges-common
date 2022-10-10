@@ -502,7 +502,7 @@ pub mod pallet {
 	) -> Result<(), Error<T, I>> {
 		let super::InitializationData { header, authority_list, set_id, operating_mode } =
 			init_params;
-		let authority_set = StoredAuthoritySet::<T, I>::new(authority_list, set_id)
+		let authority_set = StoredAuthoritySet::<T, I>::try_new(authority_list, set_id)
 			.map_err(|_| Error::TooManyAuthoritiesInSet)?;
 		let header = StoredBridgedHeader::<T, I>::try_from_bridged_header(*header)?;
 
@@ -971,7 +971,7 @@ mod tests {
 			// Make sure that the authority set actually changed upon importing our header
 			assert_eq!(
 				<CurrentAuthoritySet<TestRuntime>>::get(),
-				StoredAuthoritySet::<TestRuntime, ()>::new(next_authorities, next_set_id).unwrap(),
+				StoredAuthoritySet::<TestRuntime, ()>::try_new(next_authorities, next_set_id).unwrap(),
 			);
 		})
 	}
