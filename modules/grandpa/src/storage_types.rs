@@ -65,14 +65,6 @@ impl<T: Config<I>, I: 'static> From<StoredAuthoritySet<T, I>> for AuthoritySet {
 	}
 }
 
-impl<T: Config<I>, I: 'static> TryFrom<AuthoritySet> for StoredAuthoritySet<T, I> {
-	type Error = ();
-
-	fn try_from(t: AuthoritySet) -> Result<Self, Self::Error> {
-		Ok(StoredAuthoritySet { authorities: TryFrom::try_from(t.authorities)?, set_id: t.set_id })
-	}
-}
-
 /// A bounded chain header.
 #[derive(Clone, Decode, Encode, Eq, PartialEq, RuntimeDebugNoBound)]
 pub struct StoredBridgedHeader<T: Config<I>, I: 'static>(pub BridgedHeader<T, I>);
