@@ -11,4 +11,5 @@
 
 ## Code that may need security audit
 
-- [Remove without_storage_info for messages pallet](https://github.com/paritytech/parity-bridges-common/pull/1487).
+- [Remove without_storage_info for messages pallet](https://github.com/paritytech/parity-bridges-common/pull/1487);
+- [Remove pallet::without_storage_info from bridge GRANDPA pallet](https://github.com/paritytech/parity-bridges-common/pull/1478).
