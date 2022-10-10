@@ -424,7 +424,9 @@ parameter_types! {
 	/// Assuming the worst case of every header being finalized, we will keep headers at least for a
 	/// week.
 	pub const HeadersToKeep: u32 = 7 * bp_rialto::DAYS as u32;
+}
 
+parameter_types! {
 	/// Maximal number of authorities at Rialto.
 	pub const MaxAuthoritiesAtRialto: u32 = bp_rialto::MAX_AUTHORITIES_COUNT;
 	/// Maximal size of SCALE-encoded Rialto header.
