@@ -14,7 +14,7 @@
 // You should have received a copy of the GNU General Public License
 // along with Parity Bridges Common.  If not, see <http://www.gnu.org/licenses/>.
 
-//! Wrappers for public types that are implementing Max
+//! Wrappers for public types that are implementing `MaxEncodedLen`
 
 use crate::{BridgedHeader, Config, Error};
 
