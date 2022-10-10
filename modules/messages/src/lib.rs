@@ -68,7 +68,7 @@ use codec::{Decode, Encode, MaxEncodedLen};
 use frame_support::{
 	ensure, fail,
 	traits::Get,
-	weights::{Pays, PostDispatchInfo},
+	dispatch::PostDispatchInfo,
 };
 use num_traits::{SaturatingAdd, Zero};
 use sp_std::{
@@ -104,7 +104,7 @@ pub mod pallet {
 		// General types
 
 		/// The overarching event type.
-		type Event: From<Event<Self, I>> + IsType<<Self as frame_system::Config>::Event>;
+		type RuntimeEvent: From<Event<Self, I>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
 		/// Benchmarks results from runtime we're plugged into.
 		type WeightInfo: WeightInfoExt;
 
@@ -174,13 +174,13 @@ pub mod pallet {
 		type TargetHeaderChain: TargetHeaderChain<Self::OutboundPayload, Self::AccountId>;
 		/// Message payload verifier.
 		type LaneMessageVerifier: LaneMessageVerifier<
-			Self::Origin,
+			Self::RuntimeOrigin,
 			Self::OutboundPayload,
 			Self::OutboundMessageFee,
 		>;
 		/// Message delivery payment.
 		type MessageDeliveryAndDispatchPayment: MessageDeliveryAndDispatchPayment<
-			Self::Origin,
+			Self::RuntimeOrigin,
 			Self::AccountId,
 			Self::OutboundMessageFee,
 		>;
@@ -776,7 +776,7 @@ pub mod pallet {
 
 impl<T, I>
 	bp_messages::source_chain::MessagesBridge<
-		T::Origin,
+		T::RuntimeOrigin,
 		T::AccountId,
 		T::OutboundMessageFee,
 		T::OutboundPayload,
@@ -788,7 +788,7 @@ where
 	type Error = sp_runtime::DispatchErrorWithPostInfo<PostDispatchInfo>;
 
 	fn send_message(
-		sender: T::Origin,
+		sender: T::RuntimeOrigin,
 		lane: LaneId,
 		message: T::OutboundPayload,
 		delivery_and_dispatch_fee: T::OutboundMessageFee,
@@ -799,7 +799,7 @@ where
 
 /// Function that actually sends message.
 fn send_message<T: Config<I>, I: 'static>(
-	submitter: T::Origin,
+	submitter: T::RuntimeOrigin,
 	lane_id: LaneId,
 	payload: T::OutboundPayload,
 	delivery_and_dispatch_fee: T::OutboundMessageFee,
@@ -1108,7 +1108,7 @@ fn verify_and_decode_messages_proof<Chain: SourceHeaderChain<Fee>, Fee, Dispatch
 mod tests {
 	use super::*;
 	use crate::mock::{
-		message, message_payload, run_test, unrewarded_relayer, Balance, Event as TestEvent,
+		message, message_payload, run_test, unrewarded_relayer, Balance, RuntimeEvent as TestEvent,
 		Origin, TestMessageDeliveryAndDispatchPayment, TestMessagesDeliveryProof,
 		TestMessagesParameter, TestMessagesProof, TestOnDeliveryConfirmed1,
 		TestOnDeliveryConfirmed2, TestOnMessageAccepted, TestRuntime, TokenConversionRate,

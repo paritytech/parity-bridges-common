@@ -29,7 +29,7 @@ pub use weights_ext::WeightInfoExt;
 use bp_parachains::{parachain_head_storage_key_at_source, ParaInfo};
 use bp_polkadot_core::parachains::{ParaHash, ParaHasher, ParaHead, ParaHeadsProof, ParaId};
 use bp_runtime::StorageProofError;
-use frame_support::{traits::Contains, weights::PostDispatchInfo};
+use frame_support::{traits::Contains, dispatch::PostDispatchInfo};
 use sp_runtime::traits::Header as HeaderT;
 use sp_std::vec::Vec;
 

@@ -70,9 +70,10 @@ pub use bridge_runtime_common;
 // A few exports that help ease life for downstream crates.
 pub use frame_support::{
 	construct_runtime, parameter_types,
+	dispatch::DispatchClass,
 	traits::{Currency, ExistenceRequirement, Imbalance, KeyOwnerProofSystem},
 	weights::{
-		constants::WEIGHT_PER_SECOND, ConstantMultiplier, DispatchClass, IdentityFee,
+		constants::WEIGHT_PER_SECOND, ConstantMultiplier, IdentityFee,
 		RuntimeDbWeight, Weight,
 	},
 	RuntimeDebug, StorageValue,

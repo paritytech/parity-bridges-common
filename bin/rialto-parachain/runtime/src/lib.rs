@@ -53,10 +53,11 @@ use sp_version::RuntimeVersion;
 use bp_runtime::{HeaderId, HeaderIdProvider};
 pub use frame_support::{
 	construct_runtime, match_types, parameter_types,
+	dispatch::DispatchClass,
 	traits::{Everything, IsInVec, Nothing, Randomness},
 	weights::{
 		constants::{BlockExecutionWeight, ExtrinsicBaseWeight, RocksDbWeight, WEIGHT_PER_SECOND},
-		DispatchClass, IdentityFee, Weight,
+		IdentityFee, Weight,
 	},
 	StorageValue,
 };

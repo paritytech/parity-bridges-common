@@ -31,7 +31,8 @@ use bridge_runtime_common::messages::{
 use codec::{Decode, Encode};
 use frame_support::{
 	parameter_types,
-	weights::{DispatchClass, Weight},
+	dispatch::DispatchClass,
+	weights::Weight,
 	RuntimeDebug,
 };
 use scale_info::TypeInfo;

@@ -64,8 +64,9 @@ use sp_version::RuntimeVersion;
 // A few exports that help ease life for downstream crates.
 pub use frame_support::{
 	construct_runtime, parameter_types,
+	dispatch::DispatchClass,
 	traits::{Currency, ExistenceRequirement, Imbalance, KeyOwnerProofSystem},
-	weights::{constants::WEIGHT_PER_SECOND, DispatchClass, IdentityFee, RuntimeDbWeight, Weight},
+	weights::{constants::WEIGHT_PER_SECOND, IdentityFee, RuntimeDbWeight, Weight},
 	StorageValue,
 };
 

@@ -212,7 +212,7 @@ impl<SenderOrigin, AccountId, Balance, Payload>
 		_message: Payload,
 		_delivery_and_dispatch_fee: Balance,
 	) -> Result<SendMessageArtifacts, Self::Error> {
-		Ok(SendMessageArtifacts { nonce: 0, weight: 0 })
+		Ok(SendMessageArtifacts { nonce: 0, weight: Weight::from_ref_time(0) })
 	}
 }
 
@@ -236,7 +236,7 @@ pub trait OnDeliveryConfirmed {
 #[impl_trait_for_tuples::impl_for_tuples(30)]
 impl OnDeliveryConfirmed for Tuple {
 	fn on_messages_delivered(lane: &LaneId, messages: &DeliveredMessages) -> Weight {
-		let mut total_weight: Weight = 0;
+		let mut total_weight = Weight::from_ref_time(0);
 		for_tuples!(
 			#(
 				total_weight = total_weight.saturating_add(Tuple::on_messages_delivered(lane, messages));
@@ -254,7 +254,7 @@ pub trait OnMessageAccepted {
 
 impl OnMessageAccepted for () {
 	fn on_messages_accepted(_lane: &LaneId, _message: &MessageNonce) -> Weight {
-		0
+		Weight::from_ref_time(0)
 	}
 }
 
