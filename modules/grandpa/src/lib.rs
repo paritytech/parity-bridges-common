@@ -971,7 +971,8 @@ mod tests {
 			// Make sure that the authority set actually changed upon importing our header
 			assert_eq!(
 				<CurrentAuthoritySet<TestRuntime>>::get(),
-				StoredAuthoritySet::<TestRuntime, ()>::try_new(next_authorities, next_set_id).unwrap(),
+				StoredAuthoritySet::<TestRuntime, ()>::try_new(next_authorities, next_set_id)
+					.unwrap(),
 			);
 		})
 	}
