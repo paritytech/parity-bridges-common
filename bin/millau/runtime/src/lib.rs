@@ -424,6 +424,16 @@ parameter_types! {
 	/// Assuming the worst case of every header being finalized, we will keep headers at least for a
 	/// week.
 	pub const HeadersToKeep: u32 = 7 * bp_rialto::DAYS as u32;
+
+	/// Maximal number of authorities at Rialto.
+	pub const MaxAuthoritiesAtRialto: u32 = bp_rialto::MAX_AUTHORITIES_COUNT;
+	/// Maximal size of SCALE-encoded Rialto header.
+	pub const MaxRialtoHeaderSize: u32 = bp_rialto::MAX_HEADER_SIZE;
+
+	/// Maximal number of authorities at Westend.
+	pub const MaxAuthoritiesAtWestend: u32 = bp_westend::MAX_AUTHORITIES_COUNT;
+	/// Maximal size of SCALE-encoded Westend header.
+	pub const MaxWestendHeaderSize: u32 = bp_westend::MAX_HEADER_SIZE;
 }
 
 pub type RialtoGrandpaInstance = ();
@@ -431,8 +441,8 @@ impl pallet_bridge_grandpa::Config for Runtime {
 	type BridgedChain = bp_rialto::Rialto;
 	type MaxRequests = MaxRequests;
 	type HeadersToKeep = HeadersToKeep;
-	type MaxBridgedAuthorities = frame_support::traits::ConstU32<5>;
-	type MaxBridgedHeaderSize = frame_support::traits::ConstU32<512>;
+	type MaxBridgedAuthorities = MaxAuthoritiesAtRialto;
+	type MaxBridgedHeaderSize = MaxRialtoHeaderSize;
 
 	type WeightInfo = pallet_bridge_grandpa::weights::BridgeWeight<Runtime>;
 }
@@ -442,8 +452,8 @@ impl pallet_bridge_grandpa::Config<WestendGrandpaInstance> for Runtime {
 	type BridgedChain = bp_westend::Westend;
 	type MaxRequests = MaxRequests;
 	type HeadersToKeep = HeadersToKeep;
-	type MaxBridgedAuthorities = frame_support::traits::ConstU32<2048>;
-	type MaxBridgedHeaderSize = frame_support::traits::ConstU32<65536>;
+	type MaxBridgedAuthorities = MaxAuthoritiesAtWestend;
+	type MaxBridgedHeaderSize = MaxWestendHeaderSize;
 
 	type WeightInfo = pallet_bridge_grandpa::weights::BridgeWeight<Runtime>;
 }
