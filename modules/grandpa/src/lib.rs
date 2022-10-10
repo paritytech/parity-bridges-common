@@ -554,7 +554,7 @@ pub mod pallet {
 			);
 			let hash = header.hash();
 			insert_header::<T, I>(
-				StoredBridgedHeader::try_from_bridged_header(header)
+				StoredBridgedHeader::<T, I>::try_from_inner(header)
 					.expect("only used from benchmarks; benchmarks are correct; qed"),
 				hash,
 			);
