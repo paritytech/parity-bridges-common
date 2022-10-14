@@ -29,12 +29,7 @@ use bridge_runtime_common::messages::{
 	self, BasicConfirmationTransactionEstimation, MessageBridge, MessageTransaction,
 };
 use codec::{Decode, Encode};
-use frame_support::{
-	parameter_types,
-	dispatch::DispatchClass,
-	weights::Weight,
-	RuntimeDebug,
-};
+use frame_support::{dispatch::DispatchClass, parameter_types, weights::Weight, RuntimeDebug};
 use scale_info::TypeInfo;
 use sp_runtime::{traits::Saturating, FixedPointNumber, FixedU128};
 use sp_std::convert::TryFrom;

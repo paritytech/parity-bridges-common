@@ -25,7 +25,8 @@ use bp_messages::{
 };
 use bp_runtime::{decl_bridge_runtime_apis, Chain};
 use frame_support::{
-	dispatch::DispatchClass, weights::{constants::WEIGHT_PER_SECOND, IdentityFee, Weight},
+	dispatch::DispatchClass,
+	weights::{constants::WEIGHT_PER_SECOND, IdentityFee, Weight},
 	Parameter, RuntimeDebug,
 };
 use frame_system::limits;
@@ -91,7 +92,8 @@ pub const ADDITIONAL_MESSAGE_BYTE_DELIVERY_WEIGHT: Weight = Weight::from_ref_tim
 /// This value is a result of `pallet_bridge_messages::Pallet::receive_messages_delivery_proof`
 /// weight formula computation for the case when single message is confirmed. The result then must
 /// be rounded up to account possible future runtime upgrades.
-pub const MAX_SINGLE_MESSAGE_DELIVERY_CONFIRMATION_TX_WEIGHT: Weight = Weight::from_ref_time(2_000_000_000);
+pub const MAX_SINGLE_MESSAGE_DELIVERY_CONFIRMATION_TX_WEIGHT: Weight =
+	Weight::from_ref_time(2_000_000_000);
 
 /// Weight of pay-dispatch-fee operation for inbound messages at Millau chain.
 ///

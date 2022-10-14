@@ -65,11 +65,7 @@ use bp_messages::{
 };
 use bp_runtime::{BasicOperatingMode, ChainId, OwnedBridgeModule, Size};
 use codec::{Decode, Encode, MaxEncodedLen};
-use frame_support::{
-	ensure, fail,
-	traits::Get,
-	dispatch::PostDispatchInfo,
-};
+use frame_support::{dispatch::PostDispatchInfo, ensure, fail, traits::Get};
 use num_traits::{SaturatingAdd, Zero};
 use sp_std::{
 	cell::RefCell, cmp::PartialOrd, collections::vec_deque::VecDeque, marker::PhantomData,
@@ -104,7 +100,8 @@ pub mod pallet {
 		// General types
 
 		/// The overarching event type.
-		type RuntimeEvent: From<Event<Self, I>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
+		type RuntimeEvent: From<Event<Self, I>>
+			+ IsType<<Self as frame_system::Config>::RuntimeEvent>;
 		/// Benchmarks results from runtime we're plugged into.
 		type WeightInfo: WeightInfoExt;
 
@@ -1108,12 +1105,12 @@ fn verify_and_decode_messages_proof<Chain: SourceHeaderChain<Fee>, Fee, Dispatch
 mod tests {
 	use super::*;
 	use crate::mock::{
-		message, message_payload, run_test, unrewarded_relayer, Balance, RuntimeEvent as TestEvent,
-		Origin, TestMessageDeliveryAndDispatchPayment, TestMessagesDeliveryProof,
-		TestMessagesParameter, TestMessagesProof, TestOnDeliveryConfirmed1,
-		TestOnDeliveryConfirmed2, TestOnMessageAccepted, TestRuntime, TokenConversionRate,
-		MAX_OUTBOUND_PAYLOAD_SIZE, PAYLOAD_REJECTED_BY_TARGET_CHAIN, REGULAR_PAYLOAD, TEST_LANE_ID,
-		TEST_RELAYER_A, TEST_RELAYER_B,
+		message, message_payload, run_test, unrewarded_relayer, Balance, Origin,
+		RuntimeEvent as TestEvent, TestMessageDeliveryAndDispatchPayment,
+		TestMessagesDeliveryProof, TestMessagesParameter, TestMessagesProof,
+		TestOnDeliveryConfirmed1, TestOnDeliveryConfirmed2, TestOnMessageAccepted, TestRuntime,
+		TokenConversionRate, MAX_OUTBOUND_PAYLOAD_SIZE, PAYLOAD_REJECTED_BY_TARGET_CHAIN,
+		REGULAR_PAYLOAD, TEST_LANE_ID, TEST_RELAYER_A, TEST_RELAYER_B,
 	};
 	use bp_messages::{UnrewardedRelayer, UnrewardedRelayersState};
 	use bp_test_utils::generate_owned_bridge_module_tests;

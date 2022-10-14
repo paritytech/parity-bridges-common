@@ -130,7 +130,7 @@ pub mod pallet {
 		fn on_initialize(_n: T::BlockNumber) -> frame_support::weights::Weight {
 			<RequestCount<T, I>>::mutate(|count| *count = count.saturating_sub(1));
 
-			(0_u64)
+			Weight::from_ref_time(0)
 				.saturating_add(T::DbWeight::get().reads(1))
 				.saturating_add(T::DbWeight::get().writes(1))
 		}
@@ -641,8 +641,8 @@ mod tests {
 	};
 	use codec::Encode;
 	use frame_support::{
-		assert_err, assert_noop, assert_ok, storage::generator::StorageValue,
-		dispatch::PostDispatchInfo,
+		assert_err, assert_noop, assert_ok, dispatch::PostDispatchInfo,
+		storage::generator::StorageValue,
 	};
 	use sp_runtime::{Digest, DigestItem, DispatchError};
 

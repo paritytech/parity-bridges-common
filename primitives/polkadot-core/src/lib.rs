@@ -20,11 +20,11 @@ use bp_messages::MessageNonce;
 use bp_runtime::{Chain, EncodedOrDecodedCall};
 use codec::Compact;
 use frame_support::{
-	dispatch::Dispatchable,
+	dispatch::{DispatchClass, Dispatchable},
 	parameter_types,
-	dispatch::DispatchClass,
 	weights::{
-		constants::{BlockExecutionWeight, WEIGHT_PER_SECOND}, Weight,
+		constants::{BlockExecutionWeight, WEIGHT_PER_SECOND},
+		Weight,
 	},
 	Blake2_128Concat, RuntimeDebug, StorageHasher, Twox128,
 };
@@ -134,7 +134,8 @@ pub const MAX_UNCONFIRMED_MESSAGES_IN_CONFIRMATION_TX: MessageNonce = 8192;
 /// This value is a result of `pallet_bridge_messages::Pallet::receive_messages_delivery_proof`
 /// weight formula computation for the case when single message is confirmed. The result then must
 /// be rounded up to account possible future runtime upgrades.
-pub const MAX_SINGLE_MESSAGE_DELIVERY_CONFIRMATION_TX_WEIGHT: Weight = Weight::from_ref_time(2_000_000_000);
+pub const MAX_SINGLE_MESSAGE_DELIVERY_CONFIRMATION_TX_WEIGHT: Weight =
+	Weight::from_ref_time(2_000_000_000);
 
 /// Increase of delivery transaction weight on Polkadot-like chain with every additional message
 /// byte.

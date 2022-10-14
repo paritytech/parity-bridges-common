@@ -71,7 +71,8 @@ pub fn ensure_weights_are_correct<W: WeightInfoExt>(
 	// verify that hardcoded value covers additional byte length of `receive_messages_proof` weight
 	let actual_additional_byte_delivery_weight = W::storage_proof_size_overhead(1);
 	assert!(
-		actual_additional_byte_delivery_weight.ref_time() <= expected_additional_byte_delivery_weight.ref_time(),
+		actual_additional_byte_delivery_weight.ref_time() <=
+			expected_additional_byte_delivery_weight.ref_time(),
 		"Single additional byte delivery weight {} is larger than expected weight {}",
 		actual_additional_byte_delivery_weight,
 		expected_additional_byte_delivery_weight,

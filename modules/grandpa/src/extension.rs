@@ -69,12 +69,13 @@ mod tests {
 	use bp_test_utils::make_default_justification;
 
 	fn validate_block_submit(num: TestNumber) -> bool {
-		crate::Pallet::<TestRuntime>::validate(&RuntimeCall::Grandpa(
-			crate::Call::<TestRuntime, ()>::submit_finality_proof {
-				finality_target: Box::new(test_header(num)),
-				justification: make_default_justification(&test_header(num)),
-			},
-		))
+		crate::Pallet::<TestRuntime>::validate(&RuntimeCall::Grandpa(crate::Call::<
+			TestRuntime,
+			(),
+		>::submit_finality_proof {
+			finality_target: Box::new(test_header(num)),
+			justification: make_default_justification(&test_header(num)),
+		}))
 		.is_ok()
 	}
 
