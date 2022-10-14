@@ -40,7 +40,7 @@ impl<
 			MessagesDeliveryProof = FromBridgedChainMessagesDeliveryProof<BridgedHeaderHash>,
 		>,
 		Call: IsSubType<CallableCallFor<Pallet<T, I>, T>>,
-		T: frame_system::Config<Call = Call>
+		T: frame_system::Config<RuntimeCall = Call>
 			+ Config<I, SourceHeaderChain = SourceHeaderChain, TargetHeaderChain = TargetHeaderChain>,
 		I: 'static,
 	> BridgeRuntimeFilterCall<Call> for Pallet<T, I>
