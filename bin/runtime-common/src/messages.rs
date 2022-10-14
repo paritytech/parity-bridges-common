@@ -1125,10 +1125,10 @@ mod tests {
 	use frame_support::weights::Weight;
 	use std::ops::RangeInclusive;
 
-	const DELIVERY_TRANSACTION_WEIGHT: Weight = 100;
-	const DELIVERY_CONFIRMATION_TRANSACTION_WEIGHT: Weight = 100;
-	const THIS_CHAIN_WEIGHT_TO_BALANCE_RATE: Weight = 2;
-	const BRIDGED_CHAIN_WEIGHT_TO_BALANCE_RATE: Weight = 4;
+	const DELIVERY_TRANSACTION_WEIGHT: Weight = Weight::from_ref_time(100);
+	const DELIVERY_CONFIRMATION_TRANSACTION_WEIGHT: u64 = 100;
+	const THIS_CHAIN_WEIGHT_TO_BALANCE_RATE: u32 = 2;
+	const BRIDGED_CHAIN_WEIGHT_TO_BALANCE_RATE: u32 = 4;
 	const BRIDGED_CHAIN_TO_THIS_CHAIN_BALANCE_RATE: u32 = 6;
 	const BRIDGED_CHAIN_MIN_EXTRINSIC_WEIGHT: usize = 5;
 	const BRIDGED_CHAIN_MAX_EXTRINSIC_WEIGHT: usize = 2048;
@@ -1299,7 +1299,6 @@ mod tests {
 		type AccountId = ThisChainAccountId;
 		type Signer = ThisChainSigner;
 		type Signature = ThisChainSignature;
-		type Weight = frame_support::weights::Weight;
 		type Balance = ThisChainBalance;
 	}
 
@@ -1313,7 +1312,7 @@ mod tests {
 			0,
 		>;
 
-		fn is_message_accepted(_send_origin: &Self::Origin, lane: &LaneId) -> bool {
+		fn is_message_accepted(_send_origin: &Self::RuntimeOrigin, lane: &LaneId) -> bool {
 			lane == TEST_LANE_ID
 		}
 
@@ -1323,7 +1322,10 @@ mod tests {
 
 		fn transaction_payment(transaction: MessageTransaction<Weight>) -> BalanceOf<Self> {
 			ThisChainBalance(
-				transaction.dispatch_weight as u32 * THIS_CHAIN_WEIGHT_TO_BALANCE_RATE as u32,
+				transaction
+					.dispatch_weight
+					.saturating_mul(THIS_CHAIN_WEIGHT_TO_BALANCE_RATE as u64)
+					.ref_time() as _,
 			)
 		}
 	}
@@ -1357,7 +1359,6 @@ mod tests {
 		type AccountId = BridgedChainAccountId;
 		type Signer = BridgedChainSigner;
 		type Signature = BridgedChainSignature;
-		type Weight = frame_support::weights::Weight;
 		type Balance = BridgedChainBalance;
 	}
 
@@ -1371,7 +1372,7 @@ mod tests {
 			0,
 		>;
 
-		fn is_message_accepted(_send_origin: &Self::Origin, _lane: &LaneId) -> bool {
+		fn is_message_accepted(_send_origin: &Self::RuntimeOrigin, _lane: &LaneId) -> bool {
 			unreachable!()
 		}
 
@@ -1407,7 +1408,10 @@ mod tests {
 
 		fn transaction_payment(transaction: MessageTransaction<Weight>) -> BalanceOf<Self> {
 			BridgedChainBalance(
-				transaction.dispatch_weight as u32 * BRIDGED_CHAIN_WEIGHT_TO_BALANCE_RATE as u32,
+				transaction
+					.dispatch_weight
+					.saturating_mul(BRIDGED_CHAIN_WEIGHT_TO_BALANCE_RATE as u64)
+					.ref_time() as _,
 			)
 		}
 	}
@@ -1780,11 +1784,11 @@ mod tests {
 
 		assert_eq!(
 			transaction_payment(
-				100,
+				Weight::from_ref_time(100),
 				10,
 				FixedU128::zero(),
-				|weight| weight,
-				MessageTransaction { size: 50, dispatch_weight: 777 },
+				|weight| weight.ref_time(),
+				MessageTransaction { size: 50, dispatch_weight: Weight::from_ref_time(777) },
 			),
 			100 + 50 * 10,
 		);
@@ -1795,12 +1799,12 @@ mod tests {
 		use sp_runtime::traits::One;
 
 		assert_eq!(
-			transaction_payment(
-				100,
+			transaction_payment::<u64>(
+				Weight::from_ref_time(100),
 				10,
 				FixedU128::one(),
-				|weight| weight,
-				MessageTransaction { size: 50, dispatch_weight: 777 },
+				|weight| weight.ref_time(),
+				MessageTransaction { size: 50, dispatch_weight: Weight::from_ref_time(777) },
 			),
 			100 + 50 * 10 + 777,
 		);
