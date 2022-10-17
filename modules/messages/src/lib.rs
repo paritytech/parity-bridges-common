@@ -777,7 +777,6 @@ pub mod pallet {
 impl<T, I>
 	bp_messages::source_chain::MessagesBridge<
 		T::Origin,
-		T::AccountId,
 		T::OutboundMessageFee,
 		T::OutboundPayload,
 	> for Pallet<T, I>
