@@ -85,7 +85,7 @@ impl Chain for Millau {
 	const STORAGE_PROOF_OVERHEAD: u32 = bp_millau::EXTRA_STORAGE_PROOF_SIZE;
 
 	type SignedBlock = millau_runtime::SignedBlock;
-	type Call = millau_runtime::Call;
+	type Call = millau_runtime::RuntimeCall;
 }
 
 impl ChainWithBalances for Millau {

@@ -347,7 +347,7 @@ where
 		// chain. This requires more knowledge of the Target chain, but seems there's no better way
 		// to solve this now.
 		let expected_refund_in_target_tokens = if total_prepaid_nonces != 0 {
-			const WEIGHT_DIFFERENCE: Weight = 100;
+			const WEIGHT_DIFFERENCE: Weight = Weight::from_ref_time(100);
 
 			let (spec_version, transaction_version) =
 				self.target_client.simple_runtime_version().await?;

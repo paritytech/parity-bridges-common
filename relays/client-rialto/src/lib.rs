@@ -65,7 +65,7 @@ impl Chain for Rialto {
 	const STORAGE_PROOF_OVERHEAD: u32 = bp_rialto::EXTRA_STORAGE_PROOF_SIZE;
 
 	type SignedBlock = rialto_runtime::SignedBlock;
-	type Call = rialto_runtime::Call;
+	type Call = rialto_runtime::RuntimeCall;
 }
 
 impl RelayChain for Rialto {
