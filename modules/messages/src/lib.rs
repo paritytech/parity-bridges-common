@@ -782,12 +782,8 @@ pub mod pallet {
 }
 
 impl<T, I>
-	bp_messages::source_chain::MessagesBridge<
-		T::RuntimeOrigin,
-		T::AccountId,
-		T::OutboundMessageFee,
-		T::OutboundPayload,
-	> for Pallet<T, I>
+	bp_messages::source_chain::MessagesBridge<T::RuntimeOrigin, T::OutboundMessageFee, T::OutboundPayload>
+	for Pallet<T, I>
 where
 	T: Config<I>,
 	I: 'static,
