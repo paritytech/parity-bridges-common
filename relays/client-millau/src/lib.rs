@@ -186,7 +186,7 @@ mod tests {
 	#[test]
 	fn parse_transaction_works() {
 		let unsigned = UnsignedTransaction {
-			call: millau_runtime::Call::System(millau_runtime::SystemCall::remark {
+			call: millau_runtime::RuntimeCall::System(millau_runtime::SystemCall::remark {
 				remark: b"Hello world!".to_vec(),
 			})
 			.into(),

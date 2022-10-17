@@ -189,7 +189,7 @@ mod tests {
 	#[test]
 	fn parse_transaction_works() {
 		let unsigned = UnsignedTransaction {
-			call: rialto_runtime::Call::System(rialto_runtime::SystemCall::remark {
+			call: rialto_runtime::RuntimeCall::System(rialto_runtime::SystemCall::remark {
 				remark: b"Hello world!".to_vec(),
 			})
 			.into(),
