@@ -506,7 +506,9 @@ mod tests {
 			// i.e. weight reserved for messages dispatch allows dispatch of non-trivial messages.
 			//
 			// Any significant change in this values should attract additional attention.
-			(1024, Weight::from_ref_time(216_609_134_667)),
+			//
+			// TODO: https://github.com/paritytech/parity-bridges-common/issues/1543 - remove `set_proof_size`
+			(1024, Weight::from_ref_time(216_609_134_667).set_proof_size(217)),
 		);
 	}
 }
