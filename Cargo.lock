@@ -8643,6 +8643,7 @@ dependencies = [
  "clap 3.2.22",
  "frame-benchmarking",
  "frame-benchmarking-cli",
+ "frame-support",
  "node-inspect",
  "polkadot-node-core-pvf",
  "polkadot-primitives",
