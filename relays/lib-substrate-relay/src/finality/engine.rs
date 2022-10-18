@@ -154,7 +154,7 @@ impl<C: ChainWithGrandpa> Engine<C> for Grandpa<C> {
 			.await
 			.map_err(|e| Error::ReadJustification(C::NAME, e))
 			.and_then(|justification| {
-				justification.ok_or_else(|| Error::ReadJustificationStreamEnded(C::NAME))
+				justification.ok_or(Error::ReadJustificationStreamEnded(C::NAME))
 			})?;
 
 		// Read initial header.
@@ -207,7 +207,7 @@ impl<C: ChainWithGrandpa> Engine<C> for Grandpa<C> {
 		let mut initial_authorities_set_id = 0;
 		let mut min_possible_block_number = C::BlockNumber::zero();
 		let authorities_for_verification = VoterSet::new(authorities_for_verification.clone())
-			.ok_or_else(|| Error::ReadInvalidAuthorities(C::NAME, authorities_for_verification))?;
+			.ok_or(Error::ReadInvalidAuthorities(C::NAME, authorities_for_verification))?;
 		loop {
 			log::trace!(
 				target: "bridge", "Trying {} GRANDPA authorities set id: {}",

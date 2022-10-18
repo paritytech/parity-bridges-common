@@ -113,7 +113,7 @@ where
 		)
 		.map_err(SubstrateError::ResponseParseFailed)?
 		.map(Ok)
-		.unwrap_or_else(|| Err(SubstrateError::BridgePalletIsNotInitialized))
+		.unwrap_or(Err(SubstrateError::BridgePalletIsNotInitialized))
 	}
 
 	async fn parachain_head(
