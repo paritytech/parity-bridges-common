@@ -553,7 +553,7 @@ where
 	)
 	.map_err(SubstrateError::ResponseParseFailed)?
 	.map(Ok)
-	.unwrap_or(Err(SubstrateError::BridgePalletIsNotInitialized))
+	.unwrap_or_else(|| Err(SubstrateError::BridgePalletIsNotInitialized))
 }
 
 fn validate_out_msgs_details<C: Chain>(

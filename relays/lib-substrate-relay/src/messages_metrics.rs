@@ -153,12 +153,12 @@ pub fn standalone_metrics<P: SubstrateMessageLane>(
 			.map(|source_chain_token_id| {
 				crate::helpers::token_price_metric(source_chain_token_id).map(Some)
 			})
-			.unwrap_or(Ok(None))?,
+			.unwrap_or_else(|| Ok(None))?,
 		target_to_base_conversion_rate: P::TargetChain::TOKEN_ID
 			.map(|target_chain_token_id| {
 				crate::helpers::token_price_metric(target_chain_token_id).map(Some)
 			})
-			.unwrap_or(Ok(None))?,
+			.unwrap_or_else(|| Ok(None))?,
 		source_to_target_conversion_rate: P::SOURCE_TO_TARGET_CONVERSION_RATE_PARAMETER_NAME
 			.map(bp_runtime::storage_parameter_key)
 			.map(|key| {
@@ -181,7 +181,7 @@ pub fn standalone_metrics<P: SubstrateMessageLane>(
 				)
 				.map(Some)
 			})
-			.unwrap_or(Ok(None))?,
+			.unwrap_or_else(|| Ok(None))?,
 		target_to_source_conversion_rate: P::TARGET_TO_SOURCE_CONVERSION_RATE_PARAMETER_NAME
 			.map(bp_runtime::storage_parameter_key)
 			.map(|key| {
@@ -204,7 +204,7 @@ pub fn standalone_metrics<P: SubstrateMessageLane>(
 				)
 				.map(Some)
 			})
-			.unwrap_or(Ok(None))?,
+			.unwrap_or_else(|| Ok(None))?,
 		source_fee_multiplier: P::AT_SOURCE_TRANSACTION_PAYMENT_PALLET_NAME
 			.map(|pallet| bp_runtime::storage_value_key(pallet, NEXT_FEE_MULTIPLIER_VALUE_NAME))
 			.map(|key| {
@@ -218,7 +218,7 @@ pub fn standalone_metrics<P: SubstrateMessageLane>(
 				)
 				.map(Some)
 			})
-			.unwrap_or(Ok(None))?,
+			.unwrap_or_else(|| Ok(None))?,
 		source_fee_multiplier_at_target: P::SOURCE_FEE_MULTIPLIER_PARAMETER_NAME
 			.map(bp_runtime::storage_parameter_key)
 			.map(|key| {
@@ -235,7 +235,7 @@ pub fn standalone_metrics<P: SubstrateMessageLane>(
 				)
 				.map(Some)
 			})
-			.unwrap_or(Ok(None))?,
+			.unwrap_or_else(|| Ok(None))?,
 		target_fee_multiplier: P::AT_TARGET_TRANSACTION_PAYMENT_PALLET_NAME
 			.map(|pallet| bp_runtime::storage_value_key(pallet, NEXT_FEE_MULTIPLIER_VALUE_NAME))
 			.map(|key| {
@@ -249,7 +249,7 @@ pub fn standalone_metrics<P: SubstrateMessageLane>(
 				)
 				.map(Some)
 			})
-			.unwrap_or(Ok(None))?,
+			.unwrap_or_else(|| Ok(None))?,
 		target_fee_multiplier_at_source: P::TARGET_FEE_MULTIPLIER_PARAMETER_NAME
 			.map(bp_runtime::storage_parameter_key)
 			.map(|key| {
@@ -266,7 +266,7 @@ pub fn standalone_metrics<P: SubstrateMessageLane>(
 				)
 				.map(Some)
 			})
-			.unwrap_or(Ok(None))?,
+			.unwrap_or_else(|| Ok(None))?,
 	})
 }
 
