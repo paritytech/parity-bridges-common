@@ -1160,7 +1160,7 @@ mod tests {
 			// parachain
 			initialize(state_root);
 			let result = Pallet::<TestRuntime>::submit_parachain_heads(
-				Origin::signed(1),
+				RuntimeOrigin::signed(1),
 				(0, test_relay_header(0, state_root).hash()),
 				parachains,
 				proof,
