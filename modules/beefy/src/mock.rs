@@ -16,8 +16,8 @@
 
 use crate as beefy;
 use crate::{
-	utils::get_validators_mmr_root, BridgedBeefyAuthoritySet, BridgedBeefyCommitmentHasher,
-	BridgedBeefyMmrLeafExtra, BridgedBeefySignedCommitment, BridgedBeefyValidatorSet,
+	utils::get_authorities_mmr_root, BridgedBeefyAuthoritySet, BridgedBeefyAuthoritySetInfo,
+	BridgedBeefyCommitmentHasher, BridgedBeefyMmrLeafExtra, BridgedBeefySignedCommitment,
 	BridgedMmrHash, BridgedMmrHashing, BridgedMmrProof,
 };
 
@@ -40,8 +40,8 @@ pub type TestAccountId = u64;
 pub type TestBridgedBlockNumber = u64;
 pub type TestBridgedBlockHash = H256;
 pub type TestBridgedHeader = Header;
-pub type TestBridgedAuthoritySet = BridgedBeefyAuthoritySet<TestRuntime, ()>;
-pub type TestBridgedValidatorSet = BridgedBeefyValidatorSet<TestRuntime, ()>;
+pub type TestBridgedAuthoritySetInfo = BridgedBeefyAuthoritySetInfo<TestRuntime, ()>;
+pub type TestBridgedValidatorSet = BridgedBeefyAuthoritySet<TestRuntime, ()>;
 pub type TestBridgedCommitment = BridgedBeefySignedCommitment<TestRuntime, ()>;
 pub type TestBridgedValidatorSignature = BeefyValidatorSignatureOf<TestBridgedChain>;
 pub type TestBridgedCommitmentHasher = BridgedBeefyCommitmentHasher<TestRuntime, ()>;
@@ -138,9 +138,9 @@ impl ChainWithBeefy for TestBridgedChain {
 	type MmrHashing = Keccak256;
 	type MmrHash = <Keccak256 as Hash>::Output;
 	type BeefyMmrLeafExtra = ();
-	type ValidatorId = BeefyId;
+	type AuthorityId = BeefyId;
 	type Signature = beefy_primitives::crypto::AuthoritySignature;
-	type ValidatorIdToMerkleLeaf = pallet_beefy_mmr::BeefyEcdsaToEthereum;
+	type AuthorityIdToMerkleLeaf = pallet_beefy_mmr::BeefyEcdsaToEthereum;
 }
 
 /// Run test within test runtime.
@@ -152,7 +152,7 @@ pub fn run_test<T>(test: impl FnOnce() -> T) -> T {
 pub fn run_test_with_initialize<T>(initial_validators_count: u32, test: impl FnOnce() -> T) -> T {
 	run_test(|| {
 		let validators = validator_ids(0, initial_validators_count);
-		let authority_set = authority_set(0, &validators);
+		let authority_set = authority_set_info(0, &validators);
 
 		crate::Pallet::<TestRuntime>::initialize(
 			Origin::root(),
@@ -198,10 +198,10 @@ pub fn validator_ids(index: u32, count: u32) -> Vec<BeefyId> {
 	validator_pairs(index, count).into_iter().map(|pair| pair.public()).collect()
 }
 
-pub fn authority_set(id: u64, validators: &Vec<BeefyId>) -> TestBridgedAuthoritySet {
-	let merkle_root = get_validators_mmr_root::<TestRuntime, (), _>(validators.iter());
+pub fn authority_set_info(id: u64, validators: &Vec<BeefyId>) -> TestBridgedAuthoritySetInfo {
+	let merkle_root = get_authorities_mmr_root::<TestRuntime, (), _>(validators.iter());
 
-	TestBridgedAuthoritySet { id, len: validators.len() as u32, root: merkle_root }
+	TestBridgedAuthoritySetInfo { id, len: validators.len() as u32, root: merkle_root }
 }
 
 /// Sign BEEFY commitment.

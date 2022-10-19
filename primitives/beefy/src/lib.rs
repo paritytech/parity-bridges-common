@@ -80,26 +80,26 @@ pub trait ChainWithBeefy: Chain {
 	/// A way to identify a BEEFY validator.
 	///
 	/// Corresponds to the `BeefyId` field of the `pallet-beefy` configuration.
-	type ValidatorId: BeefyAuthorityId + Parameter;
+	type AuthorityId: BeefyAuthorityId + Parameter;
 
 	/// The signature type used by BEEFY.
 	///
 	/// Corresponds to the `BeefyId` field of the `pallet-beefy` configuration.
-	type Signature: BeefyVerify<Self::CommitmentHasher, Signer = Self::ValidatorId> + Parameter;
+	type Signature: BeefyVerify<Self::CommitmentHasher, Signer = Self::AuthorityId> + Parameter;
 
 	/// A way to convert validator id to its raw representation in the BEEFY merkle tree.
 	///
 	/// Corresponds to the `BeefyAuthorityToMerkleLeaf` field of the `pallet-beefy-mmr`
 	/// configuration.
-	type ValidatorIdToMerkleLeaf: Convert<Self::ValidatorId, Vec<u8>>;
+	type AuthorityIdToMerkleLeaf: Convert<Self::AuthorityId, Vec<u8>>;
 }
 
 /// BEEFY validator id used by given Substrate chain.
-pub type BeefyValidatorIdOf<C> = <C as ChainWithBeefy>::ValidatorId;
+pub type BeefyAuthorityIdOf<C> = <C as ChainWithBeefy>::AuthorityId;
 /// BEEFY validator set, containing both validator identifiers and the numeric set id.
-pub type BeefyValidatorSetOf<C> = ValidatorSet<BeefyValidatorIdOf<C>>;
+pub type BeefyAuthoritySetOf<C> = ValidatorSet<BeefyAuthorityIdOf<C>>;
 /// BEEFY authority set, containing both validator identifiers and the numeric set id.
-pub type BeefyAuthoritySetOf<C> = beefy_primitives::mmr::BeefyAuthoritySet<MmrHashOf<C>>;
+pub type BeefyAuthoritySetInfoOf<C> = beefy_primitives::mmr::BeefyAuthoritySet<MmrHashOf<C>>;
 /// BEEFY validator signature used by given Substrate chain.
 pub type BeefyValidatorSignatureOf<C> = <C as ChainWithBeefy>::Signature;
 /// Signed BEEFY commitment used by given Substrate chain.
@@ -111,13 +111,13 @@ pub type BeefyCommitmentHasher<C> = <C as ChainWithBeefy>::CommitmentHasher;
 pub type MmrHashingOf<C> = <C as ChainWithBeefy>::MmrHashing;
 /// Hash type, used in MMR construction by given Substrate chain.
 pub type MmrHashOf<C> = <C as ChainWithBeefy>::MmrHash;
-/// BEEFY Mmr proof type used by the given Substrate chain.
+/// BEEFY MMR proof type used by the given Substrate chain.
 pub type MmrProofOf<C> = MmrProof<MmrHashOf<C>>;
 /// The type of the MMR leaf extra data used by the given Substrate chain.
 pub type BeefyMmrLeafExtraOf<C> = <C as ChainWithBeefy>::BeefyMmrLeafExtra;
 /// A way to convert a validator id to its raw representation in the BEEFY merkle tree, used by
 /// the given Substrate chain.
-pub type BeefyValidatorIdToMerkleLeafOf<C> = <C as ChainWithBeefy>::ValidatorIdToMerkleLeaf;
+pub type BeefyAuthorityIdToMerkleLeafOf<C> = <C as ChainWithBeefy>::AuthorityIdToMerkleLeaf;
 /// Actual type of leafs in the BEEFY MMR.
 pub type BeefyMmrLeafOf<C> = beefy_primitives::mmr::MmrLeaf<
 	BlockNumberOf<C>,

@@ -1,4 +1,3 @@
-#![feature(assert_matches)]
 // Copyright 2021 Parity Technologies (UK) Ltd.
 // This file is part of Parity Bridges Common.
 
@@ -68,11 +67,11 @@ pub type InitializationDataOf<T, I> =
 /// BEEFY commitment hasher, used by configured bridged chain.
 pub type BridgedBeefyCommitmentHasher<T, I> = bp_beefy::BeefyCommitmentHasher<BridgedChain<T, I>>;
 /// BEEFY validator id, used by configured bridged chain.
-pub type BridgedBeefyValidatorId<T, I> = bp_beefy::BeefyValidatorIdOf<BridgedChain<T, I>>;
+pub type BridgedBeefyAuthorityId<T, I> = bp_beefy::BeefyAuthorityIdOf<BridgedChain<T, I>>;
 /// BEEFY validator set, used by configured bridged chain.
-pub type BridgedBeefyValidatorSet<T, I> = bp_beefy::BeefyValidatorSetOf<BridgedChain<T, I>>;
-/// BEEFY authority set, used by configured bridged chain.
 pub type BridgedBeefyAuthoritySet<T, I> = bp_beefy::BeefyAuthoritySetOf<BridgedChain<T, I>>;
+/// BEEFY authority set, used by configured bridged chain.
+pub type BridgedBeefyAuthoritySetInfo<T, I> = bp_beefy::BeefyAuthoritySetInfoOf<BridgedChain<T, I>>;
 /// BEEFY signed commitment, used by configured bridged chain.
 pub type BridgedBeefySignedCommitment<T, I> = bp_beefy::BeefySignedCommitmentOf<BridgedChain<T, I>>;
 /// MMR hashing algorithm, used by configured bridged chain.
@@ -81,7 +80,7 @@ pub type BridgedMmrHashing<T, I> = bp_beefy::MmrHashingOf<BridgedChain<T, I>>;
 pub type BridgedMmrHash<T, I> = bp_beefy::MmrHashOf<BridgedChain<T, I>>;
 /// The type of the MMR leaf extra data used by the configured bridged chain.
 pub type BridgedBeefyMmrLeafExtra<T, I> = bp_beefy::BeefyMmrLeafExtraOf<BridgedChain<T, I>>;
-/// BEEFY Mmr proof type used by the pallet
+/// BEEFY MMR proof type used by the pallet
 pub type BridgedMmrProof<T, I> = bp_beefy::MmrProofOf<BridgedChain<T, I>>;
 /// MMR leaf type, used by configured bridged chain.
 pub type BridgedBeefyMmrLeaf<T, I> = bp_beefy::BeefyMmrLeafOf<BridgedChain<T, I>>;
@@ -205,7 +204,7 @@ pub mod pallet {
 		pub fn submit_commitment(
 			origin: OriginFor<T>,
 			commitment: BridgedBeefySignedCommitment<T, I>,
-			validator_set: BridgedBeefyValidatorSet<T, I>,
+			validator_set: BridgedBeefyAuthoritySet<T, I>,
 			mmr_leaf: BridgedBeefyMmrLeaf<T, I>,
 			mmr_proof: BridgedMmrProof<T, I>,
 		) -> DispatchResult
@@ -226,10 +225,10 @@ pub mod pallet {
 			);
 
 			// Verify commitment and mmr leaf.
-			let current_authority_set = CurrentAuthoritySet::<T, I>::get();
+			let current_authority_set_info = CurrentAuthoritySetInfo::<T, I>::get();
 			let mmr_root = utils::verify_commitment::<T, I>(
 				&commitment,
-				&current_authority_set,
+				&current_authority_set_info,
 				&validator_set,
 			)?;
 			utils::verify_beefy_mmr_leaf::<T, I>(&mmr_leaf, mmr_proof, mmr_root)?;
@@ -237,8 +236,8 @@ pub mod pallet {
 			// Update request count.
 			RequestCount::<T, I>::mutate(|count| *count += 1);
 			// Update authority set if needed.
-			if mmr_leaf.beefy_next_authority_set.id > current_authority_set.id {
-				CurrentAuthoritySet::<T, I>::put(mmr_leaf.beefy_next_authority_set);
+			if mmr_leaf.beefy_next_authority_set.id > current_authority_set_info.id {
+				CurrentAuthoritySetInfo::<T, I>::put(mmr_leaf.beefy_next_authority_set);
 			}
 
 			// Import commitment.
@@ -311,8 +310,8 @@ pub mod pallet {
 
 	/// The current BEEFY authority set at the bridged chain.
 	#[pallet::storage]
-	pub type CurrentAuthoritySet<T: Config<I>, I: 'static = ()> =
-		StorageValue<_, BridgedBeefyAuthoritySet<T, I>, ValueQuery>;
+	pub type CurrentAuthoritySetInfo<T: Config<I>, I: 'static = ()> =
+		StorageValue<_, BridgedBeefyAuthoritySetInfo<T, I>, ValueQuery>;
 
 	/// Optional pallet owner.
 	///
@@ -403,7 +402,7 @@ pub mod pallet {
 		if init_data.authority_set.len == 0 {
 			return Err(Error::<T, I>::InvalidInitialAuthoritySet)
 		}
-		CurrentAuthoritySet::<T, I>::put(init_data.authority_set);
+		CurrentAuthoritySetInfo::<T, I>::put(init_data.authority_set);
 
 		<PalletOperatingMode<T, I>>::put(init_data.operating_mode);
 		ImportedCommitmentsInfo::<T, I>::put(ImportedCommitmentsInfoData {
@@ -554,8 +553,8 @@ mod tests {
 				ImportedCommitmentsInfo::<TestRuntime>::get().unwrap().best_block_number,
 				58
 			);
-			assert_eq!(CurrentAuthoritySet::<TestRuntime>::get().id, 2);
-			assert_eq!(CurrentAuthoritySet::<TestRuntime>::get().len, 17);
+			assert_eq!(CurrentAuthoritySetInfo::<TestRuntime>::get().id, 2);
+			assert_eq!(CurrentAuthoritySetInfo::<TestRuntime>::get().len, 17);
 
 			let imported_commitment = ImportedCommitments::<TestRuntime>::get(58).unwrap();
 			assert_eq!(

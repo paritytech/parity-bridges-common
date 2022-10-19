@@ -23,7 +23,7 @@ use crate::{
 		TestBridgedMmrProof, TestBridgedRawMmrLeaf, TestBridgedValidatorSet,
 		TestBridgedValidatorSignature, TestRuntime,
 	},
-	utils::get_validators_mmr_root,
+	utils::get_authorities_mmr_root,
 };
 
 use beefy_primitives::mmr::{BeefyNextAuthoritySet, MmrLeafVersion};
@@ -187,7 +187,7 @@ impl HeaderBuilder {
 		let next_validators =
 			next_validator_keys.iter().map(|pair| pair.public()).collect::<Vec<_>>();
 		let next_validators_mmr_root =
-			get_validators_mmr_root::<TestRuntime, (), _>(next_validators.iter());
+			get_authorities_mmr_root::<TestRuntime, (), _>(next_validators.iter());
 		let leaf = beefy_primitives::mmr::MmrLeaf {
 			version: MmrLeafVersion::new(1, 0),
 			parent_number_and_hash: (header.number().saturating_sub(1), *header.parent_hash()),

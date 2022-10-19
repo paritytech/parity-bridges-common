@@ -1,6 +1,6 @@
 use crate::{
-	BridgedBeefyAuthoritySet, BridgedBeefyCommitmentHasher, BridgedBeefyMmrLeaf,
-	BridgedBeefySignedCommitment, BridgedBeefyValidatorId, BridgedBeefyValidatorSet, BridgedChain,
+	BridgedBeefyAuthorityId, BridgedBeefyAuthoritySet, BridgedBeefyAuthoritySetInfo,
+	BridgedBeefyCommitmentHasher, BridgedBeefyMmrLeaf, BridgedBeefySignedCommitment, BridgedChain,
 	BridgedMmrHash, BridgedMmrHashing, BridgedMmrProof, Config, Error, LOG_TARGET,
 };
 use bp_beefy::{merkle_root, verify_mmr_leaves_proof, BeefyVerify, MmrDataOrHash, MmrProof};
@@ -11,38 +11,38 @@ use sp_std::{vec, vec::Vec};
 
 type BridgedMmrDataOrHash<T, I> = MmrDataOrHash<BridgedMmrHashing<T, I>, BridgedBeefyMmrLeaf<T, I>>;
 /// A way to encode validator id to the BEEFY merkle tree leaf.
-type BridgedBeefyValidatorIdToMerkleLeaf<T, I> =
-	bp_beefy::BeefyValidatorIdToMerkleLeafOf<BridgedChain<T, I>>;
+type BridgedBeefyAuthorityIdToMerkleLeaf<T, I> =
+	bp_beefy::BeefyAuthorityIdToMerkleLeafOf<BridgedChain<T, I>>;
 
 /// Get the MMR root for a collection of validators.
-pub(crate) fn get_validators_mmr_root<
+pub(crate) fn get_authorities_mmr_root<
 	'a,
 	T: Config<I>,
 	I: 'static,
-	V: Iterator<Item = &'a BridgedBeefyValidatorId<T, I>>,
+	V: Iterator<Item = &'a BridgedBeefyAuthorityId<T, I>>,
 >(
-	validators: V,
+	authorities: V,
 ) -> BridgedMmrHash<T, I> {
-	let merkle_leafs = validators
+	let merkle_leafs = authorities
 		.cloned()
-		.map(BridgedBeefyValidatorIdToMerkleLeaf::<T, I>::convert)
+		.map(BridgedBeefyAuthorityIdToMerkleLeaf::<T, I>::convert)
 		.collect::<Vec<_>>();
 	merkle_root::<BridgedMmrHashing<T, I>, _>(merkle_leafs)
 }
 
-fn verify_validator_set<T: Config<I>, I: 'static>(
+fn verify_authority_set<T: Config<I>, I: 'static>(
+	authority_set_info: &BridgedBeefyAuthoritySetInfo<T, I>,
 	authority_set: &BridgedBeefyAuthoritySet<T, I>,
-	validator_set: &BridgedBeefyValidatorSet<T, I>,
 ) -> Result<(), Error<T, I>> {
-	ensure!(validator_set.id() == authority_set.id, Error::<T, I>::InvalidValidatorSetId);
+	ensure!(authority_set.id() == authority_set_info.id, Error::<T, I>::InvalidValidatorSetId);
 	ensure!(
-		validator_set.len() == authority_set.len as usize,
+		authority_set.len() == authority_set_info.len as usize,
 		Error::<T, I>::InvalidValidatorSetLen
 	);
 
 	// Ensure that the authority set that signed the commitment is the expected one.
-	let validator_set_root = get_validators_mmr_root::<T, I, _>(validator_set.validators().iter());
-	ensure!(validator_set_root == authority_set.root, Error::<T, I>::InvalidValidatorSetRoot);
+	let root = get_authorities_mmr_root::<T, I, _>(authority_set.validators().iter());
+	ensure!(root == authority_set_info.root, Error::<T, I>::InvalidValidatorSetRoot);
 
 	Ok(())
 }
@@ -58,18 +58,18 @@ pub(crate) fn signatures_required<T: Config<I>, I: 'static>(validators_len: usiz
 
 fn verify_signatures<T: Config<I>, I: 'static>(
 	commitment: &BridgedBeefySignedCommitment<T, I>,
-	validator_set: &BridgedBeefyValidatorSet<T, I>,
+	authority_set: &BridgedBeefyAuthoritySet<T, I>,
 ) -> Result<(), Error<T, I>> {
 	ensure!(
-		commitment.signatures.len() == validator_set.len(),
+		commitment.signatures.len() == authority_set.len(),
 		Error::<T, I>::InvalidCommitmentSignaturesLen
 	);
 
 	// Ensure that the commitment was signed by enough authorities.
 	let msg = commitment.commitment.encode();
-	let mut missing_signatures = signatures_required::<T, I>(validator_set.len());
+	let mut missing_signatures = signatures_required::<T, I>(authority_set.len());
 	for (idx, (authority, maybe_sig)) in
-		validator_set.validators().iter().zip(commitment.signatures.iter()).enumerate()
+		authority_set.validators().iter().zip(commitment.signatures.iter()).enumerate()
 	{
 		if let Some(sig) = maybe_sig {
 			if BeefyVerify::<BridgedBeefyCommitmentHasher<T, I>>::verify(sig, &msg, authority) {
@@ -106,21 +106,21 @@ fn extract_mmr_root<T: Config<I>, I: 'static>(
 
 pub(crate) fn verify_commitment<T: Config<I>, I: 'static>(
 	commitment: &BridgedBeefySignedCommitment<T, I>,
+	authority_set_info: &BridgedBeefyAuthoritySetInfo<T, I>,
 	authority_set: &BridgedBeefyAuthoritySet<T, I>,
-	validator_set: &BridgedBeefyValidatorSet<T, I>,
 ) -> Result<BridgedMmrHash<T, I>, Error<T, I>> {
 	// Ensure that the commitment is signed by the best known BEEFY validator set.
 	ensure!(
-		commitment.commitment.validator_set_id == authority_set.id,
+		commitment.commitment.validator_set_id == authority_set_info.id,
 		Error::<T, I>::InvalidCommitmentValidatorSetId
 	);
 	ensure!(
-		commitment.signatures.len() == authority_set.len as usize,
+		commitment.signatures.len() == authority_set_info.len as usize,
 		Error::<T, I>::InvalidCommitmentSignaturesLen
 	);
 
-	verify_validator_set(authority_set, validator_set)?;
-	verify_signatures(commitment, validator_set)?;
+	verify_authority_set(authority_set_info, authority_set)?;
+	verify_signatures(commitment, authority_set)?;
 
 	extract_mmr_root(commitment)
 }
@@ -347,8 +347,8 @@ mod tests {
 			assert_ok!(import_commitment(header.clone()));
 
 			assert_eq!(ImportedCommitmentsInfo::<TestRuntime>::get().unwrap().best_block_number, 1);
-			assert_eq!(CurrentAuthoritySet::<TestRuntime>::get().id, 1);
-			assert_eq!(CurrentAuthoritySet::<TestRuntime>::get().len, 30);
+			assert_eq!(CurrentAuthoritySetInfo::<TestRuntime>::get().id, 1);
+			assert_eq!(CurrentAuthoritySetInfo::<TestRuntime>::get().len, 30);
 			assert_eq!(
 				ImportedCommitments::<TestRuntime>::get(1).unwrap(),
 				bp_beefy::ImportedCommitment {
