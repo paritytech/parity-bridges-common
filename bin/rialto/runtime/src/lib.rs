@@ -1002,11 +1002,10 @@ mod tests {
 			core::mem::size_of::<pallet_bridge_messages::Call<Runtime>>() <=
 				BRIDGES_PALLETS_MAX_CALL_SIZE
 		);
-		// Largest inner Call is `pallet_bridge_beefy::Call` with a size of 240 bytes. This size
-		// is a result of the large number and complexity of the structs received by the
-		// `submit_commitment` call.
-		// Total size of Rialto runtime Call is 280.
-		const MAX_CALL_SIZE: usize = 280;
+		// Largest inner Call is `pallet_session::Call` with a size of 224 bytes. This size is a
+		// result of large `SessionKeys` struct.
+		// Total size of Rialto runtime Call is 232.
+		const MAX_CALL_SIZE: usize = 232;
 		assert!(core::mem::size_of::<Call>() <= MAX_CALL_SIZE);
 	}
 }

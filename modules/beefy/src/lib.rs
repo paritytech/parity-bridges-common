@@ -39,7 +39,7 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
 use bp_beefy::{ChainWithBeefy, InitializationData};
-use sp_std::prelude::*;
+use sp_std::{boxed::Box, prelude::*};
 
 // Re-export in crate namespace for `construct_runtime!`
 pub use pallet::*;
@@ -205,7 +205,7 @@ pub mod pallet {
 			origin: OriginFor<T>,
 			commitment: BridgedBeefySignedCommitment<T, I>,
 			validator_set: BridgedBeefyAuthoritySet<T, I>,
-			mmr_leaf: BridgedBeefyMmrLeaf<T, I>,
+			mmr_leaf: Box<BridgedBeefyMmrLeaf<T, I>>,
 			mmr_proof: BridgedMmrProof<T, I>,
 		) -> DispatchResult
 		where

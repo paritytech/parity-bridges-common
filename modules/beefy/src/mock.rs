@@ -178,7 +178,7 @@ pub fn import_commitment(
 			.commitment
 			.expect("thou shall not call import_commitment on header without commitment"),
 		header.validator_set,
-		header.leaf,
+		Box::new(header.leaf),
 		header.leaf_proof,
 	)
 }
