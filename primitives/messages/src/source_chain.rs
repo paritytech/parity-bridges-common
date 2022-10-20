@@ -233,6 +233,7 @@ pub trait OnDeliveryConfirmed {
 	fn on_messages_delivered(_lane: &LaneId, _messages: &DeliveredMessages) -> Weight;
 }
 
+#[allow(clippy::let_and_return)]
 #[impl_trait_for_tuples::impl_for_tuples(30)]
 impl OnDeliveryConfirmed for Tuple {
 	fn on_messages_delivered(lane: &LaneId, messages: &DeliveredMessages) -> Weight {
