@@ -721,16 +721,15 @@ pub(crate) fn prune_recent_finality_proofs<P: FinalitySyncPipeline>(
 	recent_finality_proofs: &mut FinalityProofs<P>,
 	recent_finality_proofs_limit: usize,
 ) {
-	let position = recent_finality_proofs
-		.binary_search_by_key(&justified_header_number, |(header_number, _)| *header_number);
+	let justified_header_idx = recent_finality_proofs
+		.binary_search_by_key(&justified_header_number, |(header_number, _)| *header_number)
+		.map(|idx| idx + 1)
+		.unwrap_or_else(|idx| idx);
+	let proofs_limit_idx =
+		recent_finality_proofs.len().saturating_sub(recent_finality_proofs_limit);
 
-	// remove all obsolete elements
-	*recent_finality_proofs = recent_finality_proofs
-		.split_off(position.map(|position| position + 1).unwrap_or_else(|position| position));
-
-	// now - limit vec by size
-	let split_index = recent_finality_proofs.len().saturating_sub(recent_finality_proofs_limit);
-	*recent_finality_proofs = recent_finality_proofs.split_off(split_index);
+	*recent_finality_proofs =
+		recent_finality_proofs.split_off(std::cmp::max(justified_header_idx, proofs_limit_idx));
 }
 
 fn print_sync_progress<P: FinalitySyncPipeline>(
