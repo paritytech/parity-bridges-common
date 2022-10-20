@@ -98,7 +98,7 @@ clippy-nightly:
     RUSTFLAGS:                     "-D warnings"
   script:
     # clippy currently is raising `derive-partial-eq-without-eq` warning even if `Eq` is actually derived
-    - SKIP_WASM_BUILD=1 cargo +nightly clippy --all-targets -- -A clippy::redundant_closure -A clippy::derive-partial-eq-without-eq
+    - SKIP_WASM_BUILD=1 cargo +nightly clippy --all-targets -- -A clippy::redundant_closure -A clippy::derive-partial-eq-without-eq -A clippy::or_fun_call
 
 fmt:
   stage:                           lint
