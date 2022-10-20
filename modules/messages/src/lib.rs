@@ -458,7 +458,6 @@ pub mod pallet {
 						sp_std::cmp::min_by(unspent_weight, dispatch_weight, |w1, w2| {
 							w1.ref_time().cmp(&w2.ref_time())
 						});
-
 					dispatch_weight_left -= dispatch_weight - unspent_weight;
 					actual_weight = actual_weight.saturating_sub(unspent_weight).saturating_sub(
 						// delivery call weight formula assumes that the fee is paid at
