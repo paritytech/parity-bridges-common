@@ -187,10 +187,56 @@ pub(crate) struct RestartableFinalityProofsStream<S> {
 	/// Flag that the stream needs to be restarted.
 	pub(crate) needs_restart: bool,
 	/// The stream itself.
-	pub(crate) stream: Pin<Box<S>>,
+	stream: Pin<Box<S>>,
 }
 
-#[cfg(test)]
+impl<S: Stream> RestartableFinalityProofsStream<S> {
+	pub async fn create_raw_stream<
+		C: SourceClient<P, FinalityProofsStream = S>,
+		P: FinalitySyncPipeline,
+	>(
+		source_client: &C,
+	) -> Result<S, FailedClient> {
+		source_client.finality_proofs().await.map_err(|error| {
+			log::error!(
+				target: "bridge",
+				"Failed to subscribe to {} justifications: {:?}. Going to reconnect",
+				P::SOURCE_NAME,
+				error,
+			);
+
+			FailedClient::Source
+		})
+	}
+
+	pub async fn restart_if_scheduled<
+		C: SourceClient<P, FinalityProofsStream = S>,
+		P: FinalitySyncPipeline,
+	>(
+		&mut self,
+		source_client: &C,
+	) -> Result<(), FailedClient> {
+		if self.needs_restart {
+			log::warn!(target: "bridge", "{} finality proofs stream is being restarted", P::SOURCE_NAME);
+
+			self.needs_restart = false;
+			self.stream = Box::pin(Self::create_raw_stream(source_client).await?);
+		}
+		Ok(())
+	}
+
+	pub fn next(&mut self) -> Option<S::Item> {
+		match self.stream.next().now_or_never() {
+			Some(Some(finality_proof)) => Some(finality_proof),
+			Some(None) => {
+				self.needs_restart = true;
+				None
+			},
+			None => None,
+		}
+	}
+}
+
 impl<S> From<S> for RestartableFinalityProofsStream<S> {
 	fn from(stream: S) -> Self {
 		RestartableFinalityProofsStream { needs_restart: false, stream: Box::pin(stream) }
@@ -218,27 +264,12 @@ pub(crate) async fn run_until_connection_lost<P: FinalitySyncPipeline>(
 	metrics_sync: Option<SyncLoopMetrics>,
 	exit_signal: impl Future<Output = ()>,
 ) -> Result<(), FailedClient> {
-	let restart_finality_proofs_stream = || async {
-		source_client.finality_proofs().await.map_err(|error| {
-			log::error!(
-				target: "bridge",
-				"Failed to subscribe to {} justifications: {:?}. Going to reconnect",
-				P::SOURCE_NAME,
-				error,
-			);
-
-			FailedClient::Source
-		})
-	};
-
 	let last_transaction_tracker = futures::future::Fuse::terminated();
 	let exit_signal = exit_signal.fuse();
 	futures::pin_mut!(last_transaction_tracker, exit_signal);
 
-	let mut finality_proofs_stream = RestartableFinalityProofsStream {
-		needs_restart: false,
-		stream: Box::pin(restart_finality_proofs_stream().await?),
-	};
+	let mut finality_proofs_stream =
+		RestartableFinalityProofsStream::create_raw_stream(&source_client).await?.into();
 	let mut recent_finality_proofs = Vec::new();
 
 	let mut progress = (Instant::now(), None);
@@ -280,12 +311,7 @@ pub(crate) async fn run_until_connection_lost<P: FinalitySyncPipeline>(
 				retry_backoff.next_backoff().unwrap_or(relay_utils::relay_loop::RECONNECT_DELAY)
 			},
 		};
-		if finality_proofs_stream.needs_restart {
-			log::warn!(target: "bridge", "{} finality proofs stream is being restarted", P::SOURCE_NAME);
-
-			finality_proofs_stream.needs_restart = false;
-			finality_proofs_stream.stream = Box::pin(restart_finality_proofs_stream().await?);
-		}
+		finality_proofs_stream.restart_if_scheduled(&source_client).await?;
 
 		// wait till exit signal, or new source block
 		select! {
@@ -598,17 +624,7 @@ pub(crate) fn read_finality_proofs_from_stream<
 	let mut proofs_count = 0;
 	let mut first_header_number = None;
 	let mut last_header_number = None;
-	loop {
-		let next_proof = finality_proofs_stream.stream.next();
-		let finality_proof = match next_proof.now_or_never() {
-			Some(Some(finality_proof)) => finality_proof,
-			Some(None) => {
-				finality_proofs_stream.needs_restart = true;
-				break
-			},
-			None => break,
-		};
-
+	while let Some(finality_proof) = finality_proofs_stream.next() {
 		let target_header_number = finality_proof.target_header_number();
 		if first_header_number.is_none() {
 			first_header_number = Some(target_header_number);
