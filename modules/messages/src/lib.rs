@@ -330,11 +330,16 @@ pub mod pallet {
 			});
 
 			// compute actual dispatch weight that depends on the stored message size
-			let actual_weight = sp_std::cmp::min_by(
-				T::WeightInfo::maximal_increase_message_fee(),
-				T::WeightInfo::increase_message_fee(message_size as _),
-				|w1, w2| w1.ref_time().cmp(&w2.ref_time()),
-			);
+			let maximal_increase_message_fee = T::WeightInfo::maximal_increase_message_fee();
+			let current_increase_message_fee =
+				T::WeightInfo::increase_message_fee(message_size as _);
+			let actual_weight = if maximal_increase_message_fee.ref_time() <
+				current_increase_message_fee.ref_time()
+			{
+				maximal_increase_message_fee
+			} else {
+				current_increase_message_fee
+			};
 
 			Ok(PostDispatchInfo { actual_weight: Some(actual_weight), pays_fee: Pays::Yes })
 		}
@@ -454,10 +459,11 @@ pub mod pallet {
 						ReceivalResult::TooManyUnconfirmedMessages => (dispatch_weight, true),
 					};
 
-					let unspent_weight =
-						sp_std::cmp::min_by(unspent_weight, dispatch_weight, |w1, w2| {
-							w1.ref_time().cmp(&w2.ref_time())
-						});
+					let unspent_weight = if unspent_weight.ref_time() < dispatch_weight.ref_time() {
+						unspent_weight
+					} else {
+						dispatch_weight
+					};
 					dispatch_weight_left -= dispatch_weight - unspent_weight;
 					actual_weight = actual_weight.saturating_sub(unspent_weight).saturating_sub(
 						// delivery call weight formula assumes that the fee is paid at
