@@ -219,12 +219,12 @@ pub fn new_full(mut config: Configuration) -> Result<TaskManager, ServiceError> 
 		.push(sc_finality_grandpa::grandpa_peers_set_config(grandpa_protocol_name.clone()));
 
 	let beefy_gossip_proto_name =
-		beefy_gadget::gossip_protocol_name(&genesis_hash, config.chain_spec.fork_id());
+		beefy_gadget::gossip_protocol_name(genesis_hash, config.chain_spec.fork_id());
 	// `beefy_on_demand_justifications_handler` is given to `beefy-gadget` task to be run,
 	// while `beefy_req_resp_cfg` is added to `config.network.request_response_protocols`.
 	let (beefy_on_demand_justifications_handler, beefy_req_resp_cfg) =
 		beefy_gadget::communication::request_response::BeefyJustifsRequestHandler::new(
-			&genesis_hash,
+			genesis_hash,
 			config.chain_spec.fork_id(),
 			client.clone(),
 		);

@@ -879,8 +879,8 @@ pub(crate) mod tests {
 			total_dispatch_weight: Weight,
 			total_size: u32,
 		) -> Result<TestSourceChainBalance, TestError> {
-			Ok((Weight::from_ref_time(BASE_MESSAGE_DELIVERY_TRANSACTION_COST as u64) *
-				u64::from(nonces.end() - nonces.start() + 1) +
+			Ok((Weight::from_ref_time(BASE_MESSAGE_DELIVERY_TRANSACTION_COST) *
+				(nonces.end() - nonces.start() + 1) +
 				total_dispatch_weight +
 				Weight::from_ref_time(total_size as u64))
 			.ref_time())

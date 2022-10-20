@@ -198,7 +198,7 @@ impl messages::BridgedChainWithMessages for Millau {
 	) -> MessageTransaction<Weight> {
 		let message_payload_len = u32::try_from(message_payload.len()).unwrap_or(u32::MAX);
 		let extra_bytes_in_payload = message_payload_len
-			.saturating_sub(pallet_bridge_messages::EXPECTED_DEFAULT_MESSAGE_LENGTH.into());
+			.saturating_sub(pallet_bridge_messages::EXPECTED_DEFAULT_MESSAGE_LENGTH);
 
 		MessageTransaction {
 			dispatch_weight: bp_millau::ADDITIONAL_MESSAGE_BYTE_DELIVERY_WEIGHT
