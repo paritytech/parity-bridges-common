@@ -269,7 +269,7 @@ impl HeaderBuilder {
 		let last_header = chain.headers.last_mut().expect("added by append_header; qed");
 		last_header.commitment = Some(sign_commitment(
 			Commitment {
-				payload: BeefyPayload::new(
+				payload: BeefyPayload::from_single_entry(
 					MMR_ROOT_PAYLOAD_ID,
 					chain.mmr.get_root().unwrap().hash().encode(),
 				),

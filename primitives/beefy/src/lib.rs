@@ -22,7 +22,7 @@
 pub use beefy_merkle_tree::{merkle_root, Keccak256 as BeefyKeccak256};
 pub use beefy_primitives::{
 	crypto::{AuthorityId as EcdsaValidatorId, AuthoritySignature as EcdsaValidatorSignature},
-	known_payload_ids::MMR_ROOT_ID as MMR_ROOT_PAYLOAD_ID,
+	known_payloads::MMR_ROOT_ID as MMR_ROOT_PAYLOAD_ID,
 	mmr::{BeefyAuthoritySet, MmrLeafVersion},
 	BeefyAuthorityId, BeefyVerify, Commitment, Payload as BeefyPayload, SignedCommitment,
 	ValidatorSet, ValidatorSetId, BEEFY_ENGINE_ID,

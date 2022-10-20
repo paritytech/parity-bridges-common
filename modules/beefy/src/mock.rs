@@ -73,22 +73,22 @@ construct_runtime! {
 
 parameter_types! {
 	pub const BlockHashCount: u64 = 250;
-	pub const MaximumBlockWeight: Weight = 1024;
+	pub const MaximumBlockWeight: Weight = Weight::from_ref_time(1024);
 	pub const MaximumBlockLength: u32 = 2 * 1024;
 	pub const AvailableBlockRatio: Perbill = Perbill::one();
 }
 
 impl frame_system::Config for TestRuntime {
-	type Origin = Origin;
+	type RuntimeOrigin = RuntimeOrigin;
 	type Index = u64;
-	type Call = Call;
+	type RuntimeCall = RuntimeCall;
 	type BlockNumber = u64;
 	type Hash = H256;
 	type Hashing = BlakeTwo256;
 	type AccountId = TestAccountId;
 	type Lookup = IdentityLookup<Self::AccountId>;
 	type Header = Header;
-	type Event = ();
+	type RuntimeEvent = ();
 	type BlockHashCount = BlockHashCount;
 	type Version = ();
 	type PalletInfo = PalletInfo;
@@ -155,7 +155,7 @@ pub fn run_test_with_initialize<T>(initial_validators_count: u32, test: impl FnO
 		let authority_set = authority_set_info(0, &validators);
 
 		crate::Pallet::<TestRuntime>::initialize(
-			Origin::root(),
+			RuntimeOrigin::root(),
 			bp_beefy::InitializationData {
 				operating_mode: BasicOperatingMode::Normal,
 				best_block_number: 0,
@@ -173,7 +173,7 @@ pub fn import_commitment(
 	header: crate::mock_chain::HeaderAndCommitment,
 ) -> sp_runtime::DispatchResult {
 	crate::Pallet::<TestRuntime>::submit_commitment(
-		Origin::signed(1),
+		RuntimeOrigin::signed(1),
 		header
 			.commitment
 			.expect("thou shall not call import_commitment on header without commitment"),

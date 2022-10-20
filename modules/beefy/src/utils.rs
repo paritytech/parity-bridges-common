@@ -291,7 +291,8 @@ mod tests {
 			// Replace MMR root with zeroes.
 			header.customize_commitment(
 				|commitment| {
-					commitment.payload = BeefyPayload::new(MMR_ROOT_PAYLOAD_ID, [0u8; 32].encode());
+					commitment.payload =
+						BeefyPayload::from_single_entry(MMR_ROOT_PAYLOAD_ID, [0u8; 32].encode());
 				},
 				&validators,
 				1,
@@ -313,7 +314,7 @@ mod tests {
 			// Remove MMR root from the payload.
 			header.customize_commitment(
 				|commitment| {
-					commitment.payload = BeefyPayload::new(*b"xy", vec![]);
+					commitment.payload = BeefyPayload::from_single_entry(*b"xy", vec![]);
 				},
 				&validators,
 				1,
@@ -328,7 +329,8 @@ mod tests {
 			// MMR root is a 32-byte array and we have replaced it with single byte
 			header.customize_commitment(
 				|commitment| {
-					commitment.payload = BeefyPayload::new(MMR_ROOT_PAYLOAD_ID, vec![42]);
+					commitment.payload =
+						BeefyPayload::from_single_entry(MMR_ROOT_PAYLOAD_ID, vec![42]);
 				},
 				&validators,
 				1,

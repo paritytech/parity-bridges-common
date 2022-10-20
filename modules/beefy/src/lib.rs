@@ -140,7 +140,7 @@ pub mod pallet {
 		fn on_initialize(_n: T::BlockNumber) -> frame_support::weights::Weight {
 			<RequestCount<T, I>>::mutate(|count| *count = count.saturating_sub(1));
 
-			(0_u64)
+			Weight::from_ref_time(0)
 				.saturating_add(T::DbWeight::get().reads(1))
 				.saturating_add(T::DbWeight::get().writes(1))
 		}
@@ -446,7 +446,7 @@ mod tests {
 		run_test_with_initialize(32, || {
 			assert_noop!(
 				Pallet::<TestRuntime>::initialize(
-					Origin::root(),
+					RuntimeOrigin::root(),
 					InitializationData {
 						operating_mode: BasicOperatingMode::Normal,
 						best_block_number: 0,
@@ -463,7 +463,7 @@ mod tests {
 		run_test(|| {
 			assert_noop!(
 				Pallet::<TestRuntime>::initialize(
-					Origin::root(),
+					RuntimeOrigin::root(),
 					InitializationData {
 						operating_mode: BasicOperatingMode::Normal,
 						best_block_number: 0,
@@ -479,7 +479,7 @@ mod tests {
 	fn fails_to_import_commitment_if_halted() {
 		run_test_with_initialize(1, || {
 			assert_ok!(Pallet::<TestRuntime>::set_operating_mode(
-				Origin::root(),
+				RuntimeOrigin::root(),
 				BasicOperatingMode::Halted
 			));
 			assert_noop!(
