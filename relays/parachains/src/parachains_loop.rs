@@ -216,7 +216,9 @@ where
 	// regular errors.
 
 	loop {
-		// either wait for new block, or exit signal
+		// Either wait for new block, or exit signal.
+		// Please note that we are prioritizing the exit signal since if both events happen at once
+		// it doesn't make sense to perform one more loop iteration.
 		select_biased! {
 			_ = exit_signal => return Ok(()),
 			_ = async_std::task::sleep(min_block_interval).fuse() => {},
