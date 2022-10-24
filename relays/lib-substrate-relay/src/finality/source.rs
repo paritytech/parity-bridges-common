@@ -130,7 +130,7 @@ impl<P: SubstrateFinalitySyncPipeline> SourceClient<FinalitySyncPipelineAdapter<
 		let signed_block = self.client.get_block(Some(header_hash)).await?;
 
 		let justification = signed_block
-			.justification()
+			.justification(P::FinalityEngine::ID)
 			.map(|raw_justification| {
 				SubstrateFinalityProof::<P>::decode(&mut raw_justification.as_slice())
 			})
