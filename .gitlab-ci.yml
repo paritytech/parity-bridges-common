@@ -188,8 +188,7 @@ deny-licenses:
 benchmarks-test:
   stage:                           test
   <<:                              *docker-env
-#  <<:                              *nightly-test
-  <<:                              *test-refs
+  <<:                              *nightly-test
   script:
     - time cargo run --release -p millau-bridge-node --features=runtime-benchmarks -- benchmark pallet --chain=dev --steps=2 --repeat=1 --pallet=pallet_bridge_messages --extrinsic=* --execution=wasm --wasm-execution=Compiled --heap-pages=4096
     - time cargo run --release -p millau-bridge-node --features=runtime-benchmarks -- benchmark pallet --chain=dev --steps=2 --repeat=1 --pallet=pallet_bridge_grandpa --extrinsic=* --execution=wasm --wasm-execution=Compiled --heap-pages=4096
