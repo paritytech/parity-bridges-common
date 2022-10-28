@@ -189,7 +189,7 @@ impl<C: ChainWithGrandpa> Engine<C> for Grandpa<C> {
 		// to verify justification.
 		let mut authorities_for_verification = initial_authorities_set.clone();
 		let scheduled_change =
-			GrandpaConsensusLogReader::<<C::Header as Header>::Number>::find_authorities_change(
+			GrandpaConsensusLogReader::<BlockNumberOf<C>>::find_authorities_change(
 				initial_header.digest(),
 			);
 		assert!(

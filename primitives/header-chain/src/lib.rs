@@ -26,7 +26,7 @@ use scale_info::TypeInfo;
 #[cfg(feature = "std")]
 use serde::{Deserialize, Serialize};
 use sp_finality_grandpa::{AuthorityList, ConsensusLog, SetId, GRANDPA_ENGINE_ID};
-use sp_runtime::{traits::Header as HeaderT, ConsensusEngineId, Digest, RuntimeDebug};
+use sp_runtime::{traits::Header as HeaderT, Digest, RuntimeDebug};
 use sp_std::boxed::Box;
 
 pub mod justification;
@@ -77,13 +77,12 @@ pub trait FinalityProof<Number>: Clone + Send + Sync + Debug {
 	fn target_header_number(&self) -> Number;
 }
 
+/// A trait that provides helper methods for querying the consensus log.
 pub trait ConsensusLogReader {
-	const ID: ConsensusEngineId;
-	type ConsensusLog;
-
 	fn schedules_authorities_change(digest: &Digest) -> bool;
 }
 
+/// A struct that provides helper methods for querying the GRANDPA consensus log.
 pub struct GrandpaConsensusLogReader<Number>(sp_std::marker::PhantomData<Number>);
 
 impl<Number: Codec> GrandpaConsensusLogReader<Number> {
@@ -93,7 +92,7 @@ impl<Number: Codec> GrandpaConsensusLogReader<Number> {
 		// find the first consensus digest with the right ID which converts to
 		// the right kind of consensus log.
 		digest
-			.convert_first(|log| log.consensus_try_to(&Self::ID))
+			.convert_first(|log| log.consensus_try_to(&GRANDPA_ENGINE_ID))
 			.and_then(|log| match log {
 				ConsensusLog::ScheduledChange(change) => Some(change),
 				_ => None,
@@ -102,9 +101,6 @@ impl<Number: Codec> GrandpaConsensusLogReader<Number> {
 }
 
 impl<Number: Codec> ConsensusLogReader for GrandpaConsensusLogReader<Number> {
-	const ID: ConsensusEngineId = GRANDPA_ENGINE_ID;
-	type ConsensusLog = ConsensusLog<Number>;
-
 	fn schedules_authorities_change(digest: &Digest) -> bool {
 		GrandpaConsensusLogReader::<Number>::find_authorities_change(digest).is_some()
 	}
