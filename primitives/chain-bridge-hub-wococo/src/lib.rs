@@ -24,11 +24,12 @@
 
 // Re-export only what is really needed
 pub use bp_bridge_hub_rococo::{
-	account_info_storage_key, AccountId, AccountPublic, Address, Balance, BlockNumber, Hash,
+	account_info_storage_key, AccountId, AccountPublic, AccountSigner, Address, Balance, BlockNumber, Hash,
 	Hashing, Header, Nonce, SS58Prefix, Signature, SignedBlock, SignedExtensions,
 	UncheckedExtrinsic, WeightToFee, EXTRA_STORAGE_PROOF_SIZE,
 	MAX_UNCONFIRMED_MESSAGES_IN_CONFIRMATION_TX, MAX_UNREWARDED_RELAYERS_IN_CONFIRMATION_TX,
-	PAY_INBOUND_DISPATCH_FEE_WEIGHT,
+	TX_EXTRA_BYTES, MAX_SINGLE_MESSAGE_DELIVERY_CONFIRMATION_TX_WEIGHT,
+	DEFAULT_MESSAGE_DELIVERY_TX_WEIGHT, ADDITIONAL_MESSAGE_BYTE_DELIVERY_WEIGHT, PAY_INBOUND_DISPATCH_FEE_WEIGHT,
 };
 use bp_messages::*;
 use bp_runtime::{decl_bridge_finality_runtime_apis, decl_bridge_messages_runtime_apis};
@@ -42,5 +43,5 @@ pub const BRIDGE_HUB_WOCOCO_PARACHAIN_ID: u32 = 1013;
 /// Name of the With-BridgeHubWococo messages pallet instance that is deployed at bridged chains.
 pub const WITH_BRIDGE_HUB_WOCOCO_MESSAGES_PALLET_NAME: &str = "BridgeWococoMessages";
 
-decl_bridge_finality_runtime_apis!(wococo);
+decl_bridge_finality_runtime_apis!(bridge_hub_wococo);
 decl_bridge_messages_runtime_apis!(bridge_hub_wococo);

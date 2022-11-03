@@ -207,7 +207,7 @@ mod tests {
 			operating_mode: BasicOperatingMode::Normal,
 		};
 		let call = BridgeRococoGrandpaCall::initialize(init_data);
-		let tx = Call::BridgeGrandpaRococo(call);
+		let tx = Call::BridgeRococoGrandpa(call);
 
 		// encode call as hex string
 		let hex_encoded_call = format!("0x{:?}", HexDisplay::from(&Encode::encode(&tx)));

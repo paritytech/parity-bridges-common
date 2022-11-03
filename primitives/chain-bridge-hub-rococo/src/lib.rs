@@ -27,9 +27,13 @@ use frame_support::{
 	sp_runtime::{FixedU128, MultiAddress},
 	Parameter,
 };
+use frame_support::sp_runtime::MultiSigner;
 
 pub type BridgeHubRococo = PolkadotLike;
 pub type WeightToFee = frame_support::weights::IdentityFee<Balance>;
+
+/// Public key of the chain account that may be used to verify signatures.
+pub type AccountSigner = MultiSigner;
 
 /// The address format for describing accounts.
 pub type Address = MultiAddress<AccountId, ()>;
@@ -44,5 +48,5 @@ parameter_types! {
 	pub const SS58Prefix: u16 = 42;
 }
 
-decl_bridge_finality_runtime_apis!(rococo);
+decl_bridge_finality_runtime_apis!(bridge_hub_rococo);
 decl_bridge_messages_runtime_apis!(bridge_hub_rococo);

@@ -67,7 +67,7 @@ impl Chain for BridgeHubRococo {
 	const NAME: &'static str = "BridgeHubRococo";
 	const TOKEN_ID: Option<&'static str> = None;
 	const BEST_FINALIZED_HEADER_ID_METHOD: &'static str =
-		bp_bridge_hub_rococo::BEST_FINALIZED_ROCOCO_HEADER_METHOD;
+		bp_bridge_hub_rococo::BEST_FINALIZED_BRIDGE_HUB_ROCOCO_HEADER_METHOD;
 	// TODO:check-parameter
 	const AVERAGE_BLOCK_INTERVAL: Duration = Duration::from_secs(6);
 	const STORAGE_PROOF_OVERHEAD: u32 = bp_bridge_hub_rococo::EXTRA_STORAGE_PROOF_SIZE;
