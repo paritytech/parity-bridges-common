@@ -160,12 +160,15 @@ pub enum BridgeRococoMessagesCall {
 }
 
 impl sp_runtime::traits::Dispatchable for Call {
-	type Origin = ();
+	type RuntimeOrigin = ();
 	type Config = ();
 	type Info = ();
 	type PostInfo = ();
 
-	fn dispatch(self, _origin: Self::Origin) -> sp_runtime::DispatchResultWithInfo<Self::PostInfo> {
+	fn dispatch(
+		self,
+		_origin: Self::RuntimeOrigin,
+	) -> sp_runtime::DispatchResultWithInfo<Self::PostInfo> {
 		unimplemented!("The Call is not expected to be dispatched.")
 	}
 }

@@ -184,8 +184,8 @@ pub trait MessagesBridge<SenderOrigin, Balance, Payload> {
 #[derive(Eq, RuntimeDebug, PartialEq)]
 pub struct NoopMessagesBridge;
 
-impl<SenderOrigin, Balance, Payload>
-	MessagesBridge<SenderOrigin, Balance, Payload> for NoopMessagesBridge
+impl<SenderOrigin, Balance, Payload> MessagesBridge<SenderOrigin, Balance, Payload>
+	for NoopMessagesBridge
 {
 	type Error = &'static str;
 

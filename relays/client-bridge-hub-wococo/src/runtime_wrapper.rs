@@ -14,8 +14,6 @@
 // You should have received a copy of the GNU General Public License
 // along with Parity Bridges Common.  If not, see <http://www.gnu.org/licenses/>.
 
-// TODO:check-parameter - join with primitives do we need this here or move to the primitives?
-
 //! Types that are specific to the BridgeHubWococo runtime.
 
 pub use bp_bridge_hub_wococo::SS58Prefix;

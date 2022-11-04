@@ -38,7 +38,6 @@ impl SubstrateFinalitySyncPipeline for WococoFinalityToBridgeHubRococo {
 
 	type FinalityEngine = GrandpaFinalityEngine<Self::SourceChain>;
 	type SubmitFinalityProofCallBuilder = WococoFinalityToBridgeHubRococoCallBuilder;
-	type TransactionSignScheme = relay_bridge_hub_rococo_client::BridgeHubRococo;
 }
 
 /// `Wococo` to BridgeHub `Rococo` bridge definition.

@@ -39,7 +39,6 @@ impl SubstrateParachainsPipeline for BridgeHubRococoToBridgeHubWococo {
 	type TargetChain = relay_bridge_hub_wococo_client::BridgeHubWococo;
 
 	type SubmitParachainHeadsCallBuilder = BridgeHubRococoToBridgeHubWococoCallBuilder;
-	type TransactionSignScheme = relay_bridge_hub_wococo_client::BridgeHubWococo;
 
 	const SOURCE_PARACHAIN_PARA_ID: u32 = bp_bridge_hub_rococo::BRIDGE_HUB_ROCOCO_PARACHAIN_ID;
 }

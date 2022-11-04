@@ -19,7 +19,7 @@
 use bp_messages::{MessageNonce, Weight};
 use codec::Encode;
 use relay_substrate_client::{
-	Chain, ChainBase, ChainWithMessages, Error as SubstrateError, SignParam, TransactionSignScheme,
+	Chain, ChainBase, ChainWithMessages, ChainWithTransactions, Error as SubstrateError, SignParam,
 	UnsignedTransaction,
 };
 use sp_core::Pair;
@@ -29,15 +29,6 @@ use std::time::Duration;
 /// Re-export runtime wrapper
 pub mod runtime_wrapper;
 pub use runtime_wrapper as runtime;
-
-// TODO:check-parameter - do we need this?
-/// BridgeHubWococo header id.
-pub type ParachainHeaderId =
-	relay_utils::HeaderId<bp_bridge_hub_wococo::Hash, bp_bridge_hub_wococo::BlockNumber>;
-
-// TODO:check-parameter - do we need this?
-/// BridgeHubWococo header type used in headers sync.
-pub type ParachainSyncHeader = relay_substrate_client::SyncHeader<bp_bridge_hub_wococo::Header>;
 
 /// Wococo chain definition
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -68,7 +59,6 @@ impl Chain for BridgeHubWococo {
 	const TOKEN_ID: Option<&'static str> = None;
 	const BEST_FINALIZED_HEADER_ID_METHOD: &'static str =
 		bp_bridge_hub_wococo::BEST_FINALIZED_BRIDGE_HUB_WOCOCO_HEADER_METHOD;
-	// TODO:check-parameter
 	const AVERAGE_BLOCK_INTERVAL: Duration = Duration::from_secs(6);
 	const STORAGE_PROOF_OVERHEAD: u32 = bp_bridge_hub_wococo::EXTRA_STORAGE_PROOF_SIZE;
 
@@ -76,19 +66,14 @@ impl Chain for BridgeHubWococo {
 	type Call = runtime::Call;
 }
 
-impl TransactionSignScheme for BridgeHubWococo {
-	type Chain = BridgeHubWococo;
+impl ChainWithTransactions for BridgeHubWococo {
 	type AccountKeyPair = sp_core::sr25519::Pair;
 	type SignedTransaction = runtime::UncheckedExtrinsic;
 
 	fn sign_transaction(
 		param: SignParam<Self>,
-		unsigned: UnsignedTransaction<Self::Chain>,
+		unsigned: UnsignedTransaction<Self>,
 	) -> Result<Self::SignedTransaction, SubstrateError> {
-		// TODO:check-parameter
-		// TODO: log: param.spec_version, param.transaction_version vs
-		// bp_bridge_hub_wococo::VERSION.spec_version,
-		// bp_bridge_hub_wococo::VERSION.transaction_version,
 		let raw_payload = SignedPayload::new(
 			unsigned.call,
 			bp_bridge_hub_wococo::SignedExtensions::new(
@@ -126,14 +111,8 @@ impl TransactionSignScheme for BridgeHubWococo {
 			.unwrap_or(false)
 	}
 
-	fn parse_transaction(tx: Self::SignedTransaction) -> Option<UnsignedTransaction<Self::Chain>> {
+	fn parse_transaction(tx: Self::SignedTransaction) -> Option<UnsignedTransaction<Self>> {
 		let extra = &tx.signature.as_ref()?.2;
-		// TODO:check-parameter -> with this, test bellow does not work
-		// nonce: Compact::<IndexOf<Self::Chain>>::decode(&mut
-		// &extra.nonce().encode()[..]).ok()?.into(),
-		// tip: Compact::<BalanceOf<Self::Chain>>::decode(&mut &extra.tip().encode()[..])
-		// 	.ok()?
-		// 	.into(),
 		Some(UnsignedTransaction::new(tx.function.into(), extra.nonce()).tip(extra.tip()))
 	}
 }

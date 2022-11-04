@@ -24,10 +24,9 @@ pub use bp_polkadot_core::*;
 use bp_runtime::{decl_bridge_finality_runtime_apis, decl_bridge_messages_runtime_apis};
 use frame_support::{
 	parameter_types,
-	sp_runtime::{FixedU128, MultiAddress},
+	sp_runtime::{FixedU128, MultiAddress, MultiSigner},
 	Parameter,
 };
-use frame_support::sp_runtime::MultiSigner;
 
 pub type BridgeHubRococo = PolkadotLike;
 pub type WeightToFee = frame_support::weights::IdentityFee<Balance>;

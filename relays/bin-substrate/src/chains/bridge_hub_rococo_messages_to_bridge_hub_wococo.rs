@@ -80,9 +80,6 @@ impl SubstrateMessageLane for BridgeHubRococoMessagesToBridgeHubWococoMessageLan
 	type SourceChain = BridgeHubRococo;
 	type TargetChain = BridgeHubWococo;
 
-	type SourceTransactionSignScheme = BridgeHubRococo;
-	type TargetTransactionSignScheme = BridgeHubWococo;
-
 	type ReceiveMessagesProofCallBuilder =
 		BridgeHubRococoMessagesToBridgeHubWococoMessageLaneReceiveMessagesProofCallBuilder;
 	type ReceiveMessagesDeliveryProofCallBuilder =
