@@ -113,7 +113,7 @@ impl ChainWithTransactions for BridgeHubRococo {
 
 	fn parse_transaction(tx: Self::SignedTransaction) -> Option<UnsignedTransaction<Self>> {
 		let extra = &tx.signature.as_ref()?.2;
-		Some(UnsignedTransaction::new(tx.function.into(), extra.nonce()).tip(extra.tip()))
+		Some(UnsignedTransaction::new(tx.function, extra.nonce()).tip(extra.tip()))
 	}
 }
 

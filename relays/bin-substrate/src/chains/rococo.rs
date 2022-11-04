@@ -39,6 +39,6 @@ impl CliChain for BridgeHubRococo {
 	type MessagePayload = Vec<u8>;
 
 	fn ss58_format() -> u16 {
-		relay_bridge_hub_rococo_client::runtime::SS58Prefix::get() as u16
+		relay_bridge_hub_rococo_client::runtime::SS58Prefix::get()
 	}
 }
