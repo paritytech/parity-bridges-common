@@ -23,7 +23,7 @@ use bp_messages::{
 	target_chain::{ProvedMessages, SourceHeaderChain},
 	InboundLaneData, LaneId, Message, MessageNonce, Parameter as MessagesParameter,
 };
-use bp_runtime::{Chain, ChainId, MILLAU_CHAIN_ID, RIALTO_PARACHAIN_CHAIN_ID};
+use bp_runtime::{ChainId, MILLAU_CHAIN_ID, RIALTO_PARACHAIN_CHAIN_ID};
 use bridge_runtime_common::messages::{
 	self, BasicConfirmationTransactionEstimation, MessageBridge, MessageTransaction,
 };
@@ -170,10 +170,6 @@ impl messages::ChainWithMessages for RialtoParachain {
 }
 
 impl messages::BridgedChainWithMessages for RialtoParachain {
-	fn maximal_extrinsic_size() -> u32 {
-		bp_rialto_parachain::RialtoParachain::max_extrinsic_size()
-	}
-
 	fn verify_dispatch_weight(_message_payload: &[u8]) -> bool {
 		true
 	}

@@ -150,9 +150,6 @@ pub trait ThisChainWithMessages: ChainWithMessages {
 
 /// Bridged chain that has `pallet-bridge-messages` module.
 pub trait BridgedChainWithMessages: ChainWithMessages {
-	/// Maximal extrinsic size at Bridged chain.
-	fn maximal_extrinsic_size() -> u32;
-
 	/// Returns `true` if message dispatch weight is withing expected limits. `false` means
 	/// that the message is too heavy to be sent over the bridge and shall be rejected.
 	fn verify_dispatch_weight(message_payload: &[u8]) -> bool;
@@ -173,6 +170,8 @@ pub trait BridgedChainWithMessages: ChainWithMessages {
 pub type ThisChain<B> = <B as MessageBridge>::ThisChain;
 /// Bridged chain in context of message bridge.
 pub type BridgedChain<B> = <B as MessageBridge>::BridgedChain;
+/// Underlying chain type.
+pub type UnderlyingChainOf<C> = <C as ChainWithMessages>::Chain;
 /// Hash used on the chain.
 pub type HashOf<C> = bp_runtime::HashOf<<C as ChainWithMessages>::Chain>;
 /// Hasher used on the chain.
@@ -343,7 +342,9 @@ pub mod source {
 
 	/// Return maximal message size of This -> Bridged chain message.
 	pub fn maximal_message_size<B: MessageBridge>() -> u32 {
-		super::target::maximal_incoming_message_size(BridgedChain::<B>::maximal_extrinsic_size())
+		super::target::maximal_incoming_message_size(
+			UnderlyingChainOf::<BridgedChain<B>>::max_extrinsic_size(),
+		)
 	}
 
 	/// Do basic Bridged-chain specific verification of This -> Bridged chain message.
@@ -986,7 +987,7 @@ mod tests {
 		type Signature = sp_runtime::MultiSignature;
 
 		fn max_extrinsic_size() -> u32 {
-			0
+			BRIDGED_CHAIN_MAX_EXTRINSIC_SIZE
 		}
 		fn max_extrinsic_weight() -> Weight {
 			Weight::zero()
@@ -1026,10 +1027,6 @@ mod tests {
 	}
 
 	impl BridgedChainWithMessages for ThisChain {
-		fn maximal_extrinsic_size() -> u32 {
-			unreachable!()
-		}
-
 		fn verify_dispatch_weight(_message_payload: &[u8]) -> bool {
 			unreachable!()
 		}
@@ -1065,7 +1062,7 @@ mod tests {
 		type Signature = sp_runtime::MultiSignature;
 
 		fn max_extrinsic_size() -> u32 {
-			0
+			BRIDGED_CHAIN_MAX_EXTRINSIC_SIZE
 		}
 		fn max_extrinsic_weight() -> Weight {
 			Weight::zero()
@@ -1098,10 +1095,6 @@ mod tests {
 	}
 
 	impl BridgedChainWithMessages for BridgedChain {
-		fn maximal_extrinsic_size() -> u32 {
-			BRIDGED_CHAIN_MAX_EXTRINSIC_SIZE
-		}
-
 		fn verify_dispatch_weight(message_payload: &[u8]) -> bool {
 			message_payload.len() >= BRIDGED_CHAIN_MIN_EXTRINSIC_WEIGHT &&
 				message_payload.len() <= BRIDGED_CHAIN_MAX_EXTRINSIC_WEIGHT
