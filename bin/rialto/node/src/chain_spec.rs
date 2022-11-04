@@ -15,6 +15,7 @@
 // along with Parity Bridges Common.  If not, see <http://www.gnu.org/licenses/>.
 
 use beefy_primitives::crypto::AuthorityId as BeefyId;
+use frame_support::weights::Weight;
 use polkadot_primitives::v2::{AssignmentId, ValidatorId};
 use rialto_runtime::{
 	AccountId, BabeConfig, BalancesConfig, BeefyConfig, BridgeMillauMessagesConfig,
@@ -56,7 +57,7 @@ pub enum Alternative {
 
 /// Helper function to generate a crypto pair from seed
 pub fn get_from_seed<TPublic: Public>(seed: &str) -> <TPublic::Pair as Pair>::Public {
-	TPublic::Pair::from_string(&format!("//{}", seed), None)
+	TPublic::Pair::from_string(&format!("//{seed}"), None)
 		.expect("static values are valid; qed")
 		.public()
 }
@@ -155,7 +156,7 @@ fn endowed_accounts() -> Vec<AccountId> {
 	let all_authorities = ALL_AUTHORITIES_ACCOUNTS.iter().flat_map(|x| {
 		[
 			get_account_id_from_seed::<sr25519::Public>(x),
-			get_account_id_from_seed::<sr25519::Public>(&format!("{}//stash", x)),
+			get_account_id_from_seed::<sr25519::Public>(&format!("{x}//stash")),
 		]
 	});
 	vec![
@@ -252,7 +253,7 @@ fn testnet_genesis(
 				max_upward_queue_count: 8,
 				max_upward_queue_size: 1024 * 1024,
 				max_downward_message_size: 1024 * 1024,
-				ump_service_total_weight: 100_000_000_000,
+				ump_service_total_weight: Weight::from_ref_time(100_000_000_000),
 				max_upward_message_size: 50 * 1024,
 				max_upward_message_num_per_candidate: 5,
 				hrmp_sender_deposit: 0,

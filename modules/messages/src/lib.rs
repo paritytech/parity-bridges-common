@@ -65,11 +65,7 @@ use bp_messages::{
 };
 use bp_runtime::{BasicOperatingMode, ChainId, OwnedBridgeModule, Size};
 use codec::{Decode, Encode, MaxEncodedLen};
-use frame_support::{
-	ensure, fail,
-	traits::Get,
-	weights::{Pays, PostDispatchInfo},
-};
+use frame_support::{dispatch::PostDispatchInfo, ensure, fail, traits::Get};
 use num_traits::{SaturatingAdd, Zero};
 use sp_std::{
 	cell::RefCell, cmp::PartialOrd, collections::vec_deque::VecDeque, marker::PhantomData,
@@ -104,7 +100,8 @@ pub mod pallet {
 		// General types
 
 		/// The overarching event type.
-		type Event: From<Event<Self, I>> + IsType<<Self as frame_system::Config>::Event>;
+		type RuntimeEvent: From<Event<Self, I>>
+			+ IsType<<Self as frame_system::Config>::RuntimeEvent>;
 		/// Benchmarks results from runtime we're plugged into.
 		type WeightInfo: WeightInfoExt;
 
@@ -174,13 +171,13 @@ pub mod pallet {
 		type TargetHeaderChain: TargetHeaderChain<Self::OutboundPayload, Self::AccountId>;
 		/// Message payload verifier.
 		type LaneMessageVerifier: LaneMessageVerifier<
-			Self::Origin,
+			Self::RuntimeOrigin,
 			Self::OutboundPayload,
 			Self::OutboundMessageFee,
 		>;
 		/// Message delivery payment.
 		type MessageDeliveryAndDispatchPayment: MessageDeliveryAndDispatchPayment<
-			Self::Origin,
+			Self::RuntimeOrigin,
 			Self::AccountId,
 			Self::OutboundMessageFee,
 		>;
@@ -333,10 +330,8 @@ pub mod pallet {
 			});
 
 			// compute actual dispatch weight that depends on the stored message size
-			let actual_weight = sp_std::cmp::min(
-				T::WeightInfo::maximal_increase_message_fee(),
-				T::WeightInfo::increase_message_fee(message_size as _),
-			);
+			let actual_weight = T::WeightInfo::maximal_increase_message_fee()
+				.min(T::WeightInfo::increase_message_fee(message_size as _));
 
 			Ok(PostDispatchInfo { actual_weight: Some(actual_weight), pays_fee: Pays::Yes })
 		}
@@ -418,7 +413,7 @@ pub mod pallet {
 					// on this lane. We can't dispatch lane messages out-of-order, so if declared
 					// weight is not enough, let's move to next lane
 					let dispatch_weight = T::MessageDispatch::dispatch_weight(&mut message);
-					if dispatch_weight > dispatch_weight_left {
+					if dispatch_weight.any_gt(dispatch_weight_left) {
 						log::trace!(
 							target: LOG_TARGET,
 							"Cannot dispatch any more messages on lane {:?}. Weight: declared={}, left={}",
@@ -456,7 +451,7 @@ pub mod pallet {
 						ReceivalResult::TooManyUnconfirmedMessages => (dispatch_weight, true),
 					};
 
-					let unspent_weight = sp_std::cmp::min(unspent_weight, dispatch_weight);
+					let unspent_weight = unspent_weight.min(dispatch_weight);
 					dispatch_weight_left -= dispatch_weight - unspent_weight;
 					actual_weight = actual_weight.saturating_sub(unspent_weight).saturating_sub(
 						// delivery call weight formula assumes that the fee is paid at
@@ -465,7 +460,7 @@ pub mod pallet {
 						if refund_pay_dispatch_fee {
 							T::WeightInfo::pay_inbound_dispatch_fee_overhead()
 						} else {
-							0
+							Weight::zero()
 						},
 					);
 				}
@@ -580,11 +575,11 @@ pub mod pallet {
 			if let Some(confirmed_messages) = confirmed_messages {
 				// handle messages delivery confirmation
 				let preliminary_callback_overhead =
-					relayers_state.total_messages.saturating_mul(single_message_callback_overhead);
+					single_message_callback_overhead.saturating_mul(relayers_state.total_messages);
 				let actual_callback_weight =
 					T::OnDeliveryConfirmed::on_messages_delivered(&lane_id, &confirmed_messages);
-				match preliminary_callback_overhead.checked_sub(actual_callback_weight) {
-					Some(difference) if difference == 0 => (),
+				match preliminary_callback_overhead.checked_sub(&actual_callback_weight) {
+					Some(difference) if difference.is_zero() => (),
 					Some(difference) => {
 						log::trace!(
 							target: LOG_TARGET,
@@ -776,7 +771,7 @@ pub mod pallet {
 
 impl<T, I>
 	bp_messages::source_chain::MessagesBridge<
-		T::Origin,
+		T::RuntimeOrigin,
 		T::OutboundMessageFee,
 		T::OutboundPayload,
 	> for Pallet<T, I>
@@ -787,7 +782,7 @@ where
 	type Error = sp_runtime::DispatchErrorWithPostInfo<PostDispatchInfo>;
 
 	fn send_message(
-		sender: T::Origin,
+		sender: T::RuntimeOrigin,
 		lane: LaneId,
 		message: T::OutboundPayload,
 		delivery_and_dispatch_fee: T::OutboundMessageFee,
@@ -798,7 +793,7 @@ where
 
 /// Function that actually sends message.
 fn send_message<T: Config<I>, I: 'static>(
-	submitter: T::Origin,
+	submitter: T::RuntimeOrigin,
 	lane_id: LaneId,
 	payload: T::OutboundPayload,
 	delivery_and_dispatch_fee: T::OutboundMessageFee,
@@ -878,8 +873,8 @@ fn send_message<T: Config<I>, I: 'static>(
 	let single_message_callback_overhead =
 		T::WeightInfo::single_message_callback_overhead(T::DbWeight::get());
 	let actual_callback_weight = T::OnMessageAccepted::on_messages_accepted(&lane_id, &nonce);
-	match single_message_callback_overhead.checked_sub(actual_callback_weight) {
-		Some(difference) if difference == 0 => (),
+	match single_message_callback_overhead.checked_sub(&actual_callback_weight) {
+		Some(difference) if difference.is_zero() => (),
 		Some(difference) => {
 			log::trace!(
 				target: LOG_TARGET,
@@ -1107,8 +1102,8 @@ fn verify_and_decode_messages_proof<Chain: SourceHeaderChain<Fee>, Fee, Dispatch
 mod tests {
 	use super::*;
 	use crate::mock::{
-		message, message_payload, run_test, unrewarded_relayer, Balance, Event as TestEvent,
-		Origin, TestMessageDeliveryAndDispatchPayment, TestMessagesDeliveryProof,
+		message, message_payload, run_test, unrewarded_relayer, Balance, RuntimeEvent as TestEvent,
+		RuntimeOrigin, TestMessageDeliveryAndDispatchPayment, TestMessagesDeliveryProof,
 		TestMessagesParameter, TestMessagesProof, TestOnDeliveryConfirmed1,
 		TestOnDeliveryConfirmed2, TestOnMessageAccepted, TestRuntime, TokenConversionRate,
 		MAX_OUTBOUND_PAYLOAD_SIZE, PAYLOAD_REJECTED_BY_TARGET_CHAIN, REGULAR_PAYLOAD, TEST_LANE_ID,
@@ -1152,10 +1147,10 @@ mod tests {
 		let message_nonce =
 			outbound_lane::<TestRuntime, ()>(TEST_LANE_ID).data().latest_generated_nonce + 1;
 		let weight = Pallet::<TestRuntime>::send_message(
-			Origin::signed(1),
+			RuntimeOrigin::signed(1),
 			TEST_LANE_ID,
 			REGULAR_PAYLOAD,
-			REGULAR_PAYLOAD.declared_weight,
+			REGULAR_PAYLOAD.declared_weight.ref_time(),
 		)
 		.expect("send_message has failed")
 		.actual_weight
@@ -1177,7 +1172,7 @@ mod tests {
 		// check that fee has been withdrawn from submitter
 		assert!(TestMessageDeliveryAndDispatchPayment::is_fee_paid(
 			1,
-			REGULAR_PAYLOAD.declared_weight
+			REGULAR_PAYLOAD.declared_weight.ref_time()
 		));
 
 		weight
@@ -1188,7 +1183,7 @@ mod tests {
 		System::<TestRuntime>::reset_events();
 
 		assert_ok!(Pallet::<TestRuntime>::receive_messages_delivery_proof(
-			Origin::signed(1),
+			RuntimeOrigin::signed(1),
 			TestMessagesDeliveryProof(Ok((
 				TEST_LANE_ID,
 				InboundLaneData {
@@ -1229,7 +1224,7 @@ mod tests {
 
 			let parameter = TestMessagesParameter::TokenConversionRate(10.into());
 			assert_ok!(Pallet::<TestRuntime>::update_pallet_parameter(
-				Origin::root(),
+				RuntimeOrigin::root(),
 				parameter.clone(),
 			));
 
@@ -1253,7 +1248,7 @@ mod tests {
 
 			let parameter = TestMessagesParameter::TokenConversionRate(10.into());
 			assert_ok!(Pallet::<TestRuntime>::update_pallet_parameter(
-				Origin::signed(2),
+				RuntimeOrigin::signed(2),
 				parameter.clone(),
 			));
 
@@ -1274,7 +1269,7 @@ mod tests {
 		run_test(|| {
 			assert_noop!(
 				Pallet::<TestRuntime>::update_pallet_parameter(
-					Origin::signed(2),
+					RuntimeOrigin::signed(2),
 					TestMessagesParameter::TokenConversionRate(10.into()),
 				),
 				DispatchError::BadOrigin,
@@ -1284,7 +1279,7 @@ mod tests {
 
 			assert_noop!(
 				Pallet::<TestRuntime>::update_pallet_parameter(
-					Origin::signed(1),
+					RuntimeOrigin::signed(1),
 					TestMessagesParameter::TokenConversionRate(10.into()),
 				),
 				DispatchError::BadOrigin,
@@ -1330,22 +1325,27 @@ mod tests {
 
 			assert_noop!(
 				Pallet::<TestRuntime>::send_message(
-					Origin::signed(1),
+					RuntimeOrigin::signed(1),
 					TEST_LANE_ID,
 					REGULAR_PAYLOAD,
-					REGULAR_PAYLOAD.declared_weight,
+					REGULAR_PAYLOAD.declared_weight.ref_time(),
 				),
 				Error::<TestRuntime, ()>::NotOperatingNormally,
 			);
 
 			assert_noop!(
-				Pallet::<TestRuntime>::increase_message_fee(Origin::signed(1), TEST_LANE_ID, 1, 1,),
+				Pallet::<TestRuntime>::increase_message_fee(
+					RuntimeOrigin::signed(1),
+					TEST_LANE_ID,
+					1,
+					1,
+				),
 				Error::<TestRuntime, ()>::BridgeModule(bp_runtime::OwnedBridgeModuleError::Halted),
 			);
 
 			assert_noop!(
 				Pallet::<TestRuntime>::receive_messages_proof(
-					Origin::signed(1),
+					RuntimeOrigin::signed(1),
 					TEST_RELAYER_A,
 					Ok(vec![message(2, REGULAR_PAYLOAD)]).into(),
 					1,
@@ -1356,7 +1356,7 @@ mod tests {
 
 			assert_noop!(
 				Pallet::<TestRuntime>::receive_messages_delivery_proof(
-					Origin::signed(1),
+					RuntimeOrigin::signed(1),
 					TestMessagesDeliveryProof(Ok((
 						TEST_LANE_ID,
 						InboundLaneData {
@@ -1390,23 +1390,23 @@ mod tests {
 
 			assert_noop!(
 				Pallet::<TestRuntime>::send_message(
-					Origin::signed(1),
+					RuntimeOrigin::signed(1),
 					TEST_LANE_ID,
 					REGULAR_PAYLOAD,
-					REGULAR_PAYLOAD.declared_weight,
+					REGULAR_PAYLOAD.declared_weight.ref_time(),
 				),
 				Error::<TestRuntime, ()>::NotOperatingNormally,
 			);
 
 			assert_ok!(Pallet::<TestRuntime>::increase_message_fee(
-				Origin::signed(1),
+				RuntimeOrigin::signed(1),
 				TEST_LANE_ID,
 				1,
 				1,
 			));
 
 			assert_ok!(Pallet::<TestRuntime>::receive_messages_proof(
-				Origin::signed(1),
+				RuntimeOrigin::signed(1),
 				TEST_RELAYER_A,
 				Ok(vec![message(1, REGULAR_PAYLOAD)]).into(),
 				1,
@@ -1414,7 +1414,7 @@ mod tests {
 			),);
 
 			assert_ok!(Pallet::<TestRuntime>::receive_messages_delivery_proof(
-				Origin::signed(1),
+				RuntimeOrigin::signed(1),
 				TestMessagesDeliveryProof(Ok((
 					TEST_LANE_ID,
 					InboundLaneData {
@@ -1452,7 +1452,7 @@ mod tests {
 				.extend_from_slice(&[0u8; MAX_OUTBOUND_PAYLOAD_SIZE as usize]);
 			assert_noop!(
 				Pallet::<TestRuntime>::send_message(
-					Origin::signed(1),
+					RuntimeOrigin::signed(1),
 					TEST_LANE_ID,
 					message_payload.clone(),
 					Balance::MAX,
@@ -1466,7 +1466,7 @@ mod tests {
 			}
 			assert_eq!(message_payload.size(), MAX_OUTBOUND_PAYLOAD_SIZE);
 			assert_ok!(Pallet::<TestRuntime>::send_message(
-				Origin::signed(1),
+				RuntimeOrigin::signed(1),
 				TEST_LANE_ID,
 				message_payload,
 				Balance::MAX,
@@ -1480,10 +1480,10 @@ mod tests {
 			// messages with this payload are rejected by target chain verifier
 			assert_noop!(
 				Pallet::<TestRuntime>::send_message(
-					Origin::signed(1),
+					RuntimeOrigin::signed(1),
 					TEST_LANE_ID,
 					PAYLOAD_REJECTED_BY_TARGET_CHAIN,
-					PAYLOAD_REJECTED_BY_TARGET_CHAIN.declared_weight
+					PAYLOAD_REJECTED_BY_TARGET_CHAIN.declared_weight.ref_time(),
 				),
 				Error::<TestRuntime, ()>::MessageRejectedByChainVerifier,
 			);
@@ -1496,7 +1496,7 @@ mod tests {
 			// messages with zero fee are rejected by lane verifier
 			assert_noop!(
 				Pallet::<TestRuntime>::send_message(
-					Origin::signed(1),
+					RuntimeOrigin::signed(1),
 					TEST_LANE_ID,
 					REGULAR_PAYLOAD,
 					0
@@ -1512,10 +1512,10 @@ mod tests {
 			TestMessageDeliveryAndDispatchPayment::reject_payments();
 			assert_noop!(
 				Pallet::<TestRuntime>::send_message(
-					Origin::signed(1),
+					RuntimeOrigin::signed(1),
 					TEST_LANE_ID,
 					REGULAR_PAYLOAD,
-					REGULAR_PAYLOAD.declared_weight
+					REGULAR_PAYLOAD.declared_weight.ref_time(),
 				),
 				Error::<TestRuntime, ()>::FailedToWithdrawMessageFee,
 			);
@@ -1526,7 +1526,7 @@ mod tests {
 	fn receive_messages_proof_works() {
 		run_test(|| {
 			assert_ok!(Pallet::<TestRuntime>::receive_messages_proof(
-				Origin::signed(1),
+				RuntimeOrigin::signed(1),
 				TEST_RELAYER_A,
 				Ok(vec![message(1, REGULAR_PAYLOAD)]).into(),
 				1,
@@ -1570,7 +1570,7 @@ mod tests {
 				Some(OutboundLaneData { latest_received_nonce: 9, ..Default::default() });
 
 			assert_ok!(Pallet::<TestRuntime>::receive_messages_proof(
-				Origin::signed(1),
+				RuntimeOrigin::signed(1),
 				TEST_RELAYER_A,
 				message_proof,
 				1,
@@ -1604,12 +1604,14 @@ mod tests {
 	#[test]
 	fn receive_messages_proof_does_not_accept_message_if_dispatch_weight_is_not_enough() {
 		run_test(|| {
+			let mut declared_weight = REGULAR_PAYLOAD.declared_weight;
+			*declared_weight.ref_time_mut() -= 1;
 			assert_ok!(Pallet::<TestRuntime>::receive_messages_proof(
-				Origin::signed(1),
+				RuntimeOrigin::signed(1),
 				TEST_RELAYER_A,
 				Ok(vec![message(1, REGULAR_PAYLOAD)]).into(),
 				1,
-				REGULAR_PAYLOAD.declared_weight - 1,
+				declared_weight,
 			));
 			assert_eq!(InboundLanes::<TestRuntime>::get(TEST_LANE_ID).last_delivered_nonce(), 0);
 		});
@@ -1620,11 +1622,11 @@ mod tests {
 		run_test(|| {
 			assert_noop!(
 				Pallet::<TestRuntime, ()>::receive_messages_proof(
-					Origin::signed(1),
+					RuntimeOrigin::signed(1),
 					TEST_RELAYER_A,
 					Err(()).into(),
 					1,
-					0,
+					Weight::from_ref_time(0),
 				),
 				Error::<TestRuntime, ()>::InvalidMessagesProof,
 			);
@@ -1636,11 +1638,11 @@ mod tests {
 		run_test(|| {
 			assert_noop!(
 				Pallet::<TestRuntime, ()>::receive_messages_proof(
-					Origin::signed(1),
+					RuntimeOrigin::signed(1),
 					TEST_RELAYER_A,
 					Ok(vec![message(1, REGULAR_PAYLOAD)]).into(),
 					u32::MAX,
-					0,
+					Weight::from_ref_time(0),
 				),
 				Error::<TestRuntime, ()>::TooManyMessagesInTheProof,
 			);
@@ -1664,13 +1666,13 @@ mod tests {
 	fn receive_messages_delivery_proof_rewards_relayers() {
 		run_test(|| {
 			assert_ok!(Pallet::<TestRuntime>::send_message(
-				Origin::signed(1),
+				RuntimeOrigin::signed(1),
 				TEST_LANE_ID,
 				REGULAR_PAYLOAD,
 				1000,
 			));
 			assert_ok!(Pallet::<TestRuntime>::send_message(
-				Origin::signed(1),
+				RuntimeOrigin::signed(1),
 				TEST_LANE_ID,
 				REGULAR_PAYLOAD,
 				2000,
@@ -1678,7 +1680,7 @@ mod tests {
 
 			// this reports delivery of message 1 => reward is paid to TEST_RELAYER_A
 			assert_ok!(Pallet::<TestRuntime>::receive_messages_delivery_proof(
-				Origin::signed(1),
+				RuntimeOrigin::signed(1),
 				TestMessagesDeliveryProof(Ok((
 					TEST_LANE_ID,
 					InboundLaneData {
@@ -1701,7 +1703,7 @@ mod tests {
 			// this reports delivery of both message 1 and message 2 => reward is paid only to
 			// TEST_RELAYER_B
 			assert_ok!(Pallet::<TestRuntime>::receive_messages_delivery_proof(
-				Origin::signed(1),
+				RuntimeOrigin::signed(1),
 				TestMessagesDeliveryProof(Ok((
 					TEST_LANE_ID,
 					InboundLaneData {
@@ -1731,7 +1733,7 @@ mod tests {
 		run_test(|| {
 			assert_noop!(
 				Pallet::<TestRuntime>::receive_messages_delivery_proof(
-					Origin::signed(1),
+					RuntimeOrigin::signed(1),
 					TestMessagesDeliveryProof(Err(())),
 					Default::default(),
 				),
@@ -1746,7 +1748,7 @@ mod tests {
 			// when number of relayers entries is invalid
 			assert_noop!(
 				Pallet::<TestRuntime>::receive_messages_delivery_proof(
-					Origin::signed(1),
+					RuntimeOrigin::signed(1),
 					TestMessagesDeliveryProof(Ok((
 						TEST_LANE_ID,
 						InboundLaneData {
@@ -1772,7 +1774,7 @@ mod tests {
 			// when number of messages is invalid
 			assert_noop!(
 				Pallet::<TestRuntime>::receive_messages_delivery_proof(
-					Origin::signed(1),
+					RuntimeOrigin::signed(1),
 					TestMessagesDeliveryProof(Ok((
 						TEST_LANE_ID,
 						InboundLaneData {
@@ -1798,7 +1800,7 @@ mod tests {
 			// when last delivered nonce is invalid
 			assert_noop!(
 				Pallet::<TestRuntime>::receive_messages_delivery_proof(
-					Origin::signed(1),
+					RuntimeOrigin::signed(1),
 					TestMessagesDeliveryProof(Ok((
 						TEST_LANE_ID,
 						InboundLaneData {
@@ -1830,11 +1832,12 @@ mod tests {
 			invalid_message.data.payload = Vec::new();
 
 			assert_ok!(Pallet::<TestRuntime, ()>::receive_messages_proof(
-				Origin::signed(1),
+				RuntimeOrigin::signed(1),
 				TEST_RELAYER_A,
 				Ok(vec![invalid_message]).into(),
 				1,
-				0, // weight may be zero in this case (all messages are improperly encoded)
+				Weight::from_ref_time(0), /* weight may be zero in this case (all messages are
+				                           * improperly encoded) */
 			),);
 
 			assert_eq!(InboundLanes::<TestRuntime>::get(TEST_LANE_ID).last_delivered_nonce(), 1,);
@@ -1848,7 +1851,7 @@ mod tests {
 			invalid_message.data.payload = Vec::new();
 
 			assert_ok!(Pallet::<TestRuntime, ()>::receive_messages_proof(
-				Origin::signed(1),
+				RuntimeOrigin::signed(1),
 				TEST_RELAYER_A,
 				Ok(
 					vec![message(1, REGULAR_PAYLOAD), invalid_message, message(3, REGULAR_PAYLOAD),]
@@ -1865,12 +1868,12 @@ mod tests {
 	#[test]
 	fn actual_dispatch_weight_does_not_overlow() {
 		run_test(|| {
-			let message1 = message(1, message_payload(0, Weight::MAX / 2));
-			let message2 = message(2, message_payload(0, Weight::MAX / 2));
-			let message3 = message(3, message_payload(0, Weight::MAX / 2));
+			let message1 = message(1, message_payload(0, u64::MAX / 2));
+			let message2 = message(2, message_payload(0, u64::MAX / 2));
+			let message3 = message(3, message_payload(0, u64::MAX / 2));
 
 			assert_ok!(Pallet::<TestRuntime, ()>::receive_messages_proof(
-				Origin::signed(1),
+				RuntimeOrigin::signed(1),
 				TEST_RELAYER_A,
 				// this may cause overflow if source chain storage is invalid
 				Ok(vec![message1, message2, message3]).into(),
@@ -1889,7 +1892,7 @@ mod tests {
 
 			assert_noop!(
 				Pallet::<TestRuntime, ()>::increase_message_fee(
-					Origin::signed(1),
+					RuntimeOrigin::signed(1),
 					TEST_LANE_ID,
 					1,
 					100,
@@ -1904,7 +1907,7 @@ mod tests {
 		run_test(|| {
 			assert_noop!(
 				Pallet::<TestRuntime, ()>::increase_message_fee(
-					Origin::signed(1),
+					RuntimeOrigin::signed(1),
 					TEST_LANE_ID,
 					1,
 					100,
@@ -1923,7 +1926,7 @@ mod tests {
 
 			assert_noop!(
 				Pallet::<TestRuntime, ()>::increase_message_fee(
-					Origin::signed(1),
+					RuntimeOrigin::signed(1),
 					TEST_LANE_ID,
 					1,
 					100,
@@ -1939,7 +1942,7 @@ mod tests {
 			send_regular_message();
 
 			assert_ok!(Pallet::<TestRuntime, ()>::increase_message_fee(
-				Origin::signed(1),
+				RuntimeOrigin::signed(1),
 				TEST_LANE_ID,
 				1,
 				100,
@@ -1953,11 +1956,11 @@ mod tests {
 		run_test(|| {
 			fn submit_with_unspent_weight(
 				nonce: MessageNonce,
-				unspent_weight: Weight,
+				unspent_weight: u64,
 				is_prepaid: bool,
 			) -> (Weight, Weight) {
 				let mut payload = REGULAR_PAYLOAD;
-				payload.dispatch_result.unspent_weight = unspent_weight;
+				*payload.dispatch_result.unspent_weight.ref_time_mut() = unspent_weight;
 				payload.dispatch_result.dispatch_fee_paid_during_dispatch = !is_prepaid;
 				let proof = Ok(vec![message(nonce, payload)]).into();
 				let messages_count = 1;
@@ -1968,7 +1971,7 @@ mod tests {
 						REGULAR_PAYLOAD.declared_weight,
 					);
 				let post_dispatch_weight = Pallet::<TestRuntime>::receive_messages_proof(
-					Origin::signed(1),
+					RuntimeOrigin::signed(1),
 					TEST_RELAYER_A,
 					proof,
 					messages_count,
@@ -1983,16 +1986,26 @@ mod tests {
 
 			// when dispatch is returning `unspent_weight < declared_weight`
 			let (pre, post) = submit_with_unspent_weight(1, 1, false);
-			assert_eq!(post, pre - 1);
+			assert_eq!(post.ref_time(), pre.ref_time() - 1);
 
 			// when dispatch is returning `unspent_weight = declared_weight`
-			let (pre, post) = submit_with_unspent_weight(2, REGULAR_PAYLOAD.declared_weight, false);
-			assert_eq!(post, pre - REGULAR_PAYLOAD.declared_weight);
+			let (pre, post) =
+				submit_with_unspent_weight(2, REGULAR_PAYLOAD.declared_weight.ref_time(), false);
+			assert_eq!(
+				post.ref_time(),
+				pre.ref_time() - REGULAR_PAYLOAD.declared_weight.ref_time()
+			);
 
 			// when dispatch is returning `unspent_weight > declared_weight`
-			let (pre, post) =
-				submit_with_unspent_weight(3, REGULAR_PAYLOAD.declared_weight + 1, false);
-			assert_eq!(post, pre - REGULAR_PAYLOAD.declared_weight);
+			let (pre, post) = submit_with_unspent_weight(
+				3,
+				REGULAR_PAYLOAD.declared_weight.ref_time() + 1,
+				false,
+			);
+			assert_eq!(
+				post.ref_time(),
+				pre.ref_time() - REGULAR_PAYLOAD.declared_weight.ref_time()
+			);
 
 			// when there's no unspent weight
 			let (pre, post) = submit_with_unspent_weight(4, 0, false);
@@ -2001,8 +2014,10 @@ mod tests {
 			// when dispatch is returning `unspent_weight < declared_weight` AND message is prepaid
 			let (pre, post) = submit_with_unspent_weight(5, 1, true);
 			assert_eq!(
-				post,
-				pre - 1 - <TestRuntime as Config>::WeightInfo::pay_inbound_dispatch_fee_overhead()
+				post.ref_time(),
+				pre.ref_time() -
+					1 - <TestRuntime as Config>::WeightInfo::pay_inbound_dispatch_fee_overhead()
+					.ref_time()
 			);
 		});
 	}
@@ -2046,7 +2061,7 @@ mod tests {
 
 			// first tx with messages 1+2
 			assert_ok!(Pallet::<TestRuntime>::receive_messages_delivery_proof(
-				Origin::signed(1),
+				RuntimeOrigin::signed(1),
 				TestMessagesDeliveryProof(messages_1_and_2_proof),
 				UnrewardedRelayersState {
 					unrewarded_relayer_entries: 1,
@@ -2057,7 +2072,7 @@ mod tests {
 			));
 			// second tx with message 3
 			assert_ok!(Pallet::<TestRuntime>::receive_messages_delivery_proof(
-				Origin::signed(1),
+				RuntimeOrigin::signed(1),
 				TestMessagesDeliveryProof(messages_3_proof),
 				UnrewardedRelayersState {
 					unrewarded_relayer_entries: 1,
@@ -2100,7 +2115,7 @@ mod tests {
 				crate::mock::DbWeight::get(),
 			);
 		let post_dispatch_weight = Pallet::<TestRuntime>::receive_messages_delivery_proof(
-			Origin::signed(1),
+			RuntimeOrigin::signed(1),
 			proof,
 			relayers_state,
 		)
@@ -2160,7 +2175,7 @@ mod tests {
 			//    numer of actually confirmed messages is `1`.
 			assert_noop!(
 				Pallet::<TestRuntime>::receive_messages_delivery_proof(
-					Origin::signed(1),
+					RuntimeOrigin::signed(1),
 					TestMessagesDeliveryProof(Ok((
 						TEST_LANE_ID,
 						InboundLaneData { last_confirmed_nonce: 1, relayers: Default::default() },
@@ -2181,32 +2196,40 @@ mod tests {
 			large_payload.extra = vec![2; MAX_OUTBOUND_PAYLOAD_SIZE as usize / 5];
 
 			assert_ok!(Pallet::<TestRuntime>::send_message(
-				Origin::signed(1),
+				RuntimeOrigin::signed(1),
 				TEST_LANE_ID,
 				small_payload,
 				100,
 			));
 			assert_ok!(Pallet::<TestRuntime>::send_message(
-				Origin::signed(1),
+				RuntimeOrigin::signed(1),
 				TEST_LANE_ID,
 				large_payload,
 				100,
 			));
 
-			let small_weight =
-				Pallet::<TestRuntime>::increase_message_fee(Origin::signed(1), TEST_LANE_ID, 1, 1)
-					.expect("increase_message_fee has failed")
-					.actual_weight
-					.expect("increase_message_fee always returns Some");
+			let small_weight = Pallet::<TestRuntime>::increase_message_fee(
+				RuntimeOrigin::signed(1),
+				TEST_LANE_ID,
+				1,
+				1,
+			)
+			.expect("increase_message_fee has failed")
+			.actual_weight
+			.expect("increase_message_fee always returns Some");
 
-			let large_weight =
-				Pallet::<TestRuntime>::increase_message_fee(Origin::signed(1), TEST_LANE_ID, 2, 1)
-					.expect("increase_message_fee has failed")
-					.actual_weight
-					.expect("increase_message_fee always returns Some");
+			let large_weight = Pallet::<TestRuntime>::increase_message_fee(
+				RuntimeOrigin::signed(1),
+				TEST_LANE_ID,
+				2,
+				1,
+			)
+			.expect("increase_message_fee has failed")
+			.actual_weight
+			.expect("increase_message_fee always returns Some");
 
 			assert!(
-				large_weight > small_weight,
+				large_weight.ref_time() > small_weight.ref_time(),
 				"Actual post-dispatch weigth for larger message {} must be larger than {} for small message",
 				large_weight,
 				small_weight,
@@ -2228,7 +2251,7 @@ mod tests {
 
 			// confirm delivery of all sent messages
 			assert_ok!(Pallet::<TestRuntime>::receive_messages_delivery_proof(
-				Origin::signed(1),
+				RuntimeOrigin::signed(1),
 				TestMessagesDeliveryProof(Ok((
 					TEST_LANE_ID,
 					InboundLaneData {
@@ -2335,7 +2358,7 @@ mod tests {
 					REGULAR_PAYLOAD.encode(),
 					OutboundMessageDetails {
 						nonce: 0,
-						dispatch_weight: 0,
+						dispatch_weight: Weight::from_ref_time(0),
 						size: 0,
 						delivery_and_dispatch_fee: 0,
 						dispatch_fee_payment:

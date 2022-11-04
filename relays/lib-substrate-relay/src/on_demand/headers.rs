@@ -18,14 +18,13 @@
 
 use async_std::sync::{Arc, Mutex};
 use async_trait::async_trait;
+use bp_header_chain::ConsensusLogReader;
 use futures::{select, FutureExt};
 use num_traits::{One, Zero};
+use sp_runtime::traits::Header;
 
-use finality_relay::{FinalitySyncParams, SourceHeader, TargetClient as FinalityTargetClient};
-use relay_substrate_client::{
-	AccountIdOf, AccountKeyPairOf, BlockNumberOf, Chain, Client, HeaderOf, SyncHeader,
-	TransactionSignScheme,
-};
+use finality_relay::{FinalitySyncParams, TargetClient as FinalityTargetClient};
+use relay_substrate_client::{AccountIdOf, AccountKeyPairOf, BlockNumberOf, Chain, Client};
 use relay_utils::{
 	metrics::MetricsParams, relay_loop::Client as RelayClient, FailedClient, MaybeConnectionError,
 	STALL_TIMEOUT,
@@ -33,6 +32,7 @@ use relay_utils::{
 
 use crate::{
 	finality::{
+		engine::Engine,
 		source::{RequiredHeaderNumberRef, SubstrateFinalitySource},
 		target::SubstrateFinalityTarget,
 		SubstrateFinalitySyncPipeline, RECENT_FINALITY_PROOFS_LIMIT,
@@ -59,13 +59,12 @@ impl<SourceChain: Chain> OnDemandHeadersRelay<SourceChain> {
 	pub fn new<P: SubstrateFinalitySyncPipeline<SourceChain = SourceChain>>(
 		source_client: Client<P::SourceChain>,
 		target_client: Client<P::TargetChain>,
-		target_transaction_params: TransactionParams<AccountKeyPairOf<P::TransactionSignScheme>>,
+		target_transaction_params: TransactionParams<AccountKeyPairOf<P::TargetChain>>,
 		only_mandatory_headers: bool,
 	) -> Self
 	where
 		AccountIdOf<P::TargetChain>:
-			From<<AccountKeyPairOf<P::TransactionSignScheme> as sp_core::Pair>::Public>,
-		P::TransactionSignScheme: TransactionSignScheme<Chain = P::TargetChain>,
+			From<<AccountKeyPairOf<P::TargetChain> as sp_core::Pair>::Public>,
 	{
 		let required_header_number = Arc::new(Mutex::new(Zero::zero()));
 		let this = OnDemandHeadersRelay {
@@ -111,13 +110,11 @@ impl<SourceChain: Chain> OnDemandRelay<BlockNumberOf<SourceChain>>
 async fn background_task<P: SubstrateFinalitySyncPipeline>(
 	source_client: Client<P::SourceChain>,
 	target_client: Client<P::TargetChain>,
-	target_transaction_params: TransactionParams<AccountKeyPairOf<P::TransactionSignScheme>>,
+	target_transaction_params: TransactionParams<AccountKeyPairOf<P::TargetChain>>,
 	only_mandatory_headers: bool,
 	required_header_number: RequiredHeaderNumberRef<P::SourceChain>,
 ) where
-	AccountIdOf<P::TargetChain>:
-		From<<AccountKeyPairOf<P::TransactionSignScheme> as sp_core::Pair>::Public>,
-	P::TransactionSignScheme: TransactionSignScheme<Chain = P::TargetChain>,
+	AccountIdOf<P::TargetChain>: From<<AccountKeyPairOf<P::TargetChain> as sp_core::Pair>::Public>,
 {
 	let relay_task_name = on_demand_headers_relay_name::<P::SourceChain, P::TargetChain>();
 	let target_transactions_mortality = target_transaction_params.mortality;
@@ -172,9 +169,9 @@ async fn background_task<P: SubstrateFinalitySyncPipeline>(
 
 		// submit mandatory header if some headers are missing
 		let best_finalized_source_header_at_source_fmt =
-			format!("{:?}", best_finalized_source_header_at_source);
+			format!("{best_finalized_source_header_at_source:?}");
 		let best_finalized_source_header_at_target_fmt =
-			format!("{:?}", best_finalized_source_header_at_target);
+			format!("{best_finalized_source_header_at_target:?}");
 		let required_header_number_value = *required_header_number.lock().await;
 		let mandatory_scan_range = mandatory_headers_scan_range::<P::SourceChain>(
 			best_finalized_source_header_at_source.ok(),
@@ -387,9 +384,7 @@ async fn best_finalized_source_header_at_target<P: SubstrateFinalitySyncPipeline
 	relay_task_name: &str,
 ) -> Result<BlockNumberOf<P::SourceChain>, <SubstrateFinalityTarget<P> as RelayClient>::Error>
 where
-	AccountIdOf<P::TargetChain>:
-		From<<AccountKeyPairOf<P::TransactionSignScheme> as sp_core::Pair>::Public>,
-	P::TransactionSignScheme: TransactionSignScheme<Chain = P::TargetChain>,
+	AccountIdOf<P::TargetChain>: From<<AccountKeyPairOf<P::TargetChain> as sp_core::Pair>::Public>,
 {
 	finality_target
 		.best_finalized_source_block_id()
@@ -416,9 +411,10 @@ async fn find_mandatory_header_in_range<P: SubstrateFinalitySyncPipeline>(
 ) -> Result<Option<BlockNumberOf<P::SourceChain>>, relay_substrate_client::Error> {
 	let mut current = range.0;
 	while current <= range.1 {
-		let header: SyncHeader<HeaderOf<P::SourceChain>> =
-			finality_source.client().header_by_number(current).await?.into();
-		if header.is_mandatory() {
+		let header = finality_source.client().header_by_number(current).await?;
+		if <P::FinalityEngine as Engine<P::SourceChain>>::ConsensusLogReader::schedules_authorities_change(
+			header.digest(),
+		) {
 			return Ok(Some(current))
 		}
 

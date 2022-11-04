@@ -27,7 +27,7 @@ use sp_core::{storage::StorageKey, Pair};
 use sp_runtime::{
 	generic::SignedBlock,
 	traits::{Block as BlockT, Dispatchable, Member},
-	EncodedJustification,
+	ConsensusEngineId, EncodedJustification,
 };
 use std::{fmt::Debug, time::Duration};
 
@@ -147,7 +147,7 @@ pub trait BlockWithJustification<Header> {
 	/// Return encoded block extrinsics.
 	fn extrinsics(&self) -> Vec<EncodedExtrinsic>;
 	/// Return block justification, if known.
-	fn justification(&self) -> Option<&EncodedJustification>;
+	fn justification(&self, engine_id: ConsensusEngineId) -> Option<&EncodedJustification>;
 }
 
 /// Transaction before it is signed.
@@ -185,12 +185,10 @@ impl<C: Chain> UnsignedTransaction<C> {
 }
 
 /// Account key pair used by transactions signing scheme.
-pub type AccountKeyPairOf<S> = <S as TransactionSignScheme>::AccountKeyPair;
+pub type AccountKeyPairOf<S> = <S as ChainWithTransactions>::AccountKeyPair;
 
 /// Substrate-based chain transactions signing scheme.
-pub trait TransactionSignScheme: 'static {
-	/// Chain that this scheme is to be used.
-	type Chain: Chain;
+pub trait ChainWithTransactions: Chain {
 	/// Type of key pairs used to sign transactions.
 	type AccountKeyPair: Pair;
 	/// Signed transaction.
@@ -199,7 +197,7 @@ pub trait TransactionSignScheme: 'static {
 	/// Create transaction for given runtime call, signed by given account.
 	fn sign_transaction(
 		param: SignParam<Self>,
-		unsigned: UnsignedTransaction<Self::Chain>,
+		unsigned: UnsignedTransaction<Self>,
 	) -> Result<Self::SignedTransaction, crate::Error>
 	where
 		Self: Sized;
@@ -213,19 +211,19 @@ pub trait TransactionSignScheme: 'static {
 	/// Parse signed transaction into its unsigned part.
 	///
 	/// Returns `None` if signed transaction has unsupported format.
-	fn parse_transaction(tx: Self::SignedTransaction) -> Option<UnsignedTransaction<Self::Chain>>;
+	fn parse_transaction(tx: Self::SignedTransaction) -> Option<UnsignedTransaction<Self>>;
 }
 
 /// Sign transaction parameters
-pub struct SignParam<T: TransactionSignScheme> {
+pub struct SignParam<C: ChainWithTransactions> {
 	/// Version of the runtime specification.
 	pub spec_version: u32,
 	/// Transaction version
 	pub transaction_version: u32,
 	/// Hash of the genesis block.
-	pub genesis_hash: <T::Chain as ChainBase>::Hash,
+	pub genesis_hash: HashOf<C>,
 	/// Signer account
-	pub signer: T::AccountKeyPair,
+	pub signer: AccountKeyPairOf<C>,
 }
 
 impl<Block: BlockT> BlockWithJustification<Block::Header> for SignedBlock<Block> {
@@ -237,9 +235,7 @@ impl<Block: BlockT> BlockWithJustification<Block::Header> for SignedBlock<Block>
 		self.block.extrinsics().iter().map(Encode::encode).collect()
 	}
 
-	fn justification(&self) -> Option<&EncodedJustification> {
-		self.justifications
-			.as_ref()
-			.and_then(|j| j.get(sp_finality_grandpa::GRANDPA_ENGINE_ID))
+	fn justification(&self, engine_id: ConsensusEngineId) -> Option<&EncodedJustification> {
+		self.justifications.as_ref().and_then(|j| j.get(engine_id))
 	}
 }

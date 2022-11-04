@@ -27,17 +27,17 @@ use crate::{
 
 use async_std::sync::Arc;
 use bp_messages::{LaneId, MessageNonce};
-use bp_runtime::{AccountIdOf, Chain as _};
+use bp_runtime::{AccountIdOf, Chain as _, WeightExtraOps};
 use bridge_runtime_common::messages::{
 	source::FromBridgedChainMessagesDeliveryProof, target::FromBridgedChainMessagesProof,
 };
 use codec::Encode;
-use frame_support::weights::{GetDispatchInfo, Weight};
+use frame_support::{dispatch::GetDispatchInfo, weights::Weight};
 use messages_relay::{message_lane::MessageLane, relay_strategy::RelayStrategy};
 use pallet_bridge_messages::{Call as BridgeMessagesCall, Config as BridgeMessagesConfig};
 use relay_substrate_client::{
 	transaction_stall_timeout, AccountKeyPairOf, BalanceOf, BlockNumberOf, CallOf, Chain,
-	ChainWithMessages, Client, HashOf, TransactionSignScheme,
+	ChainWithMessages, ChainWithTransactions, Client, HashOf,
 };
 use relay_utils::{metrics::MetricsParams, STALL_TIMEOUT};
 use sp_core::Pair;
@@ -77,14 +77,9 @@ pub trait SubstrateMessageLane: 'static + Clone + Debug + Send + Sync {
 	const AT_TARGET_TRANSACTION_PAYMENT_PALLET_NAME: Option<&'static str>;
 
 	/// Messages of this chain are relayed to the `TargetChain`.
-	type SourceChain: ChainWithMessages;
+	type SourceChain: ChainWithMessages + ChainWithTransactions;
 	/// Messages from the `SourceChain` are dispatched on this chain.
-	type TargetChain: ChainWithMessages;
-
-	/// Scheme used to sign source chain transactions.
-	type SourceTransactionSignScheme: TransactionSignScheme;
-	/// Scheme used to sign target chain transactions.
-	type TargetTransactionSignScheme: TransactionSignScheme;
+	type TargetChain: ChainWithMessages + ChainWithTransactions;
 
 	/// How receive messages proof call is built?
 	type ReceiveMessagesProofCallBuilder: ReceiveMessagesProofCallBuilder<Self>;
@@ -128,13 +123,11 @@ pub struct MessagesRelayParams<P: SubstrateMessageLane> {
 	/// Messages source client.
 	pub source_client: Client<P::SourceChain>,
 	/// Source transaction params.
-	pub source_transaction_params:
-		TransactionParams<AccountKeyPairOf<P::SourceTransactionSignScheme>>,
+	pub source_transaction_params: TransactionParams<AccountKeyPairOf<P::SourceChain>>,
 	/// Messages target client.
 	pub target_client: Client<P::TargetChain>,
 	/// Target transaction params.
-	pub target_transaction_params:
-		TransactionParams<AccountKeyPairOf<P::TargetTransactionSignScheme>>,
+	pub target_transaction_params: TransactionParams<AccountKeyPairOf<P::TargetChain>>,
 	/// Optional on-demand source to target headers relay.
 	pub source_to_target_headers_relay:
 		Option<Arc<dyn OnDemandRelay<BlockNumberOf<P::SourceChain>>>>,
@@ -154,13 +147,9 @@ pub struct MessagesRelayParams<P: SubstrateMessageLane> {
 /// Run Substrate-to-Substrate messages sync loop.
 pub async fn run<P: SubstrateMessageLane>(params: MessagesRelayParams<P>) -> anyhow::Result<()>
 where
-	AccountIdOf<P::SourceChain>:
-		From<<AccountKeyPairOf<P::SourceTransactionSignScheme> as Pair>::Public>,
-	AccountIdOf<P::TargetChain>:
-		From<<AccountKeyPairOf<P::TargetTransactionSignScheme> as Pair>::Public>,
+	AccountIdOf<P::SourceChain>: From<<AccountKeyPairOf<P::SourceChain> as Pair>::Public>,
+	AccountIdOf<P::TargetChain>: From<<AccountKeyPairOf<P::TargetChain> as Pair>::Public>,
 	BalanceOf<P::SourceChain>: TryFrom<BalanceOf<P::TargetChain>>,
-	P::SourceTransactionSignScheme: TransactionSignScheme<Chain = P::SourceChain>,
-	P::TargetTransactionSignScheme: TransactionSignScheme<Chain = P::TargetChain>,
 {
 	let source_client = params.source_client;
 	let target_client = params.target_client;
@@ -461,8 +450,11 @@ pub fn select_delivery_transaction_limits<W: pallet_bridge_messages::WeightInfoE
 	let delivery_tx_base_weight = W::receive_messages_proof_overhead() +
 		W::receive_messages_proof_outbound_lane_state_overhead();
 	let delivery_tx_weight_rest = weight_for_delivery_tx - delivery_tx_base_weight;
+
 	let max_number_of_messages = std::cmp::min(
-		delivery_tx_weight_rest / W::receive_messages_proof_messages_overhead(1),
+		delivery_tx_weight_rest
+			.min_components_checked_div(W::receive_messages_proof_messages_overhead(1))
+			.unwrap_or(u64::MAX),
 		max_unconfirmed_messages_at_inbound_lane,
 	);
 
@@ -471,7 +463,7 @@ pub fn select_delivery_transaction_limits<W: pallet_bridge_messages::WeightInfoE
 		"Relay should fit at least one message in every delivery transaction",
 	);
 	assert!(
-		weight_for_messages_dispatch >= max_extrinsic_weight / 2,
+		weight_for_messages_dispatch.ref_time() >= max_extrinsic_weight.ref_time() / 2,
 		"Relay shall be able to deliver messages with dispatch weight = max_extrinsic_weight / 2",
 	);
 
@@ -500,7 +492,9 @@ mod tests {
 			// i.e. weight reserved for messages dispatch allows dispatch of non-trivial messages.
 			//
 			// Any significant change in this values should attract additional attention.
-			(1024, 216_609_134_667),
+			//
+			// TODO: https://github.com/paritytech/parity-bridges-common/issues/1543 - remove `set_proof_size`
+			(1024, Weight::from_ref_time(216_609_134_667).set_proof_size(217)),
 		);
 	}
 }
