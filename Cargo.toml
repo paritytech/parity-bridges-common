@@ -113,6 +113,8 @@ sc-keystore = { git = "https://github.com/paritytech//substrate", branch = "sv-l
 sc-network = { git = "https://github.com/paritytech//substrate", branch = "sv-locked-for-gav-xcm-v3-and-bridges-3" }
 sc-network-common = { git = "https://github.com/paritytech//substrate", branch = "sv-locked-for-gav-xcm-v3-and-bridges-3" }
 sc-network-gossip = { git = "https://github.com/paritytech//substrate", branch = "sv-locked-for-gav-xcm-v3-and-bridges-3" }
+sc-network-light = { git = "https://github.com/paritytech//substrate", branch = "sv-locked-for-gav-xcm-v3-and-bridges-3" }
+sc-network-sync = { git = "https://github.com/paritytech//substrate", branch = "sv-locked-for-gav-xcm-v3-and-bridges-3" }
 sc-offchain = { git = "https://github.com/paritytech//substrate", branch = "sv-locked-for-gav-xcm-v3-and-bridges-3" }
 sc-peerset = { git = "https://github.com/paritytech//substrate", branch = "sv-locked-for-gav-xcm-v3-and-bridges-3" }
 sc-proposer-metrics = { git = "https://github.com/paritytech//substrate", branch = "sv-locked-for-gav-xcm-v3-and-bridges-3" }
@@ -251,6 +253,7 @@ cumulus-primitives-core = { git = "https://github.com/paritytech//cumulus", bran
 cumulus-primitives-parachain-inherent = { git = "https://github.com/paritytech//cumulus", branch = "gav-xcm-v3" }
 cumulus-relay-chain-interface = { git = "https://github.com/paritytech//cumulus", branch = "gav-xcm-v3" }
 cumulus-relay-chain-inprocess-interface = { git = "https://github.com/paritytech//cumulus", branch = "gav-xcm-v3" }
+cumulus-relay-chain-minimal-node = { git = "https://github.com/paritytech//cumulus", branch = "gav-xcm-v3" }
 cumulus-pallet-aura-ext = { git = "https://github.com/paritytech//cumulus", branch = "gav-xcm-v3" }
 cumulus-pallet-parachain-system = { git = "https://github.com/paritytech//cumulus", branch = "gav-xcm-v3" }
 cumulus-pallet-dmp-queue = { git = "https://github.com/paritytech//cumulus", branch = "gav-xcm-v3" }
