@@ -27,8 +27,8 @@ impl CliChain for Statemine {
 
 	fn ss58_format() -> u16 {
 		sp_core::crypto::Ss58AddressFormat::from(
-			sp_core::crypto::Ss58AddressFormatRegistry::SubstrateAccount,
+			sp_core::crypto::Ss58AddressFormatRegistry::KusamaAccount,
 		)
-		.into() // TODO
+		.into()
 	}
 }
