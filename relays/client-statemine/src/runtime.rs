@@ -37,13 +37,15 @@ pub type UncheckedExtrinsic = bp_polkadot_core::UncheckedExtrinsic<Call>;
 #[derive(Encode, Decode, Debug, PartialEq, Eq, Clone, TypeInfo)]
 pub enum Call {
 	/// With-Statemint bridge pallet.
-	// TODO: must be updated when we'll make appropriate changes in the Statemine runtime
+	// TODO (https://github.com/paritytech/parity-bridges-common/issues/1626):
+	// must be updated when we'll make appropriate changes in the Statemine runtime
 	#[codec(index = 42)]
 	WithStatemintBridgePallet(WithStatemintBridgePalletCall),
 }
 
 /// Calls of the with-Statemint bridge pallet.
-// TODO: must be updated when we'll make appropriate changes in the Statemine runtime
+// TODO (https://github.com/paritytech/parity-bridges-common/issues/1626):
+// must be updated when we'll make appropriate changes in the Statemine runtime
 #[derive(Encode, Decode, Debug, PartialEq, Eq, Clone, TypeInfo)]
 #[allow(non_camel_case_types)]
 pub enum WithStatemintBridgePalletCall {
