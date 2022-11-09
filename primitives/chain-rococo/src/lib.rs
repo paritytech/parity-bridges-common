@@ -29,13 +29,6 @@ parameter_types! {
 	pub const SS58Prefix: u8 = 42;
 }
 
-/// The target length of a session (how often authorities change) on Rococo measured in of number
-/// of blocks.
-///
-/// Note that since this is a target sessions may change before/after this time depending on network
-/// conditions.
-pub const SESSION_LENGTH: BlockNumber = HOURS;
-
 /// Name of the parachains pallet in the Rococo runtime.
 pub const PARAS_PALLET_NAME: &str = "Paras";
 

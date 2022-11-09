@@ -36,6 +36,7 @@ mod millau;
 mod rialto;
 mod rialto_parachain;
 mod rococo;
+mod statemine;
 mod westend;
 mod wococo;
 

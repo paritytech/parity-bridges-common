@@ -805,7 +805,6 @@ version = "0.1.0"
 dependencies = [
  "bp-polkadot-core",
  "bp-runtime",
- "smallvec",
  "sp-api",
 ]
 
@@ -898,6 +897,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "bp-statemine"
+version = "0.1.0"
+dependencies = [
+ "bp-polkadot-core",
+ "sp-version",
+]
+
+[[package]]
 name = "bp-test-utils"
 version = "0.1.0"
 dependencies = [
@@ -917,10 +924,7 @@ version = "0.1.0"
 dependencies = [
  "bp-polkadot-core",
  "bp-runtime",
- "parity-scale-codec",
- "scale-info",
  "sp-api",
- "sp-runtime",
 ]
 
 [[package]]
@@ -8485,6 +8489,22 @@ dependencies = [
 ]
 
 [[package]]
+name = "relay-statemine-client"
+version = "0.1.0"
+dependencies = [
+ "bp-polkadot-core",
+ "bp-statemine",
+ "frame-support",
+ "frame-system",
+ "parity-scale-codec",
+ "relay-substrate-client",
+ "relay-utils",
+ "scale-info",
+ "sp-core",
+ "sp-runtime",
+]
+
+[[package]]
 name = "relay-substrate-client"
 version = "0.1.0"
 dependencies = [
@@ -11529,6 +11549,7 @@ dependencies = [
  "bp-rialto-parachain",
  "bp-rococo",
  "bp-runtime",
+ "bp-statemine",
  "bp-test-utils",
  "bp-westend",
  "bp-wococo",
@@ -11557,6 +11578,7 @@ dependencies = [
  "relay-rialto-client",
  "relay-rialto-parachain-client",
  "relay-rococo-client",
+ "relay-statemine-client",
  "relay-substrate-client",
  "relay-utils",
  "relay-westend-client",
