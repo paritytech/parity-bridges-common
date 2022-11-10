@@ -19,7 +19,10 @@
 #![allow(clippy::too_many_arguments)]
 
 pub use bp_polkadot_core::*;
-pub use bp_rococo::{SS58Prefix, PARAS_PALLET_NAME};
+pub use bp_rococo::{
+	SS58Prefix, MAX_AUTHORITIES_COUNT, MAX_HEADER_SIZE, MAX_NESTED_PARACHAIN_HEAD_SIZE,
+	PARAS_PALLET_NAME,
+};
 use bp_runtime::decl_bridge_finality_runtime_apis;
 
 /// Wococo Chain
