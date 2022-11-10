@@ -706,6 +706,7 @@ dependencies = [
  "bp-runtime",
  "frame-support",
  "sp-api",
+ "sp-std",
 ]
 
 [[package]]
@@ -717,6 +718,7 @@ dependencies = [
  "bp-runtime",
  "frame-support",
  "sp-api",
+ "sp-std",
 ]
 
 [[package]]

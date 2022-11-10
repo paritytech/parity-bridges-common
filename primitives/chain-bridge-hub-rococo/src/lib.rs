@@ -27,6 +27,7 @@ use frame_support::{
 	sp_runtime::{FixedU128, MultiAddress, MultiSigner},
 	Parameter,
 };
+use sp_std::prelude::*;
 
 pub type BridgeHubRococo = PolkadotLike;
 pub type WeightToFee = frame_support::weights::IdentityFee<Balance>;

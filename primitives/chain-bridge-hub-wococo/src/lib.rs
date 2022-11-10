@@ -35,6 +35,7 @@ pub use bp_bridge_hub_rococo::{
 use bp_messages::*;
 use bp_runtime::{decl_bridge_finality_runtime_apis, decl_bridge_messages_runtime_apis};
 use frame_support::{sp_runtime::FixedU128, Parameter};
+use sp_std::prelude::*;
 
 pub type BridgeHubWococo = bp_bridge_hub_rococo::BridgeHubRococo;
 
