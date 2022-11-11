@@ -115,11 +115,11 @@ macro_rules! generate_mocked_update_conversion_rate_call_builder {
 	};
 }
 
-/// Run infinite conversion rate updater loop.
+/// Run infinite conversion rate updater loop for given message lane.
 ///
-/// The loop is maintaining the Left -> Right conversion rate, used as `RightTokens = LeftTokens *
-/// Rate`.
-pub fn run_conversion_rate_update_loop<Lane>(
+/// The loop is maintaining the TargetChain -> SourceChain conversion rate, used as
+/// `SourceChainTokens = TargetChainTokens * Rate`.
+pub fn run_lane_conversion_rate_update_loop<Lane>(
 	client: Client<Lane::SourceChain>,
 	transaction_params: TransactionParams<AccountKeyPairOf<Lane::SourceChain>>,
 	left_to_right_stored_conversion_rate: F64SharedRef,
@@ -131,18 +131,49 @@ pub fn run_conversion_rate_update_loop<Lane>(
 	Lane::SourceChain: ChainWithTransactions,
 	AccountIdOf<Lane::SourceChain>: From<<AccountKeyPairOf<Lane::SourceChain> as Pair>::Public>,
 {
+	run_conversion_rate_update_loop::<
+		Lane::SourceChain,
+		Lane::TargetChain,
+		Lane::TargetToSourceChainConversionRateUpdateBuilder,
+	>(
+		client,
+		transaction_params,
+		left_to_right_stored_conversion_rate,
+		left_to_base_conversion_rate,
+		right_to_base_conversion_rate,
+		max_difference_ratio,
+	)
+}
+
+/// Run infinite conversion rate updater loop.
+///
+/// The loop is maintaining the TargetChain -> SourceChain conversion rate, used as
+/// `SourceChainTokens = TargetChainTokens * Rate`.
+pub fn run_conversion_rate_update_loop<SourceChain, TargetChain, CallBuilder>(
+	client: Client<SourceChain>,
+	transaction_params: TransactionParams<AccountKeyPairOf<SourceChain>>,
+	left_to_right_stored_conversion_rate: F64SharedRef,
+	left_to_base_conversion_rate: F64SharedRef,
+	right_to_base_conversion_rate: F64SharedRef,
+	max_difference_ratio: f64,
+) where
+	SourceChain: ChainWithTransactions,
+	AccountIdOf<SourceChain>: From<<AccountKeyPairOf<SourceChain> as Pair>::Public>,
+	TargetChain: Chain,
+	CallBuilder: UpdateConversionRateCallBuilder<SourceChain>,
+{
 	let stall_timeout = transaction_stall_timeout(
 		transaction_params.mortality,
-		Lane::SourceChain::AVERAGE_BLOCK_INTERVAL,
+		SourceChain::AVERAGE_BLOCK_INTERVAL,
 		ALMOST_NEVER_DURATION,
 	);
 
 	log::info!(
 		target: "bridge",
 		"Starting {} -> {} conversion rate  (on {}) update loop. Stall timeout: {}s",
-		Lane::TargetChain::NAME,
-		Lane::SourceChain::NAME,
-		Lane::SourceChain::NAME,
+		TargetChain::NAME,
+		SourceChain::NAME,
+		SourceChain::NAME,
 		stall_timeout.as_secs(),
 	);
 
@@ -163,13 +194,13 @@ pub fn run_conversion_rate_update_loop<Lane>(
 				log::info!(
 					target: "bridge",
 					"Going to update {} -> {} (on {}) conversion rate to {}.",
-					Lane::TargetChain::NAME,
-					Lane::SourceChain::NAME,
-					Lane::SourceChain::NAME,
+					TargetChain::NAME,
+					SourceChain::NAME,
+					SourceChain::NAME,
 					new_conversion_rate,
 				);
 
-				let result = update_target_to_source_conversion_rate::<Lane>(
+				let result = update_target_to_source_conversion_rate::<SourceChain, CallBuilder>(
 					client.clone(),
 					transaction_params.clone(),
 					new_conversion_rate,
@@ -253,27 +284,24 @@ async fn maybe_select_new_conversion_rate(
 }
 
 /// Update Target -> Source tokens conversion rate, stored in the Source runtime storage.
-pub async fn update_target_to_source_conversion_rate<Lane>(
-	client: Client<Lane::SourceChain>,
-	transaction_params: TransactionParams<AccountKeyPairOf<Lane::SourceChain>>,
+pub async fn update_target_to_source_conversion_rate<SourceChain, CallBuilder>(
+	client: Client<SourceChain>,
+	transaction_params: TransactionParams<AccountKeyPairOf<SourceChain>>,
 	updated_rate: f64,
 ) -> anyhow::Result<()>
 where
-	Lane: SubstrateMessageLane,
-	Lane::SourceChain: ChainWithTransactions,
-	AccountIdOf<Lane::SourceChain>: From<<AccountKeyPairOf<Lane::SourceChain> as Pair>::Public>,
+	SourceChain: ChainWithTransactions,
+	AccountIdOf<SourceChain>: From<<AccountKeyPairOf<SourceChain> as Pair>::Public>,
+	CallBuilder: UpdateConversionRateCallBuilder<SourceChain>,
 {
 	let genesis_hash = *client.genesis_hash();
 	let signer_id = transaction_params.signer.public().into();
 	let (spec_version, transaction_version) = client.simple_runtime_version().await?;
-	let call =
-		Lane::TargetToSourceChainConversionRateUpdateBuilder::build_update_conversion_rate_call(
-			updated_rate,
-		)?;
+	let call = CallBuilder::build_update_conversion_rate_call(updated_rate)?;
 	client
 		.submit_signed_extrinsic(
 			signer_id,
-			SignParam::<Lane::SourceChain> {
+			SignParam::<SourceChain> {
 				spec_version,
 				transaction_version,
 				genesis_hash,

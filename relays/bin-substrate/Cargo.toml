@@ -35,6 +35,7 @@ pallet-bridge-messages = { path = "../../modules/messages" }
 pallet-bridge-parachains = { path = "../../modules/parachains" }
 parachains-relay = { path = "../parachains" }
 relay-millau-client = { path = "../client-millau" }
+relay-polkadot-client = { path = "../client-polkadot" }
 relay-rialto-client = { path = "../client-rialto" }
 relay-rialto-parachain-client = { path = "../client-rialto-parachain" }
 relay-statemine-client = { path = "../client-statemine" }

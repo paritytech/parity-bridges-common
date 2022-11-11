@@ -30,6 +30,7 @@ pub(crate) mod estimate_fee;
 pub(crate) mod send_message;
 
 mod chain_schema;
+mod conversion_rate_update;
 mod init_bridge;
 mod register_parachain;
 mod relay_headers;
@@ -80,8 +81,10 @@ pub enum Command {
 	ResubmitTransactions(resubmit_transactions::ResubmitTransactions),
 	/// Register parachain.
 	RegisterParachain(register_parachain::RegisterParachain),
-	///
+	/// Relay parachain heads.
 	RelayParachains(relay_parachains::RelayParachains),
+	/// Standalone conversion rate update loop.
+	ConversionRateUpdate(conversion_rate_update::ConversionRateUpdate),
 }
 
 impl Command {
@@ -115,6 +118,7 @@ impl Command {
 			Self::ResubmitTransactions(arg) => arg.run().await?,
 			Self::RegisterParachain(arg) => arg.run().await?,
 			Self::RelayParachains(arg) => arg.run().await?,
+			Self::ConversionRateUpdate(arg) => arg.run().await?,
 		}
 		Ok(())
 	}

@@ -11511,6 +11511,7 @@ dependencies = [
  "polkadot-runtime-common",
  "polkadot-runtime-parachains",
  "relay-millau-client",
+ "relay-polkadot-client",
  "relay-rialto-client",
  "relay-rialto-parachain-client",
  "relay-statemine-client",
