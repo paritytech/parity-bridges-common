@@ -738,6 +738,7 @@ dependencies = [
  "sp-finality-grandpa",
  "sp-runtime",
  "sp-std",
+ "sp-trie",
 ]
 
 [[package]]
@@ -943,6 +944,7 @@ dependencies = [
 name = "bridge-runtime-common"
 version = "0.1.0"
 dependencies = [
+ "bp-header-chain",
  "bp-messages",
  "bp-parachains",
  "bp-polkadot-core",
