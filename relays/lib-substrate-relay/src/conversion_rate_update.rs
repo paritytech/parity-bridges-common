@@ -117,7 +117,7 @@ macro_rules! generate_mocked_update_conversion_rate_call_builder {
 
 /// Run infinite conversion rate updater loop for given message lane.
 ///
-/// The loop is maintaining the TargetChain -> SourceChain conversion rate, used as
+/// The loop is maintaining the `TargetChain` -> `SourceChain` conversion rate, used as
 /// `SourceChainTokens = TargetChainTokens * Rate`.
 pub fn run_lane_conversion_rate_update_loop<Lane>(
 	client: Client<Lane::SourceChain>,
@@ -147,7 +147,7 @@ pub fn run_lane_conversion_rate_update_loop<Lane>(
 
 /// Run infinite conversion rate updater loop.
 ///
-/// The loop is maintaining the TargetChain -> SourceChain conversion rate, used as
+/// The loop is maintaining the `TargetChain` -> `SourceChain` conversion rate, used as
 /// `SourceChainTokens = TargetChainTokens * Rate`.
 pub fn run_conversion_rate_update_loop<SourceChain, TargetChain, CallBuilder>(
 	client: Client<SourceChain>,

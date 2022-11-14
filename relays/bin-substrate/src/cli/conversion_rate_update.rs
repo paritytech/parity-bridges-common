@@ -54,7 +54,7 @@ pub enum ConversionRateUpdateBridge {
 }
 
 impl ConversionRateUpdateBridge {
-	/// Return source chain runtime storage key that under which conversion rate (FixedU128) is
+	/// Return source chain runtime storage key that under which conversion rate (`FixedU128`) is
 	/// stored.
 	pub fn conversion_rate_storage_key_at_source(&self) -> StorageKey {
 		match *self {
