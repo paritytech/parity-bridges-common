@@ -705,6 +705,8 @@ dependencies = [
  "bp-polkadot-core",
  "bp-runtime",
  "frame-support",
+ "polkadot-runtime-constants",
+ "smallvec",
  "sp-api",
  "sp-std",
 ]

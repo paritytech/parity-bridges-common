@@ -56,19 +56,13 @@ pub struct BridgeHubRococoMessagesToBridgeHubWococoMessageLane;
 
 impl SubstrateMessageLane for BridgeHubRococoMessagesToBridgeHubWococoMessageLane {
 	const SOURCE_TO_TARGET_CONVERSION_RATE_PARAMETER_NAME: Option<&'static str> = None;
-	// TODO: Some(bp_millau::RIALTO_PARACHAIN_TO_MILLAU_CONVERSION_RATE_PARAMETER_NAME);
 	const TARGET_TO_SOURCE_CONVERSION_RATE_PARAMETER_NAME: Option<&'static str> = None;
-	// TODO: Some(bp_rialto_parachain::MILLAU_TO_RIALTO_PARACHAIN_CONVERSION_RATE_PARAMETER_NAME);
 
 	const SOURCE_FEE_MULTIPLIER_PARAMETER_NAME: Option<&'static str> = None;
-	// TODO: Some(bp_millau::RIALTO_PARACHAIN_FEE_MULTIPLIER_PARAMETER_NAME);
 	const TARGET_FEE_MULTIPLIER_PARAMETER_NAME: Option<&'static str> = None;
-	// TODO: Some(bp_rialto_parachain::MILLAU_FEE_MULTIPLIER_PARAMETER_NAME);
 
 	const AT_SOURCE_TRANSACTION_PAYMENT_PALLET_NAME: Option<&'static str> = None;
-	// TODO: Some(bp_rialto_parachain::TRANSACTION_PAYMENT_PALLET_NAME);
 	const AT_TARGET_TRANSACTION_PAYMENT_PALLET_NAME: Option<&'static str> = None;
-	// TODO: Some(bp_millau::TRANSACTION_PAYMENT_PALLET_NAME);
 
 	type SourceChain = BridgeHubRococo;
 	type TargetChain = BridgeHubWococo;
@@ -78,7 +72,6 @@ impl SubstrateMessageLane for BridgeHubRococoMessagesToBridgeHubWococoMessageLan
 	type ReceiveMessagesDeliveryProofCallBuilder =
 		BridgeHubRococoMessagesToBridgeHubWococoMessageLaneReceiveMessagesDeliveryProofCallBuilder;
 
-	// TODO:check-parameter - do we need conversion_rate?
 	type TargetToSourceChainConversionRateUpdateBuilder = ();
 
 	type RelayStrategy = MixStrategy;

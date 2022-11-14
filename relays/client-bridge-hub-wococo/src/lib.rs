@@ -133,9 +133,8 @@ impl ChainWithMessages for BridgeHubWococo {
 	const MAX_UNCONFIRMED_MESSAGES_IN_CONFIRMATION_TX: MessageNonce =
 		bp_bridge_hub_wococo::MAX_UNCONFIRMED_MESSAGES_IN_CONFIRMATION_TX;
 
-	// TODO:check-parameter
 	type WeightToFee = bp_bridge_hub_wococo::WeightToFee;
-	// TODO:check-parameter
+	// TODO: fix (https://github.com/paritytech/parity-bridges-common/issues/1640)
 	type WeightInfo = ();
 }
 

@@ -25,12 +25,35 @@ use bp_runtime::{decl_bridge_finality_runtime_apis, decl_bridge_messages_runtime
 use frame_support::{
 	parameter_types,
 	sp_runtime::{FixedU128, MultiAddress, MultiSigner},
+	weights::{
+		constants::ExtrinsicBaseWeight, WeightToFeeCoefficient, WeightToFeeCoefficients,
+		WeightToFeePolynomial,
+	},
 	Parameter,
 };
 use sp_std::prelude::*;
 
 pub type BridgeHubRococo = PolkadotLike;
-pub type WeightToFee = frame_support::weights::IdentityFee<Balance>;
+
+/// [`WeightToFee`] should reflect cumulus/bridge-hub-rococo-runtime [`WeightToFee`]
+pub struct WeightToFee;
+impl WeightToFeePolynomial for WeightToFee {
+	type Balance = Balance;
+	fn polynomial() -> WeightToFeeCoefficients<Self::Balance> {
+		pub const CENTS: Balance = polkadot_runtime_constants::currency::CENTS;
+
+		// in Rococo, extrinsic base weight (smallest non-zero weight) is mapped to 1/10 CENT:
+		// in BridgeHub, we map to 1/10 of that, or 1/100 CENT
+		let p = CENTS;
+		let q = 100 * Balance::from(ExtrinsicBaseWeight::get().ref_time());
+		smallvec::smallvec![WeightToFeeCoefficient {
+			degree: 1,
+			negative: false,
+			coeff_frac: Perbill::from_rational(p % q, q),
+			coeff_integer: p / q,
+		}]
+	}
+}
 
 /// Public key of the chain account that may be used to verify signatures.
 pub type AccountSigner = MultiSigner;

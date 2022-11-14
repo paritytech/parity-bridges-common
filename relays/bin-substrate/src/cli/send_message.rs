@@ -211,8 +211,9 @@ impl SendMessage {
 				MillauToRialtoParachainCliBridge::send_message(self),
 			FullBridge::RialtoParachainToMillau =>
 				RialtoParachainToMillauCliBridge::send_message(self),
-			FullBridge::BridgeHubRococoToBridgeHubWococo =>
-				unimplemented!("TODO: (SendMessage) do we need it or refactor or remove?"),
+			FullBridge::BridgeHubRococoToBridgeHubWococo => unimplemented!(
+				"Sending message from BridgeHubRococo to BridgeHubWococo is not supported"
+			),
 		}
 		.await
 	}
