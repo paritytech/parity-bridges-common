@@ -14,7 +14,7 @@
 // You should have received a copy of the GNU General Public License
 // along with Parity Bridges Common.  If not, see <http://www.gnu.org/licenses/>.
 
-//! BridgeHubRococo-to-BridgeHubWococo messages sync entrypoint.
+//! BridgeHubWococo-to-BridgeHubRococo messages sync entrypoint.
 
 use crate::cli::bridge::{CliBridgeBase, MessagesCliBridge};
 use bp_messages::Weight;
@@ -23,38 +23,38 @@ use relay_bridge_hub_rococo_client::BridgeHubRococo;
 use relay_bridge_hub_wococo_client::BridgeHubWococo;
 use substrate_relay_helper::messages_lane::SubstrateMessageLane;
 
-pub struct BridgeHubRococoToBridgeHubWococoMessagesCliBridge {}
+pub struct BridgeHubWococoToBridgeHubRococoMessagesCliBridge {}
 
-impl CliBridgeBase for BridgeHubRococoToBridgeHubWococoMessagesCliBridge {
-	type Source = BridgeHubRococo;
-	type Target = BridgeHubWococo;
+impl CliBridgeBase for BridgeHubWococoToBridgeHubRococoMessagesCliBridge {
+	type Source = BridgeHubWococo;
+	type Target = BridgeHubRococo;
 }
 
-impl MessagesCliBridge for BridgeHubRococoToBridgeHubWococoMessagesCliBridge {
+impl MessagesCliBridge for BridgeHubWococoToBridgeHubRococoMessagesCliBridge {
 	const ESTIMATE_MESSAGE_FEE_METHOD: &'static str =
 		"TODO: not needed now, used for send_message and estimate_fee CLI";
-	type MessagesLane = BridgeHubRococoMessagesToBridgeHubWococoMessageLane;
+	type MessagesLane = BridgeHubWococoMessagesToBridgeHubRococoMessageLane;
 }
 
 substrate_relay_helper::generate_mocked_receive_message_proof_call_builder!(
-	BridgeHubRococoMessagesToBridgeHubWococoMessageLane,
-	BridgeHubRococoMessagesToBridgeHubWococoMessageLaneReceiveMessagesProofCallBuilder,
-	relay_bridge_hub_wococo_client::runtime::Call::BridgeRococoMessages,
-	relay_bridge_hub_wococo_client::runtime::BridgeRococoMessagesCall::receive_messages_proof
+	BridgeHubWococoMessagesToBridgeHubRococoMessageLane,
+	BridgeHubWococoMessagesToBridgeHubRococoMessageLaneReceiveMessagesProofCallBuilder,
+	relay_bridge_hub_rococo_client::runtime::Call::BridgeWococoMessages,
+	relay_bridge_hub_rococo_client::runtime::BridgeWococoMessagesCall::receive_messages_proof
 );
 
 substrate_relay_helper::generate_mocked_receive_message_delivery_proof_call_builder!(
-	BridgeHubRococoMessagesToBridgeHubWococoMessageLane,
-	BridgeHubRococoMessagesToBridgeHubWococoMessageLaneReceiveMessagesDeliveryProofCallBuilder,
-	relay_bridge_hub_rococo_client::runtime::Call::BridgeWococoMessages,
-	relay_bridge_hub_rococo_client::runtime::BridgeWococoMessagesCall::receive_messages_delivery_proof
+	BridgeHubWococoMessagesToBridgeHubRococoMessageLane,
+	BridgeHubWococoMessagesToBridgeHubRococoMessageLaneReceiveMessagesDeliveryProofCallBuilder,
+	relay_bridge_hub_wococo_client::runtime::Call::BridgeRococoMessages,
+	relay_bridge_hub_wococo_client::runtime::BridgeRococoMessagesCall::receive_messages_delivery_proof
 );
 
-/// Description of BridgeHubRococo -> BridgeHubWococo messages bridge.
+/// Description of BridgeHubWococo -> BridgeHubRococo messages bridge.
 #[derive(Clone, Debug)]
-pub struct BridgeHubRococoMessagesToBridgeHubWococoMessageLane;
+pub struct BridgeHubWococoMessagesToBridgeHubRococoMessageLane;
 
-impl SubstrateMessageLane for BridgeHubRococoMessagesToBridgeHubWococoMessageLane {
+impl SubstrateMessageLane for BridgeHubWococoMessagesToBridgeHubRococoMessageLane {
 	const SOURCE_TO_TARGET_CONVERSION_RATE_PARAMETER_NAME: Option<&'static str> = None;
 	const TARGET_TO_SOURCE_CONVERSION_RATE_PARAMETER_NAME: Option<&'static str> = None;
 
@@ -64,13 +64,13 @@ impl SubstrateMessageLane for BridgeHubRococoMessagesToBridgeHubWococoMessageLan
 	const AT_SOURCE_TRANSACTION_PAYMENT_PALLET_NAME: Option<&'static str> = None;
 	const AT_TARGET_TRANSACTION_PAYMENT_PALLET_NAME: Option<&'static str> = None;
 
-	type SourceChain = BridgeHubRococo;
-	type TargetChain = BridgeHubWococo;
+	type SourceChain = BridgeHubWococo;
+	type TargetChain = BridgeHubRococo;
 
 	type ReceiveMessagesProofCallBuilder =
-		BridgeHubRococoMessagesToBridgeHubWococoMessageLaneReceiveMessagesProofCallBuilder;
+		BridgeHubWococoMessagesToBridgeHubRococoMessageLaneReceiveMessagesProofCallBuilder;
 	type ReceiveMessagesDeliveryProofCallBuilder =
-		BridgeHubRococoMessagesToBridgeHubWococoMessageLaneReceiveMessagesDeliveryProofCallBuilder;
+		BridgeHubWococoMessagesToBridgeHubRococoMessageLaneReceiveMessagesDeliveryProofCallBuilder;
 
 	type TargetToSourceChainConversionRateUpdateBuilder = ();
 

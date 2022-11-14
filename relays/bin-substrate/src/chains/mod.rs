@@ -17,6 +17,7 @@
 //! Chain-specific relayer configuration.
 
 pub mod bridge_hub_rococo_messages_to_bridge_hub_wococo;
+pub mod bridge_hub_wococo_messages_to_bridge_hub_rococo;
 pub mod millau_headers_to_rialto;
 pub mod millau_headers_to_rialto_parachain;
 pub mod millau_messages_to_rialto;

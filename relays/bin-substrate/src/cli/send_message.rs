@@ -214,6 +214,9 @@ impl SendMessage {
 			FullBridge::BridgeHubRococoToBridgeHubWococo => unimplemented!(
 				"Sending message from BridgeHubRococo to BridgeHubWococo is not supported"
 			),
+			FullBridge::BridgeHubWococoToBridgeHubRococo => unimplemented!(
+				"Sending message from BridgeHubWococo to BridgeHubRococo is not supported"
+			),
 		}
 		.await
 	}
