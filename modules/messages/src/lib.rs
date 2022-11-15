@@ -60,8 +60,7 @@ use bp_messages::{
 	},
 	total_unrewarded_messages, DeliveredMessages, InboundLaneData, InboundMessageDetails, LaneId,
 	MessageKey, MessageNonce, MessagePayload, MessagesOperatingMode, OutboundLaneData,
-	OutboundMessageDetails,
-	UnrewardedRelayer, UnrewardedRelayersState,
+	OutboundMessageDetails, UnrewardedRelayer, UnrewardedRelayersState,
 };
 use bp_runtime::{BasicOperatingMode, ChainId, OwnedBridgeModule, Size};
 use codec::{Decode, Encode, MaxEncodedLen};
@@ -193,7 +192,8 @@ pub mod pallet {
 	}
 
 	/// Shortcut to messages proof type for Config.
-	type MessagesProofOf<T, I> = <<T as Config<I>>::SourceHeaderChain as SourceHeaderChain>::MessagesProof;
+	type MessagesProofOf<T, I> =
+		<<T as Config<I>>::SourceHeaderChain as SourceHeaderChain>::MessagesProof;
 	/// Shortcut to messages delivery proof type for Config.
 	type MessagesDeliveryProofOf<T, I> =
 		<<T as Config<I>>::TargetHeaderChain as TargetHeaderChain<
@@ -638,10 +638,7 @@ pub mod pallet {
 
 	impl<T: Config<I>, I: 'static> Pallet<T, I> {
 		/// Get stored data of the outbound message with given nonce.
-		pub fn outbound_message_data(
-			lane: LaneId,
-			nonce: MessageNonce,
-		) -> Option<MessagePayload> {
+		pub fn outbound_message_data(lane: LaneId, nonce: MessageNonce) -> Option<MessagePayload> {
 			OutboundMessages::<T, I>::get(MessageKey { lane_id: lane, nonce }).map(Into::into)
 		}
 
@@ -662,11 +659,8 @@ pub mod pallet {
 	}
 }
 
-impl<T, I>
-	bp_messages::source_chain::MessagesBridge<
-		T::RuntimeOrigin,
-		T::OutboundPayload,
-	> for Pallet<T, I>
+impl<T, I> bp_messages::source_chain::MessagesBridge<T::RuntimeOrigin, T::OutboundPayload>
+	for Pallet<T, I>
 where
 	T: Config<I>,
 	I: 'static,
@@ -710,27 +704,26 @@ fn send_message<T: Config<I>, I: 'static>(
 
 	// now let's enforce any additional lane rules
 	let mut lane = outbound_lane::<T, I>(lane_id);
-	T::LaneMessageVerifier::verify_message(
-		&submitter,
-		&lane_id,
-		&lane.data(),
-		&payload,
-	)
-	.map_err(|err| {
-		log::trace!(
-			target: LOG_TARGET,
-			"Message to lane {:?} is rejected by lane verifier: {:?}",
-			lane_id,
-			err,
-		);
+	T::LaneMessageVerifier::verify_message(&submitter, &lane_id, &lane.data(), &payload).map_err(
+		|err| {
+			log::trace!(
+				target: LOG_TARGET,
+				"Message to lane {:?} is rejected by lane verifier: {:?}",
+				lane_id,
+				err,
+			);
 
-		Error::<T, I>::MessageRejectedByLaneVerifier
-	})?;
+			Error::<T, I>::MessageRejectedByLaneVerifier
+		},
+	)?;
 
 	// finally, save message in outbound storage and emit event
 	let encoded_payload = payload.encode();
 	let encoded_payload_len = encoded_payload.len();
-	ensure!(encoded_payload_len <= T::MaximalOutboundPayloadSize::get() as usize, Error::<T, I>::MessageIsTooLarge);
+	ensure!(
+		encoded_payload_len <= T::MaximalOutboundPayloadSize::get() as usize,
+		Error::<T, I>::MessageIsTooLarge
+	);
 	let nonce = lane.send_message(encoded_payload);
 
 	// Guaranteed to be called outside only when the message is accepted.
@@ -920,17 +913,14 @@ impl<T: Config<I>, I: 'static> OutboundLaneStorage for RuntimeOutboundLaneStorag
 			.map(Into::into)
 	}
 
-	fn save_message(
-		&mut self,
-		nonce: MessageNonce,
-		message_payload: MessagePayload,
-	) {
+	fn save_message(&mut self, nonce: MessageNonce, message_payload: MessagePayload) {
 		OutboundMessages::<T, I>::insert(
 			MessageKey { lane_id: self.lane_id, nonce },
-			StoredMessagePayload::<T, I>::try_from(message_payload)
-				.expect("save_message is called after all checks in send_message; \
+			StoredMessagePayload::<T, I>::try_from(message_payload).expect(
+				"save_message is called after all checks in send_message; \
 					send_message checks message size; \
-					qed"),
+					qed",
+			),
 		);
 	}
 
@@ -969,10 +959,10 @@ mod tests {
 	use crate::mock::{
 		message, message_payload, run_test, unrewarded_relayer, RuntimeEvent as TestEvent,
 		RuntimeOrigin, TestMessageDeliveryAndDispatchPayment, TestMessagesDeliveryProof,
-		TestMessagesProof, TestOnDeliveryConfirmed1,
-		TestOnDeliveryConfirmed2, TestOnMessageAccepted, TestRuntime,
-		MAX_OUTBOUND_PAYLOAD_SIZE, PAYLOAD_REJECTED_BY_TARGET_CHAIN, REGULAR_PAYLOAD, TEST_LANE_ID,
-		TEST_RELAYER_A, TEST_RELAYER_B,
+		TestMessagesProof, TestOnDeliveryConfirmed1, TestOnDeliveryConfirmed2,
+		TestOnMessageAccepted, TestRuntime, MAX_OUTBOUND_PAYLOAD_SIZE,
+		PAYLOAD_REJECTED_BY_TARGET_CHAIN, REGULAR_PAYLOAD, TEST_LANE_ID, TEST_RELAYER_A,
+		TEST_RELAYER_B,
 	};
 	use bp_messages::{UnrewardedRelayer, UnrewardedRelayersState};
 	use bp_test_utils::generate_owned_bridge_module_tests;
@@ -1236,11 +1226,7 @@ mod tests {
 			let mut message = REGULAR_PAYLOAD;
 			message.reject_by_lane_verifier = true;
 			assert_noop!(
-				send_message::<TestRuntime, ()>(
-					RuntimeOrigin::signed(1),
-					TEST_LANE_ID,
-					message,
-				),
+				send_message::<TestRuntime, ()>(RuntimeOrigin::signed(1), TEST_LANE_ID, message,),
 				Error::<TestRuntime, ()>::MessageRejectedByLaneVerifier,
 			);
 		});

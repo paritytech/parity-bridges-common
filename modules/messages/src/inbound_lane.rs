@@ -242,9 +242,9 @@ mod tests {
 	use crate::{
 		inbound_lane,
 		mock::{
-			inbound_message_data, dispatch_result, run_test, unrewarded_relayer, TestMessageDispatch,
-			TestRuntime, REGULAR_PAYLOAD, TEST_LANE_ID, TEST_RELAYER_A, TEST_RELAYER_B,
-			TEST_RELAYER_C,
+			dispatch_result, inbound_message_data, run_test, unrewarded_relayer,
+			TestMessageDispatch, TestRuntime, REGULAR_PAYLOAD, TEST_LANE_ID, TEST_RELAYER_A,
+			TEST_RELAYER_B, TEST_RELAYER_C,
 		},
 		RuntimeInboundLaneStorage,
 	};

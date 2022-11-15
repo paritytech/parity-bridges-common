@@ -159,9 +159,7 @@ pub trait MessagesBridge<SenderOrigin, Payload> {
 #[derive(Eq, RuntimeDebug, PartialEq)]
 pub struct NoopMessagesBridge;
 
-impl<SenderOrigin, Payload> MessagesBridge<SenderOrigin, Payload>
-	for NoopMessagesBridge
-{
+impl<SenderOrigin, Payload> MessagesBridge<SenderOrigin, Payload> for NoopMessagesBridge {
 	type Error = &'static str;
 
 	fn send_message(

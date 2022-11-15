@@ -26,10 +26,11 @@ use bp_messages::{
 		OnMessageAccepted, TargetHeaderChain,
 	},
 	target_chain::{
-		DispatchMessage, DispatchMessageData, MessageDispatch, ProvedLaneMessages, ProvedMessages, SourceHeaderChain,
+		DispatchMessage, DispatchMessageData, MessageDispatch, ProvedLaneMessages, ProvedMessages,
+		SourceHeaderChain,
 	},
-	DeliveredMessages, InboundLaneData, LaneId, Message, MessageKey, MessageNonce,
-	MessagePayload, OutboundLaneData, UnrewardedRelayer,
+	DeliveredMessages, InboundLaneData, LaneId, Message, MessageKey, MessageNonce, MessagePayload,
+	OutboundLaneData, UnrewardedRelayer,
 };
 use bp_runtime::{messages::MessageDispatchResult, Size};
 use codec::{Decode, Encode};
@@ -223,10 +224,8 @@ impl From<Result<Vec<Message>, ()>> for TestMessagesProof {
 	fn from(result: Result<Vec<Message>, ()>) -> Self {
 		Self {
 			result: result.map(|messages| {
-				let mut messages_by_lane: BTreeMap<
-					LaneId,
-					ProvedLaneMessages<Message>,
-				> = BTreeMap::new();
+				let mut messages_by_lane: BTreeMap<LaneId, ProvedLaneMessages<Message>> =
+					BTreeMap::new();
 				for message in messages {
 					messages_by_lane.entry(message.key.lane_id).or_default().messages.push(message);
 				}

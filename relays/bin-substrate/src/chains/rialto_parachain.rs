@@ -16,11 +16,7 @@
 
 //! Rialto parachain specification for CLI.
 
-use crate::cli::{
-	bridge,
-	encode_message::CliEncodeMessage,
-	CliChain,
-};
+use crate::cli::{bridge, encode_message::CliEncodeMessage, CliChain};
 use bp_runtime::EncodedOrDecodedCall;
 use relay_rialto_parachain_client::RialtoParachain;
 use sp_version::RuntimeVersion;

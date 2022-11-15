@@ -1064,10 +1064,9 @@ mod tests {
 				|n, m| {
 					let mut m = m.encode();
 					if n == 5 {
-						m = vec![0u8; 42].encode();
-						m.truncate(2);
+						m = vec![42]
 					}
-					Some(m.encode())
+					Some(m)
 				},
 				encode_lane_data,
 				|proof| target::verify_messages_proof::<OnThisChainBridge>(proof, 10),

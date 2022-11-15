@@ -16,11 +16,7 @@
 
 //! Millau chain specification for CLI.
 
-use crate::cli::{
-	bridge,
-	encode_message::CliEncodeMessage,
-	CliChain,
-};
+use crate::cli::{bridge, encode_message::CliEncodeMessage, CliChain};
 use bp_rialto_parachain::RIALTO_PARACHAIN_ID;
 use bp_runtime::EncodedOrDecodedCall;
 use relay_millau_client::Millau;

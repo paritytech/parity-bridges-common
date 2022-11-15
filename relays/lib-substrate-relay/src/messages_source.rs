@@ -31,8 +31,8 @@ use async_std::sync::Arc;
 use async_trait::async_trait;
 use bp_messages::{
 	storage_keys::{operating_mode_key, outbound_lane_data_key},
-	InboundMessageDetails, LaneId, MessageNonce, MessagePayload,
-	MessagesOperatingMode, OutboundLaneData, OutboundMessageDetails, UnrewardedRelayersState,
+	InboundMessageDetails, LaneId, MessageNonce, MessagePayload, MessagesOperatingMode,
+	OutboundLaneData, OutboundMessageDetails, UnrewardedRelayersState,
 };
 use bp_runtime::{messages::DispatchFeePayment, BasicOperatingMode, HeaderIdProvider};
 use bridge_runtime_common::messages::{

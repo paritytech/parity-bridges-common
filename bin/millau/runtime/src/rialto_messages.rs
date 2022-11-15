@@ -24,9 +24,7 @@ use bp_messages::{
 	InboundLaneData, LaneId, Message, MessageNonce,
 };
 use bp_runtime::{ChainId, MILLAU_CHAIN_ID, RIALTO_CHAIN_ID};
-use bridge_runtime_common::messages::{
-	self, MessageBridge,
-};
+use bridge_runtime_common::messages::{self, MessageBridge};
 use frame_support::{parameter_types, weights::Weight, RuntimeDebug};
 
 /// Default lane that is used to send messages to Rialto.
@@ -137,7 +135,6 @@ impl messages::BridgedChainWithMessages for Rialto {
 	fn verify_dispatch_weight(_message_payload: &[u8]) -> bool {
 		true
 	}
-
 }
 
 impl TargetHeaderChain<ToRialtoMessagePayload, bp_millau::AccountId> for Rialto {

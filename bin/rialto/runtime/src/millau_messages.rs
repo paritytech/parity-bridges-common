@@ -24,9 +24,7 @@ use bp_messages::{
 	InboundLaneData, LaneId, Message, MessageNonce,
 };
 use bp_runtime::{ChainId, MILLAU_CHAIN_ID, RIALTO_CHAIN_ID};
-use bridge_runtime_common::messages::{
-	self, MessageBridge,
-};
+use bridge_runtime_common::messages::{self, MessageBridge};
 use frame_support::{parameter_types, weights::Weight, RuntimeDebug};
 
 /// Weight of 2 XCM instructions is for simple `Trap(42)` program, coming through bridge

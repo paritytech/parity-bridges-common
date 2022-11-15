@@ -332,7 +332,7 @@ macro_rules! decl_bridge_messages_runtime_apis {
 
 			pub use [<$chain _messages_api>]::*;
 		}
-	}
+	};
 }
 
 /// Convenience macro that declares bridge finality runtime apis, bridge messages runtime apis

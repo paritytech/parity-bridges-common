@@ -16,7 +16,7 @@
 
 //! Primitives of messages module, that are used on the target chain.
 
-use crate::{LaneId, Message, MessagePayload, MessageKey, OutboundLaneData};
+use crate::{LaneId, Message, MessageKey, MessagePayload, OutboundLaneData};
 
 use bp_runtime::{messages::MessageDispatchResult, Size};
 use codec::{Decode, Encode, Error as CodecError};
@@ -121,13 +121,9 @@ impl<DispatchPayload: Decode> From<Message> for DispatchMessage<DispatchPayload>
 	}
 }
 
-impl<DispatchPayload: Decode> From<MessagePayload>
-	for DispatchMessageData<DispatchPayload>
-{
+impl<DispatchPayload: Decode> From<MessagePayload> for DispatchMessageData<DispatchPayload> {
 	fn from(payload: MessagePayload) -> Self {
-		DispatchMessageData {
-			payload: DispatchPayload::decode(&mut &payload[..]),
-		}
+		DispatchMessageData { payload: DispatchPayload::decode(&mut &payload[..]) }
 	}
 }
 
@@ -158,10 +154,7 @@ impl<AccountId> MessageDispatch<AccountId> for ForbidInboundMessages {
 		Weight::MAX
 	}
 
-	fn dispatch(
-		_: &AccountId,
-		_: DispatchMessage<Self::DispatchPayload>,
-	) -> MessageDispatchResult {
+	fn dispatch(_: &AccountId, _: DispatchMessage<Self::DispatchPayload>) -> MessageDispatchResult {
 		MessageDispatchResult {
 			dispatch_result: false,
 			unspent_weight: Weight::zero(),

@@ -27,9 +27,7 @@ use bp_messages::{
 	InboundLaneData, LaneId, Message, MessageNonce,
 };
 use bp_runtime::{ChainId, MILLAU_CHAIN_ID, RIALTO_PARACHAIN_CHAIN_ID};
-use bridge_runtime_common::messages::{
-	self, MessageBridge,
-};
+use bridge_runtime_common::messages::{self, MessageBridge};
 use frame_support::{parameter_types, weights::Weight, RuntimeDebug};
 
 /// Default lane that is used to send messages to Millau.

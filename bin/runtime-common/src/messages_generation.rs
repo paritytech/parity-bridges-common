@@ -30,11 +30,8 @@ use sp_std::{ops::RangeInclusive, prelude::*};
 use sp_trie::{trie_types::TrieDBMutBuilderV1, LayoutV1, MemoryDB, Recorder, TrieMut};
 
 /// Simple and correct message data encode function.
-pub(crate) fn encode_all_messages(
-	_: MessageNonce,
-	m: &MessagePayload,
-) -> Option<Vec<u8>> {
-	Some(m.clone())
+pub(crate) fn encode_all_messages(_: MessageNonce, m: &MessagePayload) -> Option<Vec<u8>> {
+	Some(m.encode())
 }
 
 /// Simple and correct outbound lane data encode function.

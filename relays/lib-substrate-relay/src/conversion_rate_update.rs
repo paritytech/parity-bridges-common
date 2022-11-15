@@ -19,8 +19,7 @@
 use crate::{messages_lane::SubstrateMessageLane, TransactionParams};
 
 use relay_substrate_client::{
-	transaction_stall_timeout, AccountIdOf, AccountKeyPairOf, Chain, ChainWithTransactions,
-	Client,
+	transaction_stall_timeout, AccountIdOf, AccountKeyPairOf, Chain, ChainWithTransactions, Client,
 };
 use relay_utils::metrics::F64SharedRef;
 use sp_core::Pair;

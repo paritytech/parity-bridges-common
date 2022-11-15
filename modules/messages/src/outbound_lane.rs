@@ -20,8 +20,8 @@ use crate::Config;
 
 use bitvec::prelude::*;
 use bp_messages::{
-	DeliveredMessages, DispatchResultsBitVec, LaneId, MessagePayload, MessageNonce, OutboundLaneData,
-	UnrewardedRelayer,
+	DeliveredMessages, DispatchResultsBitVec, LaneId, MessageNonce, MessagePayload,
+	OutboundLaneData, UnrewardedRelayer,
 };
 use frame_support::{BoundedVec, RuntimeDebug};
 use sp_std::collections::vec_deque::VecDeque;
@@ -241,8 +241,8 @@ mod tests {
 	use super::*;
 	use crate::{
 		mock::{
-			outbound_message_data, run_test, unrewarded_relayer, TestRelayer, TestRuntime, REGULAR_PAYLOAD,
-			TEST_LANE_ID,
+			outbound_message_data, run_test, unrewarded_relayer, TestRelayer, TestRuntime,
+			REGULAR_PAYLOAD, TEST_LANE_ID,
 		},
 		outbound_lane,
 	};

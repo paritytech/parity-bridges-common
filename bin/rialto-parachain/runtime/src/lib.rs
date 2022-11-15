@@ -28,7 +28,7 @@ include!(concat!(env!("OUT_DIR"), "/wasm_binary.rs"));
 
 use crate::millau_messages::{WithMillauMessageBridge, DEFAULT_XCM_LANE_TO_MILLAU};
 
-use bridge_runtime_common::messages::{source::{XcmBridge, XcmBridgeAdapter}};
+use bridge_runtime_common::messages::source::{XcmBridge, XcmBridgeAdapter};
 use cumulus_pallet_parachain_system::AnyRelayNumber;
 use sp_api::impl_runtime_apis;
 use sp_core::{crypto::KeyTypeId, OpaqueMetadata};

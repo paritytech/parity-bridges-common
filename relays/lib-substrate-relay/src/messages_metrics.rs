@@ -22,9 +22,7 @@ use codec::Decode;
 use frame_system::AccountInfo;
 use pallet_balances::AccountData;
 use relay_substrate_client::{
-	metrics::{
-		FloatStorageValue, FloatStorageValueMetric, StorageProofOverheadMetric,
-	},
+	metrics::{FloatStorageValue, FloatStorageValueMetric, StorageProofOverheadMetric},
 	AccountIdOf, BalanceOf, Chain, ChainWithBalances, Client, Error as SubstrateError, IndexOf,
 };
 use relay_utils::metrics::{
