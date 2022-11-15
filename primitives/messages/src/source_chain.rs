@@ -27,17 +27,8 @@ use sp_std::{
 	ops::RangeInclusive,
 };
 
-/// Relayers rewards, grouped by relayer account id.
-pub type RelayersRewards<AccountId, Balance> = BTreeMap<AccountId, RelayerRewards<Balance>>;
-
-/// Single relayer rewards.
-#[derive(RuntimeDebug, Default)]
-pub struct RelayerRewards<Balance> {
-	/// Total rewards that are to be paid to the relayer.
-	pub reward: Balance,
-	/// Total number of messages relayed by this relayer.
-	pub messages: MessageNonce,
-}
+/// Number of messages, delivered by relayers.
+pub type RelayersRewards<AccountId> = BTreeMap<AccountId, MessageNonce>;
 
 /// Target chain API. Used by source chain to verify target chain proofs.
 ///
@@ -91,7 +82,6 @@ pub trait LaneMessageVerifier<SenderOrigin, Payload, Fee> {
 	/// lane.
 	fn verify_message(
 		submitter: &SenderOrigin,
-		delivery_and_dispatch_fee: &Fee,
 		lane: &LaneId,
 		outbound_data: &OutboundLaneData,
 		payload: &Payload,
@@ -115,13 +105,6 @@ pub trait MessageDeliveryAndDispatchPayment<SenderOrigin, AccountId, Balance> {
 	/// Error type.
 	type Error: Debug + Into<&'static str>;
 
-	/// Withhold/write-off delivery_and_dispatch_fee from submitter account to
-	/// some relayers-fund account.
-	fn pay_delivery_and_dispatch_fee(
-		submitter: &SenderOrigin,
-		fee: &Balance,
-	) -> Result<(), Self::Error>;
-
 	/// Pay rewards for delivering messages to the given relayers.
 	///
 	/// The implementation may also choose to pay reward to the `confirmation_relayer`, which is
@@ -138,13 +121,6 @@ impl<SenderOrigin, AccountId, Balance>
 	MessageDeliveryAndDispatchPayment<SenderOrigin, AccountId, Balance> for ()
 {
 	type Error = &'static str;
-
-	fn pay_delivery_and_dispatch_fee(
-		_submitter: &SenderOrigin,
-		_fee: &Balance,
-	) -> Result<(), Self::Error> {
-		Ok(())
-	}
 
 	fn pay_relayers_rewards(
 		_lane_id: LaneId,
@@ -165,7 +141,7 @@ pub struct SendMessageArtifacts {
 }
 
 /// Messages bridge API to be used from other pallets.
-pub trait MessagesBridge<SenderOrigin, Balance, Payload> {
+pub trait MessagesBridge<SenderOrigin, Payload> {
 	/// Error type.
 	type Error: Debug;
 
@@ -176,7 +152,6 @@ pub trait MessagesBridge<SenderOrigin, Balance, Payload> {
 		sender: SenderOrigin,
 		lane: LaneId,
 		message: Payload,
-		delivery_and_dispatch_fee: Balance,
 	) -> Result<SendMessageArtifacts, Self::Error>;
 }
 
@@ -184,7 +159,7 @@ pub trait MessagesBridge<SenderOrigin, Balance, Payload> {
 #[derive(Eq, RuntimeDebug, PartialEq)]
 pub struct NoopMessagesBridge;
 
-impl<SenderOrigin, Balance, Payload> MessagesBridge<SenderOrigin, Balance, Payload>
+impl<SenderOrigin, Payload> MessagesBridge<SenderOrigin, Payload>
 	for NoopMessagesBridge
 {
 	type Error = &'static str;
@@ -193,7 +168,6 @@ impl<SenderOrigin, Balance, Payload> MessagesBridge<SenderOrigin, Balance, Paylo
 		_sender: SenderOrigin,
 		_lane: LaneId,
 		_message: Payload,
-		_delivery_and_dispatch_fee: Balance,
 	) -> Result<SendMessageArtifacts, Self::Error> {
 		Ok(SendMessageArtifacts { nonce: 0, weight: Weight::zero() })
 	}
@@ -273,7 +247,6 @@ impl<SenderOrigin, Payload, Fee> LaneMessageVerifier<SenderOrigin, Payload, Fee>
 
 	fn verify_message(
 		_submitter: &SenderOrigin,
-		_delivery_and_dispatch_fee: &Fee,
 		_lane: &LaneId,
 		_outbound_data: &OutboundLaneData,
 		_payload: &Payload,
@@ -286,13 +259,6 @@ impl<SenderOrigin, AccountId, Balance>
 	MessageDeliveryAndDispatchPayment<SenderOrigin, AccountId, Balance> for ForbidOutboundMessages
 {
 	type Error = &'static str;
-
-	fn pay_delivery_and_dispatch_fee(
-		_submitter: &SenderOrigin,
-		_fee: &Balance,
-	) -> Result<(), Self::Error> {
-		Err(ALL_OUTBOUND_MESSAGES_REJECTED)
-	}
 
 	fn pay_relayers_rewards(
 		_lane_id: LaneId,

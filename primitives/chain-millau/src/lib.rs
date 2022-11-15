@@ -27,14 +27,14 @@ use bp_runtime::{decl_bridge_runtime_apis, Chain};
 use frame_support::{
 	dispatch::DispatchClass,
 	weights::{constants::WEIGHT_PER_SECOND, IdentityFee, Weight},
-	Parameter, RuntimeDebug,
+	RuntimeDebug,
 };
 use frame_system::limits;
 use scale_info::TypeInfo;
 use sp_core::{storage::StateVersion, Hasher as HasherT};
 use sp_runtime::{
 	traits::{IdentifyAccount, Verify},
-	FixedU128, MultiSignature, MultiSigner, Perbill,
+	MultiSignature, MultiSigner, Perbill,
 };
 use sp_std::prelude::*;
 use sp_trie::{LayoutV0, LayoutV1, TrieConfiguration};
@@ -236,14 +236,5 @@ pub const WITH_MILLAU_GRANDPA_PALLET_NAME: &str = "BridgeMillauGrandpa";
 pub const WITH_MILLAU_MESSAGES_PALLET_NAME: &str = "BridgeMillauMessages";
 /// Name of the transaction payment pallet at the Millau runtime.
 pub const TRANSACTION_PAYMENT_PALLET_NAME: &str = "TransactionPayment";
-
-/// Name of the Rialto->Millau (actually DOT->KSM) conversion rate stored in the Millau runtime.
-pub const RIALTO_TO_MILLAU_CONVERSION_RATE_PARAMETER_NAME: &str = "RialtoToMillauConversionRate";
-/// Name of the RialtoParachain->Millau (actually DOT->KSM) conversion rate stored in the Millau
-/// runtime.
-pub const RIALTO_PARACHAIN_TO_MILLAU_CONVERSION_RATE_PARAMETER_NAME: &str =
-	"RialtoParachainToMillauConversionRate";
-/// Name of the RialtoParachain fee multiplier parameter, stored in the Millau runtime.
-pub const RIALTO_PARACHAIN_FEE_MULTIPLIER_PARAMETER_NAME: &str = "RialtoParachainFeeMultiplier";
 
 decl_bridge_runtime_apis!(millau);

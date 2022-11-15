@@ -21,7 +21,7 @@
 use crate::messages::{BalanceOf, BridgedChain, HashOf, HasherOf, MessageBridge, RawStorageProof};
 
 use bp_messages::{
-	storage_keys, LaneId, MessageData, MessageKey, MessageNonce, MessagePayload, OutboundLaneData,
+	storage_keys, LaneId, MessageKey, MessageNonce, MessagePayload, OutboundLaneData,
 };
 use bp_runtime::{record_all_trie_keys, StorageProofSize};
 use codec::Encode;
@@ -31,9 +31,9 @@ use sp_std::{ops::RangeInclusive, prelude::*};
 use sp_trie::{trie_types::TrieDBMutBuilderV1, LayoutV1, MemoryDB, Recorder, TrieMut};
 
 /// Simple and correct message data encode function.
-pub(crate) fn encode_all_messages<B: Encode>(
+pub(crate) fn encode_all_messages(
 	_: MessageNonce,
-	m: &MessageData<B>,
+	m: &MessageData,
 ) -> Option<Vec<u8>> {
 	Some(m.encode())
 }

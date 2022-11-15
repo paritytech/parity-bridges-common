@@ -36,16 +36,6 @@ substrate_relay_helper::generate_direct_update_conversion_rate_call_builder!(
 );
 
 impl SubstrateMessageLane for MillauMessagesToRialtoParachain {
-	const SOURCE_TO_TARGET_CONVERSION_RATE_PARAMETER_NAME: Option<&'static str> =
-		Some(bp_rialto_parachain::MILLAU_TO_RIALTO_PARACHAIN_CONVERSION_RATE_PARAMETER_NAME);
-	const TARGET_TO_SOURCE_CONVERSION_RATE_PARAMETER_NAME: Option<&'static str> =
-		Some(bp_millau::RIALTO_PARACHAIN_TO_MILLAU_CONVERSION_RATE_PARAMETER_NAME);
-
-	const SOURCE_FEE_MULTIPLIER_PARAMETER_NAME: Option<&'static str> =
-		Some(bp_rialto_parachain::MILLAU_FEE_MULTIPLIER_PARAMETER_NAME);
-	const TARGET_FEE_MULTIPLIER_PARAMETER_NAME: Option<&'static str> =
-		Some(bp_millau::RIALTO_PARACHAIN_FEE_MULTIPLIER_PARAMETER_NAME);
-
 	const AT_SOURCE_TRANSACTION_PAYMENT_PALLET_NAME: Option<&'static str> =
 		Some(bp_millau::TRANSACTION_PAYMENT_PALLET_NAME);
 	const AT_TARGET_TRANSACTION_PAYMENT_PALLET_NAME: Option<&'static str> =

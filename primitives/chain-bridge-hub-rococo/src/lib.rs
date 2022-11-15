@@ -24,12 +24,11 @@ pub use bp_polkadot_core::*;
 use bp_runtime::{decl_bridge_finality_runtime_apis, decl_bridge_messages_runtime_apis};
 use frame_support::{
 	parameter_types,
-	sp_runtime::{FixedU128, MultiAddress, MultiSigner},
+	sp_runtime::{MultiAddress, MultiSigner},
 	weights::{
 		constants::ExtrinsicBaseWeight, WeightToFeeCoefficient, WeightToFeeCoefficients,
 		WeightToFeePolynomial,
 	},
-	Parameter,
 };
 use sp_std::prelude::*;
 

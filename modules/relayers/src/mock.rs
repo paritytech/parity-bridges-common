@@ -97,7 +97,6 @@ parameter_types! {
 impl pallet_bridge_messages::Config for TestRuntime {
 	type RuntimeEvent = RuntimeEvent;
 	type WeightInfo = ();
-	type Parameter = ();
 	type MaxMessagesToPruneAtOnce = frame_support::traits::ConstU64<0>;
 	type MaxUnrewardedRelayerEntriesAtInboundLane = frame_support::traits::ConstU64<8>;
 	type MaxUnconfirmedMessagesAtInboundLane = frame_support::traits::ConstU64<8>;

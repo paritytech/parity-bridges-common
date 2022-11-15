@@ -32,18 +32,8 @@ pub mod rialto_messages;
 pub mod rialto_parachain_messages;
 pub mod xcm_config;
 
-use crate::{
-	rialto_messages::{ToRialtoMessagePayload, WithRialtoMessageBridge},
-	rialto_parachain_messages::{
-		ToRialtoParachainMessagePayload, WithRialtoParachainMessageBridge,
-	},
-};
-
 use beefy_primitives::{crypto::AuthorityId as BeefyId, mmr::MmrLeafVersion, ValidatorSet};
 use bp_runtime::{HeaderId, HeaderIdProvider};
-use bridge_runtime_common::messages::{
-	source::estimate_message_dispatch_and_delivery_fee, MessageBridge,
-};
 use codec::Decode;
 use pallet_grandpa::{
 	fg_primitives, AuthorityId as GrandpaId, AuthorityList as GrandpaAuthorityList,
@@ -57,7 +47,7 @@ use sp_runtime::{
 	create_runtime_str, generic, impl_opaque_keys,
 	traits::{Block as BlockT, IdentityLookup, Keccak256, NumberFor, OpaqueKeys},
 	transaction_validity::{TransactionSource, TransactionValidity},
-	ApplyExtrinsicResult, FixedPointNumber, FixedU128, Perquintill,
+	ApplyExtrinsicResult, FixedPointNumber, Perquintill,
 };
 use sp_std::prelude::*;
 #[cfg(feature = "std")]
@@ -490,7 +480,6 @@ pub type WithRialtoMessagesInstance = ();
 impl pallet_bridge_messages::Config<WithRialtoMessagesInstance> for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 	type WeightInfo = pallet_bridge_messages::weights::BridgeWeight<Runtime>;
-	type Parameter = rialto_messages::MillauToRialtoMessagesParameter;
 	type MaxMessagesToPruneAtOnce = MaxMessagesToPruneAtOnce;
 	type MaxUnrewardedRelayerEntriesAtInboundLane = MaxUnrewardedRelayerEntriesAtInboundLane;
 	type MaxUnconfirmedMessagesAtInboundLane = MaxUnconfirmedMessagesAtInboundLane;
@@ -505,12 +494,7 @@ impl pallet_bridge_messages::Config<WithRialtoMessagesInstance> for Runtime {
 
 	type TargetHeaderChain = crate::rialto_messages::Rialto;
 	type LaneMessageVerifier = crate::rialto_messages::ToRialtoMessageVerifier;
-	type MessageDeliveryAndDispatchPayment =
-		pallet_bridge_relayers::MessageDeliveryAndDispatchPaymentAdapter<
-			Runtime,
-			WithRialtoMessagesInstance,
-			GetDeliveryConfirmationTransactionFee,
-		>;
+	type MessageDeliveryAndDispatchPayment = ();
 	type OnMessageAccepted = ();
 	type OnDeliveryConfirmed = ();
 
@@ -525,7 +509,6 @@ pub type WithRialtoParachainMessagesInstance = pallet_bridge_messages::Instance1
 impl pallet_bridge_messages::Config<WithRialtoParachainMessagesInstance> for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 	type WeightInfo = pallet_bridge_messages::weights::BridgeWeight<Runtime>;
-	type Parameter = rialto_parachain_messages::MillauToRialtoParachainMessagesParameter;
 	type MaxMessagesToPruneAtOnce = MaxMessagesToPruneAtOnce;
 	type MaxUnrewardedRelayerEntriesAtInboundLane = MaxUnrewardedRelayerEntriesAtInboundLane;
 	type MaxUnconfirmedMessagesAtInboundLane = MaxUnconfirmedMessagesAtInboundLane;
@@ -541,12 +524,7 @@ impl pallet_bridge_messages::Config<WithRialtoParachainMessagesInstance> for Run
 
 	type TargetHeaderChain = crate::rialto_parachain_messages::RialtoParachain;
 	type LaneMessageVerifier = crate::rialto_parachain_messages::ToRialtoParachainMessageVerifier;
-	type MessageDeliveryAndDispatchPayment =
-		pallet_bridge_relayers::MessageDeliveryAndDispatchPaymentAdapter<
-			Runtime,
-			WithRialtoParachainMessagesInstance,
-			GetDeliveryConfirmationTransactionFee,
-		>;
+	type MessageDeliveryAndDispatchPayment = ();
 	type OnMessageAccepted = ();
 	type OnDeliveryConfirmed = ();
 
@@ -941,24 +919,12 @@ impl_runtime_apis! {
 		}
 	}
 
-	impl bp_rialto::ToRialtoOutboundLaneApi<Block, Balance, ToRialtoMessagePayload> for Runtime {
-		fn estimate_message_delivery_and_dispatch_fee(
-			_lane_id: bp_messages::LaneId,
-			payload: ToRialtoMessagePayload,
-			rialto_to_this_conversion_rate: Option<FixedU128>,
-		) -> Option<Balance> {
-			estimate_message_dispatch_and_delivery_fee::<WithRialtoMessageBridge>(
-				&payload,
-				WithRialtoMessageBridge::RELAYER_FEE_PERCENT,
-				rialto_to_this_conversion_rate,
-			).ok()
-		}
-
+	impl bp_rialto::ToRialtoOutboundLaneApi<Block> for Runtime {
 		fn message_details(
 			lane: bp_messages::LaneId,
 			begin: bp_messages::MessageNonce,
 			end: bp_messages::MessageNonce,
-		) -> Vec<bp_messages::OutboundMessageDetails<Balance>> {
+		) -> Vec<bp_messages::OutboundMessageDetails> {
 			bridge_runtime_common::messages_api::outbound_message_details::<
 				Runtime,
 				WithRialtoMessagesInstance,
@@ -966,10 +932,10 @@ impl_runtime_apis! {
 		}
 	}
 
-	impl bp_rialto::FromRialtoInboundLaneApi<Block, bp_rialto::Balance> for Runtime {
+	impl bp_rialto::FromRialtoInboundLaneApi<Block> for Runtime {
 		fn message_details(
 			lane: bp_messages::LaneId,
-			messages: Vec<(bp_messages::MessagePayload, bp_messages::OutboundMessageDetails<bp_rialto::Balance>)>,
+			messages: Vec<(bp_messages::MessagePayload, bp_messages::OutboundMessageDetails)>,
 		) -> Vec<bp_messages::InboundMessageDetails> {
 			bridge_runtime_common::messages_api::inbound_message_details::<
 				Runtime,
@@ -978,24 +944,12 @@ impl_runtime_apis! {
 		}
 	}
 
-	impl bp_rialto_parachain::ToRialtoParachainOutboundLaneApi<Block, Balance, ToRialtoParachainMessagePayload> for Runtime {
-		fn estimate_message_delivery_and_dispatch_fee(
-			_lane_id: bp_messages::LaneId,
-			payload: ToRialtoParachainMessagePayload,
-			rialto_parachain_to_this_conversion_rate: Option<FixedU128>,
-		) -> Option<Balance> {
-			estimate_message_dispatch_and_delivery_fee::<WithRialtoParachainMessageBridge>(
-				&payload,
-				WithRialtoParachainMessageBridge::RELAYER_FEE_PERCENT,
-				rialto_parachain_to_this_conversion_rate,
-			).ok()
-		}
-
+	impl bp_rialto_parachain::ToRialtoParachainOutboundLaneApi<Block> for Runtime {
 		fn message_details(
 			lane: bp_messages::LaneId,
 			begin: bp_messages::MessageNonce,
 			end: bp_messages::MessageNonce,
-		) -> Vec<bp_messages::OutboundMessageDetails<Balance>> {
+		) -> Vec<bp_messages::OutboundMessageDetails> {
 			bridge_runtime_common::messages_api::outbound_message_details::<
 				Runtime,
 				WithRialtoParachainMessagesInstance,
@@ -1003,10 +957,10 @@ impl_runtime_apis! {
 		}
 	}
 
-	impl bp_rialto_parachain::FromRialtoParachainInboundLaneApi<Block, bp_rialto_parachain::Balance> for Runtime {
+	impl bp_rialto_parachain::FromRialtoParachainInboundLaneApi<Block> for Runtime {
 		fn message_details(
 			lane: bp_messages::LaneId,
-			messages: Vec<(bp_messages::MessagePayload, bp_messages::OutboundMessageDetails<bp_rialto_parachain::Balance>)>,
+			messages: Vec<(bp_messages::MessagePayload, bp_messages::OutboundMessageDetails)>,
 		) -> Vec<bp_messages::InboundMessageDetails> {
 			bridge_runtime_common::messages_api::inbound_message_details::<
 				Runtime,

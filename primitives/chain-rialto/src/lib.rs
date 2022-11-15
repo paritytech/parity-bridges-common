@@ -25,13 +25,13 @@ use bp_runtime::{decl_bridge_runtime_apis, Chain};
 use frame_support::{
 	dispatch::DispatchClass,
 	weights::{constants::WEIGHT_PER_SECOND, IdentityFee, Weight},
-	Parameter, RuntimeDebug,
+	RuntimeDebug,
 };
 use frame_system::limits;
 use sp_core::Hasher as HasherT;
 use sp_runtime::{
 	traits::{BlakeTwo256, IdentifyAccount, Verify},
-	FixedU128, MultiSignature, MultiSigner, Perbill,
+	MultiSignature, MultiSigner, Perbill,
 };
 use sp_std::prelude::*;
 
@@ -202,9 +202,6 @@ pub const WITH_RIALTO_GRANDPA_PALLET_NAME: &str = "BridgeRialtoGrandpa";
 pub const WITH_RIALTO_MESSAGES_PALLET_NAME: &str = "BridgeRialtoMessages";
 /// Name of the With-Rialto parachains bridge pallet instance that is deployed at bridged chains.
 pub const WITH_RIALTO_BRIDGE_PARAS_PALLET_NAME: &str = "BridgeRialtoParachains";
-
-/// Name of the Millau->Rialto (actually KSM->DOT) conversion rate stored in the Rialto runtime.
-pub const MILLAU_TO_RIALTO_CONVERSION_RATE_PARAMETER_NAME: &str = "MillauToRialtoConversionRate";
 
 /// Name of the parachain registrar pallet in the Rialto runtime.
 pub const PARAS_REGISTRAR_PALLET_NAME: &str = "Registrar";

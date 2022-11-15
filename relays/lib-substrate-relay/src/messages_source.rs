@@ -31,7 +31,7 @@ use async_std::sync::Arc;
 use async_trait::async_trait;
 use bp_messages::{
 	storage_keys::{operating_mode_key, outbound_lane_data_key},
-	InboundMessageDetails, LaneId, MessageData, MessageNonce, MessagePayload,
+	InboundMessageDetails, LaneId, MessageNonce, MessagePayload,
 	MessagesOperatingMode, OutboundLaneData, OutboundMessageDetails, UnrewardedRelayersState,
 };
 use bp_runtime::{messages::DispatchFeePayment, BasicOperatingMode, HeaderIdProvider};
@@ -218,7 +218,7 @@ where
 				&self.lane_id,
 				out_msg_details.nonce,
 			);
-			let msg_data: MessageData<BalanceOf<P::SourceChain>> =
+			let msg_payload: MessagePayload =
 				self.source_client.storage_value(msg_key, Some(id.1)).await?.ok_or_else(|| {
 					SubstrateError::Custom(format!(
 						"Message to {} {:?}/{} is missing from runtime the storage of {} at {:?}",
@@ -230,7 +230,7 @@ where
 					))
 				})?;
 
-			msgs_to_refine.push((msg_data.payload, out_msg_details));
+			msgs_to_refine.push((msg_payload, out_msg_details));
 		}
 
 		for mut msgs_to_refine_batch in
