@@ -17,7 +17,6 @@
 //! Tools for supporting message lanes between two Substrate-based chains.
 
 use crate::{
-	conversion_rate_update::UpdateConversionRateCallBuilder,
 	messages_metrics::StandaloneMessagesMetrics,
 	messages_source::{SubstrateMessagesProof, SubstrateMessagesSource},
 	messages_target::{SubstrateMessagesDeliveryProof, SubstrateMessagesTarget},
@@ -45,11 +44,6 @@ use std::{convert::TryFrom, fmt::Debug, marker::PhantomData};
 
 /// Substrate -> Substrate messages synchronization pipeline.
 pub trait SubstrateMessageLane: 'static + Clone + Debug + Send + Sync {
-	/// Name of the transaction payment pallet, deployed at the source chain.
-	const AT_SOURCE_TRANSACTION_PAYMENT_PALLET_NAME: Option<&'static str>;
-	/// Name of the transaction payment pallet, deployed at the target chain.
-	const AT_TARGET_TRANSACTION_PAYMENT_PALLET_NAME: Option<&'static str>;
-
 	/// Messages of this chain are relayed to the `TargetChain`.
 	type SourceChain: ChainWithMessages + ChainWithTransactions;
 	/// Messages from the `SourceChain` are dispatched on this chain.
@@ -59,13 +53,6 @@ pub trait SubstrateMessageLane: 'static + Clone + Debug + Send + Sync {
 	type ReceiveMessagesProofCallBuilder: ReceiveMessagesProofCallBuilder<Self>;
 	/// How receive messages delivery proof call is built?
 	type ReceiveMessagesDeliveryProofCallBuilder: ReceiveMessagesDeliveryProofCallBuilder<Self>;
-
-	/// `TargetChain` tokens to `SourceChain` tokens conversion rate update builder.
-	///
-	/// If not applicable to this bridge, you may use `()` here.
-	type TargetToSourceChainConversionRateUpdateBuilder: UpdateConversionRateCallBuilder<
-		Self::SourceChain,
-	>;
 
 	/// Message relay strategy.
 	type RelayStrategy: RelayStrategy;

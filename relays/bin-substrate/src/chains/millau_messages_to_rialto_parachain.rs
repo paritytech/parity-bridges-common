@@ -27,20 +27,8 @@ use substrate_relay_helper::messages_lane::{
 /// Description of Millau -> RialtoParachain messages bridge.
 #[derive(Clone, Debug)]
 pub struct MillauMessagesToRialtoParachain;
-substrate_relay_helper::generate_direct_update_conversion_rate_call_builder!(
-	Millau,
-	MillauMessagesToRialtoParachainUpdateConversionRateCallBuilder,
-	millau_runtime::Runtime,
-	millau_runtime::WithRialtoParachainMessagesInstance,
-	millau_runtime::rialto_parachain_messages::MillauToRialtoParachainMessagesParameter::RialtoParachainToMillauConversionRate
-);
 
 impl SubstrateMessageLane for MillauMessagesToRialtoParachain {
-	const AT_SOURCE_TRANSACTION_PAYMENT_PALLET_NAME: Option<&'static str> =
-		Some(bp_millau::TRANSACTION_PAYMENT_PALLET_NAME);
-	const AT_TARGET_TRANSACTION_PAYMENT_PALLET_NAME: Option<&'static str> =
-		Some(bp_rialto_parachain::TRANSACTION_PAYMENT_PALLET_NAME);
-
 	type SourceChain = Millau;
 	type TargetChain = RialtoParachain;
 
@@ -54,9 +42,6 @@ impl SubstrateMessageLane for MillauMessagesToRialtoParachain {
 		millau_runtime::Runtime,
 		millau_runtime::WithRialtoParachainMessagesInstance,
 	>;
-
-	type TargetToSourceChainConversionRateUpdateBuilder =
-		MillauMessagesToRialtoParachainUpdateConversionRateCallBuilder;
 
 	type RelayStrategy = MixStrategy;
 }

@@ -55,15 +55,6 @@ substrate_relay_helper::generate_mocked_receive_message_delivery_proof_call_buil
 pub struct BridgeHubRococoMessagesToBridgeHubWococoMessageLane;
 
 impl SubstrateMessageLane for BridgeHubRococoMessagesToBridgeHubWococoMessageLane {
-	const SOURCE_TO_TARGET_CONVERSION_RATE_PARAMETER_NAME: Option<&'static str> = None;
-	const TARGET_TO_SOURCE_CONVERSION_RATE_PARAMETER_NAME: Option<&'static str> = None;
-
-	const SOURCE_FEE_MULTIPLIER_PARAMETER_NAME: Option<&'static str> = None;
-	const TARGET_FEE_MULTIPLIER_PARAMETER_NAME: Option<&'static str> = None;
-
-	const AT_SOURCE_TRANSACTION_PAYMENT_PALLET_NAME: Option<&'static str> = None;
-	const AT_TARGET_TRANSACTION_PAYMENT_PALLET_NAME: Option<&'static str> = None;
-
 	type SourceChain = BridgeHubRococo;
 	type TargetChain = BridgeHubWococo;
 
@@ -71,8 +62,6 @@ impl SubstrateMessageLane for BridgeHubRococoMessagesToBridgeHubWococoMessageLan
 		BridgeHubRococoMessagesToBridgeHubWococoMessageLaneReceiveMessagesProofCallBuilder;
 	type ReceiveMessagesDeliveryProofCallBuilder =
 		BridgeHubRococoMessagesToBridgeHubWococoMessageLaneReceiveMessagesDeliveryProofCallBuilder;
-
-	type TargetToSourceChainConversionRateUpdateBuilder = ();
 
 	type RelayStrategy = MixStrategy;
 }

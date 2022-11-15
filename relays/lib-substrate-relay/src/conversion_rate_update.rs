@@ -19,8 +19,8 @@
 use crate::{messages_lane::SubstrateMessageLane, TransactionParams};
 
 use relay_substrate_client::{
-	transaction_stall_timeout, AccountIdOf, AccountKeyPairOf, CallOf, Chain, ChainWithTransactions,
-	Client, SignParam, TransactionEra, UnsignedTransaction,
+	transaction_stall_timeout, AccountIdOf, AccountKeyPairOf, Chain, ChainWithTransactions,
+	Client,
 };
 use relay_utils::metrics::F64SharedRef;
 use sp_core::Pair;
@@ -41,47 +41,6 @@ enum TransactionStatus {
 	Idle,
 	/// We have recently submitted transaction that should update conversion rate.
 	Submitted(Instant, f64),
-}
-
-/// Different ways of building 'update conversion rate' calls.
-pub trait UpdateConversionRateCallBuilder<C: Chain> {
-	/// Given conversion rate, build call that updates conversion rate in given chain runtime
-	/// storage.
-	fn build_update_conversion_rate_call(conversion_rate: f64) -> anyhow::Result<CallOf<C>>;
-}
-
-impl<C: Chain> UpdateConversionRateCallBuilder<C> for () {
-	fn build_update_conversion_rate_call(_conversion_rate: f64) -> anyhow::Result<CallOf<C>> {
-		Err(anyhow::format_err!("Conversion rate update is not supported at {}", C::NAME))
-	}
-}
-
-/// Macro that generates `UpdateConversionRateCallBuilder` implementation for the case when
-/// you have a direct access to the source chain runtime.
-#[rustfmt::skip]
-#[macro_export]
-macro_rules! generate_direct_update_conversion_rate_call_builder {
-	(
-		$source_chain:ident,
-		$mocked_builder:ident,
-		$runtime:ty,
-		$instance:ty,
-		$parameter:path
-	) => {
-		pub struct $mocked_builder;
-
-		impl $crate::conversion_rate_update::UpdateConversionRateCallBuilder<$source_chain>
-			for $mocked_builder
-		{
-			fn build_update_conversion_rate_call(
-				conversion_rate: f64,
-			) -> anyhow::Result<relay_substrate_client::CallOf<$source_chain>> {
-				Ok(pallet_bridge_messages::Call::update_pallet_parameter::<$runtime, $instance> {
-					parameter: $parameter(sp_runtime::FixedU128::from_float(conversion_rate)),
-				}.into())
-			}
-		}
-	};
 }
 
 /// Macro that generates `UpdateConversionRateCallBuilder` implementation for the case when
@@ -254,39 +213,16 @@ async fn maybe_select_new_conversion_rate(
 
 /// Update Target -> Source tokens conversion rate, stored in the Source runtime storage.
 pub async fn update_target_to_source_conversion_rate<Lane>(
-	client: Client<Lane::SourceChain>,
-	transaction_params: TransactionParams<AccountKeyPairOf<Lane::SourceChain>>,
-	updated_rate: f64,
+	_client: Client<Lane::SourceChain>,
+	_transaction_params: TransactionParams<AccountKeyPairOf<Lane::SourceChain>>,
+	_updated_rate: f64,
 ) -> anyhow::Result<()>
 where
 	Lane: SubstrateMessageLane,
 	Lane::SourceChain: ChainWithTransactions,
 	AccountIdOf<Lane::SourceChain>: From<<AccountKeyPairOf<Lane::SourceChain> as Pair>::Public>,
 {
-	let genesis_hash = *client.genesis_hash();
-	let signer_id = transaction_params.signer.public().into();
-	let (spec_version, transaction_version) = client.simple_runtime_version().await?;
-	let call =
-		Lane::TargetToSourceChainConversionRateUpdateBuilder::build_update_conversion_rate_call(
-			updated_rate,
-		)?;
-	client
-		.submit_signed_extrinsic(
-			signer_id,
-			SignParam::<Lane::SourceChain> {
-				spec_version,
-				transaction_version,
-				genesis_hash,
-				signer: transaction_params.signer,
-			},
-			move |best_block_id, transaction_nonce| {
-				Ok(UnsignedTransaction::new(call.into(), transaction_nonce)
-					.era(TransactionEra::new(best_block_id, transaction_params.mortality)))
-			},
-		)
-		.await
-		.map(drop)
-		.map_err(|err| anyhow::format_err!("{:?}", err))
+	unimplemented!("TODO: remove me")
 }
 
 #[cfg(test)]

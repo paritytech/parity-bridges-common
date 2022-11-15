@@ -62,7 +62,7 @@ use std::ops::RangeInclusive;
 /// required to submit to the target node: cumulative dispatch weight of bundled messages and
 /// the proof itself.
 pub type SubstrateMessagesProof<C> = (Weight, FromBridgedChainMessagesProof<HashOf<C>>);
-type MessagesToRefine<'a, Balance> = Vec<(MessagePayload, &'a mut OutboundMessageDetails<Balance>)>;
+type MessagesToRefine<'a> = Vec<(MessagePayload, &'a mut OutboundMessageDetails)>;
 
 /// Substrate client as Substrate messages source.
 pub struct SubstrateMessagesSource<P: SubstrateMessageLane> {
@@ -207,9 +207,7 @@ where
 		// prepare arguments of the inbound message details call (if we need it)
 		let mut msgs_to_refine = vec![];
 		for out_msg_details in out_msgs_details.iter_mut() {
-			if out_msg_details.dispatch_fee_payment != DispatchFeePayment::AtTargetChain {
-				continue
-			}
+			// in our current strategy all messages are supposed to be paid at the target chain
 
 			// for pay-at-target messages we may want to ask target chain for
 			// refined dispatch weight
@@ -277,8 +275,8 @@ where
 				MessageDetails {
 					dispatch_weight: out_msg_details.dispatch_weight,
 					size: out_msg_details.size as _,
-					reward: out_msg_details.delivery_and_dispatch_fee,
-					dispatch_fee_payment: out_msg_details.dispatch_fee_payment,
+					reward: Zero::zero(),
+					dispatch_fee_payment: DispatchFeePayment::AtTargetChain,
 				},
 			);
 		}
@@ -552,7 +550,7 @@ where
 }
 
 fn validate_out_msgs_details<C: Chain>(
-	out_msgs_details: &[OutboundMessageDetails<C::Balance>],
+	out_msgs_details: &[OutboundMessageDetails],
 	nonces: RangeInclusive<MessageNonce>,
 ) -> Result<(), SubstrateError> {
 	let make_missing_nonce_error = |expected_nonce| {
@@ -601,8 +599,8 @@ fn validate_out_msgs_details<C: Chain>(
 
 fn split_msgs_to_refine<Source: Chain + ChainWithMessages, Target: Chain>(
 	lane_id: LaneId,
-	msgs_to_refine: MessagesToRefine<Source::Balance>,
-) -> Result<Vec<MessagesToRefine<Source::Balance>>, SubstrateError> {
+	msgs_to_refine: MessagesToRefine,
+) -> Result<Vec<MessagesToRefine>, SubstrateError> {
 	let max_batch_size = Target::max_extrinsic_size() as usize;
 	let mut batches = vec![];
 
@@ -635,7 +633,7 @@ fn split_msgs_to_refine<Source: Chain + ChainWithMessages, Target: Chain>(
 #[cfg(test)]
 mod tests {
 	use super::*;
-	use bp_runtime::{messages::DispatchFeePayment, Chain as ChainBase};
+	use bp_runtime::Chain as ChainBase;
 	use codec::MaxEncodedLen;
 	use relay_rialto_client::Rialto;
 	use relay_rococo_client::Rococo;
@@ -643,15 +641,13 @@ mod tests {
 
 	fn message_details_from_rpc(
 		nonces: RangeInclusive<MessageNonce>,
-	) -> Vec<OutboundMessageDetails<bp_wococo::Balance>> {
+	) -> Vec<OutboundMessageDetails> {
 		nonces
 			.into_iter()
 			.map(|nonce| bp_messages::OutboundMessageDetails {
 				nonce,
 				dispatch_weight: Weight::zero(),
 				size: 0,
-				delivery_and_dispatch_fee: 0,
-				dispatch_fee_payment: DispatchFeePayment::AtSourceChain,
 			})
 			.collect()
 	}
@@ -723,12 +719,10 @@ mod tests {
 	) {
 		let mut out_msgs_details = vec![];
 		for (idx, _) in payload_sizes.iter().enumerate() {
-			out_msgs_details.push(OutboundMessageDetails::<BalanceOf<Rialto>> {
+			out_msgs_details.push(OutboundMessageDetails {
 				nonce: idx as MessageNonce,
 				dispatch_weight: Weight::zero(),
 				size: 0,
-				delivery_and_dispatch_fee: 0,
-				dispatch_fee_payment: DispatchFeePayment::AtTargetChain,
 			});
 		}
 

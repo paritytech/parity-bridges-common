@@ -70,10 +70,6 @@ pub struct SendMessage {
 	source: SourceConnectionParams,
 	#[structopt(flatten)]
 	source_sign: SourceSigningParams,
-	/// Send message using XCM pallet instead. By default message is sent using
-	/// bridge messages pallet.
-	#[structopt(long)]
-	use_xcm_pallet: bool,
 	/// Hex-encoded lane id. Defaults to `00000000`.
 	#[structopt(long, default_value = "00000000")]
 	lane: HexLaneId,
@@ -128,19 +124,10 @@ where
 			),
 		};
 		let payload_len = payload.encoded_size();
-		let send_message_call = if data.use_xcm_pallet {
-			Self::Source::encode_send_xcm(
-				decode_xcm(payload)?,
-				data.bridge.bridge_instance_index(),
-			)?
-		} else {
-			Self::Source::encode_send_message_call(
-				data.lane.0,
-				payload,
-				fee.cast().into(),
-				data.bridge.bridge_instance_index(),
-			)?
-		};
+		let send_message_call = Self::Source::encode_send_xcm(
+			decode_xcm(payload)?,
+			data.bridge.bridge_instance_index(),
+		)?;
 
 		let source_genesis_hash = *source_client.genesis_hash();
 		let (spec_version, transaction_version) = source_client.simple_runtime_version().await?;

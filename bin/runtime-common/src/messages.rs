@@ -328,7 +328,7 @@ pub mod source {
 			let route = T::build_destination();
 			let msg = (route, msg.take().ok_or(SendError::MissingArgument)?).encode();
 
-			// let's jsut take fixed (out of thin air) fee per message in our test bridges
+			// let's just take fixed (out of thin air) fee per message in our test bridges
 			// (this code won't be used in production anyway)
 			let fee_assets = MultiAssets::from((Here, 1_000_000_u128));
 
@@ -695,11 +695,6 @@ mod tests {
 	use sp_runtime::traits::{BlakeTwo256, Header as _};
 	use std::cell::RefCell;
 
-	const DELIVERY_TRANSACTION_WEIGHT: Weight = Weight::from_ref_time(100);
-	const DELIVERY_CONFIRMATION_TRANSACTION_WEIGHT: u64 = 100;
-	const THIS_CHAIN_WEIGHT_TO_BALANCE_RATE: u32 = 2;
-	const BRIDGED_CHAIN_WEIGHT_TO_BALANCE_RATE: u32 = 4;
-	const BRIDGED_CHAIN_TO_THIS_CHAIN_BALANCE_RATE: u32 = 6;
 	const BRIDGED_CHAIN_MIN_EXTRINSIC_WEIGHT: usize = 5;
 	const BRIDGED_CHAIN_MAX_EXTRINSIC_WEIGHT: usize = 2048;
 	const BRIDGED_CHAIN_MAX_EXTRINSIC_SIZE: u32 = 1024;
@@ -717,16 +712,6 @@ mod tests {
 		type ThisChain = ThisChain;
 		type BridgedChain = BridgedChain;
 		type BridgedHeaderChain = BridgedHeaderChain;
-
-		fn bridged_balance_to_this_balance(
-			bridged_balance: BridgedChainBalance,
-			bridged_to_this_conversion_rate_override: Option<FixedU128>,
-		) -> ThisChainBalance {
-			let conversion_rate = bridged_to_this_conversion_rate_override
-				.map(|r| r.to_float() as u32)
-				.unwrap_or(BRIDGED_CHAIN_TO_THIS_CHAIN_BALANCE_RATE);
-			bridged_balance as ThisChainBalance * conversion_rate as ThisChainBalance
-		}
 	}
 
 	/// Bridge that is deployed on BridgedChain and allows sending/receiving messages to/from
@@ -742,13 +727,6 @@ mod tests {
 		type ThisChain = BridgedChain;
 		type BridgedChain = ThisChain;
 		type BridgedHeaderChain = ThisHeaderChain;
-
-		fn bridged_balance_to_this_balance(
-			_this_balance: ThisChainBalance,
-			_bridged_to_this_conversion_rate_override: Option<FixedU128>,
-		) -> BridgedChainBalance {
-			unreachable!()
-		}
 	}
 
 	#[derive(Clone, Debug)]
@@ -797,6 +775,7 @@ mod tests {
 		fn max_extrinsic_size() -> u32 {
 			BRIDGED_CHAIN_MAX_EXTRINSIC_SIZE
 		}
+
 		fn max_extrinsic_weight() -> Weight {
 			Weight::zero()
 		}
@@ -811,12 +790,6 @@ mod tests {
 	impl ThisChainWithMessages for ThisChain {
 		type RuntimeOrigin = ThisChainOrigin;
 		type RuntimeCall = ThisChainCall;
-		type ConfirmationTransactionEstimation = BasicConfirmationTransactionEstimation<
-			ThisChainAccountId,
-			{ DELIVERY_CONFIRMATION_TRANSACTION_WEIGHT },
-			0,
-			0,
-		>;
 
 		fn is_message_accepted(_send_origin: &Self::RuntimeOrigin, lane: &LaneId) -> bool {
 			lane == TEST_LANE_ID
@@ -825,21 +798,10 @@ mod tests {
 		fn maximal_pending_messages_at_outbound_lane() -> MessageNonce {
 			MAXIMAL_PENDING_MESSAGES_AT_TEST_LANE
 		}
-
-		fn transaction_payment(transaction: MessageTransaction<Weight>) -> BalanceOf<Self> {
-			transaction
-				.dispatch_weight
-				.saturating_mul(THIS_CHAIN_WEIGHT_TO_BALANCE_RATE as u64)
-				.ref_time() as _
-		}
 	}
 
 	impl BridgedChainWithMessages for ThisChain {
 		fn verify_dispatch_weight(_message_payload: &[u8]) -> bool {
-			unreachable!()
-		}
-
-		fn transaction_payment(_transaction: MessageTransaction<Weight>) -> BalanceOf<Self> {
 			unreachable!()
 		}
 	}
@@ -878,18 +840,12 @@ mod tests {
 	impl ThisChainWithMessages for BridgedChain {
 		type RuntimeOrigin = BridgedChainOrigin;
 		type RuntimeCall = BridgedChainCall;
-		type ConfirmationTransactionEstimation =
-			BasicConfirmationTransactionEstimation<BridgedChainAccountId, 0, 0, 0>;
 
 		fn is_message_accepted(_send_origin: &Self::RuntimeOrigin, _lane: &LaneId) -> bool {
 			unreachable!()
 		}
 
 		fn maximal_pending_messages_at_outbound_lane() -> MessageNonce {
-			unreachable!()
-		}
-
-		fn transaction_payment(_transaction: MessageTransaction<Weight>) -> BalanceOf<Self> {
 			unreachable!()
 		}
 	}
@@ -939,7 +895,6 @@ mod tests {
 		assert_eq!(
 			source::FromThisChainMessageVerifier::<OnThisChainBridge>::verify_message(
 				&ThisChainOrigin(Ok(frame_system::RawOrigin::Root)),
-				&1_000_000,
 				b"dsbl",
 				&test_lane_outbound_data(),
 				&regular_outbound_message_payload(),
@@ -953,7 +908,6 @@ mod tests {
 		assert_eq!(
 			source::FromThisChainMessageVerifier::<OnThisChainBridge>::verify_message(
 				&ThisChainOrigin(Ok(frame_system::RawOrigin::Root)),
-				&1_000_000,
 				TEST_LANE_ID,
 				&OutboundLaneData {
 					latest_received_nonce: 100,
@@ -1011,7 +965,7 @@ mod tests {
 	fn using_messages_proof<R>(
 		nonces_end: MessageNonce,
 		outbound_lane_data: Option<OutboundLaneData>,
-		encode_message: impl Fn(MessageNonce, &MessageData) -> Option<Vec<u8>>,
+		encode_message: impl Fn(MessageNonce, &MessagePayload) -> Option<Vec<u8>>,
 		encode_outbound_lane_data: impl Fn(&OutboundLaneData) -> Vec<u8>,
 		test: impl Fn(target::FromBridgedChainMessagesProof<H256>) -> R,
 	) -> R {
@@ -1110,7 +1064,7 @@ mod tests {
 				|n, m| {
 					let mut m = m.encode();
 					if n == 5 {
-						m = MessageData { fee: 0, payload: vec![0u8; 42] }.encode();
+						m = vec![0u8; 42].encode();
 						m.truncate(2);
 					}
 					Some(m.encode())
@@ -1208,7 +1162,7 @@ mod tests {
 					}),
 					messages: vec![Message {
 						key: MessageKey { lane_id: *TEST_LANE_ID, nonce: 1 },
-						data: MessageData { payload: vec![42], fee: 0 },
+						payload: vec![42],
 					}],
 				},
 			)]
@@ -1226,54 +1180,5 @@ mod tests {
 			},),
 			Err(target::MessageProofError::MessagesCountMismatch),
 		);
-	}
-
-	#[test]
-	fn transaction_payment_works_with_zero_multiplier() {
-		use sp_runtime::traits::Zero;
-
-		assert_eq!(
-			transaction_payment(
-				Weight::from_ref_time(100),
-				10,
-				FixedU128::zero(),
-				|weight| weight.ref_time(),
-				MessageTransaction { size: 50, dispatch_weight: Weight::from_ref_time(777) },
-			),
-			100 + 50 * 10,
-		);
-	}
-
-	#[test]
-	fn transaction_payment_works_with_non_zero_multiplier() {
-		use sp_runtime::traits::One;
-
-		assert_eq!(
-			transaction_payment::<u64>(
-				Weight::from_ref_time(100),
-				10,
-				FixedU128::one(),
-				|weight| weight.ref_time(),
-				MessageTransaction { size: 50, dispatch_weight: Weight::from_ref_time(777) },
-			),
-			100 + 50 * 10 + 777,
-		);
-	}
-
-	#[test]
-	fn conversion_rate_override_works() {
-		let payload = regular_outbound_message_payload();
-		let regular_fee = source::estimate_message_dispatch_and_delivery_fee::<OnThisChainBridge>(
-			&payload,
-			OnThisChainBridge::RELAYER_FEE_PERCENT,
-			None,
-		);
-		let overrided_fee = source::estimate_message_dispatch_and_delivery_fee::<OnThisChainBridge>(
-			&payload,
-			OnThisChainBridge::RELAYER_FEE_PERCENT,
-			Some(FixedU128::from_float((BRIDGED_CHAIN_TO_THIS_CHAIN_BALANCE_RATE * 2) as f64)),
-		);
-
-		assert!(regular_fee < overrided_fee);
 	}
 }

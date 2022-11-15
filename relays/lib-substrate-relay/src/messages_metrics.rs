@@ -16,7 +16,7 @@
 
 //! Tools for supporting message lanes between two Substrate-based chains.
 
-use crate::{helpers::tokens_conversion_rate, messages_lane::SubstrateMessageLane, TaggedAccount};
+use crate::{messages_lane::SubstrateMessageLane, TaggedAccount};
 
 use codec::Decode;
 use frame_system::AccountInfo;
@@ -28,14 +28,11 @@ use relay_substrate_client::{
 	AccountIdOf, BalanceOf, Chain, ChainWithBalances, Client, Error as SubstrateError, IndexOf,
 };
 use relay_utils::metrics::{
-	GlobalMetrics, MetricsParams, PrometheusError, StandaloneMetric,
+	FloatJsonValueMetric, GlobalMetrics, MetricsParams, PrometheusError, StandaloneMetric,
 };
 use sp_core::storage::StorageData;
 use sp_runtime::{FixedPointNumber, FixedU128};
 use std::{convert::TryFrom, fmt::Debug, marker::PhantomData};
-
-/// Name of the `NextFeeMultiplier` storage value within the transaction payment pallet.
-const NEXT_FEE_MULTIPLIER_VALUE_NAME: &str = "NextFeeMultiplier";
 
 /// Shared references to the standalone metrics of the message lane relay loop.
 #[derive(Debug, Clone)]
@@ -46,6 +43,10 @@ pub struct StandaloneMessagesMetrics<SC: Chain, TC: Chain> {
 	pub source_storage_proof_overhead: StorageProofOverheadMetric<SC>,
 	/// Target chain proof overhead metric.
 	pub target_storage_proof_overhead: StorageProofOverheadMetric<TC>,
+	/// Source tokens to base conversion rate metric.
+	pub source_to_base_conversion_rate: Option<FloatJsonValueMetric>,
+	/// Target tokens to base conversion rate metric.
+	pub target_to_base_conversion_rate: Option<FloatJsonValueMetric>,
 }
 
 impl<SC: Chain, TC: Chain> StandaloneMessagesMetrics<SC, TC> {
@@ -55,6 +56,8 @@ impl<SC: Chain, TC: Chain> StandaloneMessagesMetrics<SC, TC> {
 			global: self.global,
 			source_storage_proof_overhead: self.target_storage_proof_overhead,
 			target_storage_proof_overhead: self.source_storage_proof_overhead,
+			source_to_base_conversion_rate: self.source_to_base_conversion_rate,
+			target_to_base_conversion_rate: self.target_to_base_conversion_rate,
 		}
 	}
 
@@ -66,6 +69,12 @@ impl<SC: Chain, TC: Chain> StandaloneMessagesMetrics<SC, TC> {
 		self.global.register_and_spawn(&metrics.registry)?;
 		self.source_storage_proof_overhead.register_and_spawn(&metrics.registry)?;
 		self.target_storage_proof_overhead.register_and_spawn(&metrics.registry)?;
+		if let Some(source_to_base_conversion_rate) = self.source_to_base_conversion_rate {
+			source_to_base_conversion_rate.register_and_spawn(&metrics.registry)?;
+		}
+		if let Some(target_to_base_conversion_rate) = self.target_to_base_conversion_rate {
+			target_to_base_conversion_rate.register_and_spawn(&metrics.registry)?;
+		}
 		Ok(metrics)
 	}
 }
@@ -194,22 +203,11 @@ fn convert_to_token_balance(balance: u128, token_decimals: u32) -> FixedU128 {
 #[cfg(test)]
 mod tests {
 	use super::*;
-	use frame_support::storage::generator::StorageValue;
-	use sp_core::storage::StorageKey;
-
 	#[test]
 	fn token_decimals_used_properly() {
 		let plancks = 425_000_000_000;
 		let token_decimals = 10;
 		let dots = convert_to_token_balance(plancks, token_decimals);
 		assert_eq!(dots, FixedU128::saturating_from_rational(425, 10));
-	}
-
-	#[test]
-	fn next_fee_multiplier_storage_key_is_correct() {
-		assert_eq!(
-			bp_runtime::storage_value_key("TransactionPayment", NEXT_FEE_MULTIPLIER_VALUE_NAME),
-			StorageKey(pallet_transaction_payment::NextFeeMultiplier::<rialto_runtime::Runtime>::storage_value_final_key().to_vec()),
-		);
 	}
 }

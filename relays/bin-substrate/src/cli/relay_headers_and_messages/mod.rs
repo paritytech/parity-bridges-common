@@ -175,48 +175,6 @@ where
 		Self { shared, source, target, metrics_params, metrics, _phantom_data: Default::default() }
 	}
 
-	fn start_conversion_rate_update_loop(&mut self) -> anyhow::Result<()> {
-		if let Some(ref messages_pallet_owner) = self.source.messages_pallet_owner {
-			let format_err = || {
-				anyhow::format_err!(
-					"Cannon run conversion rate updater: {} -> {}",
-					Target::NAME,
-					Source::NAME
-				)
-			};
-			substrate_relay_helper::conversion_rate_update::run_conversion_rate_update_loop::<
-				Bridge::MessagesLane,
-			>(
-				self.source.client.clone(),
-				TransactionParams {
-					signer: messages_pallet_owner.clone(),
-					mortality: self.source.transactions_mortality,
-				},
-				self.metrics
-					.target_to_source_conversion_rate
-					.as_ref()
-					.ok_or_else(format_err)?
-					.shared_value_ref(),
-				self.metrics
-					.target_to_base_conversion_rate
-					.as_ref()
-					.ok_or_else(format_err)?
-					.shared_value_ref(),
-				self.metrics
-					.source_to_base_conversion_rate
-					.as_ref()
-					.ok_or_else(format_err)?
-					.shared_value_ref(),
-				CONVERSION_RATE_ALLOWED_DIFFERENCE_RATIO,
-			);
-			self.source.accounts.push(TaggedAccount::MessagesPalletOwner {
-				id: messages_pallet_owner.public().into(),
-				bridged_chain: Target::NAME.to_string(),
-			});
-		}
-		Ok(())
-	}
-
 	fn messages_relay_params(
 		&self,
 		source_to_target_headers_relay: Arc<dyn OnDemandRelay<BlockNumberOf<Source>>>,
@@ -346,10 +304,6 @@ where
 				bridged_chain: Self::Left::NAME.to_string(),
 			});
 		}
-
-		// start conversion rate update loops for left/right chains
-		self.left_to_right().start_conversion_rate_update_loop()?;
-		self.right_to_left().start_conversion_rate_update_loop()?;
 
 		// start on-demand header relays
 		let (left_to_right_on_demand_headers, right_to_left_on_demand_headers) =
