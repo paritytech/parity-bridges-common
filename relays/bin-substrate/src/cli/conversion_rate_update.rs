@@ -118,7 +118,7 @@ impl ConversionRateUpdateLoop for StatemineToStatemintLoop {
 	type SourceChain = Statemine;
 	// this is a bit hacky - we are not going (?) to connect to the Statemint now, so we don't need
 	// those primitives and client crates. We're only using the `TargetChain` to get its `TOKEN_ID`.
-	// Statemint is the common god parachain of the Polkadot, so let's use Polkadot here
+	// Statemint is the system parachain of the Polkadot, so let's use Polkadot here
 	type TargetChain = Polkadot;
 	// TODO (https://github.com/paritytech/parity-bridges-common/issues/1626): change once pallet is ready
 	type UpdateConversionRateCallBuilder = ();
