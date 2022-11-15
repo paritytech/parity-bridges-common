@@ -193,13 +193,7 @@ mod tests {
 	fn ensure_millau_message_lane_weights_are_correct() {
 		type Weights = pallet_bridge_messages::weights::BridgeWeight<Runtime>;
 
-		pallet_bridge_messages::ensure_weights_are_correct::<Weights>(
-			bp_millau::DEFAULT_MESSAGE_DELIVERY_TX_WEIGHT,
-			bp_millau::ADDITIONAL_MESSAGE_BYTE_DELIVERY_WEIGHT,
-			bp_millau::MAX_SINGLE_MESSAGE_DELIVERY_CONFIRMATION_TX_WEIGHT,
-			bp_millau::PAY_INBOUND_DISPATCH_FEE_WEIGHT,
-			DbWeight::get(),
-		);
+		pallet_bridge_messages::ensure_weights_are_correct::<Weights>();
 
 		let max_incoming_message_proof_size = bp_rialto::EXTRA_STORAGE_PROOF_SIZE.saturating_add(
 			messages::target::maximal_incoming_message_size(bp_millau::Millau::max_extrinsic_size()),

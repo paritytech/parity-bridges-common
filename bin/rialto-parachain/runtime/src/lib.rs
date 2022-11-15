@@ -552,9 +552,6 @@ parameter_types! {
 		bp_millau::MAX_UNREWARDED_RELAYERS_IN_CONFIRMATION_TX;
 	pub const MaxUnconfirmedMessagesAtInboundLane: bp_messages::MessageNonce =
 		bp_millau::MAX_UNCONFIRMED_MESSAGES_IN_CONFIRMATION_TX;
-	// `IdentityFee` is used by Rialto => we may use weight directly
-	pub const GetDeliveryConfirmationTransactionFee: Balance =
-		bp_rialto_parachain::MAX_SINGLE_MESSAGE_DELIVERY_CONFIRMATION_TX_WEIGHT.ref_time() as _;
 	pub const RootAccountForPayments: Option<AccountId> = None;
 	pub const BridgedChainId: bp_runtime::ChainId = bp_runtime::MILLAU_CHAIN_ID;
 }
