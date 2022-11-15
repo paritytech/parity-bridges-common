@@ -273,7 +273,7 @@ impl TargetHeaderChain<TestPayload, TestRelayer> for TestTargetHeaderChain {
 #[derive(Debug, Default)]
 pub struct TestLaneMessageVerifier;
 
-impl LaneMessageVerifier<RuntimeOrigin, TestPayload, TestMessageFee> for TestLaneMessageVerifier {
+impl LaneMessageVerifier<RuntimeOrigin, TestPayload> for TestLaneMessageVerifier {
 	type Error = &'static str;
 
 	fn verify_message(

@@ -177,12 +177,8 @@ pub mod source {
 	/// The error message returned from LaneMessageVerifier when call origin is mismatch.
 	pub const BAD_ORIGIN: &str = "Unable to match the source origin to expected target origin.";
 
-	impl<B>
-		LaneMessageVerifier<
-			OriginOf<ThisChain<B>>,
-			FromThisChainMessagePayload,
-			BalanceOf<ThisChain<B>>,
-		> for FromThisChainMessageVerifier<B>
+	impl<B> LaneMessageVerifier<OriginOf<ThisChain<B>>, FromThisChainMessagePayload>
+		for FromThisChainMessageVerifier<B>
 	where
 		B: MessageBridge,
 		// matches requirements from the `frame_system::Config::Origin`

@@ -164,11 +164,7 @@ pub mod pallet {
 		/// Target header chain.
 		type TargetHeaderChain: TargetHeaderChain<Self::OutboundPayload, Self::AccountId>;
 		/// Message payload verifier.
-		type LaneMessageVerifier: LaneMessageVerifier<
-			Self::RuntimeOrigin,
-			Self::OutboundPayload,
-			Self::OutboundMessageFee,
-		>;
+		type LaneMessageVerifier: LaneMessageVerifier<Self::RuntimeOrigin, Self::OutboundPayload>;
 		/// Message delivery payment.
 		type MessageDeliveryAndDispatchPayment: MessageDeliveryAndDispatchPayment<
 			Self::RuntimeOrigin,

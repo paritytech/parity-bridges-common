@@ -74,7 +74,7 @@ pub trait TargetHeaderChain<Payload, AccountId> {
 /// Lane3 until some block, ...), then it may be built using this verifier.
 ///
 /// Any fee requirements should also be enforced here.
-pub trait LaneMessageVerifier<SenderOrigin, Payload, Fee> {
+pub trait LaneMessageVerifier<SenderOrigin, Payload> {
 	/// Error type.
 	type Error: Debug + Into<&'static str>;
 
@@ -238,9 +238,7 @@ impl<Payload, AccountId> TargetHeaderChain<Payload, AccountId> for ForbidOutboun
 	}
 }
 
-impl<SenderOrigin, Payload, Fee> LaneMessageVerifier<SenderOrigin, Payload, Fee>
-	for ForbidOutboundMessages
-{
+impl<SenderOrigin, Payload> LaneMessageVerifier<SenderOrigin, Payload> for ForbidOutboundMessages {
 	type Error = &'static str;
 
 	fn verify_message(
