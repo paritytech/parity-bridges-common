@@ -237,7 +237,7 @@ build-nightly:
 
 .build-push-image:                 &build-push-image
   <<:                              *kubernetes-build
-  image:                           quay.io/buildah/stable
+  image:                           quay.io/buildah/stable:v1.27
   <<:                              *build-refs
   variables:                       &image-variables
     GIT_STRATEGY:                  none
