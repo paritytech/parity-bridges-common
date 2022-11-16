@@ -97,10 +97,6 @@ pub trait LaneMessageVerifier<SenderOrigin, Payload> {
 /// 3) message-dispatch fee. It is paid by relayer for processing message by target chain;
 /// 4) message-receiving-delivery-transaction-fee. It is submitted to the source node
 /// by relayer.
-///
-/// So to be sure that any non-altruist relayer would agree to deliver message, submitter
-/// should set `delivery_and_dispatch_fee` to at least (equivalent of): sum of fees from (2)
-/// to (4) above, plus some interest for the relayer.
 pub trait MessageDeliveryAndDispatchPayment<SenderOrigin, AccountId, Balance> {
 	/// Error type.
 	type Error: Debug + Into<&'static str>;

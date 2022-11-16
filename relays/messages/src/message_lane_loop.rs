@@ -58,16 +58,6 @@ pub struct Params {
 	pub delivery_params: MessageDeliveryParams,
 }
 
-/// Relayer operating mode.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum RelayerMode {
-	/// The relayer doesn't care about rewards.
-	Altruistic,
-	/// The relayer will deliver all messages and confirmations as long as he's not losing any
-	/// funds.
-	Rational,
-}
-
 /// Message delivery race parameters.
 #[derive(Debug, Clone)]
 pub struct MessageDeliveryParams {

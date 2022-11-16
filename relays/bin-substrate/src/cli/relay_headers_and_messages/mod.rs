@@ -31,7 +31,6 @@ mod relay_to_parachain;
 use async_trait::async_trait;
 use std::{marker::PhantomData, sync::Arc};
 use structopt::StructOpt;
-use strum::VariantNames;
 
 use futures::{FutureExt, TryFutureExt};
 use relay_to_parachain::*;
@@ -50,7 +49,6 @@ use crate::{
 			RelayToRelayHeadersCliBridge,
 		},
 		chain_schema::*,
-		relay_messages::RelayerMode,
 		CliChain, HexLaneId, PrometheusParams,
 	},
 	declare_chain_cli_schema,
@@ -81,8 +79,6 @@ pub struct HeadersAndMessagesSharedParams {
 	/// Hex-encoded lane identifiers that should be served by the complex relay.
 	#[structopt(long, default_value = "00000000")]
 	pub lane: Vec<HexLaneId>,
-	#[structopt(long, possible_values = RelayerMode::VARIANTS, case_insensitive = true, default_value = "rational")]
-	pub relayer_mode: RelayerMode,
 	/// If passed, only mandatory headers (headers that are changing the GRANDPA authorities set)
 	/// are relayed.
 	#[structopt(long)]
@@ -473,7 +469,6 @@ mod tests {
 						HexLaneId([0x00, 0x00, 0x00, 0x00]),
 						HexLaneId([0x73, 0x77, 0x61, 0x70])
 					],
-					relayer_mode: RelayerMode::Rational,
 					only_mandatory_headers: false,
 					prometheus_params: PrometheusParams {
 						no_prometheus: false,
@@ -586,7 +581,6 @@ mod tests {
 				MillauRialtoParachainHeadersAndMessages {
 					shared: HeadersAndMessagesSharedParams {
 						lane: vec![HexLaneId([0x00, 0x00, 0x00, 0x00])],
-						relayer_mode: RelayerMode::Rational,
 						only_mandatory_headers: false,
 						prometheus_params: PrometheusParams {
 							no_prometheus: false,
