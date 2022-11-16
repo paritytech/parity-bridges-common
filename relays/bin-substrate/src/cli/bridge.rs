@@ -15,7 +15,6 @@
 // along with Parity Bridges Common.  If not, see <http://www.gnu.org/licenses/>.
 
 use crate::cli::CliChain;
-use messages_relay::relay_strategy::MixStrategy;
 use pallet_bridge_parachains::{RelayBlockHash, RelayBlockHasher, RelayBlockNumber};
 use parachains_relay::ParachainsPipeline;
 use relay_substrate_client::{AccountKeyPairOf, Chain, ChainWithTransactions, RelayChain};
@@ -102,9 +101,5 @@ pub trait MessagesCliBridge: CliBridgeBase {
 	/// defined bridge.
 	const ESTIMATE_MESSAGE_FEE_METHOD: &'static str;
 	/// The Source -> Destination messages synchronization pipeline.
-	type MessagesLane: SubstrateMessageLane<
-		SourceChain = Self::Source,
-		TargetChain = Self::Target,
-		RelayStrategy = MixStrategy,
-	>;
+	type MessagesLane: SubstrateMessageLane<SourceChain = Self::Source, TargetChain = Self::Target>;
 }

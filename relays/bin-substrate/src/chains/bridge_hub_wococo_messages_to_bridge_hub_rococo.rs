@@ -18,7 +18,6 @@
 
 use crate::cli::bridge::{CliBridgeBase, MessagesCliBridge};
 use bp_messages::Weight;
-use messages_relay::relay_strategy::MixStrategy;
 use relay_bridge_hub_rococo_client::BridgeHubRococo;
 use relay_bridge_hub_wococo_client::BridgeHubWococo;
 use substrate_relay_helper::messages_lane::SubstrateMessageLane;
@@ -62,6 +61,4 @@ impl SubstrateMessageLane for BridgeHubWococoMessagesToBridgeHubRococoMessageLan
 		BridgeHubWococoMessagesToBridgeHubRococoMessageLaneReceiveMessagesProofCallBuilder;
 	type ReceiveMessagesDeliveryProofCallBuilder =
 		BridgeHubWococoMessagesToBridgeHubRococoMessageLaneReceiveMessagesDeliveryProofCallBuilder;
-
-	type RelayStrategy = MixStrategy;
 }

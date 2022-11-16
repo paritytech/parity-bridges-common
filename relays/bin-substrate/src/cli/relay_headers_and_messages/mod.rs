@@ -57,7 +57,6 @@ use crate::{
 };
 use bp_messages::LaneId;
 use bp_runtime::{BalanceOf, BlockNumberOf};
-use messages_relay::relay_strategy::MixStrategy;
 use relay_substrate_client::{
 	AccountIdOf, AccountKeyPairOf, Chain, ChainWithBalances, ChainWithTransactions, Client,
 };
@@ -146,7 +145,6 @@ struct FullBridge<
 	Target: ChainWithTransactions + CliChain,
 	Bridge: MessagesCliBridge<Source = Source, Target = Target>,
 > {
-	shared: &'a HeadersAndMessagesSharedParams,
 	source: &'a mut BridgeEndCommonParams<Source>,
 	target: &'a mut BridgeEndCommonParams<Target>,
 	metrics_params: &'a MetricsParams,
@@ -166,13 +164,12 @@ where
 	BalanceOf<Source>: TryFrom<BalanceOf<Target>> + Into<u128>,
 {
 	fn new(
-		shared: &'a HeadersAndMessagesSharedParams,
 		source: &'a mut BridgeEndCommonParams<Source>,
 		target: &'a mut BridgeEndCommonParams<Target>,
 		metrics_params: &'a MetricsParams,
 		metrics: &'a StandaloneMessagesMetrics<Source, Target>,
 	) -> Self {
-		Self { shared, source, target, metrics_params, metrics, _phantom_data: Default::default() }
+		Self { source, target, metrics_params, metrics, _phantom_data: Default::default() }
 	}
 
 	fn messages_relay_params(
@@ -181,9 +178,6 @@ where
 		target_to_source_headers_relay: Arc<dyn OnDemandRelay<BlockNumberOf<Target>>>,
 		lane_id: LaneId,
 	) -> MessagesRelayParams<Bridge::MessagesLane> {
-		let relayer_mode = self.shared.relayer_mode.into();
-		let relay_strategy = MixStrategy::new(relayer_mode);
-
 		MessagesRelayParams {
 			source_client: self.source.client.clone(),
 			source_transaction_params: TransactionParams {
@@ -200,7 +194,6 @@ where
 			lane_id,
 			metrics_params: self.metrics_params.clone().disable(),
 			standalone_metrics: Some(self.metrics.clone()),
-			relay_strategy,
 		}
 	}
 }
@@ -272,7 +265,6 @@ where
 	fn left_to_right(&mut self) -> FullBridge<Self::Left, Self::Right, Self::L2R> {
 		let common = self.mut_base().mut_common();
 		FullBridge::<_, _, Self::L2R>::new(
-			&common.shared,
 			&mut common.left,
 			&mut common.right,
 			&common.metrics_params,
@@ -283,7 +275,6 @@ where
 	fn right_to_left(&mut self) -> FullBridge<Self::Right, Self::Left, Self::R2L> {
 		let common = self.mut_base().mut_common();
 		FullBridge::<_, _, Self::R2L>::new(
-			&common.shared,
 			&mut common.right,
 			&mut common.left,
 			&common.metrics_params,

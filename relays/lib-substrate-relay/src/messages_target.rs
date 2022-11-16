@@ -33,7 +33,6 @@ use bp_messages::{
 	MessageNonce, UnrewardedRelayersState,
 };
 use bridge_runtime_common::messages::source::FromBridgedChainMessagesDeliveryProof;
-use frame_support::weights::Weight;
 use messages_relay::{
 	message_lane::{MessageLane, SourceHeaderIdOf, TargetHeaderIdOf},
 	message_lane_loop::{NoncesSubmitArtifacts, TargetClient, TargetClientState},
@@ -277,16 +276,6 @@ where
 		if let Some(ref source_to_target_headers_relay) = self.source_to_target_headers_relay {
 			source_to_target_headers_relay.require_more_headers(id.0).await;
 		}
-	}
-
-	async fn estimate_delivery_transaction_in_source_tokens(
-		&self,
-		_nonces: RangeInclusive<MessageNonce>,
-		_total_prepaid_nonces: MessageNonce,
-		_total_dispatch_weight: Weight,
-		_total_size: u32,
-	) -> Result<<MessageLaneAdapter<P> as MessageLane>::SourceChainBalance, SubstrateError> {
-		unimplemented!("TODO: remove me")
 	}
 }
 

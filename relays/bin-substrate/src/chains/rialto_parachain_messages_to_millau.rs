@@ -16,7 +16,6 @@
 
 //! RialtoParachain-to-Millau messages sync entrypoint.
 
-use messages_relay::relay_strategy::MixStrategy;
 use relay_millau_client::Millau;
 use relay_rialto_parachain_client::RialtoParachain;
 use substrate_relay_helper::messages_lane::{
@@ -42,6 +41,4 @@ impl SubstrateMessageLane for RialtoParachainMessagesToMillau {
 		rialto_parachain_runtime::Runtime,
 		rialto_parachain_runtime::WithMillauMessagesInstance,
 	>;
-
-	type RelayStrategy = MixStrategy;
 }

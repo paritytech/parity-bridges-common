@@ -32,7 +32,7 @@ use bridge_runtime_common::messages::{
 };
 use codec::Encode;
 use frame_support::{dispatch::GetDispatchInfo, weights::Weight};
-use messages_relay::{message_lane::MessageLane, relay_strategy::RelayStrategy};
+use messages_relay::message_lane::MessageLane;
 use pallet_bridge_messages::{Call as BridgeMessagesCall, Config as BridgeMessagesConfig};
 use relay_substrate_client::{
 	transaction_stall_timeout, AccountKeyPairOf, BalanceOf, BlockNumberOf, CallOf, Chain,
@@ -53,9 +53,6 @@ pub trait SubstrateMessageLane: 'static + Clone + Debug + Send + Sync {
 	type ReceiveMessagesProofCallBuilder: ReceiveMessagesProofCallBuilder<Self>;
 	/// How receive messages delivery proof call is built?
 	type ReceiveMessagesDeliveryProofCallBuilder: ReceiveMessagesDeliveryProofCallBuilder<Self>;
-
-	/// Message relay strategy.
-	type RelayStrategy: RelayStrategy;
 }
 
 /// Adapter that allows all `SubstrateMessageLane` to act as `MessageLane`.
@@ -101,8 +98,6 @@ pub struct MessagesRelayParams<P: SubstrateMessageLane> {
 	pub metrics_params: MetricsParams,
 	/// Pre-registered standalone metrics.
 	pub standalone_metrics: Option<StandaloneMessagesMetrics<P::SourceChain, P::TargetChain>>,
-	/// Relay strategy.
-	pub relay_strategy: P::RelayStrategy,
 }
 
 /// Run Substrate-to-Substrate messages sync loop.
@@ -181,7 +176,6 @@ where
 				max_messages_in_single_batch,
 				max_messages_weight_in_single_batch,
 				max_messages_size_in_single_batch,
-				relay_strategy: params.relay_strategy,
 			},
 		},
 		SubstrateMessagesSource::<P>::new(

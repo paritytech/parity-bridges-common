@@ -27,7 +27,6 @@ use crate::chains::{
 	rialto_headers_to_millau::RialtoToMillauCliBridge,
 	rialto_parachains_to_millau::RialtoParachainToMillauCliBridge,
 };
-use messages_relay::relay_strategy::MixStrategy;
 use relay_substrate_client::{AccountIdOf, AccountKeyPairOf, BalanceOf, ChainWithTransactions};
 use substrate_relay_helper::{messages_lane::MessagesRelayParams, TransactionParams};
 
@@ -91,8 +90,6 @@ where
 		let target_client = data.target.into_client::<Self::Target>().await?;
 		let target_sign = data.target_sign.to_keypair::<Self::Target>()?;
 		let target_transactions_mortality = data.target_sign.transactions_mortality()?;
-		let relayer_mode = data.relayer_mode.into();
-		let relay_strategy = MixStrategy::new(relayer_mode);
 
 		substrate_relay_helper::messages_lane::run::<Self::MessagesLane>(MessagesRelayParams {
 			source_client,
@@ -110,7 +107,6 @@ where
 			lane_id: data.lane.into(),
 			metrics_params: data.prometheus_params.into(),
 			standalone_metrics: None,
-			relay_strategy,
 		})
 		.await
 		.map_err(|e| anyhow::format_err!("{}", e))
