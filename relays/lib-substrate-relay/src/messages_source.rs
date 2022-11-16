@@ -34,7 +34,7 @@ use bp_messages::{
 	InboundMessageDetails, LaneId, MessageNonce, MessagePayload, MessagesOperatingMode,
 	OutboundLaneData, OutboundMessageDetails,
 };
-use bp_runtime::{messages::DispatchFeePayment, BasicOperatingMode, HeaderIdProvider};
+use bp_runtime::{BasicOperatingMode, HeaderIdProvider};
 use bridge_runtime_common::messages::target::FromBridgedChainMessagesProof;
 use codec::{Decode, Encode};
 use frame_support::weights::Weight;
@@ -274,7 +274,6 @@ where
 					dispatch_weight: out_msg_details.dispatch_weight,
 					size: out_msg_details.size as _,
 					reward: Zero::zero(),
-					dispatch_fee_payment: DispatchFeePayment::AtTargetChain,
 				},
 			);
 		}

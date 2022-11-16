@@ -36,28 +36,9 @@ use relay_substrate_client::{
 };
 use sp_core::Pair;
 use sp_runtime::AccountId32;
-use std::fmt::{Debug, Display};
+use std::fmt::Display;
 use structopt::StructOpt;
-use strum::{EnumString, EnumVariantNames, VariantNames};
-
-/// Relayer operating mode.
-#[derive(Debug, EnumString, EnumVariantNames, Clone, Copy, PartialEq, Eq)]
-#[strum(serialize_all = "kebab_case")]
-pub enum DispatchFeePayment {
-	/// The dispatch fee is paid at the source chain.
-	AtSourceChain,
-	/// The dispatch fee is paid at the target chain.
-	AtTargetChain,
-}
-
-impl From<DispatchFeePayment> for bp_runtime::messages::DispatchFeePayment {
-	fn from(dispatch_fee_payment: DispatchFeePayment) -> Self {
-		match dispatch_fee_payment {
-			DispatchFeePayment::AtSourceChain => Self::AtSourceChain,
-			DispatchFeePayment::AtTargetChain => Self::AtTargetChain,
-		}
-	}
-}
+use strum::VariantNames;
 
 /// Send bridge message.
 #[derive(StructOpt)]

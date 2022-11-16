@@ -555,8 +555,6 @@ impl<SourceChainBalance: std::fmt::Debug> NoncesRange for MessageDetailsMap<Sour
 
 #[cfg(test)]
 mod tests {
-	use bp_runtime::messages::DispatchFeePayment;
-
 	use crate::message_lane_loop::{
 		tests::{
 			header_id, TestMessageLane, TestMessagesProof, TestSourceChainBalance,
@@ -578,7 +576,6 @@ mod tests {
 		new_nonces: RangeInclusive<MessageNonce>,
 		confirmed_nonce: MessageNonce,
 		reward: TestSourceChainBalance,
-		dispatch_fee_payment: DispatchFeePayment,
 	) -> SourceClientNonces<MessageDetailsMap<TestSourceChainBalance>> {
 		SourceClientNonces {
 			new_nonces: new_nonces
@@ -590,7 +587,6 @@ mod tests {
 							dispatch_weight: DEFAULT_DISPATCH_WEIGHT,
 							size: DEFAULT_SIZE,
 							reward,
-							dispatch_fee_payment,
 						},
 					)
 				})
@@ -635,10 +631,9 @@ mod tests {
 			strategy: BasicStrategy::new(),
 		};
 
-		race_strategy.strategy.source_nonces_updated(
-			header_id(1),
-			source_nonces(20..=23, 19, 0, DispatchFeePayment::AtSourceChain),
-		);
+		race_strategy
+			.strategy
+			.source_nonces_updated(header_id(1), source_nonces(20..=23, 19, 0));
 
 		let target_nonces = TargetClientNonces { latest_nonce: 19, nonces_data: () };
 		race_strategy
@@ -671,7 +666,6 @@ mod tests {
 							dispatch_weight: Weight::from_ref_time(idx),
 							size: idx as _,
 							reward: idx as _,
-							dispatch_fee_payment: DispatchFeePayment::AtSourceChain,
 						},
 					)
 				})
@@ -973,7 +967,7 @@ mod tests {
 		// This was happening because selector (`select_nonces_for_delivery_transaction`) has been
 		// called for every `source_queue` entry separately without preserving any context.
 		let (mut state, mut strategy) = prepare_strategy();
-		let nonces = source_nonces(24..=25, 19, 0, DispatchFeePayment::AtSourceChain);
+		let nonces = source_nonces(24..=25, 19, 0);
 		strategy.strategy.source_nonces_updated(header_id(2), nonces);
 		strategy.max_unrewarded_relayer_entries_at_target = 100;
 		strategy.max_unconfirmed_nonces_at_target = 100;

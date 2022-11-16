@@ -20,7 +20,6 @@ use num_traits::Zero;
 use std::ops::Range;
 
 use bp_messages::{MessageNonce, Weight};
-use bp_runtime::messages::DispatchFeePayment;
 
 use crate::{
 	message_lane::MessageLane,
@@ -147,7 +146,6 @@ impl MessageRaceLimits {
 				dispatch_weight: Weight::zero(),
 				size: 0,
 				reward: P::SourceChainBalance::zero(),
-				dispatch_fee_payment: DispatchFeePayment::AtSourceChain,
 			},
 		};
 
@@ -219,14 +217,8 @@ impl MessageRaceLimits {
 			//
 			// So in the latter case we're not adding the dispatch weight to the delivery
 			// transaction weight.
-			let mut new_selected_prepaid_nonces = relay_reference.selected_prepaid_nonces;
-			let new_selected_unpaid_weight = match details.dispatch_fee_payment {
-				DispatchFeePayment::AtSourceChain => {
-					new_selected_prepaid_nonces += 1;
-					relay_reference.selected_unpaid_weight.saturating_add(details.dispatch_weight)
-				},
-				DispatchFeePayment::AtTargetChain => relay_reference.selected_unpaid_weight,
-			};
+			let new_selected_prepaid_nonces = relay_reference.selected_prepaid_nonces;
+			let new_selected_unpaid_weight = relay_reference.selected_unpaid_weight;
 			relay_reference.selected_prepaid_nonces = new_selected_prepaid_nonces;
 			relay_reference.selected_unpaid_weight = new_selected_unpaid_weight;
 

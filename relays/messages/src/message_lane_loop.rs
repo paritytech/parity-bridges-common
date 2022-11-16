@@ -30,7 +30,6 @@ use async_trait::async_trait;
 use futures::{channel::mpsc::unbounded, future::FutureExt, stream::StreamExt};
 
 use bp_messages::{LaneId, MessageNonce, UnrewardedRelayersState, Weight};
-use bp_runtime::messages::DispatchFeePayment;
 use relay_utils::{
 	interval, metrics::MetricsParams, process_future_result, relay_loop::Client as RelayClient,
 	retry_backoff, FailedClient, TransactionTracker,
@@ -87,8 +86,6 @@ pub struct MessageDetails<SourceChainBalance> {
 	pub size: u32,
 	/// The relayer reward paid in the source chain tokens.
 	pub reward: SourceChainBalance,
-	/// Where the fee for dispatching message is paid?
-	pub dispatch_fee_payment: DispatchFeePayment,
 }
 
 /// Messages details map.
@@ -639,7 +636,6 @@ pub(crate) mod tests {
 							dispatch_weight: Weight::from_ref_time(1),
 							size: 1,
 							reward: 1,
-							dispatch_fee_payment: DispatchFeePayment::AtSourceChain,
 						},
 					)
 				})
