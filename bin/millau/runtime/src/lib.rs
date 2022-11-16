@@ -491,7 +491,11 @@ impl pallet_bridge_messages::Config<WithRialtoMessagesInstance> for Runtime {
 
 	type TargetHeaderChain = crate::rialto_messages::Rialto;
 	type LaneMessageVerifier = crate::rialto_messages::ToRialtoMessageVerifier;
-	type MessageDeliveryAndDispatchPayment = ();
+	type MessageDeliveryAndDispatchPayment =
+		pallet_bridge_relayers::MessageDeliveryAndDispatchPaymentAdapter<
+			Runtime,
+			WithRialtoMessagesInstance,
+		>;
 	type OnMessageAccepted = ();
 	type OnDeliveryConfirmed = ();
 
@@ -521,7 +525,11 @@ impl pallet_bridge_messages::Config<WithRialtoParachainMessagesInstance> for Run
 
 	type TargetHeaderChain = crate::rialto_parachain_messages::RialtoParachain;
 	type LaneMessageVerifier = crate::rialto_parachain_messages::ToRialtoParachainMessageVerifier;
-	type MessageDeliveryAndDispatchPayment = ();
+	type MessageDeliveryAndDispatchPayment =
+		pallet_bridge_relayers::MessageDeliveryAndDispatchPaymentAdapter<
+			Runtime,
+			WithRialtoParachainMessagesInstance,
+		>;
 	type OnMessageAccepted = ();
 	type OnDeliveryConfirmed = ();
 
