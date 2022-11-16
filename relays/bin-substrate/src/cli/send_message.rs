@@ -25,8 +25,7 @@ use crate::{
 		bridge::{FullBridge, MessagesCliBridge},
 		chain_schema::*,
 		encode_message::{self, CliEncodeMessage, RawMessage},
-		estimate_fee::{estimate_message_delivery_and_dispatch_fee, ConversionRateOverride},
-		Balance, CliChain, HexLaneId,
+		CliChain,
 	},
 };
 use async_trait::async_trait;
@@ -35,7 +34,7 @@ use relay_substrate_client::{
 	AccountIdOf, AccountKeyPairOf, Chain, ChainBase, ChainWithTransactions, SignParam,
 	UnsignedTransaction,
 };
-use sp_core::{Bytes, Pair};
+use sp_core::Pair;
 use sp_runtime::AccountId32;
 use std::fmt::{Debug, Display};
 use structopt::StructOpt;
@@ -70,19 +69,6 @@ pub struct SendMessage {
 	source: SourceConnectionParams,
 	#[structopt(flatten)]
 	source_sign: SourceSigningParams,
-	/// Hex-encoded lane id. Defaults to `00000000`.
-	#[structopt(long, default_value = "00000000")]
-	lane: HexLaneId,
-	/// A way to override conversion rate between bridge tokens.
-	///
-	/// If not specified, conversion rate from runtime storage is used. It may be obsolete and
-	/// your message won't be relayed.
-	#[structopt(long)]
-	conversion_rate_override: Option<ConversionRateOverride>,
-	/// Delivery and dispatch fee in source chain base currency units. If not passed, determined
-	/// automatically.
-	#[structopt(long)]
-	fee: Option<Balance>,
 	/// Message type.
 	#[structopt(subcommand)]
 	message: crate::cli::encode_message::Message,
@@ -107,22 +93,6 @@ where
 		let source_client = data.source.into_client::<Self::Source>().await?;
 		let source_sign = data.source_sign.to_keypair::<Self::Source>()?;
 
-		let lane = data.lane.clone().into();
-		let conversion_rate_override = data.conversion_rate_override;
-		let fee = match data.fee {
-			Some(fee) => fee,
-			None => Balance(
-				estimate_message_delivery_and_dispatch_fee::<Self::Source, Self::Target, _>(
-					&source_client,
-					conversion_rate_override,
-					Self::ESTIMATE_MESSAGE_FEE_METHOD,
-					lane,
-					&payload,
-				)
-				.await?
-				.into(),
-			),
-		};
 		let payload_len = payload.encoded_size();
 		let send_message_call = Self::Source::encode_send_xcm(
 			decode_xcm(payload)?,
@@ -131,20 +101,6 @@ where
 
 		let source_genesis_hash = *source_client.genesis_hash();
 		let (spec_version, transaction_version) = source_client.simple_runtime_version().await?;
-		let estimated_transaction_fee = source_client
-			.estimate_extrinsic_fee(Bytes(
-				Self::Source::sign_transaction(
-					SignParam {
-						spec_version,
-						transaction_version,
-						genesis_hash: source_genesis_hash,
-						signer: source_sign.clone(),
-					},
-					UnsignedTransaction::new(send_message_call.clone(), 0),
-				)?
-				.encode(),
-			))
-			.await?;
 		source_client
 			.submit_signed_extrinsic(
 				source_sign.public().into(),
@@ -158,22 +114,10 @@ where
 					let unsigned = UnsignedTransaction::new(send_message_call, transaction_nonce);
 					log::info!(
 						target: "bridge",
-						"Sending message to {}. Lane: {:?}. Size: {}. Fee: {}",
+						"Sending message to {}. Size: {}",
 						Self::Target::NAME,
-						lane,
 						payload_len,
-						fee,
 					);
-					log::info!(
-						target: "bridge",
-						"The source account ({:?}) balance will be reduced by (at most) {} (message fee)
-					+ {} (tx fee	) = {} {} tokens", 				AccountId32::from(source_sign.public()),
-						fee.0,
-						estimated_transaction_fee.inclusion_fee(),
-						fee.0.saturating_add(estimated_transaction_fee.inclusion_fee().into()),
-						Self::Source::NAME,
-					);
-
 					Ok(unsigned)
 				},
 			)
@@ -230,8 +174,6 @@ mod tests {
 			"1234",
 			"--source-signer",
 			"//Alice",
-			"--conversion-rate-override",
-			"0.75",
 			"raw",
 			"dead",
 		]);
@@ -240,10 +182,6 @@ mod tests {
 		assert_eq!(send_message.bridge, FullBridge::RialtoToMillau);
 		assert_eq!(send_message.source.source_port, 1234);
 		assert_eq!(send_message.source_sign.source_signer, Some("//Alice".into()));
-		assert_eq!(
-			send_message.conversion_rate_override,
-			Some(ConversionRateOverride::Explicit(0.75))
-		);
 		assert_eq!(
 			send_message.message,
 			crate::cli::encode_message::Message::Raw { data: HexBytes(vec![0xDE, 0xAD]) }
@@ -260,8 +198,6 @@ mod tests {
 			"1234",
 			"--source-signer",
 			"//Alice",
-			"--conversion-rate-override",
-			"metric",
 			"sized",
 			"max",
 		]);
@@ -270,7 +206,6 @@ mod tests {
 		assert_eq!(send_message.bridge, FullBridge::RialtoToMillau);
 		assert_eq!(send_message.source.source_port, 1234);
 		assert_eq!(send_message.source_sign.source_signer, Some("//Alice".into()));
-		assert_eq!(send_message.conversion_rate_override, Some(ConversionRateOverride::Metric));
 		assert_eq!(
 			send_message.message,
 			crate::cli::encode_message::Message::Sized { size: ExplicitOrMaximal::Maximal }

@@ -65,14 +65,6 @@ use substrate_relay_helper::{
 	on_demand::OnDemandRelay, TaggedAccount, TransactionParams,
 };
 
-/// Maximal allowed conversion rate error ratio (abs(real - stored) / stored) that we allow.
-///
-/// If it is zero, then transaction will be submitted every time we see difference between
-/// stored and real conversion rates. If it is large enough (e.g. > than 10 percents, which is 0.1),
-/// then rational relayers may stop relaying messages because they were submitted using
-/// lesser conversion rate.
-pub(crate) const CONVERSION_RATE_ALLOWED_DIFFERENCE_RATIO: f64 = 0.05;
-
 /// Parameters that have the same names across all bridges.
 #[derive(Debug, PartialEq, StructOpt)]
 pub struct HeadersAndMessagesSharedParams {
