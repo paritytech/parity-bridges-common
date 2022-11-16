@@ -60,10 +60,6 @@ pub struct RelayReference<
 
 	/// Hard check begin nonce
 	pub hard_selected_begin_nonce: MessageNonce,
-	/// Count prepaid nonces
-	pub selected_prepaid_nonces: MessageNonce,
-	/// Unpaid nonces weight summary
-	pub selected_unpaid_weight: Weight,
 
 	/// Index by all ready nonces
 	pub index: usize,
@@ -137,8 +133,6 @@ impl MessageRaceLimits {
 			total_cost: P::SourceChainBalance::zero(),
 
 			hard_selected_begin_nonce,
-			selected_prepaid_nonces: 0,
-			selected_unpaid_weight: Weight::zero(),
 
 			index: 0,
 			nonce: 0,
@@ -207,20 +201,6 @@ impl MessageRaceLimits {
 				break
 			}
 			relay_reference.selected_size = new_selected_size;
-
-			// If dispatch fee has been paid at the source chain, it means that it is **relayer**
-			// who's paying for dispatch at the target chain AND reward must cover this dispatch
-			// fee.
-			//
-			// If dispatch fee is paid at the target chain, it means that it'll be withdrawn from
-			// the dispatch origin account AND reward is not covering this fee.
-			//
-			// So in the latter case we're not adding the dispatch weight to the delivery
-			// transaction weight.
-			let new_selected_prepaid_nonces = relay_reference.selected_prepaid_nonces;
-			let new_selected_unpaid_weight = relay_reference.selected_unpaid_weight;
-			relay_reference.selected_prepaid_nonces = new_selected_prepaid_nonces;
-			relay_reference.selected_unpaid_weight = new_selected_unpaid_weight;
 
 			soft_selected_count = index + 1;
 			hard_selected_count = index + 1;

@@ -155,7 +155,7 @@ impl ChainWithTransactions for RialtoParachain {
 	}
 
 	fn parse_transaction(_tx: Self::SignedTransaction) -> Option<UnsignedTransaction<Self>> {
-		unimplemented!("TODO")
+		None
 	}
 }
 

@@ -45,7 +45,7 @@ impl FullBridge {
 			Self::MillauToRialtoParachain => MILLAU_TO_RIALTO_PARACHAIN_INDEX,
 			Self::RialtoParachainToMillau => RIALTO_PARACHAIN_TO_MILLAU_INDEX,
 			Self::BridgeHubRococoToBridgeHubWococo | Self::BridgeHubWococoToBridgeHubRococo =>
-				unimplemented!("TODO: (bridge_instance_index) do we need it or refactor or remove?"),
+				unimplemented!("Relay doesn't support send-message subcommand on bridge hubs"),
 		}
 	}
 }
