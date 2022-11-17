@@ -82,7 +82,7 @@ pub(crate) fn encode_message<Source: Chain, Target: Chain>(
 					break xcm
 				}
 
-				current_vec_size = current_vec_size - 1;
+				current_vec_size -= 1;
 			};
 			xcm.encode()
 		},
