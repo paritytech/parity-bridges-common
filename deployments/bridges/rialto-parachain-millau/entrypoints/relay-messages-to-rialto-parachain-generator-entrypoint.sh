@@ -9,7 +9,6 @@ set -eu
 
 # Max delay before submitting transactions (s)
 MAX_SUBMIT_DELAY_S=${MSG_EXCHANGE_GEN_MAX_SUBMIT_DELAY_S:-30}
-MESSAGE_LANE=${MSG_EXCHANGE_GEN_LANE:-00000000}
 MAX_UNCONFIRMED_MESSAGES_AT_INBOUND_LANE=1024
 
 SHARED_CMD=" /home/user/substrate-relay send-message millau-to-rialto-parachain"

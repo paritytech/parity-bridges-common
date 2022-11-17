@@ -135,7 +135,7 @@ impl SendMessage {
 }
 
 /// Decode SCALE encoded raw XCM message.
-fn decode_xcm(message: RawMessage) -> anyhow::Result<xcm::VersionedXcm<()>> {
+pub(crate) fn decode_xcm(message: RawMessage) -> anyhow::Result<xcm::VersionedXcm<()>> {
 	Decode::decode(&mut &message[..])
 		.map_err(|e| anyhow::format_err!("Failed to decode XCM program: {:?}", e))
 }

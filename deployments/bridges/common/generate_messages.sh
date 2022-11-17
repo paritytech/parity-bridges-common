@@ -9,15 +9,12 @@
 # TARGET_CHAIN
 # MAX_SUBMIT_DELAY_S
 # SEND_MESSAGE - the command that is executed to send a message
-# MESSAGE_LANE
-# SECONDARY_MESSAGE_LANE - optional
 # SECONDARY_EXTRA_ARGS - optional, for example "--use-xcm-pallet"
 # EXTRA_ARGS - for example "--use-xcm-pallet"
 # REGULAR_PAYLOAD
 # BATCH_PAYLOAD
 # MAX_UNCONFIRMED_MESSAGES_AT_INBOUND_LANE
 
-SECONDARY_MESSAGE_LANE=${SECONDARY_MESSAGE_LANE:-""}
 SECONDARY_EXTRA_ARGS=${SECONDARY_EXTRA_ARGS:-""}
 
 # Sleep a bit between messages
@@ -40,16 +37,7 @@ do
 
 	# send regular message
 	echo "Sending Message from $SOURCE_CHAIN to $TARGET_CHAIN"
-	SEND_MESSAGE_OUTPUT=`$SEND_MESSAGE --lane $MESSAGE_LANE $EXTRA_ARGS raw $REGULAR_PAYLOAD 2>&1`
-	echo $SEND_MESSAGE_OUTPUT
-
-	if [ ! -z $SECONDARY_MESSAGE_LANE ]; then
-		echo "Sending Message from $SOURCE_CHAIN to $TARGET_CHAIN using secondary lane: $SECONDARY_MESSAGE_LANE"
-		$SEND_MESSAGE \
-			--lane $SECONDARY_MESSAGE_LANE \
-			$SECONDARY_EXTRA_ARGS \
-			raw $REGULAR_PAYLOAD
-	fi
+	$SEND_MESSAGE $EXTRA_ARGS raw $REGULAR_PAYLOAD
 
 	# every other hour we're sending 3 large (size, weight, size+weight) messages
 	if [ $SECONDS -ge $LARGE_MESSAGES_TIME ]; then
@@ -58,7 +46,6 @@ do
 		rand_sleep
 		echo "Sending Maximal Size Message from $SOURCE_CHAIN to $TARGET_CHAIN"
 		$SEND_MESSAGE \
-			--lane $MESSAGE_LANE \
 			sized max
 	fi
 
@@ -69,7 +56,6 @@ do
 		for i in $(seq 0 $MAX_UNCONFIRMED_MESSAGES_AT_INBOUND_LANE);
 		do
 			$SEND_MESSAGE \
-				--lane $MESSAGE_LANE \
 				$EXTRA_ARGS \
 				raw $BATCH_PAYLOAD
 		done
