@@ -106,7 +106,6 @@ impl pallet_bridge_messages::Config for TestRuntime {
 	type OutboundMessageFee = Balance;
 
 	type InboundPayload = ();
-	type InboundMessageFee = Balance;
 	type InboundRelayer = AccountId;
 
 	type TargetHeaderChain = ForbidOutboundMessages;

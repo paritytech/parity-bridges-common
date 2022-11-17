@@ -31,8 +31,6 @@ use sp_std::prelude::PartialEq;
 
 /// Inbound lane storage.
 pub trait InboundLaneStorage {
-	/// Delivery and dispatch fee type on source chain.
-	type MessageFee;
 	/// Id of relayer on source chain.
 	type Relayer: Clone + PartialEq;
 

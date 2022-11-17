@@ -153,8 +153,6 @@ pub mod pallet {
 
 		/// Payload type of inbound messages. This payload is dispatched on this chain.
 		type InboundPayload: Decode;
-		/// Message fee type of inbound messages. This fee is paid on the bridged chain.
-		type InboundMessageFee: Decode + Zero;
 		/// Identifier of relayer that deliver messages to this chain. Relayer reward is paid on the
 		/// bridged chain.
 		type InboundRelayer: Parameter + MaxEncodedLen;
@@ -845,7 +843,6 @@ struct RuntimeInboundLaneStorage<T: Config<I>, I: 'static = ()> {
 }
 
 impl<T: Config<I>, I: 'static> InboundLaneStorage for RuntimeInboundLaneStorage<T, I> {
-	type MessageFee = T::InboundMessageFee;
 	type Relayer = T::InboundRelayer;
 
 	fn id(&self) -> LaneId {

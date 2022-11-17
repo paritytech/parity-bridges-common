@@ -158,7 +158,6 @@ impl Config for TestRuntime {
 	type OutboundMessageFee = TestMessageFee;
 
 	type InboundPayload = TestPayload;
-	type InboundMessageFee = TestMessageFee;
 	type InboundRelayer = TestRelayer;
 
 	type TargetHeaderChain = TestTargetHeaderChain;

@@ -459,7 +459,6 @@ impl pallet_bridge_messages::Config<WithMillauMessagesInstance> for Runtime {
 	type OutboundMessageFee = Balance;
 
 	type InboundPayload = crate::millau_messages::FromMillauMessagePayload;
-	type InboundMessageFee = bp_millau::Balance;
 	type InboundRelayer = bp_millau::AccountId;
 
 	type TargetHeaderChain = crate::millau_messages::Millau;

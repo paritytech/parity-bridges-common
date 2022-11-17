@@ -97,7 +97,7 @@ pub trait Config<I: 'static>: crate::Config<I> {
 	fn prepare_message_proof(
 		params: MessageProofParams,
 	) -> (
-		<Self::SourceHeaderChain as SourceHeaderChain<Self::InboundMessageFee>>::MessagesProof,
+		<Self::SourceHeaderChain as SourceHeaderChain>::MessagesProof,
 		Weight,
 	);
 	/// Prepare messages delivery proof to receive by the module.
