@@ -36,10 +36,6 @@ pub const EXTRA_STORAGE_PROOF_SIZE: u32 = 1024;
 
 /// Ensure that weights from `WeightInfoExt` implementation are looking correct.
 pub fn ensure_weights_are_correct<W: WeightInfoExt>() {
-	// verify `send_message` weight components
-	assert_ne!(W::send_message_overhead(), Weight::zero());
-	assert_ne!(W::send_message_size_overhead(0), Weight::zero());
-
 	// verify `receive_messages_proof` weight components
 	assert_ne!(W::receive_messages_proof_overhead(), Weight::zero());
 	assert_ne!(W::receive_messages_proof_messages_overhead(1), Weight::zero());
@@ -136,17 +132,6 @@ pub trait WeightInfoExt: WeightInfo {
 
 	// Functions that are directly mapped to extrinsics weights.
 
-	/// Weight of message send extrinsic.
-	fn send_message_weight(message: &impl Size, db_weight: RuntimeDbWeight) -> Weight {
-		let transaction_overhead = Self::send_message_overhead();
-		let message_size_overhead = Self::send_message_size_overhead(message.size());
-		let call_back_overhead = Self::single_message_callback_overhead(db_weight);
-
-		transaction_overhead
-			.saturating_add(message_size_overhead)
-			.saturating_add(call_back_overhead)
-	}
-
 	/// Weight of message delivery extrinsic.
 	fn receive_messages_proof_weight(
 		proof: &impl Size,
@@ -211,20 +196,6 @@ pub trait WeightInfoExt: WeightInfo {
 	}
 
 	// Functions that are used by extrinsics weights formulas.
-
-	/// Returns weight of message send transaction (`send_message`).
-	fn send_message_overhead() -> Weight {
-		Self::send_minimal_message_worst_case()
-	}
-
-	/// Returns weight that needs to be accounted when message of given size is sent
-	/// (`send_message`).
-	fn send_message_size_overhead(message_size: u32) -> Weight {
-		let message_size_in_kb = (1024u64 + message_size as u64) / 1024;
-		let single_kb_weight =
-			(Self::send_16_kb_message_worst_case() - Self::send_1_kb_message_worst_case()) / 15;
-		message_size_in_kb * single_kb_weight
-	}
 
 	/// Returns weight overhead of message delivery transaction (`receive_messages_proof`).
 	fn receive_messages_proof_overhead() -> Weight {

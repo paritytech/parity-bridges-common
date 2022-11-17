@@ -672,7 +672,7 @@ fn send_message<T: Config<I>, I: 'static>(
 	ensure_normal_operating_mode::<T, I>()?;
 
 	// initially, actual (post-dispatch) weight is equal to pre-dispatch weight
-	let mut actual_weight = T::WeightInfo::send_message_weight(&payload, T::DbWeight::get());
+	let mut actual_weight = frame_support::weights::Weight::zero(); // TODO (https://github.com/paritytech/parity-bridges-common/issues/1647): remove this
 
 	// let's first check if message can be delivered to target chain
 	T::TargetHeaderChain::verify_message(&payload).map_err(|err| {
@@ -1812,51 +1812,6 @@ mod tests {
 	}
 
 	#[test]
-	fn weight_is_refunded_for_messages_that_are_not_pruned() {
-		run_test(|| {
-			// send first MAX messages - no messages are pruned
-			let max_messages_to_prune = crate::mock::MaxMessagesToPruneAtOnce::get();
-			let when_zero_messages_are_pruned = send_regular_message();
-			let mut delivered_messages = DeliveredMessages::new(1, true);
-			for _ in 1..max_messages_to_prune {
-				assert_eq!(send_regular_message(), when_zero_messages_are_pruned);
-				delivered_messages.note_dispatched_message(true);
-			}
-
-			// confirm delivery of all sent messages
-			assert_ok!(Pallet::<TestRuntime>::receive_messages_delivery_proof(
-				RuntimeOrigin::signed(1),
-				TestMessagesDeliveryProof(Ok((
-					TEST_LANE_ID,
-					InboundLaneData {
-						last_confirmed_nonce: 1,
-						relayers: vec![UnrewardedRelayer {
-							relayer: 0,
-							messages: delivered_messages,
-						}]
-						.into_iter()
-						.collect(),
-					},
-				))),
-				UnrewardedRelayersState {
-					unrewarded_relayer_entries: 1,
-					total_messages: max_messages_to_prune,
-					last_delivered_nonce: max_messages_to_prune,
-					..Default::default()
-				},
-			));
-
-			// when next message is sent, MAX messages are pruned
-			let weight_when_max_messages_are_pruned = send_regular_message();
-			assert_eq!(
-				weight_when_max_messages_are_pruned,
-				when_zero_messages_are_pruned +
-					crate::mock::DbWeight::get().writes(max_messages_to_prune),
-			);
-		});
-	}
-
-	#[test]
 	fn message_accepted_callbacks_are_called() {
 		run_test(|| {
 			send_regular_message();
@@ -1873,27 +1828,6 @@ mod tests {
 				crate::mock::DbWeight::get().reads_writes(2, 2),
 			);
 			send_regular_message();
-		});
-	}
-
-	#[test]
-	fn message_accepted_refunds_non_zero_weight() {
-		run_test(|| {
-			TestOnMessageAccepted::set_consumed_weight_per_message(
-				crate::mock::DbWeight::get().writes(1),
-			);
-			let actual_callback_weight = send_regular_message();
-			let pre_dispatch_weight = <TestRuntime as Config>::WeightInfo::send_message_weight(
-				&REGULAR_PAYLOAD,
-				crate::mock::DbWeight::get(),
-			);
-			let prune_weight = crate::mock::DbWeight::get()
-				.writes(<TestRuntime as Config>::MaxMessagesToPruneAtOnce::get());
-
-			assert_eq!(
-				pre_dispatch_weight.saturating_sub(actual_callback_weight),
-				crate::mock::DbWeight::get().reads(1).saturating_add(prune_weight)
-			);
 		});
 	}
 
