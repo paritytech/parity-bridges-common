@@ -1015,13 +1015,11 @@ impl_runtime_apis! {
 			let mut batches = Vec::<BenchmarkBatch>::new();
 			let params = (&config, &whitelist);
 
-			use bridge_runtime_common::messages_benchmarking::{prepare_message_delivery_proof, prepare_message_proof, prepare_outbound_message};
-			use bridge_runtime_common::messages;
+			use bridge_runtime_common::messages_benchmarking::{prepare_message_delivery_proof, prepare_message_proof};
 			use pallet_bridge_messages::benchmarking::{
 				Pallet as MessagesBench,
 				Config as MessagesConfig,
 				MessageDeliveryProofParams,
-				MessageParams,
 				MessageProofParams,
 			};
 			use pallet_bridge_parachains::benchmarking::{
@@ -1031,16 +1029,8 @@ impl_runtime_apis! {
 			use rialto_messages::WithRialtoMessageBridge;
 
 			impl MessagesConfig<WithRialtoMessagesInstance> for Runtime {
-				fn maximal_message_size() -> u32 {
-					messages::source::maximal_message_size::<WithRialtoMessageBridge>()
-				}
-
 				fn bridged_relayer_id() -> Self::InboundRelayer {
 					[0u8; 32].into()
-				}
-
-				fn account_balance(account: &Self::AccountId) -> Self::OutboundMessageFee {
-					pallet_balances::Pallet::<Runtime>::free_balance(account)
 				}
 
 				fn endow_account(account: &Self::AccountId) {
@@ -1048,12 +1038,6 @@ impl_runtime_apis! {
 						account,
 						Balance::MAX / 100,
 					);
-				}
-
-				fn prepare_outbound_message(
-					params: MessageParams<Self::AccountId>,
-				) -> (rialto_messages::ToRialtoMessagePayload, Balance) {
-					(prepare_outbound_message::<WithRialtoMessageBridge>(params), Self::message_fee())
 				}
 
 				fn prepare_message_proof(
