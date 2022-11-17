@@ -88,7 +88,6 @@ macro_rules! assert_bridge_messages_pallet_types(
 			use static_assertions::assert_type_eq_all;
 
 			assert_type_eq_all!(<$r as MessagesConfig<$i>>::OutboundPayload, FromThisChainMessagePayload);
-			assert_type_eq_all!(<$r as MessagesConfig<$i>>::OutboundMessageFee, BalanceOf<ThisChain<$bridge>>);
 
 			assert_type_eq_all!(<$r as MessagesConfig<$i>>::InboundPayload, FromBridgedChainMessagePayload<CallOf<ThisChain<$bridge>>>);
 			assert_type_eq_all!(<$r as MessagesConfig<$i>>::InboundRelayer, AccountIdOf<BridgedChain<$bridge>>);

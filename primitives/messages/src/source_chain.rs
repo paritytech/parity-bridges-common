@@ -97,7 +97,7 @@ pub trait LaneMessageVerifier<SenderOrigin, Payload> {
 /// 3) message-dispatch fee. It is paid by relayer for processing message by target chain;
 /// 4) message-receiving-delivery-transaction-fee. It is submitted to the source node
 /// by relayer.
-pub trait MessageDeliveryAndDispatchPayment<SenderOrigin, AccountId, Balance> {
+pub trait MessageDeliveryAndDispatchPayment<SenderOrigin, AccountId> {
 	/// Error type.
 	type Error: Debug + Into<&'static str>;
 
@@ -113,8 +113,8 @@ pub trait MessageDeliveryAndDispatchPayment<SenderOrigin, AccountId, Balance> {
 	);
 }
 
-impl<SenderOrigin, AccountId, Balance>
-	MessageDeliveryAndDispatchPayment<SenderOrigin, AccountId, Balance> for ()
+impl<SenderOrigin, AccountId>
+	MessageDeliveryAndDispatchPayment<SenderOrigin, AccountId> for ()
 {
 	type Error = &'static str;
 
@@ -247,8 +247,8 @@ impl<SenderOrigin, Payload> LaneMessageVerifier<SenderOrigin, Payload> for Forbi
 	}
 }
 
-impl<SenderOrigin, AccountId, Balance>
-	MessageDeliveryAndDispatchPayment<SenderOrigin, AccountId, Balance> for ForbidOutboundMessages
+impl<SenderOrigin, AccountId>
+	MessageDeliveryAndDispatchPayment<SenderOrigin, AccountId> for ForbidOutboundMessages
 {
 	type Error = &'static str;
 

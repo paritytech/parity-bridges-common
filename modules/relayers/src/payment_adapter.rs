@@ -31,10 +31,10 @@ pub struct MessageDeliveryAndDispatchPaymentAdapter<T, MessagesInstance>(
 );
 
 impl<T, MessagesInstance>
-	MessageDeliveryAndDispatchPayment<T::RuntimeOrigin, T::AccountId, T::Reward>
+	MessageDeliveryAndDispatchPayment<T::RuntimeOrigin, T::AccountId>
 	for MessageDeliveryAndDispatchPaymentAdapter<T, MessagesInstance>
 where
-	T: Config + pallet_bridge_messages::Config<MessagesInstance, OutboundMessageFee = T::Reward>,
+	T: Config + pallet_bridge_messages::Config<MessagesInstance>,
 	MessagesInstance: 'static,
 {
 	type Error = &'static str;

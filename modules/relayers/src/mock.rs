@@ -103,7 +103,6 @@ impl pallet_bridge_messages::Config for TestRuntime {
 
 	type MaximalOutboundPayloadSize = frame_support::traits::ConstU32<1024>;
 	type OutboundPayload = ();
-	type OutboundMessageFee = Balance;
 
 	type InboundPayload = ();
 	type InboundRelayer = AccountId;

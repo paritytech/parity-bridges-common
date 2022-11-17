@@ -65,9 +65,9 @@ use bp_messages::{
 use bp_runtime::{BasicOperatingMode, ChainId, OwnedBridgeModule, Size};
 use codec::{Decode, Encode, MaxEncodedLen};
 use frame_support::{dispatch::PostDispatchInfo, ensure, fail, traits::Get};
-use num_traits::{SaturatingAdd, Zero};
+use num_traits::Zero;
 use sp_std::{
-	cell::RefCell, cmp::PartialOrd, collections::vec_deque::VecDeque, marker::PhantomData,
+	cell::RefCell, collections::vec_deque::VecDeque, marker::PhantomData,
 	ops::RangeInclusive, prelude::*,
 };
 
@@ -141,15 +141,6 @@ pub mod pallet {
 		type MaximalOutboundPayloadSize: Get<u32>;
 		/// Payload type of outbound messages. This payload is dispatched on the bridged chain.
 		type OutboundPayload: Parameter + Size;
-		/// Message fee type of outbound messages. This fee is paid on this chain.
-		type OutboundMessageFee: Default
-			+ From<u64>
-			+ PartialOrd
-			+ Parameter
-			+ SaturatingAdd
-			+ Zero
-			+ Copy
-			+ MaxEncodedLen;
 
 		/// Payload type of inbound messages. This payload is dispatched on this chain.
 		type InboundPayload: Decode;
@@ -167,7 +158,6 @@ pub mod pallet {
 		type MessageDeliveryAndDispatchPayment: MessageDeliveryAndDispatchPayment<
 			Self::RuntimeOrigin,
 			Self::AccountId,
-			Self::OutboundMessageFee,
 		>;
 		/// Handler for accepted messages.
 		type OnMessageAccepted: OnMessageAccepted;

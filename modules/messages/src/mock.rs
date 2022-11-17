@@ -155,7 +155,6 @@ impl Config for TestRuntime {
 
 	type MaximalOutboundPayloadSize = frame_support::traits::ConstU32<MAX_OUTBOUND_PAYLOAD_SIZE>;
 	type OutboundPayload = TestPayload;
-	type OutboundMessageFee = TestMessageFee;
 
 	type InboundPayload = TestPayload;
 	type InboundRelayer = TestRelayer;
@@ -302,7 +301,7 @@ impl TestMessageDeliveryAndDispatchPayment {
 	}
 }
 
-impl MessageDeliveryAndDispatchPayment<RuntimeOrigin, AccountId, TestMessageFee>
+impl MessageDeliveryAndDispatchPayment<RuntimeOrigin, AccountId>
 	for TestMessageDeliveryAndDispatchPayment
 {
 	type Error = &'static str;
