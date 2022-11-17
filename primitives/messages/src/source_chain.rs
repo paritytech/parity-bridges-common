@@ -113,9 +113,7 @@ pub trait MessageDeliveryAndDispatchPayment<SenderOrigin, AccountId> {
 	);
 }
 
-impl<SenderOrigin, AccountId>
-	MessageDeliveryAndDispatchPayment<SenderOrigin, AccountId> for ()
-{
+impl<SenderOrigin, AccountId> MessageDeliveryAndDispatchPayment<SenderOrigin, AccountId> for () {
 	type Error = &'static str;
 
 	fn pay_relayers_rewards(
@@ -247,8 +245,8 @@ impl<SenderOrigin, Payload> LaneMessageVerifier<SenderOrigin, Payload> for Forbi
 	}
 }
 
-impl<SenderOrigin, AccountId>
-	MessageDeliveryAndDispatchPayment<SenderOrigin, AccountId> for ForbidOutboundMessages
+impl<SenderOrigin, AccountId> MessageDeliveryAndDispatchPayment<SenderOrigin, AccountId>
+	for ForbidOutboundMessages
 {
 	type Error = &'static str;
 

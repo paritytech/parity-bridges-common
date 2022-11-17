@@ -37,7 +37,10 @@ use relay_substrate_client::{
 	transaction_stall_timeout, AccountKeyPairOf, BalanceOf, BlockNumberOf, CallOf, Chain,
 	ChainWithMessages, ChainWithTransactions, Client, HashOf,
 };
-use relay_utils::{metrics::{GlobalMetrics, MetricsParams, StandaloneMetric}, STALL_TIMEOUT};
+use relay_utils::{
+	metrics::{GlobalMetrics, MetricsParams, StandaloneMetric},
+	STALL_TIMEOUT,
+};
 use sp_core::Pair;
 use std::{convert::TryFrom, fmt::Debug, marker::PhantomData};
 

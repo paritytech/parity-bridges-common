@@ -30,8 +30,7 @@ pub struct MessageDeliveryAndDispatchPaymentAdapter<T, MessagesInstance>(
 	PhantomData<(T, MessagesInstance)>,
 );
 
-impl<T, MessagesInstance>
-	MessageDeliveryAndDispatchPayment<T::RuntimeOrigin, T::AccountId>
+impl<T, MessagesInstance> MessageDeliveryAndDispatchPayment<T::RuntimeOrigin, T::AccountId>
 	for MessageDeliveryAndDispatchPaymentAdapter<T, MessagesInstance>
 where
 	T: Config + pallet_bridge_messages::Config<MessagesInstance>,

@@ -67,8 +67,8 @@ use codec::{Decode, Encode, MaxEncodedLen};
 use frame_support::{dispatch::PostDispatchInfo, ensure, fail, traits::Get};
 use num_traits::Zero;
 use sp_std::{
-	cell::RefCell, collections::vec_deque::VecDeque, marker::PhantomData,
-	ops::RangeInclusive, prelude::*,
+	cell::RefCell, collections::vec_deque::VecDeque, marker::PhantomData, ops::RangeInclusive,
+	prelude::*,
 };
 
 mod inbound_lane;

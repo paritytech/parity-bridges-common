@@ -61,8 +61,7 @@ use relay_substrate_client::{
 use relay_utils::metrics::MetricsParams;
 use sp_core::Pair;
 use substrate_relay_helper::{
-	messages_lane::MessagesRelayParams,
-	on_demand::OnDemandRelay, TaggedAccount, TransactionParams,
+	messages_lane::MessagesRelayParams, on_demand::OnDemandRelay, TaggedAccount, TransactionParams,
 };
 
 /// Parameters that have the same names across all bridges.
@@ -102,12 +101,7 @@ impl<Left: ChainWithTransactions + CliChain, Right: ChainWithTransactions + CliC
 		let metrics_params = shared.prometheus_params.clone().into();
 		let metrics_params = relay_utils::relay_metrics(metrics_params).into_params();
 
-		Ok(Self {
-			shared,
-			left,
-			right,
-			metrics_params,
-		})
+		Ok(Self { shared, left, right, metrics_params })
 	}
 }
 

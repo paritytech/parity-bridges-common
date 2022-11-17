@@ -110,7 +110,6 @@ where
 	}
 }
 
-
 /// Convert from raw `u128` balance (nominated in smallest chain token units) to the float regular
 /// tokens value.
 fn convert_to_token_balance(balance: u128, token_decimals: u32) -> FixedU128 {

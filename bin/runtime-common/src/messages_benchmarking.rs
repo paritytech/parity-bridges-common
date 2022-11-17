@@ -21,8 +21,7 @@
 
 use crate::{
 	messages::{
-		source::FromBridgedChainMessagesDeliveryProof,
-		target::FromBridgedChainMessagesProof,
+		source::FromBridgedChainMessagesDeliveryProof, target::FromBridgedChainMessagesProof,
 		AccountIdOf, BalanceOf, BridgedChain, CallOf, HashOf, MessageBridge, ThisChain,
 	},
 	messages_generation::{
@@ -34,9 +33,7 @@ use bp_messages::storage_keys;
 use bp_runtime::{record_all_trie_keys, StorageProofSize};
 use codec::Encode;
 use frame_support::{dispatch::GetDispatchInfo, weights::Weight};
-use pallet_bridge_messages::benchmarking::{
-	MessageDeliveryProofParams, MessageProofParams,
-};
+use pallet_bridge_messages::benchmarking::{MessageDeliveryProofParams, MessageProofParams};
 use sp_core::Hasher;
 use sp_runtime::traits::{Header, MaybeSerializeDeserialize, Zero};
 use sp_std::{fmt::Debug, prelude::*};

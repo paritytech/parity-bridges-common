@@ -18,14 +18,13 @@
 
 use crate::{
 	inbound_lane::InboundLaneStorage, inbound_lane_storage, outbound_lane,
-	weights_ext::EXPECTED_DEFAULT_MESSAGE_LENGTH, Call,
-	OutboundLanes,
+	weights_ext::EXPECTED_DEFAULT_MESSAGE_LENGTH, Call, OutboundLanes,
 };
 
 use bp_messages::{
 	source_chain::TargetHeaderChain, target_chain::SourceHeaderChain, DeliveredMessages,
-	InboundLaneData, LaneId, MessageNonce, OutboundLaneData,
-	UnrewardedRelayer, UnrewardedRelayersState,
+	InboundLaneData, LaneId, MessageNonce, OutboundLaneData, UnrewardedRelayer,
+	UnrewardedRelayersState,
 };
 use bp_runtime::StorageProofSize;
 use frame_benchmarking::{account, benchmarks_instance_pallet};
@@ -75,10 +74,7 @@ pub trait Config<I: 'static>: crate::Config<I> {
 	/// Prepare messages proof to receive by the module.
 	fn prepare_message_proof(
 		params: MessageProofParams,
-	) -> (
-		<Self::SourceHeaderChain as SourceHeaderChain>::MessagesProof,
-		Weight,
-	);
+	) -> (<Self::SourceHeaderChain as SourceHeaderChain>::MessagesProof, Weight);
 	/// Prepare messages delivery proof to receive by the module.
 	fn prepare_message_delivery_proof(
 		params: MessageDeliveryProofParams<Self::AccountId>,
@@ -412,7 +408,6 @@ fn send_regular_message<T: Config<I>, I: 'static>() {
 	let mut outbound_lane = outbound_lane::<T, I>(T::bench_lane_id());
 	outbound_lane.send_message(vec![]);
 }
-
 
 fn receive_messages<T: Config<I>, I: 'static>(nonce: MessageNonce) {
 	let mut inbound_lane_storage = inbound_lane_storage::<T, I>(T::bench_lane_id());
