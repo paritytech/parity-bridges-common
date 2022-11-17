@@ -17,7 +17,6 @@
 //! Tools for supporting message lanes between two Substrate-based chains.
 
 use crate::{
-	messages_metrics::StandaloneMessagesMetrics,
 	messages_source::{SubstrateMessagesProof, SubstrateMessagesSource},
 	messages_target::{SubstrateMessagesDeliveryProof, SubstrateMessagesTarget},
 	on_demand::OnDemandRelay,
@@ -38,7 +37,7 @@ use relay_substrate_client::{
 	transaction_stall_timeout, AccountKeyPairOf, BalanceOf, BlockNumberOf, CallOf, Chain,
 	ChainWithMessages, ChainWithTransactions, Client, HashOf,
 };
-use relay_utils::{metrics::MetricsParams, STALL_TIMEOUT};
+use relay_utils::{metrics::{GlobalMetrics, MetricsParams, StandaloneMetric}, STALL_TIMEOUT};
 use sp_core::Pair;
 use std::{convert::TryFrom, fmt::Debug, marker::PhantomData};
 
@@ -96,8 +95,6 @@ pub struct MessagesRelayParams<P: SubstrateMessageLane> {
 	pub lane_id: LaneId,
 	/// Metrics parameters.
 	pub metrics_params: MetricsParams,
-	/// Pre-registered standalone metrics.
-	pub standalone_metrics: Option<StandaloneMessagesMetrics<P::SourceChain, P::TargetChain>>,
 }
 
 /// Run Substrate-to-Substrate messages sync loop.
@@ -125,13 +122,6 @@ where
 		);
 	let (max_messages_in_single_batch, max_messages_weight_in_single_batch) =
 		(max_messages_in_single_batch / 2, max_messages_weight_in_single_batch / 2);
-
-	let standalone_metrics = params.standalone_metrics.map(Ok).unwrap_or_else(|| {
-		crate::messages_metrics::standalone_metrics::<P>(
-			source_client.clone(),
-			target_client.clone(),
-		)
-	})?;
 
 	log::info!(
 		target: "bridge",
@@ -191,10 +181,12 @@ where
 			params.lane_id,
 			relayer_id_at_source,
 			params.target_transaction_params,
-			standalone_metrics.clone(),
 			params.source_to_target_headers_relay,
 		),
-		standalone_metrics.register_and_spawn(params.metrics_params)?,
+		{
+			GlobalMetrics::new()?.register_and_spawn(&params.metrics_params.registry)?;
+			params.metrics_params
+		},
 		futures::future::pending(),
 	)
 	.await

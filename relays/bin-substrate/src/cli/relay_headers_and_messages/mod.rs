@@ -61,7 +61,7 @@ use relay_substrate_client::{
 use relay_utils::metrics::MetricsParams;
 use sp_core::Pair;
 use substrate_relay_helper::{
-	messages_lane::MessagesRelayParams, messages_metrics::StandaloneMessagesMetrics,
+	messages_lane::MessagesRelayParams,
 	on_demand::OnDemandRelay, TaggedAccount, TransactionParams,
 };
 
@@ -88,8 +88,6 @@ pub struct Full2WayBridgeCommonParams<
 	pub right: BridgeEndCommonParams<Right>,
 
 	pub metrics_params: MetricsParams,
-	pub left_to_right_metrics: StandaloneMessagesMetrics<Left, Right>,
-	pub right_to_left_metrics: StandaloneMessagesMetrics<Right, Left>,
 }
 
 impl<Left: ChainWithTransactions + CliChain, Right: ChainWithTransactions + CliChain>
@@ -103,18 +101,12 @@ impl<Left: ChainWithTransactions + CliChain, Right: ChainWithTransactions + CliC
 		// Create metrics registry.
 		let metrics_params = shared.prometheus_params.clone().into();
 		let metrics_params = relay_utils::relay_metrics(metrics_params).into_params();
-		let left_to_right_metrics = substrate_relay_helper::messages_metrics::standalone_metrics::<
-			L2R::MessagesLane,
-		>(left.client.clone(), right.client.clone())?;
-		let right_to_left_metrics = left_to_right_metrics.clone().reverse();
 
 		Ok(Self {
 			shared,
 			left,
 			right,
 			metrics_params,
-			left_to_right_metrics,
-			right_to_left_metrics,
 		})
 	}
 }
@@ -136,7 +128,6 @@ struct FullBridge<
 	source: &'a mut BridgeEndCommonParams<Source>,
 	target: &'a mut BridgeEndCommonParams<Target>,
 	metrics_params: &'a MetricsParams,
-	metrics: &'a StandaloneMessagesMetrics<Source, Target>,
 	_phantom_data: PhantomData<Bridge>,
 }
 
@@ -155,9 +146,8 @@ where
 		source: &'a mut BridgeEndCommonParams<Source>,
 		target: &'a mut BridgeEndCommonParams<Target>,
 		metrics_params: &'a MetricsParams,
-		metrics: &'a StandaloneMessagesMetrics<Source, Target>,
 	) -> Self {
-		Self { source, target, metrics_params, metrics, _phantom_data: Default::default() }
+		Self { source, target, metrics_params, _phantom_data: Default::default() }
 	}
 
 	fn messages_relay_params(
@@ -181,7 +171,6 @@ where
 			target_to_source_headers_relay: Some(target_to_source_headers_relay),
 			lane_id,
 			metrics_params: self.metrics_params.clone().disable(),
-			standalone_metrics: Some(self.metrics.clone()),
 		}
 	}
 }
@@ -256,7 +245,6 @@ where
 			&mut common.left,
 			&mut common.right,
 			&common.metrics_params,
-			&common.left_to_right_metrics,
 		)
 	}
 
@@ -266,7 +254,6 @@ where
 			&mut common.right,
 			&mut common.left,
 			&common.metrics_params,
-			&common.right_to_left_metrics,
 		)
 	}
 

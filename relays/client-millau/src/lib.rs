@@ -80,7 +80,6 @@ impl Chain for Millau {
 	const BEST_FINALIZED_HEADER_ID_METHOD: &'static str =
 		bp_millau::BEST_FINALIZED_MILLAU_HEADER_METHOD;
 	const AVERAGE_BLOCK_INTERVAL: Duration = Duration::from_secs(5);
-	const STORAGE_PROOF_OVERHEAD: u32 = bp_millau::EXTRA_STORAGE_PROOF_SIZE;
 
 	type SignedBlock = millau_runtime::SignedBlock;
 	type Call = millau_runtime::RuntimeCall;

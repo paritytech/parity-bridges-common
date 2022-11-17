@@ -44,19 +44,8 @@ pub struct RelayReference<
 	pub lane_target_client: TargetClient,
 	/// Metrics reference.
 	pub metrics: Option<MessageLaneLoopMetrics>,
-	/// Current block reward summary
-	pub selected_reward: P::SourceChainBalance,
-	/// Current block cost summary
-	pub selected_cost: P::SourceChainBalance,
 	/// Messages size summary
 	pub selected_size: u32,
-
-	/// Current block reward summary
-	pub total_reward: P::SourceChainBalance,
-	/// All confirmations cost
-	pub total_confirmations_cost: P::SourceChainBalance,
-	/// Current block cost summary
-	pub total_cost: P::SourceChainBalance,
 
 	/// Hard check begin nonce
 	pub hard_selected_begin_nonce: MessageNonce,
@@ -110,7 +99,6 @@ impl MessageRaceLimits {
 		reference: RelayMessagesBatchReference<P, SourceClient, TargetClient>,
 	) -> Option<MessageNonce> {
 		let mut hard_selected_count = 0;
-		let mut soft_selected_count = 0;
 
 		let mut selected_weight = Weight::zero();
 		let mut selected_count: MessageNonce = 0;
@@ -124,13 +112,7 @@ impl MessageRaceLimits {
 			lane_target_client: reference.lane_target_client.clone(),
 			metrics: reference.metrics.clone(),
 
-			selected_reward: P::SourceChainBalance::zero(),
-			selected_cost: P::SourceChainBalance::zero(),
 			selected_size: 0,
-
-			total_reward: P::SourceChainBalance::zero(),
-			total_confirmations_cost: P::SourceChainBalance::zero(),
-			total_cost: P::SourceChainBalance::zero(),
 
 			hard_selected_begin_nonce,
 
@@ -202,46 +184,12 @@ impl MessageRaceLimits {
 			}
 			relay_reference.selected_size = new_selected_size;
 
-			soft_selected_count = index + 1;
 			hard_selected_count = index + 1;
 			selected_weight = new_selected_weight;
 			selected_count = new_selected_count;
 		}
 
-		if hard_selected_count != soft_selected_count {
-			let hard_selected_end_nonce =
-				hard_selected_begin_nonce + hard_selected_count as MessageNonce - 1;
-			let soft_selected_begin_nonce = hard_selected_begin_nonce;
-			let soft_selected_end_nonce =
-				soft_selected_begin_nonce + soft_selected_count as MessageNonce - 1;
-			log::warn!(
-				target: "bridge",
-				"Relayer may deliver nonces [{:?}; {:?}], but because of its strategy it has selected \
-				nonces [{:?}; {:?}].",
-				hard_selected_begin_nonce,
-				hard_selected_end_nonce,
-				soft_selected_begin_nonce,
-				soft_selected_end_nonce,
-			);
-
-			hard_selected_count = soft_selected_count;
-		}
-
 		if hard_selected_count != 0 {
-			if relay_reference.selected_reward != P::SourceChainBalance::zero() &&
-				relay_reference.selected_cost != P::SourceChainBalance::zero()
-			{
-				log::trace!(
-					target: "bridge",
-					"Expected reward from delivering nonces [{:?}; {:?}] is: {:?} - {:?} = {:?}",
-					hard_selected_begin_nonce,
-					hard_selected_begin_nonce + hard_selected_count as MessageNonce - 1,
-					&relay_reference.selected_reward,
-					&relay_reference.selected_cost,
-					relay_reference.selected_reward - relay_reference.selected_cost,
-				);
-			}
-
 			let selected_max_nonce =
 				hard_selected_begin_nonce + hard_selected_count as MessageNonce - 1;
 			Some(selected_max_nonce)

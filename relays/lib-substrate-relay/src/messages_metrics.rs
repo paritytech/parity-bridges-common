@@ -16,101 +16,19 @@
 
 //! Tools for supporting message lanes between two Substrate-based chains.
 
-use crate::{messages_lane::SubstrateMessageLane, TaggedAccount};
+use crate::TaggedAccount;
 
 use codec::Decode;
 use frame_system::AccountInfo;
 use pallet_balances::AccountData;
 use relay_substrate_client::{
-	metrics::{FloatStorageValue, FloatStorageValueMetric, StorageProofOverheadMetric},
+	metrics::{FloatStorageValue, FloatStorageValueMetric},
 	AccountIdOf, BalanceOf, Chain, ChainWithBalances, Client, Error as SubstrateError, IndexOf,
 };
-use relay_utils::metrics::{
-	FloatJsonValueMetric, GlobalMetrics, MetricsParams, PrometheusError, StandaloneMetric,
-};
+use relay_utils::metrics::{MetricsParams, StandaloneMetric};
 use sp_core::storage::StorageData;
 use sp_runtime::{FixedPointNumber, FixedU128};
 use std::{convert::TryFrom, fmt::Debug, marker::PhantomData};
-
-/// Shared references to the standalone metrics of the message lane relay loop.
-#[derive(Debug, Clone)]
-pub struct StandaloneMessagesMetrics<SC: Chain, TC: Chain> {
-	/// Global metrics.
-	pub global: GlobalMetrics,
-	/// Storage chain proof overhead metric.
-	pub source_storage_proof_overhead: StorageProofOverheadMetric<SC>,
-	/// Target chain proof overhead metric.
-	pub target_storage_proof_overhead: StorageProofOverheadMetric<TC>,
-	/// Source tokens to base conversion rate metric.
-	pub source_to_base_conversion_rate: Option<FloatJsonValueMetric>,
-	/// Target tokens to base conversion rate metric.
-	pub target_to_base_conversion_rate: Option<FloatJsonValueMetric>,
-}
-
-impl<SC: Chain, TC: Chain> StandaloneMessagesMetrics<SC, TC> {
-	/// Swap source and target sides.
-	pub fn reverse(self) -> StandaloneMessagesMetrics<TC, SC> {
-		StandaloneMessagesMetrics {
-			global: self.global,
-			source_storage_proof_overhead: self.target_storage_proof_overhead,
-			target_storage_proof_overhead: self.source_storage_proof_overhead,
-			source_to_base_conversion_rate: self.source_to_base_conversion_rate,
-			target_to_base_conversion_rate: self.target_to_base_conversion_rate,
-		}
-	}
-
-	/// Register all metrics in the registry.
-	pub fn register_and_spawn(
-		self,
-		metrics: MetricsParams,
-	) -> Result<MetricsParams, PrometheusError> {
-		self.global.register_and_spawn(&metrics.registry)?;
-		self.source_storage_proof_overhead.register_and_spawn(&metrics.registry)?;
-		self.target_storage_proof_overhead.register_and_spawn(&metrics.registry)?;
-		if let Some(source_to_base_conversion_rate) = self.source_to_base_conversion_rate {
-			source_to_base_conversion_rate.register_and_spawn(&metrics.registry)?;
-		}
-		if let Some(target_to_base_conversion_rate) = self.target_to_base_conversion_rate {
-			target_to_base_conversion_rate.register_and_spawn(&metrics.registry)?;
-		}
-		Ok(metrics)
-	}
-}
-
-/// Create symmetric standalone metrics for the message lane relay loop.
-///
-/// All metrics returned by this function are exposed by loops that are serving given lane (`P`)
-/// and by loops that are serving reverse lane (`P` with swapped `TargetChain` and `SourceChain`).
-/// We assume that either conversion rate parameters have values in the storage, or they are
-/// initialized with 1:1.
-pub fn standalone_metrics<P: SubstrateMessageLane>(
-	source_client: Client<P::SourceChain>,
-	target_client: Client<P::TargetChain>,
-) -> anyhow::Result<StandaloneMessagesMetrics<P::SourceChain, P::TargetChain>> {
-	Ok(StandaloneMessagesMetrics {
-		global: GlobalMetrics::new()?,
-		source_storage_proof_overhead: StorageProofOverheadMetric::new(
-			source_client.clone(),
-			format!("{}_storage_proof_overhead", P::SourceChain::NAME.to_lowercase()),
-			format!("{} storage proof overhead", P::SourceChain::NAME),
-		)?,
-		target_storage_proof_overhead: StorageProofOverheadMetric::new(
-			target_client.clone(),
-			format!("{}_storage_proof_overhead", P::TargetChain::NAME.to_lowercase()),
-			format!("{} storage proof overhead", P::TargetChain::NAME),
-		)?,
-		source_to_base_conversion_rate: P::SourceChain::TOKEN_ID
-			.map(|source_chain_token_id| {
-				crate::helpers::token_price_metric(source_chain_token_id).map(Some)
-			})
-			.unwrap_or(Ok(None))?,
-		target_to_base_conversion_rate: P::TargetChain::TOKEN_ID
-			.map(|target_chain_token_id| {
-				crate::helpers::token_price_metric(target_chain_token_id).map(Some)
-			})
-			.unwrap_or(Ok(None))?,
-	})
-}
 
 /// Add relay accounts balance metrics.
 pub async fn add_relay_balances_metrics<C: ChainWithBalances>(
@@ -191,6 +109,7 @@ where
 			.transpose()
 	}
 }
+
 
 /// Convert from raw `u128` balance (nominated in smallest chain token units) to the float regular
 /// tokens value.

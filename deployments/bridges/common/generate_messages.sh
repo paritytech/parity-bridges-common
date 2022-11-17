@@ -29,11 +29,6 @@ rand_sleep() {
 	echo "Woke up at $NOW"
 }
 
-# last time when we have been asking for conversion rate update
-LAST_CONVERSION_RATE_UPDATE_TIME=0
-# conversion rate override argument
-CONVERSION_RATE_OVERRIDE="--conversion-rate-override metric"
-
 # start sending large messages immediately
 LARGE_MESSAGES_TIME=0
 # start sending message packs in a hour
@@ -43,36 +38,16 @@ while true
 do
 	rand_sleep
 
-	# ask for latest conversion rate. We're doing that because otherwise we'll be facing
-	# bans from the conversion rate provider
-	if [ $SECONDS -ge $LAST_CONVERSION_RATE_UPDATE_TIME ]; then
-		CONVERSION_RATE_OVERRIDE="--conversion-rate-override metric"
-		CONVERSION_RATE_UPDATE_DELAY=`shuf -i 300-600 -n 1`
-		LAST_CONVERSION_RATE_UPDATE_TIME=$((SECONDS + $CONVERSION_RATE_UPDATE_DELAY))
-	fi
-
 	# send regular message
 	echo "Sending Message from $SOURCE_CHAIN to $TARGET_CHAIN"
-	SEND_MESSAGE_OUTPUT=`$SEND_MESSAGE --lane $MESSAGE_LANE $EXTRA_ARGS $CONVERSION_RATE_OVERRIDE raw $REGULAR_PAYLOAD 2>&1`
+	SEND_MESSAGE_OUTPUT=`$SEND_MESSAGE --lane $MESSAGE_LANE $EXTRA_ARGS raw $REGULAR_PAYLOAD 2>&1`
 	echo $SEND_MESSAGE_OUTPUT
-	if [ "$CONVERSION_RATE_OVERRIDE" = "--conversion-rate-override metric" ]; then
-		ACTUAL_CONVERSION_RATE_REGEX="conversion rate override: ([0-9\.]+)"
-		if [[ $SEND_MESSAGE_OUTPUT =~ $ACTUAL_CONVERSION_RATE_REGEX ]]; then
-			CONVERSION_RATE=${BASH_REMATCH[1]}
-			echo "Read updated conversion rate: $CONVERSION_RATE"
-			CONVERSION_RATE_OVERRIDE="--conversion-rate-override $CONVERSION_RATE"
-		else
-			echo "Error: unable to find conversion rate in send-message output. Will keep using on-chain rate"
-			CONVERSION_RATE_OVERRIDE=""
-		fi
-	fi
 
 	if [ ! -z $SECONDARY_MESSAGE_LANE ]; then
 		echo "Sending Message from $SOURCE_CHAIN to $TARGET_CHAIN using secondary lane: $SECONDARY_MESSAGE_LANE"
 		$SEND_MESSAGE \
 			--lane $SECONDARY_MESSAGE_LANE \
 			$SECONDARY_EXTRA_ARGS \
-			$CONVERSION_RATE_OVERRIDE \
 			raw $REGULAR_PAYLOAD
 	fi
 
@@ -84,7 +59,6 @@ do
 		echo "Sending Maximal Size Message from $SOURCE_CHAIN to $TARGET_CHAIN"
 		$SEND_MESSAGE \
 			--lane $MESSAGE_LANE \
-			$CONVERSION_RATE_OVERRIDE \
 			sized max
 	fi
 
@@ -97,7 +71,6 @@ do
 			$SEND_MESSAGE \
 				--lane $MESSAGE_LANE \
 				$EXTRA_ARGS \
-				$CONVERSION_RATE_OVERRIDE \
 				raw $BATCH_PAYLOAD
 		done
 

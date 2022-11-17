@@ -52,8 +52,6 @@ pub trait Chain: ChainBase + Clone {
 	/// How often blocks are produced on that chain. It's suggested to set this value
 	/// to match the block time of the chain.
 	const AVERAGE_BLOCK_INTERVAL: Duration;
-	/// Maximal expected storage proof overhead (in bytes).
-	const STORAGE_PROOF_OVERHEAD: u32;
 
 	/// Block type.
 	type SignedBlock: Member + Serialize + DeserializeOwned + BlockWithJustification<Self::Header>;

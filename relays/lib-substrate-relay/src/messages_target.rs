@@ -20,7 +20,6 @@
 
 use crate::{
 	messages_lane::{MessageLaneAdapter, ReceiveMessagesProofCallBuilder, SubstrateMessageLane},
-	messages_metrics::StandaloneMessagesMetrics,
 	messages_source::{ensure_messages_pallet_active, read_client_state, SubstrateMessagesProof},
 	on_demand::OnDemandRelay,
 	TransactionParams,
@@ -57,7 +56,6 @@ pub struct SubstrateMessagesTarget<P: SubstrateMessageLane> {
 	lane_id: LaneId,
 	relayer_id_at_source: AccountIdOf<P::SourceChain>,
 	transaction_params: TransactionParams<AccountKeyPairOf<P::TargetChain>>,
-	metric_values: StandaloneMessagesMetrics<P::SourceChain, P::TargetChain>,
 	source_to_target_headers_relay: Option<Arc<dyn OnDemandRelay<BlockNumberOf<P::SourceChain>>>>,
 }
 
@@ -69,7 +67,6 @@ impl<P: SubstrateMessageLane> SubstrateMessagesTarget<P> {
 		lane_id: LaneId,
 		relayer_id_at_source: AccountIdOf<P::SourceChain>,
 		transaction_params: TransactionParams<AccountKeyPairOf<P::TargetChain>>,
-		metric_values: StandaloneMessagesMetrics<P::SourceChain, P::TargetChain>,
 		source_to_target_headers_relay: Option<
 			Arc<dyn OnDemandRelay<BlockNumberOf<P::SourceChain>>>,
 		>,
@@ -80,7 +77,6 @@ impl<P: SubstrateMessageLane> SubstrateMessagesTarget<P> {
 			lane_id,
 			relayer_id_at_source,
 			transaction_params,
-			metric_values,
 			source_to_target_headers_relay,
 		}
 	}
@@ -115,7 +111,6 @@ impl<P: SubstrateMessageLane> Clone for SubstrateMessagesTarget<P> {
 			lane_id: self.lane_id,
 			relayer_id_at_source: self.relayer_id_at_source.clone(),
 			transaction_params: self.transaction_params.clone(),
-			metric_values: self.metric_values.clone(),
 			source_to_target_headers_relay: self.source_to_target_headers_relay.clone(),
 		}
 	}
