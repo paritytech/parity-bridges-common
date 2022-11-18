@@ -1584,12 +1584,9 @@ mod tests {
 				TEST_LANE_ID,
 				InboundLaneData {
 					last_confirmed_nonce: 0,
-					relayers: vec![UnrewardedRelayer {
-						relayer: 0,
-						messages: delivered_message_3,
-					}]
-					.into_iter()
-					.collect(),
+					relayers: vec![UnrewardedRelayer { relayer: 0, messages: delivered_message_3 }]
+						.into_iter()
+						.collect(),
 				},
 			));
 
