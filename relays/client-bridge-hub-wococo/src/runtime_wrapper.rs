@@ -14,25 +14,15 @@
 // You should have received a copy of the GNU General Public License
 // along with Parity Bridges Common.  If not, see <http://www.gnu.org/licenses/>.
 
-#![cfg_attr(not(feature = "std"), no_std)]
-// RuntimeApi generated functions
-#![allow(clippy::too_many_arguments)]
+//! Types that are specific to the BridgeHubWococo runtime.
 
-pub use bp_polkadot_core::*;
+pub use bp_bridge_hub_wococo::SS58Prefix;
 
-use sp_version::RuntimeVersion;
-
-/// Statemine Chain.
-pub type Statemine = PolkadotLike;
-
-/// Known Statemine runtime version.
-pub const VERSION: RuntimeVersion = RuntimeVersion {
-	spec_name: sp_version::create_runtime_str!("statemine"),
-	impl_name: sp_version::create_runtime_str!("statemine"),
-	authoring_version: 1,
-	spec_version: 9300,
-	impl_version: 0,
-	apis: sp_version::create_apis_vec![[]],
-	transaction_version: 8,
-	state_version: 1,
-};
+// We reuse everything from rococo runtime wrapper
+pub type Call = relay_bridge_hub_rococo_client::runtime::Call;
+pub type UncheckedExtrinsic = bp_bridge_hub_wococo::UncheckedExtrinsic<Call>;
+pub type BridgeGrandpaRococoCall = relay_bridge_hub_rococo_client::runtime::BridgeRococoGrandpaCall;
+pub type BridgeParachainCall = relay_bridge_hub_rococo_client::runtime::BridgeParachainCall;
+pub type BridgeRococoMessagesCall =
+	relay_bridge_hub_rococo_client::runtime::BridgeRococoMessagesCall;
+pub type SystemCall = relay_bridge_hub_rococo_client::runtime::SystemCall;

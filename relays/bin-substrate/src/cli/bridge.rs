@@ -15,7 +15,6 @@
 // along with Parity Bridges Common.  If not, see <http://www.gnu.org/licenses/>.
 
 use crate::cli::CliChain;
-use messages_relay::relay_strategy::MixStrategy;
 use pallet_bridge_parachains::{RelayBlockHash, RelayBlockHasher, RelayBlockNumber};
 use parachains_relay::ParachainsPipeline;
 use relay_substrate_client::{AccountKeyPairOf, Chain, ChainWithTransactions, RelayChain};
@@ -33,6 +32,8 @@ pub enum FullBridge {
 	RialtoToMillau,
 	MillauToRialtoParachain,
 	RialtoParachainToMillau,
+	BridgeHubRococoToBridgeHubWococo,
+	BridgeHubWococoToBridgeHubRococo,
 }
 
 impl FullBridge {
@@ -43,6 +44,8 @@ impl FullBridge {
 			Self::RialtoToMillau => RIALTO_TO_MILLAU_INDEX,
 			Self::MillauToRialtoParachain => MILLAU_TO_RIALTO_PARACHAIN_INDEX,
 			Self::RialtoParachainToMillau => RIALTO_PARACHAIN_TO_MILLAU_INDEX,
+			Self::BridgeHubRococoToBridgeHubWococo | Self::BridgeHubWococoToBridgeHubRococo =>
+				unimplemented!("Relay doesn't support send-message subcommand on bridge hubs"),
 		}
 	}
 }
@@ -98,9 +101,5 @@ pub trait MessagesCliBridge: CliBridgeBase {
 	/// defined bridge.
 	const ESTIMATE_MESSAGE_FEE_METHOD: &'static str;
 	/// The Source -> Destination messages synchronization pipeline.
-	type MessagesLane: SubstrateMessageLane<
-		SourceChain = Self::Source,
-		TargetChain = Self::Target,
-		RelayStrategy = MixStrategy,
-	>;
+	type MessagesLane: SubstrateMessageLane<SourceChain = Self::Source, TargetChain = Self::Target>;
 }

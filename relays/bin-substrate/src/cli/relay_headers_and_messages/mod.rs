@@ -33,7 +33,6 @@ mod relay_to_parachain;
 use async_trait::async_trait;
 use std::{marker::PhantomData, sync::Arc};
 use structopt::StructOpt;
-use strum::VariantNames;
 
 use futures::{FutureExt, TryFutureExt};
 use relay_to_parachain::*;
@@ -52,31 +51,20 @@ use crate::{
 			RelayToRelayHeadersCliBridge,
 		},
 		chain_schema::*,
-		relay_messages::RelayerMode,
 		CliChain, HexLaneId, PrometheusParams,
 	},
 	declare_chain_cli_schema,
 };
 use bp_messages::LaneId;
 use bp_runtime::{BalanceOf, BlockNumberOf};
-use messages_relay::relay_strategy::MixStrategy;
 use relay_substrate_client::{
 	AccountIdOf, AccountKeyPairOf, Chain, ChainWithBalances, ChainWithTransactions, Client,
 };
 use relay_utils::metrics::MetricsParams;
 use sp_core::Pair;
 use substrate_relay_helper::{
-	messages_lane::MessagesRelayParams, messages_metrics::StandaloneMessagesMetrics,
-	on_demand::OnDemandRelay, TaggedAccount, TransactionParams,
+	messages_lane::MessagesRelayParams, on_demand::OnDemandRelay, TaggedAccount, TransactionParams,
 };
-
-/// Maximal allowed conversion rate error ratio (abs(real - stored) / stored) that we allow.
-///
-/// If it is zero, then transaction will be submitted every time we see difference between
-/// stored and real conversion rates. If it is large enough (e.g. > than 10 percents, which is 0.1),
-/// then rational relayers may stop relaying messages because they were submitted using
-/// lesser conversion rate.
-pub(crate) const CONVERSION_RATE_ALLOWED_DIFFERENCE_RATIO: f64 = 0.05;
 
 /// Parameters that have the same names across all bridges.
 #[derive(Debug, PartialEq, StructOpt)]
@@ -84,8 +72,6 @@ pub struct HeadersAndMessagesSharedParams {
 	/// Hex-encoded lane identifiers that should be served by the complex relay.
 	#[structopt(long, default_value = "00000000")]
 	pub lane: Vec<HexLaneId>,
-	#[structopt(long, possible_values = RelayerMode::VARIANTS, case_insensitive = true, default_value = "rational")]
-	pub relayer_mode: RelayerMode,
 	/// If passed, only mandatory headers (headers that are changing the GRANDPA authorities set)
 	/// are relayed.
 	#[structopt(long)]
@@ -108,10 +94,6 @@ pub struct Full2WayBridgeCommonParams<
 
 	/// Common metric parameters.
 	pub metrics_params: MetricsParams,
-	/// Metrics of the left-to-right relay.
-	pub left_to_right_metrics: StandaloneMessagesMetrics<Left, Right>,
-	/// Metrics of the right-to-left relay.
-	pub right_to_left_metrics: StandaloneMessagesMetrics<Right, Left>,
 }
 
 impl<Left: ChainWithTransactions + CliChain, Right: ChainWithTransactions + CliChain>
@@ -126,19 +108,8 @@ impl<Left: ChainWithTransactions + CliChain, Right: ChainWithTransactions + CliC
 		// Create metrics registry.
 		let metrics_params = shared.prometheus_params.clone().into();
 		let metrics_params = relay_utils::relay_metrics(metrics_params).into_params();
-		let left_to_right_metrics = substrate_relay_helper::messages_metrics::standalone_metrics::<
-			L2R::MessagesLane,
-		>(left.client.clone(), right.client.clone())?;
-		let right_to_left_metrics = left_to_right_metrics.clone().reverse();
 
-		Ok(Self {
-			shared,
-			left,
-			right,
-			metrics_params,
-			left_to_right_metrics,
-			right_to_left_metrics,
-		})
+		Ok(Self { shared, left, right, metrics_params })
 	}
 }
 
@@ -163,11 +134,9 @@ struct FullBridge<
 	Target: ChainWithTransactions + CliChain,
 	Bridge: MessagesCliBridge<Source = Source, Target = Target>,
 > {
-	shared: &'a HeadersAndMessagesSharedParams,
 	source: &'a mut BridgeEndCommonParams<Source>,
 	target: &'a mut BridgeEndCommonParams<Target>,
 	metrics_params: &'a MetricsParams,
-	metrics: &'a StandaloneMessagesMetrics<Source, Target>,
 	_phantom_data: PhantomData<Bridge>,
 }
 
@@ -184,56 +153,11 @@ where
 {
 	/// Construct complex relay given it components.
 	fn new(
-		shared: &'a HeadersAndMessagesSharedParams,
 		source: &'a mut BridgeEndCommonParams<Source>,
 		target: &'a mut BridgeEndCommonParams<Target>,
 		metrics_params: &'a MetricsParams,
-		metrics: &'a StandaloneMessagesMetrics<Source, Target>,
 	) -> Self {
-		Self { shared, source, target, metrics_params, metrics, _phantom_data: Default::default() }
-	}
-
-	/// Start conversion rate update loop.
-	fn start_conversion_rate_update_loop(&mut self) -> anyhow::Result<()> {
-		if let Some(ref messages_pallet_owner) = self.source.messages_pallet_owner {
-			let format_err = || {
-				anyhow::format_err!(
-					"Cannon run conversion rate updater: {} -> {}",
-					Target::NAME,
-					Source::NAME
-				)
-			};
-			substrate_relay_helper::conversion_rate_update::run_conversion_rate_update_loop::<
-				Bridge::MessagesLane,
-			>(
-				self.source.client.clone(),
-				TransactionParams {
-					signer: messages_pallet_owner.clone(),
-					mortality: self.source.transactions_mortality,
-				},
-				self.metrics
-					.target_to_source_conversion_rate
-					.as_ref()
-					.ok_or_else(format_err)?
-					.shared_value_ref(),
-				self.metrics
-					.target_to_base_conversion_rate
-					.as_ref()
-					.ok_or_else(format_err)?
-					.shared_value_ref(),
-				self.metrics
-					.source_to_base_conversion_rate
-					.as_ref()
-					.ok_or_else(format_err)?
-					.shared_value_ref(),
-				CONVERSION_RATE_ALLOWED_DIFFERENCE_RATIO,
-			);
-			self.source.accounts.push(TaggedAccount::MessagesPalletOwner {
-				id: messages_pallet_owner.public().into(),
-				bridged_chain: Target::NAME.to_string(),
-			});
-		}
-		Ok(())
+		Self { source, target, metrics_params, _phantom_data: Default::default() }
 	}
 
 	/// Returns message relay parameters.
@@ -243,9 +167,6 @@ where
 		target_to_source_headers_relay: Arc<dyn OnDemandRelay<BlockNumberOf<Target>>>,
 		lane_id: LaneId,
 	) -> MessagesRelayParams<Bridge::MessagesLane> {
-		let relayer_mode = self.shared.relayer_mode.into();
-		let relay_strategy = MixStrategy::new(relayer_mode);
-
 		MessagesRelayParams {
 			source_client: self.source.client.clone(),
 			source_transaction_params: TransactionParams {
@@ -261,8 +182,6 @@ where
 			target_to_source_headers_relay: Some(target_to_source_headers_relay),
 			lane_id,
 			metrics_params: self.metrics_params.clone().disable(),
-			standalone_metrics: Some(self.metrics.clone()),
-			relay_strategy,
 		}
 	}
 }
@@ -349,11 +268,9 @@ where
 	fn left_to_right(&mut self) -> FullBridge<Self::Left, Self::Right, Self::L2R> {
 		let common = self.mut_base().mut_common();
 		FullBridge::<_, _, Self::L2R>::new(
-			&common.shared,
 			&mut common.left,
 			&mut common.right,
 			&common.metrics_params,
-			&common.left_to_right_metrics,
 		)
 	}
 
@@ -361,11 +278,9 @@ where
 	fn right_to_left(&mut self) -> FullBridge<Self::Right, Self::Left, Self::R2L> {
 		let common = self.mut_base().mut_common();
 		FullBridge::<_, _, Self::R2L>::new(
-			&common.shared,
 			&mut common.right,
 			&mut common.left,
 			&common.metrics_params,
-			&common.right_to_left_metrics,
 		)
 	}
 
@@ -383,10 +298,6 @@ where
 				bridged_chain: Self::Left::NAME.to_string(),
 			});
 		}
-
-		// start conversion rate update loops for left/right chains
-		self.left_to_right().start_conversion_rate_update_loop()?;
-		self.right_to_left().start_conversion_rate_update_loop()?;
 
 		// start on-demand header relays
 		let (left_to_right_on_demand_headers, right_to_left_on_demand_headers) =
@@ -569,7 +480,6 @@ mod tests {
 						HexLaneId([0x00, 0x00, 0x00, 0x00]),
 						HexLaneId([0x73, 0x77, 0x61, 0x70])
 					],
-					relayer_mode: RelayerMode::Rational,
 					only_mandatory_headers: false,
 					prometheus_params: PrometheusParams {
 						no_prometheus: false,
@@ -682,7 +592,6 @@ mod tests {
 				MillauRialtoParachainHeadersAndMessages {
 					shared: HeadersAndMessagesSharedParams {
 						lane: vec![HexLaneId([0x00, 0x00, 0x00, 0x00])],
-						relayer_mode: RelayerMode::Rational,
 						only_mandatory_headers: false,
 						prometheus_params: PrometheusParams {
 							no_prometheus: false,

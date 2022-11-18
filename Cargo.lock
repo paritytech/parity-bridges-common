@@ -698,6 +698,32 @@ dependencies = [
 ]
 
 [[package]]
+name = "bp-bridge-hub-rococo"
+version = "0.1.0"
+dependencies = [
+ "bp-messages",
+ "bp-polkadot-core",
+ "bp-runtime",
+ "frame-support",
+ "polkadot-runtime-constants",
+ "smallvec",
+ "sp-api",
+ "sp-std",
+]
+
+[[package]]
+name = "bp-bridge-hub-wococo"
+version = "0.1.0"
+dependencies = [
+ "bp-bridge-hub-rococo",
+ "bp-messages",
+ "bp-runtime",
+ "frame-support",
+ "sp-api",
+ "sp-std",
+]
+
+[[package]]
 name = "bp-header-chain"
 version = "0.1.0"
 dependencies = [
@@ -850,6 +876,7 @@ version = "0.1.0"
 dependencies = [
  "bp-polkadot-core",
  "bp-runtime",
+ "frame-support",
  "sp-api",
 ]
 
@@ -872,14 +899,6 @@ dependencies = [
  "sp-std",
  "sp-trie",
  "trie-db",
-]
-
-[[package]]
-name = "bp-statemine"
-version = "0.1.0"
-dependencies = [
- "bp-polkadot-core",
- "sp-version",
 ]
 
 [[package]]
@@ -910,6 +929,7 @@ name = "bp-wococo"
 version = "0.1.0"
 dependencies = [
  "bp-polkadot-core",
+ "bp-rococo",
  "bp-runtime",
  "sp-api",
 ]
@@ -8350,6 +8370,39 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "456c603be3e8d448b072f410900c09faf164fbce2d480456f50eea6e25f9c848"
 
 [[package]]
+name = "relay-bridge-hub-rococo-client"
+version = "0.1.0"
+dependencies = [
+ "bp-bridge-hub-rococo",
+ "bp-bridge-hub-wococo",
+ "bp-header-chain",
+ "bp-messages",
+ "bp-polkadot-core",
+ "bp-runtime",
+ "bridge-runtime-common",
+ "parity-scale-codec",
+ "relay-substrate-client",
+ "scale-info",
+ "sp-core",
+ "sp-finality-grandpa",
+ "sp-runtime",
+]
+
+[[package]]
+name = "relay-bridge-hub-wococo-client"
+version = "0.1.0"
+dependencies = [
+ "bp-bridge-hub-wococo",
+ "bp-messages",
+ "parity-scale-codec",
+ "relay-bridge-hub-rococo-client",
+ "relay-substrate-client",
+ "scale-info",
+ "sp-core",
+ "sp-runtime",
+]
+
+[[package]]
 name = "relay-kusama-client"
 version = "0.1.0"
 dependencies = [
@@ -8431,22 +8484,6 @@ dependencies = [
  "relay-substrate-client",
  "relay-utils",
  "sp-core",
-]
-
-[[package]]
-name = "relay-statemine-client"
-version = "0.1.0"
-dependencies = [
- "bp-polkadot-core",
- "bp-statemine",
- "frame-support",
- "frame-system",
- "parity-scale-codec",
- "relay-substrate-client",
- "relay-utils",
- "scale-info",
- "sp-core",
- "sp-runtime",
 ]
 
 [[package]]
@@ -11484,15 +11521,19 @@ dependencies = [
  "anyhow",
  "async-std",
  "async-trait",
+ "bp-bridge-hub-rococo",
+ "bp-bridge-hub-wococo",
+ "bp-header-chain",
  "bp-messages",
  "bp-millau",
  "bp-polkadot-core",
  "bp-rialto",
  "bp-rialto-parachain",
+ "bp-rococo",
  "bp-runtime",
- "bp-statemine",
  "bp-test-utils",
  "bp-westend",
+ "bp-wococo",
  "bridge-runtime-common",
  "finality-grandpa",
  "frame-support",
@@ -11512,13 +11553,16 @@ dependencies = [
  "polkadot-primitives",
  "polkadot-runtime-common",
  "polkadot-runtime-parachains",
+ "relay-bridge-hub-rococo-client",
+ "relay-bridge-hub-wococo-client",
  "relay-millau-client",
  "relay-rialto-client",
  "relay-rialto-parachain-client",
- "relay-statemine-client",
+ "relay-rococo-client",
  "relay-substrate-client",
  "relay-utils",
  "relay-westend-client",
+ "relay-wococo-client",
  "rialto-parachain-runtime",
  "rialto-runtime",
  "sp-core",

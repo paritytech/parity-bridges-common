@@ -16,6 +16,9 @@ Best/MS
 BlockId
 BlockNumber
 BridgeStorage
+BridgeHub
+BridgeHubRococo
+BridgeHubWococo
 CLI/MS
 Chain1
 Chain2

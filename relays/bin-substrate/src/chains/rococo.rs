@@ -1,4 +1,4 @@
-// Copyright 2019-2021 Parity Technologies (UK) Ltd.
+// Copyright 2022 Parity Technologies (UK) Ltd.
 // This file is part of Parity Bridges Common.
 
 // Parity Bridges Common is free software: you can redistribute it and/or modify
@@ -14,21 +14,29 @@
 // You should have received a copy of the GNU General Public License
 // along with Parity Bridges Common.  If not, see <http://www.gnu.org/licenses/>.
 
-//! Statemine chain specification for CLI.
+//! Rococo + Rococo parachains specification for CLI.
 
 use crate::cli::CliChain;
-use relay_statemine_client::Statemine;
+use relay_bridge_hub_rococo_client::BridgeHubRococo;
+use relay_rococo_client::Rococo;
 use sp_version::RuntimeVersion;
 
-impl CliChain for Statemine {
-	const RUNTIME_VERSION: Option<RuntimeVersion> = Some(bp_statemine::VERSION);
+impl CliChain for Rococo {
+	const RUNTIME_VERSION: Option<RuntimeVersion> = None;
 
 	type KeyPair = sp_core::sr25519::Pair;
 
 	fn ss58_format() -> u16 {
-		sp_core::crypto::Ss58AddressFormat::from(
-			sp_core::crypto::Ss58AddressFormatRegistry::KusamaAccount,
-		)
-		.into()
+		bp_rococo::SS58Prefix::get() as u16
+	}
+}
+
+impl CliChain for BridgeHubRococo {
+	const RUNTIME_VERSION: Option<RuntimeVersion> = None;
+
+	type KeyPair = sp_core::sr25519::Pair;
+
+	fn ss58_format() -> u16 {
+		relay_bridge_hub_rococo_client::runtime::SS58Prefix::get()
 	}
 }
