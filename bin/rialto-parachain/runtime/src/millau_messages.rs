@@ -118,7 +118,7 @@ impl messages::ThisChainWithMessages for RialtoParachain {
 			},
 		}
 
-		*lane == [0, 0, 0, 0] || *lane == [0, 0, 0, 1]
+		*lane == XCM_LANE
 	}
 
 	fn maximal_pending_messages_at_outbound_lane() -> MessageNonce {

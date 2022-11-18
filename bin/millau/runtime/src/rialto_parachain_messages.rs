@@ -104,7 +104,7 @@ impl messages::ThisChainWithMessages for Millau {
 	type RuntimeOrigin = RuntimeOrigin;
 
 	fn is_message_accepted(_send_origin: &Self::RuntimeOrigin, lane: &LaneId) -> bool {
-		*lane == XCM_LANE || *lane == [0, 0, 0, 1]
+		*lane == XCM_LANE
 	}
 
 	fn maximal_pending_messages_at_outbound_lane() -> MessageNonce {
