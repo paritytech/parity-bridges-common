@@ -66,6 +66,7 @@ use bp_runtime::{BasicOperatingMode, ChainId, OwnedBridgeModule, Size};
 use codec::{Decode, Encode, MaxEncodedLen};
 use frame_support::{dispatch::PostDispatchInfo, ensure, fail, traits::Get};
 use num_traits::Zero;
+use sp_runtime::traits::UniqueSaturatedFrom;
 use sp_std::{
 	cell::RefCell, collections::vec_deque::VecDeque, marker::PhantomData, ops::RangeInclusive,
 	prelude::*,
@@ -108,10 +109,8 @@ pub mod pallet {
 		#[pallet::constant]
 		type BridgedChainId: Get<ChainId>;
 
-		/// Maximal number of messages that may be pruned during maintenance. Maintenance occurs
-		/// whenever new message is sent. The reason is that if you want to use lane, you should
-		/// be ready to pay for its maintenance.
-		type MaxMessagesToPruneAtOnce: Get<MessageNonce>;
+		/// Get all active outbound lanes that the message pallet is serving.
+		type ActiveOutboundLanes: Get<&'static [LaneId]>;
 		/// Maximal number of unrewarded relayer entries at inbound lane. Unrewarded means that the
 		/// relayer has delivered messages, but either confirmations haven't been delivered back to
 		/// the source chain, or we haven't received reward confirmations yet.
@@ -194,6 +193,42 @@ pub mod pallet {
 		type OwnerStorage = PalletOwner<T, I>;
 		type OperatingMode = MessagesOperatingMode;
 		type OperatingModeStorage = PalletOperatingMode<T, I>;
+	}
+
+	#[pallet::hooks]
+	impl<T: Config<I>, I: 'static> Hooks<BlockNumberFor<T>> for Pallet<T, I>
+	where
+		u32: TryFrom<<T as frame_system::Config>::BlockNumber>,
+	{
+		fn on_idle(_block: T::BlockNumber, mut remaining_weight: Weight) -> Weight {
+			// we'll need at least to read outbound lane state, kill a message and update lane state
+			let db_weight = T::DbWeight::get();
+			if remaining_weight.all_lte(db_weight.reads_writes(1, 2)) {
+				return Weight::zero()
+			}
+
+			// messages from lane with index `i` in `ActiveOutboundLanes` are pruned when
+			// `System::block_number() % lanes.len() == i`. Otherwise we need to read lane states on
+			// every block, wasting the whole `remaining_weight` for nothing and causing starvation
+			// of the last lane pruning
+			let active_lanes = T::ActiveOutboundLanes::get();
+			let active_lanes_len = (active_lanes.len() as u32).into();
+			let active_lane_index = u32::unique_saturated_from(
+				frame_system::Pallet::<T>::block_number() % active_lanes_len,
+			);
+			let active_lane_id = active_lanes[active_lane_index as usize];
+
+			// first db read - outbound lane state
+			let mut active_lane = outbound_lane::<T, I>(active_lane_id);
+			let original_remaining_weight = remaining_weight;
+			remaining_weight -= db_weight.reads(1);
+			// and here we'll have writes. It is safe to do regular subtraction, since
+			// `prune_messages` respects the `remaining_weight`
+			remaining_weight -= active_lane.prune_messages(db_weight, remaining_weight);
+
+			// safe to use regular subtraction, since we respect the `remaining_weight`
+			original_remaining_weight - remaining_weight
+		}
 	}
 
 	#[pallet::call]
@@ -740,15 +775,6 @@ fn send_message<T: Config<I>, I: 'static>(
 				actual_callback_weight,
 			);
 		},
-	}
-
-	// message sender pays for pruning at most `MaxMessagesToPruneAtOnce` messages
-	// the cost of pruning every message is roughly single db write
-	// => lets refund sender if less than `MaxMessagesToPruneAtOnce` messages pruned
-	let max_messages_to_prune = T::MaxMessagesToPruneAtOnce::get();
-	let pruned_messages = lane.prune_messages(max_messages_to_prune);
-	if let Some(extra_messages) = max_messages_to_prune.checked_sub(pruned_messages) {
-		actual_weight = actual_weight.saturating_sub(T::DbWeight::get().writes(extra_messages));
 	}
 
 	log::trace!(

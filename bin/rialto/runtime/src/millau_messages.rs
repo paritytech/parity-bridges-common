@@ -27,6 +27,8 @@ use bp_runtime::{ChainId, MILLAU_CHAIN_ID, RIALTO_CHAIN_ID};
 use bridge_runtime_common::messages::{self, MessageBridge};
 use frame_support::{parameter_types, weights::Weight, RuntimeDebug};
 
+/// Lane that is used for XCM messages exchange.
+pub const XCM_LANE: LaneId = [0, 0, 0, 0];
 /// Weight of 2 XCM instructions is for simple `Trap(42)` program, coming through bridge
 /// (it is prepended with `UniversalOrigin` instruction). It is used just for simplest manual
 /// tests, confirming that we don't break encoding somewhere between.
@@ -113,7 +115,7 @@ impl messages::ThisChainWithMessages for Rialto {
 			},
 		}
 
-		*lane == [0, 0, 0, 0] || *lane == [0, 0, 0, 1]
+		*lane == XCM_LANE
 	}
 
 	fn maximal_pending_messages_at_outbound_lane() -> MessageNonce {
