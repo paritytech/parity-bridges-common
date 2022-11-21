@@ -215,14 +215,12 @@ pub mod pallet {
 
 			// first db read - outbound lane state
 			let mut active_lane = outbound_lane::<T, I>(active_lane_id);
-			let original_remaining_weight = remaining_weight;
-			remaining_weight -= db_weight.reads(1);
-			// and here we'll have writes. It is safe to do regular subtraction, since
-			// `prune_messages` respects the `remaining_weight`
-			remaining_weight -= active_lane.prune_messages(db_weight, remaining_weight);
+			let mut used_weight = db_weight.reads(1);
+			// and here we'll have writes
+			used_weight -= active_lane.prune_messages(db_weight, remaining_weight);
 
-			// safe to use regular subtraction, since we respect the `remaining_weight`
-			original_remaining_weight - remaining_weight
+			// we already checked we have enough `remaining_weight` to cover this `used_weight`
+			used_weight
 		}
 	}
 
