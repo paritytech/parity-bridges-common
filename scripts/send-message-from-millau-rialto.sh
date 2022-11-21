@@ -6,6 +6,8 @@
 # we have (to make sure the message relays are running), but remove the message
 # generator service. From there you may submit messages manually using this script.
 
+# TODO: Fix demeo scripts https://github.com/paritytech/parity-bridges-common/issues/1406
+
 MILLAU_PORT="${RIALTO_PORT:-9945}"
 
 case "$1" in
@@ -15,10 +17,7 @@ case "$1" in
 			--source-host localhost \
 			--source-port $MILLAU_PORT \
 			--source-signer //Alice \
-			--target-signer //Bob \
-			--lane 00000000 \
-			--origin Target \
-			remark \
+			raw 020419ac
 		;;
 	transfer)
 		RUST_LOG=runtime=trace,substrate-relay=trace,bridge=trace \
@@ -26,9 +25,6 @@ case "$1" in
 			--source-host localhost \
 			--source-port $MILLAU_PORT \
 			--source-signer //Alice \
-			--target-signer //Bob \
-			--lane 00000000 \
-			--origin Target \
 			transfer \
 			--amount 100000000000000 \
 			--recipient 5DZvVvd1udr61vL7Xks17TFQ4fi9NiagYLaBobnbPCP14ewA \
