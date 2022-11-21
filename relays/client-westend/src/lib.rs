@@ -57,10 +57,9 @@ impl Chain for Westend {
 	const BEST_FINALIZED_HEADER_ID_METHOD: &'static str =
 		bp_westend::BEST_FINALIZED_WESTEND_HEADER_METHOD;
 	const AVERAGE_BLOCK_INTERVAL: Duration = Duration::from_secs(6);
-	const STORAGE_PROOF_OVERHEAD: u32 = bp_westend::EXTRA_STORAGE_PROOF_SIZE;
 
 	type SignedBlock = bp_westend::SignedBlock;
-	type Call = bp_westend::Call;
+	type Call = ();
 }
 
 impl RelayChain for Westend {
@@ -114,8 +113,7 @@ impl Chain for Westmint {
 	const BEST_FINALIZED_HEADER_ID_METHOD: &'static str =
 		bp_westend::BEST_FINALIZED_WESTMINT_HEADER_METHOD;
 	const AVERAGE_BLOCK_INTERVAL: Duration = Duration::from_secs(6);
-	const STORAGE_PROOF_OVERHEAD: u32 = bp_westend::EXTRA_STORAGE_PROOF_SIZE;
 
 	type SignedBlock = bp_westend::SignedBlock;
-	type Call = bp_westend::Call;
+	type Call = ();
 }

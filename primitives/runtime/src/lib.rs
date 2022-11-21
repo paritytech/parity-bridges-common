@@ -20,7 +20,8 @@
 
 use codec::{Decode, Encode, FullCodec, MaxEncodedLen};
 use frame_support::{
-	log, pallet_prelude::DispatchResult, PalletError, RuntimeDebug, StorageHasher, StorageValue,
+	log, pallet_prelude::DispatchResult, weights::Weight, PalletError, RuntimeDebug, StorageHasher,
+	StorageValue,
 };
 use frame_system::RawOrigin;
 use scale_info::TypeInfo;
@@ -31,7 +32,7 @@ use sp_std::{convert::TryFrom, fmt::Debug, vec, vec::Vec};
 
 pub use chain::{
 	AccountIdOf, AccountPublicOf, BalanceOf, BlockNumberOf, Chain, EncodedOrDecodedCall, HashOf,
-	HasherOf, HeaderOf, IndexOf, SignatureOf, TransactionEraOf,
+	HasherOf, HeaderOf, IndexOf, Parachain, SignatureOf, TransactionEraOf,
 };
 pub use frame_support::storage::storage_prefix as storage_value_final_key;
 use num_traits::{CheckedSub, One};
@@ -77,6 +78,12 @@ pub const ROCOCO_CHAIN_ID: ChainId = *b"roco";
 
 /// Bridge-with-Wococo instance id.
 pub const WOCOCO_CHAIN_ID: ChainId = *b"woco";
+
+/// Bridge-with-BridgeHubRococo instance id.
+pub const BRIDGE_HUB_ROCOCO_CHAIN_ID: ChainId = *b"bhro";
+
+/// Bridge-with-BridgeHubWococo instance id.
+pub const BRIDGE_HUB_WOCOCO_CHAIN_ID: ChainId = *b"bhwo";
 
 /// Call-dispatch module prefix.
 pub const CALL_DISPATCH_MODULE_PREFIX: &[u8] = b"pallet-bridge/dispatch";
@@ -454,6 +461,24 @@ pub trait OwnedBridgeModule<T: frame_system::Config> {
 pub trait FilterCall<Call> {
 	/// Checks if a runtime call is valid.
 	fn validate(call: &Call) -> TransactionValidity;
+}
+
+/// All extra operations with weights that we need in bridges.
+pub trait WeightExtraOps {
+	/// Checked division of individual components of two weights.
+	///
+	/// Divides components and returns minimal division result. Returns `None` if one
+	/// of `other` weight components is zero.
+	fn min_components_checked_div(&self, other: Weight) -> Option<u64>;
+}
+
+impl WeightExtraOps for Weight {
+	fn min_components_checked_div(&self, other: Weight) -> Option<u64> {
+		Some(sp_std::cmp::min(
+			self.ref_time().checked_div(other.ref_time())?,
+			self.proof_size().checked_div(other.proof_size())?,
+		))
+	}
 }
 
 #[cfg(test)]

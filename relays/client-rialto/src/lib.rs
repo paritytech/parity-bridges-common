@@ -21,7 +21,7 @@ use codec::{Compact, Decode, Encode};
 use frame_support::weights::Weight;
 use relay_substrate_client::{
 	BalanceOf, Chain, ChainBase, ChainWithBalances, ChainWithGrandpa, ChainWithMessages,
-	Error as SubstrateError, IndexOf, RelayChain, SignParam, TransactionSignScheme,
+	ChainWithTransactions, Error as SubstrateError, IndexOf, RelayChain, SignParam,
 	UnsignedTransaction,
 };
 use sp_core::{storage::StorageKey, Pair};
@@ -62,7 +62,6 @@ impl Chain for Rialto {
 	const BEST_FINALIZED_HEADER_ID_METHOD: &'static str =
 		bp_rialto::BEST_FINALIZED_RIALTO_HEADER_METHOD;
 	const AVERAGE_BLOCK_INTERVAL: Duration = Duration::from_secs(5);
-	const STORAGE_PROOF_OVERHEAD: u32 = bp_rialto::EXTRA_STORAGE_PROOF_SIZE;
 
 	type SignedBlock = rialto_runtime::SignedBlock;
 	type Call = rialto_runtime::RuntimeCall;
@@ -85,8 +84,6 @@ impl ChainWithMessages for Rialto {
 		bp_rialto::TO_RIALTO_MESSAGE_DETAILS_METHOD;
 	const FROM_CHAIN_MESSAGE_DETAILS_METHOD: &'static str =
 		bp_rialto::FROM_RIALTO_MESSAGE_DETAILS_METHOD;
-	const PAY_INBOUND_DISPATCH_FEE_WEIGHT_AT_CHAIN: Weight =
-		bp_rialto::PAY_INBOUND_DISPATCH_FEE_WEIGHT;
 	const MAX_UNREWARDED_RELAYERS_IN_CONFIRMATION_TX: MessageNonce =
 		bp_rialto::MAX_UNREWARDED_RELAYERS_IN_CONFIRMATION_TX;
 	const MAX_UNCONFIRMED_MESSAGES_IN_CONFIRMATION_TX: MessageNonce =
@@ -104,14 +101,13 @@ impl ChainWithBalances for Rialto {
 	}
 }
 
-impl TransactionSignScheme for Rialto {
-	type Chain = Rialto;
+impl ChainWithTransactions for Rialto {
 	type AccountKeyPair = sp_core::sr25519::Pair;
 	type SignedTransaction = rialto_runtime::UncheckedExtrinsic;
 
 	fn sign_transaction(
 		param: SignParam<Self>,
-		unsigned: UnsignedTransaction<Self::Chain>,
+		unsigned: UnsignedTransaction<Self>,
 	) -> Result<Self::SignedTransaction, SubstrateError> {
 		let raw_payload = SignedPayload::from_raw(
 			unsigned.call.clone(),
@@ -159,18 +155,14 @@ impl TransactionSignScheme for Rialto {
 			.unwrap_or(false)
 	}
 
-	fn parse_transaction(tx: Self::SignedTransaction) -> Option<UnsignedTransaction<Self::Chain>> {
+	fn parse_transaction(tx: Self::SignedTransaction) -> Option<UnsignedTransaction<Self>> {
 		let extra = &tx.signature.as_ref()?.2;
 		Some(
 			UnsignedTransaction::new(
 				tx.function.into(),
-				Compact::<IndexOf<Self::Chain>>::decode(&mut &extra.5.encode()[..]).ok()?.into(),
+				Compact::<IndexOf<Self>>::decode(&mut &extra.5.encode()[..]).ok()?.into(),
 			)
-			.tip(
-				Compact::<BalanceOf<Self::Chain>>::decode(&mut &extra.7.encode()[..])
-					.ok()?
-					.into(),
-			),
+			.tip(Compact::<BalanceOf<Self>>::decode(&mut &extra.7.encode()[..]).ok()?.into()),
 		)
 	}
 }

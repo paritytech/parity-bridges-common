@@ -18,10 +18,8 @@
 
 #![warn(missing_docs)]
 
-pub mod conversion_rate_update;
 pub mod error;
 pub mod finality;
-pub mod helpers;
 pub mod messages_lane;
 pub mod messages_metrics;
 pub mod messages_source;
@@ -85,15 +83,15 @@ impl<AccountId> TaggedAccount<AccountId> {
 	/// Returns stringified account tag.
 	pub fn tag(&self) -> String {
 		match *self {
-			TaggedAccount::Headers { ref bridged_chain, .. } => format!("{}Headers", bridged_chain),
+			TaggedAccount::Headers { ref bridged_chain, .. } => format!("{bridged_chain}Headers"),
 			TaggedAccount::Parachains { ref bridged_chain, .. } => {
-				format!("{}Parachains", bridged_chain)
+				format!("{bridged_chain}Parachains")
 			},
 			TaggedAccount::Messages { ref bridged_chain, .. } => {
-				format!("{}Messages", bridged_chain)
+				format!("{bridged_chain}Messages")
 			},
 			TaggedAccount::MessagesPalletOwner { ref bridged_chain, .. } => {
-				format!("{}MessagesPalletOwner", bridged_chain)
+				format!("{bridged_chain}MessagesPalletOwner")
 			},
 		}
 	}

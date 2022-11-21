@@ -33,15 +33,8 @@ use std::pin::Pin;
 pub type RequiredHeaderNumberRef<C> = Arc<Mutex<<C as bp_runtime::Chain>::BlockNumber>>;
 
 /// Substrate finality proofs stream.
-pub type SubstrateFinalityProofsStream<P> = Pin<
-	Box<
-		dyn Stream<
-				Item = <<P as SubstrateFinalitySyncPipeline>::FinalityEngine as Engine<
-					<P as SubstrateFinalitySyncPipeline>::SourceChain,
-				>>::FinalityProof,
-			> + Send,
-	>,
->;
+pub type SubstrateFinalityProofsStream<P> =
+	Pin<Box<dyn Stream<Item = SubstrateFinalityProof<P>> + Send>>;
 
 /// Substrate finality proof. Specific to the used `FinalityEngine`.
 pub type SubstrateFinalityProof<P> =
@@ -130,7 +123,7 @@ impl<P: SubstrateFinalitySyncPipeline> SourceClient<FinalitySyncPipelineAdapter<
 		let signed_block = self.client.get_block(Some(header_hash)).await?;
 
 		let justification = signed_block
-			.justification()
+			.justification(P::FinalityEngine::ID)
 			.map(|raw_justification| {
 				SubstrateFinalityProof::<P>::decode(&mut raw_justification.as_slice())
 			})
@@ -142,7 +135,7 @@ impl<P: SubstrateFinalitySyncPipeline> SourceClient<FinalitySyncPipelineAdapter<
 
 	async fn finality_proofs(&self) -> Result<Self::FinalityProofsStream, Error> {
 		Ok(unfold(
-			P::FinalityEngine::finality_proofs(self.client.clone()).await?,
+			P::FinalityEngine::finality_proofs(&self.client).await?,
 			move |subscription| async move {
 				loop {
 					let log_error = |err| {
@@ -168,7 +161,7 @@ impl<P: SubstrateFinalitySyncPipeline> SourceClient<FinalitySyncPipelineAdapter<
 					let justification = match decoded_justification {
 						Ok(j) => j,
 						Err(err) => {
-							log_error(format!("decode failed with error {:?}", err));
+							log_error(format!("decode failed with error {err:?}"));
 							continue
 						},
 					};

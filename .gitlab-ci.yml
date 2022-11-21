@@ -185,6 +185,18 @@ deny-licenses:
     - echo "___Complete logs can be found in the artifacts___"
     - cargo deny check licenses 2> licenses.log
 
+benchmarks-test:
+  stage:                           test
+  <<:                              *docker-env
+  <<:                              *nightly-test
+  script:
+    - time cargo run --release -p millau-bridge-node --features=runtime-benchmarks -- benchmark pallet --chain=dev --steps=2 --repeat=1 --pallet=pallet_bridge_messages --extrinsic=* --execution=wasm --wasm-execution=Compiled --heap-pages=4096
+    - time cargo run --release -p millau-bridge-node --features=runtime-benchmarks -- benchmark pallet --chain=dev --steps=2 --repeat=1 --pallet=pallet_bridge_grandpa --extrinsic=* --execution=wasm --wasm-execution=Compiled --heap-pages=4096
+    - time cargo run --release -p millau-bridge-node --features=runtime-benchmarks -- benchmark pallet --chain=dev --steps=2 --repeat=1 --pallet=pallet_bridge_parachains --extrinsic=* --execution=wasm --wasm-execution=Compiled --heap-pages=4096
+    - time cargo run --release -p millau-bridge-node --features=runtime-benchmarks -- benchmark pallet --chain=dev --steps=2 --repeat=1 --pallet=pallet_bridge_relayers --extrinsic=* --execution=wasm --wasm-execution=Compiled --heap-pages=4096
+  # we may live with failing benchmarks, it is just a signal for us
+  allow_failure:                   true
+
 #### stage:                        build
 
 build:
@@ -225,7 +237,7 @@ build-nightly:
 
 .build-push-image:                 &build-push-image
   <<:                              *kubernetes-build
-  image:                           quay.io/buildah/stable
+  image:                           quay.io/buildah/stable:v1.27
   <<:                              *build-refs
   variables:                       &image-variables
     GIT_STRATEGY:                  none

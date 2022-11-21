@@ -33,5 +33,4 @@ sleep 6
 	--rialto-transactions-mortality=64 \
 	--lane=00000000 \
 	--lane=73776170 \
-	--relayer-mode=altruistic \
 	--prometheus-host=0.0.0.0

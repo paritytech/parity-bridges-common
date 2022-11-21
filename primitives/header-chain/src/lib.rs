@@ -19,18 +19,57 @@
 
 #![cfg_attr(not(feature = "std"), no_std)]
 
-use bp_runtime::BasicOperatingMode;
+use bp_runtime::{BasicOperatingMode, Chain, HashOf, HasherOf, HeaderOf, StorageProofChecker};
 use codec::{Codec, Decode, Encode, EncodeLike};
 use core::{clone::Clone, cmp::Eq, default::Default, fmt::Debug};
+use frame_support::PalletError;
 use scale_info::TypeInfo;
 #[cfg(feature = "std")]
 use serde::{Deserialize, Serialize};
 use sp_finality_grandpa::{AuthorityList, ConsensusLog, SetId, GRANDPA_ENGINE_ID};
-use sp_runtime::{generic::OpaqueDigestItemId, traits::Header as HeaderT, RuntimeDebug};
+use sp_runtime::{traits::Header as HeaderT, Digest, RuntimeDebug};
 use sp_std::boxed::Box;
+use sp_trie::StorageProof;
 
 pub mod justification;
 pub mod storage_keys;
+
+/// Header chain error.
+#[derive(Clone, Copy, Decode, Encode, Eq, PalletError, PartialEq, RuntimeDebug, TypeInfo)]
+pub enum HeaderChainError {
+	/// Header with given hash is missing from the chain.
+	UnknownHeader,
+	/// The storage proof doesn't contains storage root.
+	StorageRootMismatch,
+}
+
+impl From<HeaderChainError> for &'static str {
+	fn from(err: HeaderChainError) -> &'static str {
+		match err {
+			HeaderChainError::UnknownHeader => "UnknownHeader",
+			HeaderChainError::StorageRootMismatch => "StorageRootMismatch",
+		}
+	}
+}
+
+/// Substrate header chain, abstracted from the way it is stored.
+pub trait HeaderChain<C: Chain> {
+	/// Returns finalized header by its hash.
+	fn finalized_header(hash: HashOf<C>) -> Option<HeaderOf<C>>;
+	/// Parse storage proof using finalized header.
+	fn parse_finalized_storage_proof<R>(
+		hash: HashOf<C>,
+		storage_proof: StorageProof,
+		parse: impl FnOnce(StorageProofChecker<HasherOf<C>>) -> R,
+	) -> Result<R, HeaderChainError> {
+		let header = Self::finalized_header(hash).ok_or(HeaderChainError::UnknownHeader)?;
+		let storage_proof_checker =
+			bp_runtime::StorageProofChecker::new(*header.state_root(), storage_proof)
+				.map_err(|_| HeaderChainError::StorageRootMismatch)?;
+
+		Ok(parse(storage_proof_checker))
+	}
+}
 
 /// A type that can be used as a parameter in a dispatchable function.
 ///
@@ -77,18 +116,32 @@ pub trait FinalityProof<Number>: Clone + Send + Sync + Debug {
 	fn target_header_number(&self) -> Number;
 }
 
-/// Find header digest that schedules next GRANDPA authorities set.
-pub fn find_grandpa_authorities_scheduled_change<H: HeaderT>(
-	header: &H,
-) -> Option<sp_finality_grandpa::ScheduledChange<H::Number>> {
-	let id = OpaqueDigestItemId::Consensus(&GRANDPA_ENGINE_ID);
+/// A trait that provides helper methods for querying the consensus log.
+pub trait ConsensusLogReader {
+	/// Returns true if digest contains item that schedules authorities set change.
+	fn schedules_authorities_change(digest: &Digest) -> bool;
+}
 
-	let filter_log = |log: ConsensusLog<H::Number>| match log {
-		ConsensusLog::ScheduledChange(change) => Some(change),
-		_ => None,
-	};
+/// A struct that provides helper methods for querying the GRANDPA consensus log.
+pub struct GrandpaConsensusLogReader<Number>(sp_std::marker::PhantomData<Number>);
 
-	// find the first consensus digest with the right ID which converts to
-	// the right kind of consensus log.
-	header.digest().convert_first(|l| l.try_to(id).and_then(filter_log))
+impl<Number: Codec> GrandpaConsensusLogReader<Number> {
+	pub fn find_authorities_change(
+		digest: &Digest,
+	) -> Option<sp_finality_grandpa::ScheduledChange<Number>> {
+		// find the first consensus digest with the right ID which converts to
+		// the right kind of consensus log.
+		digest
+			.convert_first(|log| log.consensus_try_to(&GRANDPA_ENGINE_ID))
+			.and_then(|log| match log {
+				ConsensusLog::ScheduledChange(change) => Some(change),
+				_ => None,
+			})
+	}
+}
+
+impl<Number: Codec> ConsensusLogReader for GrandpaConsensusLogReader<Number> {
+	fn schedules_authorities_change(digest: &Digest) -> bool {
+		GrandpaConsensusLogReader::<Number>::find_authorities_change(digest).is_some()
+	}
 }

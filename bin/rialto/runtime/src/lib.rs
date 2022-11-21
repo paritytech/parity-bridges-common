@@ -32,13 +32,8 @@ pub mod millau_messages;
 pub mod parachains;
 pub mod xcm_config;
 
-use crate::millau_messages::{ToMillauMessagePayload, WithMillauMessageBridge};
-
 use beefy_primitives::{crypto::AuthorityId as BeefyId, mmr::MmrLeafVersion, ValidatorSet};
 use bp_runtime::{HeaderId, HeaderIdProvider};
-use bridge_runtime_common::messages::{
-	source::estimate_message_dispatch_and_delivery_fee, MessageBridge,
-};
 use pallet_grandpa::{
 	fg_primitives, AuthorityId as GrandpaId, AuthorityList as GrandpaAuthorityList,
 };
@@ -54,7 +49,7 @@ use sp_runtime::{
 	create_runtime_str, generic, impl_opaque_keys,
 	traits::{AccountIdLookup, Block as BlockT, Keccak256, NumberFor, OpaqueKeys},
 	transaction_validity::{TransactionSource, TransactionValidity},
-	ApplyExtrinsicResult, FixedPointNumber, FixedU128, Perquintill,
+	ApplyExtrinsicResult, FixedPointNumber, Perquintill,
 };
 use sp_std::{collections::btree_map::BTreeMap, prelude::*};
 #[cfg(feature = "std")]
@@ -446,11 +441,9 @@ parameter_types! {
 		bp_millau::MAX_UNREWARDED_RELAYERS_IN_CONFIRMATION_TX;
 	pub const MaxUnconfirmedMessagesAtInboundLane: bp_messages::MessageNonce =
 		bp_millau::MAX_UNCONFIRMED_MESSAGES_IN_CONFIRMATION_TX;
-	// `IdentityFee` is used by Rialto => we may use weight directly
-	pub const GetDeliveryConfirmationTransactionFee: Balance =
-		bp_rialto::MAX_SINGLE_MESSAGE_DELIVERY_CONFIRMATION_TX_WEIGHT.ref_time() as _;
 	pub const RootAccountForPayments: Option<AccountId> = None;
 	pub const BridgedChainId: bp_runtime::ChainId = bp_runtime::MILLAU_CHAIN_ID;
+	pub ActiveOutboundLanes: &'static [bp_messages::LaneId] = &[millau_messages::XCM_LANE];
 }
 
 /// Instance of the messages pallet used to relay messages to/from Millau chain.
@@ -459,17 +452,14 @@ pub type WithMillauMessagesInstance = ();
 impl pallet_bridge_messages::Config<WithMillauMessagesInstance> for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 	type WeightInfo = pallet_bridge_messages::weights::BridgeWeight<Runtime>;
-	type Parameter = millau_messages::RialtoToMillauMessagesParameter;
-	type MaxMessagesToPruneAtOnce = MaxMessagesToPruneAtOnce;
+	type ActiveOutboundLanes = ActiveOutboundLanes;
 	type MaxUnrewardedRelayerEntriesAtInboundLane = MaxUnrewardedRelayerEntriesAtInboundLane;
 	type MaxUnconfirmedMessagesAtInboundLane = MaxUnconfirmedMessagesAtInboundLane;
 
 	type MaximalOutboundPayloadSize = crate::millau_messages::ToMillauMaximalOutboundPayloadSize;
 	type OutboundPayload = crate::millau_messages::ToMillauMessagePayload;
-	type OutboundMessageFee = Balance;
 
 	type InboundPayload = crate::millau_messages::FromMillauMessagePayload;
-	type InboundMessageFee = bp_millau::Balance;
 	type InboundRelayer = bp_millau::AccountId;
 
 	type TargetHeaderChain = crate::millau_messages::Millau;
@@ -478,10 +468,7 @@ impl pallet_bridge_messages::Config<WithMillauMessagesInstance> for Runtime {
 		pallet_bridge_relayers::MessageDeliveryAndDispatchPaymentAdapter<
 			Runtime,
 			WithMillauMessagesInstance,
-			GetDeliveryConfirmationTransactionFee,
 		>;
-	type OnMessageAccepted = ();
-	type OnDeliveryConfirmed = ();
 
 	type SourceHeaderChain = crate::millau_messages::Millau;
 	type MessageDispatch = crate::millau_messages::FromMillauMessageDispatch;
@@ -648,11 +635,11 @@ impl_runtime_apis! {
 		}
 	}
 
-	impl sp_mmr_primitives::MmrApi<Block, Hash> for Runtime {
-		fn generate_proof(leaf_index: u64)
+	impl sp_mmr_primitives::MmrApi<Block, Hash, BlockNumber> for Runtime {
+		fn generate_proof(block_number: BlockNumber)
 			-> Result<(EncodableOpaqueLeaf, MmrProof<Hash>), MmrError>
 		{
-			Mmr::generate_batch_proof(vec![leaf_index])
+			Mmr::generate_batch_proof(vec![block_number])
 				.and_then(|(leaves, proof)| Ok((
 					mmr::EncodableOpaqueLeaf::from_leaf(&leaves[0]),
 					mmr::BatchProof::into_single_leaf_proof(proof)?
@@ -690,18 +677,18 @@ impl_runtime_apis! {
 			Ok(Mmr::mmr_root())
 		}
 
-		fn generate_batch_proof(leaf_indices: Vec<pallet_mmr::primitives::LeafIndex>)
+		fn generate_batch_proof(block_numbers: Vec<BlockNumber>)
 			-> Result<(Vec<mmr::EncodableOpaqueLeaf>, mmr::BatchProof<MmrHash>), mmr::Error>
 		{
-			Mmr::generate_batch_proof(leaf_indices)
+			Mmr::generate_batch_proof(block_numbers)
 				.map(|(leaves, proof)| (leaves.into_iter().map(|leaf| mmr::EncodableOpaqueLeaf::from_leaf(&leaf)).collect(), proof))
 		}
 
 		fn generate_historical_batch_proof(
-			leaf_indices: Vec<mmr::LeafIndex>,
-			leaves_count: mmr::LeafIndex,
+			block_numbers: Vec<BlockNumber>,
+			best_known_block_number: BlockNumber
 		) -> Result<(Vec<mmr::EncodableOpaqueLeaf>, mmr::BatchProof<MmrHash>), mmr::Error> {
-			Mmr::generate_historical_batch_proof(leaf_indices, leaves_count).map(
+			Mmr::generate_historical_batch_proof(block_numbers, best_known_block_number).map(
 				|(leaves, proof)| {
 					(
 						leaves
@@ -969,24 +956,12 @@ impl_runtime_apis! {
 		}
 	}
 
-	impl bp_millau::ToMillauOutboundLaneApi<Block, Balance, ToMillauMessagePayload> for Runtime {
-		fn estimate_message_delivery_and_dispatch_fee(
-			_lane_id: bp_messages::LaneId,
-			payload: ToMillauMessagePayload,
-			millau_to_this_conversion_rate: Option<FixedU128>,
-		) -> Option<Balance> {
-			estimate_message_dispatch_and_delivery_fee::<WithMillauMessageBridge>(
-				&payload,
-				WithMillauMessageBridge::RELAYER_FEE_PERCENT,
-				millau_to_this_conversion_rate,
-			).ok()
-		}
-
+	impl bp_millau::ToMillauOutboundLaneApi<Block> for Runtime {
 		fn message_details(
 			lane: bp_messages::LaneId,
 			begin: bp_messages::MessageNonce,
 			end: bp_messages::MessageNonce,
-		) -> Vec<bp_messages::OutboundMessageDetails<Balance>> {
+		) -> Vec<bp_messages::OutboundMessageDetails> {
 			bridge_runtime_common::messages_api::outbound_message_details::<
 				Runtime,
 				WithMillauMessagesInstance,
@@ -994,10 +969,10 @@ impl_runtime_apis! {
 		}
 	}
 
-	impl bp_millau::FromMillauInboundLaneApi<Block, bp_millau::Balance> for Runtime {
+	impl bp_millau::FromMillauInboundLaneApi<Block> for Runtime {
 		fn message_details(
 			lane: bp_messages::LaneId,
-			messages: Vec<(bp_messages::MessagePayload, bp_messages::OutboundMessageDetails<bp_millau::Balance>)>,
+			messages: Vec<(bp_messages::MessagePayload, bp_messages::OutboundMessageDetails)>,
 		) -> Vec<bp_messages::InboundMessageDetails> {
 			bridge_runtime_common::messages_api::inbound_message_details::<
 				Runtime,

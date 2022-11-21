@@ -49,36 +49,6 @@ macro_rules! assert_chain_types(
 	}
 );
 
-/// Macro that ensures that the bridge configuration and chain primitives crates are sharing
-/// the same types (hash, account id, ...).
-#[macro_export]
-macro_rules! assert_bridge_types(
-	( bridge: $bridge:path, this_chain: $this:path, bridged_chain: $bridged:path ) => {
-		{
-			// if one of this asserts fail, then all chains, bridged with this chain and bridge relays are now broken
-			//
-			// `frame_support::weights::Weight` is used here directly, because all chains we know are using this
-			// primitive (may be changed in the future)
-			use $crate::messages::{
-				AccountIdOf, BalanceOf, BridgedChain, HashOf, SignatureOf, SignerOf, ThisChain,
-			};
-			use static_assertions::assert_type_eq_all;
-
-			assert_type_eq_all!(HashOf<ThisChain<$bridge>>, bp_runtime::HashOf<$this>);
-			assert_type_eq_all!(AccountIdOf<ThisChain<$bridge>>, bp_runtime::AccountIdOf<$this>);
-			assert_type_eq_all!(SignerOf<ThisChain<$bridge>>, bp_runtime::AccountPublicOf<$this>);
-			assert_type_eq_all!(SignatureOf<ThisChain<$bridge>>, bp_runtime::SignatureOf<$this>);
-			assert_type_eq_all!(BalanceOf<ThisChain<$bridge>>, bp_runtime::BalanceOf<$this>);
-
-			assert_type_eq_all!(HashOf<BridgedChain<$bridge>>, bp_runtime::HashOf<$bridged>);
-			assert_type_eq_all!(AccountIdOf<BridgedChain<$bridge>>, bp_runtime::AccountIdOf<$bridged>);
-			assert_type_eq_all!(SignerOf<BridgedChain<$bridge>>, bp_runtime::AccountPublicOf<$bridged>);
-			assert_type_eq_all!(SignatureOf<BridgedChain<$bridge>>, bp_runtime::SignatureOf<$bridged>);
-			assert_type_eq_all!(BalanceOf<BridgedChain<$bridge>>, bp_runtime::BalanceOf<$bridged>);
-		}
-	}
-);
-
 /// Macro that ensures that the bridge GRANDPA pallet is configured properly to bridge with given
 /// chain.
 #[macro_export]
@@ -118,10 +88,8 @@ macro_rules! assert_bridge_messages_pallet_types(
 			use static_assertions::assert_type_eq_all;
 
 			assert_type_eq_all!(<$r as MessagesConfig<$i>>::OutboundPayload, FromThisChainMessagePayload);
-			assert_type_eq_all!(<$r as MessagesConfig<$i>>::OutboundMessageFee, BalanceOf<ThisChain<$bridge>>);
 
 			assert_type_eq_all!(<$r as MessagesConfig<$i>>::InboundPayload, FromBridgedChainMessagePayload<CallOf<ThisChain<$bridge>>>);
-			assert_type_eq_all!(<$r as MessagesConfig<$i>>::InboundMessageFee, BalanceOf<BridgedChain<$bridge>>);
 			assert_type_eq_all!(<$r as MessagesConfig<$i>>::InboundRelayer, AccountIdOf<BridgedChain<$bridge>>);
 
 			assert_type_eq_all!(<$r as MessagesConfig<$i>>::TargetHeaderChain, BridgedChain<$bridge>);
@@ -145,7 +113,6 @@ macro_rules! assert_complete_bridge_types(
 		bridged_chain: $bridged:path,
 	) => {
 		$crate::assert_chain_types!(runtime: $r, this_chain: $this);
-		$crate::assert_bridge_types!(bridge: $bridge, this_chain: $this, bridged_chain: $bridged);
 		$crate::assert_bridge_grandpa_pallet_types!(
 			runtime: $r,
 			with_bridged_chain_grandpa_instance: $gi,
@@ -237,9 +204,9 @@ where
 	MI: 'static,
 {
 	assert!(
-		R::MaxMessagesToPruneAtOnce::get() > 0,
-		"MaxMessagesToPruneAtOnce ({}) must be larger than zero",
-		R::MaxMessagesToPruneAtOnce::get(),
+		!R::ActiveOutboundLanes::get().is_empty(),
+		"ActiveOutboundLanes ({:?}) must not be empty",
+		R::ActiveOutboundLanes::get(),
 	);
 	assert!(
 		R::MaxUnrewardedRelayerEntriesAtInboundLane::get() <= params.max_unrewarded_relayers_in_bridged_confirmation_tx,

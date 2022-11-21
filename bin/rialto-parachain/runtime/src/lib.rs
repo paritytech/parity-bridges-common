@@ -26,14 +26,9 @@
 #[cfg(feature = "std")]
 include!(concat!(env!("OUT_DIR"), "/wasm_binary.rs"));
 
-use crate::millau_messages::{
-	ToMillauMessagePayload, WithMillauMessageBridge, DEFAULT_XCM_LANE_TO_MILLAU,
-};
+use crate::millau_messages::{WithMillauMessageBridge, XCM_LANE};
 
-use bridge_runtime_common::messages::{
-	source::{estimate_message_dispatch_and_delivery_fee, XcmBridge, XcmBridgeAdapter},
-	MessageBridge,
-};
+use bridge_runtime_common::messages::source::{XcmBridge, XcmBridgeAdapter};
 use cumulus_pallet_parachain_system::AnyRelayNumber;
 use sp_api::impl_runtime_apis;
 use sp_core::{crypto::KeyTypeId, OpaqueMetadata};
@@ -41,7 +36,7 @@ use sp_runtime::{
 	create_runtime_str, generic, impl_opaque_keys,
 	traits::{AccountIdLookup, Block as BlockT},
 	transaction_validity::{TransactionSource, TransactionValidity},
-	ApplyExtrinsicResult, FixedU128,
+	ApplyExtrinsicResult,
 };
 
 use sp_std::prelude::*;
@@ -460,7 +455,7 @@ impl XcmBridge for ToMillauBridge {
 	}
 
 	fn xcm_lane() -> bp_messages::LaneId {
-		DEFAULT_XCM_LANE_TO_MILLAU
+		XCM_LANE
 	}
 }
 
@@ -557,11 +552,9 @@ parameter_types! {
 		bp_millau::MAX_UNREWARDED_RELAYERS_IN_CONFIRMATION_TX;
 	pub const MaxUnconfirmedMessagesAtInboundLane: bp_messages::MessageNonce =
 		bp_millau::MAX_UNCONFIRMED_MESSAGES_IN_CONFIRMATION_TX;
-	// `IdentityFee` is used by Rialto => we may use weight directly
-	pub const GetDeliveryConfirmationTransactionFee: Balance =
-		bp_rialto_parachain::MAX_SINGLE_MESSAGE_DELIVERY_CONFIRMATION_TX_WEIGHT.ref_time() as _;
 	pub const RootAccountForPayments: Option<AccountId> = None;
 	pub const BridgedChainId: bp_runtime::ChainId = bp_runtime::MILLAU_CHAIN_ID;
+	pub ActiveOutboundLanes: &'static [bp_messages::LaneId] = &[millau_messages::XCM_LANE];
 }
 
 /// Instance of the messages pallet used to relay messages to/from Millau chain.
@@ -570,17 +563,14 @@ pub type WithMillauMessagesInstance = ();
 impl pallet_bridge_messages::Config<WithMillauMessagesInstance> for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 	type WeightInfo = pallet_bridge_messages::weights::BridgeWeight<Runtime>;
-	type Parameter = millau_messages::RialtoParachainToMillauMessagesParameter;
-	type MaxMessagesToPruneAtOnce = MaxMessagesToPruneAtOnce;
+	type ActiveOutboundLanes = ActiveOutboundLanes;
 	type MaxUnrewardedRelayerEntriesAtInboundLane = MaxUnrewardedRelayerEntriesAtInboundLane;
 	type MaxUnconfirmedMessagesAtInboundLane = MaxUnconfirmedMessagesAtInboundLane;
 
 	type MaximalOutboundPayloadSize = crate::millau_messages::ToMillauMaximalOutboundPayloadSize;
 	type OutboundPayload = crate::millau_messages::ToMillauMessagePayload;
-	type OutboundMessageFee = Balance;
 
 	type InboundPayload = crate::millau_messages::FromMillauMessagePayload;
-	type InboundMessageFee = bp_millau::Balance;
 	type InboundRelayer = bp_millau::AccountId;
 
 	type TargetHeaderChain = crate::millau_messages::Millau;
@@ -589,10 +579,7 @@ impl pallet_bridge_messages::Config<WithMillauMessagesInstance> for Runtime {
 		pallet_bridge_relayers::MessageDeliveryAndDispatchPaymentAdapter<
 			Runtime,
 			WithMillauMessagesInstance,
-			GetDeliveryConfirmationTransactionFee,
 		>;
-	type OnMessageAccepted = ();
-	type OnDeliveryConfirmed = ();
 
 	type SourceHeaderChain = crate::millau_messages::Millau;
 	type MessageDispatch = crate::millau_messages::FromMillauMessageDispatch;
@@ -748,24 +735,12 @@ impl_runtime_apis! {
 		}
 	}
 
-	impl bp_millau::ToMillauOutboundLaneApi<Block, Balance, ToMillauMessagePayload> for Runtime {
-		fn estimate_message_delivery_and_dispatch_fee(
-			_lane_id: bp_messages::LaneId,
-			payload: ToMillauMessagePayload,
-			millau_to_this_conversion_rate: Option<FixedU128>,
-		) -> Option<Balance> {
-			estimate_message_dispatch_and_delivery_fee::<WithMillauMessageBridge>(
-				&payload,
-				WithMillauMessageBridge::RELAYER_FEE_PERCENT,
-				millau_to_this_conversion_rate,
-			).ok()
-		}
-
+	impl bp_millau::ToMillauOutboundLaneApi<Block> for Runtime {
 		fn message_details(
 			lane: bp_messages::LaneId,
 			begin: bp_messages::MessageNonce,
 			end: bp_messages::MessageNonce,
-		) -> Vec<bp_messages::OutboundMessageDetails<Balance>> {
+		) -> Vec<bp_messages::OutboundMessageDetails> {
 			bridge_runtime_common::messages_api::outbound_message_details::<
 				Runtime,
 				WithMillauMessagesInstance,
@@ -773,10 +748,10 @@ impl_runtime_apis! {
 		}
 	}
 
-	impl bp_millau::FromMillauInboundLaneApi<Block, bp_millau::Balance> for Runtime {
+	impl bp_millau::FromMillauInboundLaneApi<Block> for Runtime {
 		fn message_details(
 			lane: bp_messages::LaneId,
-			messages: Vec<(bp_messages::MessagePayload, bp_messages::OutboundMessageDetails<bp_millau::Balance>)>,
+			messages: Vec<(bp_messages::MessagePayload, bp_messages::OutboundMessageDetails)>,
 		) -> Vec<bp_messages::InboundMessageDetails> {
 			bridge_runtime_common::messages_api::inbound_message_details::<
 				Runtime,
@@ -882,7 +857,7 @@ mod tests {
 			let xcm: Xcm<()> = vec![Instruction::Trap(42)].into();
 
 			let send_result = send_xcm::<XcmRouter>(dest.into(), xcm);
-			let expected_fee = MultiAssets::from((Here, Fungibility::Fungible(4_259_858_152_u128)));
+			let expected_fee = MultiAssets::from((Here, Fungibility::Fungible(1_000_000_u128)));
 			let expected_hash =
 				([0u8, 0u8, 0u8, 0u8], 1u64).using_encoded(sp_io::hashing::blake2_256);
 			assert_eq!(send_result, Ok((expected_hash, expected_fee)),);
@@ -906,7 +881,7 @@ mod tests {
 
 			let mut incoming_message = DispatchMessage {
 				key: MessageKey { lane_id: [0, 0, 0, 0], nonce: 1 },
-				data: DispatchMessageData { payload: Ok((location, xcm).into()), fee: 0 },
+				data: DispatchMessageData { payload: Ok((location, xcm).into()) },
 			};
 
 			let dispatch_weight = MessageDispatcher::dispatch_weight(&mut incoming_message);

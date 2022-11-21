@@ -19,9 +19,8 @@
 use crate::error::Error;
 use async_trait::async_trait;
 use bp_header_chain::{
-	find_grandpa_authorities_scheduled_change,
 	justification::{verify_justification, GrandpaJustification},
-	FinalityProof,
+	ConsensusLogReader, FinalityProof, GrandpaConsensusLogReader,
 };
 use bp_runtime::{BasicOperatingMode, OperatingMode};
 use codec::{Decode, Encode};
@@ -29,18 +28,22 @@ use finality_grandpa::voter_set::VoterSet;
 use num_traits::{One, Zero};
 use relay_substrate_client::{
 	BlockNumberOf, Chain, ChainWithGrandpa, Client, Error as SubstrateError, HashOf, HeaderOf,
-	Subscription,
+	Subscription, SubstrateFinalityClient, SubstrateGrandpaFinalityClient,
 };
 use sp_core::{storage::StorageKey, Bytes};
-use sp_finality_grandpa::AuthorityList as GrandpaAuthoritiesSet;
+use sp_finality_grandpa::{AuthorityList as GrandpaAuthoritiesSet, GRANDPA_ENGINE_ID};
 use sp_runtime::{traits::Header, ConsensusEngineId};
 use std::marker::PhantomData;
 
-/// Finality enfine, used by the Substrate chain.
+/// Finality engine, used by the Substrate chain.
 #[async_trait]
 pub trait Engine<C: Chain>: Send {
 	/// Unique consensus engine identifier.
 	const ID: ConsensusEngineId;
+	/// A reader that can extract the consensus log from the header digest and interpret it.
+	type ConsensusLogReader: ConsensusLogReader;
+	/// Type of Finality RPC client used by this engine.
+	type FinalityClient: SubstrateFinalityClient<C>;
 	/// Type of finality proofs, used by consensus engine.
 	type FinalityProof: FinalityProof<BlockNumberOf<C>> + Decode + Encode;
 	/// Type of bridge pallet initialization data.
@@ -48,20 +51,11 @@ pub trait Engine<C: Chain>: Send {
 	/// Type of bridge pallet operating mode.
 	type OperatingMode: OperatingMode + 'static;
 
-	/// Returns storage key at the bridged (target) chain that corresponds to the variable
-	/// that holds the operating mode of the pallet.
-	fn pallet_operating_mode_key() -> StorageKey;
 	/// Returns storage at the bridged (target) chain that corresponds to some value that is
 	/// missing from the storage until bridge pallet is initialized.
 	///
 	/// Note that we don't care about type of the value - just if it present or not.
 	fn is_initialized_key() -> StorageKey;
-	/// A method to subscribe to encoded finality proofs, given source client.
-	async fn finality_proofs(client: Client<C>) -> Result<Subscription<Bytes>, SubstrateError>;
-	/// Prepare initialization data for the finality bridge pallet.
-	async fn prepare_initialization_data(
-		client: Client<C>,
-	) -> Result<Self::InitializationData, Error<HashOf<C>, BlockNumberOf<C>>>;
 
 	/// Returns `Ok(true)` if finality pallet at the bridged chain has already been initialized.
 	async fn is_initialized<TargetChain: Chain>(
@@ -73,6 +67,10 @@ pub trait Engine<C: Chain>: Send {
 			.is_some())
 	}
 
+	/// Returns storage key at the bridged (target) chain that corresponds to the variable
+	/// that holds the operating mode of the pallet.
+	fn pallet_operating_mode_key() -> StorageKey;
+
 	/// Returns `Ok(true)` if finality pallet at the bridged chain is halted.
 	async fn is_halted<TargetChain: Chain>(
 		target_client: &Client<TargetChain>,
@@ -83,6 +81,16 @@ pub trait Engine<C: Chain>: Send {
 			.map(|operating_mode| operating_mode.is_halted())
 			.unwrap_or(false))
 	}
+
+	/// A method to subscribe to encoded finality proofs, given source client.
+	async fn finality_proofs(client: &Client<C>) -> Result<Subscription<Bytes>, SubstrateError> {
+		client.subscribe_finality_justifications::<Self::FinalityClient>().await
+	}
+
+	/// Prepare initialization data for the finality bridge pallet.
+	async fn prepare_initialization_data(
+		client: Client<C>,
+	) -> Result<Self::InitializationData, Error<HashOf<C>, BlockNumberOf<C>>>;
 }
 
 /// GRANDPA finality engine.
@@ -116,21 +124,19 @@ impl<C: ChainWithGrandpa> Grandpa<C> {
 
 #[async_trait]
 impl<C: ChainWithGrandpa> Engine<C> for Grandpa<C> {
-	const ID: ConsensusEngineId = sp_finality_grandpa::GRANDPA_ENGINE_ID;
+	const ID: ConsensusEngineId = GRANDPA_ENGINE_ID;
+	type ConsensusLogReader = GrandpaConsensusLogReader<<C::Header as Header>::Number>;
+	type FinalityClient = SubstrateGrandpaFinalityClient;
 	type FinalityProof = GrandpaJustification<HeaderOf<C>>;
 	type InitializationData = bp_header_chain::InitializationData<C::Header>;
 	type OperatingMode = BasicOperatingMode;
-
-	fn pallet_operating_mode_key() -> StorageKey {
-		bp_header_chain::storage_keys::pallet_operating_mode_key(C::WITH_CHAIN_GRANDPA_PALLET_NAME)
-	}
 
 	fn is_initialized_key() -> StorageKey {
 		bp_header_chain::storage_keys::best_finalized_key(C::WITH_CHAIN_GRANDPA_PALLET_NAME)
 	}
 
-	async fn finality_proofs(client: Client<C>) -> Result<Subscription<Bytes>, SubstrateError> {
-		client.subscribe_grandpa_justifications().await
+	fn pallet_operating_mode_key() -> StorageKey {
+		bp_header_chain::storage_keys::pallet_operating_mode_key(C::WITH_CHAIN_GRANDPA_PALLET_NAME)
 	}
 
 	/// Prepare initialization data for the GRANDPA verifier pallet.
@@ -144,8 +150,7 @@ impl<C: ChainWithGrandpa> Engine<C> for Grandpa<C> {
 		// But now there are problems with this approach - `CurrentSetId` may return invalid value.
 		// So here we're waiting for the next justification, read the authorities set and then try
 		// to figure out the set id with bruteforce.
-		let justifications = source_client
-			.subscribe_grandpa_justifications()
+		let justifications = Self::finality_proofs(&source_client)
 			.await
 			.map_err(|err| Error::Subscribe(C::NAME, err))?;
 		// Read next justification - the header that it finalizes will be used as initial header.
@@ -183,11 +188,14 @@ impl<C: ChainWithGrandpa> Engine<C> for Grandpa<C> {
 		// If initial header changes the GRANDPA authorities set, then we need previous authorities
 		// to verify justification.
 		let mut authorities_for_verification = initial_authorities_set.clone();
-		let scheduled_change = find_grandpa_authorities_scheduled_change(&initial_header);
+		let scheduled_change =
+			GrandpaConsensusLogReader::<BlockNumberOf<C>>::find_authorities_change(
+				initial_header.digest(),
+			);
 		assert!(
 			scheduled_change.as_ref().map(|c| c.delay.is_zero()).unwrap_or(true),
 			"GRANDPA authorities change at {} scheduled to happen in {:?} blocks. We expect\
-			regular hange to have zero delay",
+			regular change to have zero delay",
 			initial_header_hash,
 			scheduled_change.as_ref().map(|c| c.delay),
 		);

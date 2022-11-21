@@ -91,30 +91,26 @@ impl pallet_balances::Config for TestRuntime {
 
 parameter_types! {
 	pub const TestBridgedChainId: bp_runtime::ChainId = *b"test";
+	pub ActiveOutboundLanes: &'static [bp_messages::LaneId] = &[[0, 0, 0, 0]];
 }
 
 // we're not testing messages pallet here, so values in this config might be crazy
 impl pallet_bridge_messages::Config for TestRuntime {
 	type RuntimeEvent = RuntimeEvent;
 	type WeightInfo = ();
-	type Parameter = ();
-	type MaxMessagesToPruneAtOnce = frame_support::traits::ConstU64<0>;
+	type ActiveOutboundLanes = ActiveOutboundLanes;
 	type MaxUnrewardedRelayerEntriesAtInboundLane = frame_support::traits::ConstU64<8>;
 	type MaxUnconfirmedMessagesAtInboundLane = frame_support::traits::ConstU64<8>;
 
 	type MaximalOutboundPayloadSize = frame_support::traits::ConstU32<1024>;
 	type OutboundPayload = ();
-	type OutboundMessageFee = Balance;
 
 	type InboundPayload = ();
-	type InboundMessageFee = Balance;
 	type InboundRelayer = AccountId;
 
 	type TargetHeaderChain = ForbidOutboundMessages;
 	type LaneMessageVerifier = ForbidOutboundMessages;
 	type MessageDeliveryAndDispatchPayment = ();
-	type OnMessageAccepted = ();
-	type OnDeliveryConfirmed = ();
 
 	type SourceHeaderChain = ForbidInboundMessages;
 	type MessageDispatch = ForbidInboundMessages;

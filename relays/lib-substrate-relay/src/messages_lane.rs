@@ -17,8 +17,6 @@
 //! Tools for supporting message lanes between two Substrate-based chains.
 
 use crate::{
-	conversion_rate_update::UpdateConversionRateCallBuilder,
-	messages_metrics::StandaloneMessagesMetrics,
 	messages_source::{SubstrateMessagesProof, SubstrateMessagesSource},
 	messages_target::{SubstrateMessagesDeliveryProof, SubstrateMessagesTarget},
 	on_demand::OnDemandRelay,
@@ -27,79 +25,36 @@ use crate::{
 
 use async_std::sync::Arc;
 use bp_messages::{LaneId, MessageNonce};
-use bp_runtime::{AccountIdOf, Chain as _};
+use bp_runtime::{AccountIdOf, Chain as _, WeightExtraOps};
 use bridge_runtime_common::messages::{
 	source::FromBridgedChainMessagesDeliveryProof, target::FromBridgedChainMessagesProof,
 };
 use codec::Encode;
 use frame_support::{dispatch::GetDispatchInfo, weights::Weight};
-use messages_relay::{message_lane::MessageLane, relay_strategy::RelayStrategy};
+use messages_relay::message_lane::MessageLane;
 use pallet_bridge_messages::{Call as BridgeMessagesCall, Config as BridgeMessagesConfig};
 use relay_substrate_client::{
 	transaction_stall_timeout, AccountKeyPairOf, BalanceOf, BlockNumberOf, CallOf, Chain,
-	ChainWithMessages, Client, HashOf, TransactionSignScheme,
+	ChainWithMessages, ChainWithTransactions, Client, HashOf,
 };
-use relay_utils::{metrics::MetricsParams, STALL_TIMEOUT};
+use relay_utils::{
+	metrics::{GlobalMetrics, MetricsParams, StandaloneMetric},
+	STALL_TIMEOUT,
+};
 use sp_core::Pair;
 use std::{convert::TryFrom, fmt::Debug, marker::PhantomData};
 
 /// Substrate -> Substrate messages synchronization pipeline.
 pub trait SubstrateMessageLane: 'static + Clone + Debug + Send + Sync {
-	/// Name of the source -> target tokens conversion rate parameter.
-	///
-	/// The parameter is stored at the target chain and the storage key is computed using
-	/// `bp_runtime::storage_parameter_key` function. If value is unknown, it is assumed
-	/// to be 1.
-	const SOURCE_TO_TARGET_CONVERSION_RATE_PARAMETER_NAME: Option<&'static str>;
-	/// Name of the target -> source tokens conversion rate parameter.
-	///
-	/// The parameter is stored at the source chain and the storage key is computed using
-	/// `bp_runtime::storage_parameter_key` function. If value is unknown, it is assumed
-	/// to be 1.
-	const TARGET_TO_SOURCE_CONVERSION_RATE_PARAMETER_NAME: Option<&'static str>;
-
-	/// Name of the source chain fee multiplier parameter.
-	///
-	/// The parameter is stored at the target chain and the storage key is computed using
-	/// `bp_runtime::storage_parameter_key` function. If value is unknown, it is assumed
-	/// to be 1.
-	const SOURCE_FEE_MULTIPLIER_PARAMETER_NAME: Option<&'static str>;
-	/// Name of the target chain fee multiplier parameter.
-	///
-	/// The parameter is stored at the source chain and the storage key is computed using
-	/// `bp_runtime::storage_parameter_key` function. If value is unknown, it is assumed
-	/// to be 1.
-	const TARGET_FEE_MULTIPLIER_PARAMETER_NAME: Option<&'static str>;
-
-	/// Name of the transaction payment pallet, deployed at the source chain.
-	const AT_SOURCE_TRANSACTION_PAYMENT_PALLET_NAME: Option<&'static str>;
-	/// Name of the transaction payment pallet, deployed at the target chain.
-	const AT_TARGET_TRANSACTION_PAYMENT_PALLET_NAME: Option<&'static str>;
-
 	/// Messages of this chain are relayed to the `TargetChain`.
-	type SourceChain: ChainWithMessages;
+	type SourceChain: ChainWithMessages + ChainWithTransactions;
 	/// Messages from the `SourceChain` are dispatched on this chain.
-	type TargetChain: ChainWithMessages;
-
-	/// Scheme used to sign source chain transactions.
-	type SourceTransactionSignScheme: TransactionSignScheme;
-	/// Scheme used to sign target chain transactions.
-	type TargetTransactionSignScheme: TransactionSignScheme;
+	type TargetChain: ChainWithMessages + ChainWithTransactions;
 
 	/// How receive messages proof call is built?
 	type ReceiveMessagesProofCallBuilder: ReceiveMessagesProofCallBuilder<Self>;
 	/// How receive messages delivery proof call is built?
 	type ReceiveMessagesDeliveryProofCallBuilder: ReceiveMessagesDeliveryProofCallBuilder<Self>;
-
-	/// `TargetChain` tokens to `SourceChain` tokens conversion rate update builder.
-	///
-	/// If not applicable to this bridge, you may use `()` here.
-	type TargetToSourceChainConversionRateUpdateBuilder: UpdateConversionRateCallBuilder<
-		Self::SourceChain,
-	>;
-
-	/// Message relay strategy.
-	type RelayStrategy: RelayStrategy;
 }
 
 /// Adapter that allows all `SubstrateMessageLane` to act as `MessageLane`.
@@ -128,13 +83,11 @@ pub struct MessagesRelayParams<P: SubstrateMessageLane> {
 	/// Messages source client.
 	pub source_client: Client<P::SourceChain>,
 	/// Source transaction params.
-	pub source_transaction_params:
-		TransactionParams<AccountKeyPairOf<P::SourceTransactionSignScheme>>,
+	pub source_transaction_params: TransactionParams<AccountKeyPairOf<P::SourceChain>>,
 	/// Messages target client.
 	pub target_client: Client<P::TargetChain>,
 	/// Target transaction params.
-	pub target_transaction_params:
-		TransactionParams<AccountKeyPairOf<P::TargetTransactionSignScheme>>,
+	pub target_transaction_params: TransactionParams<AccountKeyPairOf<P::TargetChain>>,
 	/// Optional on-demand source to target headers relay.
 	pub source_to_target_headers_relay:
 		Option<Arc<dyn OnDemandRelay<BlockNumberOf<P::SourceChain>>>>,
@@ -145,22 +98,14 @@ pub struct MessagesRelayParams<P: SubstrateMessageLane> {
 	pub lane_id: LaneId,
 	/// Metrics parameters.
 	pub metrics_params: MetricsParams,
-	/// Pre-registered standalone metrics.
-	pub standalone_metrics: Option<StandaloneMessagesMetrics<P::SourceChain, P::TargetChain>>,
-	/// Relay strategy.
-	pub relay_strategy: P::RelayStrategy,
 }
 
 /// Run Substrate-to-Substrate messages sync loop.
 pub async fn run<P: SubstrateMessageLane>(params: MessagesRelayParams<P>) -> anyhow::Result<()>
 where
-	AccountIdOf<P::SourceChain>:
-		From<<AccountKeyPairOf<P::SourceTransactionSignScheme> as Pair>::Public>,
-	AccountIdOf<P::TargetChain>:
-		From<<AccountKeyPairOf<P::TargetTransactionSignScheme> as Pair>::Public>,
+	AccountIdOf<P::SourceChain>: From<<AccountKeyPairOf<P::SourceChain> as Pair>::Public>,
+	AccountIdOf<P::TargetChain>: From<<AccountKeyPairOf<P::TargetChain> as Pair>::Public>,
 	BalanceOf<P::SourceChain>: TryFrom<BalanceOf<P::TargetChain>>,
-	P::SourceTransactionSignScheme: TransactionSignScheme<Chain = P::SourceChain>,
-	P::TargetTransactionSignScheme: TransactionSignScheme<Chain = P::TargetChain>,
 {
 	let source_client = params.source_client;
 	let target_client = params.target_client;
@@ -180,13 +125,6 @@ where
 		);
 	let (max_messages_in_single_batch, max_messages_weight_in_single_batch) =
 		(max_messages_in_single_batch / 2, max_messages_weight_in_single_batch / 2);
-
-	let standalone_metrics = params.standalone_metrics.map(Ok).unwrap_or_else(|| {
-		crate::messages_metrics::standalone_metrics::<P>(
-			source_client.clone(),
-			target_client.clone(),
-		)
-	})?;
 
 	log::info!(
 		target: "bridge",
@@ -231,7 +169,6 @@ where
 				max_messages_in_single_batch,
 				max_messages_weight_in_single_batch,
 				max_messages_size_in_single_batch,
-				relay_strategy: params.relay_strategy,
 			},
 		},
 		SubstrateMessagesSource::<P>::new(
@@ -247,10 +184,12 @@ where
 			params.lane_id,
 			relayer_id_at_source,
 			params.target_transaction_params,
-			standalone_metrics.clone(),
 			params.source_to_target_headers_relay,
 		),
-		standalone_metrics.register_and_spawn(params.metrics_params)?,
+		{
+			GlobalMetrics::new()?.register_and_spawn(&params.metrics_params.registry)?;
+			params.metrics_params
+		},
 		futures::future::pending(),
 	)
 	.await
@@ -282,7 +221,6 @@ where
 	R: BridgeMessagesConfig<I, InboundRelayer = AccountIdOf<P::SourceChain>>,
 	I: 'static,
 	R::SourceHeaderChain: bp_messages::target_chain::SourceHeaderChain<
-		R::InboundMessageFee,
 		MessagesProof = FromBridgedChainMessagesProof<HashOf<P::SourceChain>>,
 	>,
 	CallOf<P::TargetChain>: From<BridgeMessagesCall<R, I>> + GetDispatchInfo,
@@ -462,15 +400,12 @@ pub fn select_delivery_transaction_limits<W: pallet_bridge_messages::WeightInfoE
 		W::receive_messages_proof_outbound_lane_state_overhead();
 	let delivery_tx_weight_rest = weight_for_delivery_tx - delivery_tx_base_weight;
 
-	let max_number_of_messages = if delivery_tx_weight_rest.ref_time() /
-		W::receive_messages_proof_messages_overhead(1).ref_time() <
-		max_unconfirmed_messages_at_inbound_lane
-	{
-		delivery_tx_weight_rest.ref_time() /
-			W::receive_messages_proof_messages_overhead(1).ref_time()
-	} else {
-		max_unconfirmed_messages_at_inbound_lane
-	};
+	let max_number_of_messages = std::cmp::min(
+		delivery_tx_weight_rest
+			.min_components_checked_div(W::receive_messages_proof_messages_overhead(1))
+			.unwrap_or(u64::MAX),
+		max_unconfirmed_messages_at_inbound_lane,
+	);
 
 	assert!(
 		max_number_of_messages > 0,

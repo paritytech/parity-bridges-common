@@ -17,10 +17,8 @@
 //! XCM configurations for the Millau runtime.
 
 use super::{
-	rialto_messages::{WithRialtoMessageBridge, DEFAULT_XCM_LANE_TO_RIALTO},
-	rialto_parachain_messages::{
-		WithRialtoParachainMessageBridge, DEFAULT_XCM_LANE_TO_RIALTO_PARACHAIN,
-	},
+	rialto_messages::{WithRialtoMessageBridge, XCM_LANE},
+	rialto_parachain_messages::{WithRialtoParachainMessageBridge, XCM_LANE as XCM_LANE_PARACHAIN},
 	AccountId, AllPalletsWithSystem, Balances, Runtime, RuntimeCall, RuntimeEvent, RuntimeOrigin,
 	WithRialtoMessagesInstance, WithRialtoParachainMessagesInstance, XcmPallet,
 };
@@ -218,7 +216,7 @@ impl XcmBridge for ToRialtoBridge {
 	}
 
 	fn xcm_lane() -> LaneId {
-		DEFAULT_XCM_LANE_TO_RIALTO
+		XCM_LANE
 	}
 }
 
@@ -245,7 +243,7 @@ impl XcmBridge for ToRialtoParachainBridge {
 	}
 
 	fn xcm_lane() -> LaneId {
-		DEFAULT_XCM_LANE_TO_RIALTO_PARACHAIN
+		XCM_LANE_PARACHAIN
 	}
 }
 
@@ -271,7 +269,7 @@ mod tests {
 	fn xcm_messages_are_sent_using_bridge_router() {
 		new_test_ext().execute_with(|| {
 			let xcm: Xcm<()> = vec![Instruction::Trap(42)].into();
-			let expected_fee = MultiAssets::from((Here, 4_259_858_152_u64));
+			let expected_fee = MultiAssets::from((Here, 1_000_000_u128));
 			let expected_hash =
 				([0u8, 0u8, 0u8, 0u8], 1u64).using_encoded(sp_io::hashing::blake2_256);
 
@@ -305,7 +303,7 @@ mod tests {
 
 			let mut incoming_message = DispatchMessage {
 				key: MessageKey { lane_id: [0, 0, 0, 0], nonce: 1 },
-				data: DispatchMessageData { payload: Ok((location, xcm).into()), fee: 0 },
+				data: DispatchMessageData { payload: Ok((location, xcm).into()) },
 			};
 
 			let dispatch_weight = MessageDispatcher::dispatch_weight(&mut incoming_message);

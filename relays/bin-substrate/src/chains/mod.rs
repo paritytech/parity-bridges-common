@@ -16,6 +16,8 @@
 
 //! Chain-specific relayer configuration.
 
+pub mod bridge_hub_rococo_messages_to_bridge_hub_wococo;
+pub mod bridge_hub_wococo_messages_to_bridge_hub_rococo;
 pub mod millau_headers_to_rialto;
 pub mod millau_headers_to_rialto_parachain;
 pub mod millau_messages_to_rialto;
@@ -24,13 +26,19 @@ pub mod rialto_headers_to_millau;
 pub mod rialto_messages_to_millau;
 pub mod rialto_parachain_messages_to_millau;
 pub mod rialto_parachains_to_millau;
+pub mod rococo_headers_to_bridge_hub_wococo;
+pub mod rococo_parachains_to_bridge_hub_wococo;
 pub mod westend_headers_to_millau;
 pub mod westend_parachains_to_millau;
+pub mod wococo_headers_to_bridge_hub_rococo;
+pub mod wococo_parachains_to_bridge_hub_rococo;
 
 mod millau;
 mod rialto;
 mod rialto_parachain;
+mod rococo;
 mod westend;
+mod wococo;
 
 #[cfg(test)]
 mod tests {
@@ -40,7 +48,7 @@ mod tests {
 	use codec::Encode;
 	use relay_millau_client::Millau;
 	use relay_rialto_client::Rialto;
-	use relay_substrate_client::{SignParam, TransactionSignScheme, UnsignedTransaction};
+	use relay_substrate_client::{ChainWithTransactions, SignParam, UnsignedTransaction};
 
 	#[test]
 	fn maximal_rialto_to_millau_message_size_is_computed_correctly() {

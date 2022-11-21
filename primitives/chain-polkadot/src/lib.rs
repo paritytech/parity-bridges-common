@@ -24,13 +24,6 @@ use bp_runtime::decl_bridge_finality_runtime_apis;
 /// Polkadot Chain
 pub type Polkadot = PolkadotLike;
 
-/// The target length of a session (how often authorities change) on Polkadot measured in of number
-/// of blocks.
-///
-/// Note that since this is a target sessions may change before/after this time depending on network
-/// conditions.
-pub const SESSION_LENGTH: BlockNumber = 4 * time_units::HOURS;
-
 /// Name of the With-Polkadot GRANDPA pallet instance that is deployed at bridged chains.
 pub const WITH_POLKADOT_GRANDPA_PALLET_NAME: &str = "BridgePolkadotGrandpa";
 
