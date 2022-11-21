@@ -204,7 +204,7 @@ where
 	MI: 'static,
 {
 	assert!(
-		R::ActiveOutboundLanes::get().len() > 0,
+		!R::ActiveOutboundLanes::get().is_empty(),
 		"ActiveOutboundLanes ({:?}) must not be empty",
 		R::ActiveOutboundLanes::get(),
 	);
