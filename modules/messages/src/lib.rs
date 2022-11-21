@@ -46,7 +46,7 @@ pub use weights_ext::{
 };
 
 use crate::{
-	inbound_lane::{InboundLane, InboundLaneStorage, ReceivalResult},
+	inbound_lane::{InboundLane, InboundLaneStorage},
 	outbound_lane::{OutboundLane, OutboundLaneStorage, ReceivalConfirmationResult},
 };
 
@@ -91,7 +91,7 @@ pub const LOG_TARGET: &str = "runtime::bridge-messages";
 #[frame_support::pallet]
 pub mod pallet {
 	use super::*;
-	use bp_messages::{ReceivedMessageResult, ReceivedMessages};
+	use bp_messages::{ReceivalResult, ReceivedMessages};
 	use frame_support::pallet_prelude::*;
 	use frame_system::pallet_prelude::*;
 
@@ -361,23 +361,19 @@ pub mod pallet {
 					// losing funds for messages dispatch. But keep in mind that relayer pays base
 					// delivery transaction cost anyway. And base cost covers everything except
 					// dispatch, so we have a balance here.
-					let (unspent_weight, refund_pay_dispatch_fee) = match receival_result {
+					let (unspent_weight, refund_pay_dispatch_fee) = match &receival_result {
 						ReceivalResult::Dispatched(dispatch_result) => {
 							valid_messages += 1;
-							lane_messages_received_status
-								.push(message.key.nonce, ReceivedMessageResult::Dispatched);
 							(
 								dispatch_result.unspent_weight,
 								!dispatch_result.dispatch_fee_paid_during_dispatch,
 							)
 						},
-						rr @ ReceivalResult::InvalidNonce |
-						rr @ ReceivalResult::TooManyUnrewardedRelayers |
-						rr @ ReceivalResult::TooManyUnconfirmedMessages => {
-							lane_messages_received_status.push(message.key.nonce, rr.into());
-							(message_dispatch_weight, true)
-						},
+						ReceivalResult::InvalidNonce |
+						ReceivalResult::TooManyUnrewardedRelayers |
+						ReceivalResult::TooManyUnconfirmedMessages => (message_dispatch_weight, true),
 					};
+					lane_messages_received_status.push(message.key.nonce, receival_result);
 
 					let unspent_weight = unspent_weight.min(message_dispatch_weight);
 					dispatch_weight_left -= message_dispatch_weight - unspent_weight;
@@ -519,7 +515,7 @@ pub mod pallet {
 		/// Message has been accepted and is waiting to be delivered.
 		MessageAccepted { lane_id: LaneId, nonce: MessageNonce },
 		/// Messages have been received from the bridged chain.
-		MessagesReceived(Vec<ReceivedMessages<ReceivedMessageResult>>),
+		MessagesReceived(Vec<ReceivedMessages<ReceivalResult>>),
 		/// Messages in the inclusive range have been delivered to the bridged chain.
 		MessagesDelivered { lane_id: LaneId, messages: DeliveredMessages },
 	}

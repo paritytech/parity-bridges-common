@@ -32,6 +32,7 @@ pub mod storage_keys;
 pub mod target_chain;
 
 // Weight is reexported to avoid additional frame-support dependencies in related crates.
+use bp_runtime::messages::MessageDispatchResult;
 pub use frame_support::weights::Weight;
 
 /// Messages pallet operating mode.
@@ -245,31 +246,18 @@ impl<Result> ReceivedMessages<Result> {
 
 /// Result of single message receival.
 #[derive(RuntimeDebug, Encode, Decode, PartialEq, Eq, Clone, TypeInfo)]
-pub enum ReceivedMessageResult {
+pub enum ReceivalResult {
 	/// Message has been received and dispatched. Note that we don't care whether dispatch has
 	/// been successful or not - in both case message falls into this category.
 	///
 	/// The message dispatch result is also returned.
-	Dispatched,
-	/// Reason why messages was not dispatched
-	NotDispatched(NotDispatchedReason),
-}
-
-/// Result of single message receival.
-#[derive(RuntimeDebug, Encode, Decode, PartialEq, Eq, Clone, TypeInfo)]
-pub enum NotDispatchedReason {
+	Dispatched(MessageDispatchResult),
 	/// Message has invalid nonce and lane has rejected to accept this message.
 	InvalidNonce,
 	/// There are too many unrewarded relayer entries at the lane.
 	TooManyUnrewardedRelayers,
 	/// There are too many unconfirmed messages at the lane.
 	TooManyUnconfirmedMessages,
-}
-
-impl From<NotDispatchedReason> for ReceivedMessageResult {
-	fn from(value: NotDispatchedReason) -> Self {
-		ReceivedMessageResult::NotDispatched(value)
-	}
 }
 
 /// Delivered messages with their dispatch result.

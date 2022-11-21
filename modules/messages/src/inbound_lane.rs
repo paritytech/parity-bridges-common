@@ -20,10 +20,9 @@ use crate::Config;
 
 use bp_messages::{
 	target_chain::{DispatchMessage, DispatchMessageData, MessageDispatch},
-	DeliveredMessages, InboundLaneData, LaneId, MessageKey, MessageNonce, NotDispatchedReason,
-	OutboundLaneData, ReceivedMessageResult, UnrewardedRelayer,
+	DeliveredMessages, InboundLaneData, LaneId, MessageKey, MessageNonce, OutboundLaneData,
+	ReceivalResult, UnrewardedRelayer,
 };
-use bp_runtime::messages::MessageDispatchResult;
 use codec::{Decode, Encode, EncodeLike, MaxEncodedLen};
 use frame_support::{traits::Get, RuntimeDebug};
 use scale_info::{Type, TypeInfo};
@@ -105,35 +104,6 @@ impl<T: Config<I>, I: 'static> MaxEncodedLen for StoredInboundLaneData<T, I> {
 			T::MaxUnconfirmedMessagesAtInboundLane::get() as usize,
 		)
 		.unwrap_or(usize::MAX)
-	}
-}
-
-/// Result of single message receival.
-#[derive(RuntimeDebug, PartialEq, Eq)]
-pub enum ReceivalResult {
-	/// Message has been received and dispatched. Note that we don't care whether dispatch has
-	/// been successful or not - in both case message falls into this category.
-	///
-	/// The message dispatch result is also returned.
-	Dispatched(MessageDispatchResult),
-	/// Message has invalid nonce and lane has rejected to accept this message.
-	InvalidNonce,
-	/// There are too many unrewarded relayer entries at the lane.
-	TooManyUnrewardedRelayers,
-	/// There are too many unconfirmed messages at the lane.
-	TooManyUnconfirmedMessages,
-}
-
-impl From<ReceivalResult> for ReceivedMessageResult {
-	fn from(value: ReceivalResult) -> Self {
-		match value {
-			ReceivalResult::Dispatched(_) => ReceivedMessageResult::Dispatched,
-			ReceivalResult::InvalidNonce => NotDispatchedReason::InvalidNonce.into(),
-			ReceivalResult::TooManyUnrewardedRelayers =>
-				NotDispatchedReason::TooManyUnrewardedRelayers.into(),
-			ReceivalResult::TooManyUnconfirmedMessages =>
-				NotDispatchedReason::TooManyUnconfirmedMessages.into(),
-		}
 	}
 }
 
