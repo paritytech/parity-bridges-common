@@ -6,6 +6,8 @@
 # we have (to make sure the message relays are running), but remove the message
 # generator service. From there you may submit messages manually using this script.
 
+# TODO: Fix demeo scripts https://github.com/paritytech/parity-bridges-common/issues/1406
+
 MILLAU_PORT="${RIALTO_PORT:-9945}"
 
 case "$1" in

@@ -91,7 +91,7 @@ pub const LOG_TARGET: &str = "runtime::bridge-messages";
 #[frame_support::pallet]
 pub mod pallet {
 	use super::*;
-	use bp_messages::{NotDispatchedReason, ReceivedMessageResult, ReceivedMessages};
+	use bp_messages::{ReceivedMessageResult, ReceivedMessages};
 	use frame_support::pallet_prelude::*;
 	use frame_system::pallet_prelude::*;
 
@@ -317,7 +317,7 @@ pub mod pallet {
 				}
 
 				let mut lane_messages_received_status =
-					Vec::with_capacity(lane_data.messages.len());
+					ReceivedMessages::new(lane_id, Vec::with_capacity(lane_data.messages.len()));
 				let mut is_lane_processing_stopped_no_weight_left = false;
 
 				for mut message in lane_data.messages {
@@ -325,10 +325,8 @@ pub mod pallet {
 					total_messages += 1;
 
 					if is_lane_processing_stopped_no_weight_left {
-						lane_messages_received_status.push((
-							message.key.nonce,
-							NotDispatchedReason::NotEnoughWeightForLane.into(),
-						));
+						lane_messages_received_status
+							.push_skipped_for_not_enough_weight(message.key.nonce);
 						continue
 					}
 
@@ -344,10 +342,8 @@ pub mod pallet {
 							message_dispatch_weight,
 							dispatch_weight_left,
 						);
-						lane_messages_received_status.push((
-							message.key.nonce,
-							NotDispatchedReason::NotEnoughWeightForLane.into(),
-						));
+						lane_messages_received_status
+							.push_skipped_for_not_enough_weight(message.key.nonce);
 						is_lane_processing_stopped_no_weight_left = true;
 						continue
 					}
@@ -369,31 +365,16 @@ pub mod pallet {
 						ReceivalResult::Dispatched(dispatch_result) => {
 							valid_messages += 1;
 							lane_messages_received_status
-								.push((message.key.nonce, ReceivedMessageResult::Dispatched));
+								.push(message.key.nonce, ReceivedMessageResult::Dispatched);
 							(
 								dispatch_result.unspent_weight,
 								!dispatch_result.dispatch_fee_paid_during_dispatch,
 							)
 						},
-						ReceivalResult::InvalidNonce => {
-							lane_messages_received_status.push((
-								message.key.nonce,
-								NotDispatchedReason::InvalidNonce.into(),
-							));
-							(message_dispatch_weight, true)
-						},
-						ReceivalResult::TooManyUnrewardedRelayers => {
-							lane_messages_received_status.push((
-								message.key.nonce,
-								NotDispatchedReason::TooManyUnrewardedRelayers.into(),
-							));
-							(message_dispatch_weight, true)
-						},
-						ReceivalResult::TooManyUnconfirmedMessages => {
-							lane_messages_received_status.push((
-								message.key.nonce,
-								NotDispatchedReason::TooManyUnconfirmedMessages.into(),
-							));
+						rr @ ReceivalResult::InvalidNonce |
+						rr @ ReceivalResult::TooManyUnrewardedRelayers |
+						rr @ ReceivalResult::TooManyUnconfirmedMessages => {
+							lane_messages_received_status.push(message.key.nonce, rr.into());
 							(message_dispatch_weight, true)
 						},
 					};
@@ -412,8 +393,7 @@ pub mod pallet {
 					);
 				}
 
-				messages_received_status
-					.push(ReceivedMessages::new(lane_id, lane_messages_received_status));
+				messages_received_status.push(lane_messages_received_status);
 			}
 
 			log::debug!(

@@ -20,8 +20,8 @@ use crate::Config;
 
 use bp_messages::{
 	target_chain::{DispatchMessage, DispatchMessageData, MessageDispatch},
-	DeliveredMessages, InboundLaneData, LaneId, MessageKey, MessageNonce, OutboundLaneData,
-	UnrewardedRelayer,
+	DeliveredMessages, InboundLaneData, LaneId, MessageKey, MessageNonce, NotDispatchedReason,
+	OutboundLaneData, ReceivedMessageResult, UnrewardedRelayer,
 };
 use bp_runtime::messages::MessageDispatchResult;
 use codec::{Decode, Encode, EncodeLike, MaxEncodedLen};
@@ -122,6 +122,19 @@ pub enum ReceivalResult {
 	TooManyUnrewardedRelayers,
 	/// There are too many unconfirmed messages at the lane.
 	TooManyUnconfirmedMessages,
+}
+
+impl From<ReceivalResult> for ReceivedMessageResult {
+	fn from(value: ReceivalResult) -> Self {
+		match value {
+			ReceivalResult::Dispatched(_) => ReceivedMessageResult::Dispatched,
+			ReceivalResult::InvalidNonce => NotDispatchedReason::InvalidNonce.into(),
+			ReceivalResult::TooManyUnrewardedRelayers =>
+				NotDispatchedReason::TooManyUnrewardedRelayers.into(),
+			ReceivalResult::TooManyUnconfirmedMessages =>
+				NotDispatchedReason::TooManyUnconfirmedMessages.into(),
+		}
+	}
 }
 
 /// Inbound messages lane.

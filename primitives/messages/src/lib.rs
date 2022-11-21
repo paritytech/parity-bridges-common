@@ -221,13 +221,25 @@ pub struct UnrewardedRelayer<RelayerId> {
 /// Received messages with their dispatch result.
 #[derive(Clone, Default, Encode, Decode, RuntimeDebug, PartialEq, Eq, TypeInfo)]
 pub struct ReceivedMessages<Result> {
+	/// Id of the lane which is receiving messages.
 	pub lane: LaneId,
+	/// Result of messages which we tried to dispatch
 	pub receive_results: Vec<(MessageNonce, Result)>,
+	/// Messages which were skipped and never dispatched
+	pub skipped_for_not_enough_weight: Vec<MessageNonce>,
 }
 
 impl<Result> ReceivedMessages<Result> {
 	pub fn new(lane: LaneId, receive_results: Vec<(MessageNonce, Result)>) -> Self {
-		ReceivedMessages { lane, receive_results }
+		ReceivedMessages { lane, receive_results, skipped_for_not_enough_weight: Vec::new() }
+	}
+
+	pub fn push(&mut self, message: MessageNonce, result: Result) {
+		self.receive_results.push((message, result));
+	}
+
+	pub fn push_skipped_for_not_enough_weight(&mut self, message: MessageNonce) {
+		self.skipped_for_not_enough_weight.push(message);
 	}
 }
 
@@ -252,8 +264,6 @@ pub enum NotDispatchedReason {
 	TooManyUnrewardedRelayers,
 	/// There are too many unconfirmed messages at the lane.
 	TooManyUnconfirmedMessages,
-	/// There are too many unconfirmed messages at the lane.
-	NotEnoughWeightForLane,
 }
 
 impl From<NotDispatchedReason> for ReceivedMessageResult {
