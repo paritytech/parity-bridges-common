@@ -217,7 +217,7 @@ pub mod pallet {
 			let mut active_lane = outbound_lane::<T, I>(active_lane_id);
 			let mut used_weight = db_weight.reads(1);
 			// and here we'll have writes
-			used_weight -= active_lane.prune_messages(db_weight, remaining_weight);
+			used_weight += active_lane.prune_messages(db_weight, remaining_weight);
 
 			// we already checked we have enough `remaining_weight` to cover this `used_weight`
 			used_weight
