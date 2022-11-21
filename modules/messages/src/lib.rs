@@ -145,6 +145,8 @@ pub mod pallet {
 		/// Identifier of relayer that deliver messages to this chain. Relayer reward is paid on the
 		/// bridged chain.
 		type InboundRelayer: Parameter + MaxEncodedLen;
+		/// Delivery payments.
+		type DeliveryPayments: DeliveryPayments<Self::AccountId>;
 
 		// Types that are used by outbound_lane (on source chain).
 
@@ -152,11 +154,8 @@ pub mod pallet {
 		type TargetHeaderChain: TargetHeaderChain<Self::OutboundPayload, Self::AccountId>;
 		/// Message payload verifier.
 		type LaneMessageVerifier: LaneMessageVerifier<Self::RuntimeOrigin, Self::OutboundPayload>;
-		/// Message delivery payment.
-		type MessageDeliveryAndDispatchPayment: MessageDeliveryAndDispatchPayment<
-			Self::RuntimeOrigin,
-			Self::AccountId,
-		>;
+		/// Delivery confirmation payments.
+		type DeliveryConfirmationPayments: DeliveryConfirmationPayments<Self::AccountId>;
 
 		// Types that are used by inbound_lane (on target chain).
 
@@ -374,16 +373,28 @@ pub mod pallet {
 				}
 			}
 
+			// let's now deal with relayer payments
+			let maybe_pays = T::DeliveryPayments::pay_reward(
+				relayer_id_at_this_chain,
+				total_messages,
+				valid_messages,
+				actual_weight,
+			);
+
 			log::trace!(
 				target: LOG_TARGET,
-				"Received messages: total={}, valid={}. Weight used: {}/{}",
+				"Received messages: total={}, valid={}. Weight used: {}/{}. Pays: {:?}",
 				total_messages,
 				valid_messages,
 				actual_weight,
 				declared_weight,
+				maybe_pays,
 			);
 
-			Ok(PostDispatchInfo { actual_weight: Some(actual_weight), pays_fee: Pays::Yes })
+			Ok(PostDispatchInfo {
+				actual_weight: Some(actual_weight),
+				pays_fee: maybe_pays.unwrap_or(Pays::Yes),
+			})
 		}
 
 		/// Receive messages delivery proof from bridged chain.
@@ -470,7 +481,7 @@ pub mod pallet {
 				});
 
 				// if some new messages have been confirmed, reward relayers
-				<T as Config<I>>::MessageDeliveryAndDispatchPayment::pay_relayers_rewards(
+				T::DeliveryConfirmationPayments::pay_reward(
 					lane_id,
 					lane_data.relayers,
 					&confirmation_relayer,
@@ -707,31 +718,6 @@ fn send_message<T: Config<I>, I: 'static>(
 	let actual_weight = T::DbWeight::get().reads_writes(2, 2);
 
 	Ok(SendMessageArtifacts { nonce, weight: actual_weight })
-}
-
-/// Calculate the number of messages that the relayers have delivered.
-pub fn calc_relayers_rewards<T, I>(
-	messages_relayers: VecDeque<UnrewardedRelayer<T::AccountId>>,
-	received_range: &RangeInclusive<MessageNonce>,
-) -> RelayersRewards<T::AccountId>
-where
-	T: frame_system::Config + crate::Config<I>,
-	I: 'static,
-{
-	// remember to reward relayers that have delivered messages
-	// this loop is bounded by `T::MaxUnrewardedRelayerEntriesAtInboundLane` on the bridged chain
-	let mut relayers_rewards = RelayersRewards::new();
-	for entry in messages_relayers {
-		let nonce_begin = sp_std::cmp::max(entry.messages.begin, *received_range.start());
-		let nonce_end = sp_std::cmp::min(entry.messages.end, *received_range.end());
-
-		// loop won't proceed if current entry is ahead of received range (begin > end).
-		// this loop is bound by `T::MaxUnconfirmedMessagesAtInboundLane` on the bridged chain
-		if nonce_end >= nonce_begin {
-			*relayers_rewards.entry(entry.relayer).or_default() += nonce_end - nonce_begin + 1;
-		}
-	}
-	relayers_rewards
 }
 
 /// Ensure that the pallet is in normal operational mode.

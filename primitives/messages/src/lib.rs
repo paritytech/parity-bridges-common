@@ -335,6 +335,25 @@ pub fn total_unrewarded_messages<RelayerId>(
 	}
 }
 
+/// Calculate the number of messages that the relayers have delivered.
+pub fn calc_relayers_rewards<AccountId>(
+	messages_relayers: VecDeque<UnrewardedRelayer<AccountId>>,
+	received_range: &RangeInclusive<MessageNonce>,
+) -> RelayersRewards<AccountId> {
+	// remember to reward relayers that have delivered messages
+	// this loop is bounded by `T::MaxUnrewardedRelayerEntriesAtInboundLane` on the bridged chain
+	let mut relayers_rewards = RelayersRewards::new();
+	for entry in messages_relayers {
+		let nonce_begin = sp_std::cmp::max(entry.messages.begin, *received_range.start());
+		let nonce_end = sp_std::cmp::min(entry.messages.end, *received_range.end());
+		if nonce_end >= nonce_begin {
+			*relayers_rewards.entry(entry.relayer).or_default() += nonce_end - nonce_begin + 1;
+		}
+	}
+	relayers_rewards
+}
+
+
 #[cfg(test)]
 mod tests {
 	use super::*;

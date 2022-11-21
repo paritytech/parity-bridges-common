@@ -488,13 +488,16 @@ impl pallet_bridge_messages::Config<WithRialtoMessagesInstance> for Runtime {
 
 	type InboundPayload = crate::rialto_messages::FromRialtoMessagePayload;
 	type InboundRelayer = bp_rialto::AccountId;
+	type DeliveryPayments = pallet_bridge_relayers::DeliveryPayments<
+		Runtime,
+		DeliveryPayments,
+	>;
 
 	type TargetHeaderChain = crate::rialto_messages::Rialto;
 	type LaneMessageVerifier = crate::rialto_messages::ToRialtoMessageVerifier;
-	type MessageDeliveryAndDispatchPayment =
-		pallet_bridge_relayers::MessageDeliveryAndDispatchPaymentAdapter<
+	type DeliveryConfirmationPayments =
+		pallet_bridge_relayers::DeliveryConfirmationPayments<
 			Runtime,
-			WithRialtoMessagesInstance,
 		>;
 
 	type SourceHeaderChain = crate::rialto_messages::Rialto;

@@ -14,8 +14,7 @@
 // You should have received a copy of the GNU General Public License
 // along with Parity Bridges Common.  If not, see <http://www.gnu.org/licenses/>.
 
-//! Code that allows relayers pallet to be used as a delivery+dispatch payment mechanism
-//! for the messages pallet.
+//! Code that allows relayers pallet to be used as a payment mechanism for the messages pallet.
 
 use crate::{Config, RelayerRewards};
 
@@ -26,25 +25,26 @@ use sp_std::{collections::vec_deque::VecDeque, marker::PhantomData, ops::RangeIn
 
 /// Adapter that allows relayers pallet to be used as a delivery+dispatch payment mechanism
 /// for the messages pallet.
-pub struct MessageDeliveryAndDispatchPaymentAdapter<T, MessagesInstance>(
-	PhantomData<(T, MessagesInstance)>,
+pub struct DeliveryConfirmationPaymentsAdapter<T, DeliveryReward, ConfirmationReward>(
+	PhantomData<(T, DeliveryReward, ConfirmationReward)>,
 );
 
-impl<T, MessagesInstance> MessageDeliveryAndDispatchPayment<T::RuntimeOrigin, T::AccountId>
-	for MessageDeliveryAndDispatchPaymentAdapter<T, MessagesInstance>
+impl<T, DeliveryReward, ConfirmationReward> DeliveryConfirmationPayments<TT::AccountId>
+	for DeliveryConfirmationPaymentsAdapter<T, DeliveryReward, ConfirmationReward>
 where
-	T: Config + pallet_bridge_messages::Config<MessagesInstance>,
-	MessagesInstance: 'static,
+	T: Config,
+	DeliveryReward: Get<T::Reward>,
+	ConfirmationReward: Get<T::Reward>,
 {
 	type Error = &'static str;
 
-	fn pay_relayers_rewards(
-		_lane_id: bp_messages::LaneId,
-		messages_relayers: VecDeque<bp_messages::UnrewardedRelayer<T::AccountId>>,
-		confirmation_relayer: &T::AccountId,
-		received_range: &RangeInclusive<bp_messages::MessageNonce>,
+	fn pay_reward(
+		_lane_id: LaneId,
+		messages_relayers: VecDeque<UnrewardedRelayer<AccountId>>,
+		confirmation_relayer: &AccountId,
+		received_range: &RangeInclusive<MessageNonce>,
 	) {
-		let relayers_rewards = pallet_bridge_messages::calc_relayers_rewards::<T, MessagesInstance>(
+		let relayers_rewards = bp_messages::calc_relayers_rewards(
 			messages_relayers,
 			received_range,
 		);
@@ -52,10 +52,8 @@ where
 		register_relayers_rewards::<T>(
 			confirmation_relayer,
 			relayers_rewards,
-			// TODO (https://github.com/paritytech/parity-bridges-common/issues/1318): this shall be fixed
-			// in some way. ATM the future of the `register_relayers_rewards` is not yet known
-			100_000_u32.into(),
-			10_000_u32.into(),
+			DeliveryReward::get(),
+			ConfirmationReward::get(),
 		);
 	}
 }

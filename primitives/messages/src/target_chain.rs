@@ -109,6 +109,25 @@ pub trait MessageDispatch<AccountId> {
 	) -> MessageDispatchResult;
 }
 
+/// Manages payments that are happening at the target chain during message delivery transaction.
+pub trait DeliveryPayments<AccountId> {
+	/// Error type.
+	type Error: Debug + Into<&'static str>;
+
+	/// Pay rewards for delivering messages to the given relayer.
+	///
+	/// This method is called during message delivery transaction which has been submitted
+	/// by the `relayer`. The transaction brings `total_messages` messages  but only
+	/// `valid_messages` have been accepted. The post-dispatch transaction weight is the
+	/// `actual_weight`.
+	fn pay_reward(
+		relayer: AccountId,
+		total_messages: MessageNonce,
+		valid_messages: MessageNonce,
+		actual_weight: Weight,
+	);
+}
+
 impl<Message> Default for ProvedLaneMessages<Message> {
 	fn default() -> Self {
 		ProvedLaneMessages { lane_state: None, messages: Vec::new() }
@@ -124,6 +143,17 @@ impl<DispatchPayload: Decode> From<Message> for DispatchMessage<DispatchPayload>
 impl<DispatchPayload: Decode> From<MessagePayload> for DispatchMessageData<DispatchPayload> {
 	fn from(payload: MessagePayload) -> Self {
 		DispatchMessageData { payload: DispatchPayload::decode(&mut &payload[..]) }
+	}
+}
+
+impl<AccountId> DeliveryPayments<AccountId> for () {
+	fn pay_reward(
+		_relayer: AccountId,
+		_total_messages: MessageNonce,
+		_valid_messages: MessageNonce,
+		_actual_weight: Weight,
+	) {
+		// this implementation is not rewarding relayer at all
 	}
 }
 
