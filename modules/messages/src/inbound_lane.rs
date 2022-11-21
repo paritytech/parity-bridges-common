@@ -181,12 +181,12 @@ impl<S: InboundLaneStorage> InboundLane<S> {
 	}
 
 	/// Receive new message.
-	pub fn receive_message<P: MessageDispatch<AccountId>, AccountId>(
+	pub fn receive_message<Dispatch: MessageDispatch<AccountId>, AccountId>(
 		&mut self,
 		relayer_at_bridged_chain: &S::Relayer,
 		relayer_at_this_chain: &AccountId,
 		nonce: MessageNonce,
-		message_data: DispatchMessageData<P::DispatchPayload>,
+		message_data: DispatchMessageData<Dispatch::DispatchPayload>,
 	) -> ReceivalResult {
 		let mut data = self.storage.data();
 		let is_correct_message = nonce == data.last_delivered_nonce() + 1;
@@ -206,7 +206,7 @@ impl<S: InboundLaneStorage> InboundLane<S> {
 		}
 
 		// then, dispatch message
-		let dispatch_result = P::dispatch(
+		let dispatch_result = Dispatch::dispatch(
 			relayer_at_this_chain,
 			DispatchMessage {
 				key: MessageKey { lane_id: self.storage.id(), nonce },

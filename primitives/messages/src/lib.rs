@@ -218,6 +218,50 @@ pub struct UnrewardedRelayer<RelayerId> {
 	pub messages: DeliveredMessages,
 }
 
+/// Received messages with their dispatch result.
+#[derive(Clone, Default, Encode, Decode, RuntimeDebug, PartialEq, Eq, TypeInfo)]
+pub struct ReceivedMessages<Result> {
+	pub lane: LaneId,
+	pub receive_results: Vec<(MessageNonce, Result)>,
+}
+
+impl<Result> ReceivedMessages<Result> {
+	pub fn new(lane: LaneId, receive_results: Vec<(MessageNonce, Result)>) -> Self {
+		ReceivedMessages { lane, receive_results }
+	}
+}
+
+/// Result of single message receival.
+#[derive(RuntimeDebug, Encode, Decode, PartialEq, Eq, Clone, TypeInfo)]
+pub enum ReceivedMessageResult {
+	/// Message has been received and dispatched. Note that we don't care whether dispatch has
+	/// been successful or not - in both case message falls into this category.
+	///
+	/// The message dispatch result is also returned.
+	Dispatched,
+	/// Reason why messages was not dispatched
+	NotDispatched(NotDispatchedReason),
+}
+
+/// Result of single message receival.
+#[derive(RuntimeDebug, Encode, Decode, PartialEq, Eq, Clone, TypeInfo)]
+pub enum NotDispatchedReason {
+	/// Message has invalid nonce and lane has rejected to accept this message.
+	InvalidNonce,
+	/// There are too many unrewarded relayer entries at the lane.
+	TooManyUnrewardedRelayers,
+	/// There are too many unconfirmed messages at the lane.
+	TooManyUnconfirmedMessages,
+	/// There are too many unconfirmed messages at the lane.
+	NotEnoughWeightForLane,
+}
+
+impl From<NotDispatchedReason> for ReceivedMessageResult {
+	fn from(value: NotDispatchedReason) -> Self {
+		ReceivedMessageResult::NotDispatched(value)
+	}
+}
+
 /// Delivered messages with their dispatch result.
 #[derive(Clone, Default, Encode, Decode, RuntimeDebug, PartialEq, Eq, TypeInfo)]
 pub struct DeliveredMessages {

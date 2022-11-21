@@ -15,10 +15,7 @@ case "$1" in
 			--source-host localhost \
 			--source-port $MILLAU_PORT \
 			--source-signer //Alice \
-			--target-signer //Bob \
-			--lane 00000000 \
-			--origin Target \
-			remark \
+			raw 020419ac
 		;;
 	transfer)
 		RUST_LOG=runtime=trace,substrate-relay=trace,bridge=trace \
@@ -26,9 +23,6 @@ case "$1" in
 			--source-host localhost \
 			--source-port $MILLAU_PORT \
 			--source-signer //Alice \
-			--target-signer //Bob \
-			--lane 00000000 \
-			--origin Target \
 			transfer \
 			--amount 100000000000000 \
 			--recipient 5DZvVvd1udr61vL7Xks17TFQ4fi9NiagYLaBobnbPCP14ewA \
