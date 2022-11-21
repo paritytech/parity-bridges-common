@@ -26,7 +26,7 @@ use sp_std::marker::PhantomData;
 use weights::WeightInfo;
 
 pub use pallet::*;
-pub use payment_adapter::MessageDeliveryAndDispatchPaymentAdapter;
+pub use payment_adapter::DeliveryConfirmationPaymentsAdapter;
 
 mod benchmarking;
 mod mock;
