@@ -103,8 +103,8 @@ impl messages::ThisChainWithMessages for Millau {
 	type RuntimeCall = RuntimeCall;
 	type RuntimeOrigin = RuntimeOrigin;
 
-	fn is_message_accepted(_send_origin: &Self::RuntimeOrigin, lane: &LaneId) -> bool {
-		*lane == XCM_LANE
+	fn is_message_accepted(_send_origin: &Self::RuntimeOrigin, _lane: &LaneId) -> bool {
+		true
 	}
 
 	fn maximal_pending_messages_at_outbound_lane() -> MessageNonce {

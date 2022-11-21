@@ -196,6 +196,9 @@ pub const TEST_LANE_ID: LaneId = [0, 0, 0, 1];
 /// Secondary lane that we're using in tests.
 pub const TEST_LANE_ID_2: LaneId = [0, 0, 0, 2];
 
+/// Inactive outbound lane.
+pub const TEST_LANE_ID_3: LaneId = [0, 0, 0, 3];
+
 /// Regular message payload.
 pub const REGULAR_PAYLOAD: TestPayload = message_payload(0, 50);
 
