@@ -27,14 +27,7 @@
 //! - extra data of MMR leafs
 //!
 //! Given the header hash, other pallets are able to verify header-based proofs
-//! (e.g. storage proofs, transaction inclusion proofs, etc.). There are two options to do that:
-//!
-//! - the cheap option only works when the proof is based on some recent header. Then the submitter
-//!   may relay on the fact that the pallet is storing hashes of the most recent bridged headers.
-//!   Then you may ensure that the provided header is valid by checking that the stored header
-//!   hashes map contains an entry for your header.
-//! - the expensive option works for any header that is "covered" with MMR. The proof then must
-//!   include MMR proof for leaf, corresponding to the header and the header itself.
+//! (e.g. storage proofs, transaction inclusion proofs, etc.).
 
 #![cfg_attr(not(feature = "std"), no_std)]
 
