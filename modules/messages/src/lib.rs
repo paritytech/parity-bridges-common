@@ -1760,28 +1760,41 @@ mod tests {
 			System::<TestRuntime>::set_block_number(2);
 
 			// if passed wight is too low to do anything
-			Pallet::<TestRuntime, ()>::on_idle(0, DbWeight::get().reads_writes(1, 1));
+			let dbw = DbWeight::get();
+			assert_eq!(
+				Pallet::<TestRuntime, ()>::on_idle(0, dbw.reads_writes(1, 1)),
+				Weight::zero(),
+			);
 			assert_eq!(
 				outbound_lane::<TestRuntime, ()>(TEST_LANE_ID).data().oldest_unpruned_nonce,
 				1
 			);
 
 			// if passed wight is enough to prune single message
-			Pallet::<TestRuntime, ()>::on_idle(0, DbWeight::get().reads_writes(1, 2));
+			assert_eq!(
+				Pallet::<TestRuntime, ()>::on_idle(0, dbw.reads_writes(1, 2)),
+				dbw.reads_writes(1, 2),
+			);
 			assert_eq!(
 				outbound_lane::<TestRuntime, ()>(TEST_LANE_ID).data().oldest_unpruned_nonce,
 				2
 			);
 
 			// if passed wight is enough to prune two more messages
-			Pallet::<TestRuntime, ()>::on_idle(0, DbWeight::get().reads_writes(1, 3));
+			assert_eq!(
+				Pallet::<TestRuntime, ()>::on_idle(0, dbw.reads_writes(1, 3)),
+				dbw.reads_writes(1, 3),
+			);
 			assert_eq!(
 				outbound_lane::<TestRuntime, ()>(TEST_LANE_ID).data().oldest_unpruned_nonce,
 				4
 			);
 
 			// if passed wight is enough to prune many messages
-			Pallet::<TestRuntime, ()>::on_idle(0, DbWeight::get().reads_writes(100, 100));
+			assert_eq!(
+				Pallet::<TestRuntime, ()>::on_idle(0, dbw.reads_writes(100, 100)),
+				dbw.reads_writes(1, 2),
+			);
 			assert_eq!(
 				outbound_lane::<TestRuntime, ()>(TEST_LANE_ID).data().oldest_unpruned_nonce,
 				5
@@ -1839,8 +1852,12 @@ mod tests {
 			);
 
 			// in block#2.on_idle lane messages of lane 1 are pruned
+			let dbw = DbWeight::get();
 			System::<TestRuntime>::set_block_number(2);
-			Pallet::<TestRuntime, ()>::on_idle(0, DbWeight::get().reads_writes(100, 100));
+			assert_eq!(
+				Pallet::<TestRuntime, ()>::on_idle(0, dbw.reads_writes(100, 100)),
+				dbw.reads_writes(1, 2),
+			);
 			assert_eq!(
 				outbound_lane::<TestRuntime, ()>(TEST_LANE_ID).data().oldest_unpruned_nonce,
 				2
@@ -1852,7 +1869,11 @@ mod tests {
 
 			// in block#3.on_idle lane messages of lane 2 are pruned
 			System::<TestRuntime>::set_block_number(3);
-			Pallet::<TestRuntime, ()>::on_idle(0, DbWeight::get().reads_writes(100, 100));
+
+			assert_eq!(
+				Pallet::<TestRuntime, ()>::on_idle(0, dbw.reads_writes(100, 100)),
+				dbw.reads_writes(1, 2),
+			);
 			assert_eq!(
 				outbound_lane::<TestRuntime, ()>(TEST_LANE_ID).data().oldest_unpruned_nonce,
 				2
