@@ -518,7 +518,6 @@ pub mod target {
 				xcm_outcome,
 			);
 			MessageDispatchResult {
-				dispatch_result: true,
 				unspent_weight: Weight::zero(),
 				dispatch_fee_paid_during_dispatch: false,
 			}
