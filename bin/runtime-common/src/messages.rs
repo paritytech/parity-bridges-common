@@ -520,7 +520,7 @@ pub mod target {
 						outcome,
 					);
 					match outcome.ensure_execution() {
-						Ok(_weight) => true,
+						Ok(_weight) => (),
 						Err(e) => {
 							log::error!(
 								target: "runtime::bridge-dispatch",
@@ -528,7 +528,6 @@ pub mod target {
 								message_id,
 								e,
 							);
-							false
 						},
 					}
 				},
@@ -539,7 +538,6 @@ pub mod target {
 						message_id,
 						e,
 					);
-					false
 				},
 			}
 
