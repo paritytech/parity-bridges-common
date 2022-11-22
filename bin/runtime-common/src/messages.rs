@@ -511,7 +511,7 @@ pub mod target {
 			};
 
 			let xcm_outcome = do_dispatch();
-			let dispatch_result = match xcm_outcome {
+			match xcm_outcome {
 				Ok(outcome) => {
 					log::trace!(
 						target: "runtime::bridge-dispatch",
@@ -541,7 +541,7 @@ pub mod target {
 					);
 					false
 				},
-			};
+			}
 
 			MessageDispatchResult {
 				unspent_weight: Weight::zero(),
