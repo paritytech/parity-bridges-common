@@ -943,6 +943,7 @@ dependencies = [
  "sp-finality-grandpa",
  "sp-runtime",
  "sp-std",
+ "xcm",
 ]
 
 [[package]]
