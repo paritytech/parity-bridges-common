@@ -24,6 +24,7 @@ use xcm::v3::NetworkId;
 
 pub mod messages;
 pub mod messages_api;
+pub mod messages_batch_extension;
 pub mod messages_benchmarking;
 pub mod messages_extension;
 pub mod parachains_benchmarking;
