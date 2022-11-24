@@ -67,7 +67,7 @@ impl Chain for BridgeHubRococo {
 
 impl ChainWithBalances for BridgeHubRococo {
 	fn account_info_storage_key(account_id: &Self::AccountId) -> StorageKey {
-		StorageKey(bp_bridge_hub_rococo::account_info_storage_key(account_id))
+		bp_bridge_hub_rococo::AccountInfoStorageMapKeyProvider::final_key(account_id)
 	}
 }
 
