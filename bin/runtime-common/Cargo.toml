@@ -31,6 +31,7 @@ frame-support = { git = "https://github.com/paritytech/substrate", branch = "mas
 frame-system = { git = "https://github.com/paritytech/substrate", branch = "master", default-features = false }
 pallet-balances = { git = "https://github.com/paritytech/substrate", branch = "master", default-features = false, optional = true }
 pallet-transaction-payment = { git = "https://github.com/paritytech/substrate", branch = "master", default-features = false }
+pallet-utility = { git = "https://github.com/paritytech/substrate", branch = "master", default-features = false }
 sp-api = { git = "https://github.com/paritytech/substrate", branch = "master", default-features = false }
 sp-core = { git = "https://github.com/paritytech/substrate", branch = "master", default-features = false }
 sp-io = { git = "https://github.com/paritytech/substrate", branch = "master", default-features = false }
@@ -65,6 +66,7 @@ std = [
 	"pallet-bridge-parachains/std",
 	"pallet-bridge-relayers/std",
 	"pallet-transaction-payment/std",
+	"pallet-utility/std",
 	"pallet-xcm/std",
 	"scale-info/std",
 	"sp-api/std",
