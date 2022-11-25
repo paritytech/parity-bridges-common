@@ -982,6 +982,8 @@ dependencies = [
  "pallet-bridge-grandpa",
  "pallet-bridge-messages",
  "pallet-bridge-parachains",
+ "pallet-bridge-relayers",
+ "pallet-transaction-payment",
  "pallet-xcm",
  "parity-scale-codec",
  "scale-info",

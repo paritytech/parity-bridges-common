@@ -17,7 +17,7 @@
 //! Code that allows relayers pallet to be used as a delivery+dispatch payment mechanism
 //! for the messages pallet.
 
-use crate::{Config, RelayerRewards};
+use crate::{Config, Pallet};
 
 use bp_messages::source_chain::{MessageDeliveryAndDispatchPayment, RelayersRewards};
 use frame_support::sp_runtime::SaturatedConversion;
@@ -87,7 +87,7 @@ fn register_relayers_rewards<T: Config>(
 			relayer_reward = relayer_reward.saturating_sub(confirmation_reward);
 			confirmation_relayer_reward =
 				confirmation_relayer_reward.saturating_add(confirmation_reward);
-			register_relayer_reward::<T>(&relayer, relayer_reward);
+			Pallet::<T>::register_relayer_reward(&relayer, relayer_reward);
 		} else {
 			// If delivery confirmation is submitted by this relayer, let's add confirmation fee
 			// from other relayers to this relayer reward.
@@ -97,26 +97,7 @@ fn register_relayers_rewards<T: Config>(
 	}
 
 	// finally - pay reward to confirmation relayer
-	register_relayer_reward::<T>(confirmation_relayer, confirmation_relayer_reward);
-}
-
-/// Remember that the reward shall be paid to the relayer.
-fn register_relayer_reward<T: Config>(relayer: &T::AccountId, reward: T::Reward) {
-	if reward.is_zero() {
-		return
-	}
-
-	RelayerRewards::<T>::mutate(relayer, |old_reward: &mut Option<T::Reward>| {
-		let new_reward = old_reward.unwrap_or_else(Zero::zero).saturating_add(reward);
-		*old_reward = Some(new_reward);
-
-		log::trace!(
-			target: crate::LOG_TARGET,
-			"Relayer {:?} can now claim reward: {:?}",
-			relayer,
-			new_reward,
-		);
-	});
+	Pallet::<T>::register_relayer_reward(confirmation_relayer, confirmation_relayer_reward);
 }
 
 #[cfg(test)]

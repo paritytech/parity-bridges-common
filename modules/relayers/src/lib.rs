@@ -22,6 +22,7 @@
 
 use bp_relayers::PaymentProcedure;
 use sp_arithmetic::traits::AtLeast32BitUnsigned;
+use sp_runtime::{traits::Zero, Saturating};
 use sp_std::marker::PhantomData;
 use weights::WeightInfo;
 
@@ -81,6 +82,27 @@ pub mod pallet {
 				Self::deposit_event(Event::<T>::RewardPaid { relayer: relayer.clone(), reward });
 				Ok(())
 			})
+		}
+	}
+
+	impl<T: Config> Pallet<T> {
+		/// Register reward for given relayer.
+		pub fn register_relayer_reward(relayer: &T::AccountId, reward: T::Reward) {
+			if reward.is_zero() {
+				return
+			}
+
+			RelayerRewards::<T>::mutate(relayer, |old_reward: &mut Option<T::Reward>| {
+				let new_reward = old_reward.unwrap_or_else(Zero::zero).saturating_add(reward);
+				*old_reward = Some(new_reward);
+
+				log::trace!(
+					target: crate::LOG_TARGET,
+					"Relayer {:?} can now claim reward: {:?}",
+					relayer,
+					new_reward,
+				);
+			});
 		}
 	}
 

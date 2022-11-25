@@ -578,6 +578,11 @@ pub mod pallet {
 }
 
 impl<T: Config<I>, I: 'static> Pallet<T, I> {
+	/// Get the best finalized block number.
+	pub fn best_finalized_number() -> Option<BridgedBlockNumber<T, I>> {
+		BestFinalized::<T, I>::get().map(|(number, _)| number)
+	}
+
 	/// Get the best finalized header the pallet knows of.
 	pub fn best_finalized() -> Option<BridgedHeader<T, I>> {
 		let (_, hash) = <BestFinalized<T, I>>::get()?;
