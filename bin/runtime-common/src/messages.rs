@@ -511,14 +511,37 @@ pub mod target {
 			};
 
 			let xcm_outcome = do_dispatch();
-			log::trace!(
-				target: "runtime::bridge-dispatch",
-				"Incoming message {:?} dispatched with result: {:?}",
-				message_id,
-				xcm_outcome,
-			);
+			match xcm_outcome {
+				Ok(outcome) => {
+					log::trace!(
+						target: "runtime::bridge-dispatch",
+						"Incoming message {:?} dispatched with result: {:?}",
+						message_id,
+						outcome,
+					);
+					match outcome.ensure_execution() {
+						Ok(_weight) => (),
+						Err(e) => {
+							log::error!(
+								target: "runtime::bridge-dispatch",
+								"Incoming message {:?} was not dispatched, error: {:?}",
+								message_id,
+								e,
+							);
+						},
+					}
+				},
+				Err(e) => {
+					log::error!(
+						target: "runtime::bridge-dispatch",
+						"Incoming message {:?} was not dispatched, codec error: {:?}",
+						message_id,
+						e,
+					);
+				},
+			}
+
 			MessageDispatchResult {
-				dispatch_result: true,
 				unspent_weight: Weight::zero(),
 				dispatch_fee_paid_during_dispatch: false,
 			}
