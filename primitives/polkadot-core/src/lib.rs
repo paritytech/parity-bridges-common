@@ -381,7 +381,7 @@ mod tests {
 			25, 26, 27, 28, 29, 30, 31, 32,
 		]
 		.into();
-		let key = account_info_storage_key(&acc);
+		let key = AccountInfoStorageMapKeyProvider::final_key(&acc);
 		assert_eq!(hex::encode(key), "26aa394eea5630e07c48ae0c9558cef7b99d880ec681799c0cf30e8886371da92dccd599abfe1920a1cff8a7358231430102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f20");
 	}
 }
