@@ -86,6 +86,7 @@ pub mod pallet {
 
 					Self::deposit_event(Event::<T>::RewardPaid {
 						relayer: relayer.clone(),
+						lane_id,
 						reward,
 					});
 					Ok(())
@@ -122,6 +123,8 @@ pub mod pallet {
 		RewardPaid {
 			/// Relayer account that has been rewarded.
 			relayer: T::AccountId,
+			/// Relayer has received reward for serving this lane.
+			lane_id: LaneId,
 			/// Reward amount.
 			reward: T::Reward,
 		},
@@ -219,6 +222,7 @@ mod tests {
 					phase: Phase::Initialization,
 					event: TestEvent::Relayers(RewardPaid {
 						relayer: REGULAR_RELAYER,
+						lane_id: TEST_LANE_ID,
 						reward: 100
 					}),
 					topics: vec![],
