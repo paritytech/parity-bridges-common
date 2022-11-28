@@ -32,6 +32,7 @@ use pallet_bridge_grandpa::{Call as GrandpaCall, Config as GrandpaConfig, Pallet
 use pallet_bridge_messages::{Call as MessagesCall, Config as MessagesConfig, Pallet as MessagesPallet};
 use pallet_bridge_parachains::{Call as ParachainsCall, Config as ParachainsConfig, Pallet as ParachainsPallet, RelayBlockHash, RelayBlockHasher, RelayBlockNumber};
 use pallet_transaction_payment::OnChargeTransaction;
+use pallet_utility::Call as UtilityCall;
 use scale_info::TypeInfo;
 use sp_runtime::{
 	traits::{DispatchInfoOf, Header as HeaderT, PostDispatchInfoOf, SignedExtension, Zero},
@@ -50,14 +51,16 @@ pub struct RefundRelayerForMessagesDeliveryFromParachain<
 	GrandpaInstance,
 	ParachainsInstance,
 	MessagesInstance,
->(PhantomData<(Runtime, GrandpaInstance, ParachainsInstance, MessagesInstance)>);
+	RejectObsoleteBridgeTransactions,
+>(PhantomData<(Runtime, GrandpaInstance, ParachainsInstance, MessagesInstance, RejectObsoleteBridgeTransactions)>);
 
-impl<Runtime, GrandpaInstance, ParachainsInstance, MessagesInstance> Clone
+impl<Runtime, GrandpaInstance, ParachainsInstance, MessagesInstance, RejectObsoleteBridgeTransactions> Clone
 	for RefundRelayerForMessagesDeliveryFromParachain<
 		Runtime,
 		GrandpaInstance,
 		ParachainsInstance,
 		MessagesInstance,
+		RejectObsoleteBridgeTransactions,
 	>
 {
 	fn clone(&self) -> Self {
@@ -65,22 +68,24 @@ impl<Runtime, GrandpaInstance, ParachainsInstance, MessagesInstance> Clone
 	}
 }
 
-impl<Runtime, GrandpaInstance, ParachainsInstance, MessagesInstance> Eq
+impl<Runtime, GrandpaInstance, ParachainsInstance, MessagesInstance, RejectObsoleteBridgeTransactions> Eq
 	for RefundRelayerForMessagesDeliveryFromParachain<
 		Runtime,
 		GrandpaInstance,
 		ParachainsInstance,
 		MessagesInstance,
+		RejectObsoleteBridgeTransactions,
 	>
 {
 }
 
-impl<Runtime, GrandpaInstance, ParachainsInstance, MessagesInstance> PartialEq
+impl<Runtime, GrandpaInstance, ParachainsInstance, MessagesInstance, RejectObsoleteBridgeTransactions> PartialEq
 	for RefundRelayerForMessagesDeliveryFromParachain<
 		Runtime,
 		GrandpaInstance,
 		ParachainsInstance,
 		MessagesInstance,
+		RejectObsoleteBridgeTransactions,
 	>
 {
 	fn eq(&self, _other: &Self) -> bool {
@@ -156,12 +161,13 @@ type BalanceOf<Runtime> =
 	>>::Balance;
 type CallOf<Runtime> = <Runtime as frame_system::Config>::RuntimeCall;
 
-impl<Runtime, GrandpaInstance, ParachainsInstance, MessagesInstance> SignedExtension
+impl<Runtime, GrandpaInstance, ParachainsInstance, MessagesInstance, RejectObsoleteBridgeTransactions> SignedExtension
 	for RefundRelayerForMessagesDeliveryFromParachain<
 		Runtime,
 		GrandpaInstance,
 		ParachainsInstance,
 		MessagesInstance,
+		RejectObsoleteBridgeTransactions,
 	> where
 	Runtime: 'static
 		+ Send
@@ -176,6 +182,10 @@ impl<Runtime, GrandpaInstance, ParachainsInstance, MessagesInstance> SignedExten
 	GrandpaInstance: 'static + Send + Sync,
 	ParachainsInstance: 'static + Send + Sync,
 	MessagesInstance: 'static + Send + Sync,
+	RejectObsoleteBridgeTransactions: 'static + Send + Sync + Default + SignedExtension<
+		AccountId = Runtime::AccountId,
+		Call = CallOf<Runtime>,
+	>,
 	<Runtime as frame_system::Config>::RuntimeCall:
 		Dispatchable<Info = DispatchInfo, PostInfo = PostDispatchInfo>,
 	BalanceOf<Runtime>: FixedPointOperand,
@@ -209,14 +219,23 @@ impl<Runtime, GrandpaInstance, ParachainsInstance, MessagesInstance> SignedExten
 		self,
 		who: &Self::AccountId,
 		call: &Self::Call,
-		_post_info: &DispatchInfoOf<Self::Call>,
-		_len: usize,
+		post_info: &DispatchInfoOf<Self::Call>,
+		len: usize,
 	) -> Result<Self::Pre, TransactionValidityError> {
 		// TODO: for every call from the batch - call the `BridgesExtension` to ensure that every
 		// call transaction brings something new and reject obsolete transactions
 
+		// reject batch transactions with obsolete headers
+		if let Some(UtilityCall::<Runtime>::batch_all { ref calls }) = call.is_sub_type() {
+			for nested_call in calls {
+				let reject_obsolete_transactions = RejectObsoleteBridgeTransactions::default();
+				reject_obsolete_transactions.pre_dispatch(who, nested_call, post_info, len)?;
+			}
+		}
+
+		// now try to check if tx matches one of types we support
 		let parse_call_type = || {
-			if let Some(pallet_utility::Call::<Runtime>::batch_all { ref calls }) = call.is_sub_type() {
+			if let Some(UtilityCall::<Runtime>::batch_all { ref calls }) = call.is_sub_type() {
 				if calls.len() == 3 {
 					return Some(CallType::AllFinalityAndDelivery(
 						extract_expected_relay_chain_state::<Runtime, GrandpaInstance>(&calls[0])?,
