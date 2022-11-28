@@ -864,6 +864,7 @@ dependencies = [
 name = "bp-relayers"
 version = "0.1.0"
 dependencies = [
+ "bp-messages",
  "frame-support",
  "hex",
  "hex-literal",

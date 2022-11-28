@@ -308,7 +308,7 @@ where
 		);
 
 		// finally - regiater reward in relayers pallet
-		RelayersPallet::<R>::register_relayer_reward(&relayer, reward);
+		RelayersPallet::<R>::register_relayer_reward(LID::get(), &relayer, reward);
 
 		Ok(())
 	}
