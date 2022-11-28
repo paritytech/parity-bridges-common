@@ -38,11 +38,12 @@ use pallet_bridge_parachains::{
 	Call as ParachainsCall, Config as ParachainsConfig, Pallet as ParachainsPallet, RelayBlockHash,
 	RelayBlockHasher, RelayBlockNumber,
 };
-use pallet_transaction_payment::OnChargeTransaction;
-use pallet_utility::Call as UtilityCall;
+use pallet_bridge_relayers::{Config as RelayersConfig, Pallet as RelayersPallet};
+use pallet_transaction_payment::{Config as TransactionPaymentConfig, OnChargeTransaction};
+use pallet_utility::{Call as UtilityCall, Config as UtilityConfig, Pallet as UtilityPallet};
 use scale_info::TypeInfo;
 use sp_runtime::{
-	traits::{DispatchInfoOf, Header as HeaderT, PostDispatchInfoOf, SignedExtension, Zero},
+	traits::{DispatchInfoOf, Get, Header as HeaderT, PostDispatchInfoOf, SignedExtension, Zero},
 	transaction_validity::{TransactionValidity, TransactionValidityError, ValidTransaction},
 	DispatchResult, FixedPointOperand,
 };
@@ -52,74 +53,26 @@ use sp_std::marker::PhantomData;
 // `BridgeRejectObsoleteHeadersAndMessages`? If it is hard to do now - just submit an issue
 
 #[derive(Decode, Encode, RuntimeDebugNoBound, TypeInfo)]
-#[scale_info(skip_type_params(Runtime, GrandpaInstance, ParachainsInstance, MessagesInstance))]
-pub struct RefundRelayerForMessagesDeliveryFromParachain<
-	Runtime,
-	GrandpaInstance,
-	ParachainsInstance,
-	MessagesInstance,
-	RejectObsoleteBridgeTransactions,
->(
-	PhantomData<(
-		Runtime,
-		GrandpaInstance,
-		ParachainsInstance,
-		MessagesInstance,
-		RejectObsoleteBridgeTransactions,
-	)>,
+#[scale_info(skip_type_params(RT, GI, PI, MI, BE, PID))]
+pub struct RefundRelayerForMessagesDeliveryFromParachain<RT, GI, PI, MI, BE, PID>(
+	PhantomData<(RT, GI, PI, MI, BE, PID)>,
 );
 
-impl<
-		Runtime,
-		GrandpaInstance,
-		ParachainsInstance,
-		MessagesInstance,
-		RejectObsoleteBridgeTransactions,
-	> Clone
-	for RefundRelayerForMessagesDeliveryFromParachain<
-		Runtime,
-		GrandpaInstance,
-		ParachainsInstance,
-		MessagesInstance,
-		RejectObsoleteBridgeTransactions,
-	>
+impl<R, GI, PI, MI, BE, PID> Clone
+	for RefundRelayerForMessagesDeliveryFromParachain<R, GI, PI, MI, BE, PID>
 {
 	fn clone(&self) -> Self {
 		RefundRelayerForMessagesDeliveryFromParachain(PhantomData)
 	}
 }
 
-impl<
-		Runtime,
-		GrandpaInstance,
-		ParachainsInstance,
-		MessagesInstance,
-		RejectObsoleteBridgeTransactions,
-	> Eq
-	for RefundRelayerForMessagesDeliveryFromParachain<
-		Runtime,
-		GrandpaInstance,
-		ParachainsInstance,
-		MessagesInstance,
-		RejectObsoleteBridgeTransactions,
-	>
+impl<R, GI, PI, MI, BE, PID> Eq
+	for RefundRelayerForMessagesDeliveryFromParachain<R, GI, PI, MI, BE, PID>
 {
 }
 
-impl<
-		Runtime,
-		GrandpaInstance,
-		ParachainsInstance,
-		MessagesInstance,
-		RejectObsoleteBridgeTransactions,
-	> PartialEq
-	for RefundRelayerForMessagesDeliveryFromParachain<
-		Runtime,
-		GrandpaInstance,
-		ParachainsInstance,
-		MessagesInstance,
-		RejectObsoleteBridgeTransactions,
-	>
+impl<R, GI, PI, MI, BE, PID> PartialEq
+	for RefundRelayerForMessagesDeliveryFromParachain<R, GI, PI, MI, BE, PID>
 {
 	fn eq(&self, _other: &Self) -> bool {
 		true
@@ -167,8 +120,6 @@ pub struct ExpectedRelayChainState {
 /// Expected post-dispatch state of the parachain pallet.
 #[derive(Clone, Copy, PartialEq)]
 pub struct ExpectedParachainState {
-	/// Parachain identifier.
-	pub para: ParaId,
 	/// At which relay block the parachain head has been updated?
 	pub at_relay_block_number: RelayBlockNumber,
 }
@@ -188,65 +139,47 @@ pub struct MessagesState {
 }
 
 // without this typedef rustfmt fails with internal err
-type BalanceOf<Runtime> =
-	<<Runtime as pallet_transaction_payment::Config>::OnChargeTransaction as OnChargeTransaction<
-		Runtime,
-	>>::Balance;
-type CallOf<Runtime> = <Runtime as frame_system::Config>::RuntimeCall;
+type BalanceOf<R> =
+	<<R as TransactionPaymentConfig>::OnChargeTransaction as OnChargeTransaction<R>>::Balance;
+type CallOf<R> = <R as frame_system::Config>::RuntimeCall;
 
-impl<
-		Runtime,
-		GrandpaInstance,
-		ParachainsInstance,
-		MessagesInstance,
-		RejectObsoleteBridgeTransactions,
-	> SignedExtension
-	for RefundRelayerForMessagesDeliveryFromParachain<
-		Runtime,
-		GrandpaInstance,
-		ParachainsInstance,
-		MessagesInstance,
-		RejectObsoleteBridgeTransactions,
-	> where
-	Runtime: 'static
+impl<R, GI, PI, MI, BE, PID> SignedExtension
+	for RefundRelayerForMessagesDeliveryFromParachain<R, GI, PI, MI, BE, PID>
+where
+	R: 'static
 		+ Send
 		+ Sync
 		+ frame_system::Config
-		+ pallet_transaction_payment::Config
-		+ pallet_utility::Config<RuntimeCall = CallOf<Runtime>>
-		+ GrandpaConfig<GrandpaInstance>
-		+ pallet_bridge_parachains::Config<
-			ParachainsInstance,
-			BridgesGrandpaPalletInstance = GrandpaInstance,
-		>
-		+ pallet_bridge_messages::Config<MessagesInstance>
-		+ pallet_bridge_relayers::Config<Reward = BalanceOf<Runtime>>,
-	GrandpaInstance: 'static + Send + Sync,
-	ParachainsInstance: 'static + Send + Sync,
-	MessagesInstance: 'static + Send + Sync,
-	RejectObsoleteBridgeTransactions: 'static
+		+ TransactionPaymentConfig
+		+ UtilityConfig<RuntimeCall = CallOf<R>>
+		+ GrandpaConfig<GI>
+		+ ParachainsConfig<PI, BridgesGrandpaPalletInstance = GI>
+		+ MessagesConfig<MI>
+		+ RelayersConfig<Reward = BalanceOf<R>>,
+	GI: 'static + Send + Sync,
+	PI: 'static + Send + Sync,
+	MI: 'static + Send + Sync,
+	BE: 'static
 		+ Send
 		+ Sync
 		+ Default
-		+ SignedExtension<AccountId = Runtime::AccountId, Call = CallOf<Runtime>>,
-	<Runtime as frame_system::Config>::RuntimeCall:
+		+ SignedExtension<AccountId = R::AccountId, Call = CallOf<R>>,
+	PID: 'static + Send + Sync + Get<u32>,
+	<R as frame_system::Config>::RuntimeCall:
 		Dispatchable<Info = DispatchInfo, PostInfo = PostDispatchInfo>,
-	BalanceOf<Runtime>: FixedPointOperand,
-	CallOf<Runtime>: IsSubType<CallableCallFor<pallet_utility::Pallet<Runtime>, Runtime>>
-		+ IsSubType<CallableCallFor<GrandpaPallet<Runtime, GrandpaInstance>, Runtime>>
-		+ IsSubType<
-			CallableCallFor<pallet_bridge_parachains::Pallet<Runtime, ParachainsInstance>, Runtime>,
-		> + IsSubType<
-			CallableCallFor<pallet_bridge_messages::Pallet<Runtime, MessagesInstance>, Runtime>,
-		>,
-	<Runtime as GrandpaConfig<GrandpaInstance>>::BridgedChain:
+	BalanceOf<R>: FixedPointOperand,
+	CallOf<R>: IsSubType<CallableCallFor<UtilityPallet<R>, R>>
+		+ IsSubType<CallableCallFor<GrandpaPallet<R, GI>, R>>
+		+ IsSubType<CallableCallFor<ParachainsPallet<R, PI>, R>>
+		+ IsSubType<CallableCallFor<MessagesPallet<R, MI>, R>>,
+	<R as GrandpaConfig<GI>>::BridgedChain:
 		Chain<BlockNumber = RelayBlockNumber, Hash = RelayBlockHash, Hasher = RelayBlockHasher>,
 {
 	const IDENTIFIER: &'static str = "RefundRelayerForMessagesDeliveryFromParachain";
-	type AccountId = Runtime::AccountId;
-	type Call = CallOf<Runtime>;
+	type AccountId = R::AccountId;
+	type Call = CallOf<R>;
 	type AdditionalSigned = ();
-	type Pre = Option<PreDispatchData<Runtime::AccountId>>;
+	type Pre = Option<PreDispatchData<R::AccountId>>;
 
 	fn additional_signed(&self) -> Result<(), TransactionValidityError> {
 		Ok(())
@@ -269,45 +202,34 @@ impl<
 		post_info: &DispatchInfoOf<Self::Call>,
 		len: usize,
 	) -> Result<Self::Pre, TransactionValidityError> {
-		// TODO: for every call from the batch - call the `BridgesExtension` to ensure that every
-		// call transaction brings something new and reject obsolete transactions
-
 		// reject batch transactions with obsolete headers
-		if let Some(UtilityCall::<Runtime>::batch_all { ref calls }) = call.is_sub_type() {
+		if let Some(UtilityCall::<R>::batch_all { ref calls }) = call.is_sub_type() {
 			for nested_call in calls {
-				let reject_obsolete_transactions = RejectObsoleteBridgeTransactions::default();
+				let reject_obsolete_transactions = BE::default();
 				reject_obsolete_transactions.pre_dispatch(who, nested_call, post_info, len)?;
 			}
 		}
 
 		// now try to check if tx matches one of types we support
 		let parse_call_type = || {
-			if let Some(UtilityCall::<Runtime>::batch_all { ref calls }) = call.is_sub_type() {
+			if let Some(UtilityCall::<R>::batch_all { ref calls }) = call.is_sub_type() {
 				if calls.len() == 3 {
 					return Some(CallType::AllFinalityAndDelivery(
-						extract_expected_relay_chain_state::<Runtime, GrandpaInstance>(&calls[0])?,
-						extract_expected_parachain_state::<
-							Runtime,
-							GrandpaInstance,
-							ParachainsInstance,
-						>(&calls[1])?,
-						extract_messages_state::<Runtime, MessagesInstance>(&calls[2])?,
+						extract_expected_relay_chain_state::<R, GI>(&calls[0])?,
+						extract_expected_parachain_state::<R, GI, PI, PID>(&calls[1])?,
+						extract_messages_state::<R, MI>(&calls[2])?,
 					))
 				}
 				if calls.len() == 2 {
 					return Some(CallType::ParachainFinalityAndDelivery(
-						extract_expected_parachain_state::<
-							Runtime,
-							GrandpaInstance,
-							ParachainsInstance,
-						>(&calls[0])?,
-						extract_messages_state::<Runtime, MessagesInstance>(&calls[1])?,
+						extract_expected_parachain_state::<R, GI, PI, PID>(&calls[0])?,
+						extract_messages_state::<R, MI>(&calls[1])?,
 					))
 				}
 				return None
 			}
 
-			Some(CallType::Delivery(extract_messages_state::<Runtime, MessagesInstance>(call)?))
+			Some(CallType::Delivery(extract_messages_state::<R, MI>(call)?))
 		};
 
 		Ok(parse_call_type().map(|call_type| PreDispatchData { relayer: who.clone(), call_type }))
@@ -334,7 +256,7 @@ impl<
 
 		// check if relay chain state has been updated
 		if let CallType::AllFinalityAndDelivery(expected_relay_chain_state, _, _) = call_type {
-			let actual_relay_chain_state = relay_chain_state::<Runtime, GrandpaInstance>();
+			let actual_relay_chain_state = relay_chain_state::<R, GI>();
 			if actual_relay_chain_state != expected_relay_chain_state {
 				// we only refund relayer if all calls have updated chain state
 				return Ok(())
@@ -352,7 +274,7 @@ impl<
 		match call_type {
 			CallType::AllFinalityAndDelivery(_, expected_parachain_state, _) |
 			CallType::ParachainFinalityAndDelivery(expected_parachain_state, _) => {
-				let actual_parachain_state = parachain_state::<Runtime, ParachainsInstance>();
+				let actual_parachain_state = parachain_state::<R, PI>();
 				if expected_parachain_state != actual_parachain_state {
 					// we only refund relayer if all calls have updated chain state
 					return Ok(())
@@ -362,7 +284,7 @@ impl<
 		}
 
 		// check if messages have been delivered
-		let actual_messages_state = messages_state::<Runtime, MessagesInstance>();
+		let actual_messages_state = messages_state::<R, MI>();
 		let pre_dispatch_messages_state = call_type.pre_dispatch_messages_state();
 		if actual_messages_state == pre_dispatch_messages_state {
 			// we only refund relayer if all calls have updated chain state
@@ -377,32 +299,27 @@ impl<
 		let tip = Zero::zero();
 
 		// compute the relayer reward
-		let reward = pallet_transaction_payment::Pallet::<Runtime>::compute_actual_fee(
+		let reward = pallet_transaction_payment::Pallet::<R>::compute_actual_fee(
 			len as _, info, post_info, tip,
 		);
 
 		// finally - regiater reward in relayers pallet
-		pallet_bridge_relayers::Pallet::<Runtime>::register_relayer_reward(&relayer, reward);
+		RelayersPallet::<R>::register_relayer_reward(&relayer, reward);
 
 		Ok(())
 	}
 }
 
 /// Extracts expected relay chain state from the call.
-fn extract_expected_relay_chain_state<Runtime, GrandpaInstance>(
-	call: &CallOf<Runtime>,
-) -> Option<ExpectedRelayChainState>
+fn extract_expected_relay_chain_state<R, GI>(call: &CallOf<R>) -> Option<ExpectedRelayChainState>
 where
-	Runtime: GrandpaConfig<GrandpaInstance>,
-	GrandpaInstance: 'static,
-	<Runtime as GrandpaConfig<GrandpaInstance>>::BridgedChain:
-		Chain<BlockNumber = RelayBlockNumber>,
-	CallOf<Runtime>: IsSubType<CallableCallFor<GrandpaPallet<Runtime, GrandpaInstance>, Runtime>>,
+	R: GrandpaConfig<GI>,
+	GI: 'static,
+	<R as GrandpaConfig<GI>>::BridgedChain: Chain<BlockNumber = RelayBlockNumber>,
+	CallOf<R>: IsSubType<CallableCallFor<GrandpaPallet<R, GI>, R>>,
 {
-	if let Some(GrandpaCall::<Runtime, GrandpaInstance>::submit_finality_proof {
-		ref finality_target,
-		..
-	}) = call.is_sub_type()
+	if let Some(GrandpaCall::<R, GI>::submit_finality_proof { ref finality_target, .. }) =
+		call.is_sub_type()
 	{
 		return Some(ExpectedRelayChainState { best_block_number: *finality_target.number() })
 	}
@@ -410,46 +327,43 @@ where
 }
 
 /// Extracts expected parachain state from the call.
-fn extract_expected_parachain_state<Runtime, GrandpaInstance, ParachainsInstance>(
-	call: &CallOf<Runtime>,
+fn extract_expected_parachain_state<R, GI, PI, PID>(
+	call: &CallOf<R>,
 ) -> Option<ExpectedParachainState>
 where
-	Runtime: GrandpaConfig<GrandpaInstance>
-		+ ParachainsConfig<ParachainsInstance, BridgesGrandpaPalletInstance = GrandpaInstance>,
-	GrandpaInstance: 'static,
-	ParachainsInstance: 'static,
-	<Runtime as GrandpaConfig<GrandpaInstance>>::BridgedChain:
+	R: GrandpaConfig<GI> + ParachainsConfig<PI, BridgesGrandpaPalletInstance = GI>,
+	GI: 'static,
+	PI: 'static,
+	PID: 'static + Get<u32>,
+	<R as GrandpaConfig<GI>>::BridgedChain:
 		Chain<BlockNumber = RelayBlockNumber, Hash = RelayBlockHash, Hasher = RelayBlockHasher>,
-	CallOf<Runtime>:
-		IsSubType<CallableCallFor<ParachainsPallet<Runtime, ParachainsInstance>, Runtime>>,
+	CallOf<R>: IsSubType<CallableCallFor<ParachainsPallet<R, PI>, R>>,
 {
 	// TODO: check para id (we'll need to bound instance of messages pallet with some ParaId)
-	if let Some(ParachainsCall::<Runtime, ParachainsInstance>::submit_parachain_heads {
+	if let Some(ParachainsCall::<R, PI>::submit_parachain_heads {
 		ref at_relay_block,
+		ref parachains,
 		..
 	}) = call.is_sub_type()
 	{
-		return Some(ExpectedParachainState {
-			para: { unimplemented!("TODO") }, // TODO: fill parachain id
-			at_relay_block_number: at_relay_block.0,
-		})
+		if parachains.len() == 1 && parachains[0].0 == ParaId(PID::get()) {
+			return None
+		}
+
+		return Some(ExpectedParachainState { at_relay_block_number: at_relay_block.0 })
 	}
 	None
 }
 
 /// Extracts messages state from the call.
-fn extract_messages_state<Runtime, MessagesInstance>(
-	call: &CallOf<Runtime>,
-) -> Option<MessagesState>
+fn extract_messages_state<R, MI>(call: &CallOf<R>) -> Option<MessagesState>
 where
-	Runtime: MessagesConfig<MessagesInstance>,
-	MessagesInstance: 'static,
-	CallOf<Runtime>: IsSubType<CallableCallFor<MessagesPallet<Runtime, MessagesInstance>, Runtime>>,
+	R: MessagesConfig<MI>,
+	MI: 'static,
+	CallOf<R>: IsSubType<CallableCallFor<MessagesPallet<R, MI>, R>>,
 {
-	if let Some(MessagesCall::<Runtime, MessagesInstance>::receive_messages_proof {
-		ref proof,
-		..
-	}) = call.is_sub_type()
+	if let Some(MessagesCall::<R, MI>::receive_messages_proof { ref proof, .. }) =
+		call.is_sub_type()
 	{
 		return Some(MessagesState {
 			lane: { unimplemented!("TODO") },
@@ -460,16 +374,16 @@ where
 }
 
 /// Returns relay chain state that we are interested in.
-fn relay_chain_state<Runtime, GrandpaInstance>() -> ExpectedRelayChainState {
+fn relay_chain_state<R, GI>() -> ExpectedRelayChainState {
 	unimplemented!("TODO")
 }
 
 /// Returns parachain state that we are interested in.
-fn parachain_state<Runtime, ParachainsInstance>() -> ExpectedParachainState {
+fn parachain_state<R, PI>() -> ExpectedParachainState {
 	unimplemented!("TODO")
 }
 
 /// Returns messages state that we are interested in.
-fn messages_state<Runtime, MessagesInstance>() -> MessagesState {
+fn messages_state<R, MI>() -> MessagesState {
 	unimplemented!("TODO")
 }
