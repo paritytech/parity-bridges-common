@@ -261,7 +261,7 @@ where
 		// check if relay chain state has been updated
 		if let CallType::AllFinalityAndDelivery(expected_relay_chain_state, _, _) = call_type {
 			let actual_relay_chain_state = relay_chain_state::<R, GI>();
-			if actual_relay_chain_state != expected_relay_chain_state {
+			if actual_relay_chain_state != Some(expected_relay_chain_state) {
 				// we only refund relayer if all calls have updated chain state
 				return Ok(())
 			}
@@ -278,8 +278,8 @@ where
 		match call_type {
 			CallType::AllFinalityAndDelivery(_, expected_parachain_state, _) |
 			CallType::ParachainFinalityAndDelivery(expected_parachain_state, _) => {
-				let actual_parachain_state = parachain_state::<R, PI>();
-				if expected_parachain_state != actual_parachain_state {
+				let actual_parachain_state = parachain_state::<R, PI, PID>();
+				if actual_parachain_state != Some(expected_parachain_state) {
 					// we only refund relayer if all calls have updated chain state
 					return Ok(())
 				}
@@ -288,9 +288,9 @@ where
 		}
 
 		// check if messages have been delivered
-		let actual_messages_state = messages_state::<R, MI>();
+		let actual_messages_state = messages_state::<R, MI, LID>();
 		let pre_dispatch_messages_state = call_type.pre_dispatch_messages_state();
-		if actual_messages_state == pre_dispatch_messages_state {
+		if actual_messages_state == Some(pre_dispatch_messages_state) {
 			// we only refund relayer if all calls have updated chain state
 			return Ok(())
 		}
@@ -343,7 +343,6 @@ where
 		Chain<BlockNumber = RelayBlockNumber, Hash = RelayBlockHash, Hasher = RelayBlockHasher>,
 	CallOf<R>: IsSubType<CallableCallFor<ParachainsPallet<R, PI>, R>>,
 {
-	// TODO: check para id (we'll need to bound instance of messages pallet with some ParaId)
 	if let Some(ParachainsCall::<R, PI>::submit_parachain_heads {
 		ref at_relay_block,
 		ref parachains,
@@ -389,16 +388,39 @@ where
 }
 
 /// Returns relay chain state that we are interested in.
-fn relay_chain_state<R, GI>() -> ExpectedRelayChainState {
-	unimplemented!("TODO")
+fn relay_chain_state<R, GI>() -> Option<ExpectedRelayChainState>
+where
+	R: GrandpaConfig<GI>,
+	GI: 'static,
+	<R as GrandpaConfig<GI>>::BridgedChain: Chain<BlockNumber = RelayBlockNumber>,
+{
+	GrandpaPallet::<R, GI>::best_finalized_number()
+		.map(|best_block_number| ExpectedRelayChainState { best_block_number })
 }
 
 /// Returns parachain state that we are interested in.
-fn parachain_state<R, PI>() -> ExpectedParachainState {
-	unimplemented!("TODO")
+fn parachain_state<R, PI, PID>() -> Option<ExpectedParachainState>
+where
+	R: ParachainsConfig<PI>,
+	PI: 'static,
+	PID: Get<u32>,
+{
+	ParachainsPallet::<R, PI>::best_parachain_info(ParaId(PID::get())).map(|para_info| {
+		ExpectedParachainState {
+			at_relay_block_number: para_info.best_head_hash.at_relay_block_number,
+		}
+	})
 }
 
 /// Returns messages state that we are interested in.
-fn messages_state<R, MI>() -> MessagesState {
-	unimplemented!("TODO")
+fn messages_state<R, MI, LID>() -> Option<MessagesState>
+where
+	R: MessagesConfig<MI>,
+	MI: 'static,
+	LID: Get<LaneId>,
+{
+	Some(MessagesState {
+		last_delivered_nonce: MessagesPallet::<R, MI>::inbound_lane_data(LID::get())
+			.last_delivered_nonce(),
+	})
 }
