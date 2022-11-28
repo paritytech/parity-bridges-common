@@ -19,9 +19,9 @@
 //! with calls that are: delivering new messsage and all necessary underlying headers
 //! (parachain or relay chain).
 
-use bp_messages::{LaneId, MessageNonce};
+use bp_messages::{target_chain::SourceHeaderChain, LaneId, MessageNonce};
 use bp_polkadot_core::parachains::ParaId;
-use bp_runtime::Chain;
+use bp_runtime::{Chain, HashOf};
 use codec::{Decode, Encode};
 use frame_support::{
 	dispatch::{CallableCallFor, DispatchInfo, Dispatchable, PostDispatchInfo},
@@ -29,7 +29,7 @@ use frame_support::{
 	RuntimeDebugNoBound,
 };
 use pallet_bridge_grandpa::{
-	Call as GrandpaCall, Config as GrandpaConfig, Pallet as GrandpaPallet,
+	BridgedChain, Call as GrandpaCall, Config as GrandpaConfig, Pallet as GrandpaPallet,
 };
 use pallet_bridge_messages::{
 	Call as MessagesCall, Config as MessagesConfig, Pallet as MessagesPallet,
@@ -53,26 +53,26 @@ use sp_std::marker::PhantomData;
 // `BridgeRejectObsoleteHeadersAndMessages`? If it is hard to do now - just submit an issue
 
 #[derive(Decode, Encode, RuntimeDebugNoBound, TypeInfo)]
-#[scale_info(skip_type_params(RT, GI, PI, MI, BE, PID))]
-pub struct RefundRelayerForMessagesDeliveryFromParachain<RT, GI, PI, MI, BE, PID>(
-	PhantomData<(RT, GI, PI, MI, BE, PID)>,
+#[scale_info(skip_type_params(RT, GI, PI, MI, BE, PID, LID))]
+pub struct RefundRelayerForMessagesDeliveryFromParachain<RT, GI, PI, MI, BE, PID, LID>(
+	PhantomData<(RT, GI, PI, MI, BE, PID, LID)>,
 );
 
-impl<R, GI, PI, MI, BE, PID> Clone
-	for RefundRelayerForMessagesDeliveryFromParachain<R, GI, PI, MI, BE, PID>
+impl<R, GI, PI, MI, BE, PID, LID> Clone
+	for RefundRelayerForMessagesDeliveryFromParachain<R, GI, PI, MI, BE, PID, LID>
 {
 	fn clone(&self) -> Self {
 		RefundRelayerForMessagesDeliveryFromParachain(PhantomData)
 	}
 }
 
-impl<R, GI, PI, MI, BE, PID> Eq
-	for RefundRelayerForMessagesDeliveryFromParachain<R, GI, PI, MI, BE, PID>
+impl<R, GI, PI, MI, BE, PID, LID> Eq
+	for RefundRelayerForMessagesDeliveryFromParachain<R, GI, PI, MI, BE, PID, LID>
 {
 }
 
-impl<R, GI, PI, MI, BE, PID> PartialEq
-	for RefundRelayerForMessagesDeliveryFromParachain<R, GI, PI, MI, BE, PID>
+impl<R, GI, PI, MI, BE, PID, LID> PartialEq
+	for RefundRelayerForMessagesDeliveryFromParachain<R, GI, PI, MI, BE, PID, LID>
 {
 	fn eq(&self, _other: &Self) -> bool {
 		true
@@ -132,8 +132,6 @@ pub struct ExpectedParachainState {
 /// deliver at least one message, it is considered wrong and is not refunded.
 #[derive(Clone, Copy, PartialEq)]
 pub struct MessagesState {
-	/// Message lane identifier.
-	pub lane: LaneId,
 	/// Best delivered message nonce.
 	pub last_delivered_nonce: MessageNonce,
 }
@@ -143,8 +141,8 @@ type BalanceOf<R> =
 	<<R as TransactionPaymentConfig>::OnChargeTransaction as OnChargeTransaction<R>>::Balance;
 type CallOf<R> = <R as frame_system::Config>::RuntimeCall;
 
-impl<R, GI, PI, MI, BE, PID> SignedExtension
-	for RefundRelayerForMessagesDeliveryFromParachain<R, GI, PI, MI, BE, PID>
+impl<R, GI, PI, MI, BE, PID, LID> SignedExtension
+	for RefundRelayerForMessagesDeliveryFromParachain<R, GI, PI, MI, BE, PID, LID>
 where
 	R: 'static
 		+ Send
@@ -165,6 +163,7 @@ where
 		+ Default
 		+ SignedExtension<AccountId = R::AccountId, Call = CallOf<R>>,
 	PID: 'static + Send + Sync + Get<u32>,
+	LID: 'static + Send + Sync + Get<LaneId>,
 	<R as frame_system::Config>::RuntimeCall:
 		Dispatchable<Info = DispatchInfo, PostInfo = PostDispatchInfo>,
 	BalanceOf<R>: FixedPointOperand,
@@ -174,6 +173,11 @@ where
 		+ IsSubType<CallableCallFor<MessagesPallet<R, MI>, R>>,
 	<R as GrandpaConfig<GI>>::BridgedChain:
 		Chain<BlockNumber = RelayBlockNumber, Hash = RelayBlockHash, Hasher = RelayBlockHasher>,
+	<R as MessagesConfig<MI>>::SourceHeaderChain: SourceHeaderChain<
+		MessagesProof = crate::messages::target::FromBridgedChainMessagesProof<
+			HashOf<BridgedChain<R, GI>>,
+		>,
+	>,
 {
 	const IDENTIFIER: &'static str = "RefundRelayerForMessagesDeliveryFromParachain";
 	type AccountId = R::AccountId;
@@ -217,19 +221,19 @@ where
 					return Some(CallType::AllFinalityAndDelivery(
 						extract_expected_relay_chain_state::<R, GI>(&calls[0])?,
 						extract_expected_parachain_state::<R, GI, PI, PID>(&calls[1])?,
-						extract_messages_state::<R, MI>(&calls[2])?,
+						extract_messages_state::<R, GI, MI, LID>(&calls[2])?,
 					))
 				}
 				if calls.len() == 2 {
 					return Some(CallType::ParachainFinalityAndDelivery(
 						extract_expected_parachain_state::<R, GI, PI, PID>(&calls[0])?,
-						extract_messages_state::<R, MI>(&calls[1])?,
+						extract_messages_state::<R, GI, MI, LID>(&calls[1])?,
 					))
 				}
 				return None
 			}
 
-			Some(CallType::Delivery(extract_messages_state::<R, MI>(call)?))
+			Some(CallType::Delivery(extract_messages_state::<R, GI, MI, LID>(call)?))
 		};
 
 		Ok(parse_call_type().map(|call_type| PreDispatchData { relayer: who.clone(), call_type }))
@@ -334,7 +338,7 @@ where
 	R: GrandpaConfig<GI> + ParachainsConfig<PI, BridgesGrandpaPalletInstance = GI>,
 	GI: 'static,
 	PI: 'static,
-	PID: 'static + Get<u32>,
+	PID: Get<u32>,
 	<R as GrandpaConfig<GI>>::BridgedChain:
 		Chain<BlockNumber = RelayBlockNumber, Hash = RelayBlockHash, Hasher = RelayBlockHasher>,
 	CallOf<R>: IsSubType<CallableCallFor<ParachainsPallet<R, PI>, R>>,
@@ -356,18 +360,29 @@ where
 }
 
 /// Extracts messages state from the call.
-fn extract_messages_state<R, MI>(call: &CallOf<R>) -> Option<MessagesState>
+fn extract_messages_state<R, GI, MI, LID>(call: &CallOf<R>) -> Option<MessagesState>
 where
-	R: MessagesConfig<MI>,
+	R: GrandpaConfig<GI> + MessagesConfig<MI>,
+	GI: 'static,
 	MI: 'static,
+	LID: Get<LaneId>,
 	CallOf<R>: IsSubType<CallableCallFor<MessagesPallet<R, MI>, R>>,
+	<R as MessagesConfig<MI>>::SourceHeaderChain: SourceHeaderChain<
+		MessagesProof = crate::messages::target::FromBridgedChainMessagesProof<
+			HashOf<BridgedChain<R, GI>>,
+		>,
+	>,
 {
 	if let Some(MessagesCall::<R, MI>::receive_messages_proof { ref proof, .. }) =
 		call.is_sub_type()
 	{
+		if LID::get() != proof.lane {
+			return None
+		}
+
 		return Some(MessagesState {
-			lane: { unimplemented!("TODO") },
-			last_delivered_nonce: { unimplemented!("TODO") },
+			last_delivered_nonce: MessagesPallet::<R, MI>::inbound_lane_data(proof.lane)
+				.last_delivered_nonce(),
 		})
 	}
 	None
