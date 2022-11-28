@@ -70,7 +70,7 @@ pub mod pallet {
 
 			RelayerRewards::<T>::try_mutate_exists(
 				&relayer,
-				&lane_id,
+				lane_id,
 				|maybe_reward| -> DispatchResult {
 					let reward = maybe_reward.take().ok_or(Error::<T>::NoRewardForRelayer)?;
 					T::PaymentProcedure::pay_reward(&relayer, lane_id, reward).map_err(|e| {
