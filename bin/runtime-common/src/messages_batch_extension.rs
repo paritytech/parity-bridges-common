@@ -19,6 +19,13 @@
 //! with calls that are: delivering new messsage and all necessary underlying headers
 //! (parachain or relay chain).
 
+// hack because we have circular (test-level) dependency between `millau-runtime`
+// and `bridge-runtime-common` crates
+#[cfg(not(test))]
+use crate::messages::target::FromBridgedChainMessagesProof;
+#[cfg(test)]
+use millau_runtime::bridge_runtime_common::messages::target::FromBridgedChainMessagesProof;
+
 use bp_messages::{target_chain::SourceHeaderChain, LaneId, MessageNonce};
 use bp_polkadot_core::parachains::ParaId;
 use bp_runtime::{Chain, HashOf};
@@ -26,7 +33,7 @@ use codec::{Decode, Encode};
 use frame_support::{
 	dispatch::{CallableCallFor, DispatchInfo, Dispatchable, PostDispatchInfo},
 	traits::IsSubType,
-	RuntimeDebugNoBound,
+	CloneNoBound, EqNoBound, PartialEqNoBound, RuntimeDebugNoBound,
 };
 use pallet_bridge_grandpa::{
 	BridgedChain, Call as GrandpaCall, Config as GrandpaConfig, Pallet as GrandpaPallet,
@@ -60,35 +67,17 @@ use sp_std::marker::PhantomData;
 /// proof verification.
 ///
 /// Extension does not refund transaction tip due to security reasons.
-#[derive(Decode, Encode, RuntimeDebugNoBound, TypeInfo)]
+#[derive(
+	CloneNoBound, Decode, Encode, EqNoBound, PartialEqNoBound, RuntimeDebugNoBound, TypeInfo,
+)]
 #[scale_info(skip_type_params(RT, GI, PI, MI, BE, PID, LID))]
 pub struct RefundRelayerForMessagesFromParachain<RT, GI, PI, MI, BE, PID, LID>(
 	PhantomData<(RT, GI, PI, MI, BE, PID, LID)>,
 );
 
-impl<R, GI, PI, MI, BE, PID, LID> Clone
-	for RefundRelayerForMessagesFromParachain<R, GI, PI, MI, BE, PID, LID>
-{
-	fn clone(&self) -> Self {
-		RefundRelayerForMessagesFromParachain(PhantomData)
-	}
-}
-
-impl<R, GI, PI, MI, BE, PID, LID> Eq
-	for RefundRelayerForMessagesFromParachain<R, GI, PI, MI, BE, PID, LID>
-{
-}
-
-impl<R, GI, PI, MI, BE, PID, LID> PartialEq
-	for RefundRelayerForMessagesFromParachain<R, GI, PI, MI, BE, PID, LID>
-{
-	fn eq(&self, _other: &Self) -> bool {
-		true
-	}
-}
-
 /// Data that is crafted in `pre_dispatch` method and used at `post_dispatch`.
 #[derive(PartialEq)]
+#[cfg_attr(test, derive(Debug))]
 pub struct PreDispatchData<AccountId> {
 	/// Transaction submitter (relayer) account.
 	pub relayer: AccountId,
@@ -97,7 +86,7 @@ pub struct PreDispatchData<AccountId> {
 }
 
 /// Type of the call that the extension recognizes.
-#[derive(Clone, Copy, PartialEq)]
+#[derive(Clone, Copy, PartialEq, RuntimeDebugNoBound)]
 pub enum CallType {
 	/// Relay chain finality + parachain finality + message delivery calls.
 	AllFinalityAndDelivery(ExpectedRelayChainState, ExpectedParachainState, MessagesState),
@@ -119,14 +108,14 @@ impl CallType {
 }
 
 /// Expected post-dispatch state of the relay chain pallet.
-#[derive(Clone, Copy, PartialEq)]
+#[derive(Clone, Copy, PartialEq, RuntimeDebugNoBound)]
 pub struct ExpectedRelayChainState {
 	/// Best known relay chain block number.
 	pub best_block_number: RelayBlockNumber,
 }
 
 /// Expected post-dispatch state of the parachain pallet.
-#[derive(Clone, Copy, PartialEq)]
+#[derive(Clone, Copy, PartialEq, RuntimeDebugNoBound)]
 pub struct ExpectedParachainState {
 	/// At which relay block the parachain head has been updated?
 	pub at_relay_block_number: RelayBlockNumber,
@@ -138,10 +127,10 @@ pub struct ExpectedParachainState {
 /// That's because message delivery transaction may deliver some of messages that it brings.
 /// If this happens, we consider it "helpful" and refund its cost. If transaction fails to
 /// deliver at least one message, it is considered wrong and is not refunded.
-#[derive(Clone, Copy, PartialEq)]
+#[derive(Clone, Copy, PartialEq, RuntimeDebugNoBound)]
 pub struct MessagesState {
 	/// Best delivered message nonce.
-	pub last_delivered_nonce: MessageNonce,
+	pub best_nonce: MessageNonce,
 }
 
 // without this typedef rustfmt fails with internal err
@@ -182,9 +171,7 @@ where
 	<R as GrandpaConfig<GI>>::BridgedChain:
 		Chain<BlockNumber = RelayBlockNumber, Hash = RelayBlockHash, Hasher = RelayBlockHasher>,
 	<R as MessagesConfig<MI>>::SourceHeaderChain: SourceHeaderChain<
-		MessagesProof = crate::messages::target::FromBridgedChainMessagesProof<
-			HashOf<BridgedChain<R, GI>>,
-		>,
+		MessagesProof = FromBridgedChainMessagesProof<HashOf<BridgedChain<R, GI>>>,
 	>,
 {
 	const IDENTIFIER: &'static str = "RefundRelayerForMessagesFromParachain";
@@ -357,7 +344,7 @@ where
 		..
 	}) = call.is_sub_type()
 	{
-		if parachains.len() == 1 && parachains[0].0 == ParaId(PID::get()) {
+		if parachains.len() != 1 || parachains[0].0 != ParaId(PID::get()) {
 			return None
 		}
 
@@ -375,9 +362,7 @@ where
 	LID: Get<LaneId>,
 	CallOf<R>: IsSubType<CallableCallFor<MessagesPallet<R, MI>, R>>,
 	<R as MessagesConfig<MI>>::SourceHeaderChain: SourceHeaderChain<
-		MessagesProof = crate::messages::target::FromBridgedChainMessagesProof<
-			HashOf<BridgedChain<R, GI>>,
-		>,
+		MessagesProof = FromBridgedChainMessagesProof<HashOf<BridgedChain<R, GI>>>,
 	>,
 {
 	if let Some(MessagesCall::<R, MI>::receive_messages_proof { ref proof, .. }) =
@@ -388,7 +373,7 @@ where
 		}
 
 		return Some(MessagesState {
-			last_delivered_nonce: MessagesPallet::<R, MI>::inbound_lane_data(proof.lane)
+			best_nonce: MessagesPallet::<R, MI>::inbound_lane_data(proof.lane)
 				.last_delivered_nonce(),
 		})
 	}
@@ -428,10 +413,267 @@ where
 	LID: Get<LaneId>,
 {
 	Some(MessagesState {
-		last_delivered_nonce: MessagesPallet::<R, MI>::inbound_lane_data(LID::get())
-			.last_delivered_nonce(),
+		best_nonce: MessagesPallet::<R, MI>::inbound_lane_data(LID::get()).last_delivered_nonce(),
 	})
 }
 
 #[cfg(test)]
-mod tests {}
+mod tests {
+	use super::*;
+	use bp_messages::InboundLaneData;
+	use bp_parachains::{BestParaHeadHash, ParaInfo};
+	use bp_polkadot_core::parachains::ParaHeadsProof;
+	use bp_test_utils::make_default_justification;
+	use frame_support::{parameter_types, weights::Weight};
+	use millau_runtime::{
+		RialtoGrandpaInstance, Runtime, RuntimeCall, WithRialtoParachainMessagesInstance,
+		WithRialtoParachainsInstance,
+	};
+	use sp_runtime::transaction_validity::InvalidTransaction;
+
+	parameter_types! {
+		pub TestParachain: u32 = 1000;
+		pub TestLaneId: LaneId = [0, 0, 0, 0];
+	}
+
+	type TestExtension = RefundRelayerForMessagesFromParachain<
+		millau_runtime::Runtime,
+		RialtoGrandpaInstance,
+		WithRialtoParachainsInstance,
+		WithRialtoParachainMessagesInstance,
+		millau_runtime::BridgeRejectObsoleteHeadersAndMessages,
+		TestParachain,
+		TestLaneId,
+	>;
+
+	fn relayer_account() -> millau_runtime::AccountId {
+		[0u8; 32].into()
+	}
+
+	fn initialize_environment(
+		best_relay_header_number: RelayBlockNumber,
+		parachain_head_at_relay_header_number: RelayBlockNumber,
+		best_delivered_message: MessageNonce,
+	) {
+		let best_relay_header = (best_relay_header_number, RelayBlockHash::default());
+		pallet_bridge_grandpa::BestFinalized::<Runtime, RialtoGrandpaInstance>::put(
+			best_relay_header,
+		);
+
+		let para_id = ParaId(TestParachain::get());
+		let para_info = ParaInfo {
+			best_head_hash: BestParaHeadHash {
+				at_relay_block_number: parachain_head_at_relay_header_number,
+				head_hash: Default::default(),
+			},
+			next_imported_hash_position: 0,
+		};
+		pallet_bridge_parachains::ParasInfo::<Runtime, WithRialtoParachainsInstance>::insert(
+			para_id, para_info,
+		);
+
+		let lane_id = TestLaneId::get();
+		let lane_data =
+			InboundLaneData { last_confirmed_nonce: best_delivered_message, ..Default::default() };
+		pallet_bridge_messages::InboundLanes::<Runtime, WithRialtoParachainMessagesInstance>::insert(lane_id, lane_data);
+	}
+
+	fn submit_relay_header_call(relay_header_number: RelayBlockNumber) -> RuntimeCall {
+		let relay_header = bp_rialto::Header::new(
+			relay_header_number,
+			Default::default(),
+			Default::default(),
+			Default::default(),
+			Default::default(),
+		);
+		let relay_justification = make_default_justification(&relay_header);
+
+		RuntimeCall::BridgeRialtoGrandpa(GrandpaCall::submit_finality_proof {
+			finality_target: Box::new(relay_header),
+			justification: relay_justification,
+		})
+	}
+
+	fn submit_parachain_head_call(
+		parachain_head_at_relay_header_number: RelayBlockNumber,
+	) -> RuntimeCall {
+		RuntimeCall::BridgeRialtoParachains(ParachainsCall::submit_parachain_heads {
+			at_relay_block: (parachain_head_at_relay_header_number, RelayBlockHash::default()),
+			parachains: vec![(ParaId(TestParachain::get()), [1u8; 32].into())],
+			parachain_heads_proof: ParaHeadsProof(vec![]),
+		})
+	}
+
+	fn message_delivery_call(best_message: MessageNonce) -> RuntimeCall {
+		RuntimeCall::BridgeRialtoParachainMessages(MessagesCall::receive_messages_proof {
+			relayer_id_at_bridged_chain: relayer_account(),
+			proof: millau_runtime::bridge_runtime_common::messages::target::FromBridgedChainMessagesProof {
+				bridged_header_hash: Default::default(),
+				storage_proof: vec![],
+				lane: TestLaneId::get(),
+				nonces_start: best_message,
+				nonces_end: best_message,
+			},
+			messages_count: 1,
+			dispatch_weight: Weight::zero(),
+		})
+	}
+
+	fn parachain_finality_and_delivery_batch_call(
+		parachain_head_at_relay_header_number: RelayBlockNumber,
+		best_message: MessageNonce,
+	) -> RuntimeCall {
+		RuntimeCall::Utility(UtilityCall::batch_all {
+			calls: vec![
+				submit_parachain_head_call(parachain_head_at_relay_header_number),
+				message_delivery_call(best_message),
+			],
+		})
+	}
+
+	fn all_finality_and_delivery_batch_call(
+		relay_header_number: RelayBlockNumber,
+		parachain_head_at_relay_header_number: RelayBlockNumber,
+		best_message: MessageNonce,
+	) -> RuntimeCall {
+		RuntimeCall::Utility(UtilityCall::batch_all {
+			calls: vec![
+				submit_relay_header_call(relay_header_number),
+				submit_parachain_head_call(parachain_head_at_relay_header_number),
+				message_delivery_call(best_message),
+			],
+		})
+	}
+
+	fn run_test(test: impl FnOnce()) {
+		sp_io::TestExternalities::new(Default::default()).execute_with(|| test())
+	}
+
+	fn run_pre_dispatch(
+		call: RuntimeCall,
+	) -> Result<Option<PreDispatchData<millau_runtime::AccountId>>, TransactionValidityError> {
+		let extension: TestExtension = RefundRelayerForMessagesFromParachain(PhantomData);
+		extension.pre_dispatch(&relayer_account(), &call, &DispatchInfo::default(), 0)
+	}
+
+	#[test]
+	fn pre_dispatsh_rejects_batch_with_obsolete_relay_chain_header() {
+		run_test(|| {
+			initialize_environment(100, 100, 100);
+
+			assert_eq!(
+				run_pre_dispatch(all_finality_and_delivery_batch_call(100, 200, 200)),
+				Err(TransactionValidityError::Invalid(InvalidTransaction::Stale)),
+			);
+		});
+	}
+
+	#[test]
+	fn pre_dispatsh_rejects_batch_with_obsolete_parachain_head() {
+		run_test(|| {
+			initialize_environment(100, 100, 100);
+
+			assert_eq!(
+				run_pre_dispatch(all_finality_and_delivery_batch_call(101, 100, 200)),
+				Err(TransactionValidityError::Invalid(InvalidTransaction::Stale)),
+			);
+
+			assert_eq!(
+				run_pre_dispatch(parachain_finality_and_delivery_batch_call(100, 200)),
+				Err(TransactionValidityError::Invalid(InvalidTransaction::Stale)),
+			);
+		});
+	}
+
+	#[test]
+	fn pre_dispatsh_rejects_batch_with_obsolete_messages() {
+		run_test(|| {
+			initialize_environment(100, 100, 100);
+
+			assert_eq!(
+				run_pre_dispatch(all_finality_and_delivery_batch_call(200, 200, 100)),
+				Err(TransactionValidityError::Invalid(InvalidTransaction::Stale)),
+			);
+
+			assert_eq!(
+				run_pre_dispatch(parachain_finality_and_delivery_batch_call(200, 100)),
+				Err(TransactionValidityError::Invalid(InvalidTransaction::Stale)),
+			);
+		});
+	}
+
+	#[test]
+	fn pre_dispatch_parses_batch_with_relay_chain_and_parachain_headers() {
+		run_test(|| {
+			initialize_environment(100, 100, 100);
+
+			assert_eq!(
+				run_pre_dispatch(all_finality_and_delivery_batch_call(200, 200, 200)),
+				Ok(Some(PreDispatchData {
+					relayer: relayer_account(),
+					call_type: CallType::AllFinalityAndDelivery(
+						ExpectedRelayChainState { best_block_number: 200 },
+						ExpectedParachainState { at_relay_block_number: 200 },
+						MessagesState { best_nonce: 100 },
+					),
+				})),
+			);
+		});
+	}
+
+	#[test]
+	fn pre_dispatch_parses_batch_with_parachain_header() {
+		run_test(|| {
+			initialize_environment(100, 100, 100);
+
+			assert_eq!(
+				run_pre_dispatch(parachain_finality_and_delivery_batch_call(200, 200)),
+				Ok(Some(PreDispatchData {
+					relayer: relayer_account(),
+					call_type: CallType::ParachainFinalityAndDelivery(
+						ExpectedParachainState { at_relay_block_number: 200 },
+						MessagesState { best_nonce: 100 },
+					),
+				})),
+			);
+		});
+	}
+
+	#[test]
+	fn pre_dispatch_fails_to_parse_batch_with_multiple_parachain_headers() {
+		run_test(|| {
+			initialize_environment(100, 100, 100);
+
+			let call = RuntimeCall::Utility(UtilityCall::batch_all {
+				calls: vec![
+					RuntimeCall::BridgeRialtoParachains(ParachainsCall::submit_parachain_heads {
+						at_relay_block: (100, RelayBlockHash::default()),
+						parachains: vec![
+							(ParaId(TestParachain::get()), [1u8; 32].into()),
+							(ParaId(TestParachain::get() + 1), [1u8; 32].into()),
+						],
+						parachain_heads_proof: ParaHeadsProof(vec![]),
+					}),
+					message_delivery_call(200),
+				],
+			});
+
+			assert_eq!(run_pre_dispatch(call), Ok(None),);
+		});
+	}
+
+	#[test]
+	fn pre_dispatch_parses_message_delivery_transaction() {
+		run_test(|| {
+			initialize_environment(100, 100, 100);
+
+			assert_eq!(
+				run_pre_dispatch(message_delivery_call(200)),
+				Ok(Some(PreDispatchData {
+					relayer: relayer_account(),
+					call_type: CallType::Delivery(MessagesState { best_nonce: 100 },),
+				})),
+			);
+		});
+	}
+}

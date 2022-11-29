@@ -46,6 +46,8 @@ xcm-builder = { git = "https://github.com/paritytech/polkadot", branch = "master
 xcm-executor = { git = "https://github.com/paritytech/polkadot", branch = "master", default-features = false }
 
 [dev-dependencies]
+bp-rialto = { path = "../../primitives/chain-rialto" }
+bp-test-utils = { path = "../../primitives/test-utils" }
 millau-runtime = { path = "../millau/runtime" }
 
 [features]
