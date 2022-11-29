@@ -20,7 +20,7 @@
 //! associated data - like messages, lane state, etc) to the target node by
 //! generating and submitting proof.
 
-use crate::message_lane_loop::{ClientState, NoncesSubmitArtifacts};
+use crate::message_lane_loop::{BatchTransaction, ClientState, NoncesSubmitArtifacts};
 
 use async_trait::async_trait;
 use bp_messages::MessageNonce;
@@ -132,7 +132,27 @@ pub trait TargetClient<P: MessageRace> {
 
 	/// Ask headers relay to relay finalized headers up to (and including) given header
 	/// from race source to race target.
-	async fn require_source_header(&self, id: P::SourceHeaderId);
+	///
+	/// The client may return `Some(_)`, which means that nothing has happened yet and
+	/// the caller must generate and append proof to the batch transaction
+	/// to actually send it (along with required header) to the node.
+	///
+	/// If function has returned `None`, it means that the caller now must wait for the
+	/// appearance of the required header `id` at the target client.
+	#[must_use]
+	async fn require_source_header(
+		&self,
+		id: P::SourceHeaderId,
+	) -> Option<
+		Box<
+			dyn BatchTransaction<
+				P::SourceHeaderId,
+				P::Proof,
+				Self::TransactionTracker,
+				Self::Error,
+			>,
+		>,
+	>;
 
 	/// Return nonces that are known to the target client.
 	async fn nonces(

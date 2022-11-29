@@ -109,6 +109,38 @@ pub struct NoncesSubmitArtifacts<T> {
 	pub tx_tracker: T,
 }
 
+/// Batch transaction that already submit some headers and needs to be extended with
+/// messages/delivery proof before sending.
+#[async_trait]
+pub trait BatchTransaction<HeaderId, Proof, TransactionTracker, Error> {
+	/// Append proof and send transaction to the connected node.
+	async fn append_proof_and_send(
+		self,
+		generated_at_header: HeaderId,
+		proof: Proof,
+	) -> Result<TransactionTracker, Error>;
+}
+
+/// Boxed batch transaction that is sent to the source client.
+pub type BatchTransactionOfSourceClient<SC, P> = Box<
+	dyn BatchTransaction<
+		TargetHeaderIdOf<P>,
+		<P as MessageLane>::MessagesReceivingProof,
+		<SC as SourceClient<P>>::TransactionTracker,
+		<SC as RelayClient>::Error,
+	>,
+>;
+
+/// Boxed batch transaction that is sent to the target client.
+pub type BatchTransactionOfTargetClient<TC, P> = Box<
+	dyn BatchTransaction<
+		SourceHeaderIdOf<P>,
+		<P as MessageLane>::MessagesProof,
+		<TC as TargetClient<P>>::TransactionTracker,
+		<TC as RelayClient>::Error,
+	>,
+>;
+
 /// Source client trait.
 #[async_trait]
 pub trait SourceClient<P: MessageLane>: RelayClient {
@@ -156,7 +188,17 @@ pub trait SourceClient<P: MessageLane>: RelayClient {
 	) -> Result<Self::TransactionTracker, Self::Error>;
 
 	/// We need given finalized target header on source to continue synchronization.
-	async fn require_target_header_on_source(&self, id: TargetHeaderIdOf<P>);
+	///
+	/// The client may return `Some(_)`, which means that nothing has happened yet and
+	/// the caller must generate and append message receiving proof to the batch transaction
+	/// to actually send it (along with required header) to the node.
+	///
+	/// If function has returned `None`, it means that the caller now must wait for the
+	/// appearance of the target header `id` at the source client.
+	async fn require_target_header_on_source(
+		&self,
+		id: TargetHeaderIdOf<P>,
+	) -> Option<BatchTransactionOfSourceClient<Self, P>>;
 }
 
 /// Target client trait.
@@ -201,7 +243,17 @@ pub trait TargetClient<P: MessageLane>: RelayClient {
 	) -> Result<NoncesSubmitArtifacts<Self::TransactionTracker>, Self::Error>;
 
 	/// We need given finalized source header on target to continue synchronization.
-	async fn require_source_header_on_target(&self, id: SourceHeaderIdOf<P>);
+	///
+	/// The client may return `Some(_)`, which means that nothing has happened yet and
+	/// the caller must generate and append messages proof to the batch transaction
+	/// to actually send it (along with required header) to the node.
+	///
+	/// If function has returned `None`, it means that the caller now must wait for the
+	/// appearance of the source header `id` at the target client.
+	async fn require_source_header_on_target(
+		&self,
+		id: SourceHeaderIdOf<P>,
+	) -> Option<BatchTransactionOfTargetClient<Self, P>>;
 }
 
 /// State of the client.
@@ -684,12 +736,16 @@ pub(crate) mod tests {
 			Ok(TestTransactionTracker(data.source_tracked_transaction_status))
 		}
 
-		async fn require_target_header_on_source(&self, id: TargetHeaderIdOf<TestMessageLane>) {
+		async fn require_target_header_on_source(
+			&self,
+			id: TargetHeaderIdOf<TestMessageLane>,
+		) -> Option<BatchTransactionOfSourceClient<Self, TestMessageLane>> {
 			let mut data = self.data.lock();
 			data.target_to_source_header_required = Some(id);
 			data.target_to_source_header_requirements.push(id);
 			(self.tick)(&mut data);
 			(self.post_tick)(&mut data);
+			None
 		}
 	}
 
@@ -814,12 +870,16 @@ pub(crate) mod tests {
 			})
 		}
 
-		async fn require_source_header_on_target(&self, id: SourceHeaderIdOf<TestMessageLane>) {
+		async fn require_source_header_on_target(
+			&self,
+			id: SourceHeaderIdOf<TestMessageLane>,
+		) -> Option<BatchTransactionOfTargetClient<Self, TestMessageLane>> {
 			let mut data = self.data.lock();
 			data.source_to_target_header_required = Some(id);
 			data.source_to_target_header_requirements.push(id);
 			(self.tick)(&mut data);
 			(self.post_tick)(&mut data);
+			None
 		}
 	}
 

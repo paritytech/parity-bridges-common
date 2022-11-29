@@ -24,9 +24,9 @@ use relay_utils::FailedClient;
 use crate::{
 	message_lane::{MessageLane, SourceHeaderIdOf, TargetHeaderIdOf},
 	message_lane_loop::{
-		MessageDeliveryParams, MessageDetailsMap, MessageProofParameters, NoncesSubmitArtifacts,
-		SourceClient as MessageLaneSourceClient, SourceClientState,
-		TargetClient as MessageLaneTargetClient, TargetClientState,
+		BatchTransactionOfTargetClient, MessageDeliveryParams, MessageDetailsMap,
+		MessageProofParameters, NoncesSubmitArtifacts, SourceClient as MessageLaneSourceClient,
+		SourceClientState, TargetClient as MessageLaneTargetClient, TargetClientState,
 	},
 	message_race_limits::{MessageRaceLimits, RelayMessagesBatchReference},
 	message_race_loop::{
@@ -173,7 +173,10 @@ where
 	type TargetNoncesData = DeliveryRaceTargetNoncesData;
 	type TransactionTracker = C::TransactionTracker;
 
-	async fn require_source_header(&self, id: SourceHeaderIdOf<P>) {
+	async fn require_source_header(
+		&self,
+		id: SourceHeaderIdOf<P>,
+	) -> Option<BatchTransactionOfTargetClient<C, P>> {
 		self.client.require_source_header_on_target(id).await
 	}
 
