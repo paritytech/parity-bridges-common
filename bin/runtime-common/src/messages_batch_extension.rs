@@ -15,7 +15,7 @@
 // along with Parity Bridges Common.  If not, see <http://www.gnu.org/licenses/>.
 
 //! Signed extension that refunds relayer if he has delivered some new messages.
-//! It also refunds transacation cost if the transaction is an `utility.batchAll()`
+//! It also refunds transaction cost if the transaction is an `utility.batchAll()`
 //! with calls that are: delivering new messsage and all necessary underlying headers
 //! (parachain or relay chain).
 
@@ -88,7 +88,7 @@ pub struct PreDispatchData<AccountId> {
 	pub call_type: CallType,
 }
 
-/// Type of the call that the extension recognizing.
+/// Type of the call that the extension recognizes.
 #[derive(Clone, Copy, PartialEq)]
 pub enum CallType {
 	/// Relay chain finality + parachain finality + message delivery calls.
@@ -246,7 +246,7 @@ where
 		len: usize,
 		result: &DispatchResult,
 	) -> Result<(), TransactionValidityError> {
-		// we never refund anything if that is not bridge transaction or if it is a bridge
+		// we never refund anything if it is not bridge transaction or if it is a bridge
 		// transaction that we do not support here
 		let (relayer, call_type) = match pre {
 			Some(Some(pre)) => (pre.relayer, pre.call_type),
@@ -267,7 +267,7 @@ where
 			}
 
 			// there's a conflict between how bridge GRANDPA pallet works and the
-			// `AllFinalityAndDelivery` transaction. If relay cahin header is mandatory, the GRANDPA
+			// `AllFinalityAndDelivery` transaction. If relay chain header is mandatory, the GRANDPA
 			// pallet returns `Pays::No`, because such transaction is mandatory for operating the
 			// bridge. But `utility.batchAll` transaction always requires payment. But in both cases
 			// we'll refund relayer - either explicitly here, or using `Pays::No` if he's choosing
@@ -307,7 +307,7 @@ where
 			len as _, info, post_info, tip,
 		);
 
-		// finally - regiater reward in relayers pallet
+		// finally - register reward in relayers pallet
 		RelayersPallet::<R>::register_relayer_reward(LID::get(), &relayer, reward);
 
 		Ok(())
@@ -423,4 +423,9 @@ where
 		last_delivered_nonce: MessagesPallet::<R, MI>::inbound_lane_data(LID::get())
 			.last_delivered_nonce(),
 	})
+}
+
+#[cfg(test)]
+mod tests {
+
 }
