@@ -49,30 +49,38 @@ use sp_runtime::{
 };
 use sp_std::marker::PhantomData;
 
-// TODO: is it possible to impl it for several bridges at once? Like what we have in
-// `BridgeRejectObsoleteHeadersAndMessages`? If it is hard to do now - just submit an issue
+// TODO (https://github.com/paritytech/parity-bridges-common/issues/1667):
+// support multiple bridges in this extension
 
+/// Signed extension that refunds relayer for new messages coming from the parachain.
+///
+/// Also refunds relayer for successful finality delivery if it comes in batch (`utility.batchAll`)
+/// with message delivery transaction. Batch may delvier either both relay chain header and
+/// parachain head, or just parachain head. Corresponding headers must be used in messages
+/// proof verification.
+///
+/// Extension does not refund transaction tip due to security reasons.
 #[derive(Decode, Encode, RuntimeDebugNoBound, TypeInfo)]
 #[scale_info(skip_type_params(RT, GI, PI, MI, BE, PID, LID))]
-pub struct RefundRelayerForMessagesDeliveryFromParachain<RT, GI, PI, MI, BE, PID, LID>(
+pub struct RefundRelayerForMessagesFromParachain<RT, GI, PI, MI, BE, PID, LID>(
 	PhantomData<(RT, GI, PI, MI, BE, PID, LID)>,
 );
 
 impl<R, GI, PI, MI, BE, PID, LID> Clone
-	for RefundRelayerForMessagesDeliveryFromParachain<R, GI, PI, MI, BE, PID, LID>
+	for RefundRelayerForMessagesFromParachain<R, GI, PI, MI, BE, PID, LID>
 {
 	fn clone(&self) -> Self {
-		RefundRelayerForMessagesDeliveryFromParachain(PhantomData)
+		RefundRelayerForMessagesFromParachain(PhantomData)
 	}
 }
 
 impl<R, GI, PI, MI, BE, PID, LID> Eq
-	for RefundRelayerForMessagesDeliveryFromParachain<R, GI, PI, MI, BE, PID, LID>
+	for RefundRelayerForMessagesFromParachain<R, GI, PI, MI, BE, PID, LID>
 {
 }
 
 impl<R, GI, PI, MI, BE, PID, LID> PartialEq
-	for RefundRelayerForMessagesDeliveryFromParachain<R, GI, PI, MI, BE, PID, LID>
+	for RefundRelayerForMessagesFromParachain<R, GI, PI, MI, BE, PID, LID>
 {
 	fn eq(&self, _other: &Self) -> bool {
 		true
@@ -142,7 +150,7 @@ type BalanceOf<R> =
 type CallOf<R> = <R as frame_system::Config>::RuntimeCall;
 
 impl<R, GI, PI, MI, BE, PID, LID> SignedExtension
-	for RefundRelayerForMessagesDeliveryFromParachain<R, GI, PI, MI, BE, PID, LID>
+	for RefundRelayerForMessagesFromParachain<R, GI, PI, MI, BE, PID, LID>
 where
 	R: 'static
 		+ Send
@@ -179,7 +187,7 @@ where
 		>,
 	>,
 {
-	const IDENTIFIER: &'static str = "RefundRelayerForMessagesDeliveryFromParachain";
+	const IDENTIFIER: &'static str = "RefundRelayerForMessagesFromParachain";
 	type AccountId = R::AccountId;
 	type Call = CallOf<R>;
 	type AdditionalSigned = ();
@@ -426,6 +434,4 @@ where
 }
 
 #[cfg(test)]
-mod tests {
-
-}
+mod tests {}
