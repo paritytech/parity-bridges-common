@@ -141,6 +141,7 @@ pub mod pallet {
 
 	/// Map of the relayer => accumulated reward.
 	#[pallet::storage]
+	#[pallet::getter(fn relayer_reward)]
 	pub type RelayerRewards<T: Config> = StorageDoubleMap<
 		_,
 		Blake2_128Concat,

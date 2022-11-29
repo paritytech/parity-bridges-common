@@ -424,12 +424,12 @@ mod tests {
 	use bp_parachains::{BestParaHeadHash, ParaInfo};
 	use bp_polkadot_core::parachains::ParaHeadsProof;
 	use bp_test_utils::make_default_justification;
-	use frame_support::{parameter_types, weights::Weight};
+	use frame_support::{assert_storage_noop, parameter_types, weights::Weight};
 	use millau_runtime::{
 		RialtoGrandpaInstance, Runtime, RuntimeCall, WithRialtoParachainMessagesInstance,
 		WithRialtoParachainsInstance,
 	};
-	use sp_runtime::transaction_validity::InvalidTransaction;
+	use sp_runtime::{transaction_validity::InvalidTransaction, DispatchError};
 
 	parameter_types! {
 		pub TestParachain: u32 = 1000;
@@ -545,6 +545,34 @@ mod tests {
 		})
 	}
 
+	fn all_finality_pre_dispatch_data() -> PreDispatchData<millau_runtime::AccountId> {
+		PreDispatchData {
+			relayer: relayer_account(),
+			call_type: CallType::AllFinalityAndDelivery(
+				ExpectedRelayChainState { best_block_number: 200 },
+				ExpectedParachainState { at_relay_block_number: 200 },
+				MessagesState { best_nonce: 100 },
+			),
+		}
+	}
+
+	fn parachain_finality_pre_dispatch_data() -> PreDispatchData<millau_runtime::AccountId> {
+		PreDispatchData {
+			relayer: relayer_account(),
+			call_type: CallType::ParachainFinalityAndDelivery(
+				ExpectedParachainState { at_relay_block_number: 200 },
+				MessagesState { best_nonce: 100 },
+			),
+		}
+	}
+
+	fn delivery_pre_dispatch_data() -> PreDispatchData<millau_runtime::AccountId> {
+		PreDispatchData {
+			relayer: relayer_account(),
+			call_type: CallType::Delivery(MessagesState { best_nonce: 100 }),
+		}
+	}
+
 	fn run_test(test: impl FnOnce()) {
 		sp_io::TestExternalities::new(Default::default()).execute_with(|| test())
 	}
@@ -554,6 +582,41 @@ mod tests {
 	) -> Result<Option<PreDispatchData<millau_runtime::AccountId>>, TransactionValidityError> {
 		let extension: TestExtension = RefundRelayerForMessagesFromParachain(PhantomData);
 		extension.pre_dispatch(&relayer_account(), &call, &DispatchInfo::default(), 0)
+	}
+
+	fn dispatch_info() -> DispatchInfo {
+		DispatchInfo {
+			weight: frame_support::weights::constants::WEIGHT_PER_SECOND,
+			class: frame_support::dispatch::DispatchClass::Normal,
+			pays_fee: frame_support::dispatch::Pays::Yes,
+		}
+	}
+
+	fn post_dispatch_info() -> PostDispatchInfo {
+		PostDispatchInfo { actual_weight: None, pays_fee: frame_support::dispatch::Pays::Yes }
+	}
+
+	fn run_post_dispatch(
+		pre_dispatch_data: Option<PreDispatchData<millau_runtime::AccountId>>,
+		dispatch_result: DispatchResult,
+	) {
+		let post_dispatch_result = TestExtension::post_dispatch(
+			Some(pre_dispatch_data),
+			&dispatch_info(),
+			&post_dispatch_info(),
+			1024,
+			&dispatch_result,
+		);
+		assert_eq!(post_dispatch_result, Ok(()));
+	}
+
+	fn expected_reward() -> millau_runtime::Balance {
+		pallet_transaction_payment::Pallet::<Runtime>::compute_actual_fee(
+			1024,
+			&dispatch_info(),
+			&post_dispatch_info(),
+			Zero::zero(),
+		)
 	}
 
 	#[test]
@@ -609,14 +672,7 @@ mod tests {
 
 			assert_eq!(
 				run_pre_dispatch(all_finality_and_delivery_batch_call(200, 200, 200)),
-				Ok(Some(PreDispatchData {
-					relayer: relayer_account(),
-					call_type: CallType::AllFinalityAndDelivery(
-						ExpectedRelayChainState { best_block_number: 200 },
-						ExpectedParachainState { at_relay_block_number: 200 },
-						MessagesState { best_nonce: 100 },
-					),
-				})),
+				Ok(Some(all_finality_pre_dispatch_data())),
 			);
 		});
 	}
@@ -628,13 +684,7 @@ mod tests {
 
 			assert_eq!(
 				run_pre_dispatch(parachain_finality_and_delivery_batch_call(200, 200)),
-				Ok(Some(PreDispatchData {
-					relayer: relayer_account(),
-					call_type: CallType::ParachainFinalityAndDelivery(
-						ExpectedParachainState { at_relay_block_number: 200 },
-						MessagesState { best_nonce: 100 },
-					),
-				})),
+				Ok(Some(parachain_finality_pre_dispatch_data())),
 			);
 		});
 	}
@@ -669,10 +719,99 @@ mod tests {
 
 			assert_eq!(
 				run_pre_dispatch(message_delivery_call(200)),
-				Ok(Some(PreDispatchData {
-					relayer: relayer_account(),
-					call_type: CallType::Delivery(MessagesState { best_nonce: 100 },),
-				})),
+				Ok(Some(delivery_pre_dispatch_data())),
+			);
+		});
+	}
+
+	#[test]
+	fn post_dispatch_ignores_unknown_transaction() {
+		run_test(|| {
+			assert_storage_noop!(run_post_dispatch(None, Ok(())));
+		});
+	}
+
+	#[test]
+	fn post_dispatch_ignores_failed_transaction() {
+		run_test(|| {
+			assert_storage_noop!(run_post_dispatch(
+				Some(all_finality_pre_dispatch_data()),
+				Err(DispatchError::BadOrigin)
+			));
+		});
+	}
+
+	#[test]
+	fn post_dispatch_ignores_transaction_that_has_not_updated_relay_chain_state() {
+		run_test(|| {
+			initialize_environment(100, 200, 200);
+
+			assert_storage_noop!(run_post_dispatch(Some(all_finality_pre_dispatch_data()), Ok(())));
+		});
+	}
+
+	#[test]
+	fn post_dispatch_ignores_transaction_that_has_not_updated_parachain_state() {
+		run_test(|| {
+			initialize_environment(200, 100, 200);
+
+			assert_storage_noop!(run_post_dispatch(Some(all_finality_pre_dispatch_data()), Ok(())));
+			assert_storage_noop!(run_post_dispatch(
+				Some(parachain_finality_pre_dispatch_data()),
+				Ok(())
+			));
+		});
+	}
+
+	#[test]
+	fn post_dispatch_ignores_transaction_that_has_not_delivered_any_messages() {
+		run_test(|| {
+			initialize_environment(200, 200, 100);
+
+			assert_storage_noop!(run_post_dispatch(Some(all_finality_pre_dispatch_data()), Ok(())));
+			assert_storage_noop!(run_post_dispatch(
+				Some(parachain_finality_pre_dispatch_data()),
+				Ok(())
+			));
+			assert_storage_noop!(run_post_dispatch(Some(delivery_pre_dispatch_data()), Ok(())));
+		});
+	}
+
+	#[test]
+	fn post_dispatch_refunds_relayer_in_all_finality_batch() {
+		run_test(|| {
+			initialize_environment(200, 200, 200);
+
+			run_post_dispatch(Some(all_finality_pre_dispatch_data()), Ok(()));
+			assert_eq!(
+				RelayersPallet::<Runtime>::relayer_reward(relayer_account(), TestLaneId::get()),
+				Some(expected_reward()),
+			);
+		});
+	}
+
+	#[test]
+	fn post_dispatch_refunds_relayer_in_parachain_finality_batch() {
+		run_test(|| {
+			initialize_environment(200, 200, 200);
+
+			run_post_dispatch(Some(parachain_finality_pre_dispatch_data()), Ok(()));
+			assert_eq!(
+				RelayersPallet::<Runtime>::relayer_reward(relayer_account(), TestLaneId::get()),
+				Some(expected_reward()),
+			);
+		});
+	}
+
+	#[test]
+	fn post_dispatch_refunds_relayer_in_message_delivery_transaction() {
+		run_test(|| {
+			initialize_environment(200, 200, 200);
+
+			run_post_dispatch(Some(delivery_pre_dispatch_data()), Ok(()));
+			assert_eq!(
+				RelayersPallet::<Runtime>::relayer_reward(relayer_account(), TestLaneId::get()),
+				Some(expected_reward()),
 			);
 		});
 	}
