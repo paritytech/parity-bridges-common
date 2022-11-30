@@ -518,9 +518,7 @@ pub mod pallet {
 		MessagesReceived(
 			Vec<
 				ReceivedMessages<
-					ReceivalResult<
-						<T::MessageDispatch as MessageDispatch<T::AccountId>>::DispatchLevelResult,
-					>,
+					<T::MessageDispatch as MessageDispatch<T::AccountId>>::DispatchLevelResult,
 				>,
 			>,
 		),
