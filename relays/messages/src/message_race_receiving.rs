@@ -16,8 +16,7 @@
 use crate::{
 	message_lane::{MessageLane, SourceHeaderIdOf, TargetHeaderIdOf},
 	message_lane_loop::{
-		BatchTransactionOfSourceClient, NoncesSubmitArtifacts,
-		SourceClient as MessageLaneSourceClient, SourceClientState,
+		NoncesSubmitArtifacts, SourceClient as MessageLaneSourceClient, SourceClientState,
 		TargetClient as MessageLaneTargetClient, TargetClientState,
 	},
 	message_race_loop::{
@@ -156,12 +155,10 @@ where
 {
 	type Error = C::Error;
 	type TargetNoncesData = ();
+	type BatchTransaction = C::BatchTransaction;
 	type TransactionTracker = C::TransactionTracker;
 
-	async fn require_source_header(
-		&self,
-		id: TargetHeaderIdOf<P>,
-	) -> Option<BatchTransactionOfSourceClient<C, P>> {
+	async fn require_source_header(&self, id: TargetHeaderIdOf<P>) -> Option<C::BatchTransaction> {
 		self.client.require_target_header_on_source(id).await
 	}
 

@@ -112,38 +112,28 @@ pub struct NoncesSubmitArtifacts<T> {
 /// Batch transaction that already submit some headers and needs to be extended with
 /// messages/delivery proof before sending.
 #[async_trait]
-pub trait BatchTransaction<HeaderId, Proof, TransactionTracker, Error> {
+pub trait BatchTransaction<HeaderId, Proof, TransactionTracker, Error>: Send {
+	/// Header that was required in the original call and which is bundled within this
+	/// batch transaction.
+	fn required_header_id(&self) -> HeaderId;
+
 	/// Append proof and send transaction to the connected node.
 	async fn append_proof_and_send(
 		self,
-		generated_at_header: HeaderId,
 		proof: Proof,
-	) -> Result<TransactionTracker, Error>;
+	) -> Result<NoncesSubmitArtifacts<TransactionTracker>, Error>;
 }
-
-/// Boxed batch transaction that is sent to the source client.
-pub type BatchTransactionOfSourceClient<SC, P> = Box<
-	dyn BatchTransaction<
-		TargetHeaderIdOf<P>,
-		<P as MessageLane>::MessagesReceivingProof,
-		<SC as SourceClient<P>>::TransactionTracker,
-		<SC as RelayClient>::Error,
-	>,
->;
-
-/// Boxed batch transaction that is sent to the target client.
-pub type BatchTransactionOfTargetClient<TC, P> = Box<
-	dyn BatchTransaction<
-		SourceHeaderIdOf<P>,
-		<P as MessageLane>::MessagesProof,
-		<TC as TargetClient<P>>::TransactionTracker,
-		<TC as RelayClient>::Error,
-	>,
->;
 
 /// Source client trait.
 #[async_trait]
 pub trait SourceClient<P: MessageLane>: RelayClient {
+	/// Type of batch transaction that submits finality and message receiving proof.
+	type BatchTransaction: BatchTransaction<
+		TargetHeaderIdOf<P>,
+		P::MessagesReceivingProof,
+		Self::TransactionTracker,
+		Self::Error,
+	>;
 	/// Transaction tracker to track submitted transactions.
 	type TransactionTracker: TransactionTracker<HeaderId = SourceHeaderIdOf<P>>;
 
@@ -198,12 +188,19 @@ pub trait SourceClient<P: MessageLane>: RelayClient {
 	async fn require_target_header_on_source(
 		&self,
 		id: TargetHeaderIdOf<P>,
-	) -> Option<BatchTransactionOfSourceClient<Self, P>>;
+	) -> Option<Self::BatchTransaction>;
 }
 
 /// Target client trait.
 #[async_trait]
 pub trait TargetClient<P: MessageLane>: RelayClient {
+	/// Type of batch transaction that submits finality and messages proof.
+	type BatchTransaction: BatchTransaction<
+		SourceHeaderIdOf<P>,
+		P::MessagesProof,
+		Self::TransactionTracker,
+		Self::Error,
+	>;
 	/// Transaction tracker to track submitted transactions.
 	type TransactionTracker: TransactionTracker<HeaderId = TargetHeaderIdOf<P>>;
 
@@ -253,7 +250,7 @@ pub trait TargetClient<P: MessageLane>: RelayClient {
 	async fn require_source_header_on_target(
 		&self,
 		id: SourceHeaderIdOf<P>,
-	) -> Option<BatchTransactionOfTargetClient<Self, P>>;
+	) -> Option<Self::BatchTransaction>;
 }
 
 /// State of the client.
@@ -535,6 +532,32 @@ pub(crate) mod tests {
 		type TargetHeaderHash = TestTargetHeaderHash;
 	}
 
+	pub struct TestBatchTransaction<HeaderId, Proof, TransactionTracker, Error>(
+		std::marker::PhantomData<(HeaderId, Proof, TransactionTracker, Error)>,
+	);
+
+	#[async_trait]
+	impl<HeaderId, Proof, TransactionTracker, Error>
+		BatchTransaction<HeaderId, Proof, TransactionTracker, Error>
+		for TestBatchTransaction<HeaderId, Proof, TransactionTracker, Error>
+	where
+		HeaderId: Send,
+		Proof: Send,
+		TransactionTracker: Send,
+		Error: Send,
+	{
+		fn required_header_id(&self) -> HeaderId {
+			unimplemented!("TODO")
+		}
+
+		async fn append_proof_and_send(
+			self,
+			_proof: Proof,
+		) -> Result<NoncesSubmitArtifacts<TransactionTracker>, Error> {
+			unimplemented!("TODO")
+		}
+	}
+
 	#[derive(Clone, Debug)]
 	pub struct TestTransactionTracker(TrackedTransactionStatus<TestTargetHeaderId>);
 
@@ -640,6 +663,12 @@ pub(crate) mod tests {
 
 	#[async_trait]
 	impl SourceClient<TestMessageLane> for TestSourceClient {
+		type BatchTransaction = TestBatchTransaction<
+			TargetHeaderIdOf<TestMessageLane>,
+			TestMessagesReceivingProof,
+			TestTransactionTracker,
+			TestError,
+		>;
 		type TransactionTracker = TestTransactionTracker;
 
 		async fn state(&self) -> Result<SourceClientState<TestMessageLane>, TestError> {
@@ -739,7 +768,7 @@ pub(crate) mod tests {
 		async fn require_target_header_on_source(
 			&self,
 			id: TargetHeaderIdOf<TestMessageLane>,
-		) -> Option<BatchTransactionOfSourceClient<Self, TestMessageLane>> {
+		) -> Option<Self::BatchTransaction> {
 			let mut data = self.data.lock();
 			data.target_to_source_header_required = Some(id);
 			data.target_to_source_header_requirements.push(id);
@@ -783,6 +812,12 @@ pub(crate) mod tests {
 
 	#[async_trait]
 	impl TargetClient<TestMessageLane> for TestTargetClient {
+		type BatchTransaction = TestBatchTransaction<
+			SourceHeaderIdOf<TestMessageLane>,
+			TestMessagesProof,
+			TestTransactionTracker,
+			TestError,
+		>;
 		type TransactionTracker = TestTransactionTracker;
 
 		async fn state(&self) -> Result<TargetClientState<TestMessageLane>, TestError> {
@@ -873,7 +908,7 @@ pub(crate) mod tests {
 		async fn require_source_header_on_target(
 			&self,
 			id: SourceHeaderIdOf<TestMessageLane>,
-		) -> Option<BatchTransactionOfTargetClient<Self, TestMessageLane>> {
+		) -> Option<Self::BatchTransaction> {
 			let mut data = self.data.lock();
 			data.source_to_target_header_required = Some(id);
 			data.source_to_target_header_requirements.push(id);
