@@ -1272,7 +1272,6 @@ pub(crate) mod tests {
 
 	#[test]
 	fn message_lane_loop_works_with_batch_transactions() {
-		let _ = env_logger::try_init();
 		let (exit_sender, exit_receiver) = unbounded();
 		let original_data = Arc::new(Mutex::new(TestClientData {
 			source_state: ClientState {
