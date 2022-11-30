@@ -59,6 +59,33 @@ use sp_std::marker::PhantomData;
 // TODO (https://github.com/paritytech/parity-bridges-common/issues/1667):
 // support multiple bridges in this extension
 
+/// Transaction fee calculation.
+pub trait TransactionFeeCalculation<Balance> {
+	/// Compute fee that is paid for given transaction. The fee is later refunded to relayer.
+	fn compute_fee(
+		info: &DispatchInfo,
+		post_info: &PostDispatchInfo,
+		len: usize,
+		tip: Balance,
+	) -> Balance;
+}
+
+impl<R> TransactionFeeCalculation<BalanceOf<R>> for R
+where
+	R: TransactionPaymentConfig,
+	<R as frame_system::Config>::RuntimeCall:
+		Dispatchable<Info = DispatchInfo, PostInfo = PostDispatchInfo>,
+	BalanceOf<R>: FixedPointOperand,
+{
+	fn compute_fee(
+		info: &DispatchInfo,
+		post_info: &PostDispatchInfo,
+		len: usize,
+		tip: BalanceOf<R>,
+	) -> BalanceOf<R> {
+		pallet_transaction_payment::Pallet::<R>::compute_actual_fee(len as _, info, post_info, tip)
+	}
+}
 /// Signed extension that refunds relayer for new messages coming from the parachain.
 ///
 /// Also refunds relayer for successful finality delivery if it comes in batch (`utility.batchAll`)
@@ -70,9 +97,9 @@ use sp_std::marker::PhantomData;
 #[derive(
 	CloneNoBound, Decode, Encode, EqNoBound, PartialEqNoBound, RuntimeDebugNoBound, TypeInfo,
 )]
-#[scale_info(skip_type_params(RT, GI, PI, MI, BE, PID, LID))]
-pub struct RefundRelayerForMessagesFromParachain<RT, GI, PI, MI, BE, PID, LID>(
-	PhantomData<(RT, GI, PI, MI, BE, PID, LID)>,
+#[scale_info(skip_type_params(RT, GI, PI, MI, BE, PID, LID, FEE))]
+pub struct RefundRelayerForMessagesFromParachain<RT, GI, PI, MI, BE, PID, LID, FEE>(
+	PhantomData<(RT, GI, PI, MI, BE, PID, LID, FEE)>,
 );
 
 /// Data that is crafted in `pre_dispatch` method and used at `post_dispatch`.
@@ -138,19 +165,18 @@ type BalanceOf<R> =
 	<<R as TransactionPaymentConfig>::OnChargeTransaction as OnChargeTransaction<R>>::Balance;
 type CallOf<R> = <R as frame_system::Config>::RuntimeCall;
 
-impl<R, GI, PI, MI, BE, PID, LID> SignedExtension
-	for RefundRelayerForMessagesFromParachain<R, GI, PI, MI, BE, PID, LID>
+impl<R, GI, PI, MI, BE, PID, LID, FEE> SignedExtension
+	for RefundRelayerForMessagesFromParachain<R, GI, PI, MI, BE, PID, LID, FEE>
 where
 	R: 'static
 		+ Send
 		+ Sync
 		+ frame_system::Config
-		+ TransactionPaymentConfig
 		+ UtilityConfig<RuntimeCall = CallOf<R>>
 		+ GrandpaConfig<GI>
 		+ ParachainsConfig<PI, BridgesGrandpaPalletInstance = GI>
 		+ MessagesConfig<MI>
-		+ RelayersConfig<Reward = BalanceOf<R>>,
+		+ RelayersConfig,
 	GI: 'static + Send + Sync,
 	PI: 'static + Send + Sync,
 	MI: 'static + Send + Sync,
@@ -161,9 +187,9 @@ where
 		+ SignedExtension<AccountId = R::AccountId, Call = CallOf<R>>,
 	PID: 'static + Send + Sync + Get<u32>,
 	LID: 'static + Send + Sync + Get<LaneId>,
+	FEE: 'static + Send + Sync + TransactionFeeCalculation<<R as RelayersConfig>::Reward>,
 	<R as frame_system::Config>::RuntimeCall:
 		Dispatchable<Info = DispatchInfo, PostInfo = PostDispatchInfo>,
-	BalanceOf<R>: FixedPointOperand,
 	CallOf<R>: IsSubType<CallableCallFor<UtilityPallet<R>, R>>
 		+ IsSubType<CallableCallFor<GrandpaPallet<R, GI>, R>>
 		+ IsSubType<CallableCallFor<ParachainsPallet<R, PI>, R>>
@@ -298,9 +324,7 @@ where
 		let tip = Zero::zero();
 
 		// compute the relayer reward
-		let reward = pallet_transaction_payment::Pallet::<R>::compute_actual_fee(
-			len as _, info, post_info, tip,
-		);
+		let reward = FEE::compute_fee(info, post_info, len, tip);
 
 		// finally - register reward in relayers pallet
 		RelayersPallet::<R>::register_relayer_reward(LID::get(), &relayer, reward);
@@ -444,6 +468,7 @@ mod tests {
 		millau_runtime::BridgeRejectObsoleteHeadersAndMessages,
 		TestParachain,
 		TestLaneId,
+		millau_runtime::Runtime,
 	>;
 
 	fn relayer_account() -> millau_runtime::AccountId {
