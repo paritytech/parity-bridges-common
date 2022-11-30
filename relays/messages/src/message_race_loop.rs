@@ -552,17 +552,25 @@ pub async fn run<P: MessageRace, SC: SourceClient<P>, TC: TargetClient<P>>(
 			target_client_is_online = false;
 
 			if let Some((at_block, nonces_range, proof)) = race_state.nonces_to_submit.as_ref() {
-				log::debug!(
-					target: "bridge",
-					"Going to submit proof of messages in range {:?} to {} node",
-					nonces_range,
-					P::target_name(),
-				);
-
 				if let Some(target_batch_transaction) = target_batch_transaction.take() {
+					log::debug!(
+						target: "bridge",
+						"Going to submit batch transaction with header {:?} and proof of messages in range {:?} to {} node",
+						target_batch_transaction.required_header_id(),
+						nonces_range,
+						P::target_name(),
+					);
+
 					target_submit_proof
 						.set(target_batch_transaction.append_proof_and_send(proof.clone()).fuse());
 				} else {
+					log::debug!(
+						target: "bridge",
+						"Going to submit proof of messages in range {:?} to {} node",
+						nonces_range,
+						P::target_name(),
+					);
+
 					target_submit_proof.set(
 						race_target
 							.submit_proof(at_block.clone(), nonces_range.clone(), proof.clone())

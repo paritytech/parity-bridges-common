@@ -532,6 +532,7 @@ pub(crate) mod tests {
 		type TargetHeaderHash = TestTargetHeaderHash;
 	}
 
+	#[derive(Clone, Debug)]
 	pub struct TestMessagesBatchTransaction {
 		data: Arc<Mutex<TestClientData>>,
 		required_header_id: TestSourceHeaderId,
@@ -557,6 +558,7 @@ pub(crate) mod tests {
 		}
 	}
 
+	#[derive(Clone, Debug)]
 	pub struct TestConfirmationBatchTransaction {
 		data: Arc<Mutex<TestClientData>>,
 		required_header_id: TestTargetHeaderId,
@@ -621,8 +623,10 @@ pub(crate) mod tests {
 		target_latest_confirmed_received_nonce: MessageNonce,
 		target_tracked_transaction_status: TrackedTransactionStatus<TestTargetHeaderId>,
 		submitted_messages_proofs: Vec<TestMessagesProof>,
+		target_to_source_batch_transaction: Option<TestConfirmationBatchTransaction>,
 		target_to_source_header_required: Option<TestTargetHeaderId>,
 		target_to_source_header_requirements: Vec<TestTargetHeaderId>,
+		source_to_target_batch_transaction: Option<TestMessagesBatchTransaction>,
 		source_to_target_header_required: Option<TestSourceHeaderId>,
 		source_to_target_header_requirements: Vec<TestSourceHeaderId>,
 	}
@@ -650,8 +654,10 @@ pub(crate) mod tests {
 					Default::default(),
 				)),
 				submitted_messages_proofs: Vec::new(),
+				target_to_source_batch_transaction: None,
 				target_to_source_header_required: None,
 				target_to_source_header_requirements: Vec::new(),
+				source_to_target_batch_transaction: None,
 				source_to_target_header_required: None,
 				source_to_target_header_requirements: Vec::new(),
 			}
@@ -816,7 +822,11 @@ pub(crate) mod tests {
 			data.target_to_source_header_requirements.push(id);
 			(self.tick)(&mut data);
 			(self.post_tick)(&mut data);
-			None
+
+			data.target_to_source_batch_transaction.take().map(|mut tx| {
+				tx.required_header_id = id;
+				tx
+			})
 		}
 	}
 
@@ -943,12 +953,16 @@ pub(crate) mod tests {
 			data.source_to_target_header_requirements.push(id);
 			(self.tick)(&mut data);
 			(self.post_tick)(&mut data);
-			None
+
+			data.source_to_target_batch_transaction.take().map(|mut tx| {
+				tx.required_header_id = id;
+				tx
+			})
 		}
 	}
 
 	fn run_loop_test(
-		data: TestClientData,
+		data: Arc<Mutex<TestClientData>>,
 		source_tick: Arc<dyn Fn(&mut TestClientData) + Send + Sync>,
 		source_post_tick: Arc<dyn Fn(&mut TestClientData) + Send + Sync>,
 		target_tick: Arc<dyn Fn(&mut TestClientData) + Send + Sync>,
@@ -956,8 +970,6 @@ pub(crate) mod tests {
 		exit_signal: impl Future<Output = ()> + 'static + Send,
 	) -> TestClientData {
 		async_std::task::block_on(async {
-			let data = Arc::new(Mutex::new(data));
-
 			let source_client = TestSourceClient {
 				data: data.clone(),
 				tick: source_tick,
@@ -1000,7 +1012,7 @@ pub(crate) mod tests {
 		// able to deliver messages.
 		let (exit_sender, exit_receiver) = unbounded();
 		let result = run_loop_test(
-			TestClientData {
+			Arc::new(Mutex::new(TestClientData {
 				is_source_fails: true,
 				source_state: ClientState {
 					best_self: HeaderId(0, 0),
@@ -1017,7 +1029,7 @@ pub(crate) mod tests {
 				},
 				target_latest_received_nonce: 0,
 				..Default::default()
-			},
+			})),
 			Arc::new(|data: &mut TestClientData| {
 				if data.is_source_reconnected {
 					data.is_source_fails = false;
@@ -1053,7 +1065,7 @@ pub(crate) mod tests {
 		let (source_exit_sender, exit_receiver) = unbounded();
 		let target_exit_sender = source_exit_sender.clone();
 		let result = run_loop_test(
-			TestClientData {
+			Arc::new(Mutex::new(TestClientData {
 				source_state: ClientState {
 					best_self: HeaderId(0, 0),
 					best_finalized_self: HeaderId(0, 0),
@@ -1071,7 +1083,7 @@ pub(crate) mod tests {
 				target_latest_received_nonce: 0,
 				target_tracked_transaction_status: TrackedTransactionStatus::Lost,
 				..Default::default()
-			},
+			})),
 			Arc::new(move |data: &mut TestClientData| {
 				if data.is_source_reconnected {
 					data.source_tracked_transaction_status =
@@ -1104,7 +1116,7 @@ pub(crate) mod tests {
 		// their corresponding nonce won't be udpated => reconnect will happen
 		let (exit_sender, exit_receiver) = unbounded();
 		let result = run_loop_test(
-			TestClientData {
+			Arc::new(Mutex::new(TestClientData {
 				source_state: ClientState {
 					best_self: HeaderId(0, 0),
 					best_finalized_self: HeaderId(0, 0),
@@ -1120,7 +1132,7 @@ pub(crate) mod tests {
 				},
 				target_latest_received_nonce: 0,
 				..Default::default()
-			},
+			})),
 			Arc::new(move |data: &mut TestClientData| {
 				// blocks are produced on every tick
 				data.source_state.best_self =
@@ -1178,7 +1190,7 @@ pub(crate) mod tests {
 	fn message_lane_loop_works() {
 		let (exit_sender, exit_receiver) = unbounded();
 		let result = run_loop_test(
-			TestClientData {
+			Arc::new(Mutex::new(TestClientData {
 				source_state: ClientState {
 					best_self: HeaderId(10, 10),
 					best_finalized_self: HeaderId(10, 10),
@@ -1194,7 +1206,7 @@ pub(crate) mod tests {
 				},
 				target_latest_received_nonce: 0,
 				..Default::default()
-			},
+			})),
 			Arc::new(|data: &mut TestClientData| {
 				// blocks are produced on every tick
 				data.source_state.best_self =
@@ -1241,6 +1253,77 @@ pub(crate) mod tests {
 				}
 			}),
 			Arc::new(|_| {}),
+			exit_receiver.into_future().map(|(_, _)| ()),
+		);
+
+		// there are no strict restrictions on when reward confirmation should come
+		// (because `max_unconfirmed_nonces_at_target` is `100` in tests and this confirmation
+		// depends on the state of both clients)
+		// => we do not check it here
+		assert_eq!(result.submitted_messages_proofs[0].0, 1..=4);
+		assert_eq!(result.submitted_messages_proofs[1].0, 5..=8);
+		assert_eq!(result.submitted_messages_proofs[2].0, 9..=10);
+		assert!(!result.submitted_messages_receiving_proofs.is_empty());
+
+		// check that we have at least once required new source->target or target->source headers
+		assert!(!result.target_to_source_header_requirements.is_empty());
+		assert!(!result.source_to_target_header_requirements.is_empty());
+	}
+
+	#[test]
+	fn message_lane_loop_works_with_batch_transactions() {
+		let _ = env_logger::try_init();
+		let (exit_sender, exit_receiver) = unbounded();
+		let original_data = Arc::new(Mutex::new(TestClientData {
+			source_state: ClientState {
+				best_self: HeaderId(10, 10),
+				best_finalized_self: HeaderId(10, 10),
+				best_finalized_peer_at_best_self: HeaderId(0, 0),
+				actual_best_finalized_peer_at_best_self: HeaderId(0, 0),
+			},
+			source_latest_generated_nonce: 10,
+			target_state: ClientState {
+				best_self: HeaderId(0, 0),
+				best_finalized_self: HeaderId(0, 0),
+				best_finalized_peer_at_best_self: HeaderId(0, 0),
+				actual_best_finalized_peer_at_best_self: HeaderId(0, 0),
+			},
+			target_latest_received_nonce: 0,
+			..Default::default()
+		}));
+		let target_original_data = original_data.clone();
+		let source_original_data = original_data.clone();
+		let result = run_loop_test(
+			original_data,
+			Arc::new(|_| {}),
+			Arc::new(move |data: &mut TestClientData| {
+				if let Some(target_to_source_header_required) =
+					data.target_to_source_header_required.take()
+				{
+					data.target_to_source_batch_transaction =
+						Some(TestConfirmationBatchTransaction {
+							data: source_original_data.clone(),
+							required_header_id: target_to_source_header_required,
+							tx_tracker: TestTransactionTracker::default(),
+						})
+				}
+			}),
+			Arc::new(|_| {}),
+			Arc::new(move |data: &mut TestClientData| {
+				if let Some(source_to_target_header_required) =
+					data.source_to_target_header_required.take()
+				{
+					data.source_to_target_batch_transaction = Some(TestMessagesBatchTransaction {
+						data: target_original_data.clone(),
+						required_header_id: source_to_target_header_required,
+						tx_tracker: TestTransactionTracker::default(),
+					})
+				}
+
+				if data.source_latest_confirmed_received_nonce == 10 {
+					exit_sender.unbounded_send(()).unwrap();
+				}
+			}),
 			exit_receiver.into_future().map(|(_, _)| ()),
 		);
 
