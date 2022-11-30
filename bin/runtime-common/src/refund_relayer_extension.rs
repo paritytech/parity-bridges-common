@@ -60,7 +60,6 @@ use sp_std::marker::PhantomData;
 // support multiple bridges in this extension
 
 /// Transaction fee calculation.
-#[allow(clippy::type_complexity)] // TODO: get rid of that in https://github.com/paritytech/parity-bridges-common/issues/1666
 pub trait TransactionFeeCalculation<Balance> {
 	/// Compute fee that is paid for given transaction. The fee is later refunded to relayer.
 	fn compute_fee(
@@ -99,6 +98,7 @@ where
 	CloneNoBound, Decode, Encode, EqNoBound, PartialEqNoBound, RuntimeDebugNoBound, TypeInfo,
 )]
 #[scale_info(skip_type_params(RT, GI, PI, MI, BE, PID, LID, FEE))]
+#[allow(clippy::type_complexity)] // TODO: get rid of that in https://github.com/paritytech/parity-bridges-common/issues/1666
 pub struct RefundRelayerForMessagesFromParachain<RT, GI, PI, MI, BE, PID, LID, FEE>(
 	PhantomData<(RT, GI, PI, MI, BE, PID, LID, FEE)>,
 );
