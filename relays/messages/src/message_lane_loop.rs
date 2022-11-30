@@ -532,29 +532,58 @@ pub(crate) mod tests {
 		type TargetHeaderHash = TestTargetHeaderHash;
 	}
 
-	pub struct TestBatchTransaction<HeaderId, Proof, TransactionTracker, Error>(
-		std::marker::PhantomData<(HeaderId, Proof, TransactionTracker, Error)>,
-	);
+	pub struct TestMessagesBatchTransaction {
+		data: Arc<Mutex<TestClientData>>,
+		required_header_id: TestSourceHeaderId,
+		tx_tracker: TestTransactionTracker,
+	}
 
 	#[async_trait]
-	impl<HeaderId, Proof, TransactionTracker, Error>
-		BatchTransaction<HeaderId, Proof, TransactionTracker, Error>
-		for TestBatchTransaction<HeaderId, Proof, TransactionTracker, Error>
-	where
-		HeaderId: Send,
-		Proof: Send,
-		TransactionTracker: Send,
-		Error: Send,
+	impl BatchTransaction<TestSourceHeaderId, TestMessagesProof, TestTransactionTracker, TestError>
+		for TestMessagesBatchTransaction
 	{
-		fn required_header_id(&self) -> HeaderId {
-			unimplemented!("TODO")
+		fn required_header_id(&self) -> TestSourceHeaderId {
+			self.required_header_id
 		}
 
 		async fn append_proof_and_send(
 			self,
-			_proof: Proof,
-		) -> Result<NoncesSubmitArtifacts<TransactionTracker>, Error> {
-			unimplemented!("TODO")
+			proof: TestMessagesProof,
+		) -> Result<NoncesSubmitArtifacts<TestTransactionTracker>, TestError> {
+			let nonces = proof.0.clone();
+			let mut data = self.data.lock();
+			data.receive_messages(proof);
+			Ok(NoncesSubmitArtifacts { nonces, tx_tracker: self.tx_tracker })
+		}
+	}
+
+	pub struct TestConfirmationBatchTransaction {
+		data: Arc<Mutex<TestClientData>>,
+		required_header_id: TestTargetHeaderId,
+		tx_tracker: TestTransactionTracker,
+	}
+
+	#[async_trait]
+	impl
+		BatchTransaction<
+			TestTargetHeaderId,
+			TestMessagesReceivingProof,
+			TestTransactionTracker,
+			TestError,
+		> for TestConfirmationBatchTransaction
+	{
+		fn required_header_id(&self) -> TestTargetHeaderId {
+			self.required_header_id
+		}
+
+		async fn append_proof_and_send(
+			self,
+			proof: TestMessagesReceivingProof,
+		) -> Result<NoncesSubmitArtifacts<TestTransactionTracker>, TestError> {
+			let nonces = proof..=proof;
+			let mut data = self.data.lock();
+			data.receive_messages_delivery_proof(proof);
+			Ok(NoncesSubmitArtifacts { nonces, tx_tracker: self.tx_tracker })
 		}
 	}
 
@@ -629,6 +658,28 @@ pub(crate) mod tests {
 		}
 	}
 
+	impl TestClientData {
+		fn receive_messages(&mut self, proof: TestMessagesProof) {
+			self.target_state.best_self =
+				HeaderId(self.target_state.best_self.0 + 1, self.target_state.best_self.1 + 1);
+			self.target_state.best_finalized_self = self.target_state.best_self;
+			self.target_latest_received_nonce = *proof.0.end();
+			if let Some(target_latest_confirmed_received_nonce) = proof.1 {
+				self.target_latest_confirmed_received_nonce =
+					target_latest_confirmed_received_nonce;
+			}
+			self.submitted_messages_proofs.push(proof);
+		}
+
+		fn receive_messages_delivery_proof(&mut self, proof: TestMessagesReceivingProof) {
+			self.source_state.best_self =
+				HeaderId(self.source_state.best_self.0 + 1, self.source_state.best_self.1 + 1);
+			self.source_state.best_finalized_self = self.source_state.best_self;
+			self.submitted_messages_receiving_proofs.push(proof);
+			self.source_latest_confirmed_received_nonce = proof;
+		}
+	}
+
 	#[derive(Clone)]
 	pub struct TestSourceClient {
 		data: Arc<Mutex<TestClientData>>,
@@ -663,12 +714,7 @@ pub(crate) mod tests {
 
 	#[async_trait]
 	impl SourceClient<TestMessageLane> for TestSourceClient {
-		type BatchTransaction = TestBatchTransaction<
-			TargetHeaderIdOf<TestMessageLane>,
-			TestMessagesReceivingProof,
-			TestTransactionTracker,
-			TestError,
-		>;
+		type BatchTransaction = TestConfirmationBatchTransaction;
 		type TransactionTracker = TestTransactionTracker;
 
 		async fn state(&self) -> Result<SourceClientState<TestMessageLane>, TestError> {
@@ -756,11 +802,7 @@ pub(crate) mod tests {
 		) -> Result<Self::TransactionTracker, TestError> {
 			let mut data = self.data.lock();
 			(self.tick)(&mut data);
-			data.source_state.best_self =
-				HeaderId(data.source_state.best_self.0 + 1, data.source_state.best_self.1 + 1);
-			data.source_state.best_finalized_self = data.source_state.best_self;
-			data.submitted_messages_receiving_proofs.push(proof);
-			data.source_latest_confirmed_received_nonce = proof;
+			data.receive_messages_delivery_proof(proof);
 			(self.post_tick)(&mut data);
 			Ok(TestTransactionTracker(data.source_tracked_transaction_status))
 		}
@@ -812,12 +854,7 @@ pub(crate) mod tests {
 
 	#[async_trait]
 	impl TargetClient<TestMessageLane> for TestTargetClient {
-		type BatchTransaction = TestBatchTransaction<
-			SourceHeaderIdOf<TestMessageLane>,
-			TestMessagesProof,
-			TestTransactionTracker,
-			TestError,
-		>;
+		type BatchTransaction = TestMessagesBatchTransaction;
 		type TransactionTracker = TestTransactionTracker;
 
 		async fn state(&self) -> Result<TargetClientState<TestMessageLane>, TestError> {
@@ -889,15 +926,7 @@ pub(crate) mod tests {
 			if data.is_target_fails {
 				return Err(TestError)
 			}
-			data.target_state.best_self =
-				HeaderId(data.target_state.best_self.0 + 1, data.target_state.best_self.1 + 1);
-			data.target_state.best_finalized_self = data.target_state.best_self;
-			data.target_latest_received_nonce = *proof.0.end();
-			if let Some(target_latest_confirmed_received_nonce) = proof.1 {
-				data.target_latest_confirmed_received_nonce =
-					target_latest_confirmed_received_nonce;
-			}
-			data.submitted_messages_proofs.push(proof);
+			data.receive_messages(proof);
 			(self.post_tick)(&mut data);
 			Ok(NoncesSubmitArtifacts {
 				nonces,
