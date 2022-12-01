@@ -39,7 +39,7 @@ use messages_relay::{
 	message_lane_loop::{BatchTransaction, NoncesSubmitArtifacts, TargetClient, TargetClientState},
 };
 use relay_substrate_client::{
-	AccountIdOf, AccountKeyPairOf, BalanceOf, Chain, ChainWithMessages, Client,
+	AccountIdOf, AccountKeyPairOf, BalanceOf, CallOf, Chain, ChainWithMessages, Client,
 	Error as SubstrateError, HashOf, HeaderIdOf, IndexOf, SignParam, TransactionEra,
 	TransactionTracker, UnsignedTransaction,
 };
@@ -303,6 +303,8 @@ impl<P: SubstrateMessageLane>
 		TransactionTracker<P::TargetChain, Client<P::TargetChain>>,
 		SubstrateError,
 	> for BatchDeliveryTransaction<P>
+where
+	AccountIdOf<P::TargetChain>: From<<AccountKeyPairOf<P::TargetChain> as Pair>::Public>,
 {
 	fn required_header_id(&self) -> SourceHeaderIdOf<MessageLaneAdapter<P>> {
 		self.required_source_header_on_target.clone()
@@ -310,10 +312,64 @@ impl<P: SubstrateMessageLane>
 
 	async fn append_proof_and_send(
 		self,
-		_proof: <MessageLaneAdapter<P> as MessageLane>::MessagesProof,
+		proof: <MessageLaneAdapter<P> as MessageLane>::MessagesProof,
 	) -> Result<TransactionTracker<P::TargetChain, Client<P::TargetChain>>, SubstrateError> {
-		unimplemented!("TODO")
+		let mut calls = self
+			.messages_target
+			.source_to_target_headers_relay
+			.as_ref()
+			.expect("BatchDeliveryTransaction is only created when source_to_target_headers_relay is Some; qed")
+			.prove_header(self.required_source_header_on_target.0)
+			.await?;
+		calls.push(make_messages_delivery_call::<P>(
+			self.messages_target.relayer_id_at_source,
+			proof.1.nonces_start..=proof.1.nonces_end,
+			proof,
+			false,
+		));
+		let batch_call = P::TargetBatchCallBuilder::build_batch_call(calls);
+
+		let (spec_version, transaction_version) =
+			self.messages_target.target_client.simple_runtime_version().await?;
+		self.messages_target
+			.target_client
+			.submit_and_watch_signed_extrinsic(
+				self.messages_target.transaction_params.signer.public().into(),
+				SignParam::<P::TargetChain> {
+					spec_version,
+					transaction_version,
+					genesis_hash: *self.messages_target.target_client.genesis_hash(),
+					signer: self.messages_target.transaction_params.signer.clone(),
+				},
+				move |best_block_id, transaction_nonce| {
+					Ok(UnsignedTransaction::new(batch_call.into(), transaction_nonce).era(
+						TransactionEra::new(
+							best_block_id,
+							self.messages_target.transaction_params.mortality,
+						),
+					))
+				},
+			)
+			.await
 	}
+}
+
+/// Make messages delivery call from given proof.
+fn make_messages_delivery_call<P: SubstrateMessageLane>(
+	relayer_id_at_source: AccountIdOf<P::SourceChain>,
+	nonces: RangeInclusive<MessageNonce>,
+	proof: SubstrateMessagesProof<P::SourceChain>,
+	trace_call: bool,
+) -> CallOf<P::TargetChain> {
+	let messages_count = nonces.end() - nonces.start() + 1;
+	let dispatch_weight = proof.0;
+	P::ReceiveMessagesProofCallBuilder::build_receive_messages_proof_call(
+		relayer_id_at_source,
+		proof,
+		messages_count as _,
+		dispatch_weight,
+		trace_call,
+	)
 }
 
 /// Make messages delivery transaction from given proof.
@@ -326,15 +382,7 @@ fn make_messages_delivery_transaction<P: SubstrateMessageLane>(
 	proof: SubstrateMessagesProof<P::SourceChain>,
 	trace_call: bool,
 ) -> Result<UnsignedTransaction<P::TargetChain>, SubstrateError> {
-	let messages_count = nonces.end() - nonces.start() + 1;
-	let dispatch_weight = proof.0;
-	let call = P::ReceiveMessagesProofCallBuilder::build_receive_messages_proof_call(
-		relayer_id_at_source,
-		proof,
-		messages_count as _,
-		dispatch_weight,
-		trace_call,
-	);
+	let call = make_messages_delivery_call::<P>(relayer_id_at_source, nonces, proof, trace_call);
 	Ok(UnsignedTransaction::new(call.into(), transaction_nonce)
 		.era(TransactionEra::new(target_best_block_id, target_transaction_params.mortality)))
 }

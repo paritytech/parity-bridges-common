@@ -418,7 +418,6 @@ where
 				proof, false,
 			),
 		);
-
 		let batch_call = P::SourceBatchCallBuilder::build_batch_call(calls);
 
 		let (spec_version, transaction_version) =

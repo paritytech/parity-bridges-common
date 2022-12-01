@@ -213,7 +213,7 @@ pub trait BatchCallBuilder<C: Chain> {
 impl<C: Chain> BatchCallBuilder<C> for () {
 	const BATCH_CALL_SUPPORTED: bool = false;
 
-	fn build_batch_call(calls: Vec<CallOf<C>>) -> CallOf<C> {
+	fn build_batch_call(_calls: Vec<CallOf<C>>) -> CallOf<C> {
 		unreachable!(
 			"only called if `BATCH_CALL_SUPPORTED` is true;\
 			`BATCH_CALL_SUPPORTED` is false;\
