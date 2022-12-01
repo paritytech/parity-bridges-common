@@ -152,7 +152,6 @@ mod tests {
 	}
 
 	parameter_types! {
-		pub const BlockHashCount: u64 = 250;
 		pub const MaximumBlockWeight: Weight = Weight::from_ref_time(1024);
 		pub const MaximumBlockLength: u32 = 2 * 1024;
 		pub const AvailableBlockRatio: Perbill = Perbill::one();
@@ -169,7 +168,7 @@ mod tests {
 		type Lookup = IdentityLookup<Self::AccountId>;
 		type Header = Header;
 		type RuntimeEvent = ();
-		type BlockHashCount = BlockHashCount;
+		type BlockHashCount = ConstU64<250>;
 		type Version = ();
 		type PalletInfo = PalletInfo;
 		type AccountData = ();
@@ -185,12 +184,9 @@ mod tests {
 		type MaxConsumers = frame_support::traits::ConstU32<16>;
 	}
 
-	parameter_types! {
-		pub const Period: u64 = 1;
-		pub const Offset: u64 = 0;
-	}
-
 	impl pallet_session::Config for TestRuntime {
+		type Period = ConstU64<1>;
+		type Offset = ConstU64<0>;
 		type RuntimeEvent = ();
 		type ValidatorId = <Self as frame_system::Config>::AccountId;
 		type ValidatorIdOf = ConvertInto;
