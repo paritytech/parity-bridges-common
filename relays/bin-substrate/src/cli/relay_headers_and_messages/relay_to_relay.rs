@@ -22,7 +22,6 @@ use crate::cli::{
 	relay_headers_and_messages::{Full2WayBridgeBase, Full2WayBridgeCommonParams},
 	CliChain,
 };
-use bp_runtime::BlockNumberOf;
 use relay_substrate_client::{AccountIdOf, AccountKeyPairOf, ChainWithTransactions};
 use sp_core::Pair;
 use substrate_relay_helper::{
@@ -149,8 +148,8 @@ where
 	async fn start_on_demand_headers_relayers(
 		&mut self,
 	) -> anyhow::Result<(
-		Arc<dyn OnDemandRelay<BlockNumberOf<Self::Left>>>,
-		Arc<dyn OnDemandRelay<BlockNumberOf<Self::Right>>>,
+		Arc<dyn OnDemandRelay<Self::Left, Self::Right>>,
+		Arc<dyn OnDemandRelay<Self::Right, Self::Left>>,
 	)> {
 		self.common.right.accounts.push(TaggedAccount::Headers {
 			id: self.left_to_right_transaction_params.signer.public().into(),

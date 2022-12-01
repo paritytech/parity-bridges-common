@@ -38,12 +38,13 @@ use num_traits::Zero;
 use pallet_bridge_parachains::{RelayBlockHash, RelayBlockHasher, RelayBlockNumber};
 use parachains_relay::parachains_loop::{AvailableHeader, ParachainSyncParams, TargetClient};
 use relay_substrate_client::{
-	AccountIdOf, AccountKeyPairOf, BlockNumberOf, Chain, Client, Error as SubstrateError, HashOf,
+	AccountIdOf, AccountKeyPairOf, BlockNumberOf, Chain, ChainWithTransactions, Client,
+	Error as SubstrateError, HashOf,
 };
 use relay_utils::{
 	metrics::MetricsParams, relay_loop::Client as RelayClient, FailedClient, HeaderId,
 };
-use std::fmt::Debug;
+use std::{fmt::Debug, marker::PhantomData};
 
 /// On-demand Substrate <-> Substrate parachain finality relay.
 ///
@@ -51,25 +52,31 @@ use std::fmt::Debug;
 /// (e.g. messages relay) needs it to continue its regular work. When enough parachain headers
 /// are relayed, on-demand stops syncing headers.
 #[derive(Clone)]
-pub struct OnDemandParachainsRelay<SourceParachain: Chain> {
+pub struct OnDemandParachainsRelay<SourceParachain: Chain, TargetChain> {
 	/// Relay task name.
 	relay_task_name: String,
 	/// Channel used to communicate with background task and ask for relay of parachain heads.
 	required_header_number_sender: Sender<BlockNumberOf<SourceParachain>>,
+	/// Just rusty things.
+	_marker: PhantomData<TargetChain>,
 }
 
-impl<SourceParachain: Chain> OnDemandParachainsRelay<SourceParachain> {
+impl<SourceParachain: Chain, TargetChain: ChainWithTransactions>
+	OnDemandParachainsRelay<SourceParachain, TargetChain>
+{
 	/// Create new on-demand parachains relay.
 	///
 	/// Note that the argument is the source relay chain client, not the parachain client.
 	/// That's because parachain finality is determined by the relay chain and we don't
 	/// need to connect to the parachain itself here.
-	pub fn new<P: SubstrateParachainsPipeline<SourceParachain = SourceParachain>>(
+	pub fn new<
+		P: SubstrateParachainsPipeline<SourceParachain = SourceParachain, TargetChain = TargetChain>,
+	>(
 		source_relay_client: Client<P::SourceRelayChain>,
 		target_client: Client<P::TargetChain>,
 		target_transaction_params: TransactionParams<AccountKeyPairOf<P::TargetChain>>,
 		on_demand_source_relay_to_target_headers: Arc<
-			dyn OnDemandRelay<BlockNumberOf<P::SourceRelayChain>>,
+			dyn OnDemandRelay<P::SourceRelayChain, P::TargetChain>,
 		>,
 	) -> Self
 	where
@@ -83,6 +90,7 @@ impl<SourceParachain: Chain> OnDemandParachainsRelay<SourceParachain> {
 		let this = OnDemandParachainsRelay {
 			relay_task_name: on_demand_parachains_relay_name::<SourceParachain, P::TargetChain>(),
 			required_header_number_sender,
+			_marker: PhantomData,
 		};
 		async_std::task::spawn(async move {
 			background_task::<P>(
@@ -100,10 +108,11 @@ impl<SourceParachain: Chain> OnDemandParachainsRelay<SourceParachain> {
 }
 
 #[async_trait]
-impl<SourceParachain> OnDemandRelay<BlockNumberOf<SourceParachain>>
-	for OnDemandParachainsRelay<SourceParachain>
+impl<SourceParachain, TargetChain> OnDemandRelay<SourceParachain, TargetChain>
+	for OnDemandParachainsRelay<SourceParachain, TargetChain>
 where
 	SourceParachain: Chain,
+	TargetChain: Chain,
 {
 	async fn require_more_headers(&self, required_header: BlockNumberOf<SourceParachain>) {
 		if let Err(e) = self.required_header_number_sender.send(required_header).await {
@@ -125,7 +134,7 @@ async fn background_task<P: SubstrateParachainsPipeline>(
 	target_client: Client<P::TargetChain>,
 	target_transaction_params: TransactionParams<AccountKeyPairOf<P::TargetChain>>,
 	on_demand_source_relay_to_target_headers: Arc<
-		dyn OnDemandRelay<BlockNumberOf<P::SourceRelayChain>>,
+		dyn OnDemandRelay<P::SourceRelayChain, P::TargetChain>,
 	>,
 	required_parachain_header_number_receiver: Receiver<BlockNumberOf<P::SourceParachain>>,
 ) where

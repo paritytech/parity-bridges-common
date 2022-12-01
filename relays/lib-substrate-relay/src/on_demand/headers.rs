@@ -22,9 +22,12 @@ use bp_header_chain::ConsensusLogReader;
 use futures::{select, FutureExt};
 use num_traits::{One, Zero};
 use sp_runtime::traits::Header;
+use std::marker::PhantomData;
 
 use finality_relay::{FinalitySyncParams, TargetClient as FinalityTargetClient};
-use relay_substrate_client::{AccountIdOf, AccountKeyPairOf, BlockNumberOf, Chain, Client};
+use relay_substrate_client::{
+	AccountIdOf, AccountKeyPairOf, BlockNumberOf, Chain, ChainWithTransactions, Client,
+};
 use relay_utils::{
 	metrics::MetricsParams, relay_loop::Client as RelayClient, FailedClient, MaybeConnectionError,
 	STALL_TIMEOUT,
@@ -47,16 +50,22 @@ use crate::{
 /// relay) needs it to continue its regular work. When enough headers are relayed, on-demand stops
 /// syncing headers.
 #[derive(Clone)]
-pub struct OnDemandHeadersRelay<SourceChain: Chain> {
+pub struct OnDemandHeadersRelay<SourceChain: Chain, TargetChain> {
 	/// Relay task name.
 	relay_task_name: String,
 	/// Shared reference to maximal required finalized header number.
 	required_header_number: RequiredHeaderNumberRef<SourceChain>,
+	/// Just rusty things.
+	_marker: PhantomData<TargetChain>,
 }
 
-impl<SourceChain: Chain> OnDemandHeadersRelay<SourceChain> {
+impl<SourceChain: Chain, TargetChain: ChainWithTransactions>
+	OnDemandHeadersRelay<SourceChain, TargetChain>
+{
 	/// Create new on-demand headers relay.
-	pub fn new<P: SubstrateFinalitySyncPipeline<SourceChain = SourceChain>>(
+	pub fn new<
+		P: SubstrateFinalitySyncPipeline<SourceChain = SourceChain, TargetChain = TargetChain>,
+	>(
 		source_client: Client<P::SourceChain>,
 		target_client: Client<P::TargetChain>,
 		target_transaction_params: TransactionParams<AccountKeyPairOf<P::TargetChain>>,
@@ -70,6 +79,7 @@ impl<SourceChain: Chain> OnDemandHeadersRelay<SourceChain> {
 		let this = OnDemandHeadersRelay {
 			relay_task_name: on_demand_headers_relay_name::<P::SourceChain, P::TargetChain>(),
 			required_header_number: required_header_number.clone(),
+			_marker: PhantomData,
 		};
 		async_std::task::spawn(async move {
 			background_task::<P>(
@@ -87,8 +97,8 @@ impl<SourceChain: Chain> OnDemandHeadersRelay<SourceChain> {
 }
 
 #[async_trait]
-impl<SourceChain: Chain> OnDemandRelay<BlockNumberOf<SourceChain>>
-	for OnDemandHeadersRelay<SourceChain>
+impl<SourceChain: Chain, TargetChain: Chain> OnDemandRelay<SourceChain, TargetChain>
+	for OnDemandHeadersRelay<SourceChain, TargetChain>
 {
 	async fn require_more_headers(&self, required_header: BlockNumberOf<SourceChain>) {
 		let mut required_header_number = self.required_header_number.lock().await;

@@ -39,7 +39,7 @@ use messages_relay::{
 	message_lane_loop::{BatchTransaction, NoncesSubmitArtifacts, TargetClient, TargetClientState},
 };
 use relay_substrate_client::{
-	AccountIdOf, AccountKeyPairOf, BalanceOf, BlockNumberOf, Chain, ChainWithMessages, Client,
+	AccountIdOf, AccountKeyPairOf, BalanceOf, Chain, ChainWithMessages, Client,
 	Error as SubstrateError, HashOf, HeaderIdOf, IndexOf, SignParam, TransactionEra,
 	TransactionTracker, UnsignedTransaction,
 };
@@ -58,7 +58,7 @@ pub struct SubstrateMessagesTarget<P: SubstrateMessageLane> {
 	lane_id: LaneId,
 	relayer_id_at_source: AccountIdOf<P::SourceChain>,
 	transaction_params: TransactionParams<AccountKeyPairOf<P::TargetChain>>,
-	source_to_target_headers_relay: Option<Arc<dyn OnDemandRelay<BlockNumberOf<P::SourceChain>>>>,
+	source_to_target_headers_relay: Option<Arc<dyn OnDemandRelay<P::SourceChain, P::TargetChain>>>,
 }
 
 impl<P: SubstrateMessageLane> SubstrateMessagesTarget<P> {
@@ -70,7 +70,7 @@ impl<P: SubstrateMessageLane> SubstrateMessagesTarget<P> {
 		relayer_id_at_source: AccountIdOf<P::SourceChain>,
 		transaction_params: TransactionParams<AccountKeyPairOf<P::TargetChain>>,
 		source_to_target_headers_relay: Option<
-			Arc<dyn OnDemandRelay<BlockNumberOf<P::SourceChain>>>,
+			Arc<dyn OnDemandRelay<P::SourceChain, P::TargetChain>>,
 		>,
 	) -> Self {
 		SubstrateMessagesTarget {

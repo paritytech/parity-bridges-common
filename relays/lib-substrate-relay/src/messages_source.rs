@@ -69,7 +69,7 @@ pub struct SubstrateMessagesSource<P: SubstrateMessageLane> {
 	target_client: Client<P::TargetChain>,
 	lane_id: LaneId,
 	transaction_params: TransactionParams<AccountKeyPairOf<P::SourceChain>>,
-	target_to_source_headers_relay: Option<Arc<dyn OnDemandRelay<BlockNumberOf<P::TargetChain>>>>,
+	target_to_source_headers_relay: Option<Arc<dyn OnDemandRelay<P::TargetChain, P::SourceChain>>>,
 }
 
 impl<P: SubstrateMessageLane> SubstrateMessagesSource<P> {
@@ -80,7 +80,7 @@ impl<P: SubstrateMessageLane> SubstrateMessagesSource<P> {
 		lane_id: LaneId,
 		transaction_params: TransactionParams<AccountKeyPairOf<P::SourceChain>>,
 		target_to_source_headers_relay: Option<
-			Arc<dyn OnDemandRelay<BlockNumberOf<P::TargetChain>>>,
+			Arc<dyn OnDemandRelay<P::TargetChain, P::SourceChain>>,
 		>,
 	) -> Self {
 		SubstrateMessagesSource {
@@ -411,7 +411,7 @@ where
 			.target_to_source_headers_relay
 			.as_ref()
 			.expect("BatchConfirmationTransaction is only created when target_to_source_headers_relay is Some; qed")
-			.prove_header(self.required_target_header_on_source)
+			.prove_header(self.required_target_header_on_source.0)
 			.await?;
 		calls.push(
 			P::ReceiveMessagesDeliveryProofCallBuilder::build_receive_messages_delivery_proof_call(
@@ -419,8 +419,8 @@ where
 			),
 		);
 
-		let genesis_hash = *self.messages_source.source_client.genesis_hash();
-		let transaction_params = self.messages_source.transaction_params.clone();
+		let batch_call = P::SourceBatchCallBuilder::build_batch_call(calls);
+
 		let (spec_version, transaction_version) =
 			self.messages_source.source_client.simple_runtime_version().await?;
 		self.messages_source
@@ -430,11 +430,11 @@ where
 				SignParam::<P::SourceChain> {
 					spec_version,
 					transaction_version,
-					genesis_hash,
+					genesis_hash: *self.messages_source.source_client.genesis_hash(),
 					signer: self.messages_source.transaction_params.signer.clone(),
 				},
 				move |best_block_id, transaction_nonce| {
-					Ok(UnsignedTransaction::new(calls.into(), transaction_nonce).era(
+					Ok(UnsignedTransaction::new(batch_call.into(), transaction_nonce).era(
 						TransactionEra::new(
 							best_block_id,
 							self.messages_source.transaction_params.mortality,

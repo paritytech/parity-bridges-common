@@ -25,7 +25,6 @@ use crate::cli::{
 	CliChain,
 };
 use bp_polkadot_core::parachains::ParaHash;
-use bp_runtime::BlockNumberOf;
 use pallet_bridge_parachains::{RelayBlockHash, RelayBlockHasher, RelayBlockNumber};
 use relay_substrate_client::{AccountIdOf, AccountKeyPairOf, Chain, ChainWithTransactions, Client};
 use sp_core::Pair;
@@ -208,8 +207,8 @@ where
 	async fn start_on_demand_headers_relayers(
 		&mut self,
 	) -> anyhow::Result<(
-		Arc<dyn OnDemandRelay<BlockNumberOf<Self::Left>>>,
-		Arc<dyn OnDemandRelay<BlockNumberOf<Self::Right>>>,
+		Arc<dyn OnDemandRelay<Self::Left, Self::Right>>,
+		Arc<dyn OnDemandRelay<Self::Right, Self::Left>>,
 	)> {
 		self.common.left.accounts.push(TaggedAccount::Headers {
 			id: self.right_headers_to_left_transaction_params.signer.public().into(),

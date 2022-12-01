@@ -104,10 +104,10 @@ pub struct MessagesRelayParams<P: SubstrateMessageLane> {
 	pub target_transaction_params: TransactionParams<AccountKeyPairOf<P::TargetChain>>,
 	/// Optional on-demand source to target headers relay.
 	pub source_to_target_headers_relay:
-		Option<Arc<dyn OnDemandRelay<BlockNumberOf<P::SourceChain>>>>,
+		Option<Arc<dyn OnDemandRelay<P::SourceChain, P::TargetChain>>>,
 	/// Optional on-demand target to source headers relay.
 	pub target_to_source_headers_relay:
-		Option<Arc<dyn OnDemandRelay<BlockNumberOf<P::TargetChain>>>>,
+		Option<Arc<dyn OnDemandRelay<P::TargetChain, P::SourceChain>>>,
 	/// Identifier of lane that needs to be served.
 	pub lane_id: LaneId,
 	/// Metrics parameters.
