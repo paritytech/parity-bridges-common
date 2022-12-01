@@ -19,7 +19,9 @@
 //! <BridgedName> chain.
 
 use crate::{
-	messages_lane::{BatchCallBuilder, MessageLaneAdapter, ReceiveMessagesProofCallBuilder, SubstrateMessageLane},
+	messages_lane::{
+		BatchCallBuilder, MessageLaneAdapter, ReceiveMessagesProofCallBuilder, SubstrateMessageLane,
+	},
 	messages_source::{ensure_messages_pallet_active, read_client_state, SubstrateMessagesProof},
 	on_demand::OnDemandRelay,
 	TransactionParams,
@@ -277,7 +279,7 @@ where
 				return Some(BatchDeliveryTransaction::<P> {
 					messages_target: self.clone(),
 					required_source_header_on_target: id,
-				});
+				})
 			}
 
 			source_to_target_headers_relay.require_more_headers(id.0).await;
@@ -294,12 +296,14 @@ pub struct BatchDeliveryTransaction<P: SubstrateMessageLane> {
 }
 
 #[async_trait]
-impl<P: SubstrateMessageLane> BatchTransaction<
-SourceHeaderIdOf<MessageLaneAdapter<P>>,
-	<MessageLaneAdapter<P> as MessageLane>::MessagesProof,
-	TransactionTracker<P::TargetChain, Client<P::TargetChain>>,
-	SubstrateError,
-> for BatchDeliveryTransaction<P> {
+impl<P: SubstrateMessageLane>
+	BatchTransaction<
+		SourceHeaderIdOf<MessageLaneAdapter<P>>,
+		<MessageLaneAdapter<P> as MessageLane>::MessagesProof,
+		TransactionTracker<P::TargetChain, Client<P::TargetChain>>,
+		SubstrateError,
+	> for BatchDeliveryTransaction<P>
+{
 	fn required_header_id(&self) -> SourceHeaderIdOf<MessageLaneAdapter<P>> {
 		self.required_source_header_on_target.clone()
 	}

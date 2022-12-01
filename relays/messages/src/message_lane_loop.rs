@@ -118,10 +118,7 @@ pub trait BatchTransaction<HeaderId, Proof, TransactionTracker, Error>: Send {
 	fn required_header_id(&self) -> HeaderId;
 
 	/// Append proof and send transaction to the connected node.
-	async fn append_proof_and_send(
-		self,
-		proof: Proof,
-	) -> Result<TransactionTracker, Error>;
+	async fn append_proof_and_send(self, proof: Proof) -> Result<TransactionTracker, Error>;
 }
 
 /// Source client trait.
