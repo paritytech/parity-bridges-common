@@ -62,15 +62,6 @@ pub trait SubstrateMessageLane: 'static + Clone + Debug + Send + Sync {
 	type TargetBatchCallBuilder: BatchCallBuilder<Self::TargetChain>;
 }
 
-/// Batch call builder.
-pub trait BatchCallBuilder<C: Chain> {
-	/// If `true`, then batch calls are supported at the chain.
-	const BATCH_CALL_SUPPORTED: bool;
-
-	/// Create batch call from given calls vector.
-	fn build_batch_call(calls: Vec<CallOf<C>>) -> CallOf<C>;
-}
-
 /// Adapter that allows all `SubstrateMessageLane` to act as `MessageLane`.
 #[derive(Clone, Debug)]
 pub struct MessageLaneAdapter<P: SubstrateMessageLane> {
@@ -208,6 +199,27 @@ where
 	)
 	.await
 	.map_err(Into::into)
+}
+
+/// Batch call builder.
+pub trait BatchCallBuilder<C: Chain> {
+	/// If `true`, then batch calls are supported at the chain.
+	const BATCH_CALL_SUPPORTED: bool;
+
+	/// Create batch call from given calls vector.
+	fn build_batch_call(_calls: Vec<CallOf<C>>) -> CallOf<C>;
+}
+
+impl<C: Chain> BatchCallBuilder<C> for () {
+	const BATCH_CALL_SUPPORTED: bool = false;
+
+	fn build_batch_call(calls: Vec<CallOf<C>>) -> CallOf<C> {
+		unreachable!(
+			"only called if `BATCH_CALL_SUPPORTED` is true;\
+			`BATCH_CALL_SUPPORTED` is false;\
+			qed"
+		)
+	}
 }
 
 /// Different ways of building `receive_messages_proof` calls.

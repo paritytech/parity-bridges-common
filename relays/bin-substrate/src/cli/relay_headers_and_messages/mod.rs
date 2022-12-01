@@ -59,7 +59,7 @@ use crate::{
 	declare_chain_cli_schema,
 };
 use bp_messages::LaneId;
-use bp_runtime::{BalanceOf, BlockNumberOf};
+use bp_runtime::BalanceOf;
 use relay_substrate_client::{
 	AccountIdOf, AccountKeyPairOf, Chain, ChainWithBalances, ChainWithTransactions, Client,
 };
