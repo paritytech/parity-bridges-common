@@ -99,7 +99,7 @@ where
 				log::info!(
 					target: "bridge",
 					"Initialize bridge call encoded as hex string: {:?}",
-					format!("0x{}", hex::encode(&call.encode()))
+					format!("0x{}", hex::encode(call.encode()))
 				);
 				Ok(UnsignedTransaction::new(call.into(), transaction_nonce))
 			},

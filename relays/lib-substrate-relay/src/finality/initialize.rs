@@ -134,9 +134,9 @@ where
 			move |_, transaction_nonce| {
 				let tx = prepare_initialize_transaction(transaction_nonce, initialization_data);
 				if dry_run {
-					Err(SubstrateError::Custom(format!(
-						"Not submitting extrinsic in `dry-run` mode!"
-					)))
+					Err(SubstrateError::Custom(
+						"Not submitting extrinsic in `dry-run` mode!".to_string(),
+					))
 				} else {
 					tx
 				}
