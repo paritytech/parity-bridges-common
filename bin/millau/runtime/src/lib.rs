@@ -62,7 +62,7 @@ pub use frame_support::{
 	construct_runtime,
 	dispatch::DispatchClass,
 	parameter_types,
-	traits::{Currency, ExistenceRequirement, Imbalance, KeyOwnerProofSystem, ConstU32, ConstU8},
+	traits::{ConstU32, ConstU8, Currency, ExistenceRequirement, Imbalance, KeyOwnerProofSystem},
 	weights::{
 		constants::WEIGHT_PER_SECOND, ConstantMultiplier, IdentityFee, RuntimeDbWeight, Weight,
 	},
@@ -215,7 +215,6 @@ impl frame_system::Config for Runtime {
 
 impl pallet_randomness_collective_flip::Config for Runtime {}
 
-
 impl pallet_aura::Config for Runtime {
 	type AuthorityId = AuraId;
 	type MaxAuthorities = ConstU32<10>;
@@ -323,10 +322,6 @@ impl pallet_balances::Config for Runtime {
 	// For weight estimation, we assume that the most locks on an individual account will be 50.
 	// This number may need to be adjusted in the future if this assumption no longer holds true.
 	type MaxLocks = ConstU32<50>;
-	// This is a pretty unscientific cap.
-	//
-	// Note that once this is hit the pallet will essentially throttle incoming requests down to one
-	// call per block.
 	type MaxReserves = ConstU32<50>;
 	type ReserveIdentifier = [u8; 8];
 }
@@ -381,7 +376,6 @@ impl pallet_session::Config for Runtime {
 	type WeightInfo = ();
 }
 
-
 impl pallet_bridge_relayers::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 	type Reward = Balance;
@@ -430,6 +424,10 @@ parameter_types! {
 pub type RialtoGrandpaInstance = ();
 impl pallet_bridge_grandpa::Config for Runtime {
 	type BridgedChain = bp_rialto::Rialto;
+	// This is a pretty unscientific cap.
+	//
+	// Note that once this is hit the pallet will essentially throttle incoming requests down to one
+	// call per block.
 	type MaxRequests = ConstU32<50>;
 	type HeadersToKeep = HeadersToKeep;
 	type MaxBridgedAuthorities = MaxAuthoritiesAtRialto;

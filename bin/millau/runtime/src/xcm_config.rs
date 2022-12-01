@@ -31,7 +31,7 @@ use bridge_runtime_common::{
 };
 use frame_support::{
 	parameter_types,
-	traits::{Everything, Nothing, ConstU32},
+	traits::{ConstU32, Everything, Nothing},
 };
 use xcm::latest::prelude::*;
 use xcm_builder::{

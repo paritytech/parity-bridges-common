@@ -16,7 +16,11 @@
 
 use bp_polkadot_core::parachains::ParaId;
 use bp_runtime::Chain;
-use frame_support::{construct_runtime, parameter_types, traits::{IsInVec, ConstU32}, weights::Weight};
+use frame_support::{
+	construct_runtime, parameter_types,
+	traits::{ConstU32, IsInVec},
+	weights::Weight,
+};
 use sp_runtime::{
 	testing::{Header, H256},
 	traits::{BlakeTwo256, Header as HeaderT, IdentityLookup},
@@ -88,12 +92,13 @@ impl frame_system::Config for TestRuntime {
 parameter_types! {
 	pub const SessionLength: u64 = 5;
 	pub const NumValidators: u32 = 5;
+	pub const HeadersToKeep: u32 = 5;
 }
 
 impl pallet_bridge_grandpa::Config<pallet_bridge_grandpa::Instance1> for TestRuntime {
 	type BridgedChain = TestBridgedChain;
 	type MaxRequests = ConstU32<2>;
-	type HeadersToKeep = ConstU32<5>;
+	type HeadersToKeep = HeadersToKeep;
 	type MaxBridgedAuthorities = frame_support::traits::ConstU32<5>;
 	type MaxBridgedHeaderSize = frame_support::traits::ConstU32<512>;
 	type WeightInfo = ();
@@ -101,7 +106,7 @@ impl pallet_bridge_grandpa::Config<pallet_bridge_grandpa::Instance1> for TestRun
 
 impl pallet_bridge_grandpa::Config<pallet_bridge_grandpa::Instance2> for TestRuntime {
 	type BridgedChain = TestBridgedChain;
-	type MaxRequests = MaxRequests;
+	type MaxRequests = ConstU32<2>;
 	type HeadersToKeep = HeadersToKeep;
 	type MaxBridgedAuthorities = frame_support::traits::ConstU32<5>;
 	type MaxBridgedHeaderSize = frame_support::traits::ConstU32<512>;
@@ -109,6 +114,7 @@ impl pallet_bridge_grandpa::Config<pallet_bridge_grandpa::Instance2> for TestRun
 }
 
 parameter_types! {
+	pub const HeadsToKeep: u32 = 4;
 	pub const ParasPalletName: &'static str = PARAS_PALLET_NAME;
 	pub GetTenFirstParachains: Vec<ParaId> = (0..10).map(ParaId).collect();
 }
@@ -119,7 +125,7 @@ impl pallet_bridge_parachains::Config for TestRuntime {
 	type BridgesGrandpaPalletInstance = pallet_bridge_grandpa::Instance1;
 	type ParasPalletName = ParasPalletName;
 	type TrackedParachains = IsInVec<GetTenFirstParachains>;
-	type HeadsToKeep = ConstU32<4>;
+	type HeadsToKeep = HeadsToKeep;
 	type MaxParaHeadSize = frame_support::traits::ConstU32<MAXIMAL_PARACHAIN_HEAD_SIZE>;
 }
 

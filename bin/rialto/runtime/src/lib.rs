@@ -61,7 +61,7 @@ pub use frame_support::{
 	construct_runtime,
 	dispatch::DispatchClass,
 	parameter_types,
-	traits::{Currency, ExistenceRequirement, Imbalance, KeyOwnerProofSystem, ConstU8, ConstU32},
+	traits::{ConstU32, ConstU8, Currency, ExistenceRequirement, Imbalance, KeyOwnerProofSystem},
 	weights::{constants::WEIGHT_PER_SECOND, IdentityFee, RuntimeDbWeight, Weight},
 	StorageValue,
 };
@@ -420,8 +420,8 @@ impl pallet_bridge_grandpa::Config for Runtime {
 	type BridgedChain = bp_millau::Millau;
 	/// This is a pretty unscientific cap.
 	///
-	/// Note that once this is hit the pallet will essentially throttle incoming requests down to one
-	/// call per block.
+	/// Note that once this is hit the pallet will essentially throttle incoming requests down to
+	/// one call per block.
 	type MaxRequests = ConstU32<50>;
 	type HeadersToKeep = HeadersToKeep;
 	type MaxBridgedAuthorities = MaxAuthoritiesAtMillau;

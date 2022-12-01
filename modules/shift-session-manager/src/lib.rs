@@ -168,7 +168,7 @@ mod tests {
 		type Lookup = IdentityLookup<Self::AccountId>;
 		type Header = Header;
 		type RuntimeEvent = ();
-		type BlockHashCount = ConstU64<250>;
+		type BlockHashCount = frame_support::traits::ConstU64<250>;
 		type Version = ();
 		type PalletInfo = PalletInfo;
 		type AccountData = ();
@@ -184,9 +184,12 @@ mod tests {
 		type MaxConsumers = frame_support::traits::ConstU32<16>;
 	}
 
+	parameter_types! {
+		pub const Period: u64 = 1;
+		pub const Offset: u64 = 0;
+	}
+
 	impl pallet_session::Config for TestRuntime {
-		type Period = ConstU64<1>;
-		type Offset = ConstU64<0>;
 		type RuntimeEvent = ();
 		type ValidatorId = <Self as frame_system::Config>::AccountId;
 		type ValidatorIdOf = ConvertInto;

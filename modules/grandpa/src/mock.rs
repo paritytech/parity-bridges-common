@@ -18,7 +18,7 @@
 #![allow(clippy::from_over_into)]
 
 use bp_runtime::Chain;
-use frame_support::{construct_runtime, parameter_types, weights::Weight, traits::ConstU32, ConstU64};
+use frame_support::{construct_runtime, parameter_types, traits::ConstU64, weights::Weight};
 use sp_core::sr25519::Signature;
 use sp_runtime::{
 	testing::{Header, H256},
@@ -83,14 +83,16 @@ impl frame_system::Config for TestRuntime {
 }
 
 parameter_types! {
+	pub const MaxRequests: u32 = 2;
+	pub const HeadersToKeep: u32 = 5;
 	pub const SessionLength: u64 = 5;
 	pub const NumValidators: u32 = 5;
 }
 
 impl grandpa::Config for TestRuntime {
 	type BridgedChain = TestBridgedChain;
-	type MaxRequests = ConstU32<2>;
-	type HeadersToKeep = ConstU32<5>;
+	type MaxRequests = MaxRequests;
+	type HeadersToKeep = HeadersToKeep;
 	type MaxBridgedAuthorities = frame_support::traits::ConstU32<MAX_BRIDGED_AUTHORITIES>;
 	type MaxBridgedHeaderSize = frame_support::traits::ConstU32<MAX_HEADER_SIZE>;
 	type WeightInfo = ();

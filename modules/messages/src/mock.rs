@@ -31,7 +31,8 @@ use bp_messages::{
 use bp_runtime::{messages::MessageDispatchResult, Size};
 use codec::{Decode, Encode};
 use frame_support::{
-	parameter_types, traits::ConstU64,
+	parameter_types,
+	traits::ConstU64,
 	weights::{RuntimeDbWeight, Weight},
 };
 use scale_info::TypeInfo;
@@ -119,7 +120,6 @@ impl frame_system::Config for TestRuntime {
 	type OnSetCode = ();
 	type MaxConsumers = frame_support::traits::ConstU32<16>;
 }
-
 
 impl pallet_balances::Config for TestRuntime {
 	type MaxLocks = ();

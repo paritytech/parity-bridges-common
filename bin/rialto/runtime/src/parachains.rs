@@ -21,7 +21,7 @@ use crate::{
 	RuntimeOrigin, ShiftSessionManager, Slots, UncheckedExtrinsic,
 };
 
-use frame_support::{parameter_types, traits::KeyOwnerProofSystem, weights::Weight, ConstU64};
+use frame_support::{parameter_types, traits::KeyOwnerProofSystem, weights::Weight};
 use frame_system::EnsureRoot;
 use polkadot_primitives::v2::{ValidatorId, ValidatorIndex};
 use polkadot_runtime_common::{paras_registrar, paras_sudo_wrapper, slots};
@@ -123,11 +123,10 @@ impl parachains_session_info::Config for Runtime {
 
 impl parachains_shared::Config for Runtime {}
 
-
 impl parachains_ump::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 	type UmpSink = ();
-	type FirstMessageFactorPercent = ConstU64<100>;
+	type FirstMessageFactorPercent = frame_support::traits::ConstU64<100>;
 	type ExecuteOverweightOrigin = EnsureRoot<AccountId>;
 	type WeightInfo = parachains_ump::TestWeightInfo;
 }
