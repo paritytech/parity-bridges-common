@@ -59,7 +59,7 @@ pub trait SubstrateMessageLane: 'static + Clone + Debug + Send + Sync {
 
 /// Adapter that allows all `SubstrateMessageLane` to act as `MessageLane`.
 #[derive(Clone, Debug)]
-pub(crate) struct MessageLaneAdapter<P: SubstrateMessageLane> {
+pub struct MessageLaneAdapter<P: SubstrateMessageLane> {
 	_phantom: PhantomData<P>,
 }
 

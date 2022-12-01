@@ -41,8 +41,8 @@ use frame_support::weights::Weight;
 use messages_relay::{
 	message_lane::{MessageLane, SourceHeaderIdOf, TargetHeaderIdOf},
 	message_lane_loop::{
-		ClientState, MessageDetails, MessageDetailsMap, MessageProofParameters, SourceClient,
-		SourceClientState,
+		BatchTransaction, ClientState, MessageDetails, MessageDetailsMap, MessageProofParameters, NoncesSubmitArtifacts,
+		SourceClient, SourceClientState,
 	},
 };
 use num_traits::Zero;
@@ -140,6 +140,7 @@ impl<P: SubstrateMessageLane> SourceClient<MessageLaneAdapter<P>> for SubstrateM
 where
 	AccountIdOf<P::SourceChain>: From<<AccountKeyPairOf<P::SourceChain> as Pair>::Public>,
 {
+	type BatchTransaction = BatchConfirmationTransaction<P>;
 	type TransactionTracker = TransactionTracker<P::SourceChain, Client<P::SourceChain>>;
 
 	async fn state(&self) -> Result<SourceClientState<MessageLaneAdapter<P>>, SubstrateError> {
@@ -360,10 +361,38 @@ where
 			.await
 	}
 
-	async fn require_target_header_on_source(&self, id: TargetHeaderIdOf<MessageLaneAdapter<P>>) {
+	async fn require_target_header_on_source(&self, id: TargetHeaderIdOf<MessageLaneAdapter<P>>) -> Option<Self::BatchTransaction> {
 		if let Some(ref target_to_source_headers_relay) = self.target_to_source_headers_relay {
 			target_to_source_headers_relay.require_more_headers(id.0).await;
+			// TODO: return batch transaction if possible
 		}
+
+		None
+	}
+}
+
+/// Batch transaction that brings target headers + and delivery confirmations to the source node.
+pub struct BatchConfirmationTransaction<P: SubstrateMessageLane> {
+	source_client: SubstrateMessagesSource<P>,
+	required_target_header_on_source: TargetHeaderIdOf<MessageLaneAdapter<P>>,
+}
+
+#[async_trait]
+impl<P: SubstrateMessageLane> BatchTransaction<
+	TargetHeaderIdOf<MessageLaneAdapter<P>>,
+	<MessageLaneAdapter<P> as MessageLane>::MessagesReceivingProof,
+	TransactionTracker<P::SourceChain, Client<P::SourceChain>>,
+	SubstrateError,
+> for BatchConfirmationTransaction<P> {
+	fn required_header_id(&self) -> TargetHeaderIdOf<MessageLaneAdapter<P>> {
+		self.required_target_header_on_source.clone()
+	}
+
+	async fn append_proof_and_send(
+		self,
+		_proof: <MessageLaneAdapter<P> as MessageLane>::MessagesReceivingProof,
+	) -> Result<NoncesSubmitArtifacts<TransactionTracker<P::SourceChain, Client<P::SourceChain>>>, SubstrateError> {
+		unimplemented!("TODO")
 	}
 }
 

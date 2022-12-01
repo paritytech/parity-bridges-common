@@ -34,7 +34,7 @@ use bp_messages::{
 use bridge_runtime_common::messages::source::FromBridgedChainMessagesDeliveryProof;
 use messages_relay::{
 	message_lane::{MessageLane, SourceHeaderIdOf, TargetHeaderIdOf},
-	message_lane_loop::{NoncesSubmitArtifacts, TargetClient, TargetClientState},
+	message_lane_loop::{BatchTransaction, NoncesSubmitArtifacts, TargetClient, TargetClientState},
 };
 use relay_substrate_client::{
 	AccountIdOf, AccountKeyPairOf, BalanceOf, BlockNumberOf, Chain, ChainWithMessages, Client,
@@ -132,6 +132,7 @@ where
 	AccountIdOf<P::TargetChain>: From<<AccountKeyPairOf<P::TargetChain> as Pair>::Public>,
 	BalanceOf<P::SourceChain>: TryFrom<BalanceOf<P::TargetChain>>,
 {
+	type BatchTransaction = BatchDeliveryTransaction<P>;
 	type TransactionTracker = TransactionTracker<P::TargetChain, Client<P::TargetChain>>;
 
 	async fn state(&self) -> Result<TargetClientState<MessageLaneAdapter<P>>, SubstrateError> {
@@ -267,10 +268,38 @@ where
 		Ok(NoncesSubmitArtifacts { nonces, tx_tracker })
 	}
 
-	async fn require_source_header_on_target(&self, id: SourceHeaderIdOf<MessageLaneAdapter<P>>) {
+	async fn require_source_header_on_target(&self, id: SourceHeaderIdOf<MessageLaneAdapter<P>>) -> Option<Self::BatchTransaction> {
 		if let Some(ref source_to_target_headers_relay) = self.source_to_target_headers_relay {
 			source_to_target_headers_relay.require_more_headers(id.0).await;
+			// TODO: return batch transaction if possible
 		}
+
+		None
+	}
+}
+
+/// Batch transaction that brings target headers + and delivery confirmations to the source node.
+pub struct BatchDeliveryTransaction<P: SubstrateMessageLane> {
+	target_client: SubstrateMessagesTarget<P>,
+	required_source_header_on_target: SourceHeaderIdOf<MessageLaneAdapter<P>>,
+}
+
+#[async_trait]
+impl<P: SubstrateMessageLane> BatchTransaction<
+SourceHeaderIdOf<MessageLaneAdapter<P>>,
+	<MessageLaneAdapter<P> as MessageLane>::MessagesProof,
+	TransactionTracker<P::TargetChain, Client<P::TargetChain>>,
+	SubstrateError,
+> for BatchDeliveryTransaction<P> {
+	fn required_header_id(&self) -> SourceHeaderIdOf<MessageLaneAdapter<P>> {
+		self.required_source_header_on_target.clone()
+	}
+
+	async fn append_proof_and_send(
+		self,
+		_proof: <MessageLaneAdapter<P> as MessageLane>::MessagesProof,
+	) -> Result<NoncesSubmitArtifacts<TransactionTracker<P::TargetChain, Client<P::TargetChain>>>, SubstrateError> {
+		unimplemented!("TODO")
 	}
 }
 
