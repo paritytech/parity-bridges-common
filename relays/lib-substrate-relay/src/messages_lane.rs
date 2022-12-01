@@ -55,6 +55,20 @@ pub trait SubstrateMessageLane: 'static + Clone + Debug + Send + Sync {
 	type ReceiveMessagesProofCallBuilder: ReceiveMessagesProofCallBuilder<Self>;
 	/// How receive messages delivery proof call is built?
 	type ReceiveMessagesDeliveryProofCallBuilder: ReceiveMessagesDeliveryProofCallBuilder<Self>;
+
+	/// How batch calls are built at the source chain?
+	type SourceBatchCallBuilder: BatchCallBuilder<Self::SourceChain>;
+	/// How batch calls are built at the target chain?
+	type TargetBatchCallBuilder: BatchCallBuilder<Self::TargetChain>;
+}
+
+/// Batch call builder.
+pub trait BatchCallBuilder<C: Chain> {
+	/// If `true`, then batch calls are supported at the chain.
+	const BATCH_CALL_SUPPORTED: bool;
+
+	/// Create batch call from given calls vector.
+	fn build_batch_call(calls: Vec<CallOf<C>>) -> CallOf<C>;
 }
 
 /// Adapter that allows all `SubstrateMessageLane` to act as `MessageLane`.

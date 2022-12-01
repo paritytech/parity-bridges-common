@@ -121,7 +121,7 @@ pub trait BatchTransaction<HeaderId, Proof, TransactionTracker, Error>: Send {
 	async fn append_proof_and_send(
 		self,
 		proof: Proof,
-	) -> Result<NoncesSubmitArtifacts<TransactionTracker>, Error>;
+	) -> Result<TransactionTracker, Error>;
 }
 
 /// Source client trait.
@@ -551,10 +551,9 @@ pub(crate) mod tests {
 			self,
 			proof: TestMessagesProof,
 		) -> Result<NoncesSubmitArtifacts<TestTransactionTracker>, TestError> {
-			let nonces = proof.0.clone();
 			let mut data = self.data.lock();
 			data.receive_messages(proof);
-			Ok(NoncesSubmitArtifacts { nonces, tx_tracker: self.tx_tracker })
+			self.tx_tracker
 		}
 	}
 
@@ -582,10 +581,9 @@ pub(crate) mod tests {
 			self,
 			proof: TestMessagesReceivingProof,
 		) -> Result<NoncesSubmitArtifacts<TestTransactionTracker>, TestError> {
-			let nonces = proof..=proof;
 			let mut data = self.data.lock();
 			data.receive_messages_delivery_proof(proof);
-			Ok(NoncesSubmitArtifacts { nonces, tx_tracker: self.tx_tracker })
+			self.tx_tracker
 		}
 	}
 

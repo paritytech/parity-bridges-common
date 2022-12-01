@@ -19,7 +19,7 @@
 //! <BridgedName> chain.
 
 use crate::{
-	messages_lane::{MessageLaneAdapter, ReceiveMessagesProofCallBuilder, SubstrateMessageLane},
+	messages_lane::{BatchCallBuilder, MessageLaneAdapter, ReceiveMessagesProofCallBuilder, SubstrateMessageLane},
 	messages_source::{ensure_messages_pallet_active, read_client_state, SubstrateMessagesProof},
 	on_demand::OnDemandRelay,
 	TransactionParams,
@@ -268,10 +268,19 @@ where
 		Ok(NoncesSubmitArtifacts { nonces, tx_tracker })
 	}
 
-	async fn require_source_header_on_target(&self, id: SourceHeaderIdOf<MessageLaneAdapter<P>>) -> Option<Self::BatchTransaction> {
+	async fn require_source_header_on_target(
+		&self,
+		id: SourceHeaderIdOf<MessageLaneAdapter<P>>,
+	) -> Option<Self::BatchTransaction> {
 		if let Some(ref source_to_target_headers_relay) = self.source_to_target_headers_relay {
+			if P::TargetBatchCallBuilder::BATCH_CALL_SUPPORTED {
+				return Some(BatchDeliveryTransaction::<P> {
+					messages_target: self.clone(),
+					required_source_header_on_target: id,
+				});
+			}
+
 			source_to_target_headers_relay.require_more_headers(id.0).await;
-			// TODO: return batch transaction if possible
 		}
 
 		None
@@ -280,7 +289,7 @@ where
 
 /// Batch transaction that brings target headers + and delivery confirmations to the source node.
 pub struct BatchDeliveryTransaction<P: SubstrateMessageLane> {
-	target_client: SubstrateMessagesTarget<P>,
+	messages_target: SubstrateMessagesTarget<P>,
 	required_source_header_on_target: SourceHeaderIdOf<MessageLaneAdapter<P>>,
 }
 
@@ -298,7 +307,7 @@ SourceHeaderIdOf<MessageLaneAdapter<P>>,
 	async fn append_proof_and_send(
 		self,
 		_proof: <MessageLaneAdapter<P> as MessageLane>::MessagesProof,
-	) -> Result<NoncesSubmitArtifacts<TransactionTracker<P::TargetChain, Client<P::TargetChain>>>, SubstrateError> {
+	) -> Result<TransactionTracker<P::TargetChain, Client<P::TargetChain>>, SubstrateError> {
 		unimplemented!("TODO")
 	}
 }

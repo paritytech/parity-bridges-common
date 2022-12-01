@@ -561,8 +561,15 @@ pub async fn run<P: MessageRace, SC: SourceClient<P>, TC: TargetClient<P>>(
 						P::target_name(),
 					);
 
+					let nonces = nonces_range.clone();
 					target_submit_proof
-						.set(target_batch_transaction.append_proof_and_send(proof.clone()).fuse());
+						.set(target_batch_transaction
+							.append_proof_and_send(proof.clone())
+							.map(|result| result.map(|tx_tracker| {
+								NoncesSubmitArtifacts { nonces, tx_tracker }
+							}))
+							.left_future()
+							.fuse());
 				} else {
 					log::debug!(
 						target: "bridge",
@@ -574,6 +581,7 @@ pub async fn run<P: MessageRace, SC: SourceClient<P>, TC: TargetClient<P>>(
 					target_submit_proof.set(
 						race_target
 							.submit_proof(at_block.clone(), nonces_range.clone(), proof.clone())
+							.right_future()
 							.fuse(),
 					);
 				}

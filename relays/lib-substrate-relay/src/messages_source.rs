@@ -20,7 +20,7 @@
 
 use crate::{
 	messages_lane::{
-		MessageLaneAdapter, ReceiveMessagesDeliveryProofCallBuilder, SubstrateMessageLane,
+		BatchCallBuilder, MessageLaneAdapter, ReceiveMessagesDeliveryProofCallBuilder, SubstrateMessageLane,
 	},
 	messages_target::SubstrateMessagesDeliveryProof,
 	on_demand::OnDemandRelay,
@@ -41,7 +41,7 @@ use frame_support::weights::Weight;
 use messages_relay::{
 	message_lane::{MessageLane, SourceHeaderIdOf, TargetHeaderIdOf},
 	message_lane_loop::{
-		BatchTransaction, ClientState, MessageDetails, MessageDetailsMap, MessageProofParameters, NoncesSubmitArtifacts,
+		BatchTransaction, ClientState, MessageDetails, MessageDetailsMap, MessageProofParameters,
 		SourceClient, SourceClientState,
 	},
 };
@@ -361,10 +361,19 @@ where
 			.await
 	}
 
-	async fn require_target_header_on_source(&self, id: TargetHeaderIdOf<MessageLaneAdapter<P>>) -> Option<Self::BatchTransaction> {
+	async fn require_target_header_on_source(
+		&self,
+		id: TargetHeaderIdOf<MessageLaneAdapter<P>>,
+	) -> Option<Self::BatchTransaction> {
 		if let Some(ref target_to_source_headers_relay) = self.target_to_source_headers_relay {
+			if P::SourceBatchCallBuilder::BATCH_CALL_SUPPORTED {
+				return Some(BatchConfirmationTransaction::<P> {
+					messages_source: self.clone(),
+					required_target_header_on_source: id,
+				});
+			}
+
 			target_to_source_headers_relay.require_more_headers(id.0).await;
-			// TODO: return batch transaction if possible
 		}
 
 		None
@@ -373,7 +382,7 @@ where
 
 /// Batch transaction that brings target headers + and delivery confirmations to the source node.
 pub struct BatchConfirmationTransaction<P: SubstrateMessageLane> {
-	source_client: SubstrateMessagesSource<P>,
+	messages_source: SubstrateMessagesSource<P>,
 	required_target_header_on_source: TargetHeaderIdOf<MessageLaneAdapter<P>>,
 }
 
@@ -383,16 +392,48 @@ impl<P: SubstrateMessageLane> BatchTransaction<
 	<MessageLaneAdapter<P> as MessageLane>::MessagesReceivingProof,
 	TransactionTracker<P::SourceChain, Client<P::SourceChain>>,
 	SubstrateError,
-> for BatchConfirmationTransaction<P> {
+> for BatchConfirmationTransaction<P> where
+	AccountIdOf<P::SourceChain>: From<<AccountKeyPairOf<P::SourceChain> as Pair>::Public>,
+{
 	fn required_header_id(&self) -> TargetHeaderIdOf<MessageLaneAdapter<P>> {
 		self.required_target_header_on_source.clone()
 	}
 
 	async fn append_proof_and_send(
 		self,
-		_proof: <MessageLaneAdapter<P> as MessageLane>::MessagesReceivingProof,
-	) -> Result<NoncesSubmitArtifacts<TransactionTracker<P::SourceChain, Client<P::SourceChain>>>, SubstrateError> {
-		unimplemented!("TODO")
+		proof: <MessageLaneAdapter<P> as MessageLane>::MessagesReceivingProof,
+	) -> Result<TransactionTracker<P::SourceChain, Client<P::SourceChain>>, SubstrateError> {
+		let mut calls = self
+			.messages_source
+			.target_to_source_headers_relay
+			.as_ref()
+			.expect("BatchConfirmationTransaction is only created when target_to_source_headers_relay is Some; qed")
+			.prove_header(self.required_target_header_on_source)
+			.await?;
+		calls.push(P::ReceiveMessagesDeliveryProofCallBuilder::build_receive_messages_delivery_proof_call(
+			proof,
+			false,
+		));
+
+		let genesis_hash = *self.messages_source.source_client.genesis_hash();
+		let transaction_params = self.messages_source.transaction_params.clone();
+		let (spec_version, transaction_version) =
+			self.messages_source.source_client.simple_runtime_version().await?;
+		self.messages_source.source_client
+			.submit_and_watch_signed_extrinsic(
+				self.messages_source.transaction_params.signer.public().into(),
+				SignParam::<P::SourceChain> {
+					spec_version,
+					transaction_version,
+					genesis_hash,
+					signer: self.messages_source.transaction_params.signer.clone(),
+				},
+				move |best_block_id, transaction_nonce| {
+					Ok(UnsignedTransaction::new(calls.into(), transaction_nonce)
+						.era(TransactionEra::new(best_block_id, self.messages_source.transaction_params.mortality)))
+				},
+			)
+			.await
 	}
 }
 
