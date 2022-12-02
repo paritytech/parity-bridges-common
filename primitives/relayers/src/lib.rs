@@ -61,7 +61,7 @@ where
 		lane_id: LaneId,
 		reward: T::Balance,
 	) -> Result<(), Self::Error> {
-		T::transfer(&Self::lane_rewards_account(lane_id), &relayer, reward, false).map(drop)
+		T::transfer(&Self::lane_rewards_account(lane_id), relayer, reward, false).map(drop)
 	}
 }
 
