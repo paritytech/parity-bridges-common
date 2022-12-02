@@ -70,7 +70,8 @@ impl OperatingMode for MessagesOperatingMode {
 pub type LaneId = [u8; 4];
 
 /// Lane id which implements `TypeId`.
-// TODO: `LaneId` shall be replaced with this across all codebase (codec-compatible)
+// TODO (https://github.com/paritytech/parity-bridges-common/issues/1694):
+// `LaneId` shall be replaced with this across all codebase (codec-compatible)
 #[derive(Decode, Encode, RuntimeDebug)]
 pub struct TypedLaneId(pub [u8; 4]);
 
