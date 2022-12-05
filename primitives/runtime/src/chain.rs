@@ -111,10 +111,10 @@ pub trait Chain: Send + Sync + 'static {
 		+ AsPrimitive<usize>
 		+ Default
 		+ Saturating
-		+ MaxEncodedLen
-		// original `sp_runtime::traits::Header::BlockNumber` doesn't have this trait, but
-		// `sp_runtime::generic::Era` requires block number -> `u64` conversion.
-		+ Into<u64>;
+		+ MaxEncodedLen;
+	// original `sp_runtime::traits::Header::BlockNumber` doesn't have this trait, but
+	// `sp_runtime::generic::Era` requires block number -> `u64` conversion.
+	// + Into<u64>;
 
 	/// A type that fulfills the abstract idea of what a Substrate hash is.
 	// Constraits come from the associated Hash type of `sp_runtime::traits::Header`

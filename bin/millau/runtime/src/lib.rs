@@ -33,6 +33,7 @@ pub mod rialto_parachain_messages;
 pub mod xcm_config;
 
 use beefy_primitives::{crypto::AuthorityId as BeefyId, mmr::MmrLeafVersion, ValidatorSet};
+use bp_parachains::SingleParaStoredHeaderDataBuilder;
 use bp_runtime::{HeaderId, HeaderIdProvider};
 use codec::Decode;
 use pallet_grandpa::{
@@ -518,8 +519,8 @@ impl pallet_bridge_messages::Config<WithRialtoParachainMessagesInstance> for Run
 parameter_types! {
 	pub const RialtoParasPalletName: &'static str = bp_rialto::PARAS_PALLET_NAME;
 	pub const WestendParasPalletName: &'static str = bp_westend::PARAS_PALLET_NAME;
-	pub const MaxRialtoParaHeadSize: u32 = bp_rialto::MAX_NESTED_PARACHAIN_HEAD_SIZE;
-	pub const MaxWestendParaHeadSize: u32 = bp_westend::MAX_NESTED_PARACHAIN_HEAD_SIZE;
+	pub const MaxRialtoParaHeadDataSize: u32 = bp_rialto::MAX_NESTED_PARACHAIN_HEAD_DATA_SIZE;
+	pub const MaxWestendParaHeadDataSize: u32 = bp_westend::MAX_NESTED_PARACHAIN_HEAD_DATA_SIZE;
 }
 
 /// Instance of the with-Rialto parachains pallet.
@@ -530,9 +531,10 @@ impl pallet_bridge_parachains::Config<WithRialtoParachainsInstance> for Runtime 
 	type WeightInfo = pallet_bridge_parachains::weights::BridgeWeight<Runtime>;
 	type BridgesGrandpaPalletInstance = RialtoGrandpaInstance;
 	type ParasPalletName = RialtoParasPalletName;
-	type TrackedParachains = frame_support::traits::Everything;
+	type ParaStoredHeaderDataBuilder =
+		SingleParaStoredHeaderDataBuilder<bp_rialto_parachain::RialtoParachain>;
 	type HeadsToKeep = HeadersToKeep;
-	type MaxParaHeadSize = MaxRialtoParaHeadSize;
+	type MaxParaHeadDataSize = MaxRialtoParaHeadDataSize;
 }
 
 /// Instance of the with-Westend parachains pallet.
@@ -543,9 +545,9 @@ impl pallet_bridge_parachains::Config<WithWestendParachainsInstance> for Runtime
 	type WeightInfo = pallet_bridge_parachains::weights::BridgeWeight<Runtime>;
 	type BridgesGrandpaPalletInstance = WestendGrandpaInstance;
 	type ParasPalletName = WestendParasPalletName;
-	type TrackedParachains = frame_support::traits::Everything;
+	type ParaStoredHeaderDataBuilder = SingleParaStoredHeaderDataBuilder<bp_westend::Westmint>;
 	type HeadsToKeep = HeadersToKeep;
-	type MaxParaHeadSize = MaxWestendParaHeadSize;
+	type MaxParaHeadDataSize = MaxWestendParaHeadDataSize;
 }
 
 construct_runtime!(

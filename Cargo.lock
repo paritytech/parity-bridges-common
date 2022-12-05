@@ -825,12 +825,16 @@ dependencies = [
 name = "bp-parachains"
 version = "0.1.0"
 dependencies = [
+ "bp-header-chain",
  "bp-polkadot-core",
  "bp-runtime",
  "frame-support",
+ "impl-trait-for-tuples",
  "parity-scale-codec",
  "scale-info",
  "sp-core",
+ "sp-runtime",
+ "sp-std",
 ]
 
 [[package]]
@@ -953,6 +957,7 @@ version = "0.1.0"
 dependencies = [
  "bp-polkadot-core",
  "bp-runtime",
+ "frame-support",
  "sp-api",
 ]
 
@@ -4896,6 +4901,7 @@ dependencies = [
  "beefy-primitives",
  "bp-messages",
  "bp-millau",
+ "bp-parachains",
  "bp-polkadot-core",
  "bp-relayers",
  "bp-rialto",
@@ -5725,6 +5731,7 @@ dependencies = [
  "pallet-bridge-grandpa",
  "parity-scale-codec",
  "scale-info",
+ "sp-core",
  "sp-io",
  "sp-runtime",
  "sp-std",
@@ -8598,6 +8605,7 @@ dependencies = [
  "log",
  "num-traits",
  "serde_json",
+ "sp-runtime",
  "substrate-prometheus-endpoint",
  "sysinfo",
  "thiserror",
