@@ -18,12 +18,16 @@
 
 #![cfg_attr(not(feature = "std"), no_std)]
 
-use bp_header_chain::StoredHeaderData;
+pub use bp_header_chain::StoredHeaderData;
+
 use bp_polkadot_core::{
 	parachains::{ParaHash, ParaHead, ParaId},
 	BlockNumber as RelayBlockNumber,
 };
-use bp_runtime::{HeaderOf, Parachain, StorageDoubleMapKeyProvider, StorageMapKeyProvider};
+use bp_runtime::{
+	BlockNumberOf, Chain, HashOf, HeaderOf, Parachain, StorageDoubleMapKeyProvider,
+	StorageMapKeyProvider,
+};
 use codec::{Decode, Encode, MaxEncodedLen};
 use frame_support::{Blake2_128Concat, RuntimeDebug, Twox64Concat};
 use scale_info::TypeInfo;
@@ -99,6 +103,15 @@ impl StorageDoubleMapKeyProvider for ImportedParaHeadsKeyProvider {
 /// of the `bp_runtime::StoredHeaderData`. It is only decoded when we talk about specific parachain.
 #[derive(Clone, Decode, Encode, PartialEq, RuntimeDebug, TypeInfo)]
 pub struct ParaStoredHeaderData(pub Vec<u8>);
+
+impl ParaStoredHeaderData {
+	/// Decode stored parachain head data.
+	pub fn decode_parachain_head_data<C: Chain>(
+		&self,
+	) -> Result<StoredHeaderData<BlockNumberOf<C>, HashOf<C>>, codec::Error> {
+		StoredHeaderData::<BlockNumberOf<C>, HashOf<C>>::decode(&mut &self.0[..])
+	}
+}
 
 /// Stored parachain head data builder.
 pub trait ParaStoredHeaderDataBuilder {

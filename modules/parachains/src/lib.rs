@@ -420,6 +420,11 @@ pub mod pallet {
 			ImportedParaHeads::<T, I>::get(parachain, best_para_head_hash).map(|h| h.into_inner())
 		}
 
+		/// Get best finalized head hash of the given parachain.
+		pub fn best_parachain_head_hash(parachain: ParaId) -> Option<ParaHash> {
+			Some(ParasInfo::<T, I>::get(parachain)?.best_head_hash.head_hash)
+		}
+
 		/// Get parachain head data with given hash.
 		pub fn parachain_head(parachain: ParaId, hash: ParaHash) -> Option<ParaStoredHeaderData> {
 			ImportedParaHeads::<T, I>::get(parachain, hash).map(|h| h.into_inner())

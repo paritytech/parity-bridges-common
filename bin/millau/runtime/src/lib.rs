@@ -34,8 +34,7 @@ pub mod xcm_config;
 
 use beefy_primitives::{crypto::AuthorityId as BeefyId, mmr::MmrLeafVersion, ValidatorSet};
 use bp_parachains::SingleParaStoredHeaderDataBuilder;
-use bp_runtime::{HeaderId, HeaderIdProvider};
-use codec::Decode;
+use bp_runtime::HeaderId;
 use pallet_grandpa::{
 	fg_primitives, AuthorityId as GrandpaId, AuthorityList as GrandpaAuthorityList,
 };
@@ -880,26 +879,31 @@ impl_runtime_apis! {
 		fn best_finalized() -> Option<HeaderId<bp_westend::Hash, bp_westend::BlockNumber>> {
 			// the parachains finality pallet is never decoding parachain heads, so it is
 			// only done in the integration code
-			use bp_westend::WESTMINT_PARACHAIN_ID;
-			let encoded_head = pallet_bridge_parachains::Pallet::<
+			type WestendParachains = pallet_bridge_parachains::Pallet::<
 				Runtime,
 				WithWestendParachainsInstance,
-			>::best_parachain_head(WESTMINT_PARACHAIN_ID.into())?;
-			let head = bp_westend::Header::decode(&mut &encoded_head.0[..]).ok()?;
-			Some(head.id())
+			>;
+			let parachain = bp_westend::WESTMINT_PARACHAIN_ID.into();
+			let best_head_hash = WestendParachains::best_parachain_head_hash(parachain)?;
+			let encoded_head = WestendParachains::parachain_head(parachain, best_head_hash)?;
+			encoded_head.decode_parachain_head_data::<bp_westend::Westmint>()
+				.map(|data| HeaderId(data.number, best_head_hash))
+				.ok()
 		}
 	}
 
 	impl bp_rialto_parachain::RialtoParachainFinalityApi<Block> for Runtime {
 		fn best_finalized() -> Option<HeaderId<bp_rialto::Hash, bp_rialto::BlockNumber>> {
-			// the parachains finality pallet is never decoding parachain heads, so it is
-			// only done in the integration code
-			let encoded_head = pallet_bridge_parachains::Pallet::<
+			type RialtoParachains = pallet_bridge_parachains::Pallet::<
 				Runtime,
 				WithRialtoParachainsInstance,
-			>::best_parachain_head(bp_rialto_parachain::RIALTO_PARACHAIN_ID.into())?;
-			let head = bp_rialto_parachain::Header::decode(&mut &encoded_head.0[..]).ok()?;
-			Some(head.id())
+			>;
+			let parachain = bp_rialto_parachain::RIALTO_PARACHAIN_ID.into();
+			let best_head_hash = RialtoParachains::best_parachain_head_hash(parachain)?;
+			let encoded_head = RialtoParachains::parachain_head(parachain, best_head_hash)?;
+			encoded_head.decode_parachain_head_data::<bp_rialto_parachain::RialtoParachain>()
+				.map(|data| HeaderId(data.number, best_head_hash))
+				.ok()
 		}
 	}
 
