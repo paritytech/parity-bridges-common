@@ -32,7 +32,7 @@ pub struct DeliveryConfirmationPaymentsAdapter<T, DeliveryReward, ConfirmationRe
 	PhantomData<(T, DeliveryReward, ConfirmationReward)>,
 );
 
-// TODO (https://github.com/paritytech/parity-bridges-common/issues/1318): this impl must be removed
+// TODO (https://github.com/paritytech/parity-bridges-common/pull/1652): this impl must be removed
 impl<T, DeliveryReward, ConfirmationReward>
 	MessageDeliveryAndDispatchPayment<T::RuntimeOrigin, T::AccountId>
 	for DeliveryConfirmationPaymentsAdapter<T, DeliveryReward, ConfirmationReward>
@@ -53,8 +53,6 @@ where
 		register_relayers_rewards::<T>(
 			confirmation_relayer,
 			relayers_rewards,
-			// TODO (https://github.com/paritytech/parity-bridges-common/issues/1318): this shall be fixed
-			// in some way. ATM the future of the `register_relayers_rewards` is not yet known
 			100_000_u32.into(),
 			10_000_u32.into(),
 		);
