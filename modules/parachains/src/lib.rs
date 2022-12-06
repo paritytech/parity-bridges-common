@@ -29,10 +29,8 @@ pub use weights_ext::WeightInfoExt;
 use bp_header_chain::HeaderChain;
 use bp_parachains::{parachain_head_storage_key_at_source, ParaInfo, ParaStoredHeaderData};
 use bp_polkadot_core::parachains::{ParaHash, ParaHead, ParaHeadsProof, ParaId};
-use bp_runtime::{HashOf, HeaderOf, Parachain, StorageProofError};
-use codec::Decode;
+use bp_runtime::{HashOf, Parachain, StorageProofError};
 use frame_support::dispatch::PostDispatchInfo;
-use sp_runtime::traits::Header as HeaderT;
 use sp_std::{marker::PhantomData, vec::Vec};
 
 // Re-export in crate namespace for `construct_runtime!`.
@@ -520,13 +518,13 @@ pub mod pallet {
 					Ok(updated_head_data) => updated_head_data,
 					Err(e) => {
 						log::trace!(
-						target: LOG_TARGET,
-						"{}. The parachain head size for {:?} is {}. It exceeds maximal configured size {}.",
-						err_log_prefix,
-						parachain,
-						e.value_size,
-						e.maximal_size,
-					);
+							target: LOG_TARGET,
+							"{}. The parachain head size for {:?} is {}. It exceeds maximal configured size {}.",
+							err_log_prefix,
+							parachain,
+							e.value_size,
+							e.maximal_size,
+						);
 
 						Self::deposit_event(Event::RejectedLargeParachainHead {
 							parachain,
@@ -625,8 +623,8 @@ impl<T: Config<I>, I: 'static, C: Parachain<Hash = ParaHash>> HeaderChain<C>
 {
 	fn finalized_header_state_root(hash: HashOf<C>) -> Option<HashOf<C>> {
 		Pallet::<T, I>::parachain_head(ParaId(C::PARACHAIN_ID), hash)
-			.and_then(|head| HeaderOf::<C>::decode(&mut &head.0[..]).ok())
-			.map(|h| *h.state_root())
+			.and_then(|head| head.decode_parachain_head_data::<C>().ok())
+			.map(|h| h.state_root)
 	}
 }
 
@@ -657,7 +655,7 @@ mod tests {
 	};
 	use frame_system::{EventRecord, Pallet as System, Phase};
 	use sp_core::Hasher;
-	use sp_runtime::DispatchError;
+	use sp_runtime::{traits::Header as HeaderT, DispatchError};
 	use sp_trie::{trie_types::TrieDBMutBuilderV1, LayoutV1, MemoryDB, Recorder, TrieMut};
 
 	type BridgesGrandpaPalletInstance = pallet_bridge_grandpa::Instance1;
@@ -740,7 +738,6 @@ mod tests {
 				Default::default(),
 				Default::default(),
 			)
-			.encode()
 			.encode(),
 		)
 	}
@@ -761,7 +758,6 @@ mod tests {
 				Default::default(),
 				Default::default(),
 			)
-			.encode()
 			.encode(),
 		)
 	}

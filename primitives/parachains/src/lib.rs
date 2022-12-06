@@ -125,9 +125,18 @@ pub struct SingleParaStoredHeaderDataBuilder<C: Parachain>(PhantomData<C>);
 impl<C: Parachain> ParaStoredHeaderDataBuilder for SingleParaStoredHeaderDataBuilder<C> {
 	fn try_build(para_id: ParaId, para_head: &ParaHead) -> Option<ParaStoredHeaderData> {
 		if para_id == ParaId(C::PARACHAIN_ID) {
-			// the header is twice encoded in ParaHead, so we need to decode raw vec first
-			let encoded_header = Vec::<u8>::decode(&mut &para_head.0[..]).ok()?;
-			let header = HeaderOf::<C>::decode(&mut &encoded_header[..]).ok()?;
+			let header = HeaderOf::<C>::decode(&mut &para_head.0[..])
+				.map_err(|e| {
+					log::trace!(
+						target: "runtime::bridge-parachains",
+						"TODO: Error decoding parachain {:?} header: para_head={:?} err={:?}",
+						para_id,
+						para_head,
+						e,
+					);
+					()
+				})
+				.ok()?;
 			return Some(ParaStoredHeaderData(
 				StoredHeaderData { number: *header.number(), state_root: *header.state_root() }
 					.encode(),
