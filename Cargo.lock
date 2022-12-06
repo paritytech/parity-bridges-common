@@ -5743,7 +5743,6 @@ dependencies = [
  "frame-system",
  "log",
  "pallet-balances",
- "pallet-bridge-messages",
  "parity-scale-codec",
  "scale-info",
  "sp-arithmetic",
