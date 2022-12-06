@@ -20,6 +20,7 @@
 
 mod millau_hash;
 
+use bp_beefy::ChainWithBeefy;
 use bp_messages::{
 	InboundMessageDetails, LaneId, MessageNonce, MessagePayload, OutboundMessageDetails,
 };
@@ -41,6 +42,7 @@ use sp_trie::{LayoutV0, LayoutV1, TrieConfiguration};
 
 #[cfg(feature = "std")]
 use serde::{Deserialize, Serialize};
+use sp_runtime::traits::Keccak256;
 
 pub use millau_hash::MillauHash;
 
@@ -78,9 +80,6 @@ pub const SESSION_LENGTH: BlockNumber = 5 * time_units::MINUTES;
 
 /// Maximal number of GRANDPA authorities at Millau.
 pub const MAX_AUTHORITIES_COUNT: u32 = 5;
-
-/// Maximal SCALE-encoded header size (in bytes) at Millau.
-pub const MAX_HEADER_SIZE: u32 = 1024;
 
 /// Re-export `time_units` to make usage easier.
 pub use time_units::*;
@@ -153,6 +152,16 @@ impl Chain for Millau {
 			.max_extrinsic
 			.unwrap_or(Weight::MAX)
 	}
+}
+
+impl ChainWithBeefy for Millau {
+	type CommitmentHasher = Keccak256;
+	type MmrHashing = Keccak256;
+	type MmrHash = <Keccak256 as sp_runtime::traits::Hash>::Output;
+	type BeefyMmrLeafExtra = ();
+	type AuthorityId = bp_beefy::EcdsaValidatorId;
+	type Signature = bp_beefy::EcdsaValidatorSignature;
+	type AuthorityIdToMerkleLeaf = bp_beefy::BeefyEcdsaToEthereum;
 }
 
 /// Millau Hasher (Blake2-256 ++ Keccak-256) implementation.

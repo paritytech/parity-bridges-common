@@ -449,6 +449,7 @@ pub mod target {
 		WeightCredit: Get<Weight>,
 	{
 		type DispatchPayload = FromBridgedChainMessagePayload<CallOf<ThisChain<B>>>;
+		type DispatchLevelResult = ();
 
 		fn dispatch_weight(
 			message: &mut DispatchMessage<Self::DispatchPayload>,
@@ -482,7 +483,7 @@ pub mod target {
 		fn dispatch(
 			_relayer_account: &AccountIdOf<ThisChain<B>>,
 			message: DispatchMessage<Self::DispatchPayload>,
-		) -> MessageDispatchResult {
+		) -> MessageDispatchResult<Self::DispatchLevelResult> {
 			let message_id = (message.key.lane_id, message.key.nonce);
 			let do_dispatch = move || -> sp_std::result::Result<Outcome, codec::Error> {
 				let FromBridgedChainMessagePayload { xcm: (location, xcm), weight: weight_limit } =
@@ -511,17 +512,37 @@ pub mod target {
 			};
 
 			let xcm_outcome = do_dispatch();
-			log::trace!(
-				target: "runtime::bridge-dispatch",
-				"Incoming message {:?} dispatched with result: {:?}",
-				message_id,
-				xcm_outcome,
-			);
-			MessageDispatchResult {
-				dispatch_result: true,
-				unspent_weight: Weight::zero(),
-				dispatch_fee_paid_during_dispatch: false,
+			match xcm_outcome {
+				Ok(outcome) => {
+					log::trace!(
+						target: "runtime::bridge-dispatch",
+						"Incoming message {:?} dispatched with result: {:?}",
+						message_id,
+						outcome,
+					);
+					match outcome.ensure_execution() {
+						Ok(_weight) => (),
+						Err(e) => {
+							log::error!(
+								target: "runtime::bridge-dispatch",
+								"Incoming message {:?} was not dispatched, error: {:?}",
+								message_id,
+								e,
+							);
+						},
+					}
+				},
+				Err(e) => {
+					log::error!(
+						target: "runtime::bridge-dispatch",
+						"Incoming message {:?} was not dispatched, codec error: {:?}",
+						message_id,
+						e,
+					);
+				},
 			}
+
+			MessageDispatchResult { unspent_weight: Weight::zero(), dispatch_level_result: () }
 		}
 	}
 
@@ -684,7 +705,6 @@ mod tests {
 	use crate::messages_generation::{
 		encode_all_messages, encode_lane_data, prepare_messages_storage_proof,
 	};
-	use bp_runtime::HeaderOf;
 	use codec::{Decode, Encode};
 	use frame_support::weights::Weight;
 	use sp_core::H256;
@@ -860,17 +880,17 @@ mod tests {
 	struct BridgedHeaderChain;
 
 	impl HeaderChain<BridgedUnderlyingChain> for BridgedHeaderChain {
-		fn finalized_header(
+		fn finalized_header_state_root(
 			_hash: HashOf<BridgedChain>,
-		) -> Option<HeaderOf<BridgedUnderlyingChain>> {
-			TEST_BRIDGED_HEADER.with(|h| h.borrow().clone())
+		) -> Option<HashOf<BridgedChain>> {
+			TEST_BRIDGED_HEADER.with(|h| h.borrow().clone()).map(|h| *h.state_root())
 		}
 	}
 
 	struct ThisHeaderChain;
 
 	impl HeaderChain<ThisUnderlyingChain> for ThisHeaderChain {
-		fn finalized_header(_hash: HashOf<ThisChain>) -> Option<HeaderOf<ThisUnderlyingChain>> {
+		fn finalized_header_state_root(_hash: HashOf<ThisChain>) -> Option<HashOf<ThisChain>> {
 			unreachable!()
 		}
 	}
