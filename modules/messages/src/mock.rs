@@ -316,7 +316,7 @@ impl DeliveryPayments<AccountId> for TestDeliveryPayments {
 	}
 }
 
-/// Reward payments at the source chain during delivery confirmaion transaction.
+/// Reward payments at the source chain during delivery confirmation transaction.
 #[derive(Debug, Default)]
 pub struct TestDeliveryConfirmationPayments;
 
