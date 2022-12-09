@@ -124,6 +124,9 @@ impl<Hash: Copy, Number: Copy> HeaderId<Hash, Number> {
 	}
 }
 
+/// Header id used by the chain.
+pub type HeaderIdOf<C> = HeaderId<HashOf<C>, BlockNumberOf<C>>;
+
 /// Generic header id provider.
 pub trait HeaderIdProvider<Header: HeaderT> {
 	// Get the header id.

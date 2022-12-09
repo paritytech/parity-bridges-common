@@ -29,7 +29,7 @@ pub use weights_ext::WeightInfoExt;
 use bp_header_chain::HeaderChain;
 use bp_parachains::{parachain_head_storage_key_at_source, ParaInfo, ParaStoredHeaderData};
 use bp_polkadot_core::parachains::{ParaHash, ParaHead, ParaHeadsProof, ParaId};
-use bp_runtime::{HashOf, Parachain, StorageProofError};
+use bp_runtime::{Chain, HashOf, HeaderId, HeaderIdOf, Parachain, StorageProofError};
 use frame_support::dispatch::PostDispatchInfo;
 use sp_std::{marker::PhantomData, vec::Vec};
 
@@ -421,6 +421,23 @@ pub mod pallet {
 		/// Get best finalized head hash of the given parachain.
 		pub fn best_parachain_head_hash(parachain: ParaId) -> Option<ParaHash> {
 			Some(ParasInfo::<T, I>::get(parachain)?.best_head_hash.head_hash)
+		}
+
+		/// Get best finalized head id of the given parachain.
+		pub fn best_parachain_head_id<C: Chain<Hash = ParaHash> + Parachain>(
+		) -> Result<Option<HeaderIdOf<C>>, codec::Error> {
+			let parachain = ParaId(C::PARACHAIN_ID);
+			let best_head_hash = match Self::best_parachain_head_hash(parachain) {
+				Some(best_head_hash) => best_head_hash,
+				None => return Ok(None),
+			};
+			let encoded_head = match Self::parachain_head(parachain, best_head_hash) {
+				Some(encoded_head) => encoded_head,
+				None => return Ok(None),
+			};
+			encoded_head
+				.decode_parachain_head_data::<C>()
+				.map(|data| Some(HeaderId(data.number, best_head_hash)))
 		}
 
 		/// Get parachain head data with given hash.
