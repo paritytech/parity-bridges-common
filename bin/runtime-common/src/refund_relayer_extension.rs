@@ -448,6 +448,7 @@ mod tests {
 	use bp_messages::InboundLaneData;
 	use bp_parachains::{BestParaHeadHash, ParaInfo};
 	use bp_polkadot_core::parachains::ParaHeadsProof;
+	use bp_runtime::HeaderId;
 	use bp_test_utils::make_default_justification;
 	use frame_support::{assert_storage_noop, parameter_types, weights::Weight};
 	use millau_runtime::{
@@ -481,7 +482,7 @@ mod tests {
 		parachain_head_at_relay_header_number: RelayBlockNumber,
 		best_delivered_message: MessageNonce,
 	) {
-		let best_relay_header = (best_relay_header_number, RelayBlockHash::default());
+		let best_relay_header = HeaderId(best_relay_header_number, RelayBlockHash::default());
 		pallet_bridge_grandpa::BestFinalized::<Runtime, RialtoGrandpaInstance>::put(
 			best_relay_header,
 		);

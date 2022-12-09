@@ -89,6 +89,9 @@ pub trait MessageDispatch<AccountId> {
 	/// (opaque `MessagePayload` used in delivery and this `DispatchPayload` used in dispatch).
 	type DispatchPayload: Decode;
 
+	/// Fine-grained result of single message dispatch (for better diagnostic purposes)
+	type DispatchLevelResult: Clone + sp_std::fmt::Debug + Eq;
+
 	/// Estimate dispatch weight.
 	///
 	/// This function must return correct upper bound of dispatch weight. The return value
@@ -106,7 +109,7 @@ pub trait MessageDispatch<AccountId> {
 	fn dispatch(
 		relayer_account: &AccountId,
 		message: DispatchMessage<Self::DispatchPayload>,
-	) -> MessageDispatchResult;
+	) -> MessageDispatchResult<Self::DispatchLevelResult>;
 }
 
 impl<Message> Default for ProvedLaneMessages<Message> {
@@ -149,15 +152,16 @@ impl SourceHeaderChain for ForbidInboundMessages {
 
 impl<AccountId> MessageDispatch<AccountId> for ForbidInboundMessages {
 	type DispatchPayload = ();
+	type DispatchLevelResult = ();
 
 	fn dispatch_weight(_message: &mut DispatchMessage<Self::DispatchPayload>) -> Weight {
 		Weight::MAX
 	}
 
-	fn dispatch(_: &AccountId, _: DispatchMessage<Self::DispatchPayload>) -> MessageDispatchResult {
-		MessageDispatchResult {
-			unspent_weight: Weight::zero(),
-			dispatch_fee_paid_during_dispatch: false,
-		}
+	fn dispatch(
+		_: &AccountId,
+		_: DispatchMessage<Self::DispatchPayload>,
+	) -> MessageDispatchResult<Self::DispatchLevelResult> {
+		MessageDispatchResult { unspent_weight: Weight::zero(), dispatch_level_result: () }
 	}
 }
