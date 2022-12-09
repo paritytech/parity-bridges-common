@@ -159,7 +159,7 @@ pub mod pallet {
 		/// We never store parachain heads here, since they may be too big (e.g. because of large
 		/// digest items). Instead we're using the same approach as `pallet-bridge-grandpa`
 		/// pallet - we are only storing `bp_messages::StoredHeaderData` (number and state root),
-		/// which is enough for our applkications. However, we work with different parachains here
+		/// which is enough for our applications. However, we work with different parachains here
 		/// and they can use different primitives (for block numbers and hash). So we can't store
 		/// it directly. Instead, we're storing `bp_messages::StoredHeaderData` in SCALE-encoded
 		/// form, wrapping it into `bp_parachains::ParaStoredHeaderData`.
