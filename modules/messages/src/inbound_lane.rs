@@ -21,9 +21,8 @@ use crate::Config;
 use bp_messages::{
 	target_chain::{DispatchMessage, DispatchMessageData, MessageDispatch},
 	DeliveredMessages, InboundLaneData, LaneId, MessageKey, MessageNonce, OutboundLaneData,
-	UnrewardedRelayer,
+	ReceivalResult, UnrewardedRelayer,
 };
-use bp_runtime::messages::MessageDispatchResult;
 use codec::{Decode, Encode, EncodeLike, MaxEncodedLen};
 use frame_support::{traits::Get, RuntimeDebug};
 use scale_info::{Type, TypeInfo};
@@ -102,26 +101,9 @@ impl<T: Config<I>, I: 'static> MaxEncodedLen for StoredInboundLaneData<T, I> {
 	fn max_encoded_len() -> usize {
 		InboundLaneData::<T::InboundRelayer>::encoded_size_hint(
 			T::MaxUnrewardedRelayerEntriesAtInboundLane::get() as usize,
-			T::MaxUnconfirmedMessagesAtInboundLane::get() as usize,
 		)
 		.unwrap_or(usize::MAX)
 	}
-}
-
-/// Result of single message receival.
-#[derive(RuntimeDebug, PartialEq, Eq)]
-pub enum ReceivalResult {
-	/// Message has been received and dispatched. Note that we don't care whether dispatch has
-	/// been successful or not - in both case message falls into this category.
-	///
-	/// The message dispatch result is also returned.
-	Dispatched(MessageDispatchResult),
-	/// Message has invalid nonce and lane has rejected to accept this message.
-	InvalidNonce,
-	/// There are too many unrewarded relayer entries at the lane.
-	TooManyUnrewardedRelayers,
-	/// There are too many unconfirmed messages at the lane.
-	TooManyUnconfirmedMessages,
 }
 
 /// Inbound messages lane.
@@ -167,10 +149,6 @@ impl<S: InboundLaneStorage> InboundLane<S> {
 		// overlap.
 		match data.relayers.front_mut() {
 			Some(entry) if entry.messages.begin < new_confirmed_nonce => {
-				entry.messages.dispatch_results = entry
-					.messages
-					.dispatch_results
-					.split_off((new_confirmed_nonce + 1 - entry.messages.begin) as _);
 				entry.messages.begin = new_confirmed_nonce + 1;
 			},
 			_ => {},
@@ -181,13 +159,13 @@ impl<S: InboundLaneStorage> InboundLane<S> {
 	}
 
 	/// Receive new message.
-	pub fn receive_message<P: MessageDispatch<AccountId>, AccountId>(
+	pub fn receive_message<Dispatch: MessageDispatch<AccountId>, AccountId>(
 		&mut self,
 		relayer_at_bridged_chain: &S::Relayer,
 		relayer_at_this_chain: &AccountId,
 		nonce: MessageNonce,
-		message_data: DispatchMessageData<P::DispatchPayload>,
-	) -> ReceivalResult {
+		message_data: DispatchMessageData<Dispatch::DispatchPayload>,
+	) -> ReceivalResult<Dispatch::DispatchLevelResult> {
 		let mut data = self.storage.data();
 		let is_correct_message = nonce == data.last_delivered_nonce() + 1;
 		if !is_correct_message {
@@ -206,7 +184,7 @@ impl<S: InboundLaneStorage> InboundLane<S> {
 		}
 
 		// then, dispatch message
-		let dispatch_result = P::dispatch(
+		let dispatch_result = Dispatch::dispatch(
 			relayer_at_this_chain,
 			DispatchMessage {
 				key: MessageKey { lane_id: self.storage.id(), nonce },
@@ -217,7 +195,7 @@ impl<S: InboundLaneStorage> InboundLane<S> {
 		// now let's update inbound lane storage
 		let push_new = match data.relayers.back_mut() {
 			Some(entry) if entry.relayer == *relayer_at_bridged_chain => {
-				entry.messages.note_dispatched_message(dispatch_result.dispatch_result);
+				entry.messages.note_dispatched_message();
 				false
 			},
 			_ => true,
@@ -225,7 +203,7 @@ impl<S: InboundLaneStorage> InboundLane<S> {
 		if push_new {
 			data.relayers.push_back(UnrewardedRelayer {
 				relayer: (*relayer_at_bridged_chain).clone(),
-				messages: DeliveredMessages::new(nonce, dispatch_result.dispatch_result),
+				messages: DeliveredMessages::new(nonce),
 			});
 		}
 		self.storage.set_data(data);

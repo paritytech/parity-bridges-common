@@ -22,13 +22,7 @@ use scale_info::TypeInfo;
 
 /// Message dispatch result.
 #[derive(Encode, Decode, RuntimeDebug, Clone, PartialEq, Eq, TypeInfo)]
-pub struct MessageDispatchResult {
-	/// Dispatch result flag. This flag is relayed back to the source chain and, generally
-	/// speaking, may bring any (that fits in single bit) information from the dispatcher at
-	/// the target chain to the message submitter at the source chain. If you're using immediate
-	/// call dispatcher, then it'll be result of the dispatch - `true` if dispatch has succeeded
-	/// and `false` otherwise.
-	pub dispatch_result: bool,
+pub struct MessageDispatchResult<DispatchLevelResult> {
 	/// Unspent dispatch weight. This weight that will be deducted from total delivery transaction
 	/// weight, thus reducing the transaction cost. This shall not be zero in (at least) two cases:
 	///
@@ -36,8 +30,6 @@ pub struct MessageDispatchResult {
 	///    the weight, declared by the message sender;
 	/// 2) if message has not been dispatched at all.
 	pub unspent_weight: Weight,
-	/// Whether the message dispatch fee has been paid during dispatch. This will be true if your
-	/// configuration supports pay-dispatch-fee-at-target-chain option and message sender has
-	/// enabled this option.
-	pub dispatch_fee_paid_during_dispatch: bool,
+	/// Fine-grained result of single message dispatch (for better diagnostic purposes)
+	pub dispatch_level_result: DispatchLevelResult,
 }

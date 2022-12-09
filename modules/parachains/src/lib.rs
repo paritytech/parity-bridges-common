@@ -275,7 +275,7 @@ pub mod pallet {
 			>::get(relay_block_hash)
 			.ok_or(Error::<T, I>::UnknownRelayChainBlock)?;
 			ensure!(
-				*relay_block.number() == relay_block_number,
+				relay_block.number == relay_block_number,
 				Error::<T, I>::InvalidRelayChainBlockNumber,
 			);
 
@@ -401,6 +401,11 @@ pub mod pallet {
 	}
 
 	impl<T: Config<I>, I: 'static> Pallet<T, I> {
+		/// Get stored parachain info.
+		pub fn best_parachain_info(parachain: ParaId) -> Option<ParaInfo> {
+			ParasInfo::<T, I>::get(parachain)
+		}
+
 		/// Get best finalized header of the given parachain.
 		pub fn best_parachain_head(parachain: ParaId) -> Option<ParaHead> {
 			let best_para_head_hash = ParasInfo::<T, I>::get(parachain)?.best_head_hash.head_hash;
@@ -604,9 +609,10 @@ pub struct ParachainHeaders<T, I, C>(PhantomData<(T, I, C)>);
 impl<T: Config<I>, I: 'static, C: Parachain<Hash = ParaHash>> HeaderChain<C>
 	for ParachainHeaders<T, I, C>
 {
-	fn finalized_header(hash: HashOf<C>) -> Option<HeaderOf<C>> {
+	fn finalized_header_state_root(hash: HashOf<C>) -> Option<HashOf<C>> {
 		Pallet::<T, I>::parachain_head(ParaId(C::PARACHAIN_ID), hash)
-			.and_then(|head| Decode::decode(&mut &head.0[..]).ok())
+			.and_then(|head| HeaderOf::<C>::decode(&mut &head.0[..]).ok())
+			.map(|h| *h.state_root())
 	}
 }
 

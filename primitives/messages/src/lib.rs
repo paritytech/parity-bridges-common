@@ -20,17 +20,19 @@
 // RuntimeApi generated functions
 #![allow(clippy::too_many_arguments)]
 
-use bitvec::prelude::*;
 use bp_runtime::{BasicOperatingMode, OperatingMode};
 use codec::{Decode, Encode, MaxEncodedLen};
 use frame_support::RuntimeDebug;
 use scale_info::TypeInfo;
-use sp_std::{collections::vec_deque::VecDeque, prelude::*};
+use source_chain::RelayersRewards;
+use sp_core::TypeId;
+use sp_std::{collections::vec_deque::VecDeque, ops::RangeInclusive, prelude::*};
 
 pub mod source_chain;
 pub mod storage_keys;
 pub mod target_chain;
 
+use bp_runtime::messages::MessageDispatchResult;
 // Weight is reexported to avoid additional frame-support dependencies in related crates.
 pub use frame_support::weights::Weight;
 
@@ -67,6 +69,16 @@ impl OperatingMode for MessagesOperatingMode {
 
 /// Lane identifier.
 pub type LaneId = [u8; 4];
+
+/// Lane id which implements `TypeId`.
+// TODO (https://github.com/paritytech/parity-bridges-common/issues/1694):
+// `LaneId` shall be replaced with this across all codebase (codec-compatible)
+#[derive(Decode, Encode, RuntimeDebug)]
+pub struct TypedLaneId(pub [u8; 4]);
+
+impl TypeId for TypedLaneId {
+	const TYPE_ID: [u8; 4] = *b"blan";
+}
 
 /// Message nonce. Valid messages will never have 0 nonce.
 pub type MessageNonce = u64;
@@ -139,7 +151,7 @@ impl<RelayerId> InboundLaneData<RelayerId> {
 	/// size of each entry.
 	///
 	/// Returns `None` if size overflows `usize` limits.
-	pub fn encoded_size_hint(relayers_entries: usize, messages_count: usize) -> Option<usize>
+	pub fn encoded_size_hint(relayers_entries: usize) -> Option<usize>
 	where
 		RelayerId: MaxEncodedLen,
 	{
@@ -147,23 +159,18 @@ impl<RelayerId> InboundLaneData<RelayerId> {
 		let relayer_id_encoded_size = RelayerId::max_encoded_len();
 		let relayers_entry_size = relayer_id_encoded_size.checked_add(2 * message_nonce_size)?;
 		let relayers_size = relayers_entries.checked_mul(relayers_entry_size)?;
-		let dispatch_results_per_byte = 8;
-		let dispatch_result_size =
-			sp_std::cmp::max(relayers_entries, messages_count / dispatch_results_per_byte);
-		relayers_size
-			.checked_add(message_nonce_size)
-			.and_then(|result| result.checked_add(dispatch_result_size))
+		relayers_size.checked_add(message_nonce_size)
 	}
 
 	/// Returns the approximate size of the struct as u32, given a number of entries in the
 	/// `relayers` set and the size of each entry.
 	///
 	/// Returns `u32::MAX` if size overflows `u32` limits.
-	pub fn encoded_size_hint_u32(relayers_entries: usize, messages_count: usize) -> u32
+	pub fn encoded_size_hint_u32(relayers_entries: usize) -> u32
 	where
 		RelayerId: MaxEncodedLen,
 	{
-		Self::encoded_size_hint(relayers_entries, messages_count)
+		Self::encoded_size_hint(relayers_entries)
 			.and_then(|x| u32::try_from(x).ok())
 			.unwrap_or(u32::MAX)
 	}
@@ -203,9 +210,6 @@ pub struct InboundMessageDetails {
 	pub dispatch_weight: Weight,
 }
 
-/// Bit vector of message dispatch results.
-pub type DispatchResultsBitVec = BitVec<u8, Msb0>;
-
 /// Unrewarded relayer entry stored in the inbound lane data.
 ///
 /// This struct represents a continuous range of messages that have been delivered by the same
@@ -218,6 +222,50 @@ pub struct UnrewardedRelayer<RelayerId> {
 	pub messages: DeliveredMessages,
 }
 
+/// Received messages with their dispatch result.
+#[derive(Clone, Default, Encode, Decode, RuntimeDebug, PartialEq, Eq, TypeInfo)]
+pub struct ReceivedMessages<DispatchLevelResult> {
+	/// Id of the lane which is receiving messages.
+	pub lane: LaneId,
+	/// Result of messages which we tried to dispatch
+	pub receive_results: Vec<(MessageNonce, ReceivalResult<DispatchLevelResult>)>,
+	/// Messages which were skipped and never dispatched
+	pub skipped_for_not_enough_weight: Vec<MessageNonce>,
+}
+
+impl<DispatchLevelResult> ReceivedMessages<DispatchLevelResult> {
+	pub fn new(
+		lane: LaneId,
+		receive_results: Vec<(MessageNonce, ReceivalResult<DispatchLevelResult>)>,
+	) -> Self {
+		ReceivedMessages { lane, receive_results, skipped_for_not_enough_weight: Vec::new() }
+	}
+
+	pub fn push(&mut self, message: MessageNonce, result: ReceivalResult<DispatchLevelResult>) {
+		self.receive_results.push((message, result));
+	}
+
+	pub fn push_skipped_for_not_enough_weight(&mut self, message: MessageNonce) {
+		self.skipped_for_not_enough_weight.push(message);
+	}
+}
+
+/// Result of single message receival.
+#[derive(RuntimeDebug, Encode, Decode, PartialEq, Eq, Clone, TypeInfo)]
+pub enum ReceivalResult<DispatchLevelResult> {
+	/// Message has been received and dispatched. Note that we don't care whether dispatch has
+	/// been successful or not - in both case message falls into this category.
+	///
+	/// The message dispatch result is also returned.
+	Dispatched(MessageDispatchResult<DispatchLevelResult>),
+	/// Message has invalid nonce and lane has rejected to accept this message.
+	InvalidNonce,
+	/// There are too many unrewarded relayer entries at the lane.
+	TooManyUnrewardedRelayers,
+	/// There are too many unconfirmed messages at the lane.
+	TooManyUnconfirmedMessages,
+}
+
 /// Delivered messages with their dispatch result.
 #[derive(Clone, Default, Encode, Decode, RuntimeDebug, PartialEq, Eq, TypeInfo)]
 pub struct DeliveredMessages {
@@ -225,19 +273,13 @@ pub struct DeliveredMessages {
 	pub begin: MessageNonce,
 	/// Nonce of the last message that has been delivered (inclusive).
 	pub end: MessageNonce,
-	/// Dispatch result (`false`/`true`), returned by the message dispatcher for every
-	/// message in the `[begin; end]` range. See `dispatch_result` field of the
-	/// `bp_runtime::messages::MessageDispatchResult` structure for more information.
-	pub dispatch_results: DispatchResultsBitVec,
 }
 
 impl DeliveredMessages {
 	/// Create new `DeliveredMessages` struct that confirms delivery of single nonce with given
 	/// dispatch result.
-	pub fn new(nonce: MessageNonce, dispatch_result: bool) -> Self {
-		let mut dispatch_results = BitVec::with_capacity(1);
-		dispatch_results.push(dispatch_result);
-		DeliveredMessages { begin: nonce, end: nonce, dispatch_results }
+	pub fn new(nonce: MessageNonce) -> Self {
+		DeliveredMessages { begin: nonce, end: nonce }
 	}
 
 	/// Return total count of delivered messages.
@@ -250,29 +292,13 @@ impl DeliveredMessages {
 	}
 
 	/// Note new dispatched message.
-	pub fn note_dispatched_message(&mut self, dispatch_result: bool) {
+	pub fn note_dispatched_message(&mut self) {
 		self.end += 1;
-		self.dispatch_results.push(dispatch_result);
 	}
 
 	/// Returns true if delivered messages contain message with given nonce.
 	pub fn contains_message(&self, nonce: MessageNonce) -> bool {
 		(self.begin..=self.end).contains(&nonce)
-	}
-
-	/// Get dispatch result flag by message nonce.
-	///
-	/// Dispatch result flag must be interpreted using the knowledge of dispatch mechanism
-	/// at the target chain. See `dispatch_result` field of the
-	/// `bp_runtime::messages::MessageDispatchResult` structure for more information.
-	///
-	/// Panics if message nonce is not in the `begin..=end` range. Typically you'll first
-	/// check if message is within the range by calling `contains_message`.
-	pub fn message_dispatch_result(&self, nonce: MessageNonce) -> bool {
-		const INVALID_NONCE: &str = "Invalid nonce used to index dispatch_results";
-
-		let index = nonce.checked_sub(self.begin).expect(INVALID_NONCE) as usize;
-		*self.dispatch_results.get(index).expect(INVALID_NONCE)
 	}
 }
 
@@ -339,7 +365,10 @@ pub fn total_unrewarded_messages<RelayerId>(
 pub fn calc_relayers_rewards<AccountId>(
 	messages_relayers: VecDeque<UnrewardedRelayer<AccountId>>,
 	received_range: &RangeInclusive<MessageNonce>,
-) -> RelayersRewards<AccountId> {
+) -> RelayersRewards<AccountId>
+where
+	AccountId: sp_std::cmp::Ord,
+{
 	// remember to reward relayers that have delivered messages
 	// this loop is bounded by `T::MaxUnrewardedRelayerEntriesAtInboundLane` on the bridged chain
 	let mut relayers_rewards = RelayersRewards::new();
@@ -353,7 +382,6 @@ pub fn calc_relayers_rewards<AccountId>(
 	relayers_rewards
 }
 
-
 #[cfg(test)]
 mod tests {
 	use super::*;
@@ -363,10 +391,10 @@ mod tests {
 		assert_eq!(
 			total_unrewarded_messages(
 				&vec![
-					UnrewardedRelayer { relayer: 1, messages: DeliveredMessages::new(0, true) },
+					UnrewardedRelayer { relayer: 1, messages: DeliveredMessages::new(0) },
 					UnrewardedRelayer {
 						relayer: 2,
-						messages: DeliveredMessages::new(MessageNonce::MAX, true)
+						messages: DeliveredMessages::new(MessageNonce::MAX)
 					},
 				]
 				.into_iter()
@@ -387,21 +415,12 @@ mod tests {
 			(13u8, 128u8),
 		];
 		for (relayer_entries, messages_count) in test_cases {
-			let expected_size =
-				InboundLaneData::<u8>::encoded_size_hint(relayer_entries as _, messages_count as _);
+			let expected_size = InboundLaneData::<u8>::encoded_size_hint(relayer_entries as _);
 			let actual_size = InboundLaneData {
 				relayers: (1u8..=relayer_entries)
-					.map(|i| {
-						let mut entry = UnrewardedRelayer {
-							relayer: i,
-							messages: DeliveredMessages::new(i as _, true),
-						};
-						entry.messages.dispatch_results = bitvec![
-							u8, Msb0;
-							1;
-							(messages_count / relayer_entries) as _
-						];
-						entry
+					.map(|i| UnrewardedRelayer {
+						relayer: i,
+						messages: DeliveredMessages::new(i as _),
 					})
 					.collect(),
 				last_confirmed_nonce: messages_count as _,
@@ -411,25 +430,18 @@ mod tests {
 			let difference = (expected_size.unwrap() as f64 - actual_size as f64).abs();
 			assert!(
 				difference / (std::cmp::min(actual_size, expected_size.unwrap()) as f64) < 0.1,
-				"Too large difference between actual ({}) and expected ({:?}) inbound lane data size. Test case: {}+{}",
-				actual_size,
-				expected_size,
-				relayer_entries,
-				messages_count,
+				"Too large difference between actual ({actual_size}) and expected ({expected_size:?}) inbound lane data size. Test case: {relayer_entries}+{messages_count}",
 			);
 		}
 	}
 
 	#[test]
-	fn message_dispatch_result_works() {
-		let delivered_messages =
-			DeliveredMessages { begin: 100, end: 150, dispatch_results: bitvec![u8, Msb0; 1; 151] };
+	fn contains_result_works() {
+		let delivered_messages = DeliveredMessages { begin: 100, end: 150 };
 
 		assert!(!delivered_messages.contains_message(99));
 		assert!(delivered_messages.contains_message(100));
 		assert!(delivered_messages.contains_message(150));
 		assert!(!delivered_messages.contains_message(151));
-
-		assert!(delivered_messages.message_dispatch_result(125));
 	}
 }

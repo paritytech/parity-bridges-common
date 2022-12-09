@@ -38,21 +38,27 @@ use substrate_relay_helper::{
 	TaggedAccount, TransactionParams,
 };
 
+/// A base relay between standalone (relay) chain and a parachain from another consensus system.
+///
+/// Such relay starts 2 messages relay. It also starts 2 on-demand header relays and 1 on-demand
+/// parachain heads relay.
 pub struct RelayToParachainBridge<
 	L2R: MessagesCliBridge + RelayToRelayHeadersCliBridge,
 	R2L: MessagesCliBridge + ParachainToRelayHeadersCliBridge,
 > {
+	/// Parameters that are shared by all bridge types.
 	pub common:
 		Full2WayBridgeCommonParams<<R2L as CliBridgeBase>::Target, <L2R as CliBridgeBase>::Target>,
+	/// Client of the right relay chain.
 	pub right_relay: Client<<R2L as ParachainToRelayHeadersCliBridge>::SourceRelay>,
 
-	// override for right_relay->left headers signer
+	/// Override for right_relay->left headers signer.
 	pub right_headers_to_left_transaction_params:
 		TransactionParams<AccountKeyPairOf<<R2L as CliBridgeBase>::Target>>,
-	// override for right->left parachains signer
+	/// Override for right->left parachains signer.
 	pub right_parachains_to_left_transaction_params:
 		TransactionParams<AccountKeyPairOf<<R2L as CliBridgeBase>::Target>>,
-	// override for left->right headers signer
+	/// Override for left->right headers signer.
 	pub left_headers_to_right_transaction_params:
 		TransactionParams<AccountKeyPairOf<<L2R as CliBridgeBase>::Target>>,
 }
@@ -64,40 +70,50 @@ macro_rules! declare_relay_to_parachain_bridge_schema {
 			#[doc = $left_chain ", " $right_parachain " and " $right_chain " headers+parachains+messages relay params."]
 			#[derive(Debug, PartialEq, StructOpt)]
 			pub struct [<$left_chain $right_parachain HeadersAndMessages>] {
+				// shared parameters
 				#[structopt(flatten)]
 				shared: HeadersAndMessagesSharedParams,
+
 				#[structopt(flatten)]
 				left: [<$left_chain ConnectionParams>],
+
 				// default signer, which is always used to sign messages relay transactions on the left chain
 				#[structopt(flatten)]
 				left_sign: [<$left_chain SigningParams>],
-				// override for right_relay->left headers signer
-				#[structopt(flatten)]
-				right_relay_headers_to_left_sign_override: [<$right_chain HeadersTo $left_chain SigningParams>],
-				// override for right->left parachains signer
-				#[structopt(flatten)]
-				right_parachains_to_left_sign_override: [<$right_chain ParachainsTo $left_chain SigningParams>],
+				// signer used to sign parameter update transactions at the left chain
 				#[structopt(flatten)]
 				left_messages_pallet_owner: [<$left_chain MessagesPalletOwnerSigningParams>],
+
 				#[structopt(flatten)]
 				right: [<$right_parachain ConnectionParams>],
+				#[structopt(flatten)]
+				right_relay: [<$right_chain ConnectionParams>],
+
 				// default signer, which is always used to sign messages relay transactions on the right chain
 				#[structopt(flatten)]
 				right_sign: [<$right_parachain SigningParams>],
+				// signer used to sign parameter update transactions at the left chain
+				#[structopt(flatten)]
+				right_messages_pallet_owner: [<$right_parachain MessagesPalletOwnerSigningParams>],
+
+
+				// override for right_relay->left headers signer
+				#[structopt(flatten)]
+				right_relay_headers_to_left_sign_override: [<$right_chain HeadersTo $left_chain SigningParams>],
 				// override for left->right headers signer
 				#[structopt(flatten)]
 				left_headers_to_right_sign_override: [<$left_chain HeadersTo $right_parachain SigningParams>],
+
+				// override for right->left parachains signer
 				#[structopt(flatten)]
-				right_messages_pallet_owner: [<$right_parachain MessagesPalletOwnerSigningParams>],
-				#[structopt(flatten)]
-				right_relay: [<$right_chain ConnectionParams>],
+				right_parachains_to_left_sign_override: [<$right_chain ParachainsTo $left_chain SigningParams>],
 			}
 
 			impl [<$left_chain $right_parachain HeadersAndMessages>] {
 				async fn into_bridge<
 					Left: ChainWithTransactions + CliChain<KeyPair = AccountKeyPairOf<Left>>,
 					Right: ChainWithTransactions + CliChain<KeyPair = AccountKeyPairOf<Right>>,
-					RightRelay: ChainWithTransactions + CliChain,
+					RightRelay: CliChain,
 					L2R: CliBridgeBase<Source = Left, Target = Right> + MessagesCliBridge + RelayToRelayHeadersCliBridge,
 					R2L: CliBridgeBase<Source = Right, Target = Left>
 						+ MessagesCliBridge
@@ -151,7 +167,6 @@ impl<
 			+ ChainWithTransactions
 			+ CliChain<KeyPair = AccountKeyPairOf<Right>>,
 		RightRelay: Chain<BlockNumber = RelayBlockNumber, Hash = RelayBlockHash, Hasher = RelayBlockHasher>
-			+ ChainWithTransactions
 			+ CliChain,
 		L2R: CliBridgeBase<Source = Left, Target = Right>
 			+ MessagesCliBridge

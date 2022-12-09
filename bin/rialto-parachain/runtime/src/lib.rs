@@ -45,12 +45,12 @@ use sp_version::NativeVersion;
 use sp_version::RuntimeVersion;
 
 // A few exports that help ease life for downstream crates.
-use bp_runtime::{HeaderId, HeaderIdProvider};
+use bp_runtime::HeaderId;
 pub use frame_support::{
 	construct_runtime,
 	dispatch::DispatchClass,
 	match_types, parameter_types,
-	traits::{Everything, IsInVec, Nothing, Randomness},
+	traits::{ConstU32, Everything, IsInVec, Nothing, Randomness},
 	weights::{
 		constants::{BlockExecutionWeight, ExtrinsicBaseWeight, RocksDbWeight, WEIGHT_PER_SECOND},
 		IdentityFee, Weight,
@@ -249,8 +249,6 @@ parameter_types! {
 	pub const CreationFee: u128 = MILLIUNIT;
 	pub const TransactionByteFee: u128 = MICROUNIT;
 	pub const OperationalFeeMultiplier: u8 = 5;
-	pub const MaxLocks: u32 = 50;
-	pub const MaxReserves: u32 = 50;
 }
 
 impl pallet_balances::Config for Runtime {
@@ -262,8 +260,8 @@ impl pallet_balances::Config for Runtime {
 	type ExistentialDeposit = ExistentialDeposit;
 	type AccountStore = System;
 	type WeightInfo = pallet_balances::weights::SubstrateWeight<Runtime>;
-	type MaxLocks = MaxLocks;
-	type MaxReserves = MaxReserves;
+	type MaxLocks = ConstU32<50>;
+	type MaxReserves = ConstU32<50>;
 	type ReserveIdentifier = [u8; 8];
 }
 
@@ -513,17 +511,12 @@ impl pallet_aura::Config for Runtime {
 impl pallet_bridge_relayers::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 	type Reward = Balance;
-	type PaymentProcedure = bp_relayers::MintReward<pallet_balances::Pallet<Runtime>, AccountId>;
+	type PaymentProcedure =
+		bp_relayers::PayLaneRewardFromAccount<pallet_balances::Pallet<Runtime>, AccountId>;
 	type WeightInfo = ();
 }
 
 parameter_types! {
-	/// This is a pretty unscientific cap.
-	///
-	/// Note that once this is hit the pallet will essentially throttle incoming requests down to one
-	/// call per block.
-	pub const MaxRequests: u32 = 50;
-
 	/// Number of headers to keep.
 	///
 	/// Assuming the worst case of every header being finalized, we will keep headers at least for a
@@ -532,17 +525,18 @@ parameter_types! {
 
 	/// Maximal number of authorities at Millau.
 	pub const MaxAuthoritiesAtMillau: u32 = bp_millau::MAX_AUTHORITIES_COUNT;
-	/// Maximal size of SCALE-encoded Millau header.
-	pub const MaxMillauHeaderSize: u32 = bp_millau::MAX_HEADER_SIZE;
 }
 
 pub type MillauGrandpaInstance = ();
 impl pallet_bridge_grandpa::Config for Runtime {
 	type BridgedChain = bp_millau::Millau;
-	type MaxRequests = MaxRequests;
+	/// This is a pretty unscientific cap.
+	///
+	/// Note that once this is hit the pallet will essentially throttle incoming requests down to
+	/// one call per block.
+	type MaxRequests = ConstU32<50>;
 	type HeadersToKeep = HeadersToKeep;
 	type MaxBridgedAuthorities = MaxAuthoritiesAtMillau;
-	type MaxBridgedHeaderSize = MaxMillauHeaderSize;
 	type WeightInfo = pallet_bridge_grandpa::weights::BridgeWeight<Runtime>;
 }
 
@@ -572,14 +566,15 @@ impl pallet_bridge_messages::Config<WithMillauMessagesInstance> for Runtime {
 
 	type InboundPayload = crate::millau_messages::FromMillauMessagePayload;
 	type InboundRelayer = bp_millau::AccountId;
+	type DeliveryPayments = ();
 
 	type TargetHeaderChain = crate::millau_messages::Millau;
 	type LaneMessageVerifier = crate::millau_messages::ToMillauMessageVerifier;
-	type MessageDeliveryAndDispatchPayment =
-		pallet_bridge_relayers::MessageDeliveryAndDispatchPaymentAdapter<
-			Runtime,
-			WithMillauMessagesInstance,
-		>;
+	type DeliveryConfirmationPayments = pallet_bridge_relayers::DeliveryConfirmationPaymentsAdapter<
+		Runtime,
+		frame_support::traits::ConstU128<100_000>,
+		frame_support::traits::ConstU128<100_000>,
+	>;
 
 	type SourceHeaderChain = crate::millau_messages::Millau;
 	type MessageDispatch = crate::millau_messages::FromMillauMessageDispatch;
@@ -731,7 +726,7 @@ impl_runtime_apis! {
 
 	impl bp_millau::MillauFinalityApi<Block> for Runtime {
 		fn best_finalized() -> Option<HeaderId<bp_millau::Hash, bp_millau::BlockNumber>> {
-			BridgeMillauGrandpa::best_finalized().map(|header| header.id())
+			BridgeMillauGrandpa::best_finalized()
 		}
 	}
 
@@ -895,9 +890,8 @@ mod tests {
 			assert_eq!(
 				dispatch_result,
 				MessageDispatchResult {
-					dispatch_result: true,
 					unspent_weight: frame_support::weights::Weight::from_ref_time(0),
-					dispatch_fee_paid_during_dispatch: false,
+					dispatch_level_result: (),
 				}
 			);
 		})

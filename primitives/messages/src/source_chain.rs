@@ -88,7 +88,8 @@ pub trait LaneMessageVerifier<SenderOrigin, Payload> {
 	) -> Result<(), Self::Error>;
 }
 
-/// Manages payments that are happening at the target chain during delivery confirmation transaction.
+/// Manages payments that are happening at the source chain during delivery confirmation
+/// transaction.
 pub trait DeliveryConfirmationPayments<AccountId> {
 	/// Error type.
 	type Error: Debug + Into<&'static str>;
@@ -106,6 +107,8 @@ pub trait DeliveryConfirmationPayments<AccountId> {
 }
 
 impl<AccountId> DeliveryConfirmationPayments<AccountId> for () {
+	type Error = &'static str;
+
 	fn pay_reward(
 		_lane_id: LaneId,
 		_messages_relayers: VecDeque<UnrewardedRelayer<AccountId>>,
@@ -193,12 +196,10 @@ impl<SenderOrigin, Payload> LaneMessageVerifier<SenderOrigin, Payload> for Forbi
 	}
 }
 
-impl<SenderOrigin, AccountId> MessageDeliveryAndDispatchPayment<SenderOrigin, AccountId>
-	for ForbidOutboundMessages
-{
+impl<AccountId> DeliveryConfirmationPayments<AccountId> for ForbidOutboundMessages {
 	type Error = &'static str;
 
-	fn pay_relayers_rewards(
+	fn pay_reward(
 		_lane_id: LaneId,
 		_messages_relayers: VecDeque<UnrewardedRelayer<AccountId>>,
 		_confirmation_relayer: &AccountId,

@@ -17,14 +17,14 @@
 // From construct_runtime macro
 #![allow(clippy::from_over_into)]
 
-use crate::{calc_relayers_rewards, Config};
+use crate::Config;
 
-use bitvec::prelude::*;
 use bp_messages::{
-	source_chain::{LaneMessageVerifier, MessageDeliveryAndDispatchPayment, TargetHeaderChain},
+	calc_relayers_rewards,
+	source_chain::{DeliveryConfirmationPayments, LaneMessageVerifier, TargetHeaderChain},
 	target_chain::{
-		DispatchMessage, DispatchMessageData, MessageDispatch, ProvedLaneMessages, ProvedMessages,
-		SourceHeaderChain,
+		DeliveryPayments, DispatchMessage, DispatchMessageData, MessageDispatch,
+		ProvedLaneMessages, ProvedMessages, SourceHeaderChain,
 	},
 	DeliveredMessages, InboundLaneData, LaneId, Message, MessageKey, MessageNonce, MessagePayload,
 	OutboundLaneData, UnrewardedRelayer,
@@ -33,6 +33,7 @@ use bp_runtime::{messages::MessageDispatchResult, Size};
 use codec::{Decode, Encode};
 use frame_support::{
 	parameter_types,
+	traits::ConstU64,
 	weights::{RuntimeDbWeight, Weight},
 };
 use scale_info::TypeInfo;
@@ -61,12 +62,13 @@ pub struct TestPayload {
 	///
 	/// Note: in correct code `dispatch_result.unspent_weight` will always be <= `declared_weight`,
 	/// but for test purposes we'll be making it larger than `declared_weight` sometimes.
-	pub dispatch_result: MessageDispatchResult,
+	pub dispatch_result: MessageDispatchResult<TestDispatchLevelResult>,
 	/// Extra bytes that affect payload size.
 	pub extra: Vec<u8>,
 }
 pub type TestMessageFee = u64;
 pub type TestRelayer = u64;
+pub type TestDispatchLevelResult = ();
 
 type Block = frame_system::mocking::MockBlock<TestRuntime>;
 type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<TestRuntime>;
@@ -104,7 +106,7 @@ impl frame_system::Config for TestRuntime {
 	type Lookup = IdentityLookup<Self::AccountId>;
 	type Header = SubstrateHeader;
 	type RuntimeEvent = RuntimeEvent;
-	type BlockHashCount = BlockHashCount;
+	type BlockHashCount = ConstU64<250>;
 	type Version = ();
 	type PalletInfo = PalletInfo;
 	type AccountData = pallet_balances::AccountData<Balance>;
@@ -120,16 +122,12 @@ impl frame_system::Config for TestRuntime {
 	type MaxConsumers = frame_support::traits::ConstU32<16>;
 }
 
-parameter_types! {
-	pub const ExistentialDeposit: u64 = 1;
-}
-
 impl pallet_balances::Config for TestRuntime {
 	type MaxLocks = ();
 	type Balance = Balance;
 	type DustRemoval = ();
 	type RuntimeEvent = RuntimeEvent;
-	type ExistentialDeposit = ExistentialDeposit;
+	type ExistentialDeposit = ConstU64<1>;
 	type AccountStore = frame_system::Pallet<TestRuntime>;
 	type WeightInfo = ();
 	type MaxReserves = ();
@@ -156,10 +154,11 @@ impl Config for TestRuntime {
 
 	type InboundPayload = TestPayload;
 	type InboundRelayer = TestRelayer;
+	type DeliveryPayments = TestDeliveryPayments;
 
 	type TargetHeaderChain = TestTargetHeaderChain;
 	type LaneMessageVerifier = TestLaneMessageVerifier;
-	type MessageDeliveryAndDispatchPayment = TestMessageDeliveryAndDispatchPayment;
+	type DeliveryConfirmationPayments = TestDeliveryConfirmationPayments;
 
 	type SourceHeaderChain = TestSourceHeaderChain;
 	type MessageDispatch = TestMessageDispatch;
@@ -290,11 +289,38 @@ impl LaneMessageVerifier<RuntimeOrigin, TestPayload> for TestLaneMessageVerifier
 	}
 }
 
-/// Message fee payment system that is used in tests.
+/// Reward payments at the target chain during delivery transaciton.
 #[derive(Debug, Default)]
-pub struct TestMessageDeliveryAndDispatchPayment;
+pub struct TestDeliveryPayments;
 
-impl TestMessageDeliveryAndDispatchPayment {
+impl TestDeliveryPayments {
+	/// Returns true if given relayer has been rewarded with given balance. The reward-paid flag is
+	/// cleared after the call.
+	pub fn is_reward_paid(relayer: AccountId) -> bool {
+		let key = (b":delivery-relayer-reward:", relayer).encode();
+		frame_support::storage::unhashed::take::<bool>(&key).is_some()
+	}
+}
+
+impl DeliveryPayments<AccountId> for TestDeliveryPayments {
+	type Error = &'static str;
+
+	fn pay_reward(
+		relayer: AccountId,
+		_total_messages: MessageNonce,
+		_valid_messages: MessageNonce,
+		_actual_weight: Weight,
+	) {
+		let key = (b":delivery-relayer-reward:", relayer).encode();
+		frame_support::storage::unhashed::put(&key, &true);
+	}
+}
+
+/// Reward payments at the source chain during delivery confirmaion transaction.
+#[derive(Debug, Default)]
+pub struct TestDeliveryConfirmationPayments;
+
+impl TestDeliveryConfirmationPayments {
 	/// Returns true if given relayer has been rewarded with given balance. The reward-paid flag is
 	/// cleared after the call.
 	pub fn is_reward_paid(relayer: AccountId, fee: TestMessageFee) -> bool {
@@ -303,19 +329,16 @@ impl TestMessageDeliveryAndDispatchPayment {
 	}
 }
 
-impl MessageDeliveryAndDispatchPayment<RuntimeOrigin, AccountId>
-	for TestMessageDeliveryAndDispatchPayment
-{
+impl DeliveryConfirmationPayments<AccountId> for TestDeliveryConfirmationPayments {
 	type Error = &'static str;
 
-	fn pay_relayers_rewards(
+	fn pay_reward(
 		_lane_id: LaneId,
-		message_relayers: VecDeque<UnrewardedRelayer<AccountId>>,
+		messages_relayers: VecDeque<UnrewardedRelayer<AccountId>>,
 		_confirmation_relayer: &AccountId,
 		received_range: &RangeInclusive<MessageNonce>,
 	) {
-		let relayers_rewards =
-			calc_relayers_rewards::<TestRuntime, ()>(message_relayers, received_range);
+		let relayers_rewards = calc_relayers_rewards(messages_relayers, received_range);
 		for (relayer, reward) in &relayers_rewards {
 			let key = (b":relayer-reward:", relayer, reward).encode();
 			frame_support::storage::unhashed::put(&key, &true);
@@ -346,6 +369,7 @@ pub struct TestMessageDispatch;
 
 impl MessageDispatch<AccountId> for TestMessageDispatch {
 	type DispatchPayload = TestPayload;
+	type DispatchLevelResult = TestDispatchLevelResult;
 
 	fn dispatch_weight(message: &mut DispatchMessage<TestPayload>) -> Weight {
 		match message.data.payload.as_ref() {
@@ -357,7 +381,7 @@ impl MessageDispatch<AccountId> for TestMessageDispatch {
 	fn dispatch(
 		_relayer_account: &AccountId,
 		message: DispatchMessage<TestPayload>,
-	) -> MessageDispatchResult {
+	) -> MessageDispatchResult<TestDispatchLevelResult> {
 		match message.data.payload.as_ref() {
 			Ok(payload) => payload.dispatch_result.clone(),
 			Err(_) => dispatch_result(0),
@@ -392,11 +416,12 @@ pub const fn message_payload(id: u64, declared_weight: u64) -> TestPayload {
 }
 
 /// Returns message dispatch result with given unspent weight.
-pub const fn dispatch_result(unspent_weight: u64) -> MessageDispatchResult {
+pub const fn dispatch_result(
+	unspent_weight: u64,
+) -> MessageDispatchResult<TestDispatchLevelResult> {
 	MessageDispatchResult {
-		dispatch_result: true,
 		unspent_weight: Weight::from_ref_time(unspent_weight),
-		dispatch_fee_paid_during_dispatch: true,
+		dispatch_level_result: (),
 	}
 }
 
@@ -406,18 +431,7 @@ pub fn unrewarded_relayer(
 	end: MessageNonce,
 	relayer: TestRelayer,
 ) -> UnrewardedRelayer<TestRelayer> {
-	UnrewardedRelayer {
-		relayer,
-		messages: DeliveredMessages {
-			begin,
-			end,
-			dispatch_results: if end >= begin {
-				bitvec![u8, Msb0; 1; (end - begin + 1) as _]
-			} else {
-				Default::default()
-			},
-		},
-	}
+	UnrewardedRelayer { relayer, messages: DeliveredMessages { begin, end } }
 }
 
 /// Run pallet test.
