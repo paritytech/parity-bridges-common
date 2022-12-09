@@ -103,6 +103,15 @@ pub struct RefundRelayerForMessagesFromParachain<RT, GI, PI, MI, BE, PID, LID, F
 	PhantomData<(RT, GI, PI, MI, BE, PID, LID, FEE)>,
 );
 
+impl<RT, GI, PI, MI, BE, PID, LID, FEE>
+	RefundRelayerForMessagesFromParachain<RT, GI, PI, MI, BE, PID, LID, FEE>
+{
+	/// Creates instance of the signed extension.
+	pub fn new() -> Self {
+		RefundRelayerForMessagesFromParachain(PhantomData)
+	}
+}
+
 /// Data that is crafted in `pre_dispatch` method and used at `post_dispatch`.
 #[derive(PartialEq)]
 #[cfg_attr(test, derive(Debug))]
