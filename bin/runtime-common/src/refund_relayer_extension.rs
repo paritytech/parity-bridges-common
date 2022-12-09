@@ -658,7 +658,7 @@ mod tests {
 	}
 
 	#[test]
-	fn pre_dispatsh_rejects_batch_with_obsolete_parachain_head() {
+	fn pre_dispatch_rejects_batch_with_obsolete_parachain_head() {
 		run_test(|| {
 			initialize_environment(100, 100, 100);
 
