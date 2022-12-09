@@ -675,7 +675,7 @@ mod tests {
 	}
 
 	#[test]
-	fn pre_dispatsh_rejects_batch_with_obsolete_messages() {
+	fn pre_dispatch_rejects_batch_with_obsolete_messages() {
 		run_test(|| {
 			initialize_environment(100, 100, 100);
 
