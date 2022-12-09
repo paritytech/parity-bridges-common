@@ -89,7 +89,7 @@ where
 /// Signed extension that refunds relayer for new messages coming from the parachain.
 ///
 /// Also refunds relayer for successful finality delivery if it comes in batch (`utility.batchAll`)
-/// with message delivery transaction. Batch may delvier either both relay chain header and
+/// with message delivery transaction. Batch may deliver either both relay chain header and
 /// parachain head, or just parachain head. Corresponding headers must be used in messages
 /// proof verification.
 ///
