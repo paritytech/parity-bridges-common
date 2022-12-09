@@ -289,7 +289,7 @@ impl LaneMessageVerifier<RuntimeOrigin, TestPayload> for TestLaneMessageVerifier
 	}
 }
 
-/// Reward payments at the target chain during delivery transaciton.
+/// Reward payments at the target chain during delivery transaction.
 #[derive(Debug, Default)]
 pub struct TestDeliveryPayments;
 
