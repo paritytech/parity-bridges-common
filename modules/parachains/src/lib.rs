@@ -534,7 +534,7 @@ pub mod pallet {
 				return Err(())
 			}
 
-			// verify that the parachain head size is <= `MaxParaHeadSize`
+			// verify that the parachain head data size is <= `MaxParaHeadDataSize`
 			let updated_head_data =
 				match StoredParaHeadDataOf::<T, I>::try_from_inner(updated_head_data) {
 					Ok(updated_head_data) => updated_head_data,
