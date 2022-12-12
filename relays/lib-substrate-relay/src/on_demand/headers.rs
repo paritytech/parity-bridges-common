@@ -115,16 +115,17 @@ impl<P: SubstrateFinalitySyncPipeline> OnDemandRelay<P::SourceChain, P::TargetCh
 	async fn prove_header(
 		&self,
 		required_header: BlockNumberOf<P::SourceChain>,
-	) -> Result<Vec<CallOf<P::TargetChain>>, SubstrateError> {
+	) -> Result<(BlockNumberOf<P::SourceChain>, Vec<CallOf<P::TargetChain>>), SubstrateError> {
 		// first find proper header (either `required_header`) or its descendant
 		let finality_source = SubstrateFinalitySource::<P>::new(self.source_client.clone(), None);
 		let (header, proof) = finality_source.prove_block_finality(required_header).await?;
+		let header_number = *header.number();
 
 		// and then craft the submit-proof call
 		let call =
 			P::SubmitFinalityProofCallBuilder::build_submit_finality_proof_call(header, proof);
 
-		Ok(vec![call])
+		Ok((header_number, vec![call]))
 	}
 }
 

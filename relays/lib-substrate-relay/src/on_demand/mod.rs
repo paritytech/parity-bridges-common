@@ -35,8 +35,11 @@ pub trait OnDemandRelay<SourceChain: Chain, TargetChain: Chain>: Send + Sync {
 	async fn require_more_headers(&self, required_header: BlockNumberOf<SourceChain>);
 
 	/// Ask relay to prove source `required_header` to the `TargetChain`.
+	///
+	/// Returns number of header that is proved (it may be the `required_header` or one of its
+	/// descendants) and calls for delivering the proof.
 	async fn prove_header(
 		&self,
 		required_header: BlockNumberOf<SourceChain>,
-	) -> Result<Vec<CallOf<TargetChain>>, SubstrateError>;
+	) -> Result<(BlockNumberOf<SourceChain>, Vec<CallOf<TargetChain>>), SubstrateError>;
 }

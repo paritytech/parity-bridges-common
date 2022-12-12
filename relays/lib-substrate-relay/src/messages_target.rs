@@ -312,13 +312,16 @@ where
 		self,
 		proof: <MessageLaneAdapter<P> as MessageLane>::MessagesProof,
 	) -> Result<TransactionTracker<P::TargetChain, Client<P::TargetChain>>, SubstrateError> {
+		unimplemented!("TODO");
+		unimplemented!("TODO: move prove_header call to constructor and return proper header id from required_header_id method");
 		let mut calls = self
 			.messages_target
 			.source_to_target_headers_relay
 			.as_ref()
 			.expect("BatchDeliveryTransaction is only created when source_to_target_headers_relay is Some; qed")
 			.prove_header(self.required_source_header_on_target.0)
-			.await?;
+			.await?
+			.1;
 		calls.push(make_messages_delivery_call::<P>(
 			self.messages_target.relayer_id_at_source,
 			proof.1.nonces_start..=proof.1.nonces_end,

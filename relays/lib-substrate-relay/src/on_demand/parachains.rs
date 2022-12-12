@@ -138,7 +138,7 @@ where
 	async fn prove_header(
 		&self,
 		required_header: BlockNumberOf<P::SourceParachain>,
-	) -> Result<Vec<CallOf<P::TargetChain>>, SubstrateError> {
+	) -> Result<(BlockNumberOf<P::SourceParachain>, Vec<CallOf<P::TargetChain>>), SubstrateError> {
 		// parachains proof also requires relay header proof. Let's first select relay block
 		// number that we'll be dealing with
 		let parachains_source = ParachainsSource::<P>::new(
@@ -210,7 +210,8 @@ where
 			calls.extend(
 				self.on_demand_source_relay_to_target_headers
 					.prove_header(selected_relay_block.number())
-					.await?,
+					.await?
+					.1,
 			);
 		}
 
@@ -224,7 +225,7 @@ where
 			para_proof,
 		));
 
-		Ok(calls)
+		Ok((selected_parachain_block, calls))
 	}
 }
 
