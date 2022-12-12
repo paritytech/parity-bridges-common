@@ -135,6 +135,7 @@ impl<C: Parachain> ParaStoredHeaderDataBuilder for SingleParaStoredHeaderDataBui
 	}
 }
 
+// Tries to build header data from each tuple member, short-circuiting on first successful one.
 #[impl_trait_for_tuples::impl_for_tuples(1, 30)]
 #[tuple_types_custom_trait_bound(Parachain)]
 impl ParaStoredHeaderDataBuilder for C {
