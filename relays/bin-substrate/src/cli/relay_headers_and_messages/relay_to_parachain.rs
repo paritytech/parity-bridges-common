@@ -236,9 +236,9 @@ where
 				self.right_headers_to_left_transaction_params.clone(),
 				self.common.shared.only_mandatory_headers,
 			);
-		let right_to_left_on_demand_parachains = OnDemandParachainsRelay::new::<
+		let right_to_left_on_demand_parachains = OnDemandParachainsRelay::<
 			<R2L as ParachainToRelayHeadersCliBridge>::ParachainFinality,
-		>(
+		>::new(
 			self.right_relay.clone(),
 			self.common.left.client.clone(),
 			self.right_parachains_to_left_transaction_params.clone(),

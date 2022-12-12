@@ -8564,6 +8564,7 @@ dependencies = [
  "async-trait",
  "bp-header-chain",
  "bp-messages",
+ "bp-polkadot-core",
  "bp-runtime",
  "finality-relay",
  "frame-support",

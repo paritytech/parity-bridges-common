@@ -21,7 +21,7 @@ use crate::{
 	on_demand::OnDemandRelay,
 	parachains::{
 		source::ParachainsSource, target::ParachainsTarget, ParachainsPipelineAdapter,
-		SubstrateParachainsPipeline,
+		SubmitParachainHeadsCallBuilder, SubstrateParachainsPipeline,
 	},
 	TransactionParams,
 };
@@ -31,20 +31,23 @@ use async_std::{
 	sync::{Arc, Mutex},
 };
 use async_trait::async_trait;
-use bp_polkadot_core::parachains::ParaHash;
+use bp_polkadot_core::parachains::{ParaHash, ParaId};
 use bp_runtime::HeaderIdProvider;
 use futures::{select, FutureExt};
-use num_traits::Zero;
+use num_traits::{Saturating, Zero};
 use pallet_bridge_parachains::{RelayBlockHash, RelayBlockHasher, RelayBlockNumber};
-use parachains_relay::parachains_loop::{AvailableHeader, ParachainSyncParams, TargetClient};
+use parachains_relay::parachains_loop::{
+	AvailableHeader, ParachainSyncParams, SourceClient, TargetClient,
+};
 use relay_substrate_client::{
-	AccountIdOf, AccountKeyPairOf, BlockNumberOf, CallOf, Chain, ChainWithTransactions, Client,
-	Error as SubstrateError, HashOf,
+	AccountIdOf, AccountKeyPairOf, BlockNumberOf, CallOf, Chain, Client, Error as SubstrateError,
+	HashOf,
 };
 use relay_utils::{
 	metrics::MetricsParams, relay_loop::Client as RelayClient, FailedClient, HeaderId,
+	UniqueSaturatedFrom, UniqueSaturatedInto,
 };
-use std::{fmt::Debug, marker::PhantomData};
+use std::fmt::Debug;
 
 /// On-demand Substrate <-> Substrate parachain finality relay.
 ///
@@ -52,26 +55,27 @@ use std::{fmt::Debug, marker::PhantomData};
 /// (e.g. messages relay) needs it to continue its regular work. When enough parachain headers
 /// are relayed, on-demand stops syncing headers.
 #[derive(Clone)]
-pub struct OnDemandParachainsRelay<SourceParachain: Chain, TargetChain> {
+pub struct OnDemandParachainsRelay<P: SubstrateParachainsPipeline> {
 	/// Relay task name.
 	relay_task_name: String,
 	/// Channel used to communicate with background task and ask for relay of parachain heads.
-	required_header_number_sender: Sender<BlockNumberOf<SourceParachain>>,
-	/// Just rusty things.
-	_marker: PhantomData<TargetChain>,
+	required_header_number_sender: Sender<BlockNumberOf<P::SourceParachain>>,
+	/// Source relay chain client.
+	source_relay_client: Client<P::SourceRelayChain>,
+	/// Target chain client.
+	target_client: Client<P::TargetChain>,
+	/// On-demand relay chain relay.
+	on_demand_source_relay_to_target_headers:
+		Arc<dyn OnDemandRelay<P::SourceRelayChain, P::TargetChain>>,
 }
 
-impl<SourceParachain: Chain, TargetChain: ChainWithTransactions>
-	OnDemandParachainsRelay<SourceParachain, TargetChain>
-{
+impl<P: SubstrateParachainsPipeline> OnDemandParachainsRelay<P> {
 	/// Create new on-demand parachains relay.
 	///
 	/// Note that the argument is the source relay chain client, not the parachain client.
 	/// That's because parachain finality is determined by the relay chain and we don't
 	/// need to connect to the parachain itself here.
-	pub fn new<
-		P: SubstrateParachainsPipeline<SourceParachain = SourceParachain, TargetChain = TargetChain>,
-	>(
+	pub fn new(
 		source_relay_client: Client<P::SourceRelayChain>,
 		target_client: Client<P::TargetChain>,
 		target_transaction_params: TransactionParams<AccountKeyPairOf<P::TargetChain>>,
@@ -88,9 +92,13 @@ impl<SourceParachain: Chain, TargetChain: ChainWithTransactions>
 	{
 		let (required_header_number_sender, required_header_number_receiver) = unbounded();
 		let this = OnDemandParachainsRelay {
-			relay_task_name: on_demand_parachains_relay_name::<SourceParachain, P::TargetChain>(),
+			relay_task_name: on_demand_parachains_relay_name::<P::SourceParachain, P::TargetChain>(
+			),
 			required_header_number_sender,
-			_marker: PhantomData,
+			source_relay_client: source_relay_client.clone(),
+			target_client: target_client.clone(),
+			on_demand_source_relay_to_target_headers: on_demand_source_relay_to_target_headers
+				.clone(),
 		};
 		async_std::task::spawn(async move {
 			background_task::<P>(
@@ -108,19 +116,18 @@ impl<SourceParachain: Chain, TargetChain: ChainWithTransactions>
 }
 
 #[async_trait]
-impl<SourceParachain, TargetChain> OnDemandRelay<SourceParachain, TargetChain>
-	for OnDemandParachainsRelay<SourceParachain, TargetChain>
+impl<P: SubstrateParachainsPipeline> OnDemandRelay<P::SourceParachain, P::TargetChain>
+	for OnDemandParachainsRelay<P>
 where
-	SourceParachain: Chain,
-	TargetChain: Chain,
+	P::SourceParachain: Chain<Hash = ParaHash>,
 {
-	async fn require_more_headers(&self, required_header: BlockNumberOf<SourceParachain>) {
+	async fn require_more_headers(&self, required_header: BlockNumberOf<P::SourceParachain>) {
 		if let Err(e) = self.required_header_number_sender.send(required_header).await {
 			log::trace!(
 				target: "bridge",
 				"[{}] Failed to request {} header {:?}: {:?}",
 				self.relay_task_name,
-				SourceParachain::NAME,
+				P::SourceParachain::NAME,
 				required_header,
 				e,
 			);
@@ -130,9 +137,94 @@ where
 	/// Ask relay to prove source `required_header` to the `TargetChain`.
 	async fn prove_header(
 		&self,
-		required_header: BlockNumberOf<SourceParachain>,
-	) -> Result<Vec<CallOf<TargetChain>>, SubstrateError> {
-		unimplemented!("TODO")
+		required_header: BlockNumberOf<P::SourceParachain>,
+	) -> Result<Vec<CallOf<P::TargetChain>>, SubstrateError> {
+		// parachains proof also requires relay header proof. Let's first select relay block
+		// number that we'll be dealing with
+		let parachains_source = ParachainsSource::<P>::new(
+			self.source_relay_client.clone(),
+			Arc::new(Mutex::new(AvailableHeader::Missing)),
+		);
+		let best_finalized_relay_block_at_source =
+			self.source_relay_client.best_finalized_header().await?.id();
+		let best_finalized_relay_block_at_target =
+			crate::messages_source::read_client_state::<P::TargetChain, P::SourceRelayChain>(
+				&self.target_client,
+				None,
+				P::SourceRelayChain::BEST_FINALIZED_HEADER_ID_METHOD,
+			)
+			.await?
+			.best_finalized_peer_at_best_self;
+
+		// if we can't prove `required_header` even using `best_finalized_relay_block_at_source`, we
+		// can't do anything here
+		// (this shall not actually happen, given current code, because we only require finalized
+		// headers)
+		let para_id = ParaId(P::SOURCE_PARACHAIN_PARA_ID);
+		let best_possible_parachain_block = parachains_source
+			.on_chain_para_head_id(best_finalized_relay_block_at_target, para_id)
+			.await?;
+		let best_possible_parachain_block = match best_possible_parachain_block {
+			Some(best_possible_parachain_block)
+				if best_possible_parachain_block.number() >= required_header =>
+				best_possible_parachain_block,
+			_ =>
+				return Err(SubstrateError::MissingRequiredParachainHead(
+					para_id,
+					required_header.unique_saturated_into(),
+				)),
+		};
+
+		// now let's check if `required_header` may be proved using
+		// `best_finalized_relay_block_at_target`
+		let available_parachain_block = parachains_source
+			.on_chain_para_head_id(best_finalized_relay_block_at_target, para_id)
+			.await?;
+		let can_use_available_relay_header = available_parachain_block
+			.as_ref()
+			.map(|available_parachain_block| available_parachain_block.number() >= required_header)
+			.unwrap_or(false);
+
+		// we don't require source node to be archive, so we can't craft storage proofs using
+		// ancient headers. So if the `best_finalized_relay_block_at_target` is too ancient, we
+		// can't craft storage proofs using it
+		let difference = best_finalized_relay_block_at_source
+			.number()
+			.saturating_sub(best_finalized_relay_block_at_target.number());
+		let can_use_available_relay_header = can_use_available_relay_header &&
+			difference < BlockNumberOf::<P::SourceRelayChain>::unique_saturated_from(100u64); // TODO: extract const
+
+		// ok - now we have everything ready to select which headers we need on the target chain
+		let (selected_relay_block, selected_parachain_block) = if can_use_available_relay_header {
+			(
+				best_finalized_relay_block_at_target,
+				available_parachain_block.expect("TODO").number(),
+			)
+		} else {
+			(best_finalized_relay_block_at_source, best_possible_parachain_block.number())
+		};
+
+		// now let's prove relay chain block (if needed)
+		let mut calls = Vec::new();
+		if selected_relay_block != best_finalized_relay_block_at_target {
+			calls.extend(
+				self.on_demand_source_relay_to_target_headers
+					.prove_header(selected_relay_block.number())
+					.await?,
+			);
+		}
+
+		// and finally - prove parachain head
+		let (para_proof, para_hashes) = parachains_source
+			.prove_parachain_heads(selected_relay_block, &[para_id])
+			.await?;
+		calls.push(P::SubmitParachainHeadsCallBuilder::build_submit_parachain_heads_call(
+			selected_relay_block,
+			para_hashes.into_iter().map(|h| (para_id, h)).collect(),
+			para_proof,
+		));
+
+		Ok(calls)
 	}
 }
 

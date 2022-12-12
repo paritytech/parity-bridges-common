@@ -255,17 +255,17 @@ where
 				self.common.shared.only_mandatory_headers,
 			);
 
-		let left_to_right_on_demand_parachains = OnDemandParachainsRelay::new::<
+		let left_to_right_on_demand_parachains = OnDemandParachainsRelay::<
 			<L2R as ParachainToRelayHeadersCliBridge>::ParachainFinality,
-		>(
+		>::new(
 			self.left_relay.clone(),
 			self.common.right.client.clone(),
 			self.left_parachains_to_right_transaction_params.clone(),
 			Arc::new(left_relay_to_right_on_demand_headers),
 		);
-		let right_to_left_on_demand_parachains = OnDemandParachainsRelay::new::<
+		let right_to_left_on_demand_parachains = OnDemandParachainsRelay::<
 			<R2L as ParachainToRelayHeadersCliBridge>::ParachainFinality,
-		>(
+		>::new(
 			self.right_relay.clone(),
 			self.common.left.client.clone(),
 			self.right_parachains_to_left_transaction_params.clone(),

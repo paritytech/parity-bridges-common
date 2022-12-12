@@ -176,6 +176,8 @@ pub trait SourceClient<P: MessageLane>: RelayClient {
 
 	/// We need given finalized target header on source to continue synchronization.
 	///
+	/// We assume that the absence of header `id` has already been checked by caller.
+	///
 	/// The client may return `Some(_)`, which means that nothing has happened yet and
 	/// the caller must generate and append message receiving proof to the batch transaction
 	/// to actually send it (along with required header) to the node.
