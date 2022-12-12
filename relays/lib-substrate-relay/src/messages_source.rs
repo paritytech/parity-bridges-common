@@ -20,12 +20,11 @@
 
 use crate::{
 	messages_lane::{
-		BatchCallBuilder, MessageLaneAdapter, ReceiveMessagesDeliveryProofCallBuilder,
-		SubstrateMessageLane,
+		MessageLaneAdapter, ReceiveMessagesDeliveryProofCallBuilder, SubstrateMessageLane,
 	},
 	messages_target::SubstrateMessagesDeliveryProof,
 	on_demand::OnDemandRelay,
-	TransactionParams,
+	BatchCallBuilder, TransactionParams,
 };
 
 use async_std::sync::Arc;

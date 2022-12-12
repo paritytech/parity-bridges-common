@@ -19,12 +19,10 @@
 //! <BridgedName> chain.
 
 use crate::{
-	messages_lane::{
-		BatchCallBuilder, MessageLaneAdapter, ReceiveMessagesProofCallBuilder, SubstrateMessageLane,
-	},
+	messages_lane::{MessageLaneAdapter, ReceiveMessagesProofCallBuilder, SubstrateMessageLane},
 	messages_source::{ensure_messages_pallet_active, read_client_state, SubstrateMessagesProof},
 	on_demand::OnDemandRelay,
-	TransactionParams,
+	BatchCallBuilder, TransactionParams,
 };
 
 use async_std::sync::Arc;

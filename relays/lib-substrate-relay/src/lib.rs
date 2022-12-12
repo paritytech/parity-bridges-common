@@ -18,6 +18,8 @@
 
 #![warn(missing_docs)]
 
+use std::marker::PhantomData;
+
 pub mod error;
 pub mod finality;
 pub mod messages_lane;
@@ -94,5 +96,42 @@ impl<AccountId> TaggedAccount<AccountId> {
 				format!("{bridged_chain}MessagesPalletOwner")
 			},
 		}
+	}
+}
+
+/// Batch call builder.
+pub trait BatchCallBuilder<Call> {
+	/// If `true`, then batch calls are supported at the chain.
+	const BATCH_CALL_SUPPORTED: bool;
+
+	/// Create batch call from given calls vector.
+	fn build_batch_call(_calls: Vec<Call>) -> Call;
+}
+
+impl<Call> BatchCallBuilder<Call> for () {
+	const BATCH_CALL_SUPPORTED: bool = false;
+
+	fn build_batch_call(_calls: Vec<Call>) -> Call {
+		unreachable!(
+			"only called if `BATCH_CALL_SUPPORTED` is true;\
+			`BATCH_CALL_SUPPORTED` is false;\
+			qed"
+		)
+	}
+}
+
+/// Batch call builder for bundled runtimes.
+pub struct BundledBatchCallBuilder<R>(PhantomData<R>);
+
+impl<R> BatchCallBuilder<<R as frame_system::Config>::RuntimeCall> for BundledBatchCallBuilder<R>
+where
+	R: pallet_utility::Config<RuntimeCall = <R as frame_system::Config>::RuntimeCall>,
+{
+	const BATCH_CALL_SUPPORTED: bool = true;
+
+	fn build_batch_call(
+		calls: Vec<<R as frame_system::Config>::RuntimeCall>,
+	) -> <R as frame_system::Config>::RuntimeCall {
+		unimplemented!("TODO")
 	}
 }

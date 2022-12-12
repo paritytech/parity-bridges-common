@@ -20,7 +20,7 @@ use crate::{
 	messages_source::{SubstrateMessagesProof, SubstrateMessagesSource},
 	messages_target::{SubstrateMessagesDeliveryProof, SubstrateMessagesTarget},
 	on_demand::OnDemandRelay,
-	TransactionParams,
+	BatchCallBuilder, TransactionParams,
 };
 
 use async_std::sync::Arc;
@@ -57,9 +57,9 @@ pub trait SubstrateMessageLane: 'static + Clone + Debug + Send + Sync {
 	type ReceiveMessagesDeliveryProofCallBuilder: ReceiveMessagesDeliveryProofCallBuilder<Self>;
 
 	/// How batch calls are built at the source chain?
-	type SourceBatchCallBuilder: BatchCallBuilder<Self::SourceChain>;
+	type SourceBatchCallBuilder: BatchCallBuilder<CallOf<Self::SourceChain>>;
 	/// How batch calls are built at the target chain?
-	type TargetBatchCallBuilder: BatchCallBuilder<Self::TargetChain>;
+	type TargetBatchCallBuilder: BatchCallBuilder<CallOf<Self::TargetChain>>;
 }
 
 /// Adapter that allows all `SubstrateMessageLane` to act as `MessageLane`.
@@ -199,27 +199,6 @@ where
 	)
 	.await
 	.map_err(Into::into)
-}
-
-/// Batch call builder.
-pub trait BatchCallBuilder<C: Chain> {
-	/// If `true`, then batch calls are supported at the chain.
-	const BATCH_CALL_SUPPORTED: bool;
-
-	/// Create batch call from given calls vector.
-	fn build_batch_call(_calls: Vec<CallOf<C>>) -> CallOf<C>;
-}
-
-impl<C: Chain> BatchCallBuilder<C> for () {
-	const BATCH_CALL_SUPPORTED: bool = false;
-
-	fn build_batch_call(_calls: Vec<CallOf<C>>) -> CallOf<C> {
-		unreachable!(
-			"only called if `BATCH_CALL_SUPPORTED` is true;\
-			`BATCH_CALL_SUPPORTED` is false;\
-			qed"
-		)
-	}
 }
 
 /// Different ways of building `receive_messages_proof` calls.

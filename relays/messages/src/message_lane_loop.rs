@@ -547,10 +547,10 @@ pub(crate) mod tests {
 		async fn append_proof_and_send(
 			self,
 			proof: TestMessagesProof,
-		) -> Result<NoncesSubmitArtifacts<TestTransactionTracker>, TestError> {
+		) -> Result<TestTransactionTracker, TestError> {
 			let mut data = self.data.lock();
 			data.receive_messages(proof);
-			self.tx_tracker
+			Ok(self.tx_tracker)
 		}
 	}
 
@@ -577,10 +577,10 @@ pub(crate) mod tests {
 		async fn append_proof_and_send(
 			self,
 			proof: TestMessagesReceivingProof,
-		) -> Result<NoncesSubmitArtifacts<TestTransactionTracker>, TestError> {
+		) -> Result<TestTransactionTracker, TestError> {
 			let mut data = self.data.lock();
 			data.receive_messages_delivery_proof(proof);
-			self.tx_tracker
+			Ok(self.tx_tracker)
 		}
 	}
 

@@ -11668,6 +11668,7 @@ dependencies = [
  "pallet-bridge-messages",
  "pallet-bridge-parachains",
  "pallet-transaction-payment",
+ "pallet-utility",
  "parachains-relay",
  "parity-scale-codec",
  "relay-rialto-client",
