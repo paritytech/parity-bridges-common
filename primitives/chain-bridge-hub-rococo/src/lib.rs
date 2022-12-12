@@ -32,6 +32,10 @@ use frame_support::{
 };
 use sp_std::prelude::*;
 
+parameter_types! {
+	pub const SS58Prefix: u16 = 42;
+}
+
 /// BridgeHubRococo parachain.
 #[derive(RuntimeDebug)]
 pub struct BridgeHubRococo;
@@ -74,10 +78,6 @@ pub const BRIDGE_HUB_ROCOCO_PARACHAIN_ID: u32 = 1013;
 
 /// Name of the With-BridgeHubRococo messages pallet instance that is deployed at bridged chains.
 pub const WITH_BRIDGE_HUB_ROCOCO_MESSAGES_PALLET_NAME: &str = "BridgeRococoMessages";
-
-parameter_types! {
-	pub const SS58Prefix: u16 = 42;
-}
 
 decl_bridge_finality_runtime_apis!(bridge_hub_rococo);
 decl_bridge_messages_runtime_apis!(bridge_hub_rococo);
