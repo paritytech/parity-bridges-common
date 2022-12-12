@@ -36,6 +36,7 @@ type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<TestRunt
 
 pub const PARAS_PALLET_NAME: &str = "Paras";
 pub const UNTRACKED_PARACHAIN_ID: u32 = 10;
+// use exact expected encoded size: `vec_len_size + header_number_size + state_root_hash_size`
 pub const MAXIMAL_PARACHAIN_HEAD_DATA_SIZE: u32 = 1 + 8 + 32;
 
 pub type RegularParachainHeader = sp_runtime::testing::Header;
