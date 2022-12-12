@@ -18,9 +18,12 @@
 
 use relay_millau_client::Millau;
 use relay_rialto_parachain_client::RialtoParachain;
-use substrate_relay_helper::messages_lane::{
-	DirectReceiveMessagesDeliveryProofCallBuilder, DirectReceiveMessagesProofCallBuilder,
-	SubstrateMessageLane,
+use substrate_relay_helper::{
+	messages_lane::{
+		DirectReceiveMessagesDeliveryProofCallBuilder, DirectReceiveMessagesProofCallBuilder,
+		SubstrateMessageLane,
+	},
+	BundledBatchCallBuilder,
 };
 
 /// Description of RialtoParachain -> Millau messages bridge.
@@ -43,5 +46,5 @@ impl SubstrateMessageLane for RialtoParachainMessagesToMillau {
 	>;
 
 	type SourceBatchCallBuilder = ();
-	type TargetBatchCallBuilder = ();
+	type TargetBatchCallBuilder = BundledBatchCallBuilder<millau_runtime::Runtime>;
 }

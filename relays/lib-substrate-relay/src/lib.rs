@@ -126,12 +126,13 @@ pub struct BundledBatchCallBuilder<R>(PhantomData<R>);
 impl<R> BatchCallBuilder<<R as frame_system::Config>::RuntimeCall> for BundledBatchCallBuilder<R>
 where
 	R: pallet_utility::Config<RuntimeCall = <R as frame_system::Config>::RuntimeCall>,
+	<R as frame_system::Config>::RuntimeCall: From<pallet_utility::Call<R>>,
 {
 	const BATCH_CALL_SUPPORTED: bool = true;
 
 	fn build_batch_call(
 		calls: Vec<<R as frame_system::Config>::RuntimeCall>,
 	) -> <R as frame_system::Config>::RuntimeCall {
-		unimplemented!("TODO")
+		pallet_utility::Call::batch_all { calls }.into()
 	}
 }
