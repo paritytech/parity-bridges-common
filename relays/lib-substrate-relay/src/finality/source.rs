@@ -23,6 +23,7 @@ use async_trait::async_trait;
 use codec::Decode;
 use finality_relay::SourceClient;
 use futures::stream::{unfold, Stream, StreamExt};
+use num_traits::One;
 use relay_substrate_client::{
 	BlockNumberOf, BlockWithJustification, Chain, Client, Error, HeaderOf,
 };
@@ -69,6 +70,27 @@ impl<P: SubstrateFinalitySyncPipeline> SubstrateFinalitySource<P> {
 		// we **CAN** continue to relay finality proofs if source node is out of sync, because
 		// target node may be missing proofs that are already available at the source
 		self.client.best_finalized_header_number().await
+	}
+
+	/// Return header and its justification of the given block or its earlier descendant that
+	/// has a GRANDPA justification.
+	pub async fn prove_block_finality(
+		&self,
+		mut block_number: BlockNumberOf<P::SourceChain>,
+	) -> Result<
+		(relay_substrate_client::SyncHeader<HeaderOf<P::SourceChain>>, SubstrateFinalityProof<P>),
+		Error,
+	> {
+		loop {
+			let (header, maybe_justification) =
+				self.header_and_finality_proof(block_number).await?;
+			match maybe_justification {
+				Some(justification) => return Ok((header, justification)),
+				None => {
+					block_number += One::one();
+				},
+			}
+		}
 	}
 }
 

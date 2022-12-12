@@ -174,14 +174,14 @@ where
 		.await?;
 
 		let left_to_right_on_demand_headers =
-			OnDemandHeadersRelay::new::<<L2R as RelayToRelayHeadersCliBridge>::Finality>(
+			OnDemandHeadersRelay::<<L2R as RelayToRelayHeadersCliBridge>::Finality>::new(
 				self.common.left.client.clone(),
 				self.common.right.client.clone(),
 				self.left_to_right_transaction_params.clone(),
 				self.common.shared.only_mandatory_headers,
 			);
 		let right_to_left_on_demand_headers =
-			OnDemandHeadersRelay::new::<<R2L as RelayToRelayHeadersCliBridge>::Finality>(
+			OnDemandHeadersRelay::<<R2L as RelayToRelayHeadersCliBridge>::Finality>::new(
 				self.common.right.client.clone(),
 				self.common.left.client.clone(),
 				self.right_to_left_transaction_params.clone(),

@@ -241,14 +241,14 @@ where
 		.await?;
 
 		let left_relay_to_right_on_demand_headers =
-			OnDemandHeadersRelay::new::<<L2R as ParachainToRelayHeadersCliBridge>::RelayFinality>(
+			OnDemandHeadersRelay::<<L2R as ParachainToRelayHeadersCliBridge>::RelayFinality>::new(
 				self.left_relay.clone(),
 				self.common.right.client.clone(),
 				self.left_headers_to_right_transaction_params.clone(),
 				self.common.shared.only_mandatory_headers,
 			);
 		let right_relay_to_left_on_demand_headers =
-			OnDemandHeadersRelay::new::<<R2L as ParachainToRelayHeadersCliBridge>::RelayFinality>(
+			OnDemandHeadersRelay::<<R2L as ParachainToRelayHeadersCliBridge>::RelayFinality>::new(
 				self.right_relay.clone(),
 				self.common.left.client.clone(),
 				self.right_headers_to_left_transaction_params.clone(),

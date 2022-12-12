@@ -525,6 +525,10 @@ pub async fn run<P: MessageRace, SC: SourceClient<P>, TC: TargetClient<P>>(
 					nonces_range,
 					at_block,
 				);
+
+				unimplemented!("TODO");
+				unimplemented!("TODO: using at_block here is wrong - it may happen that the batch transaction would contain the descendant of `at_block` e.g. if GRANPA justificaiton is missing for `at_block`");
+
 				source_generate_proof.set(
 					race_source.generate_proof(at_block, nonces_range, proof_parameters).fuse(),
 				);

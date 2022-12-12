@@ -16,17 +16,18 @@
 
 //! On-demand Substrate -> Substrate header finality relay.
 
+use crate::finality::SubmitFinalityProofCallBuilder;
+
 use async_std::sync::{Arc, Mutex};
 use async_trait::async_trait;
 use bp_header_chain::ConsensusLogReader;
 use futures::{select, FutureExt};
 use num_traits::{One, Zero};
 use sp_runtime::traits::Header;
-use std::marker::PhantomData;
 
 use finality_relay::{FinalitySyncParams, TargetClient as FinalityTargetClient};
 use relay_substrate_client::{
-	AccountIdOf, AccountKeyPairOf, BlockNumberOf, Chain, ChainWithTransactions, Client,
+	AccountIdOf, AccountKeyPairOf, BlockNumberOf, CallOf, Chain, Client, Error as SubstrateError,
 };
 use relay_utils::{
 	metrics::MetricsParams, relay_loop::Client as RelayClient, FailedClient, MaybeConnectionError,
@@ -50,22 +51,18 @@ use crate::{
 /// relay) needs it to continue its regular work. When enough headers are relayed, on-demand stops
 /// syncing headers.
 #[derive(Clone)]
-pub struct OnDemandHeadersRelay<SourceChain: Chain, TargetChain> {
+pub struct OnDemandHeadersRelay<P: SubstrateFinalitySyncPipeline> {
 	/// Relay task name.
 	relay_task_name: String,
 	/// Shared reference to maximal required finalized header number.
-	required_header_number: RequiredHeaderNumberRef<SourceChain>,
-	/// Just rusty things.
-	_marker: PhantomData<TargetChain>,
+	required_header_number: RequiredHeaderNumberRef<P::SourceChain>,
+	/// Client of the source chain.
+	source_client: Client<P::SourceChain>,
 }
 
-impl<SourceChain: Chain, TargetChain: ChainWithTransactions>
-	OnDemandHeadersRelay<SourceChain, TargetChain>
-{
+impl<P: SubstrateFinalitySyncPipeline> OnDemandHeadersRelay<P> {
 	/// Create new on-demand headers relay.
-	pub fn new<
-		P: SubstrateFinalitySyncPipeline<SourceChain = SourceChain, TargetChain = TargetChain>,
-	>(
+	pub fn new(
 		source_client: Client<P::SourceChain>,
 		target_client: Client<P::TargetChain>,
 		target_transaction_params: TransactionParams<AccountKeyPairOf<P::TargetChain>>,
@@ -79,7 +76,7 @@ impl<SourceChain: Chain, TargetChain: ChainWithTransactions>
 		let this = OnDemandHeadersRelay {
 			relay_task_name: on_demand_headers_relay_name::<P::SourceChain, P::TargetChain>(),
 			required_header_number: required_header_number.clone(),
-			_marker: PhantomData,
+			source_client: source_client.clone(),
 		};
 		async_std::task::spawn(async move {
 			background_task::<P>(
@@ -97,22 +94,37 @@ impl<SourceChain: Chain, TargetChain: ChainWithTransactions>
 }
 
 #[async_trait]
-impl<SourceChain: Chain, TargetChain: Chain> OnDemandRelay<SourceChain, TargetChain>
-	for OnDemandHeadersRelay<SourceChain, TargetChain>
+impl<P: SubstrateFinalitySyncPipeline> OnDemandRelay<P::SourceChain, P::TargetChain>
+	for OnDemandHeadersRelay<P>
 {
-	async fn require_more_headers(&self, required_header: BlockNumberOf<SourceChain>) {
+	async fn require_more_headers(&self, required_header: BlockNumberOf<P::SourceChain>) {
 		let mut required_header_number = self.required_header_number.lock().await;
 		if required_header > *required_header_number {
 			log::trace!(
 				target: "bridge",
 				"[{}] More {} headers required. Going to sync up to the {}",
 				self.relay_task_name,
-				SourceChain::NAME,
+				P::SourceChain::NAME,
 				required_header,
 			);
 
 			*required_header_number = required_header;
 		}
+	}
+
+	async fn prove_header(
+		&self,
+		required_header: BlockNumberOf<P::SourceChain>,
+	) -> Result<Vec<CallOf<P::TargetChain>>, SubstrateError> {
+		// first find proper header (either `required_header`) or its descendant
+		let finality_source = SubstrateFinalitySource::<P>::new(self.source_client.clone(), None);
+		let (header, proof) = finality_source.prove_block_finality(required_header).await?;
+
+		// and then craft the submit-proof call
+		let call =
+			P::SubmitFinalityProofCallBuilder::build_submit_finality_proof_call(header, proof);
+
+		Ok(vec![call])
 	}
 }
 

@@ -38,7 +38,7 @@ use num_traits::Zero;
 use pallet_bridge_parachains::{RelayBlockHash, RelayBlockHasher, RelayBlockNumber};
 use parachains_relay::parachains_loop::{AvailableHeader, ParachainSyncParams, TargetClient};
 use relay_substrate_client::{
-	AccountIdOf, AccountKeyPairOf, BlockNumberOf, Chain, ChainWithTransactions, Client,
+	AccountIdOf, AccountKeyPairOf, BlockNumberOf, CallOf, Chain, ChainWithTransactions, Client,
 	Error as SubstrateError, HashOf,
 };
 use relay_utils::{
@@ -125,6 +125,14 @@ where
 				e,
 			);
 		}
+	}
+
+	/// Ask relay to prove source `required_header` to the `TargetChain`.
+	async fn prove_header(
+		&self,
+		required_header: BlockNumberOf<SourceParachain>,
+	) -> Result<Vec<CallOf<TargetChain>>, SubstrateError> {
+		unimplemented!("TODO")
 	}
 }
 
