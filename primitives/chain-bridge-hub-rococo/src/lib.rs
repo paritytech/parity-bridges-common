@@ -26,15 +26,10 @@ use bp_runtime::{
 };
 use frame_support::{
 	dispatch::DispatchClass,
-	parameter_types,
 	sp_runtime::{MultiAddress, MultiSigner},
 	RuntimeDebug,
 };
 use sp_std::prelude::*;
-
-parameter_types! {
-	pub const SS58Prefix: u16 = 42;
-}
 
 /// BridgeHubRococo parachain.
 #[derive(RuntimeDebug)]

@@ -28,12 +28,8 @@ use bp_messages::*;
 use bp_runtime::{
 	decl_bridge_finality_runtime_apis, decl_bridge_messages_runtime_apis, Chain, Parachain,
 };
-use frame_support::{dispatch::DispatchClass, parameter_types, RuntimeDebug};
+use frame_support::{dispatch::DispatchClass, RuntimeDebug};
 use sp_std::prelude::*;
-
-parameter_types! {
-	pub const SS58Prefix: u16 = 42;
-}
 
 /// BridgeHubWococo parachain.
 #[derive(RuntimeDebug)]
