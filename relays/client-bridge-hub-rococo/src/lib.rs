@@ -20,7 +20,7 @@ use bp_messages::{MessageNonce, Weight};
 use codec::Encode;
 use relay_substrate_client::{
 	Chain, ChainBase, ChainWithBalances, ChainWithMessages, ChainWithTransactions,
-	Error as SubstrateError, SignParam, UnsignedTransaction,
+	Error as SubstrateError, Parachain, ParachainBase, SignParam, UnsignedTransaction,
 };
 use sp_core::{storage::StorageKey, Pair};
 use sp_runtime::{generic::SignedPayload, traits::IdentifyAccount};
@@ -139,6 +139,12 @@ impl ChainWithMessages for BridgeHubRococo {
 	// TODO: fix (https://github.com/paritytech/parity-bridges-common/issues/1640)
 	type WeightInfo = ();
 }
+
+impl ParachainBase for BridgeHubRococo {
+	const PARACHAIN_ID: u32 = bp_bridge_hub_rococo::BRIDGE_HUB_ROCOCO_PARACHAIN_ID;
+}
+
+impl Parachain for BridgeHubRococo {}
 
 #[cfg(test)]
 mod tests {

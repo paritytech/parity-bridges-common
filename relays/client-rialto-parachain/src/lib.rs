@@ -21,7 +21,7 @@ use codec::Encode;
 use frame_support::weights::Weight;
 use relay_substrate_client::{
 	Chain, ChainBase, ChainWithBalances, ChainWithMessages, ChainWithTransactions,
-	Error as SubstrateError, SignParam, UnsignedTransaction,
+	Error as SubstrateError, Parachain, ParachainBase, SignParam, UnsignedTransaction,
 };
 use sp_core::{storage::StorageKey, Pair};
 use sp_runtime::{generic::SignedPayload, traits::IdentifyAccount};
@@ -156,6 +156,12 @@ impl ChainWithTransactions for RialtoParachain {
 		None
 	}
 }
+
+impl ParachainBase for RialtoParachain {
+	const PARACHAIN_ID: u32 = bp_rialto_parachain::RIALTO_PARACHAIN_ID;
+}
+
+impl Parachain for RialtoParachain {}
 
 /// RialtoParachain signing params.
 pub type SigningParams = sp_core::sr25519::Pair;

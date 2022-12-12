@@ -17,7 +17,9 @@
 //! Types used to connect to the Westend chain.
 
 use frame_support::weights::Weight;
-use relay_substrate_client::{Chain, ChainBase, ChainWithBalances, ChainWithGrandpa, RelayChain};
+use relay_substrate_client::{
+	Chain, ChainBase, ChainWithBalances, ChainWithGrandpa, Parachain, ParachainBase, RelayChain,
+};
 use sp_core::storage::StorageKey;
 use std::time::Duration;
 
@@ -117,3 +119,9 @@ impl Chain for Westmint {
 	type SignedBlock = bp_westend::SignedBlock;
 	type Call = ();
 }
+
+impl ParachainBase for Westmint {
+	const PARACHAIN_ID: u32 = bp_westend::WESTMINT_PARACHAIN_ID;
+}
+
+impl Parachain for Westmint {}
