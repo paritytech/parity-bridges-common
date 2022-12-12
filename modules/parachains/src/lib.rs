@@ -541,7 +541,7 @@ pub mod pallet {
 					Err(e) => {
 						log::trace!(
 							target: LOG_TARGET,
-							"{}. The parachain head size for {:?} is {}. It exceeds maximal configured size {}.",
+							"{}. The parachain head data size for {:?} is {}. It exceeds maximal configured size {}.",
 							err_log_prefix,
 							parachain,
 							e.value_size,
