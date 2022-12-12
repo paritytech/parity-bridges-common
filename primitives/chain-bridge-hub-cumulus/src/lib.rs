@@ -44,7 +44,7 @@ pub const MAXIMUM_BLOCK_WEIGHT: Weight = constants::WEIGHT_PER_SECOND
 	.saturating_div(2)
 	.set_proof_size(polkadot_primitives::v2::MAX_POV_SIZE as u64);
 
-/// All cumulus bridge hubs assume that ~5% of the block weight is consumed by `on_initialize`
+/// All cumulus bridge hubs assume that about 5% of the block weight is consumed by `on_initialize`
 /// handlers. This is used to limit the maximal weight of a single extrinsic.
 ///
 /// This is a copy-paste from the cumulus repo's `parachains-common` crate.
