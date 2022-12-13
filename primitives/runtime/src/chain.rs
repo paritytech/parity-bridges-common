@@ -192,10 +192,44 @@ pub trait Chain: Send + Sync + 'static {
 	fn max_extrinsic_weight() -> Weight;
 }
 
+pub trait ChainShadow {
+	type Chain: Chain;
+}
+
+impl<T> Chain for T
+where
+	T: Send + Sync + 'static + ChainShadow,
+{
+	type BlockNumber = <T::Chain as Chain>::BlockNumber;
+	type Hash = <T::Chain as Chain>::Hash;
+	type Hasher = <T::Chain as Chain>::Hasher;
+	type Header = <T::Chain as Chain>::Header;
+	type AccountId = <T::Chain as Chain>::AccountId;
+	type Balance = <T::Chain as Chain>::Balance;
+	type Index = <T::Chain as Chain>::Index;
+	type Signature = <T::Chain as Chain>::Signature;
+
+	fn max_extrinsic_size() -> u32 {
+		<T::Chain as Chain>::max_extrinsic_size()
+	}
+
+	fn max_extrinsic_weight() -> Weight {
+		<T::Chain as Chain>::max_extrinsic_weight()
+	}
+}
+
 /// Minimal parachain representation that may be used from no_std environment.
 pub trait Parachain: Chain {
 	/// Parachain identifier.
 	const PARACHAIN_ID: u32;
+}
+
+impl<T> Parachain for T
+where
+	T: Chain + ChainShadow,
+	<T as ChainShadow>::Chain: Parachain,
+{
+	const PARACHAIN_ID: u32 = <<T as ChainShadow>::Chain as Parachain>::PARACHAIN_ID;
 }
 
 /// Block number used by the chain.

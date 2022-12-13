@@ -18,9 +18,8 @@
 
 use bp_messages::MessageNonce;
 use codec::{Compact, Decode, Encode};
-use frame_support::weights::Weight;
 use relay_substrate_client::{
-	BalanceOf, Chain, ChainBase, ChainWithBalances, ChainWithGrandpa, ChainWithMessages,
+	BalanceOf, Chain, ChainBaseShadow, ChainWithBalances, ChainWithGrandpa, ChainWithMessages,
 	ChainWithTransactions, Error as SubstrateError, IndexOf, SignParam, UnsignedTransaction,
 };
 use sp_core::{storage::StorageKey, Pair};
@@ -34,24 +33,8 @@ pub type HeaderId = relay_utils::HeaderId<millau_runtime::Hash, millau_runtime::
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Millau;
 
-impl ChainBase for Millau {
-	type BlockNumber = millau_runtime::BlockNumber;
-	type Hash = millau_runtime::Hash;
-	type Hasher = millau_runtime::Hashing;
-	type Header = millau_runtime::Header;
-
-	type AccountId = millau_runtime::AccountId;
-	type Balance = millau_runtime::Balance;
-	type Index = millau_runtime::Index;
-	type Signature = millau_runtime::Signature;
-
-	fn max_extrinsic_size() -> u32 {
-		bp_millau::Millau::max_extrinsic_size()
-	}
-
-	fn max_extrinsic_weight() -> Weight {
-		bp_millau::Millau::max_extrinsic_weight()
-	}
+impl ChainBaseShadow for Millau {
+	type Chain = bp_millau::Millau;
 }
 
 impl ChainWithGrandpa for Millau {

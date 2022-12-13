@@ -18,10 +18,9 @@
 
 use bp_messages::MessageNonce;
 use codec::Encode;
-use frame_support::weights::Weight;
 use relay_substrate_client::{
-	Chain, ChainBase, ChainWithBalances, ChainWithMessages, ChainWithTransactions,
-	Error as SubstrateError, Parachain, ParachainBase, SignParam, UnsignedTransaction,
+	Chain, ChainBaseShadow, ChainWithBalances, ChainWithMessages, ChainWithTransactions,
+	Error as SubstrateError, SignParam, UnsignedTransaction,
 };
 use sp_core::{storage::StorageKey, Pair};
 use sp_runtime::{generic::SignedPayload, traits::IdentifyAccount};
@@ -35,24 +34,8 @@ pub type HeaderId =
 #[derive(Debug, Clone, Copy)]
 pub struct RialtoParachain;
 
-impl ChainBase for RialtoParachain {
-	type BlockNumber = rialto_parachain_runtime::BlockNumber;
-	type Hash = rialto_parachain_runtime::Hash;
-	type Hasher = rialto_parachain_runtime::Hashing;
-	type Header = rialto_parachain_runtime::Header;
-
-	type AccountId = rialto_parachain_runtime::AccountId;
-	type Balance = rialto_parachain_runtime::Balance;
-	type Index = rialto_parachain_runtime::Index;
-	type Signature = rialto_parachain_runtime::Signature;
-
-	fn max_extrinsic_size() -> u32 {
-		bp_rialto_parachain::RialtoParachain::max_extrinsic_size()
-	}
-
-	fn max_extrinsic_weight() -> Weight {
-		bp_rialto_parachain::RialtoParachain::max_extrinsic_weight()
-	}
+impl ChainBaseShadow for RialtoParachain {
+	type Chain = bp_rialto_parachain::RialtoParachain;
 }
 
 impl Chain for RialtoParachain {
@@ -156,12 +139,6 @@ impl ChainWithTransactions for RialtoParachain {
 		None
 	}
 }
-
-impl ParachainBase for RialtoParachain {
-	const PARACHAIN_ID: u32 = bp_rialto_parachain::RIALTO_PARACHAIN_ID;
-}
-
-impl Parachain for RialtoParachain {}
 
 /// RialtoParachain signing params.
 pub type SigningParams = sp_core::sr25519::Pair;

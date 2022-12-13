@@ -16,9 +16,8 @@
 
 //! Types used to connect to the Westend chain.
 
-use frame_support::weights::Weight;
 use relay_substrate_client::{
-	Chain, ChainBase, ChainWithBalances, ChainWithGrandpa, Parachain, ParachainBase, RelayChain,
+	Chain, ChainBaseShadow, ChainWithBalances, ChainWithGrandpa, RelayChain,
 };
 use sp_core::storage::StorageKey;
 use std::time::Duration;
@@ -33,24 +32,8 @@ pub type SyncHeader = relay_substrate_client::SyncHeader<bp_westend::Header>;
 #[derive(Debug, Clone, Copy)]
 pub struct Westend;
 
-impl ChainBase for Westend {
-	type BlockNumber = bp_westend::BlockNumber;
-	type Hash = bp_westend::Hash;
-	type Hasher = bp_westend::Hasher;
-	type Header = bp_westend::Header;
-
-	type AccountId = bp_westend::AccountId;
-	type Balance = bp_westend::Balance;
-	type Index = bp_westend::Nonce;
-	type Signature = bp_westend::Signature;
-
-	fn max_extrinsic_size() -> u32 {
-		bp_westend::Westend::max_extrinsic_size()
-	}
-
-	fn max_extrinsic_weight() -> Weight {
-		bp_westend::Westend::max_extrinsic_weight()
-	}
+impl ChainBaseShadow for Westend {
+	type Chain = bp_westend::Westend;
 }
 
 impl Chain for Westend {
@@ -85,26 +68,8 @@ impl ChainWithBalances for Westend {
 #[derive(Debug, Clone, Copy)]
 pub struct Westmint;
 
-// Westmint seems to use the same configuration as all Polkadot-like chains, so we'll use Westend
-// primitives here.
-impl ChainBase for Westmint {
-	type BlockNumber = bp_westend::BlockNumber;
-	type Hash = bp_westend::Hash;
-	type Hasher = bp_westend::Hasher;
-	type Header = bp_westend::Header;
-
-	type AccountId = bp_westend::AccountId;
-	type Balance = bp_westend::Balance;
-	type Index = bp_westend::Nonce;
-	type Signature = bp_westend::Signature;
-
-	fn max_extrinsic_size() -> u32 {
-		bp_westend::Westend::max_extrinsic_size()
-	}
-
-	fn max_extrinsic_weight() -> Weight {
-		bp_westend::Westend::max_extrinsic_weight()
-	}
+impl ChainBaseShadow for Westmint {
+	type Chain = bp_westend::Westmint;
 }
 
 // Westmint seems to use the same configuration as all Polkadot-like chains, so we'll use Westend
@@ -119,9 +84,3 @@ impl Chain for Westmint {
 	type SignedBlock = bp_westend::SignedBlock;
 	type Call = ();
 }
-
-impl ParachainBase for Westmint {
-	const PARACHAIN_ID: u32 = bp_westend::WESTMINT_PARACHAIN_ID;
-}
-
-impl Parachain for Westmint {}
