@@ -131,8 +131,12 @@ where
 	const BATCH_CALL_SUPPORTED: bool = true;
 
 	fn build_batch_call(
-		calls: Vec<<R as frame_system::Config>::RuntimeCall>,
+		mut calls: Vec<<R as frame_system::Config>::RuntimeCall>,
 	) -> <R as frame_system::Config>::RuntimeCall {
-		pallet_utility::Call::batch_all { calls }.into()
+		if calls.len() == 1 {
+			calls.remove(0)
+		} else {
+			pallet_utility::Call::batch_all { calls }.into()
+		}
 	}
 }

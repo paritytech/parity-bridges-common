@@ -21,6 +21,7 @@ use crate::finality::SubmitFinalityProofCallBuilder;
 use async_std::sync::{Arc, Mutex};
 use async_trait::async_trait;
 use bp_header_chain::ConsensusLogReader;
+use bp_runtime::HeaderIdProvider;
 use futures::{select, FutureExt};
 use num_traits::{One, Zero};
 use sp_runtime::traits::Header;
@@ -28,6 +29,7 @@ use sp_runtime::traits::Header;
 use finality_relay::{FinalitySyncParams, TargetClient as FinalityTargetClient};
 use relay_substrate_client::{
 	AccountIdOf, AccountKeyPairOf, BlockNumberOf, CallOf, Chain, Client, Error as SubstrateError,
+	HeaderIdOf,
 };
 use relay_utils::{
 	metrics::MetricsParams, relay_loop::Client as RelayClient, FailedClient, MaybeConnectionError,
@@ -115,17 +117,17 @@ impl<P: SubstrateFinalitySyncPipeline> OnDemandRelay<P::SourceChain, P::TargetCh
 	async fn prove_header(
 		&self,
 		required_header: BlockNumberOf<P::SourceChain>,
-	) -> Result<(BlockNumberOf<P::SourceChain>, Vec<CallOf<P::TargetChain>>), SubstrateError> {
+	) -> Result<(HeaderIdOf<P::SourceChain>, Vec<CallOf<P::TargetChain>>), SubstrateError> {
 		// first find proper header (either `required_header`) or its descendant
 		let finality_source = SubstrateFinalitySource::<P>::new(self.source_client.clone(), None);
 		let (header, proof) = finality_source.prove_block_finality(required_header).await?;
-		let header_number = *header.number();
+		let header_id = header.id();
 
 		// and then craft the submit-proof call
 		let call =
 			P::SubmitFinalityProofCallBuilder::build_submit_finality_proof_call(header, proof);
 
-		Ok((header_number, vec![call]))
+		Ok((header_id, vec![call]))
 	}
 }
 

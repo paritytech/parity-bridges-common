@@ -18,7 +18,7 @@
 //! on-demand pipelines.
 
 use async_trait::async_trait;
-use relay_substrate_client::{BlockNumberOf, CallOf, Chain, Error as SubstrateError};
+use relay_substrate_client::{BlockNumberOf, CallOf, Chain, Error as SubstrateError, HeaderIdOf};
 
 pub mod headers;
 pub mod parachains;
@@ -41,5 +41,5 @@ pub trait OnDemandRelay<SourceChain: Chain, TargetChain: Chain>: Send + Sync {
 	async fn prove_header(
 		&self,
 		required_header: BlockNumberOf<SourceChain>,
-	) -> Result<(BlockNumberOf<SourceChain>, Vec<CallOf<TargetChain>>), SubstrateError>;
+	) -> Result<(HeaderIdOf<SourceChain>, Vec<CallOf<TargetChain>>), SubstrateError>;
 }

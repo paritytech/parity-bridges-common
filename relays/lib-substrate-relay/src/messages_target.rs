@@ -271,26 +271,39 @@ where
 	async fn require_source_header_on_target(
 		&self,
 		id: SourceHeaderIdOf<MessageLaneAdapter<P>>,
-	) -> Option<Self::BatchTransaction> {
+	) -> Result<Option<Self::BatchTransaction>, SubstrateError> {
 		if let Some(ref source_to_target_headers_relay) = self.source_to_target_headers_relay {
 			if P::TargetBatchCallBuilder::BATCH_CALL_SUPPORTED {
-				return Some(BatchDeliveryTransaction::<P> {
-					messages_target: self.clone(),
-					required_source_header_on_target: id,
-				})
+				return BatchDeliveryTransaction::<P>::new(self.clone(), id).await.map(Some)
 			}
 
 			source_to_target_headers_relay.require_more_headers(id.0).await;
 		}
 
-		None
+		Ok(None)
 	}
 }
 
 /// Batch transaction that brings target headers + and delivery confirmations to the source node.
 pub struct BatchDeliveryTransaction<P: SubstrateMessageLane> {
 	messages_target: SubstrateMessagesTarget<P>,
-	required_source_header_on_target: SourceHeaderIdOf<MessageLaneAdapter<P>>,
+	proved_header: SourceHeaderIdOf<MessageLaneAdapter<P>>,
+	prove_calls: Vec<CallOf<P::TargetChain>>,
+}
+
+impl<P: SubstrateMessageLane> BatchDeliveryTransaction<P> {
+	async fn new(
+		messages_target: SubstrateMessagesTarget<P>,
+		required_source_header_on_target: SourceHeaderIdOf<MessageLaneAdapter<P>>,
+	) -> Result<Self, SubstrateError> {
+		let (proved_header, prove_calls) = messages_target
+			.source_to_target_headers_relay
+			.as_ref()
+			.expect("BatchDeliveryTransaction is only created when source_to_target_headers_relay is Some; qed")
+			.prove_header(required_source_header_on_target.0)
+			.await?;
+		Ok(Self { messages_target, proved_header, prove_calls })
+	}
 }
 
 #[async_trait]
@@ -305,23 +318,14 @@ where
 	AccountIdOf<P::TargetChain>: From<<AccountKeyPairOf<P::TargetChain> as Pair>::Public>,
 {
 	fn required_header_id(&self) -> SourceHeaderIdOf<MessageLaneAdapter<P>> {
-		self.required_source_header_on_target.clone()
+		self.proved_header.clone()
 	}
 
 	async fn append_proof_and_send(
 		self,
 		proof: <MessageLaneAdapter<P> as MessageLane>::MessagesProof,
 	) -> Result<TransactionTracker<P::TargetChain, Client<P::TargetChain>>, SubstrateError> {
-		unimplemented!("TODO");
-		unimplemented!("TODO: move prove_header call to constructor and return proper header id from required_header_id method");
-		let mut calls = self
-			.messages_target
-			.source_to_target_headers_relay
-			.as_ref()
-			.expect("BatchDeliveryTransaction is only created when source_to_target_headers_relay is Some; qed")
-			.prove_header(self.required_source_header_on_target.0)
-			.await?
-			.1;
+		let mut calls = self.prove_calls;
 		calls.push(make_messages_delivery_call::<P>(
 			self.messages_target.relayer_id_at_source,
 			proof.1.nonces_start..=proof.1.nonces_end,

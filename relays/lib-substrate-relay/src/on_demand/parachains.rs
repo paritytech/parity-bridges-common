@@ -41,7 +41,7 @@ use parachains_relay::parachains_loop::{
 };
 use relay_substrate_client::{
 	AccountIdOf, AccountKeyPairOf, BlockNumberOf, CallOf, Chain, Client, Error as SubstrateError,
-	HashOf,
+	HashOf, HeaderIdOf,
 };
 use relay_utils::{
 	metrics::MetricsParams, relay_loop::Client as RelayClient, FailedClient, HeaderId,
@@ -138,7 +138,7 @@ where
 	async fn prove_header(
 		&self,
 		required_header: BlockNumberOf<P::SourceParachain>,
-	) -> Result<(BlockNumberOf<P::SourceParachain>, Vec<CallOf<P::TargetChain>>), SubstrateError> {
+	) -> Result<(HeaderIdOf<P::SourceParachain>, Vec<CallOf<P::TargetChain>>), SubstrateError> {
 		// parachains proof also requires relay header proof. Let's first select relay block
 		// number that we'll be dealing with
 		let parachains_source = ParachainsSource::<P>::new(
@@ -196,12 +196,9 @@ where
 
 		// ok - now we have everything ready to select which headers we need on the target chain
 		let (selected_relay_block, selected_parachain_block) = if can_use_available_relay_header {
-			(
-				best_finalized_relay_block_at_target,
-				available_parachain_block.expect("TODO").number(),
-			)
+			(best_finalized_relay_block_at_target, available_parachain_block.expect("TODO"))
 		} else {
-			(best_finalized_relay_block_at_source, best_possible_parachain_block.number())
+			(best_finalized_relay_block_at_source, best_possible_parachain_block)
 		};
 
 		// now let's prove relay chain block (if needed)
