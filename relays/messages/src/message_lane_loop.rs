@@ -187,7 +187,7 @@ pub trait SourceClient<P: MessageLane>: RelayClient {
 	async fn require_target_header_on_source(
 		&self,
 		id: TargetHeaderIdOf<P>,
-	) -> Option<Self::BatchTransaction>;
+	) -> Result<Option<Self::BatchTransaction>, Self::Error>;
 }
 
 /// Target client trait.
@@ -249,7 +249,7 @@ pub trait TargetClient<P: MessageLane>: RelayClient {
 	async fn require_source_header_on_target(
 		&self,
 		id: SourceHeaderIdOf<P>,
-	) -> Option<Self::BatchTransaction>;
+	) -> Result<Option<Self::BatchTransaction>, Self::Error>;
 }
 
 /// State of the client.
@@ -813,17 +813,17 @@ pub(crate) mod tests {
 		async fn require_target_header_on_source(
 			&self,
 			id: TargetHeaderIdOf<TestMessageLane>,
-		) -> Option<Self::BatchTransaction> {
+		) -> Result<Option<Self::BatchTransaction>, Self::Error> {
 			let mut data = self.data.lock();
 			data.target_to_source_header_required = Some(id);
 			data.target_to_source_header_requirements.push(id);
 			(self.tick)(&mut data);
 			(self.post_tick)(&mut data);
 
-			data.target_to_source_batch_transaction.take().map(|mut tx| {
+			Ok(data.target_to_source_batch_transaction.take().map(|mut tx| {
 				tx.required_header_id = id;
 				tx
-			})
+			}))
 		}
 	}
 
@@ -944,17 +944,17 @@ pub(crate) mod tests {
 		async fn require_source_header_on_target(
 			&self,
 			id: SourceHeaderIdOf<TestMessageLane>,
-		) -> Option<Self::BatchTransaction> {
+		) -> Result<Option<Self::BatchTransaction>, Self::Error> {
 			let mut data = self.data.lock();
 			data.source_to_target_header_required = Some(id);
 			data.source_to_target_header_requirements.push(id);
 			(self.tick)(&mut data);
 			(self.post_tick)(&mut data);
 
-			data.source_to_target_batch_transaction.take().map(|mut tx| {
+			Ok(data.source_to_target_batch_transaction.take().map(|mut tx| {
 				tx.required_header_id = id;
 				tx
-			})
+			}))
 		}
 	}
 

@@ -158,7 +158,10 @@ where
 	type BatchTransaction = C::BatchTransaction;
 	type TransactionTracker = C::TransactionTracker;
 
-	async fn require_source_header(&self, id: TargetHeaderIdOf<P>) -> Option<C::BatchTransaction> {
+	async fn require_source_header(
+		&self,
+		id: TargetHeaderIdOf<P>,
+	) -> Result<Option<C::BatchTransaction>, Self::Error> {
 		self.client.require_target_header_on_source(id).await
 	}
 
