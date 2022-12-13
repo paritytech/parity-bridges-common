@@ -34,7 +34,7 @@ use async_trait::async_trait;
 use bp_polkadot_core::parachains::{ParaHash, ParaId};
 use bp_runtime::HeaderIdProvider;
 use futures::{select, FutureExt};
-use num_traits::{Saturating, Zero};
+use num_traits::Zero;
 use pallet_bridge_parachains::{RelayBlockHash, RelayBlockHasher, RelayBlockNumber};
 use parachains_relay::parachains_loop::{
 	AvailableHeader, ParachainSyncParams, SourceClient, TargetClient,
@@ -44,8 +44,8 @@ use relay_substrate_client::{
 	HashOf, HeaderIdOf,
 };
 use relay_utils::{
-	metrics::MetricsParams, relay_loop::Client as RelayClient, FailedClient, HeaderId,
-	UniqueSaturatedFrom, UniqueSaturatedInto,
+	metrics::MetricsParams, relay_loop::Client as RelayClient, BlockNumberBase, FailedClient,
+	HeaderId,
 };
 use std::fmt::Debug;
 
@@ -137,73 +137,20 @@ where
 	/// Ask relay to prove source `required_header` to the `TargetChain`.
 	async fn prove_header(
 		&self,
-		required_header: BlockNumberOf<P::SourceParachain>,
+		required_parachain_header: BlockNumberOf<P::SourceParachain>,
 	) -> Result<(HeaderIdOf<P::SourceParachain>, Vec<CallOf<P::TargetChain>>), SubstrateError> {
-		// parachains proof also requires relay header proof. Let's first select relay block
-		// number that we'll be dealing with
+		// select headers to prove
 		let parachains_source = ParachainsSource::<P>::new(
 			self.source_relay_client.clone(),
 			Arc::new(Mutex::new(AvailableHeader::Missing)),
 		);
-		let best_finalized_relay_block_at_source =
-			self.source_relay_client.best_finalized_header().await?.id();
-		let best_finalized_relay_block_at_target =
-			crate::messages_source::read_client_state::<P::TargetChain, P::SourceRelayChain>(
-				&self.target_client,
-				None,
-				P::SourceRelayChain::BEST_FINALIZED_HEADER_ID_METHOD,
-			)
-			.await?
-			.best_finalized_peer_at_best_self;
-
-		// if we can't prove `required_header` even using `best_finalized_relay_block_at_source`, we
-		// can't do anything here
-		// (this shall not actually happen, given current code, because we only require finalized
-		// headers)
-		let para_id = ParaId(P::SOURCE_PARACHAIN_PARA_ID);
-		let best_possible_parachain_block = parachains_source
-			.on_chain_para_head_id(best_finalized_relay_block_at_target, para_id)
-			.await?;
-		let best_possible_parachain_block = match best_possible_parachain_block {
-			Some(best_possible_parachain_block)
-				if best_possible_parachain_block.number() >= required_header =>
-				best_possible_parachain_block,
-			_ =>
-				return Err(SubstrateError::MissingRequiredParachainHead(
-					para_id,
-					required_header.unique_saturated_into(),
-				)),
-		};
-
-		// now let's check if `required_header` may be proved using
-		// `best_finalized_relay_block_at_target`
-		let available_parachain_block = parachains_source
-			.on_chain_para_head_id(best_finalized_relay_block_at_target, para_id)
-			.await?;
-		let can_use_available_relay_header = available_parachain_block
-			.as_ref()
-			.map(|available_parachain_block| available_parachain_block.number() >= required_header)
-			.unwrap_or(false);
-
-		// we don't require source node to be archive, so we can't craft storage proofs using
-		// ancient headers. So if the `best_finalized_relay_block_at_target` is too ancient, we
-		// can't craft storage proofs using it
-		let difference = best_finalized_relay_block_at_source
-			.number()
-			.saturating_sub(best_finalized_relay_block_at_target.number());
-		let can_use_available_relay_header = can_use_available_relay_header &&
-			difference < BlockNumberOf::<P::SourceRelayChain>::unique_saturated_from(100u64); // TODO: extract const
-
-		// ok - now we have everything ready to select which headers we need on the target chain
-		let (selected_relay_block, selected_parachain_block) = if can_use_available_relay_header {
-			(best_finalized_relay_block_at_target, available_parachain_block.expect("TODO"))
-		} else {
-			(best_finalized_relay_block_at_source, best_possible_parachain_block)
-		};
+		let env = (self, &parachains_source);
+		let (need_to_prove_relay_block, selected_relay_block, selected_parachain_block) =
+			select_headers_to_prove(env, required_parachain_header).await?;
 
 		// now let's prove relay chain block (if needed)
 		let mut calls = Vec::new();
-		if selected_relay_block != best_finalized_relay_block_at_target {
+		if need_to_prove_relay_block {
 			calls.extend(
 				self.on_demand_source_relay_to_target_headers
 					.prove_header(selected_relay_block.number())
@@ -213,6 +160,7 @@ where
 		}
 
 		// and finally - prove parachain head
+		let para_id = ParaId(P::SOURCE_PARACHAIN_PARA_ID);
 		let (para_proof, para_hashes) = parachains_source
 			.prove_parachain_heads(selected_relay_block, &[para_id])
 			.await?;
@@ -590,6 +538,132 @@ where
 	RelayState::RelayingParaHeader(para_header_at_source)
 }
 
+/// Envirnonment for the `select_headers_to_prove` call.
+#[async_trait]
+trait SelectHeadersToProveEnvironment<RBN, RBH, PBN, PBH> {
+	/// Returns associated parachain id.
+	fn parachain_id(&self) -> ParaId;
+	/// Returns best finalized relay block.
+	async fn best_finalized_relay_block_at_source(
+		&self,
+	) -> Result<HeaderId<RBH, RBN>, SubstrateError>;
+	/// Returns best finalized relay block that is known at `P::TargetChain`.
+	async fn best_finalized_relay_block_at_target(
+		&self,
+	) -> Result<HeaderId<RBH, RBN>, SubstrateError>;
+	/// Returns best finalized parachain block at given source relay chain block.
+	async fn best_finalized_para_block_at_source(
+		&self,
+		at_relay_block: HeaderId<RBH, RBN>,
+	) -> Result<Option<HeaderId<PBH, PBN>>, SubstrateError>;
+}
+
+#[async_trait]
+impl<'a, P: SubstrateParachainsPipeline>
+	SelectHeadersToProveEnvironment<
+		BlockNumberOf<P::SourceRelayChain>,
+		HashOf<P::SourceRelayChain>,
+		BlockNumberOf<P::SourceParachain>,
+		HashOf<P::SourceParachain>,
+	> for (&'a OnDemandParachainsRelay<P>, &'a ParachainsSource<P>)
+{
+	fn parachain_id(&self) -> ParaId {
+		ParaId(P::SOURCE_PARACHAIN_PARA_ID)
+	}
+
+	async fn best_finalized_relay_block_at_source(
+		&self,
+	) -> Result<HeaderIdOf<P::SourceRelayChain>, SubstrateError> {
+		Ok(self.0.source_relay_client.best_finalized_header().await?.id())
+	}
+
+	async fn best_finalized_relay_block_at_target(
+		&self,
+	) -> Result<HeaderIdOf<P::SourceRelayChain>, SubstrateError> {
+		Ok(crate::messages_source::read_client_state::<P::TargetChain, P::SourceRelayChain>(
+			&self.0.target_client,
+			None,
+			P::SourceRelayChain::BEST_FINALIZED_HEADER_ID_METHOD,
+		)
+		.await?
+		.best_finalized_peer_at_best_self)
+	}
+
+	async fn best_finalized_para_block_at_source(
+		&self,
+		at_relay_block: HeaderIdOf<P::SourceRelayChain>,
+	) -> Result<Option<HeaderIdOf<P::SourceParachain>>, SubstrateError> {
+		self.1.on_chain_para_head_id(at_relay_block, self.parachain_id()).await
+	}
+}
+
+/// Given request to prove `required_parachain_header`, select actual headers that need to be
+/// proved.
+async fn select_headers_to_prove<RBN, RBH, PBN, PBH>(
+	env: impl SelectHeadersToProveEnvironment<RBN, RBH, PBN, PBH>,
+	required_parachain_header: PBN,
+) -> Result<(bool, HeaderId<RBH, RBN>, HeaderId<PBH, PBN>), SubstrateError>
+where
+	RBH: Copy,
+	RBN: BlockNumberBase,
+	PBH: Copy,
+	PBN: BlockNumberBase,
+{
+	// parachains proof also requires relay header proof. Let's first select relay block
+	// number that we'll be dealing with
+	let best_finalized_relay_block_at_source = env.best_finalized_relay_block_at_source().await?;
+	let best_finalized_relay_block_at_target = env.best_finalized_relay_block_at_target().await?;
+
+	// if we can't prove `required_header` even using `best_finalized_relay_block_at_source`, we
+	// can't do anything here
+	// (this shall not actually happen, given current code, because we only require finalized
+	// headers)
+	let best_possible_parachain_block = env
+		.best_finalized_para_block_at_source(best_finalized_relay_block_at_source)
+		.await?;
+	let best_possible_parachain_block = match best_possible_parachain_block {
+		Some(best_possible_parachain_block)
+			if best_possible_parachain_block.number() >= required_parachain_header =>
+			best_possible_parachain_block,
+		_ =>
+			return Err(SubstrateError::MissingRequiredParachainHead(
+				env.parachain_id(),
+				required_parachain_header.unique_saturated_into(),
+			)),
+	};
+
+	// now let's check if `required_header` may be proved using
+	// `best_finalized_relay_block_at_target`
+	let available_parachain_block = env
+		.best_finalized_para_block_at_source(best_finalized_relay_block_at_target)
+		.await?;
+	let can_use_available_relay_header = available_parachain_block
+		.as_ref()
+		.map(|available_parachain_block| {
+			available_parachain_block.number() >= required_parachain_header
+		})
+		.unwrap_or(false);
+
+	// we don't require source node to be archive, so we can't craft storage proofs using
+	// ancient headers. So if the `best_finalized_relay_block_at_target` is too ancient, we
+	// can't craft storage proofs using it
+	let difference = best_finalized_relay_block_at_source
+		.number()
+		.saturating_sub(best_finalized_relay_block_at_target.number());
+	let can_use_available_relay_header =
+		can_use_available_relay_header && difference < RBN::from(100u32); // TODO: extract const
+
+	// ok - now we have everything ready to select which headers we need on the target chain
+	let (need_to_prove_relay_block, selected_relay_block, selected_parachain_block) =
+		if can_use_available_relay_header {
+			(false, best_finalized_relay_block_at_target, available_parachain_block.expect("TODO"))
+		} else {
+			(true, best_finalized_relay_block_at_source, best_possible_parachain_block)
+		};
+
+	Ok((need_to_prove_relay_block, selected_relay_block, selected_parachain_block))
+}
+
 #[cfg(test)]
 mod tests {
 	use super::*;
@@ -806,6 +880,82 @@ mod tests {
 				RelayState::Idle,
 			),
 			RelayState::RelayingRelayHeader(800),
+		);
+	}
+
+	// tuple is:
+	//
+	// - best_finalized_relay_block_at_source
+	// - best_finalized_relay_block_at_target
+	// - best_finalized_para_block_at_source at best_finalized_relay_block_at_source
+	// - best_finalized_para_block_at_source at best_finalized_relay_block_at_target
+	#[async_trait]
+	impl SelectHeadersToProveEnvironment<u32, u32, u32, u32> for (u32, u32, u32, u32) {
+		fn parachain_id(&self) -> ParaId {
+			ParaId(0)
+		}
+
+		async fn best_finalized_relay_block_at_source(
+			&self,
+		) -> Result<HeaderId<u32, u32>, SubstrateError> {
+			Ok(HeaderId(self.0, self.0))
+		}
+
+		async fn best_finalized_relay_block_at_target(
+			&self,
+		) -> Result<HeaderId<u32, u32>, SubstrateError> {
+			Ok(HeaderId(self.1, self.1))
+		}
+
+		async fn best_finalized_para_block_at_source(
+			&self,
+			at_relay_block: HeaderId<u32, u32>,
+		) -> Result<Option<HeaderId<u32, u32>>, SubstrateError> {
+			if at_relay_block.0 == self.0 {
+				Ok(Some(HeaderId(self.2, self.2)))
+			} else if at_relay_block.0 == self.1 {
+				Ok(Some(HeaderId(self.3, self.3)))
+			} else {
+				Ok(None)
+			}
+		}
+	}
+
+	#[async_std::test]
+	async fn select_headers_to_prove_returns_err_if_required_para_block_is_missing_at_source() {
+		assert!(matches!(
+			select_headers_to_prove((20_u32, 10_u32, 200_u32, 100_u32), 300_u32,).await,
+			Err(SubstrateError::MissingRequiredParachainHead(ParaId(0), 300_u64)),
+		));
+	}
+
+	#[async_std::test]
+	async fn select_headers_to_prove_fails_to_use_existing_ancient_relay_block() {
+		assert_eq!(
+			select_headers_to_prove((220_u32, 10_u32, 200_u32, 100_u32), 100_u32,)
+				.await
+				.map_err(drop),
+			Ok((true, HeaderId(220, 220), HeaderId(200, 200))),
+		);
+	}
+
+	#[async_std::test]
+	async fn select_headers_to_prove_is_able_to_use_existing_recent_relay_block() {
+		assert_eq!(
+			select_headers_to_prove((40_u32, 10_u32, 200_u32, 100_u32), 100_u32,)
+				.await
+				.map_err(drop),
+			Ok((false, HeaderId(10, 10), HeaderId(100, 100))),
+		);
+	}
+
+	#[async_std::test]
+	async fn select_headers_to_prove_uses_new_relay_block() {
+		assert_eq!(
+			select_headers_to_prove((20_u32, 10_u32, 200_u32, 100_u32), 200_u32,)
+				.await
+				.map_err(drop),
+			Ok((true, HeaderId(20, 20), HeaderId(200, 200))),
 		);
 	}
 }
