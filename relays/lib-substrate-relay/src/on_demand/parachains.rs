@@ -41,7 +41,7 @@ use parachains_relay::parachains_loop::{
 };
 use relay_substrate_client::{
 	AccountIdOf, AccountKeyPairOf, BlockNumberOf, CallOf, Chain, Client, Error as SubstrateError,
-	HashOf, HeaderIdOf,
+	HashOf, HeaderIdOf, ANCIENT_BLOCK_THRESHOLD,
 };
 use relay_utils::{
 	metrics::MetricsParams, relay_loop::Client as RelayClient, BlockNumberBase, FailedClient,
@@ -698,7 +698,7 @@ where
 		.number()
 		.saturating_sub(best_finalized_relay_block_at_target.number());
 	let can_use_available_relay_header =
-		can_use_available_relay_header && difference < RBN::from(100u32); // TODO: extract const
+		can_use_available_relay_header && difference < RBN::from(ANCIENT_BLOCK_THRESHOLD);
 
 	// ok - now we have everything ready to select which headers we need on the target chain
 	let (need_to_prove_relay_block, selected_relay_block, selected_parachain_block) =
