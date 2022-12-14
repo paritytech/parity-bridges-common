@@ -411,7 +411,7 @@ where
 	AccountIdOf<P::SourceChain>: From<<AccountKeyPairOf<P::SourceChain> as Pair>::Public>,
 {
 	fn required_header_id(&self) -> TargetHeaderIdOf<MessageLaneAdapter<P>> {
-		self.proved_header.clone()
+		self.proved_header
 	}
 
 	async fn append_proof_and_send(

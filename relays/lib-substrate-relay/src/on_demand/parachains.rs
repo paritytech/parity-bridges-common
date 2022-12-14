@@ -585,7 +585,7 @@ where
 	RelayState::RelayingParaHeader(para_header_at_source)
 }
 
-/// Envirnonment for the `select_headers_to_prove` call.
+/// Environment for the `select_headers_to_prove` call.
 #[async_trait]
 trait SelectHeadersToProveEnvironment<RBN, RBH, PBN, PBH> {
 	/// Returns associated parachain id.
