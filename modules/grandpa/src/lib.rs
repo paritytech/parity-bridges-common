@@ -156,12 +156,11 @@ pub mod pallet {
 			justification.votes_ancestries.len().try_into().unwrap_or(u32::MAX),
 		))]
 		pub fn submit_finality_proof(
-			origin: OriginFor<T>,
+			_origin: OriginFor<T>,
 			finality_target: Box<BridgedHeader<T, I>>,
 			justification: GrandpaJustification<BridgedHeader<T, I>>,
 		) -> DispatchResultWithPostInfo {
 			Self::ensure_not_halted().map_err(Error::<T, I>::BridgeModule)?;
-			let _ = ensure_signed(origin)?;
 
 			ensure!(Self::request_count() < T::MaxRequests::get(), <Error<T, I>>::TooManyRequests);
 
