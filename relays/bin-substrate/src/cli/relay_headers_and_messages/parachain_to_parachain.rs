@@ -14,8 +14,6 @@
 // You should have received a copy of the GNU General Public License
 // along with Parity Bridges Common.  If not, see <http://www.gnu.org/licenses/>.
 
-#![allow(unused_macros)] // TODO (https://github.com/paritytech/parity-bridges-common/issues/1629): remove me
-
 use async_trait::async_trait;
 use std::sync::Arc;
 
@@ -26,7 +24,9 @@ use crate::cli::{
 };
 use bp_polkadot_core::parachains::ParaHash;
 use pallet_bridge_parachains::{RelayBlockHash, RelayBlockHasher, RelayBlockNumber};
-use relay_substrate_client::{AccountIdOf, AccountKeyPairOf, Chain, ChainWithTransactions, Client};
+use relay_substrate_client::{
+	AccountIdOf, AccountKeyPairOf, Chain, ChainWithTransactions, Client, Parachain,
+};
 use sp_core::Pair;
 use substrate_relay_helper::{
 	finality::SubstrateFinalitySyncPipeline,
@@ -43,7 +43,10 @@ use substrate_relay_helper::{
 pub struct ParachainToParachainBridge<
 	L2R: MessagesCliBridge + ParachainToRelayHeadersCliBridge,
 	R2L: MessagesCliBridge + ParachainToRelayHeadersCliBridge,
-> {
+> where
+	<L2R as CliBridgeBase>::Source: Parachain,
+	<R2L as CliBridgeBase>::Source: Parachain,
+{
 	/// Parameters that are shared by all bridge types.
 	pub common:
 		Full2WayBridgeCommonParams<<R2L as CliBridgeBase>::Target, <L2R as CliBridgeBase>::Target>,
@@ -119,9 +122,9 @@ macro_rules! declare_parachain_to_parachain_bridge_schema {
 
 			impl [<$left_parachain $right_parachain HeadersAndMessages>] {
 				async fn into_bridge<
-					Left: ChainWithTransactions + CliChain<KeyPair = AccountKeyPairOf<Left>>,
+					Left: ChainWithTransactions + CliChain<KeyPair = AccountKeyPairOf<Left>> + Parachain,
 					LeftRelay: CliChain,
-					Right: ChainWithTransactions + CliChain<KeyPair = AccountKeyPairOf<Right>>,
+					Right: ChainWithTransactions + CliChain<KeyPair = AccountKeyPairOf<Right>> + Parachain,
 					RightRelay: CliChain,
 					L2R: CliBridgeBase<Source = Left, Target = Right>
 						+ MessagesCliBridge
@@ -173,10 +176,14 @@ macro_rules! declare_parachain_to_parachain_bridge_schema {
 
 #[async_trait]
 impl<
-		Left: Chain<Hash = ParaHash> + ChainWithTransactions + CliChain<KeyPair = AccountKeyPairOf<Left>>,
+		Left: Chain<Hash = ParaHash>
+			+ ChainWithTransactions
+			+ CliChain<KeyPair = AccountKeyPairOf<Left>>
+			+ Parachain,
 		Right: Chain<Hash = ParaHash>
 			+ ChainWithTransactions
-			+ CliChain<KeyPair = AccountKeyPairOf<Right>>,
+			+ CliChain<KeyPair = AccountKeyPairOf<Right>>
+			+ Parachain,
 		LeftRelay: Chain<BlockNumber = RelayBlockNumber, Hash = RelayBlockHash, Hasher = RelayBlockHasher>
 			+ CliChain,
 		RightRelay: Chain<BlockNumber = RelayBlockNumber, Hash = RelayBlockHash, Hasher = RelayBlockHasher>

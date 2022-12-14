@@ -727,11 +727,27 @@ dependencies = [
 ]
 
 [[package]]
-name = "bp-bridge-hub-rococo"
+name = "bp-bridge-hub-cumulus"
 version = "0.1.0"
 dependencies = [
  "bp-messages",
  "bp-polkadot-core",
+ "bp-runtime",
+ "frame-support",
+ "frame-system",
+ "polkadot-primitives",
+ "polkadot-runtime-constants",
+ "smallvec",
+ "sp-api",
+ "sp-std",
+]
+
+[[package]]
+name = "bp-bridge-hub-rococo"
+version = "0.1.0"
+dependencies = [
+ "bp-bridge-hub-cumulus",
+ "bp-messages",
  "bp-runtime",
  "frame-support",
  "polkadot-runtime-constants",
@@ -744,7 +760,7 @@ dependencies = [
 name = "bp-bridge-hub-wococo"
 version = "0.1.0"
 dependencies = [
- "bp-bridge-hub-rococo",
+ "bp-bridge-hub-cumulus",
  "bp-messages",
  "bp-runtime",
  "frame-support",

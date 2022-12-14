@@ -41,7 +41,7 @@ use parachains_relay::parachains_loop::{
 };
 use relay_substrate_client::{
 	AccountIdOf, AccountKeyPairOf, BlockNumberOf, CallOf, Chain, Client, Error as SubstrateError,
-	HashOf, HeaderIdOf, ANCIENT_BLOCK_THRESHOLD,
+	HashOf, HeaderIdOf, ParachainBase, ANCIENT_BLOCK_THRESHOLD,
 };
 use relay_utils::{
 	metrics::MetricsParams, relay_loop::Client as RelayClient, BlockNumberBase, FailedClient,
@@ -179,7 +179,7 @@ where
 		// despite what we've selected before (in `select_headers_to_prove` call), if headers relay
 		// have chose the different header (e.g. because there's no GRANDPA jusstification for it),
 		// we need to prove parachain head available at this header
-		let para_id = ParaId(P::SOURCE_PARACHAIN_PARA_ID);
+		let para_id = ParaId(P::SourceParachain::PARACHAIN_ID);
 		let mut proved_parachain_block = selected_parachain_block;
 		if proved_relay_block != selected_relay_block {
 			proved_parachain_block = parachains_source
@@ -380,7 +380,7 @@ async fn background_task<P: SubstrateParachainsPipeline>(
 					parachains_source.clone(),
 					parachains_target.clone(),
 					ParachainSyncParams {
-						parachains: vec![P::SOURCE_PARACHAIN_PARA_ID.into()],
+						parachains: vec![P::SourceParachain::PARACHAIN_ID.into()],
 						stall_timeout: std::time::Duration::from_secs(60),
 						strategy: parachains_relay::parachains_loop::ParachainSyncStrategy::Any,
 					},
@@ -488,7 +488,10 @@ where
 		source.client().best_finalized_header().await.map_err(map_source_err)?;
 	let best_finalized_relay_block_id = best_finalized_relay_header.id();
 	let para_header_at_source = source
-		.on_chain_para_head_id(best_finalized_relay_block_id, P::SOURCE_PARACHAIN_PARA_ID.into())
+		.on_chain_para_head_id(
+			best_finalized_relay_block_id,
+			P::SourceParachain::PARACHAIN_ID.into(),
+		)
 		.await
 		.map_err(map_source_err)?;
 
@@ -503,7 +506,7 @@ where
 		.map_err(map_target_err)?;
 
 	let para_header_at_relay_header_at_target = source
-		.on_chain_para_head_id(relay_header_at_target, P::SOURCE_PARACHAIN_PARA_ID.into())
+		.on_chain_para_head_id(relay_header_at_target, P::SourceParachain::PARACHAIN_ID.into())
 		.await
 		.map_err(map_source_err)?;
 
@@ -615,7 +618,7 @@ impl<'a, P: SubstrateParachainsPipeline>
 	> for (&'a OnDemandParachainsRelay<P>, &'a ParachainsSource<P>)
 {
 	fn parachain_id(&self) -> ParaId {
-		ParaId(P::SOURCE_PARACHAIN_PARA_ID)
+		ParaId(P::SourceParachain::PARACHAIN_ID)
 	}
 
 	async fn best_finalized_relay_block_at_source(

@@ -16,10 +16,10 @@
 
 use bp_messages::MessageNonce;
 use bp_runtime::{
-	Chain as ChainBase, EncodedOrDecodedCall, HashOf, TransactionEra, TransactionEraOf,
+	Chain as ChainBase, EncodedOrDecodedCall, HashOf, Parachain as ParachainBase, TransactionEra,
+	TransactionEraOf, UnderlyingChainProvider,
 };
 use codec::{Codec, Encode};
-use frame_support::weights::WeightToFee;
 use jsonrpsee::core::{DeserializeOwned, Serialize};
 use num_traits::Zero;
 use sc_transaction_pool_api::TransactionStatus;
@@ -73,6 +73,11 @@ pub trait RelayChain: Chain {
 	const PARACHAINS_FINALITY_PALLET_NAME: &'static str;
 }
 
+/// Substrate-based parachain from minimal relay-client point of view.
+pub trait Parachain: Chain + ParachainBase {}
+
+impl<T> Parachain for T where T: UnderlyingChainProvider + Chain + ParachainBase {}
+
 /// Substrate-based chain that is using direct GRANDPA finality from minimal relay-client point of
 /// view.
 ///
@@ -111,16 +116,12 @@ pub trait ChainWithMessages: Chain {
 	/// `ChainWithMessages`.
 	const MAX_UNCONFIRMED_MESSAGES_IN_CONFIRMATION_TX: MessageNonce;
 
-	/// Type that is used by the chain, to convert from weight to fee.
-	type WeightToFee: WeightToFee<Balance = Self::Balance>;
 	/// Weights of message pallet calls.
 	type WeightInfo: pallet_bridge_messages::WeightInfoExt;
 }
 
 /// Call type used by the chain.
 pub type CallOf<C> = <C as Chain>::Call;
-/// Weight-to-Fee type used by the chain.
-pub type WeightToFeeOf<C> = <C as ChainWithMessages>::WeightToFee;
 /// Transaction status of the chain.
 pub type TransactionStatusOf<C> = TransactionStatus<HashOf<C>, HashOf<C>>;
 
