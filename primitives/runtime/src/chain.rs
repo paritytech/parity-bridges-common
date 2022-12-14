@@ -192,13 +192,15 @@ pub trait Chain: Send + Sync + 'static {
 	fn max_extrinsic_weight() -> Weight;
 }
 
-pub trait ChainShadow {
+/// A trait that provides the type of the underlying chain.
+pub trait UnderlyingChainProvider {
+	/// Underlying chain type.
 	type Chain: Chain;
 }
 
 impl<T> Chain for T
 where
-	T: Send + Sync + 'static + ChainShadow,
+	T: Send + Sync + 'static + UnderlyingChainProvider,
 {
 	type BlockNumber = <T::Chain as Chain>::BlockNumber;
 	type Hash = <T::Chain as Chain>::Hash;
@@ -226,11 +228,14 @@ pub trait Parachain: Chain {
 
 impl<T> Parachain for T
 where
-	T: Chain + ChainShadow,
-	<T as ChainShadow>::Chain: Parachain,
+	T: Chain + UnderlyingChainProvider,
+	<T as UnderlyingChainProvider>::Chain: Parachain,
 {
-	const PARACHAIN_ID: u32 = <<T as ChainShadow>::Chain as Parachain>::PARACHAIN_ID;
+	const PARACHAIN_ID: u32 = <<T as UnderlyingChainProvider>::Chain as Parachain>::PARACHAIN_ID;
 }
+
+/// Underlying chain type.
+pub type UnderlyingChainOf<C> = <C as UnderlyingChainProvider>::Chain;
 
 /// Block number used by the chain.
 pub type BlockNumberOf<C> = <C as Chain>::BlockNumber;

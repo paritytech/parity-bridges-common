@@ -17,7 +17,7 @@
 //! Types used to connect to the Polkadot chain.
 
 use bp_polkadot::AccountInfoStorageMapKeyProvider;
-use relay_substrate_client::{Chain, ChainBaseShadow, ChainWithBalances, ChainWithGrandpa};
+use relay_substrate_client::{Chain, ChainWithBalances, ChainWithGrandpa, UnderlyingChainProvider};
 use sp_core::storage::StorageKey;
 use std::time::Duration;
 
@@ -28,7 +28,7 @@ pub type HeaderId = relay_utils::HeaderId<bp_polkadot::Hash, bp_polkadot::BlockN
 #[derive(Debug, Clone, Copy)]
 pub struct Polkadot;
 
-impl ChainBaseShadow for Polkadot {
+impl UnderlyingChainProvider for Polkadot {
 	type Chain = bp_polkadot::Polkadot;
 }
 

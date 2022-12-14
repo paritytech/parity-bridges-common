@@ -17,7 +17,7 @@
 //! Types used to connect to the Wococo-Substrate chain.
 
 use relay_substrate_client::{
-	Chain, ChainBaseShadow, ChainWithBalances, ChainWithGrandpa, RelayChain,
+	Chain, ChainWithBalances, ChainWithGrandpa, RelayChain, UnderlyingChainProvider,
 };
 use sp_core::storage::StorageKey;
 use std::time::Duration;
@@ -32,7 +32,7 @@ pub type SyncHeader = relay_substrate_client::SyncHeader<bp_wococo::Header>;
 #[derive(Debug, Clone, Copy)]
 pub struct Wococo;
 
-impl ChainBaseShadow for Wococo {
+impl UnderlyingChainProvider for Wococo {
 	type Chain = bp_wococo::Wococo;
 }
 

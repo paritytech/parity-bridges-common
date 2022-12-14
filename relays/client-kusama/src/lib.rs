@@ -17,7 +17,7 @@
 //! Types used to connect to the Kusama chain.
 
 use bp_kusama::AccountInfoStorageMapKeyProvider;
-use relay_substrate_client::{Chain, ChainBaseShadow, ChainWithBalances, ChainWithGrandpa};
+use relay_substrate_client::{Chain, ChainWithBalances, ChainWithGrandpa, UnderlyingChainProvider};
 use sp_core::storage::StorageKey;
 use std::time::Duration;
 
@@ -28,7 +28,7 @@ pub type HeaderId = relay_utils::HeaderId<bp_kusama::Hash, bp_kusama::BlockNumbe
 #[derive(Debug, Clone, Copy)]
 pub struct Kusama;
 
-impl ChainBaseShadow for Kusama {
+impl UnderlyingChainProvider for Kusama {
 	type Chain = bp_kusama::Kusama;
 }
 

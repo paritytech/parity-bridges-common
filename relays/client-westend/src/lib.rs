@@ -17,7 +17,7 @@
 //! Types used to connect to the Westend chain.
 
 use relay_substrate_client::{
-	Chain, ChainBaseShadow, ChainWithBalances, ChainWithGrandpa, RelayChain,
+	Chain, ChainWithBalances, ChainWithGrandpa, RelayChain, UnderlyingChainProvider,
 };
 use sp_core::storage::StorageKey;
 use std::time::Duration;
@@ -32,7 +32,7 @@ pub type SyncHeader = relay_substrate_client::SyncHeader<bp_westend::Header>;
 #[derive(Debug, Clone, Copy)]
 pub struct Westend;
 
-impl ChainBaseShadow for Westend {
+impl UnderlyingChainProvider for Westend {
 	type Chain = bp_westend::Westend;
 }
 
@@ -68,7 +68,7 @@ impl ChainWithBalances for Westend {
 #[derive(Debug, Clone, Copy)]
 pub struct Westmint;
 
-impl ChainBaseShadow for Westmint {
+impl UnderlyingChainProvider for Westmint {
 	type Chain = bp_westend::Westmint;
 }
 

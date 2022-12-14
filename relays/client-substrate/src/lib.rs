@@ -44,9 +44,9 @@ pub use crate::{
 	transaction_tracker::TransactionTracker,
 };
 pub use bp_runtime::{
-	AccountIdOf, AccountPublicOf, BalanceOf, BlockNumberOf, Chain as ChainBase,
-	ChainShadow as ChainBaseShadow, HashOf, HeaderIdOf, HeaderOf, IndexOf,
-	Parachain as ParachainBase, SignatureOf, TransactionEra, TransactionEraOf,
+	AccountIdOf, AccountPublicOf, BalanceOf, BlockNumberOf, Chain as ChainBase, HashOf, HeaderIdOf,
+	HeaderOf, IndexOf, Parachain as ParachainBase, SignatureOf, TransactionEra, TransactionEraOf,
+	UnderlyingChainProvider,
 };
 
 /// Substrate-over-websocket connection params.

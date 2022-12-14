@@ -16,8 +16,8 @@
 
 use bp_messages::MessageNonce;
 use bp_runtime::{
-	Chain as ChainBase, ChainShadow as ChainBaseShadow, EncodedOrDecodedCall, HashOf,
-	Parachain as ParachainBase, TransactionEra, TransactionEraOf,
+	Chain as ChainBase, EncodedOrDecodedCall, HashOf, Parachain as ParachainBase, TransactionEra,
+	TransactionEraOf, UnderlyingChainProvider,
 };
 use codec::{Codec, Encode};
 use jsonrpsee::core::{DeserializeOwned, Serialize};
@@ -76,7 +76,7 @@ pub trait RelayChain: Chain {
 /// Substrate-based parachain from minimal relay-client point of view.
 pub trait Parachain: Chain + ParachainBase {}
 
-impl<T> Parachain for T where T: ChainBaseShadow + Chain + ParachainBase {}
+impl<T> Parachain for T where T: UnderlyingChainProvider + Chain + ParachainBase {}
 
 /// Substrate-based chain that is using direct GRANDPA finality from minimal relay-client point of
 /// view.

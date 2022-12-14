@@ -17,7 +17,7 @@
 //! Types used to connect to the Rococo-Substrate chain.
 
 use relay_substrate_client::{
-	Chain, ChainBaseShadow, ChainWithBalances, ChainWithGrandpa, RelayChain,
+	Chain, ChainWithBalances, ChainWithGrandpa, RelayChain, UnderlyingChainProvider,
 };
 use sp_core::storage::StorageKey;
 use std::time::Duration;
@@ -32,7 +32,7 @@ pub type SyncHeader = relay_substrate_client::SyncHeader<bp_rococo::Header>;
 #[derive(Debug, Clone, Copy)]
 pub struct Rococo;
 
-impl ChainBaseShadow for Rococo {
+impl UnderlyingChainProvider for Rococo {
 	type Chain = bp_rococo::Rococo;
 }
 

@@ -19,9 +19,9 @@
 use bp_messages::MessageNonce;
 use codec::{Compact, Decode, Encode};
 use relay_substrate_client::{
-	BalanceOf, Chain, ChainBaseShadow, ChainWithBalances, ChainWithGrandpa, ChainWithMessages,
+	BalanceOf, Chain, ChainWithBalances, ChainWithGrandpa, ChainWithMessages,
 	ChainWithTransactions, Error as SubstrateError, IndexOf, RelayChain, SignParam,
-	UnsignedTransaction,
+	UnderlyingChainProvider, UnsignedTransaction,
 };
 use sp_core::{storage::StorageKey, Pair};
 use sp_runtime::{generic::SignedPayload, traits::IdentifyAccount};
@@ -34,7 +34,7 @@ pub type HeaderId = relay_utils::HeaderId<rialto_runtime::Hash, rialto_runtime::
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Rialto;
 
-impl ChainBaseShadow for Rialto {
+impl UnderlyingChainProvider for Rialto {
 	type Chain = bp_rialto::Rialto;
 }
 
