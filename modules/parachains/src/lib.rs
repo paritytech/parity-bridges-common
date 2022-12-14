@@ -269,12 +269,14 @@ pub mod pallet {
 			parachains.len() as _,
 		))]
 		pub fn submit_parachain_heads(
-			_origin: OriginFor<T>,
+			origin: OriginFor<T>,
 			at_relay_block: (RelayBlockNumber, RelayBlockHash),
 			parachains: Vec<(ParaId, ParaHash)>,
 			parachain_heads_proof: ParaHeadsProof,
 		) -> DispatchResultWithPostInfo {
 			Self::ensure_not_halted().map_err(Error::<T, I>::BridgeModule)?;
+			let _ = ensure_signed(origin)?;
+
 			// we'll need relay chain header to verify that parachains heads are always increasing.
 			let (relay_block_number, relay_block_hash) = at_relay_block;
 			let relay_block = pallet_bridge_grandpa::ImportedHeaders::<
