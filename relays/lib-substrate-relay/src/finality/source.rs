@@ -20,6 +20,7 @@ use crate::finality::{engine::Engine, FinalitySyncPipelineAdapter, SubstrateFina
 
 use async_std::sync::{Arc, Mutex};
 use async_trait::async_trait;
+use bp_header_chain::FinalityProof;
 use codec::Decode;
 use finality_relay::SourceClient;
 use futures::stream::{unfold, Stream, StreamExt};
@@ -27,7 +28,7 @@ use num_traits::One;
 use relay_substrate_client::{
 	BlockNumberOf, BlockWithJustification, Chain, Client, Error, HeaderOf,
 };
-use relay_utils::relay_loop::Client as RelayClient;
+use relay_utils::{relay_loop::Client as RelayClient, UniqueSaturatedInto};
 use std::pin::Pin;
 
 /// Shared updatable reference to the maximal header number that we want to sync from the source.
@@ -74,26 +75,52 @@ impl<P: SubstrateFinalitySyncPipeline> SubstrateFinalitySource<P> {
 
 	/// Return header and its justification of the given block or its earlier descendant that
 	/// has a GRANDPA justification.
+	///
+	/// This method is optimized for cases when `block_number` is close to the best finalized
+	/// chain block.
 	pub async fn prove_block_finality(
 		&self,
-		mut block_number: BlockNumberOf<P::SourceChain>,
+		block_number: BlockNumberOf<P::SourceChain>,
 	) -> Result<
 		(relay_substrate_client::SyncHeader<HeaderOf<P::SourceChain>>, SubstrateFinalityProof<P>),
 		Error,
 	> {
-		// TODO: this is wrong - only mandatory headers have persistent justifications and they are
-		// rare => we need to find another way
+		// when we talk about GRANDPA finality:
+		//
+		// only mandatory headers have persistent notifications (that are returned by the
+		// `header_and_finality_proof` call). Since this method is supposed to work with arbitrary
+		// headers, we can't rely only on persistent justifications. So let's start with subscribing
+		// to ephemeral justifications to avoid waiting too much if we have failed to find
+		// persistent one.
+		let best_finalized_block_number = self.client.best_finalized_header_number().await?;
+		let mut finality_proofs = self.finality_proofs().await?;
 
-		loop {
-			let (header, maybe_justification) =
-				self.header_and_finality_proof(block_number).await?;
-			match maybe_justification {
-				Some(justification) => return Ok((header, justification)),
+		// start searching for persistent justificaitons
+		let mut current_block_number = block_number;
+		while current_block_number <= best_finalized_block_number {
+			let (header, maybe_proof) =
+				self.header_and_finality_proof(current_block_number).await?;
+			match maybe_proof {
+				Some(proof) => return Ok((header, proof)),
 				None => {
-					block_number += One::one();
+					current_block_number += One::one();
 				},
 			}
 		}
+
+		// we have failed to find persistent justification, so let's try with ephemeral
+		while let Some(proof) = finality_proofs.next().await {
+			// this is just for safety, in practice we shall never get notifications for earlier
+			// headers here (if `block_number <= best_finalized_block_number` of course)
+			if proof.target_header_number() < block_number {
+				continue
+			}
+
+			let header = self.client.header_by_number(proof.target_header_number()).await?;
+			return Ok((header.into(), proof))
+		}
+
+		Err(Error::FailedToFindFinalityProof(block_number.unique_saturated_into()))
 	}
 }
 

@@ -49,6 +49,9 @@ pub enum Error {
 	/// Required parachain head is not present at the relay chain.
 	#[error("Parachain {0:?} head {1} is missing from the relay chain storage.")]
 	MissingRequiredParachainHead(ParaId, u64),
+	/// Failed to find finality proof for the given header.
+	#[error("Failed to find finality proof for header {0}.")]
+	FailedToFindFinalityProof(u64),
 	/// The client we're connected to is not synced, so we can't rely on its state.
 	#[error("Substrate client is not synced {0}.")]
 	ClientNotSynced(Health),
