@@ -148,6 +148,29 @@ where
 		let (need_to_prove_relay_block, selected_relay_block, selected_parachain_block) =
 			select_headers_to_prove(env, required_parachain_header).await?;
 
+		log::debug!(
+			target: "bridge",
+			"[{}] Requested to prove {} head {:?}. Selected to prove {} head {:?} and {} head {:?}",
+			self.relay_task_name,
+			P::SourceParachain::NAME,
+			required_parachain_header,
+			P::SourceParachain::NAME,
+			selected_parachain_block,
+			P::SourceRelayChain::NAME,
+			if need_to_prove_relay_block {
+				Some(selected_relay_block)
+			} else {
+				None
+			},
+		);
+
+		// TODO: that is wrong to assume that the `on_demand_source_relay_to_target_headers` will
+		// prove `selected_relay_block` => so we need to call
+		// `on_demand_source_relay_to_target_headers.prove_header()` and then prove parachain head
+		// at thisreturned header, not the `selected_relay_block`
+		//
+		// i.e. `selected_parachain_block` could change even after `select_headers_to_prove` call
+
 		// now let's prove relay chain block (if needed)
 		let mut calls = Vec::new();
 		if need_to_prove_relay_block {

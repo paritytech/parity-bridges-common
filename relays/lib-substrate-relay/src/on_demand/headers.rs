@@ -123,6 +123,16 @@ impl<P: SubstrateFinalitySyncPipeline> OnDemandRelay<P::SourceChain, P::TargetCh
 		let (header, proof) = finality_source.prove_block_finality(required_header).await?;
 		let header_id = header.id();
 
+		log::debug!(
+			target: "bridge",
+			"[{}] Requested to prove {} head {:?}. Selected to prove {} head {:?}",
+			self.relay_task_name,
+			P::SourceChain::NAME,
+			required_header,
+			P::SourceChain::NAME,
+			header_id,
+		);
+
 		// and then craft the submit-proof call
 		let call =
 			P::SubmitFinalityProofCallBuilder::build_submit_finality_proof_call(header, proof);

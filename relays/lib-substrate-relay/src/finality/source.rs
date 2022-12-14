@@ -81,6 +81,9 @@ impl<P: SubstrateFinalitySyncPipeline> SubstrateFinalitySource<P> {
 		(relay_substrate_client::SyncHeader<HeaderOf<P::SourceChain>>, SubstrateFinalityProof<P>),
 		Error,
 	> {
+		// TODO: this is wrong - only mandatory headers have persistent justifications and they are
+		// rare => we need to find another way
+
 		loop {
 			let (header, maybe_justification) =
 				self.header_and_finality_proof(block_number).await?;
