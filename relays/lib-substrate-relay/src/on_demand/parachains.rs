@@ -703,7 +703,15 @@ where
 	// ok - now we have everything ready to select which headers we need on the target chain
 	let (need_to_prove_relay_block, selected_relay_block, selected_parachain_block) =
 		if can_use_available_relay_header {
-			(false, best_finalized_relay_block_at_target, available_parachain_block.expect("TODO"))
+			(
+				false,
+				best_finalized_relay_block_at_target,
+				available_parachain_block.expect(
+					"can_use_available_relay_header is true;\
+						can_use_available_relay_header is only true when available_parachain_block is Some;\
+						qed",
+				),
+			)
 		} else {
 			(true, best_finalized_relay_block_at_source, best_possible_parachain_block)
 		};
