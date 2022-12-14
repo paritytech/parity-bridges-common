@@ -45,7 +45,7 @@ use relay_substrate_client::{
 };
 use relay_utils::{
 	metrics::MetricsParams, relay_loop::Client as RelayClient, BlockNumberBase, FailedClient,
-	HeaderId,
+	HeaderId, UniqueSaturatedInto,
 };
 use std::fmt::Debug;
 
@@ -164,36 +164,60 @@ where
 			},
 		);
 
-		// TODO: that is wrong to assume that the `on_demand_source_relay_to_target_headers` will
-		// prove `selected_relay_block` => so we need to call
-		// `on_demand_source_relay_to_target_headers.prove_header()` and then prove parachain head
-		// at thisreturned header, not the `selected_relay_block`
-		//
-		// i.e. `selected_parachain_block` could change even after `select_headers_to_prove` call
-
 		// now let's prove relay chain block (if needed)
 		let mut calls = Vec::new();
+		let mut proved_relay_block = selected_relay_block;
 		if need_to_prove_relay_block {
-			calls.extend(
-				self.on_demand_source_relay_to_target_headers
-					.prove_header(selected_relay_block.number())
-					.await?
-					.1,
+			let (relay_block, relay_prove_call) = self
+				.on_demand_source_relay_to_target_headers
+				.prove_header(selected_relay_block.number())
+				.await?;
+			proved_relay_block = relay_block;
+			calls.extend(relay_prove_call);
+		}
+
+		// despite what we've selected before (in `select_headers_to_prove` call), if headers relay
+		// have chose the different header (e.g. because there's no GRANDPA jusstification for it),
+		// we need to prove parachain head available at this header
+		let para_id = ParaId(P::SOURCE_PARACHAIN_PARA_ID);
+		let mut proved_parachain_block = selected_parachain_block;
+		if proved_relay_block != selected_relay_block {
+			proved_parachain_block = parachains_source
+				.on_chain_para_head_id(proved_relay_block, para_id)
+				.await?
+				// this could happen e.g. if parachain has been offboarded?
+				.ok_or_else(|| {
+					SubstrateError::MissingRequiredParachainHead(
+						para_id,
+						proved_relay_block.number().unique_saturated_into(),
+					)
+				})?;
+
+			log::debug!(
+				target: "bridge",
+				"[{}] Selected to prove {} head {:?} and {} head {:?}. Instead proved {} head {:?} and {} head {:?}",
+				self.relay_task_name,
+				P::SourceParachain::NAME,
+				selected_parachain_block,
+				P::SourceRelayChain::NAME,
+				selected_relay_block,
+				P::SourceParachain::NAME,
+				proved_parachain_block,
+				P::SourceRelayChain::NAME,
+				proved_relay_block,
 			);
 		}
 
 		// and finally - prove parachain head
-		let para_id = ParaId(P::SOURCE_PARACHAIN_PARA_ID);
-		let (para_proof, para_hashes) = parachains_source
-			.prove_parachain_heads(selected_relay_block, &[para_id])
-			.await?;
+		let (para_proof, para_hashes) =
+			parachains_source.prove_parachain_heads(proved_relay_block, &[para_id]).await?;
 		calls.push(P::SubmitParachainHeadsCallBuilder::build_submit_parachain_heads_call(
-			selected_relay_block,
+			proved_relay_block,
 			para_hashes.into_iter().map(|h| (para_id, h)).collect(),
 			para_proof,
 		));
 
-		Ok((selected_parachain_block, calls))
+		Ok((proved_parachain_block, calls))
 	}
 }
 
