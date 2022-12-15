@@ -23,7 +23,10 @@ use async_trait::async_trait;
 use bp_header_chain::FinalityProof;
 use codec::Decode;
 use finality_relay::SourceClient;
-use futures::stream::{unfold, Stream, StreamExt};
+use futures::{
+	select,
+	stream::{try_unfold, unfold, Stream, StreamExt, TryStreamExt},
+};
 use num_traits::One;
 use relay_substrate_client::{
 	BlockNumberOf, BlockWithJustification, Chain, Client, Error, HeaderOf,
@@ -73,7 +76,7 @@ impl<P: SubstrateFinalitySyncPipeline> SubstrateFinalitySource<P> {
 		self.client.best_finalized_header_number().await
 	}
 
-	/// Return header and its justification of the given block or its earlier descendant that
+	/// Return header and its justification of the given block or its descendant that
 	/// has a GRANDPA justification.
 	///
 	/// This method is optimized for cases when `block_number` is close to the best finalized
@@ -85,42 +88,97 @@ impl<P: SubstrateFinalitySyncPipeline> SubstrateFinalitySource<P> {
 		(relay_substrate_client::SyncHeader<HeaderOf<P::SourceChain>>, SubstrateFinalityProof<P>),
 		Error,
 	> {
-		// when we talk about GRANDPA finality:
-		//
-		// only mandatory headers have persistent notifications (that are returned by the
-		// `header_and_finality_proof` call). Since this method is supposed to work with arbitrary
-		// headers, we can't rely only on persistent justifications. So let's start with subscribing
-		// to ephemeral justifications to avoid waiting too much if we have failed to find
-		// persistent one.
-		let best_finalized_block_number = self.client.best_finalized_header_number().await?;
-		let mut finality_proofs = self.finality_proofs().await?;
+		// first, subscribe to proofs
+		let next_persistent_proof =
+			self.persistent_proofs_stream(block_number + One::one()).await?.fuse();
+		let next_ephemeral_proof = self.ephemeral_proofs_stream(block_number).await?.fuse();
 
-		// start searching for persistent justificaitons
-		let mut current_block_number = block_number;
-		while current_block_number <= best_finalized_block_number {
-			let (header, maybe_proof) =
-				self.header_and_finality_proof(current_block_number).await?;
-			match maybe_proof {
-				Some(proof) => return Ok((header, proof)),
-				None => {
-					current_block_number += One::one();
+		// in perfect world we'll need to return justfication for the requested `block_number`
+		let (header, maybe_proof) = self.header_and_finality_proof(block_number).await?;
+		if let Some(proof) = maybe_proof {
+			return Ok((header, proof))
+		}
+
+		// otherwise we don't care which header to return, so let's select first
+		futures::pin_mut!(next_persistent_proof, next_ephemeral_proof);
+		loop {
+			select! {
+				maybe_header_and_proof = next_persistent_proof.next() => match maybe_header_and_proof {
+					Some(header_and_proof) => return header_and_proof,
+					None => continue,
 				},
+				maybe_header_and_proof = next_ephemeral_proof.next() => match maybe_header_and_proof {
+					Some(header_and_proof) => return header_and_proof,
+					None => continue,
+				},
+				complete => return Err(Error::FailedToFindFinalityProof(block_number.unique_saturated_into()))
 			}
 		}
+	}
 
-		// we have failed to find persistent justification, so let's try with ephemeral
-		while let Some(proof) = finality_proofs.next().await {
-			// this is just for safety, in practice we shall never get notifications for earlier
-			// headers here (if `block_number <= best_finalized_block_number` of course)
-			if proof.target_header_number() < block_number {
-				continue
+	/// Returns stream of headers and their persistent proofs, starting from given block.
+	async fn persistent_proofs_stream(
+		&self,
+		block_number: BlockNumberOf<P::SourceChain>,
+	) -> Result<
+		impl Stream<
+			Item = Result<
+				(
+					relay_substrate_client::SyncHeader<HeaderOf<P::SourceChain>>,
+					SubstrateFinalityProof<P>,
+				),
+				Error,
+			>,
+		>,
+		Error,
+	> {
+		let client = self.client.clone();
+		let best_finalized_block_number = self.client.best_finalized_header_number().await?;
+		Ok(try_unfold((client, block_number), move |(client, current_block_number)| async move {
+			// if we've passed the `best_finalized_block_number`, we no longer need persistent
+			// justifications
+			if current_block_number > best_finalized_block_number {
+				return Ok(None)
 			}
 
-			let header = self.client.header_by_number(proof.target_header_number()).await?;
-			return Ok((header.into(), proof))
-		}
+			let (header, maybe_proof) =
+				header_and_finality_proof::<P>(&client, current_block_number).await?;
+			let next_block_number = current_block_number + One::one();
+			let next_state = (client, next_block_number);
 
-		Err(Error::FailedToFindFinalityProof(block_number.unique_saturated_into()))
+			Ok(Some((maybe_proof.map(|proof| (header, proof)), next_state)))
+		})
+		.try_filter_map(|maybe_result| async { Ok(maybe_result) }))
+	}
+
+	/// Returns stream of headers and their ephemeral proofs, starting from given block.
+	async fn ephemeral_proofs_stream(
+		&self,
+		block_number: BlockNumberOf<P::SourceChain>,
+	) -> Result<
+		impl Stream<
+			Item = Result<
+				(
+					relay_substrate_client::SyncHeader<HeaderOf<P::SourceChain>>,
+					SubstrateFinalityProof<P>,
+				),
+				Error,
+			>,
+		>,
+		Error,
+	> {
+		let client = self.client.clone();
+		Ok(self.finality_proofs().await?.map(Ok).try_filter_map(move |proof| {
+			let client = client.clone();
+			async move {
+				if proof.target_header_number() < block_number {
+					return Ok(None)
+				}
+
+				let header = client.header_by_number(proof.target_header_number()).await?;
+				Ok(Some((header.into(), proof)))
+			}
+		}))
 	}
 }
 
@@ -171,18 +229,7 @@ impl<P: SubstrateFinalitySyncPipeline> SourceClient<FinalitySyncPipelineAdapter<
 		),
 		Error,
 	> {
-		let header_hash = self.client.block_hash_by_number(number).await?;
-		let signed_block = self.client.get_block(Some(header_hash)).await?;
-
-		let justification = signed_block
-			.justification(P::FinalityEngine::ID)
-			.map(|raw_justification| {
-				SubstrateFinalityProof::<P>::decode(&mut raw_justification.as_slice())
-			})
-			.transpose()
-			.map_err(Error::ResponseParseFailed)?;
-
-		Ok((signed_block.header().into(), justification))
+		header_and_finality_proof::<P>(&self.client, number).await
 	}
 
 	async fn finality_proofs(&self) -> Result<Self::FinalityProofsStream, Error> {
@@ -224,4 +271,28 @@ impl<P: SubstrateFinalitySyncPipeline> SourceClient<FinalitySyncPipelineAdapter<
 		)
 		.boxed())
 	}
+}
+
+async fn header_and_finality_proof<P: SubstrateFinalitySyncPipeline>(
+	client: &Client<P::SourceChain>,
+	number: BlockNumberOf<P::SourceChain>,
+) -> Result<
+	(
+		relay_substrate_client::SyncHeader<HeaderOf<P::SourceChain>>,
+		Option<SubstrateFinalityProof<P>>,
+	),
+	Error,
+> {
+	let header_hash = client.block_hash_by_number(number).await?;
+	let signed_block = client.get_block(Some(header_hash)).await?;
+
+	let justification = signed_block
+		.justification(P::FinalityEngine::ID)
+		.map(|raw_justification| {
+			SubstrateFinalityProof::<P>::decode(&mut raw_justification.as_slice())
+		})
+		.transpose()
+		.map_err(Error::ResponseParseFailed)?;
+
+	Ok((signed_block.header().into(), justification))
 }
