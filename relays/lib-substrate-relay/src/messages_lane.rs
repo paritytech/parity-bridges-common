@@ -35,7 +35,7 @@ use messages_relay::message_lane::MessageLane;
 use pallet_bridge_messages::{Call as BridgeMessagesCall, Config as BridgeMessagesConfig};
 use relay_substrate_client::{
 	transaction_stall_timeout, AccountKeyPairOf, BalanceOf, BlockNumberOf, CallOf, Chain,
-	ChainWithMessages, ChainWithTransactions, Client, HashOf,
+	ChainWithMessages, ChainWithTransactions, Client, Error as SubstrateError, HashOf,
 };
 use relay_utils::{
 	metrics::{GlobalMetrics, MetricsParams, StandaloneMetric},
@@ -57,9 +57,9 @@ pub trait SubstrateMessageLane: 'static + Clone + Debug + Send + Sync {
 	type ReceiveMessagesDeliveryProofCallBuilder: ReceiveMessagesDeliveryProofCallBuilder<Self>;
 
 	/// How batch calls are built at the source chain?
-	type SourceBatchCallBuilder: BatchCallBuilder<CallOf<Self::SourceChain>>;
+	type SourceBatchCallBuilder: BatchCallBuilder<CallOf<Self::SourceChain>, Error = SubstrateError>;
 	/// How batch calls are built at the target chain?
-	type TargetBatchCallBuilder: BatchCallBuilder<CallOf<Self::TargetChain>>;
+	type TargetBatchCallBuilder: BatchCallBuilder<CallOf<Self::TargetChain>, Error = SubstrateError>;
 }
 
 /// Adapter that allows all `SubstrateMessageLane` to act as `MessageLane`.

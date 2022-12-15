@@ -332,7 +332,7 @@ where
 			proof,
 			false,
 		));
-		let batch_call = P::TargetBatchCallBuilder::build_batch_call(calls);
+		let batch_call = P::TargetBatchCallBuilder::build_batch_call(calls)?;
 
 		let (spec_version, transaction_version) =
 			self.messages_target.target_client.simple_runtime_version().await?;
