@@ -1018,6 +1018,7 @@ mod tests {
 	}
 
 	#[test]
+	#[allow(clippy::reversed_empty_ranges)]
 	fn no_source_headers_required_at_target_if_lanes_are_empty() {
 		let mut strategy = TestStrategy {
 			max_unrewarded_relayer_entries_at_target: 4,
