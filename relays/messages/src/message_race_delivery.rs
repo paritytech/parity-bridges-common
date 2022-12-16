@@ -316,8 +316,11 @@ where
 	) -> Option<SourceHeaderIdOf<P>> {
 		let header_required_for_messages_delivery =
 			self.strategy.required_source_header_at_target(current_best);
-		let header_required_for_reward_confirmations_delivery =
-			self.latest_confirmed_nonces_at_source.back().map(|(id, _)| id.clone());
+		let header_required_for_reward_confirmations_delivery = self
+			.latest_confirmed_nonces_at_source
+			.back()
+			.filter(|(_, nonce)| *nonce != 0)
+			.map(|(id, _)| id.clone());
 		match (
 			header_required_for_messages_delivery,
 			header_required_for_reward_confirmations_delivery,
@@ -980,5 +983,38 @@ mod tests {
 			strategy.select_nonces_to_deliver(state).await,
 			Some(((20..=24), proof_parameters(false, 5)))
 		);
+	}
+
+	#[test]
+	fn no_source_headers_required_at_target_if_lanes_are_empty() {
+		let mut strategy = TestStrategy {
+			max_unrewarded_relayer_entries_at_target: 4,
+			max_unconfirmed_nonces_at_target: 4,
+			max_messages_in_single_batch: 4,
+			max_messages_weight_in_single_batch: Weight::from_ref_time(4),
+			max_messages_size_in_single_batch: 4,
+			latest_confirmed_nonces_at_source: VecDeque::new(),
+			lane_source_client: TestSourceClient::default(),
+			lane_target_client: TestTargetClient::default(),
+			metrics_msg: None,
+			target_nonces: None,
+			strategy: BasicStrategy::new(),
+		};
+
+		let source_header_id = header_id(10);
+		strategy.source_nonces_updated(
+			source_header_id,
+			// MessageDeliveryRaceSource::nonces returns Some(0), because that's how it is
+			// represented in memory (there's no Options in OutboundLaneState)
+			source_nonces(1u64..=0u64, 0, 0),
+		);
+
+		// even though `latest_confirmed_nonces_at_source` is not empty, new headers are not
+		// requrested
+		assert_eq!(
+			strategy.latest_confirmed_nonces_at_source,
+			VecDeque::from([(source_header_id, 0)])
+		);
+		assert_eq!(strategy.required_source_header_at_target(&source_header_id), None);
 	}
 }
