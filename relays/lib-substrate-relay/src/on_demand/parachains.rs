@@ -670,56 +670,41 @@ where
 	// headers)
 	let best_possible_parachain_block = env
 		.best_finalized_para_block_at_source(best_finalized_relay_block_at_source)
-		.await?;
-	let best_possible_parachain_block = match best_possible_parachain_block {
-		Some(best_possible_parachain_block)
-			if best_possible_parachain_block.number() >= required_parachain_header =>
-			best_possible_parachain_block,
-		_ =>
-			return Err(SubstrateError::MissingRequiredParachainHead(
-				env.parachain_id(),
-				required_parachain_header.unique_saturated_into(),
-			)),
-	};
+		.await?
+		.filter(|best_possible_parachain_block| {
+			best_possible_parachain_block.number() >= required_parachain_header
+		})
+		.ok_or(SubstrateError::MissingRequiredParachainHead(
+			env.parachain_id(),
+			required_parachain_header.unique_saturated_into(),
+		))?;
 
 	// now let's check if `required_header` may be proved using
 	// `best_finalized_relay_block_at_target`
-	let available_parachain_block = env
+	let selection = env
 		.best_finalized_para_block_at_source(best_finalized_relay_block_at_target)
-		.await?;
-	let can_use_available_relay_header = available_parachain_block
-		.as_ref()
-		.map(|available_parachain_block| {
-			available_parachain_block.number() >= required_parachain_header
+		.await?
+		.filter(|best_finalized_para_block_at_target| {
+			best_finalized_para_block_at_target.number() >= required_parachain_header
 		})
-		.unwrap_or(false);
+		.map(|best_finalized_para_block_at_target| {
+			(false, best_finalized_relay_block_at_target, best_finalized_para_block_at_target)
+		})
+		// we don't require source node to be archive, so we can't craft storage proofs using
+		// ancient headers. So if the `best_finalized_relay_block_at_target` is too ancient, we
+		// can't craft storage proofs using it
+		.filter(|(_, selected_relay_block, _)| {
+			let difference = best_finalized_relay_block_at_source
+				.number()
+				.saturating_sub(selected_relay_block.number());
+			difference <= RBN::from(ANCIENT_BLOCK_THRESHOLD)
+		});
 
-	// we don't require source node to be archive, so we can't craft storage proofs using
-	// ancient headers. So if the `best_finalized_relay_block_at_target` is too ancient, we
-	// can't craft storage proofs using it
-	let difference = best_finalized_relay_block_at_source
-		.number()
-		.saturating_sub(best_finalized_relay_block_at_target.number());
-	let can_use_available_relay_header =
-		can_use_available_relay_header && difference < RBN::from(ANCIENT_BLOCK_THRESHOLD);
-
-	// ok - now we have everything ready to select which headers we need on the target chain
-	let (need_to_prove_relay_block, selected_relay_block, selected_parachain_block) =
-		if can_use_available_relay_header {
-			(
-				false,
-				best_finalized_relay_block_at_target,
-				available_parachain_block.expect(
-					"can_use_available_relay_header is true;\
-						can_use_available_relay_header is only true when available_parachain_block is Some;\
-						qed",
-				),
-			)
-		} else {
-			(true, best_finalized_relay_block_at_source, best_possible_parachain_block)
-		};
-
-	Ok((need_to_prove_relay_block, selected_relay_block, selected_parachain_block))
+	Ok(selection.unwrap_or((
+		true,
+		best_finalized_relay_block_at_source,
+		best_possible_parachain_block,
+	)))
 }
 
 #[cfg(test)]
