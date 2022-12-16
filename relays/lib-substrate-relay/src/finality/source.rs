@@ -111,7 +111,7 @@ impl<P: SubstrateFinalitySyncPipeline> SubstrateFinalitySource<P> {
 					Some(header_and_proof) => return header_and_proof,
 					None => continue,
 				},
-				complete => return Err(Error::FailedToFindFinalityProof(block_number.unique_saturated_into()))
+				complete => return Err(Error::FinalityProofNotFound(block_number.unique_saturated_into()))
 			}
 		}
 	}
