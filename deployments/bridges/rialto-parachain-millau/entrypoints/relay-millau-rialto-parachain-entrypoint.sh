@@ -28,7 +28,6 @@ sleep 6
 	--millau-host millau-node-alice \
 	--millau-port 9944 \
 	--millau-signer $MILLAU_RELAY_ACCOUNT \
-	--rialto-headers-to-millau-signer $MILLAU_RELAY_ACCOUNT_HEADERS_OVERRIDE \
 	--millau-messages-pallet-owner=//RialtoParachain.MessagesOwner \
 	--millau-transactions-mortality=64 \
 	--rialto-parachain-host rialto-parachain-collator-charlie \
