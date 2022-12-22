@@ -23,8 +23,8 @@ use crate::{
 		SubstrateFrameSystemClient, SubstrateStateClient, SubstrateSystemClient,
 		SubstrateTransactionPaymentClient,
 	},
-	transaction_stall_timeout, ConnectionParams, Error, HashOf, HeaderIdOf, Result, SignParam,
-	TransactionTracker, UnsignedTransaction,
+	transaction_stall_timeout, AccountKeyPairOf, ConnectionParams, Error, HashOf, HeaderIdOf,
+	Result, SignParam, TransactionTracker, UnsignedTransaction,
 };
 
 use async_std::sync::{Arc, Mutex};
@@ -43,7 +43,7 @@ use pallet_transaction_payment::InclusionFee;
 use relay_utils::{relay_loop::RECONNECT_DELAY, STALL_TIMEOUT};
 use sp_core::{
 	storage::{StorageData, StorageKey},
-	Bytes, Hasher,
+	Bytes, Hasher, Pair,
 };
 use sp_runtime::{
 	traits::Header as HeaderT,
@@ -475,18 +475,25 @@ impl<C: Chain> Client<C> {
 	/// after submission.
 	pub async fn submit_and_watch_signed_extrinsic(
 		&self,
-		extrinsic_signer: C::AccountId,
-		signing_data: SignParam<C>,
+		signer: &AccountKeyPairOf<C>,
 		prepare_extrinsic: impl FnOnce(HeaderIdOf<C>, C::Index) -> Result<UnsignedTransaction<C>>
 			+ Send
 			+ 'static,
 	) -> Result<TransactionTracker<C, Self>>
 	where
 		C: ChainWithTransactions,
+		C::AccountId: From<<C::AccountKeyPair as Pair>::Public>,
 	{
 		let self_clone = self.clone();
+		let (spec_version, transaction_version) = self.simple_runtime_version().await?;
+		let signing_data = SignParam::<C> {
+			spec_version,
+			transaction_version,
+			genesis_hash: self.genesis_hash,
+			signer: signer.clone(),
+		};
 		let _guard = self.submit_signed_extrinsic_lock.lock().await;
-		let transaction_nonce = self.next_account_index(extrinsic_signer).await?;
+		let transaction_nonce = self.next_account_index(signer.public().into()).await?;
 		let best_header = self.best_header().await?;
 		let best_header_id = best_header.id();
 		let (sender, receiver) = futures::channel::mpsc::channel(MAX_SUBSCRIPTION_CAPACITY);

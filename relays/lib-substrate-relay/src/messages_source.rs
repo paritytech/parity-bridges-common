@@ -48,7 +48,7 @@ use messages_relay::{
 use num_traits::Zero;
 use relay_substrate_client::{
 	AccountIdOf, AccountKeyPairOf, BalanceOf, BlockNumberOf, CallOf, Chain, ChainWithMessages,
-	Client, Error as SubstrateError, HashOf, HeaderIdOf, IndexOf, SignParam, TransactionEra,
+	Client, Error as SubstrateError, HashOf, HeaderIdOf, IndexOf, TransactionEra,
 	TransactionTracker, UnsignedTransaction,
 };
 use relay_utils::{relay_loop::Client as RelayClient, HeaderId};
@@ -335,19 +335,10 @@ where
 		_generated_at_block: TargetHeaderIdOf<MessageLaneAdapter<P>>,
 		proof: <MessageLaneAdapter<P> as MessageLane>::MessagesReceivingProof,
 	) -> Result<Self::TransactionTracker, SubstrateError> {
-		let genesis_hash = *self.source_client.genesis_hash();
 		let transaction_params = self.transaction_params.clone();
-		let (spec_version, transaction_version) =
-			self.source_client.simple_runtime_version().await?;
 		self.source_client
 			.submit_and_watch_signed_extrinsic(
-				self.transaction_params.signer.public().into(),
-				SignParam::<P::SourceChain> {
-					spec_version,
-					transaction_version,
-					genesis_hash,
-					signer: self.transaction_params.signer.clone(),
-				},
+				&self.transaction_params.signer,
 				move |best_block_id, transaction_nonce| {
 					make_messages_delivery_proof_transaction::<P>(
 						&transaction_params,
@@ -417,18 +408,10 @@ where
 		);
 		let batch_call = P::SourceBatchCallBuilder::build_batch_call(calls)?;
 
-		let (spec_version, transaction_version) =
-			self.messages_source.source_client.simple_runtime_version().await?;
 		self.messages_source
 			.source_client
 			.submit_and_watch_signed_extrinsic(
-				self.messages_source.transaction_params.signer.public().into(),
-				SignParam::<P::SourceChain> {
-					spec_version,
-					transaction_version,
-					genesis_hash: *self.messages_source.source_client.genesis_hash(),
-					signer: self.messages_source.transaction_params.signer.clone(),
-				},
+				&self.messages_source.transaction_params.signer,
 				move |best_block_id, transaction_nonce| {
 					Ok(UnsignedTransaction::new(batch_call.into(), transaction_nonce).era(
 						TransactionEra::new(

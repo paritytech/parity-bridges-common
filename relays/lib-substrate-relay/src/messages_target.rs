@@ -38,8 +38,8 @@ use messages_relay::{
 };
 use relay_substrate_client::{
 	AccountIdOf, AccountKeyPairOf, BalanceOf, CallOf, Chain, ChainWithMessages, Client,
-	Error as SubstrateError, HashOf, HeaderIdOf, IndexOf, SignParam, TransactionEra,
-	TransactionTracker, UnsignedTransaction,
+	Error as SubstrateError, HashOf, HeaderIdOf, IndexOf, TransactionEra, TransactionTracker,
+	UnsignedTransaction,
 };
 use relay_utils::relay_loop::Client as RelayClient;
 use sp_core::Pair;
@@ -236,22 +236,13 @@ where
 		nonces: RangeInclusive<MessageNonce>,
 		proof: <MessageLaneAdapter<P> as MessageLane>::MessagesProof,
 	) -> Result<NoncesSubmitArtifacts<Self::TransactionTracker>, SubstrateError> {
-		let genesis_hash = *self.target_client.genesis_hash();
 		let transaction_params = self.transaction_params.clone();
 		let relayer_id_at_source = self.relayer_id_at_source.clone();
 		let nonces_clone = nonces.clone();
-		let (spec_version, transaction_version) =
-			self.target_client.simple_runtime_version().await?;
 		let tx_tracker = self
 			.target_client
 			.submit_and_watch_signed_extrinsic(
-				self.transaction_params.signer.public().into(),
-				SignParam::<P::TargetChain> {
-					spec_version,
-					transaction_version,
-					genesis_hash,
-					signer: self.transaction_params.signer.clone(),
-				},
+				&self.transaction_params.signer,
 				move |best_block_id, transaction_nonce| {
 					make_messages_delivery_transaction::<P>(
 						&transaction_params,
@@ -325,18 +316,10 @@ where
 		));
 		let batch_call = P::TargetBatchCallBuilder::build_batch_call(calls)?;
 
-		let (spec_version, transaction_version) =
-			self.messages_target.target_client.simple_runtime_version().await?;
 		self.messages_target
 			.target_client
 			.submit_and_watch_signed_extrinsic(
-				self.messages_target.transaction_params.signer.public().into(),
-				SignParam::<P::TargetChain> {
-					spec_version,
-					transaction_version,
-					genesis_hash: *self.messages_target.target_client.genesis_hash(),
-					signer: self.messages_target.transaction_params.signer.clone(),
-				},
+				&self.messages_target.transaction_params.signer,
 				move |best_block_id, transaction_nonce| {
 					Ok(UnsignedTransaction::new(batch_call.into(), transaction_nonce).era(
 						TransactionEra::new(
