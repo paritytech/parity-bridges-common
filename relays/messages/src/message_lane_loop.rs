@@ -111,7 +111,6 @@ pub struct NoncesSubmitArtifacts<T> {
 
 /// Batch transaction that already submit some headers and needs to be extended with
 /// messages/delivery proof before sending.
-#[async_trait]
 pub trait BatchTransaction<HeaderId>: Send {
 	/// Header that was required in the original call and which is bundled within this
 	/// batch transaction.
@@ -522,9 +521,7 @@ pub(crate) mod tests {
 
 	#[derive(Clone, Debug)]
 	pub struct TestMessagesBatchTransaction {
-		data: Arc<Mutex<TestClientData>>,
 		required_header_id: TestSourceHeaderId,
-		tx_tracker: TestTransactionTracker,
 	}
 
 	#[async_trait]
@@ -536,9 +533,7 @@ pub(crate) mod tests {
 
 	#[derive(Clone, Debug)]
 	pub struct TestConfirmationBatchTransaction {
-		data: Arc<Mutex<TestClientData>>,
 		required_header_id: TestTargetHeaderId,
-		tx_tracker: TestTransactionTracker,
 	}
 
 	#[async_trait]
@@ -1251,8 +1246,6 @@ pub(crate) mod tests {
 			target_latest_received_nonce: 0,
 			..Default::default()
 		}));
-		let target_original_data = original_data.clone();
-		let source_original_data = original_data.clone();
 		let result = run_loop_test(
 			original_data,
 			Arc::new(|_| {}),
@@ -1262,9 +1255,7 @@ pub(crate) mod tests {
 				{
 					data.target_to_source_batch_transaction =
 						Some(TestConfirmationBatchTransaction {
-							data: source_original_data.clone(),
 							required_header_id: target_to_source_header_required,
-							tx_tracker: TestTransactionTracker::default(),
 						})
 				}
 			}),
@@ -1274,9 +1265,7 @@ pub(crate) mod tests {
 					data.source_to_target_header_required.take()
 				{
 					data.source_to_target_batch_transaction = Some(TestMessagesBatchTransaction {
-						data: target_original_data.clone(),
 						required_header_id: source_to_target_header_required,
-						tx_tracker: TestTransactionTracker::default(),
 					})
 				}
 

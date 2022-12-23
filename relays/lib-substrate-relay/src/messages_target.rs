@@ -19,10 +19,13 @@
 //! <BridgedName> chain.
 
 use crate::{
-	messages_lane::{MessageLaneAdapter, ReceiveMessagesProofCallBuilder, SubstrateMessageLane},
+	messages_lane::{
+		BatchProofTransaction, MessageLaneAdapter, ReceiveMessagesProofCallBuilder,
+		SubstrateMessageLane,
+	},
 	messages_source::{ensure_messages_pallet_active, read_client_state, SubstrateMessagesProof},
 	on_demand::OnDemandRelay,
-	BatchCallBuilder, TransactionParams,
+	TransactionParams,
 };
 
 use async_std::sync::Arc;
@@ -34,7 +37,7 @@ use bp_messages::{
 use bridge_runtime_common::messages::source::FromBridgedChainMessagesDeliveryProof;
 use messages_relay::{
 	message_lane::{MessageLane, SourceHeaderIdOf, TargetHeaderIdOf},
-	message_lane_loop::{BatchTransaction, NoncesSubmitArtifacts, TargetClient, TargetClientState},
+	message_lane_loop::{NoncesSubmitArtifacts, TargetClient, TargetClientState},
 };
 use relay_substrate_client::{
 	AccountIdOf, AccountKeyPairOf, BalanceOf, CallOf, Chain, ChainWithMessages, Client,
@@ -131,7 +134,8 @@ where
 	AccountIdOf<P::TargetChain>: From<<AccountKeyPairOf<P::TargetChain> as Pair>::Public>,
 	BalanceOf<P::SourceChain>: TryFrom<BalanceOf<P::TargetChain>>,
 {
-	type BatchTransaction = BatchDeliveryTransaction<P>;
+	type BatchTransaction =
+		BatchProofTransaction<P::TargetChain, P::SourceChain, P::TargetBatchCallBuilder>;
 	type TransactionTracker = TransactionTracker<P::TargetChain, Client<P::TargetChain>>;
 
 	async fn state(&self) -> Result<TargetClientState<MessageLaneAdapter<P>>, SubstrateError> {
@@ -266,48 +270,16 @@ where
 		id: SourceHeaderIdOf<MessageLaneAdapter<P>>,
 	) -> Result<Option<Self::BatchTransaction>, SubstrateError> {
 		if let Some(ref source_to_target_headers_relay) = self.source_to_target_headers_relay {
-			if P::TargetBatchCallBuilder::BATCH_CALL_SUPPORTED {
-				let (proved_header, prove_calls) =
-					source_to_target_headers_relay.prove_header(id.0).await?;
-				return Ok(Some(BatchDeliveryTransaction {
-					messages_target: self.clone(),
-					proved_header,
-					prove_calls,
-				}))
+			let (proved_header, prove_calls) =
+				source_to_target_headers_relay.prove_header(id.0).await?;
+			if let Some(batch_tx) = BatchProofTransaction::new(proved_header, prove_calls) {
+				return Ok(Some(batch_tx))
 			}
 
 			source_to_target_headers_relay.require_more_headers(id.0).await;
 		}
 
 		Ok(None)
-	}
-}
-
-/// Batch transaction that brings target headers + and delivery confirmations to the source node.
-pub struct BatchDeliveryTransaction<P: SubstrateMessageLane> {
-	messages_target: SubstrateMessagesTarget<P>,
-	proved_header: SourceHeaderIdOf<MessageLaneAdapter<P>>,
-	prove_calls: Vec<CallOf<P::TargetChain>>,
-}
-
-impl<P: SubstrateMessageLane> BatchDeliveryTransaction<P> {
-	fn append_call_and_build(
-		mut self,
-		call: CallOf<P::TargetChain>,
-	) -> Result<CallOf<P::TargetChain>, SubstrateError> {
-		self.prove_calls.push(call);
-		P::TargetBatchCallBuilder::build_batch_call(self.prove_calls)
-	}
-}
-
-#[async_trait]
-impl<P: SubstrateMessageLane> BatchTransaction<SourceHeaderIdOf<MessageLaneAdapter<P>>>
-	for BatchDeliveryTransaction<P>
-where
-	AccountIdOf<P::TargetChain>: From<<AccountKeyPairOf<P::TargetChain> as Pair>::Public>,
-{
-	fn required_header_id(&self) -> SourceHeaderIdOf<MessageLaneAdapter<P>> {
-		self.proved_header
 	}
 }
 
