@@ -343,7 +343,7 @@ where
 				maybe_batch_tx.is_none(),
 			);
 		let final_call = match maybe_batch_tx {
-			Some(batch_tx) => batch_tx.append_call_and_build(messages_proof_call)?,
+			Some(batch_tx) => batch_tx.append_call_and_build(messages_proof_call),
 			None => messages_proof_call,
 		};
 

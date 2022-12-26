@@ -20,7 +20,7 @@ use crate::{
 	messages_source::{SubstrateMessagesProof, SubstrateMessagesSource},
 	messages_target::{SubstrateMessagesDeliveryProof, SubstrateMessagesTarget},
 	on_demand::OnDemandRelay,
-	BatchCallBuilder, TransactionParams,
+	BatchCallBuilder, BatchCallBuilderConstructor, TransactionParams,
 };
 
 use async_std::sync::Arc;
@@ -35,7 +35,7 @@ use messages_relay::{message_lane::MessageLane, message_lane_loop::BatchTransact
 use pallet_bridge_messages::{Call as BridgeMessagesCall, Config as BridgeMessagesConfig};
 use relay_substrate_client::{
 	transaction_stall_timeout, AccountKeyPairOf, BalanceOf, BlockNumberOf, CallOf, Chain,
-	ChainWithMessages, ChainWithTransactions, Client, Error as SubstrateError, HashOf,
+	ChainWithMessages, ChainWithTransactions, Client, HashOf,
 };
 use relay_utils::{
 	metrics::{GlobalMetrics, MetricsParams, StandaloneMetric},
@@ -57,9 +57,9 @@ pub trait SubstrateMessageLane: 'static + Clone + Debug + Send + Sync {
 	type ReceiveMessagesDeliveryProofCallBuilder: ReceiveMessagesDeliveryProofCallBuilder<Self>;
 
 	/// How batch calls are built at the source chain?
-	type SourceBatchCallBuilder: BatchCallBuilder<CallOf<Self::SourceChain>, Error = SubstrateError>;
+	type SourceBatchCallBuilder: BatchCallBuilderConstructor<CallOf<Self::SourceChain>>;
 	/// How batch calls are built at the target chain?
-	type TargetBatchCallBuilder: BatchCallBuilder<CallOf<Self::TargetChain>, Error = SubstrateError>;
+	type TargetBatchCallBuilder: BatchCallBuilderConstructor<CallOf<Self::TargetChain>>;
 }
 
 /// Adapter that allows all `SubstrateMessageLane` to act as `MessageLane`.
@@ -107,7 +107,8 @@ pub struct MessagesRelayParams<P: SubstrateMessageLane> {
 
 /// Batch transaction that brings headers + and messages delivery/receiving confirmations to the
 /// source node.
-pub struct BatchProofTransaction<SC: Chain, TC: Chain, B: BatchCallBuilder<CallOf<SC>>> {
+pub struct BatchProofTransaction<SC: Chain, TC: Chain, B: BatchCallBuilderConstructor<CallOf<SC>>> {
+	builder: Box<dyn BatchCallBuilder<CallOf<SC>>>,
 	proved_header: HeaderIdOf<TC>,
 	prove_calls: Vec<CallOf<SC>>,
 
@@ -115,27 +116,27 @@ pub struct BatchProofTransaction<SC: Chain, TC: Chain, B: BatchCallBuilder<CallO
 	_phantom: PhantomData<fn() -> B>,
 }
 
-impl<SC: Chain, TC: Chain, B: BatchCallBuilder<CallOf<SC>, Error = SubstrateError>>
+impl<SC: Chain, TC: Chain, B: BatchCallBuilderConstructor<CallOf<SC>>>
 	BatchProofTransaction<SC, TC, B>
 {
 	/// Creates a new instance of `BatchProofTransaction`.
 	pub fn new(proved_header: HeaderIdOf<TC>, prove_calls: Vec<CallOf<SC>>) -> Option<Self> {
-		if B::BATCH_CALL_SUPPORTED {
-			return Some(Self { proved_header, prove_calls, _phantom: Default::default() })
+		if let Some(builder) = B::new_builder() {
+			return Some(Self { builder, proved_header, prove_calls, _phantom: Default::default() })
 		}
 
 		None
 	}
 
 	/// Return a batch call that includes the provided call.
-	pub fn append_call_and_build(mut self, call: CallOf<SC>) -> Result<CallOf<SC>, SubstrateError> {
+	pub fn append_call_and_build(mut self, call: CallOf<SC>) -> CallOf<SC> {
 		self.prove_calls.push(call);
-		B::build_batch_call(self.prove_calls)
+		self.builder.build_batch_call(self.prove_calls)
 	}
 }
 
-impl<SC: Chain, TC: Chain, B: BatchCallBuilder<CallOf<SC>>> BatchTransaction<HeaderIdOf<TC>>
-	for BatchProofTransaction<SC, TC, B>
+impl<SC: Chain, TC: Chain, B: BatchCallBuilderConstructor<CallOf<SC>>>
+	BatchTransaction<HeaderIdOf<TC>> for BatchProofTransaction<SC, TC, B>
 {
 	fn required_header_id(&self) -> HeaderIdOf<TC> {
 		self.proved_header
