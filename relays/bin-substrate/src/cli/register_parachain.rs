@@ -26,7 +26,7 @@ use polkadot_runtime_common::{
 	paras_registrar::Call as ParaRegistrarCall, slots::Call as ParaSlotsCall,
 };
 use polkadot_runtime_parachains::paras::ParaLifecycle;
-use relay_substrate_client::{AccountIdOf, CallOf, Chain, Client, SignParam, UnsignedTransaction};
+use relay_substrate_client::{AccountIdOf, CallOf, Chain, Client, UnsignedTransaction};
 use relay_utils::{TrackedTransactionStatus, TransactionTracker};
 use rialto_runtime::SudoCall;
 use sp_core::{
@@ -108,11 +108,9 @@ impl RegisterParachain {
 			log::info!(target: "bridge", "Going to reserve parachain id: {:?}", para_id);
 
 			// step 1: reserve a parachain id
-			let relay_genesis_hash = *relay_client.genesis_hash();
 			let relay_sudo_account: AccountIdOf<Relaychain> = relay_sign.public().into();
 			let reserve_parachain_id_call: CallOf<Relaychain> =
 				ParaRegistrarCall::reserve {}.into();
-			let (spec_version, transaction_version) = relay_client.simple_runtime_version().await?;
 			let reserve_result = relay_client
 				.submit_and_watch_signed_extrinsic(&relay_sign, move |_, transaction_nonce| {
 					Ok(UnsignedTransaction::new(
@@ -204,20 +202,10 @@ impl RegisterParachain {
 				),
 			}
 			.into();
-			let force_lease_signer = relay_sign.clone();
 			relay_client
-				.submit_signed_extrinsic(
-					relay_sudo_account,
-					SignParam::<Relaychain> {
-						spec_version,
-						transaction_version,
-						genesis_hash: relay_genesis_hash,
-						signer: force_lease_signer,
-					},
-					move |_, transaction_nonce| {
-						Ok(UnsignedTransaction::new(force_lease_call.into(), transaction_nonce))
-					},
-				)
+				.submit_signed_extrinsic(&relay_sign, move |_, transaction_nonce| {
+					Ok(UnsignedTransaction::new(force_lease_call.into(), transaction_nonce))
+				})
 				.await?;
 			log::info!(target: "bridge", "Registered parachain leases: {:?}. Waiting for onboarding", para_id);
 

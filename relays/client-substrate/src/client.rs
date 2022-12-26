@@ -435,18 +435,25 @@ impl<C: Chain> Client<C> {
 	/// Note: The given transaction needs to be SCALE encoded beforehand.
 	pub async fn submit_signed_extrinsic(
 		&self,
-		extrinsic_signer: C::AccountId,
-		signing_data: SignParam<C>,
+		signer: &AccountKeyPairOf<C>,
 		prepare_extrinsic: impl FnOnce(HeaderIdOf<C>, C::Index) -> Result<UnsignedTransaction<C>>
 			+ Send
 			+ 'static,
 	) -> Result<C::Hash>
 	where
 		C: ChainWithTransactions,
+		C::AccountId: From<<C::AccountKeyPair as Pair>::Public>,
 	{
 		let _guard = self.submit_signed_extrinsic_lock.lock().await;
-		let transaction_nonce = self.next_account_index(extrinsic_signer).await?;
+		let transaction_nonce = self.next_account_index(signer.public().into()).await?;
 		let best_header = self.best_header().await?;
+		let (spec_version, transaction_version) = self.simple_runtime_version().await?;
+		let signing_data = SignParam::<C> {
+			spec_version,
+			transaction_version,
+			genesis_hash: self.genesis_hash,
+			signer: signer.clone(),
+		};
 
 		// By using parent of best block here, we are protecing again best-block reorganizations.
 		// E.g. transaction may have been submitted when the best block was `A[num=100]`. Then it
