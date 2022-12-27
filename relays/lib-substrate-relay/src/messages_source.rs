@@ -364,9 +364,9 @@ where
 		id: TargetHeaderIdOf<MessageLaneAdapter<P>>,
 	) -> Result<Option<Self::BatchTransaction>, SubstrateError> {
 		if let Some(ref target_to_source_headers_relay) = self.target_to_source_headers_relay {
-			let (proved_header, prove_calls) =
-				target_to_source_headers_relay.prove_header(id.0).await?;
-			if let Some(batch_tx) = BatchProofTransaction::new(proved_header, prove_calls) {
+			if let Some(batch_tx) =
+				BatchProofTransaction::new(target_to_source_headers_relay.clone(), id.0).await?
+			{
 				return Ok(Some(batch_tx))
 			}
 

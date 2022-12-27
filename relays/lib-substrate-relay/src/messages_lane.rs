@@ -35,7 +35,7 @@ use messages_relay::{message_lane::MessageLane, message_lane_loop::BatchTransact
 use pallet_bridge_messages::{Call as BridgeMessagesCall, Config as BridgeMessagesConfig};
 use relay_substrate_client::{
 	transaction_stall_timeout, AccountKeyPairOf, BalanceOf, BlockNumberOf, CallOf, Chain,
-	ChainWithMessages, ChainWithTransactions, Client, HashOf,
+	ChainWithMessages, ChainWithTransactions, Client, Error as SubstrateError, HashOf,
 };
 use relay_utils::{
 	metrics::{GlobalMetrics, MetricsParams, StandaloneMetric},
@@ -120,12 +120,21 @@ impl<SC: Chain, TC: Chain, B: BatchCallBuilderConstructor<CallOf<SC>>>
 	BatchProofTransaction<SC, TC, B>
 {
 	/// Creates a new instance of `BatchProofTransaction`.
-	pub fn new(proved_header: HeaderIdOf<TC>, prove_calls: Vec<CallOf<SC>>) -> Option<Self> {
+	pub async fn new(
+		relay: Arc<dyn OnDemandRelay<TC, SC>>,
+		block_num: BlockNumberOf<TC>,
+	) -> Result<Option<Self>, SubstrateError> {
 		if let Some(builder) = B::new_builder() {
-			return Some(Self { builder, proved_header, prove_calls, _phantom: Default::default() })
+			let (proved_header, prove_calls) = relay.prove_header(block_num).await?;
+			return Ok(Some(Self {
+				builder,
+				proved_header,
+				prove_calls,
+				_phantom: Default::default(),
+			}))
 		}
 
-		None
+		Ok(None)
 	}
 
 	/// Return a batch call that includes the provided call.

@@ -426,6 +426,19 @@ impl<C: Chain> Client<C> {
 		.await
 	}
 
+	async fn build_sign_params(&self, signer: AccountKeyPairOf<C>) -> Result<SignParam<C>>
+	where
+		C: ChainWithTransactions,
+	{
+		let (spec_version, transaction_version) = self.simple_runtime_version().await?;
+		Ok(SignParam::<C> {
+			spec_version,
+			transaction_version,
+			genesis_hash: self.genesis_hash,
+			signer,
+		})
+	}
+
 	/// Submit an extrinsic signed by given account.
 	///
 	/// All calls of this method are synchronized, so there can't be more than one active
@@ -447,13 +460,7 @@ impl<C: Chain> Client<C> {
 		let _guard = self.submit_signed_extrinsic_lock.lock().await;
 		let transaction_nonce = self.next_account_index(signer.public().into()).await?;
 		let best_header = self.best_header().await?;
-		let (spec_version, transaction_version) = self.simple_runtime_version().await?;
-		let signing_data = SignParam::<C> {
-			spec_version,
-			transaction_version,
-			genesis_hash: self.genesis_hash,
-			signer: signer.clone(),
-		};
+		let signing_data = self.build_sign_params(signer.clone()).await?;
 
 		// By using parent of best block here, we are protecing again best-block reorganizations.
 		// E.g. transaction may have been submitted when the best block was `A[num=100]`. Then it
@@ -492,13 +499,7 @@ impl<C: Chain> Client<C> {
 		C::AccountId: From<<C::AccountKeyPair as Pair>::Public>,
 	{
 		let self_clone = self.clone();
-		let (spec_version, transaction_version) = self.simple_runtime_version().await?;
-		let signing_data = SignParam::<C> {
-			spec_version,
-			transaction_version,
-			genesis_hash: self.genesis_hash,
-			signer: signer.clone(),
-		};
+		let signing_data = self.build_sign_params(signer.clone()).await?;
 		let _guard = self.submit_signed_extrinsic_lock.lock().await;
 		let transaction_nonce = self.next_account_index(signer.public().into()).await?;
 		let best_header = self.best_header().await?;
