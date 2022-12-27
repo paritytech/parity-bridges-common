@@ -8593,6 +8593,7 @@ dependencies = [
  "pallet-bridge-messages",
  "pallet-transaction-payment",
  "pallet-transaction-payment-rpc-runtime-api",
+ "pallet-utility",
  "parity-scale-codec",
  "rand 0.7.3",
  "relay-utils",
