@@ -101,3 +101,32 @@ Bridge Hub. The sovereign accounts are used as a source of funds when the relaye
 Since messages lane is only used by the pair of parachains, there's no collision betweed different bridges. E.g.
 Statemine will only reward relayers that are delivering messages from Statemine. The Statemine sovereign account
 is not used to cover rewards of bridging with some other Polkadot Parachain.
+
+### Multiple Relayers and Rewards
+
+Our goal is to incentivize running honest relayers. But we have no any relayers sets, so at any time anyone may submit
+message delivery transaction, hoping that the cost of this transaction will be compensated. So what if some message is
+currently queued and two relayers are submitting two identical message delivery transactions at once? Without any
+special means, the cost of first included transacton will be compensated and the cost of the other one won't. And
+honest, but unlucky relayer will lose some money. In addition, we'll waste some portion of block size and weight, which
+may be used by other useful transactions.
+
+To solve the problem, we have two signed extensions ([generate_bridge_reject_obsolete_headers_and_messages! {}](../bin/runtime-common/src/lib.rs)
+and [RefundRelayerForMessagesFromParachain](../bin/runtime-common/src/refund_relayer_extension.rs)), that are
+preventing bridge transactions with obsolete data from including into the block. We are rejecting following
+transactions:
+
+- transactions, that are submitting the GRANDPA justification for the best finalized header, or one of its ancestors;
+
+- transactions, that are submitting the proof of the current best parachain head, or one of its ancestors;
+
+- transactions, that are delivering already delivered messages. If at least one of messages is not yet delivered,
+  the transaction is not rejected;
+
+- transactions, that are confirming delivery of already confirmed messages. If at least one of confirmations is new,
+  the transaction is not rejected;
+
+- [`frame_utility::batch_all`](https://github.com/paritytech/substrate/blob/891d6a5c870ab88521183facafc811a203bb6541/frame/utility/src/lib.rs#L326)
+  transactions, that have both finality and message delivery calls. All restrictions from the
+  [Compensating the Cost of Message Delivery Transactions](#compensating-the-cost-of-message-delivery-transactions)
+  are applied.
