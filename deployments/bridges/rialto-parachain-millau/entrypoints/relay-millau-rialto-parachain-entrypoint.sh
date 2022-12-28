@@ -24,7 +24,7 @@ RIALTO_PARACHAIN_RELAY_ACCOUNT=${EXT_RIALTO_PARACHAIN_RELAY_ACCOUNT:-//Millau.He
 # Give chain a little bit of time to process initialization transaction
 sleep 6
 
-/home/user/substrate-relay relay-headers-and-messages millau-rialto-parachain \
+exec /home/user/substrate-relay relay-headers-and-messages millau-rialto-parachain \
 	--millau-host millau-node-alice \
 	--millau-port 9944 \
 	--millau-signer $MILLAU_RELAY_ACCOUNT \
