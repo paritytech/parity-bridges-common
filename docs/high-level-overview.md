@@ -2,7 +2,7 @@
 
 This document gives a brief, abstract description of main components that may be found in this repository.
 If you want to see how we're using them to build Rococo <> Wococo (Kusama <> Polkadot) bridge, please
-refer to the [Polkadot <> Kusama Bridge](./polkadot-kusama-bridge.md).
+refer to the [Polkadot <> Kusama Bridge](./polkadot-kusama-bridge-overview.md).
 
 ## Purpose
 
@@ -10,7 +10,7 @@ This repo contains all components required to build a trustless connection betwe
 that are using GRANDPA finality, their parachains or any combination of those. On top of this connection, we
 offer a messaging pallet that provides means to organize messages exchange.
 
-On top of that layered infrastructure, anyone may build their own bridge applications - e.g. [XCM messaging](./polkadot-kusama-bridge.md), 
+On top of that layered infrastructure, anyone may build their own bridge applications - e.g. [XCM messaging](./polkadot-kusama-bridge-overview.md), 
 [encoded calls messaging](https://github.com/paritytech/parity-bridges-common/releases/tag/encoded-calls-messaging) and so on.
 
 ## Terminology
@@ -88,7 +88,7 @@ Many things are abstracted by the pallet:
 Outside of the messaging pallet, we have a set of adapters, where messages and delivery proofs are regular
 storage proofs. The proofs are generated at the bridged chain and require bridged chain finality. So messages
 pallet, in this case, depends on one of the finality pallets. The messages are XCM messages and we are using
-XCM executor to dispatch them on receival. You may find more info in [Polkadot <> Kusama Bridge](./polkadot-kusama-bridge.md)
+XCM executor to dispatch them on receival. You may find more info in [Polkadot <> Kusama Bridge](./polkadot-kusama-bridge-overview.md)
 document.
 
 More: [code](../modules/messages/).
