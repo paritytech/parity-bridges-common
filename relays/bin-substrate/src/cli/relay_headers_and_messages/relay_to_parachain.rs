@@ -30,7 +30,6 @@ use pallet_bridge_parachains::{RelayBlockHash, RelayBlockHasher, RelayBlockNumbe
 use relay_substrate_client::{
 	AccountIdOf, AccountKeyPairOf, Chain, ChainWithTransactions, Client, Parachain,
 };
-use relay_utils::metrics::MetricsParams;
 use sp_core::Pair;
 use substrate_relay_helper::{
 	finality::SubstrateFinalitySyncPipeline,
@@ -189,7 +188,6 @@ where
 
 	async fn start_on_demand_headers_relayers(
 		&mut self,
-		metrics_params: &MetricsParams,
 	) -> anyhow::Result<(
 		Arc<dyn OnDemandRelay<Self::Left, Self::Right>>,
 		Arc<dyn OnDemandRelay<Self::Right, Self::Left>>,
@@ -234,7 +232,7 @@ where
 				self.common.left.client.clone(),
 				self.right_headers_to_left_transaction_params.clone(),
 				self.common.shared.only_mandatory_headers,
-				Some(metrics_params.clone()),
+				Some(self.common.metrics_params.clone()),
 			);
 		let right_to_left_on_demand_parachains = OnDemandParachainsRelay::<
 			<R2L as ParachainToRelayHeadersCliBridge>::ParachainFinality,

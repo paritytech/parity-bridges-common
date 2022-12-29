@@ -23,7 +23,6 @@ use crate::cli::{
 	CliChain,
 };
 use relay_substrate_client::{AccountIdOf, AccountKeyPairOf, ChainWithTransactions};
-use relay_utils::metrics::MetricsParams;
 use sp_core::Pair;
 use substrate_relay_helper::{
 	finality::SubstrateFinalitySyncPipeline,
@@ -142,7 +141,6 @@ where
 
 	async fn start_on_demand_headers_relayers(
 		&mut self,
-		_metrics_params: &MetricsParams,
 	) -> anyhow::Result<(
 		Arc<dyn OnDemandRelay<Self::Left, Self::Right>>,
 		Arc<dyn OnDemandRelay<Self::Right, Self::Left>>,
