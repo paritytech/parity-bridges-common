@@ -63,7 +63,7 @@ is the relayer, which is following our rules:
   [`frame_utility::batch_all`](https://github.com/paritytech/substrate/blob/891d6a5c870ab88521183facafc811a203bb6541/frame/utility/src/lib.rs#L326)
   transaction. Of course, the calls inside the batch must be linked - e.g. the submitted parachain head must be used
   to prove messages. Relay header must be used to prove parachain head finality. If one of calls fails, or if they
-  are not lined together, the relayer pays the full transaction cost.
+  are not linked together, the relayer pays the full transaction cost.
 
 Please keep in mind that the fee of "zero-cost" transactions is still withdrawn from the relayer account. But the
 compensation is registered in the `pallet_bridge_relayers::RelayerRewards` map at the target bridge hub. The relayer
@@ -107,8 +107,8 @@ is not used to cover rewards of bridging with some other Polkadot Parachain.
 Our goal is to incentivize running honest relayers. But we have no any relayers sets, so at any time anyone may submit
 message delivery transaction, hoping that the cost of this transaction will be compensated. So what if some message is
 currently queued and two relayers are submitting two identical message delivery transactions at once? Without any
-special means, the cost of first included transacton will be compensated and the cost of the other one won't. And
-honest, but unlucky relayer will lose some money. In addition, we'll waste some portion of block size and weight, which
+special means, the cost of first included transacton will be compensated and the cost of the other one won't. A honest,
+but unlucky relayer will lose some money. In addition, we'll waste some portion of block size and weight, which
 may be used by other useful transactions.
 
 To solve the problem, we have two signed extensions ([generate_bridge_reject_obsolete_headers_and_messages! {}](../bin/runtime-common/src/lib.rs)

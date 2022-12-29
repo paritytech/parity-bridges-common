@@ -73,14 +73,14 @@ messages that have been received. Inbound lane end stores the number of messages
 also a map that maps messages to relayers that have delivered those messages to the target chain.
 
 The pallet has three main entrypoints:
-- the `send_message` may be used by the other runtime pallets to sent the messages;
+- the `send_message` may be used by the other runtime pallets to send the messages;
 - the `receive_messages_proof` is responsible for parsing the messages proof and handing messages over to the
 dispatch code;
 - the `receive_messages_delivery_proof` is responsible for parsing the messages delivery proof and rewarding
 relayers that have delivered the message.
 
 Many things are abstracted by the pallet:
-- the message itself may mean anything, the pallet don't care about it's content;
+- the message itself may mean anything, the pallet doesn't care about it's content;
 - the message dispatch happens during delivery, but it is decoupled from the pallet code;
 - the messages proof and messages delivery proof are verified outside of the pallet;
 - the relayers incentivization scheme is defined outside of the pallet.
@@ -161,7 +161,7 @@ More: [Messages Relay Sequence Diagram](./messages-relay.html), [code](../relays
 ### Complex Relay
 
 Every relay transaction has its cost. The only transaction, that is "free" to relayer is when the mandatory
-GRANDPA header is submitted. The relay that feeds the bridge ith every relay chain and/or parachain head it
+GRANDPA header is submitted. The relay that feeds the bridge with every relay chain and/or parachain head it
 sees, will have to pay a (quite large) cost. And if no messages are sent through the bridge, that is just
 waste of money.
 
