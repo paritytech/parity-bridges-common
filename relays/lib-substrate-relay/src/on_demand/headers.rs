@@ -65,7 +65,7 @@ pub struct OnDemandHeadersRelay<P: SubstrateFinalitySyncPipeline> {
 impl<P: SubstrateFinalitySyncPipeline> OnDemandHeadersRelay<P> {
 	/// Create new on-demand headers relay.
 	///
-	/// If `metrics_params` is `Some(_)`, the metrics of the finalty relay are registered.
+	/// If `metrics_params` is `Some(_)`, the metrics of the finality relay are registered.
 	/// Otherwise, all required metrics must be exposed outside of this method.
 	pub fn new(
 		source_client: Client<P::SourceChain>,
