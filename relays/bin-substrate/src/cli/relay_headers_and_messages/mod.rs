@@ -240,6 +240,7 @@ trait Full2WayBridgeBase: Sized + Send + Sync {
 	/// Start on-demand headers relays.
 	async fn start_on_demand_headers_relayers(
 		&mut self,
+		metrics_params: &MetricsParams,
 	) -> anyhow::Result<(
 		Arc<dyn OnDemandRelay<Self::Left, Self::Right>>,
 		Arc<dyn OnDemandRelay<Self::Right, Self::Left>>,
@@ -317,8 +318,9 @@ where
 		}
 
 		// start on-demand header relays
+		let metrics_params = self.base().common().metrics_params.clone();
 		let (left_to_right_on_demand_headers, right_to_left_on_demand_headers) =
-			self.mut_base().start_on_demand_headers_relayers().await?;
+			self.mut_base().start_on_demand_headers_relayers(&metrics_params).await?;
 
 		// add balance-related metrics
 		{
