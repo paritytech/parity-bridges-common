@@ -73,23 +73,9 @@ impl OperatingMode for MessagesOperatingMode {
 )]
 pub struct LaneId(pub [u8; 4]);
 
-pub use lane_id_debug_impl::*;
-
-#[cfg(not(feature = "std"))]
-mod lane_id_debug_impl {
-	impl core::fmt::Debug for super::LaneId {
-		fn fmt(&self, fmt: &mut core::fmt::Formatter) -> core::fmt::Result {
-			fmt.write_str("<stripped>")
-		}
-	}
-}
-
-#[cfg(feature = "std")]
-mod lane_id_debug_impl {
-	impl std::fmt::Debug for super::LaneId {
-		fn fmt(&self, fmt: &mut std::fmt::Formatter) -> std::fmt::Result {
-			self.0.fmt(fmt)
-		}
+impl core::fmt::Debug for LaneId {
+	fn fmt(&self, fmt: &mut core::fmt::Formatter) -> core::fmt::Result {
+		self.0.fmt(fmt)
 	}
 }
 
@@ -469,7 +455,7 @@ mod tests {
 	}
 
 	#[test]
-	fn lane_id_debug_format_works_as_before() {
+	fn lane_id_debug_format_matches_inner_array_format() {
 		assert_eq!(format!("{:?}", LaneId([0, 0, 0, 0])), format!("{:?}", [0, 0, 0, 0]),);
 	}
 }
