@@ -11691,6 +11691,7 @@ dependencies = [
  "bp-millau",
  "bp-parachains",
  "bp-polkadot-core",
+ "bp-relayers",
  "bp-rialto",
  "bp-rococo",
  "bp-runtime",

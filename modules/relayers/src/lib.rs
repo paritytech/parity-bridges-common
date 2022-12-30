@@ -48,10 +48,8 @@ pub mod pallet {
 	use frame_system::pallet_prelude::*;
 
 	/// `RelayerRewardsKeyProvider` for given configuration.
-	type RelayerRewardsKeyProviderOf<T> = RelayerRewardsKeyProvider<
-		<T as frame_system::Config>::AccountId,
-		<T as Config>::Reward,
-	>;
+	type RelayerRewardsKeyProviderOf<T> =
+		RelayerRewardsKeyProvider<<T as frame_system::Config>::AccountId, <T as Config>::Reward>;
 
 	#[pallet::config]
 	pub trait Config: frame_system::Config {

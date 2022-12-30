@@ -67,10 +67,12 @@ where
 	}
 }
 
-/// Can be use to access the runtime storage key within the `RelayerRewards` map of the relayers pallet.
+/// Can be use to access the runtime storage key within the `RelayerRewards` map of the relayers
+/// pallet.
 pub struct RelayerRewardsKeyProvider<AccountId, Reward>(PhantomData<(AccountId, Reward)>);
 
-impl<AccountId, Reward> StorageDoubleMapKeyProvider for RelayerRewardsKeyProvider<AccountId, Reward> where
+impl<AccountId, Reward> StorageDoubleMapKeyProvider for RelayerRewardsKeyProvider<AccountId, Reward>
+where
 	AccountId: Codec + EncodeLike,
 	Reward: Codec + EncodeLike,
 {
