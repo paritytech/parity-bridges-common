@@ -78,11 +78,30 @@ impl OperatingMode for MessagesOperatingMode {
 	Ord,
 	PartialOrd,
 	PartialEq,
-	RuntimeDebug,
 	TypeInfo,
 	MaxEncodedLen,
 )]
 pub struct LaneId(pub [u8; 4]);
+
+pub use lane_id_debug_impl::*;
+
+#[cfg(not(feature = "std"))]
+mod lane_id_debug_impl {
+	impl core::fmt::Debug for super::LaneId {
+		fn fmt(&self, fmt: &mut core::fmt::Formatter) -> core::fmt::Result {
+			fmt.write_str("<stripped>")
+		}
+	}
+}
+
+#[cfg(feature = "std")]
+mod lane_id_debug_impl {
+	impl std::fmt::Debug for super::LaneId {
+		fn fmt(&self, fmt: &mut std::fmt::Formatter) -> std::fmt::Result {
+			self.0.fmt(fmt)
+		}
+	}
+}
 
 impl AsRef<[u8]> for LaneId {
 	fn as_ref(&self) -> &[u8] {
@@ -457,5 +476,13 @@ mod tests {
 		assert!(delivered_messages.contains_message(100));
 		assert!(delivered_messages.contains_message(150));
 		assert!(!delivered_messages.contains_message(151));
+	}
+
+	#[test]
+	fn lane_id_debug_format_works_as_before() {
+		assert_eq!(
+			format!("{:?}", LaneId([0, 0, 0, 0])),
+			format!("{:?}", [0, 0, 0, 0]),
+		);
 	}
 }
