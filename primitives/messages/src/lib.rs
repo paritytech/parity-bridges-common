@@ -69,17 +69,7 @@ impl OperatingMode for MessagesOperatingMode {
 
 /// Lane id which implements `TypeId`.
 #[derive(
-	Clone,
-	Copy,
-	Decode,
-	Default,
-	Encode,
-	Eq,
-	Ord,
-	PartialOrd,
-	PartialEq,
-	TypeInfo,
-	MaxEncodedLen,
+	Clone, Copy, Decode, Default, Encode, Eq, Ord, PartialOrd, PartialEq, TypeInfo, MaxEncodedLen,
 )]
 pub struct LaneId(pub [u8; 4]);
 
@@ -480,9 +470,6 @@ mod tests {
 
 	#[test]
 	fn lane_id_debug_format_works_as_before() {
-		assert_eq!(
-			format!("{:?}", LaneId([0, 0, 0, 0])),
-			format!("{:?}", [0, 0, 0, 0]),
-		);
+		assert_eq!(format!("{:?}", LaneId([0, 0, 0, 0])), format!("{:?}", [0, 0, 0, 0]),);
 	}
 }
