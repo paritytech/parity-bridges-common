@@ -1,4 +1,4 @@
-// Copyright 2019-2021 Parity Technologies (UK) Ltd.
+// Copyright 2019-2023 Parity Technologies (UK) Ltd.
 // This file is part of Parity Bridges Common.
 
 // Parity Bridges Common is free software: you can redistribute it and/or modify
@@ -14,13 +14,17 @@
 // You should have received a copy of the GNU General Public License
 // along with Parity Bridges Common.  If not, see <http://www.gnu.org/licenses/>.
 
-//! Types that are specific to the BridgeHubWococo runtime.
+//! Basic runtime calls.
 
-// We reuse everything from rococo runtime wrapper
-pub type Call = relay_bridge_hub_rococo_client::runtime::Call;
-pub type UncheckedExtrinsic = bp_bridge_hub_wococo::UncheckedExtrinsic<Call>;
-pub type BridgeGrandpaRococoCall = relay_bridge_hub_rococo_client::runtime::BridgeRococoGrandpaCall;
-pub type BridgeParachainCall = bp_parachains::BridgeParachainCall;
-pub type BridgeRococoMessagesCall =
-	relay_bridge_hub_rococo_client::runtime::BridgeRococoMessagesCall;
-pub type SystemCall = bp_runtime::calls::SystemCall;
+use codec::{Decode, Encode};
+use scale_info::TypeInfo;
+use sp_std::vec::Vec;
+
+/// A minimized version of `frame-system::Call` that can be used without a runtime.
+#[derive(Encode, Decode, Debug, PartialEq, Eq, Clone, TypeInfo)]
+#[allow(non_camel_case_types)]
+pub enum SystemCall {
+	/// `frame-system::Call::remark`
+	#[codec(index = 1)]
+	remark(Vec<u8>),
+}

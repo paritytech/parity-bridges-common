@@ -18,17 +18,23 @@
 
 //! Types that are specific to the BridgeHubRococo runtime.
 
-use bp_polkadot_core::PolkadotLike;
 use codec::{Decode, Encode};
 use scale_info::TypeInfo;
 
-use bp_messages::UnrewardedRelayersState;
-use bp_polkadot_core::parachains::{ParaHash, ParaHeadsProof, ParaId};
-use bp_runtime::Chain;
+pub use bp_header_chain::{BridgeGrandpaCall, BridgeGrandpaCallOf};
+pub use bp_parachains::BridgeParachainCall;
+pub use bp_runtime::calls::SystemCall;
+pub use bridge_runtime_common::messages::BridgeMessagesCallOf;
 
 // TODO:check-parameter - check SignedExtension
 /// Unchecked BridgeHubRococo extrinsic.
 pub type UncheckedExtrinsic = bp_bridge_hub_rococo::UncheckedExtrinsic<Call>;
+
+pub type BridgeWococoGrandpaCall = BridgeGrandpaCallOf<bp_wococo::Wococo>;
+pub type BridgeRococoGrandpaCall = BridgeGrandpaCallOf<bp_rococo::Rococo>;
+
+pub type BridgeWococoMessagesCall = BridgeMessagesCallOf<bp_bridge_hub_wococo::BridgeHubWococo>;
+pub type BridgeRococoMessagesCall = BridgeMessagesCallOf<bp_bridge_hub_rococo::BridgeHubRococo>;
 
 /// Rococo Runtime `Call` enum.
 ///
@@ -69,95 +75,6 @@ pub enum Call {
 	BridgeRococoMessages(BridgeRococoMessagesCall),
 }
 
-#[derive(Encode, Decode, Debug, PartialEq, Eq, Clone, TypeInfo)]
-#[allow(non_camel_case_types)]
-pub enum SystemCall {
-	#[codec(index = 1)]
-	remark(Vec<u8>),
-}
-
-#[derive(Encode, Decode, Debug, PartialEq, Eq, Clone, TypeInfo)]
-#[allow(non_camel_case_types)]
-pub enum BridgeWococoGrandpaCall {
-	#[codec(index = 0)]
-	submit_finality_proof(
-		Box<<PolkadotLike as Chain>::Header>,
-		bp_header_chain::justification::GrandpaJustification<<PolkadotLike as Chain>::Header>,
-	),
-	#[codec(index = 1)]
-	initialize(bp_header_chain::InitializationData<<PolkadotLike as Chain>::Header>),
-}
-
-#[derive(Encode, Decode, Debug, PartialEq, Eq, Clone, TypeInfo)]
-#[allow(non_camel_case_types)]
-pub enum BridgeRococoGrandpaCall {
-	#[codec(index = 0)]
-	submit_finality_proof(
-		Box<<PolkadotLike as Chain>::Header>,
-		bp_header_chain::justification::GrandpaJustification<<PolkadotLike as Chain>::Header>,
-	),
-	#[codec(index = 1)]
-	initialize(bp_header_chain::InitializationData<<PolkadotLike as Chain>::Header>),
-}
-
-pub type RelayBlockHash = bp_polkadot_core::Hash;
-pub type RelayBlockNumber = bp_polkadot_core::BlockNumber;
-
-#[derive(Encode, Decode, Debug, PartialEq, Eq, Clone, TypeInfo)]
-#[allow(non_camel_case_types)]
-pub enum BridgeParachainCall {
-	#[codec(index = 0)]
-	submit_parachain_heads(
-		(RelayBlockNumber, RelayBlockHash),
-		Vec<(ParaId, ParaHash)>,
-		ParaHeadsProof,
-	),
-}
-
-#[derive(Encode, Decode, Debug, PartialEq, Eq, Clone, TypeInfo)]
-#[allow(non_camel_case_types)]
-pub enum BridgeWococoMessagesCall {
-	#[codec(index = 2)]
-	receive_messages_proof(
-		relay_substrate_client::AccountIdOf<bp_bridge_hub_wococo::BridgeHubWococo>,
-		bridge_runtime_common::messages::target::FromBridgedChainMessagesProof<
-			relay_substrate_client::HashOf<bp_bridge_hub_wococo::BridgeHubWococo>,
-		>,
-		u32,
-		bp_messages::Weight,
-	),
-
-	#[codec(index = 3)]
-	receive_messages_delivery_proof(
-		bridge_runtime_common::messages::source::FromBridgedChainMessagesDeliveryProof<
-			relay_substrate_client::HashOf<bp_bridge_hub_wococo::BridgeHubWococo>,
-		>,
-		UnrewardedRelayersState,
-	),
-}
-
-#[derive(Encode, Decode, Debug, PartialEq, Eq, Clone, TypeInfo)]
-#[allow(non_camel_case_types)]
-pub enum BridgeRococoMessagesCall {
-	#[codec(index = 2)]
-	receive_messages_proof(
-		relay_substrate_client::AccountIdOf<bp_bridge_hub_rococo::BridgeHubRococo>,
-		bridge_runtime_common::messages::target::FromBridgedChainMessagesProof<
-			relay_substrate_client::HashOf<bp_bridge_hub_rococo::BridgeHubRococo>,
-		>,
-		u32,
-		bp_messages::Weight,
-	),
-
-	#[codec(index = 3)]
-	receive_messages_delivery_proof(
-		bridge_runtime_common::messages::source::FromBridgedChainMessagesDeliveryProof<
-			relay_substrate_client::HashOf<bp_bridge_hub_rococo::BridgeHubRococo>,
-		>,
-		UnrewardedRelayersState,
-	),
-}
-
 impl sp_runtime::traits::Dispatchable for Call {
 	type RuntimeOrigin = ();
 	type Config = ();
@@ -181,6 +98,7 @@ mod tests {
 	use sp_runtime::traits::Header;
 	use std::str::FromStr;
 
+	pub type RelayBlockNumber = bp_polkadot_core::BlockNumber;
 	pub type RelayBlockHasher = bp_polkadot_core::Hasher;
 	pub type RelayBlockHeader = sp_runtime::generic::Header<RelayBlockNumber, RelayBlockHasher>;
 
