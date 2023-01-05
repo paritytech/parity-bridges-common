@@ -737,7 +737,6 @@ dependencies = [
  "frame-system",
  "polkadot-primitives",
  "polkadot-runtime-constants",
- "smallvec",
  "sp-api",
  "sp-std",
 ]
@@ -751,7 +750,6 @@ dependencies = [
  "bp-runtime",
  "frame-support",
  "polkadot-runtime-constants",
- "smallvec",
  "sp-api",
  "sp-std",
 ]
