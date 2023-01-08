@@ -8462,7 +8462,6 @@ dependencies = [
  "bp-header-chain",
  "bp-messages",
  "bp-parachains",
- "bp-polkadot-core",
  "bp-rococo",
  "bp-runtime",
  "bp-wococo",
@@ -8471,7 +8470,6 @@ dependencies = [
  "relay-substrate-client",
  "scale-info",
  "sp-core",
- "sp-finality-grandpa",
  "sp-runtime",
 ]
 
@@ -8479,15 +8477,20 @@ dependencies = [
 name = "relay-bridge-hub-wococo-client"
 version = "0.1.0"
 dependencies = [
+ "bp-bridge-hub-rococo",
  "bp-bridge-hub-wococo",
+ "bp-header-chain",
  "bp-messages",
  "bp-parachains",
+ "bp-polkadot-core",
+ "bp-rococo",
  "bp-runtime",
+ "bridge-runtime-common",
  "parity-scale-codec",
- "relay-bridge-hub-rococo-client",
  "relay-substrate-client",
  "scale-info",
  "sp-core",
+ "sp-finality-grandpa",
  "sp-runtime",
 ]
 

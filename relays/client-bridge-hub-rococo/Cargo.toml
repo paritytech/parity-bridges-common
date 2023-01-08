@@ -26,7 +26,3 @@ bridge-runtime-common = { path = "../../bin/runtime-common" }
 
 sp-core = { git = "https://github.com/paritytech/substrate", branch = "master" }
 sp-runtime = { git = "https://github.com/paritytech/substrate", branch = "master" }
-
-[dev-dependencies]
-bp-polkadot-core = { path = "../../primitives/polkadot-core" }
-sp-finality-grandpa = { git = "https://github.com/paritytech/substrate", branch = "master" }

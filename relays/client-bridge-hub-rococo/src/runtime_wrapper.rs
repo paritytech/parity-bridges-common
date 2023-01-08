@@ -21,7 +21,7 @@
 use codec::{Decode, Encode};
 use scale_info::TypeInfo;
 
-pub use bp_header_chain::{BridgeGrandpaCall, BridgeGrandpaCallOf};
+pub use bp_header_chain::BridgeGrandpaCallOf;
 pub use bp_parachains::BridgeParachainCall;
 pub use bp_runtime::calls::SystemCall;
 pub use bridge_runtime_common::messages::BridgeMessagesCallOf;
@@ -31,92 +31,32 @@ pub use bridge_runtime_common::messages::BridgeMessagesCallOf;
 pub type UncheckedExtrinsic = bp_bridge_hub_rococo::UncheckedExtrinsic<Call>;
 
 pub type BridgeWococoGrandpaCall = BridgeGrandpaCallOf<bp_wococo::Wococo>;
-pub type BridgeRococoGrandpaCall = BridgeGrandpaCallOf<bp_rococo::Rococo>;
-
 pub type BridgeWococoMessagesCall = BridgeMessagesCallOf<bp_bridge_hub_wococo::BridgeHubWococo>;
-pub type BridgeRococoMessagesCall = BridgeMessagesCallOf<bp_bridge_hub_rococo::BridgeHubRococo>;
 
-/// Rococo Runtime `Call` enum.
+/// `BridgeHubRococo` Runtime `Call` enum.
 ///
-/// The enum represents a subset of possible `Call`s we can send to Rococo chain.
+/// The enum represents a subset of possible `Call`s we can send to `BridgeHubRococo` chain.
 /// Ideally this code would be auto-generated from metadata, because we want to
 /// avoid depending directly on the ENTIRE runtime just to get the encoding of `Dispatchable`s.
 ///
-/// All entries here (like pretty much in the entire file) must be kept in sync with Rococo
-/// `construct_runtime`, so that we maintain SCALE-compatibility.
+/// All entries here (like pretty much in the entire file) must be kept in sync with
+/// `BridgeHubRococo` `construct_runtime`, so that we maintain SCALE-compatibility.
 ///
-/// // TODO:check-parameter -> change bko-bridge-rococo-wococo when merged to master in cumulus
-/// See: [link](https://github.com/paritytech/cumulus/blob/bko-bridge-rococo-wococo/parachains/runtimes/bridge-hubs/bridge-hub-rococo/src/lib.rs)
+/// // TODO:check-parameter -> change bridge-hub-rococo-wococo when merged to master in cumulus
+/// See: [link](https://github.com/paritytech/cumulus/blob/bridge-hub-rococo-wococo/parachains/runtimes/bridge-hubs/bridge-hub-rococo/src/lib.rs)
 #[allow(clippy::large_enum_variant)]
 #[derive(Encode, Decode, Debug, PartialEq, Eq, Clone, TypeInfo)]
 pub enum Call {
-	/// System pallet.
 	#[codec(index = 0)]
 	System(SystemCall),
+
 	/// Wococo bridge pallet.
 	#[codec(index = 41)]
 	BridgeWococoGrandpa(BridgeWococoGrandpaCall),
-	/// Rococo bridge pallet.
-	#[codec(index = 43)]
-	BridgeRococoGrandpa(BridgeRococoGrandpaCall),
-
 	/// Wococo parachain bridge pallet.
 	#[codec(index = 42)]
 	BridgeWococoParachain(BridgeParachainCall),
-	/// Rococo parachain bridge pallet.
-	#[codec(index = 44)]
-	BridgeRococoParachain(BridgeParachainCall),
-
 	/// Wococo messages bridge pallet.
 	#[codec(index = 46)]
 	BridgeWococoMessages(BridgeWococoMessagesCall),
-	/// Rococo messages bridge pallet.
-	#[codec(index = 45)]
-	BridgeRococoMessages(BridgeRococoMessagesCall),
-}
-
-#[cfg(test)]
-mod tests {
-	use super::*;
-	use bp_runtime::BasicOperatingMode;
-	use sp_core::hexdisplay::HexDisplay;
-	use sp_finality_grandpa::AuthorityList;
-	use sp_runtime::traits::Header;
-	use std::str::FromStr;
-
-	pub type RelayBlockNumber = bp_polkadot_core::BlockNumber;
-	pub type RelayBlockHasher = bp_polkadot_core::Hasher;
-	pub type RelayBlockHeader = sp_runtime::generic::Header<RelayBlockNumber, RelayBlockHasher>;
-
-	#[test]
-	fn encode_decode_calls() {
-		let header = RelayBlockHeader::new(
-			75,
-			bp_polkadot_core::Hash::from_str(
-				"0xd2c0afaab32de0cb8f7f0d89217e37c5ea302c1ffb5a7a83e10d20f12c32874d",
-			)
-			.expect("invalid value"),
-			bp_polkadot_core::Hash::from_str(
-				"0x92b965f0656a4e0e5fc0167da2d4b5ee72b3be2c1583c4c1e5236c8c12aa141b",
-			)
-			.expect("invalid value"),
-			bp_polkadot_core::Hash::from_str(
-				"0xae4a25acf250d72ed02c149ecc7dd3c9ee976d41a2888fc551de8064521dc01d",
-			)
-			.expect("invalid value"),
-			Default::default(),
-		);
-		let init_data = bp_header_chain::InitializationData {
-			header: Box::new(header),
-			authority_list: AuthorityList::default(),
-			set_id: 6,
-			operating_mode: BasicOperatingMode::Normal,
-		};
-		let call = BridgeRococoGrandpaCall::initialize(init_data);
-		let tx = Call::BridgeRococoGrandpa(call);
-
-		// encode call as hex string
-		let hex_encoded_call = format!("0x{:?}", HexDisplay::from(&Encode::encode(&tx)));
-		assert_eq!(hex_encoded_call, "0x2b01ae4a25acf250d72ed02c149ecc7dd3c9ee976d41a2888fc551de8064521dc01d2d0192b965f0656a4e0e5fc0167da2d4b5ee72b3be2c1583c4c1e5236c8c12aa141bd2c0afaab32de0cb8f7f0d89217e37c5ea302c1ffb5a7a83e10d20f12c32874d0000060000000000000000");
-	}
 }
