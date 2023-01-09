@@ -25,7 +25,7 @@ The bridge has both on-chain (pallets) and offchain (relayers) components.
 ## On-chain components
 
 On-chain bridge components are pallets that are deployed at the chain runtime. Finality pallets require
-deployment at the target chain, while messages pallet needs to be deployed at the both source
+deployment at the target chain, while messages pallet needs to be deployed at both, source
 and target chains.
 
 ### Bridge GRANDPA Finality Pallet
