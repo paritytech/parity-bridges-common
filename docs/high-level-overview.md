@@ -25,7 +25,7 @@ The bridge has both on-chain (pallets) and offchain (relayers) components.
 ## On-chain components
 
 On-chain bridge components are pallets that are deployed at the chain runtime. Finality pallets require
-deployment at the target chain, while messages pallet needs to be deployed at the both source
+deployment at the target chain, while messages pallet needs to be deployed at both, source
 and target chains.
 
 ### Bridge GRANDPA Finality Pallet
@@ -80,7 +80,7 @@ dispatch code;
 relayers that have delivered the message.
 
 Many things are abstracted by the pallet:
-- the message itself may mean anything, the pallet doesn't care about it's content;
+- the message itself may mean anything, the pallet doesn't care about its content;
 - the message dispatch happens during delivery, but it is decoupled from the pallet code;
 - the messages proof and messages delivery proof are verified outside of the pallet;
 - the relayers incentivization scheme is defined outside of the pallet.
@@ -111,9 +111,9 @@ transaction.
 
 The task of relay is to submit source chain GRANDPA justifications and their corresponding headers to
 the Bridge GRANDPA Finality Pallet, deployed at the target chain. For that, the relay subscribes to
-the GRANDPA justifications stream and submits every new justification it sees. In addition, relay is
-searching for mandatory headers and submits their justifications - without that the pallet will be
-unable to move forward.
+the source chain GRANDPA justifications stream and submits every new justification it sees to the
+target chain GRANDPA light client. In addition, relay is searching for mandatory headers and
+submits their justifications - without that the pallet will be unable to move forward.
 
 More: [GRANDPA Finality Relay Sequence Diagram](./grandpa-finality-relay.html), [code](../relays/finality/).
 
@@ -121,7 +121,8 @@ More: [GRANDPA Finality Relay Sequence Diagram](./grandpa-finality-relay.html), 
 
 The relay connects to the source _relay_ chain and the target chain nodes. It doesn't need to connect to the
 tracked parachain nodes. The relay looks at the [`Heads`](https://github.com/paritytech/polkadot/blob/1a034bd6de0e76721d19aed02a538bcef0787260/runtime/parachains/src/paras/mod.rs#L642)
-map of the [`paras` pallet](https://github.com/paritytech/polkadot/tree/1a034bd6de0e76721d19aed02a538bcef0787260/runtime/parachains/src/paras) and compares the value with the best parachain head, stored at the bridge parachains pallet at
+map of the [`paras` pallet](https://github.com/paritytech/polkadot/tree/1a034bd6de0e76721d19aed02a538bcef0787260/runtime/parachains/src/paras)
+in sourche chain, and compares the value with the best parachain head, stored in the bridge parachains pallet at
 the taget chain. If new parachain head appears at the relay chain block `B`, the relay process **waits**
 until header `B` or one of its ancestors appears at the target chain. Once it is available, the storage
 proof of the map entry is generated and is submitted to the target chain.
