@@ -28,7 +28,9 @@ pub use bridge_runtime_common::messages::BridgeMessagesCallOf;
 /// Unchecked BridgeHubWococo extrinsic.
 pub type UncheckedExtrinsic = bp_bridge_hub_wococo::UncheckedExtrinsic<Call>;
 
+// The indirect pallet call used to sync `Rococo` GRANDPA finality to `BHWococo`.
 pub type BridgeRococoGrandpaCall = BridgeGrandpaCallOf<bp_rococo::Rococo>;
+// The indirect pallet call used to sync `BridgeHubRococo` messages to `BridgeHubWococo`.
 pub type BridgeRococoMessagesCall = BridgeMessagesCallOf<bp_bridge_hub_rococo::BridgeHubRococo>;
 
 /// `BridgeHubWococo` Runtime `Call` enum.
@@ -45,6 +47,7 @@ pub type BridgeRococoMessagesCall = BridgeMessagesCallOf<bp_bridge_hub_rococo::B
 #[allow(clippy::large_enum_variant)]
 #[derive(Encode, Decode, Debug, PartialEq, Eq, Clone, TypeInfo)]
 pub enum Call {
+	#[cfg(test)]
 	#[codec(index = 0)]
 	System(SystemCall),
 
