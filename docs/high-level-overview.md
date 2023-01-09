@@ -136,13 +136,13 @@ More: [Parachains Finality Relay Sequence Diagram](./parachains-finality-relay.h
 
 ### Messages Relay
 
-Messages relay is actually a two relays that are running in a single process: messages delivery relay and
+Messages relay is actually two relays that are running in a single process: messages delivery relay and
 delivery confirmation relay. Even though they are more complex and have many caveats, the overall algorithm
 is the same as in other relays.
 
 Message delivery relay connects to the source chain and looks at the outbound lane end, waiting until new
 messages are queued there. Once they appear at the source block `B`, the relay start waiting for the block
-`B` or its ancestor appear at the target chain. Then the messages storage proof is generated and submitted
+`B` or its descendant appear at the target chain. Then the messages storage proof is generated and submitted
 to the bridge messages pallet at the target chain. In addition, the transaction may include the storage proof
 of the outbound lane state - that proves that relayer rewards have been paid and this data (map of relay
 accounts to the delivered messages) may be pruned from the inbound lane state at the target chain.
@@ -150,7 +150,7 @@ accounts to the delivered messages) may be pruned from the inbound lane state at
 Delivery confirmation relay connects to the target chain and starts watching the inbound lane end. When new
 messages are delivered to the target chain, the corresponding _source chain account_ is inserted to the
 map in the inbound lane data. Relay detects that, say, at the target chain block `B` and waits until that
-block or its ancestor appears at the source chain. Once that happens, the relay crafts a storage proof of
+block or its descendant appears at the source chain. Once that happens, the relay crafts a storage proof of
 that data and sends it to the messages pallet, deployed at the source chain.
 
 As you can see, the messages relay also requires finality relay to be operating in parallel. Since messages

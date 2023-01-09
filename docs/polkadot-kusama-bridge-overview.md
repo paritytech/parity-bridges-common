@@ -8,7 +8,7 @@ The overall architecture may be seen in [this diagram](./polkadot-kusama-bridge.
 
 ## Bridge Hubs
 
-All operations at relay chain are expensive. Ideally all non-mandatory trasnsactions must happen on parachains.
+All operations at relay chain are expensive. Ideally all non-mandatory transactions must happen on parachains.
 That's why we are planning to have two parachains - Polkadot Bridge Hub under Polkadot consensus and Kusama
 Bridge Hub under Kusama consensus.
 
@@ -90,21 +90,21 @@ Both rewards may be claimed using the `pallet_bridge_relayers::claim_rewards` ca
 ### Who is Rewarding Relayers
 
 Obviously, there should be someone who is paying relayer rewards. We want bridge transactions to have a cost, so we
-can't use fees for rewards. Instead, the parachains, that are using the bridge, have a mutual agreement, that they
-are paying each other costs.
+can't use fees for rewards. Instead, the parachains using the bridge, use sovereign accounts on both sides
+of the bridge to cover relayer rewards.
 
-Bridged Parachains will have a sovereign accounts at bridge hubs. For example, the Statemine (Kusama Parachain) will
+Bridged Parachains will have sovereign accounts at bridge hubs. For example, the Statemine (Kusama Parachain) will
 have an account at the Polkadot Bridge Hub. The Statemint (Polkadot Parachain) will have an account at the Kusama
 Bridge Hub. The sovereign accounts are used as a source of funds when the relayer is calling the
 `pallet_bridge_relayers::claim_rewards`.
 
-Since messages lane is only used by the pair of parachains, there's no collision betweed different bridges. E.g.
+Since messages lane is only used by the pair of parachains, there's no collision between different bridges. E.g.
 Statemine will only reward relayers that are delivering messages from Statemine. The Statemine sovereign account
 is not used to cover rewards of bridging with some other Polkadot Parachain.
 
 ### Multiple Relayers and Rewards
 
-Our goal is to incentivize running honest relayers. But we have no any relayers sets, so at any time anyone may submit
+Our goal is to incentivize running honest relayers. But we have no relayers sets, so at any time anyone may submit
 message delivery transaction, hoping that the cost of this transaction will be compensated. So what if some message is
 currently queued and two relayers are submitting two identical message delivery transactions at once? Without any
 special means, the cost of first included transacton will be compensated and the cost of the other one won't. A honest,
