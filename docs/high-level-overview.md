@@ -128,7 +128,8 @@ proof of the map entry is generated and is submitted to the target chain.
 
 As its on-chain component (which requires bridge GRANDPA pallet to be deployed nearby), the parachains
 finality relay requires GRANDPA finality relay to be running in parallel. Without it, the header `B` or
-some its ancestor won't be finalized and we'll be unable to verify generated storage proof. 
+any of its children's finality at source won't be relayed at target, and target chain
+won't be able to verify generated storage proof. 
 
 More: [Parachains Finality Relay Sequence Diagram](./parachains-finality-relay.html), [code](../relays/parachains/).
 
