@@ -66,29 +66,6 @@
               "type": "last"
             },
             "type": "query"
-          },
-          {
-            "evaluator": {
-              "params": [
-                1000
-              ],
-              "type": "lt"
-            },
-            "operator": {
-              "type": "or"
-            },
-            "query": {
-              "params": [
-                "C",
-                "5m",
-                "now"
-              ]
-            },
-            "reducer": {
-              "params": [],
-              "type": "last"
-            },
-            "type": "query"
           }
         ],
         "executionErrorState": "alerting",
