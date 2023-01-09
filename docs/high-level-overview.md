@@ -80,7 +80,7 @@ dispatch code;
 relayers that have delivered the message.
 
 Many things are abstracted by the pallet:
-- the message itself may mean anything, the pallet doesn't care about it's content;
+- the message itself may mean anything, the pallet doesn't care about its content;
 - the message dispatch happens during delivery, but it is decoupled from the pallet code;
 - the messages proof and messages delivery proof are verified outside of the pallet;
 - the relayers incentivization scheme is defined outside of the pallet.
