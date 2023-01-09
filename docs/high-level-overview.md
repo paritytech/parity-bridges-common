@@ -121,7 +121,8 @@ More: [GRANDPA Finality Relay Sequence Diagram](./grandpa-finality-relay.html), 
 
 The relay connects to the source _relay_ chain and the target chain nodes. It doesn't need to connect to the
 tracked parachain nodes. The relay looks at the [`Heads`](https://github.com/paritytech/polkadot/blob/1a034bd6de0e76721d19aed02a538bcef0787260/runtime/parachains/src/paras/mod.rs#L642)
-map of the [`paras` pallet](https://github.com/paritytech/polkadot/tree/1a034bd6de0e76721d19aed02a538bcef0787260/runtime/parachains/src/paras) and compares the value with the best parachain head, stored at the bridge parachains pallet at
+map of the [`paras` pallet](https://github.com/paritytech/polkadot/tree/1a034bd6de0e76721d19aed02a538bcef0787260/runtime/parachains/src/paras)
+in sourche chain, and compares the value with the best parachain head, stored in the bridge parachains pallet at
 the taget chain. If new parachain head appears at the relay chain block `B`, the relay process **waits**
 until header `B` or one of its ancestors appears at the target chain. Once it is available, the storage
 proof of the map entry is generated and is submitted to the target chain.
