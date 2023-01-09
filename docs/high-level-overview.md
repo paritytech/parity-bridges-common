@@ -152,7 +152,7 @@ accounts to the delivered messages) may be pruned from the inbound lane state at
 Delivery confirmation relay connects to the target chain and starts watching the inbound lane end. When new
 messages are delivered to the target chain, the corresponding _source chain account_ is inserted to the
 map in the inbound lane data. Relay detects that, say, at the target chain block `B` and waits until that
-block or its ancestor appears at the source chain. Once that happens, the relay crafts a storage proof of
+block or its descendant appears at the source chain. Once that happens, the relay crafts a storage proof of
 that data and sends it to the messages pallet, deployed at the source chain.
 
 As you can see, the messages relay also requires finality relay to be operating in parallel. Since messages
