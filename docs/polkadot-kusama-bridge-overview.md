@@ -93,7 +93,7 @@ Obviously, there should be someone who is paying relayer rewards. We want bridge
 can't use fees for rewards. Instead, the parachains, that are using the bridge, have a mutual agreement, that they
 are paying each other costs.
 
-Bridged Parachains will have a sovereign accounts at bridge hubs. For example, the Statemine (Kusama Parachain) will
+Bridged Parachains will have sovereign accounts at bridge hubs. For example, the Statemine (Kusama Parachain) will
 have an account at the Polkadot Bridge Hub. The Statemint (Polkadot Parachain) will have an account at the Kusama
 Bridge Hub. The sovereign accounts are used as a source of funds when the relayer is calling the
 `pallet_bridge_relayers::claim_rewards`.
