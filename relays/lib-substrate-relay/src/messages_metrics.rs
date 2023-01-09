@@ -90,7 +90,7 @@ where
 						account.id(),
 						lane,
 					),
-					format!("at_{}_relay_{}_reward_for_lane_{:?}_with_{}", C::NAME, account.tag(), lane, BC::NAME),
+					format!("at_{}_relay_{}_reward_for_lane_{:?}_with_{}", C::NAME, account.tag(), hex::encode(lane.as_ref()), BC::NAME),
 					format!("Reward of the {} relay account for serving lane {:?} with {} at the {}", account.tag(), lane, BC::NAME, C::NAME),
 				)?;
 				relay_account_reward_metric.register_and_spawn(&metrics.registry)?;

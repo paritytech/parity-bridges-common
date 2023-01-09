@@ -11702,6 +11702,7 @@ dependencies = [
  "frame-support",
  "frame-system",
  "futures",
+ "hex",
  "log",
  "messages-relay",
  "num-traits",
