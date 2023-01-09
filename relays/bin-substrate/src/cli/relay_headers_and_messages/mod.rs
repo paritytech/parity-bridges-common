@@ -347,8 +347,6 @@ where
 		// Need 2x capacity since we consider both directions for each lane
 		let mut message_relays = Vec::with_capacity(lanes.len() * 2);
 		for lane in lanes {
-			let lane = lane.into();
-
 			let left_to_right_messages = substrate_relay_helper::messages_lane::run::<
 				<Self::L2R as MessagesCliBridge>::MessagesLane,
 			>(self.left_to_right().messages_relay_params(
