@@ -144,7 +144,7 @@ is the same as in other relays.
 
 Message delivery relay connects to the source chain and looks at the outbound lane end, waiting until new
 messages are queued there. Once they appear at the source block `B`, the relay start waiting for the block
-`B` or its ancestor appear at the target chain. Then the messages storage proof is generated and submitted
+`B` or its descendant appear at the target chain. Then the messages storage proof is generated and submitted
 to the bridge messages pallet at the target chain. In addition, the transaction may include the storage proof
 of the outbound lane state - that proves that relayer rewards have been paid and this data (map of relay
 accounts to the delivered messages) may be pruned from the inbound lane state at the target chain.
