@@ -948,6 +948,7 @@ dependencies = [
  "sp-std",
  "sp-trie",
  "trie-db",
+ "xcm",
 ]
 
 [[package]]
@@ -8554,15 +8555,20 @@ dependencies = [
 name = "relay-rialto-parachain-client"
 version = "0.1.0"
 dependencies = [
+ "bp-header-chain",
  "bp-messages",
+ "bp-millau",
+ "bp-polkadot-core",
  "bp-rialto-parachain",
+ "bp-runtime",
+ "bridge-runtime-common",
  "frame-support",
  "frame-system",
  "pallet-transaction-payment",
  "parity-scale-codec",
  "relay-substrate-client",
  "relay-utils",
- "rialto-parachain-runtime",
+ "scale-info",
  "sp-core",
  "sp-runtime",
 ]

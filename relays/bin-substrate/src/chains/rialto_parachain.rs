@@ -17,7 +17,7 @@
 //! Rialto parachain specification for CLI.
 
 use crate::cli::{bridge, encode_message::CliEncodeMessage, CliChain};
-use bp_runtime::EncodedOrDecodedCall;
+use bp_runtime::{calls::XcmCall, EncodedOrDecodedCall};
 use relay_rialto_parachain_client::RialtoParachain;
 use sp_version::RuntimeVersion;
 use xcm::latest::prelude::*;
@@ -36,13 +36,9 @@ impl CliEncodeMessage for RialtoParachain {
 			),
 		};
 
-		Ok(rialto_parachain_runtime::RuntimeCall::PolkadotXcm(
-			rialto_parachain_runtime::XcmCall::send {
-				dest: Box::new(dest.into()),
-				message: Box::new(message),
-			},
-		)
-		.into())
+		let xcm_call = XcmCall::send(Box::new(dest.into()), Box::new(message));
+
+		Ok(relay_rialto_parachain_client::runtime::Call::PolkadotXcm(xcm_call).into())
 	}
 }
 

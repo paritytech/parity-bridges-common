@@ -25,6 +25,10 @@ sp-std = { git = "https://github.com/paritytech/substrate", branch = "master", d
 sp-trie = { git = "https://github.com/paritytech/substrate", branch = "master", default-features = false }
 trie-db = { version = "0.24.0", default-features = false }
 
+# Polkadot Dependencies
+
+xcm = { git = "https://github.com/paritytech/polkadot", branch = "master", default-features = false }
+
 [dev-dependencies]
 hex-literal = "0.3"
 
@@ -45,4 +49,5 @@ std = [
 	"sp-state-machine/std",
 	"sp-trie/std",
 	"trie-db/std",
+	"xcm/std"
 ]
