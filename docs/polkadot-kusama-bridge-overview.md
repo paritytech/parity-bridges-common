@@ -104,7 +104,7 @@ is not used to cover rewards of bridging with some other Polkadot Parachain.
 
 ### Multiple Relayers and Rewards
 
-Our goal is to incentivize running honest relayers. But we have no any relayers sets, so at any time anyone may submit
+Our goal is to incentivize running honest relayers. But we have no relayers sets, so at any time anyone may submit
 message delivery transaction, hoping that the cost of this transaction will be compensated. So what if some message is
 currently queued and two relayers are submitting two identical message delivery transactions at once? Without any
 special means, the cost of first included transacton will be compensated and the cost of the other one won't. A honest,
