@@ -123,9 +123,11 @@ The relay connects to the source _relay_ chain and the target chain nodes. It do
 tracked parachain nodes. The relay looks at the [`Heads`](https://github.com/paritytech/polkadot/blob/1a034bd6de0e76721d19aed02a538bcef0787260/runtime/parachains/src/paras/mod.rs#L642)
 map of the [`paras` pallet](https://github.com/paritytech/polkadot/tree/1a034bd6de0e76721d19aed02a538bcef0787260/runtime/parachains/src/paras)
 in sourche chain, and compares the value with the best parachain head, stored in the bridge parachains pallet at
-the taget chain. If new parachain head appears at the relay chain block `B`, the relay process **waits**
-until header `B` or one of its ancestors appears at the target chain. Once it is available, the storage
-proof of the map entry is generated and is submitted to the target chain.
+the taget chain.
+When new parachain head appears at source relay chain block `B`, the relay process **waits**
+until header `B` or one of its children blocks' finality is relayed to and appears on target chain.
+Once it is available, the storage proof of the map entry is generated and is submitted to the
+target chain.
 
 As its on-chain component (which requires bridge GRANDPA pallet to be deployed nearby), the parachains
 finality relay requires GRANDPA finality relay to be running in parallel. Without it, the header `B` or
