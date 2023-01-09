@@ -98,7 +98,7 @@ have an account at the Polkadot Bridge Hub. The Statemint (Polkadot Parachain) w
 Bridge Hub. The sovereign accounts are used as a source of funds when the relayer is calling the
 `pallet_bridge_relayers::claim_rewards`.
 
-Since messages lane is only used by the pair of parachains, there's no collision betweed different bridges. E.g.
+Since messages lane is only used by the pair of parachains, there's no collision between different bridges. E.g.
 Statemine will only reward relayers that are delivering messages from Statemine. The Statemine sovereign account
 is not used to cover rewards of bridging with some other Polkadot Parachain.
 
