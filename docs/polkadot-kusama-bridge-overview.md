@@ -8,7 +8,7 @@ The overall architecture may be seen in [this diagram](./polkadot-kusama-bridge.
 
 ## Bridge Hubs
 
-All operations at relay chain are expensive. Ideally all non-mandatory trasnsactions must happen on parachains.
+All operations at relay chain are expensive. Ideally all non-mandatory transactions must happen on parachains.
 That's why we are planning to have two parachains - Polkadot Bridge Hub under Polkadot consensus and Kusama
 Bridge Hub under Kusama consensus.
 
