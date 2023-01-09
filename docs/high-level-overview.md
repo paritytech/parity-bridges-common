@@ -111,9 +111,9 @@ transaction.
 
 The task of relay is to submit source chain GRANDPA justifications and their corresponding headers to
 the Bridge GRANDPA Finality Pallet, deployed at the target chain. For that, the relay subscribes to
-the GRANDPA justifications stream and submits every new justification it sees. In addition, relay is
-searching for mandatory headers and submits their justifications - without that the pallet will be
-unable to move forward.
+the source chain GRANDPA justifications stream and submits every new justification it sees to the
+target chain GRANDPA light client. In addition, relay is searching for mandatory headers and
+submits their justifications - without that the pallet will be unable to move forward.
 
 More: [GRANDPA Finality Relay Sequence Diagram](./grandpa-finality-relay.html), [code](../relays/finality/).
 
