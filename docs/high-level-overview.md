@@ -138,7 +138,7 @@ More: [Parachains Finality Relay Sequence Diagram](./parachains-finality-relay.h
 
 ### Messages Relay
 
-Messages relay is actually a two relays that are running in a single process: messages delivery relay and
+Messages relay is actually two relays that are running in a single process: messages delivery relay and
 delivery confirmation relay. Even though they are more complex and have many caveats, the overall algorithm
 is the same as in other relays.
 
