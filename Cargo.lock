@@ -8554,15 +8554,20 @@ dependencies = [
 name = "relay-rialto-parachain-client"
 version = "0.1.0"
 dependencies = [
+ "bp-header-chain",
  "bp-messages",
+ "bp-millau",
+ "bp-polkadot-core",
  "bp-rialto-parachain",
+ "bp-runtime",
+ "bridge-runtime-common",
  "frame-support",
  "frame-system",
  "pallet-transaction-payment",
  "parity-scale-codec",
  "relay-substrate-client",
  "relay-utils",
- "rialto-parachain-runtime",
+ "scale-info",
  "sp-core",
  "sp-runtime",
 ]
@@ -8606,15 +8611,18 @@ dependencies = [
  "sc-chain-spec",
  "sc-rpc-api",
  "sc-transaction-pool-api",
+ "scale-info",
  "sp-core",
  "sp-finality-grandpa",
  "sp-rpc",
  "sp-runtime",
+ "sp-std",
  "sp-storage",
  "sp-trie",
  "sp-version",
  "thiserror",
  "tokio",
+ "xcm",
 ]
 
 [[package]]
@@ -11670,7 +11678,6 @@ dependencies = [
  "relay-utils",
  "relay-westend-client",
  "relay-wococo-client",
- "rialto-parachain-runtime",
  "rialto-runtime",
  "signal-hook",
  "signal-hook-async-std",
