@@ -256,7 +256,7 @@ pub struct PrometheusParams {
 }
 
 impl PrometheusParams {
-	/// Tries to convert cli metrics params into metrics params, used by the relay.
+	/// Tries to convert CLI metrics params into metrics params, used by the relay.
 	pub fn into_metrics_params(self) -> anyhow::Result<relay_utils::metrics::MetricsParams> {
 		let metrics_address = if !self.no_prometheus {
 			Some(relay_utils::metrics::MetricsAddress {
