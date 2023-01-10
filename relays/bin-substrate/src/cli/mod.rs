@@ -293,7 +293,7 @@ impl PrometheusParams {
 		let relay_commit = option_env!("CI_COMMIT_SHA").unwrap_or_else(|| {
 			log::debug!(
 				target: "bridge",
-				"Missing CARGO_PKG_VERSION variable while compiling. Using no-git value",
+				"Missing CI_COMMIT_SHA variable while compiling. Using no-git value",
 			);
 
 			"no-git"
