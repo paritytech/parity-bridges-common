@@ -106,10 +106,10 @@ impl MetricsParams {
 		relay_version: Version,
 		relay_commit: String,
 	) -> Result<Self, PrometheusError> {
-		const BUILD_INFO_METRIC: &'static str = "substrate_relay_build_info";
+		const BUILD_INFO_METRIC: &str = "substrate_relay_build_info";
 
 		let registry = Registry::new();
-		let relay_version = format!("{}", relay_version);
+		let relay_version = format!("{relay_version}");
 		register(
 			Gauge::<U64>::with_opts(
 				Opts::new(
