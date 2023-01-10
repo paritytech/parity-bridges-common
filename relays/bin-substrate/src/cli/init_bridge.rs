@@ -28,8 +28,8 @@ use crate::{
 	},
 	cli::{bridge::CliBridgeBase, chain_schema::*},
 };
-use bp_runtime::{calls::SudoCall, Chain as ChainBase};
-use relay_substrate_client::{AccountKeyPairOf, Chain, UnsignedTransaction};
+use bp_runtime::Chain as ChainBase;
+use relay_substrate_client::{calls::SudoCall, AccountKeyPairOf, Chain, UnsignedTransaction};
 use sp_core::Pair;
 use structopt::StructOpt;
 use strum::{EnumString, EnumVariantNames, VariantNames};

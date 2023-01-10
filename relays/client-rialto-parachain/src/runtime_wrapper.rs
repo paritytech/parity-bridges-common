@@ -23,8 +23,8 @@ use codec::{Decode, Encode};
 use scale_info::TypeInfo;
 
 use bp_header_chain::BridgeGrandpaCallOf;
-use bp_runtime::calls::{SudoCall, XcmCall};
 use bridge_runtime_common::messages::BridgeMessagesCallOf;
+use relay_substrate_client::calls::{SudoCall, XcmCall};
 
 // The indirect pallet call used to sync `Millau` GRANDPA finality to `RialtoParachain`.
 pub type BridgeMillauGrandpaCall = BridgeGrandpaCallOf<bp_millau::Millau>;

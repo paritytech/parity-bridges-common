@@ -948,7 +948,6 @@ dependencies = [
  "sp-std",
  "sp-trie",
  "trie-db",
- "xcm",
 ]
 
 [[package]]
@@ -8612,15 +8611,18 @@ dependencies = [
  "sc-chain-spec",
  "sc-rpc-api",
  "sc-transaction-pool-api",
+ "scale-info",
  "sp-core",
  "sp-finality-grandpa",
  "sp-rpc",
  "sp-runtime",
+ "sp-std",
  "sp-storage",
  "sp-trie",
  "sp-version",
  "thiserror",
  "tokio",
+ "xcm",
 ]
 
 [[package]]
@@ -11676,7 +11678,6 @@ dependencies = [
  "relay-utils",
  "relay-westend-client",
  "relay-wococo-client",
- "rialto-parachain-runtime",
  "rialto-runtime",
  "signal-hook",
  "signal-hook-async-std",
