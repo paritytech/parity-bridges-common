@@ -737,7 +737,6 @@ dependencies = [
  "frame-system",
  "polkadot-primitives",
  "polkadot-runtime-constants",
- "smallvec",
  "sp-api",
  "sp-std",
 ]
@@ -751,7 +750,6 @@ dependencies = [
  "bp-runtime",
  "frame-support",
  "polkadot-runtime-constants",
- "smallvec",
  "sp-api",
  "sp-std",
 ]
@@ -8501,14 +8499,15 @@ dependencies = [
  "bp-bridge-hub-wococo",
  "bp-header-chain",
  "bp-messages",
- "bp-polkadot-core",
+ "bp-parachains",
+ "bp-rococo",
  "bp-runtime",
+ "bp-wococo",
  "bridge-runtime-common",
  "parity-scale-codec",
  "relay-substrate-client",
  "scale-info",
  "sp-core",
- "sp-finality-grandpa",
  "sp-runtime",
 ]
 
@@ -8516,13 +8515,20 @@ dependencies = [
 name = "relay-bridge-hub-wococo-client"
 version = "0.1.0"
 dependencies = [
+ "bp-bridge-hub-rococo",
  "bp-bridge-hub-wococo",
+ "bp-header-chain",
  "bp-messages",
+ "bp-parachains",
+ "bp-polkadot-core",
+ "bp-rococo",
+ "bp-runtime",
+ "bridge-runtime-common",
  "parity-scale-codec",
- "relay-bridge-hub-rococo-client",
  "relay-substrate-client",
  "scale-info",
  "sp-core",
+ "sp-finality-grandpa",
  "sp-runtime",
 ]
 
@@ -11664,6 +11670,7 @@ dependencies = [
  "bp-header-chain",
  "bp-messages",
  "bp-millau",
+ "bp-parachains",
  "bp-polkadot-core",
  "bp-rialto",
  "bp-rialto-parachain",
