@@ -263,9 +263,8 @@ impl PrometheusParams {
 				host: self.prometheus_host,
 				port: self.prometheus_port,
 			})
-			.into()
 		} else {
-			None.into()
+			None
 		};
 
 		// let's not halt the relay if we were unable to detect package version or git commit - it
@@ -279,7 +278,7 @@ impl PrometheusParams {
 
 			"0.0.0"
 		});
-		let relay_version = Version::parse(&env_relay_version).unwrap_or_else(|e| {
+		let relay_version = Version::parse(env_relay_version).unwrap_or_else(|e| {
 			log::debug!(
 				target: "bridge",
 				"Failed to parse CARGO_PKG_VERSION variable {}: {}",
@@ -302,7 +301,7 @@ impl PrometheusParams {
 
 		relay_utils::metrics::MetricsParams::new(
 			metrics_address,
-			relay_version.into(),
+			relay_version,
 			relay_commit.into(),
 		)
 		.map_err(|e| anyhow::format_err!("{:?}", e))
