@@ -23,7 +23,6 @@ pub use substrate_prometheus_endpoint::{
 
 use async_std::sync::{Arc, RwLock};
 use async_trait::async_trait;
-use semver::Version;
 use std::{fmt::Debug, time::Duration};
 
 mod float_json_value;
@@ -103,7 +102,7 @@ impl MetricsParams {
 	/// Creates metrics params from metrics address.
 	pub fn new(
 		address: Option<MetricsAddress>,
-		relay_version: Version,
+		relay_version: String,
 		relay_commit: String,
 	) -> Result<Self, PrometheusError> {
 		const BUILD_INFO_METRIC: &str = "substrate_relay_build_info";
