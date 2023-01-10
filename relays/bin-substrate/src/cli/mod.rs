@@ -21,6 +21,7 @@ use std::convert::TryInto;
 use async_std::prelude::*;
 use codec::{Decode, Encode};
 use futures::{select, FutureExt};
+use semver::Version;
 use signal_hook::consts::*;
 use signal_hook_async_std::Signals;
 use structopt::{clap::arg_enum, StructOpt};
@@ -254,17 +255,57 @@ pub struct PrometheusParams {
 	pub prometheus_port: u16,
 }
 
-impl From<PrometheusParams> for relay_utils::metrics::MetricsParams {
-	fn from(cli_params: PrometheusParams) -> relay_utils::metrics::MetricsParams {
-		if !cli_params.no_prometheus {
+impl PrometheusParams {
+	/// Tries to convert cli metrics params into metrics params, used by the relay.
+	pub fn into_metrics_params(self) -> anyhow::Result<relay_utils::metrics::MetricsParams> {
+		let metrics_address = if !self.no_prometheus {
 			Some(relay_utils::metrics::MetricsAddress {
-				host: cli_params.prometheus_host,
-				port: cli_params.prometheus_port,
+				host: self.prometheus_host,
+				port: self.prometheus_port,
 			})
 			.into()
 		} else {
 			None.into()
-		}
+		};
+
+		// let's not halt the relay if we were unable to detect package version or git commit - it
+		// maybe some local build with broken version
+
+		let env_relay_version = option_env!("CARGO_PKG_VERSION").unwrap_or_else(|| {
+			log::debug!(
+				target: "bridge",
+				"Missing CARGO_PKG_VERSION variable while compiling. Using default value",
+			);
+
+			"0.0.0"
+		});
+		let relay_version = Version::parse(&env_relay_version).unwrap_or_else(|e| {
+			log::debug!(
+				target: "bridge",
+				"Failed to parse CARGO_PKG_VERSION variable {}: {}",
+				env_relay_version,
+				e,
+			);
+
+			Version::new(0, 0, 0)
+		});
+
+		// we'll assume that we're running on GitLab, for local builds we don't care
+		let relay_commit = option_env!("CI_COMMIT_SHA").unwrap_or_else(|| {
+			log::debug!(
+				target: "bridge",
+				"Missing CARGO_PKG_VERSION variable while compiling. Using no-git value",
+			);
+
+			"no-git"
+		});
+
+		relay_utils::metrics::MetricsParams::new(
+			metrics_address,
+			relay_version.into(),
+			relay_commit.into(),
+		)
+		.map_err(|e| anyhow::format_err!("{:?}", e))
 	}
 }
 

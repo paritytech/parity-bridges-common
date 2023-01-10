@@ -23,6 +23,7 @@ pub use substrate_prometheus_endpoint::{
 
 use async_std::sync::{Arc, RwLock};
 use async_trait::async_trait;
+use semver::Version;
 use std::{fmt::Debug, time::Duration};
 
 mod float_json_value;
@@ -99,6 +100,40 @@ impl Default for MetricsAddress {
 }
 
 impl MetricsParams {
+	/// Creates metrics params from metrics address.
+	pub fn new(
+		address: Option<MetricsAddress>,
+		relay_version: Version,
+		relay_commit: String,
+	) -> Result<Self, PrometheusError> {
+		const BUILD_INFO_METRIC: &'static str = "substrate_relay_build_info";
+
+		let registry = Registry::new();
+		let relay_version = format!("{}", relay_version);
+		register(
+			Gauge::<U64>::with_opts(
+				Opts::new(
+					BUILD_INFO_METRIC,
+					"A metric with a constant '1' value labeled by version",
+				)
+				.const_label("version", &relay_version)
+				.const_label("commit", &relay_commit),
+			)?,
+			&registry,
+		)?
+		.set(1);
+
+		log::info!(
+			target: "bridge",
+			"Exposed {} metrtic: version={} commit={}",
+			BUILD_INFO_METRIC,
+			relay_version,
+			relay_commit,
+		);
+
+		Ok(MetricsParams { address, registry })
+	}
+
 	/// Creates metrics params so that metrics are not exposed.
 	pub fn disabled() -> Self {
 		MetricsParams { address: None, registry: Registry::new() }
@@ -109,12 +144,6 @@ impl MetricsParams {
 	pub fn disable(mut self) -> Self {
 		self.address = None;
 		self
-	}
-}
-
-impl From<Option<MetricsAddress>> for MetricsParams {
-	fn from(address: Option<MetricsAddress>) -> Self {
-		MetricsParams { address, registry: Registry::new() }
 	}
 }
 
