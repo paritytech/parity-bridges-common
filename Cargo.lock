@@ -718,12 +718,8 @@ dependencies = [
  "parity-scale-codec",
  "scale-info",
  "serde",
- "sp-application-crypto",
- "sp-core",
- "sp-io",
  "sp-runtime",
  "sp-std",
- "static_assertions",
 ]
 
 [[package]]
@@ -732,13 +728,10 @@ version = "0.1.0"
 dependencies = [
  "bp-messages",
  "bp-polkadot-core",
- "bp-runtime",
  "frame-support",
  "frame-system",
  "polkadot-primitives",
- "polkadot-runtime-constants",
  "sp-api",
- "sp-std",
 ]
 
 [[package]]
@@ -749,7 +742,6 @@ dependencies = [
  "bp-messages",
  "bp-runtime",
  "frame-support",
- "polkadot-runtime-constants",
  "sp-api",
  "sp-std",
 ]
@@ -803,7 +795,6 @@ dependencies = [
  "frame-support",
  "hex",
  "hex-literal",
- "impl-trait-for-tuples",
  "parity-scale-codec",
  "scale-info",
  "serde",
@@ -4852,7 +4843,6 @@ dependencies = [
  "async-std",
  "async-trait",
  "bp-messages",
- "bp-runtime",
  "finality-relay",
  "futures",
  "hex",
@@ -4903,7 +4893,6 @@ dependencies = [
  "sc-telemetry",
  "sc-transaction-pool",
  "serde_json",
- "sp-consensus",
  "sp-consensus-aura",
  "sp-core",
  "sp-finality-grandpa",
@@ -4935,7 +4924,6 @@ dependencies = [
  "frame-system",
  "frame-system-rpc-runtime-api",
  "hex-literal",
- "log",
  "pallet-aura",
  "pallet-balances",
  "pallet-beefy",
@@ -5670,7 +5658,6 @@ dependencies = [
 name = "pallet-bridge-beefy"
 version = "0.1.0"
 dependencies = [
- "beefy-merkle-tree",
  "beefy-primitives",
  "bp-beefy",
  "bp-runtime",
@@ -5682,7 +5669,6 @@ dependencies = [
  "pallet-beefy-mmr",
  "pallet-mmr",
  "parity-scale-codec",
- "primitive-types",
  "rand 0.8.5",
  "scale-info",
  "serde",
@@ -8500,8 +8486,6 @@ dependencies = [
  "bp-header-chain",
  "bp-messages",
  "bp-parachains",
- "bp-rococo",
- "bp-runtime",
  "bp-wococo",
  "bridge-runtime-common",
  "parity-scale-codec",
@@ -8537,7 +8521,6 @@ name = "relay-kusama-client"
 version = "0.1.0"
 dependencies = [
  "bp-kusama",
- "frame-support",
  "relay-substrate-client",
  "relay-utils",
  "sp-core",
@@ -8565,7 +8548,6 @@ name = "relay-polkadot-client"
 version = "0.1.0"
 dependencies = [
  "bp-polkadot",
- "frame-support",
  "relay-substrate-client",
  "relay-utils",
  "sp-core",
@@ -8597,14 +8579,9 @@ dependencies = [
  "bp-millau",
  "bp-polkadot-core",
  "bp-rialto-parachain",
- "bp-runtime",
  "bridge-runtime-common",
- "frame-support",
- "frame-system",
- "pallet-transaction-payment",
  "parity-scale-codec",
  "relay-substrate-client",
- "relay-utils",
  "scale-info",
  "sp-core",
  "sp-runtime",
@@ -8615,7 +8592,6 @@ name = "relay-rococo-client"
 version = "0.1.0"
 dependencies = [
  "bp-rococo",
- "frame-support",
  "relay-substrate-client",
  "relay-utils",
  "sp-core",
@@ -8651,11 +8627,9 @@ dependencies = [
  "sc-transaction-pool-api",
  "scale-info",
  "sp-core",
- "sp-finality-grandpa",
  "sp-rpc",
  "sp-runtime",
  "sp-std",
- "sp-storage",
  "sp-trie",
  "sp-version",
  "thiserror",
@@ -8693,7 +8667,6 @@ name = "relay-westend-client"
 version = "0.1.0"
 dependencies = [
  "bp-westend",
- "frame-support",
  "relay-substrate-client",
  "relay-utils",
  "sp-core",
@@ -8704,7 +8677,6 @@ name = "relay-wococo-client"
 version = "0.1.0"
 dependencies = [
  "bp-wococo",
- "frame-support",
  "relay-substrate-client",
  "relay-utils",
  "sp-core",
@@ -8826,7 +8798,6 @@ dependencies = [
  "serde",
  "sp-api",
  "sp-block-builder",
- "sp-consensus",
  "sp-consensus-aura",
  "sp-core",
  "sp-keystore",
@@ -8864,7 +8835,6 @@ dependencies = [
  "frame-system-benchmarking",
  "frame-system-rpc-runtime-api",
  "hex-literal",
- "log",
  "pallet-aura",
  "pallet-balances",
  "pallet-bridge-grandpa",
@@ -8915,7 +8885,6 @@ dependencies = [
  "frame-support",
  "frame-system",
  "frame-system-rpc-runtime-api",
- "log",
  "pallet-authority-discovery",
  "pallet-babe",
  "pallet-balances",
@@ -11673,8 +11642,6 @@ dependencies = [
  "anyhow",
  "async-std",
  "async-trait",
- "bp-bridge-hub-rococo",
- "bp-bridge-hub-wococo",
  "bp-header-chain",
  "bp-messages",
  "bp-millau",
@@ -11682,11 +11649,8 @@ dependencies = [
  "bp-polkadot-core",
  "bp-rialto",
  "bp-rialto-parachain",
- "bp-rococo",
  "bp-runtime",
  "bp-test-utils",
- "bp-westend",
- "bp-wococo",
  "bridge-runtime-common",
  "finality-grandpa",
  "frame-support",
@@ -11694,11 +11658,9 @@ dependencies = [
  "hex",
  "hex-literal",
  "log",
- "messages-relay",
  "millau-runtime",
  "num-format",
  "num-traits",
- "pallet-bridge-messages",
  "pallet-bridge-parachains",
  "parachains-relay",
  "parity-scale-codec",
@@ -11760,7 +11722,6 @@ dependencies = [
  "pallet-bridge-messages",
  "pallet-bridge-parachains",
  "pallet-transaction-payment",
- "pallet-utility",
  "parachains-relay",
  "parity-scale-codec",
  "relay-rialto-client",
