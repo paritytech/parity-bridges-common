@@ -108,7 +108,6 @@ impl MetricsParams {
 		const BUILD_INFO_METRIC: &str = "substrate_relay_build_info";
 
 		let registry = Registry::new();
-		let relay_version = format!("{relay_version}");
 		register(
 			Gauge::<U64>::with_opts(
 				Opts::new(
@@ -124,7 +123,7 @@ impl MetricsParams {
 
 		log::info!(
 			target: "bridge",
-			"Exposed {} metrtic: version={} commit={}",
+			"Exposed {} metric: version={} commit={}",
 			BUILD_INFO_METRIC,
 			relay_version,
 			relay_commit,
