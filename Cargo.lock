@@ -11723,7 +11723,6 @@ dependencies = [
  "sp-core",
  "sp-keyring",
  "sp-runtime",
- "sp-version",
  "structopt",
  "strum 0.21.0",
  "substrate-relay-helper",
