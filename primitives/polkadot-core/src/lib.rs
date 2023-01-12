@@ -118,13 +118,36 @@ parameter_types! {
 /// Maximal number of messages in single delivery transaction.
 pub const MAX_MESSAGES_IN_DELIVERY_TRANSACTION: MessageNonce = 128;
 
+// Not about selecting values of two following constants:
+//
+// Normal transactions have limit of 75% of 1/2 second weight for Cumulus parachains. Let's keep
+// some reserve for the rest of stuff there => let's select values that fit in 50% of maximal limit.
+//
+// Using current constants, the limit would be:
+//
+// `75% * WEIGHT_REF_TIME_PER_SECOND * 1 / 2 * 50% = 0.75 * 1_000_000_000_000 / 2 * 0.5 =
+// 187_500_000_000`
+//
+// According to (preliminary) weights of messages pallet, cost of additional message is zero and the
+// cost of additional relayer is `8_000_000 + db read + db write`. Let's say we want no more than
+// 4096 unconfirmed messages (no any scientific justification for that - it just looks large
+// enough). And then we can't have more than 4096 relayers. E.g. for 1024 relayers is (using
+// `RocksDbWeight`):
+//
+// `1024 * (8_000_000 + db read + db write) = 1024 * (8_000_000 + 25_000_000 + 100_000_000) =
+// 136_192_000_000`
+//
+// So 1024 looks like good approximation for the number of relayers. If something is wrong in those
+// assumptions, or something will change, it shall be caught by the
+// `ensure_able_to_receive_confirmation` test.
+
 /// Maximal number of unrewarded relayer entries at inbound lane.
-pub const MAX_UNREWARDED_RELAYERS_IN_CONFIRMATION_TX: MessageNonce = 128;
+pub const MAX_UNREWARDED_RELAYERS_IN_CONFIRMATION_TX: MessageNonce = 1024;
 
 // TODO [#438] should be selected keeping in mind:
 // finality delay on both chains + reward payout cost + messages throughput.
 /// Maximal number of unconfirmed messages at inbound lane.
-pub const MAX_UNCONFIRMED_MESSAGES_IN_CONFIRMATION_TX: MessageNonce = 8192;
+pub const MAX_UNCONFIRMED_MESSAGES_IN_CONFIRMATION_TX: MessageNonce = 4096;
 
 /// Maximal number of bytes, included in the signed Polkadot-like transaction apart from the encoded
 /// call itself.
