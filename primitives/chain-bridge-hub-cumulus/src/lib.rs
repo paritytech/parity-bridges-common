@@ -85,7 +85,7 @@ pub type AccountSigner = MultiSigner;
 /// The address format for describing accounts.
 pub type Address = MultiAddress<AccountId, ()>;
 
-// Not about selecting values of two following constants:
+// Note about selecting values of two following constants:
 //
 // Normal transactions have limit of 75% of 1/2 second weight for Cumulus parachains. Let's keep
 // some reserve for the rest of stuff there => let's select values that fit in 50% of maximal limit.
