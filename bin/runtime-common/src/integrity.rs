@@ -292,15 +292,15 @@ where
 
 /// Check that the message lane weights are correct.
 pub fn check_message_lane_weights<C: Chain, T: frame_system::Config>(
-	extra_storage_proof_size: u32,
-	max_unrewarded_relayers: MessageNonce,
-	max_unconfirmed_messages: MessageNonce,
+	bridged_chain_extra_storage_proof_size: u32,
+	this_chain_max_unrewarded_relayers: MessageNonce,
+	this_chain_max_unconfirmed_messages: MessageNonce,
 ) {
 	type Weights<T> = pallet_bridge_messages::weights::BridgeWeight<T>;
 
 	pallet_bridge_messages::ensure_weights_are_correct::<Weights<T>>();
 
-	let max_incoming_message_proof_size = extra_storage_proof_size
+	let max_incoming_message_proof_size = bridged_chain_extra_storage_proof_size
 		.saturating_add(messages::target::maximal_incoming_message_size(C::max_extrinsic_size()));
 	pallet_bridge_messages::ensure_able_to_receive_message::<Weights<T>>(
 		C::max_extrinsic_size(),
@@ -310,12 +310,12 @@ pub fn check_message_lane_weights<C: Chain, T: frame_system::Config>(
 	);
 
 	let max_incoming_inbound_lane_data_proof_size =
-		InboundLaneData::<()>::encoded_size_hint_u32(max_unrewarded_relayers as _);
+		InboundLaneData::<()>::encoded_size_hint_u32(this_chain_max_unrewarded_relayers as _);
 	pallet_bridge_messages::ensure_able_to_receive_confirmation::<Weights<T>>(
 		C::max_extrinsic_size(),
 		C::max_extrinsic_weight(),
 		max_incoming_inbound_lane_data_proof_size,
-		max_unrewarded_relayers,
-		max_unconfirmed_messages,
+		this_chain_max_unrewarded_relayers,
+		this_chain_max_unconfirmed_messages,
 	);
 }
