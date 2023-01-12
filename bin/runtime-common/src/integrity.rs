@@ -290,6 +290,7 @@ where
 	assert_bridge_pallet_names::<B, R, GI, MI>(params.pallet_names);
 }
 
+/// Check that the message lane weights are correct.
 pub fn check_message_lane_weights<C: Chain, T: frame_system::Config>(
 	extra_storage_proof_size: u32,
 	max_unrewarded_relayers: MessageNonce,
