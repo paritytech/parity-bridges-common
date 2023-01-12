@@ -34,6 +34,8 @@ frame-system = { git = "https://github.com/paritytech//substrate", branch = "sv-
 frame-system-benchmarking = { git = "https://github.com/paritytech//substrate", branch = "sv-locked-for-gav-xcm-v3-and-bridges-2" }
 frame-system-rpc-runtime-api = { git = "https://github.com/paritytech//substrate", branch = "sv-locked-for-gav-xcm-v3-and-bridges-2" }
 frame-try-runtime = { git = "https://github.com/paritytech//substrate", branch = "sv-locked-for-gav-xcm-v3-and-bridges-2" }
+mmr-gadget = { git = "https://github.com/paritytech//substrate", branch = "sv-locked-for-gav-xcm-v3-and-bridges-2" }
+mmr-rpc = { git = "https://github.com/paritytech//substrate", branch = "sv-locked-for-gav-xcm-v3-and-bridges-2" }
 node-inspect = { git = "https://github.com/paritytech//substrate", branch = "sv-locked-for-gav-xcm-v3-and-bridges-2" }
 pallet-aura = { git = "https://github.com/paritytech//substrate", branch = "sv-locked-for-gav-xcm-v3-and-bridges-2" }
 pallet-authority-discovery = { git = "https://github.com/paritytech//substrate", branch = "sv-locked-for-gav-xcm-v3-and-bridges-2" }
@@ -58,6 +60,7 @@ pallet-indices = { git = "https://github.com/paritytech//substrate", branch = "s
 pallet-membership = { git = "https://github.com/paritytech//substrate", branch = "sv-locked-for-gav-xcm-v3-and-bridges-2" }
 pallet-mmr = { git = "https://github.com/paritytech//substrate", branch = "sv-locked-for-gav-xcm-v3-and-bridges-2" }
 pallet-multisig = { git = "https://github.com/paritytech//substrate", branch = "sv-locked-for-gav-xcm-v3-and-bridges-2" }
+pallet-nis = { git = "https://github.com/paritytech//substrate", branch = "sv-locked-for-gav-xcm-v3-and-bridges-2" }
 pallet-nomination-pools = { git = "https://github.com/paritytech//substrate", branch = "sv-locked-for-gav-xcm-v3-and-bridges-2" }
 pallet-nomination-pools-runtime-api = { git = "https://github.com/paritytech//substrate", branch = "sv-locked-for-gav-xcm-v3-and-bridges-2" }
 pallet-offences = { git = "https://github.com/paritytech//substrate", branch = "sv-locked-for-gav-xcm-v3-and-bridges-2" }
@@ -133,6 +136,7 @@ sp-application-crypto = { git = "https://github.com/paritytech//substrate", bran
 sp-arithmetic = { git = "https://github.com/paritytech//substrate", branch = "sv-locked-for-gav-xcm-v3-and-bridges-2" }
 sp-authority-discovery = { git = "https://github.com/paritytech//substrate", branch = "sv-locked-for-gav-xcm-v3-and-bridges-2" }
 sp-authorship = { git = "https://github.com/paritytech//substrate", branch = "sv-locked-for-gav-xcm-v3-and-bridges-2" }
+sp-beefy = { git = "https://github.com/paritytech//substrate", branch = "sv-locked-for-gav-xcm-v3-and-bridges-2" }
 sp-block-builder = { git = "https://github.com/paritytech//substrate", branch = "sv-locked-for-gav-xcm-v3-and-bridges-2" }
 sp-blockchain = { git = "https://github.com/paritytech//substrate", branch = "sv-locked-for-gav-xcm-v3-and-bridges-2" }
 sp-consensus = { git = "https://github.com/paritytech//substrate", branch = "sv-locked-for-gav-xcm-v3-and-bridges-2" }
@@ -173,6 +177,7 @@ sp-trie = { git = "https://github.com/paritytech//substrate", branch = "sv-locke
 sp-version = { git = "https://github.com/paritytech//substrate", branch = "sv-locked-for-gav-xcm-v3-and-bridges-2" }
 sp-version-proc-macro = { git = "https://github.com/paritytech//substrate", branch = "sv-locked-for-gav-xcm-v3-and-bridges-2" }
 sp-wasm-interface = { git = "https://github.com/paritytech//substrate", branch = "sv-locked-for-gav-xcm-v3-and-bridges-2" }
+sp-weights = { git = "https://github.com/paritytech//substrate", branch = "sv-locked-for-gav-xcm-v3-and-bridges-2" }
 substrate-build-script-utils = { git = "https://github.com/paritytech//substrate", branch = "sv-locked-for-gav-xcm-v3-and-bridges-2" }
 substrate-frame-rpc-system = { git = "https://github.com/paritytech//substrate", branch = "sv-locked-for-gav-xcm-v3-and-bridges-2" }
 substrate-prometheus-endpoint = { git = "https://github.com/paritytech//substrate", branch = "sv-locked-for-gav-xcm-v3-and-bridges-2" }

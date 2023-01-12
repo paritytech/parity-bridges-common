@@ -572,7 +572,7 @@ dependencies = [
  "sp-api",
  "sp-application-crypto",
  "sp-arithmetic",
- "sp-beefy 4.0.0-dev (git+https://github.com/paritytech//substrate?branch=sv-locked-for-gav-xcm-v3-and-bridges-2)",
+ "sp-beefy",
  "sp-blockchain",
  "sp-consensus",
  "sp-core",
@@ -597,7 +597,7 @@ dependencies = [
  "parking_lot 0.12.1",
  "sc-rpc",
  "serde",
- "sp-beefy 4.0.0-dev (git+https://github.com/paritytech//substrate?branch=sv-locked-for-gav-xcm-v3-and-bridges-2)",
+ "sp-beefy",
  "sp-core",
  "sp-runtime",
  "thiserror",
@@ -609,7 +609,7 @@ version = "4.0.0-dev"
 source = "git+https://github.com/paritytech//substrate?branch=sv-locked-for-gav-xcm-v3-and-bridges-2#4e383428ffc6d4eba173ca257c1aaf53d1ec339c"
 dependencies = [
  "sp-api",
- "sp-beefy 4.0.0-dev (git+https://github.com/paritytech//substrate?branch=sv-locked-for-gav-xcm-v3-and-bridges-2)",
+ "sp-beefy",
  "sp-runtime",
 ]
 
@@ -794,6 +794,7 @@ dependencies = [
  "parity-scale-codec",
  "scale-info",
  "serde",
+ "sp-beefy",
  "sp-runtime",
  "sp-std",
 ]
@@ -3287,7 +3288,7 @@ dependencies = [
  "sp-state-machine",
  "sp-std",
  "sp-tracing",
- "sp-weights 4.0.0 (git+https://github.com/paritytech//substrate?branch=sv-locked-for-gav-xcm-v3-and-bridges-2)",
+ "sp-weights",
  "tt-call",
 ]
 
@@ -3342,7 +3343,7 @@ dependencies = [
  "sp-runtime",
  "sp-std",
  "sp-version",
- "sp-weights 4.0.0 (git+https://github.com/paritytech//substrate?branch=sv-locked-for-gav-xcm-v3-and-bridges-2)",
+ "sp-weights",
 ]
 
 [[package]]
@@ -4610,7 +4611,7 @@ dependencies = [
  "sp-api",
  "sp-arithmetic",
  "sp-authority-discovery",
- "sp-beefy 4.0.0-dev (git+https://github.com/paritytech/substrate?branch=master)",
+ "sp-beefy",
  "sp-block-builder",
  "sp-consensus-babe",
  "sp-core",
@@ -4643,7 +4644,7 @@ dependencies = [
  "smallvec",
  "sp-core",
  "sp-runtime",
- "sp-weights 4.0.0 (git+https://github.com/paritytech/substrate?branch=master)",
+ "sp-weights",
 ]
 
 [[package]]
@@ -5603,7 +5604,7 @@ dependencies = [
 [[package]]
 name = "mmr-gadget"
 version = "4.0.0-dev"
-source = "git+https://github.com/paritytech/substrate?branch=master#e9b0facf70eeb08032cc7e83548c62f0b4a24bb1"
+source = "git+https://github.com/paritytech//substrate?branch=sv-locked-for-gav-xcm-v3-and-bridges-2#4e383428ffc6d4eba173ca257c1aaf53d1ec339c"
 dependencies = [
  "futures",
  "log",
@@ -5611,7 +5612,7 @@ dependencies = [
  "sc-client-api",
  "sc-offchain",
  "sp-api",
- "sp-beefy 4.0.0-dev (git+https://github.com/paritytech/substrate?branch=master)",
+ "sp-beefy",
  "sp-blockchain",
  "sp-consensus",
  "sp-core",
@@ -5622,7 +5623,7 @@ dependencies = [
 [[package]]
 name = "mmr-rpc"
 version = "4.0.0-dev"
-source = "git+https://github.com/paritytech/substrate?branch=master#e9b0facf70eeb08032cc7e83548c62f0b4a24bb1"
+source = "git+https://github.com/paritytech//substrate?branch=sv-locked-for-gav-xcm-v3-and-bridges-2#4e383428ffc6d4eba173ca257c1aaf53d1ec339c"
 dependencies = [
  "anyhow",
  "jsonrpsee 0.16.2",
@@ -6265,7 +6266,7 @@ dependencies = [
  "parity-scale-codec",
  "scale-info",
  "serde",
- "sp-beefy 4.0.0-dev (git+https://github.com/paritytech//substrate?branch=sv-locked-for-gav-xcm-v3-and-bridges-2)",
+ "sp-beefy",
  "sp-runtime",
  "sp-std",
 ]
@@ -6286,7 +6287,7 @@ dependencies = [
  "parity-scale-codec",
  "scale-info",
  "serde",
- "sp-beefy 4.0.0-dev (git+https://github.com/paritytech//substrate?branch=sv-locked-for-gav-xcm-v3-and-bridges-2)",
+ "sp-beefy",
  "sp-core",
  "sp-io",
  "sp-runtime",
@@ -6693,7 +6694,7 @@ dependencies = [
 [[package]]
 name = "pallet-nis"
 version = "4.0.0-dev"
-source = "git+https://github.com/paritytech/substrate?branch=master#e9b0facf70eeb08032cc7e83548c62f0b4a24bb1"
+source = "git+https://github.com/paritytech//substrate?branch=sv-locked-for-gav-xcm-v3-and-bridges-2#4e383428ffc6d4eba173ca257c1aaf53d1ec339c"
 dependencies = [
  "frame-benchmarking",
  "frame-support",
@@ -6861,7 +6862,7 @@ dependencies = [
  "sp-io",
  "sp-runtime",
  "sp-std",
- "sp-weights 4.0.0 (git+https://github.com/paritytech//substrate?branch=sv-locked-for-gav-xcm-v3-and-bridges-2)",
+ "sp-weights",
 ]
 
 [[package]]
@@ -7036,7 +7037,7 @@ dependencies = [
  "sp-core",
  "sp-rpc",
  "sp-runtime",
- "sp-weights 4.0.0 (git+https://github.com/paritytech//substrate?branch=sv-locked-for-gav-xcm-v3-and-bridges-2)",
+ "sp-weights",
 ]
 
 [[package]]
@@ -7048,7 +7049,7 @@ dependencies = [
  "parity-scale-codec",
  "sp-api",
  "sp-runtime",
- "sp-weights 4.0.0 (git+https://github.com/paritytech//substrate?branch=sv-locked-for-gav-xcm-v3-and-bridges-2)",
+ "sp-weights",
 ]
 
 [[package]]
@@ -7601,7 +7602,7 @@ dependencies = [
  "sc-service",
  "sp-api",
  "sp-authority-discovery",
- "sp-beefy 4.0.0-dev (git+https://github.com/paritytech/substrate?branch=master)",
+ "sp-beefy",
  "sp-block-builder",
  "sp-blockchain",
  "sp-consensus",
@@ -8325,7 +8326,7 @@ dependencies = [
  "smallvec",
  "sp-api",
  "sp-authority-discovery",
- "sp-beefy 4.0.0-dev (git+https://github.com/paritytech/substrate?branch=master)",
+ "sp-beefy",
  "sp-block-builder",
  "sp-consensus-babe",
  "sp-core",
@@ -8380,7 +8381,7 @@ dependencies = [
  "serde_derive",
  "slot-range-helper",
  "sp-api",
- "sp-beefy 4.0.0-dev (git+https://github.com/paritytech/substrate?branch=master)",
+ "sp-beefy",
  "sp-core",
  "sp-inherents",
  "sp-io",
@@ -8404,7 +8405,7 @@ dependencies = [
  "smallvec",
  "sp-core",
  "sp-runtime",
- "sp-weights 4.0.0 (git+https://github.com/paritytech/substrate?branch=master)",
+ "sp-weights",
 ]
 
 [[package]]
@@ -8538,7 +8539,7 @@ dependencies = [
  "serde_json",
  "sp-api",
  "sp-authority-discovery",
- "sp-beefy 4.0.0-dev (git+https://github.com/paritytech/substrate?branch=master)",
+ "sp-beefy",
  "sp-block-builder",
  "sp-blockchain",
  "sp-consensus",
@@ -11475,23 +11476,6 @@ dependencies = [
 [[package]]
 name = "sp-beefy"
 version = "4.0.0-dev"
-source = "git+https://github.com/paritytech/substrate?branch=master#e9b0facf70eeb08032cc7e83548c62f0b4a24bb1"
-dependencies = [
- "parity-scale-codec",
- "scale-info",
- "serde",
- "sp-api",
- "sp-application-crypto",
- "sp-core",
- "sp-io",
- "sp-mmr-primitives",
- "sp-runtime",
- "sp-std",
-]
-
-[[package]]
-name = "sp-beefy"
-version = "4.0.0-dev"
 source = "git+https://github.com/paritytech//substrate?branch=sv-locked-for-gav-xcm-v3-and-bridges-2#4e383428ffc6d4eba173ca257c1aaf53d1ec339c"
 dependencies = [
  "parity-scale-codec",
@@ -11892,7 +11876,7 @@ dependencies = [
  "sp-core",
  "sp-io",
  "sp-std",
- "sp-weights 4.0.0 (git+https://github.com/paritytech//substrate?branch=sv-locked-for-gav-xcm-v3-and-bridges-2)",
+ "sp-weights",
 ]
 
 [[package]]
@@ -12103,21 +12087,6 @@ dependencies = [
  "sp-std",
  "wasmi",
  "wasmtime",
-]
-
-[[package]]
-name = "sp-weights"
-version = "4.0.0"
-source = "git+https://github.com/paritytech/substrate?branch=master#e9b0facf70eeb08032cc7e83548c62f0b4a24bb1"
-dependencies = [
- "parity-scale-codec",
- "scale-info",
- "serde",
- "smallvec",
- "sp-arithmetic",
- "sp-core",
- "sp-debug-derive",
- "sp-std",
 ]
 
 [[package]]
@@ -13197,7 +13166,7 @@ dependencies = [
  "sp-runtime",
  "sp-state-machine",
  "sp-version",
- "sp-weights 4.0.0 (git+https://github.com/paritytech//substrate?branch=sv-locked-for-gav-xcm-v3-and-bridges-2)",
+ "sp-weights",
  "substrate-rpc-client",
  "zstd",
 ]
@@ -14342,7 +14311,7 @@ dependencies = [
  "scale-info",
  "serde",
  "sp-core",
- "sp-weights 4.0.0 (git+https://github.com/paritytech/substrate?branch=master)",
+ "sp-weights",
  "xcm-procedural",
 ]
 
@@ -14382,7 +14351,7 @@ dependencies = [
  "sp-io",
  "sp-runtime",
  "sp-std",
- "sp-weights 4.0.0 (git+https://github.com/paritytech/substrate?branch=master)",
+ "sp-weights",
  "xcm",
 ]
 
