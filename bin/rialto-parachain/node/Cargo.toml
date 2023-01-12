@@ -47,7 +47,7 @@ sc-executor = { git = "https://github.com/paritytech/substrate", branch = "maste
 sc-network = { git = "https://github.com/paritytech/substrate", branch = "master" }
 sc-rpc = { git = "https://github.com/paritytech/substrate", branch = "master" }
 sc-rpc-api = { git = "https://github.com/paritytech/substrate", branch = "master" }
-sc-service = { git = "https://github.com/paritytech/substrate", branch = "master", features = ['wasmtime'] }
+sc-service = { git = "https://github.com/paritytech/substrate", branch = "master"}
 sc-sysinfo = { git = "https://github.com/paritytech/substrate", branch = "master" }
 sc-telemetry = { git = "https://github.com/paritytech/substrate", branch = "master" }
 sc-transaction-pool = { git = "https://github.com/paritytech/substrate", branch = "master" }
