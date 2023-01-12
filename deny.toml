@@ -65,6 +65,8 @@ ignore = [
     "RUSTSEC-2022-0040",
     # deprecated parity-wasm (origin: Substrate)
     "RUSTSEC-2022-0061",
+    # atty (origin: Substrate, clap)
+    "RUSTSEC-2021-0145",
 ]
 # Threshold for security vulnerabilities, any vulnerability with a CVSS score
 # lower than the range specified will be ignored. Note that ignored advisories
