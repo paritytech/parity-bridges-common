@@ -34,7 +34,7 @@ frame-benchmarking-cli = { git = "https://github.com/paritytech/substrate", bran
 
 pallet-transaction-payment-rpc = { git = "https://github.com/paritytech/substrate", branch = "master" }
 
-substrate-frame-rpc-system = { git = "https://github.com/paritytech/substrate", branch = "master" }
+frame-rpc-system = { package = "substrate-frame-rpc-system", git = "https://github.com/paritytech/substrate", branch = "master" }
 substrate-prometheus-endpoint = { git = "https://github.com/paritytech/substrate", branch = "master" }
 
 ## Substrate Client Dependencies
