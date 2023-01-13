@@ -438,12 +438,12 @@ pub async fn start_node(
 		 keystore,
 		 force_authoring| {
 			let client2 = client.clone();
-			let block_import2 = block_import.clone();
+			let block_import2 = block_import;
 			let slot_duration = cumulus_client_consensus_aura::slot_duration(&*client)?;
 
 			let proposer_factory = sc_basic_authorship::ProposerFactory::with_proof_recording(
 				task_manager.spawn_handle(),
-				client.clone(),
+				client,
 				transaction_pool,
 				prometheus_registry,
 				telemetry.clone(),
