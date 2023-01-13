@@ -32,7 +32,7 @@ pub mod millau_messages;
 pub mod parachains;
 pub mod xcm_config;
 
-use beefy_primitives::{crypto::AuthorityId as BeefyId, mmr::MmrLeafVersion, ValidatorSet};
+use sp_beefy::{crypto::AuthorityId as BeefyId, mmr::MmrLeafVersion, ValidatorSet};
 use bp_runtime::HeaderId;
 use pallet_grandpa::{
 	fg_primitives, AuthorityId as GrandpaId, AuthorityList as GrandpaAuthorityList,
@@ -62,7 +62,7 @@ pub use frame_support::{
 	dispatch::DispatchClass,
 	parameter_types,
 	traits::{ConstU32, ConstU8, Currency, ExistenceRequirement, Imbalance, KeyOwnerProofSystem},
-	weights::{constants::WEIGHT_PER_SECOND, IdentityFee, RuntimeDbWeight, Weight},
+	weights::{constants::WEIGHT_REF_TIME_PER_SECOND, IdentityFee, RuntimeDbWeight, Weight},
 	StorageValue,
 };
 
@@ -300,7 +300,7 @@ parameter_types! {
 
 pub struct BeefyDummyDataProvider;
 
-impl beefy_primitives::mmr::BeefyDataProvider<()> for BeefyDummyDataProvider {
+impl sp_beefy::mmr::BeefyDataProvider<()> for BeefyDummyDataProvider {
 	fn extra_data() {}
 }
 
@@ -622,7 +622,7 @@ impl_runtime_apis! {
 		}
 	}
 
-	impl beefy_primitives::BeefyApi<Block> for Runtime {
+	impl sp_beefy::BeefyApi<Block> for Runtime {
 		fn validator_set() -> Option<ValidatorSet<BeefyId>> {
 			Beefy::validator_set()
 		}
@@ -650,7 +650,7 @@ impl_runtime_apis! {
 				.into_opaque_leaf()
 				.try_decode()
 				.ok_or(MmrError::Verify)?;
-			Mmr::verify_leaves(vec![leaf], mmr::Proof::into_batch_proof(proof))
+			Mmr::verify_leaves(vec![leaf], proof)
 		}
 
 		fn verify_proof_stateless(
@@ -662,7 +662,7 @@ impl_runtime_apis! {
 			pallet_mmr::verify_leaves_proof::<MmrHashing, _>(
 				root,
 				vec![node],
-				pallet_mmr::primitives::Proof::into_batch_proof(proof),
+				proof,
 			)
 		}
 

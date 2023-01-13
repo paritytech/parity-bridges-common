@@ -18,6 +18,7 @@ rialto-runtime = { path = "../runtime" }
 
 # Substrate Dependencies
 
+sp-beefy = { git = "https://github.com/paritytech/substrate", branch = "master" }
 frame-benchmarking = { git = "https://github.com/paritytech/substrate", branch = "master" }
 frame-benchmarking-cli = { git = "https://github.com/paritytech/substrate", branch = "master" }
 frame-support = { git = "https://github.com/paritytech/substrate", branch = "master" }

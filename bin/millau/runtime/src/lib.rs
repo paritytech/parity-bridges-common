@@ -32,7 +32,7 @@ pub mod rialto_messages;
 pub mod rialto_parachain_messages;
 pub mod xcm_config;
 
-use beefy_primitives::{crypto::AuthorityId as BeefyId, mmr::MmrLeafVersion, ValidatorSet};
+use sp_beefy::{crypto::AuthorityId as BeefyId, mmr::MmrLeafVersion, ValidatorSet};
 use bp_parachains::SingleParaStoredHeaderDataBuilder;
 use bp_runtime::HeaderId;
 use pallet_grandpa::{
@@ -64,7 +64,7 @@ pub use frame_support::{
 	parameter_types,
 	traits::{ConstU32, ConstU8, Currency, ExistenceRequirement, Imbalance, KeyOwnerProofSystem},
 	weights::{
-		constants::WEIGHT_PER_SECOND, ConstantMultiplier, IdentityFee, RuntimeDbWeight, Weight,
+		constants::WEIGHT_REF_TIME_PER_SECOND, ConstantMultiplier, IdentityFee, RuntimeDbWeight, Weight,
 	},
 	RuntimeDebug, StorageValue,
 };
@@ -281,7 +281,7 @@ parameter_types! {
 
 pub struct BeefyDummyDataProvider;
 
-impl beefy_primitives::mmr::BeefyDataProvider<()> for BeefyDummyDataProvider {
+impl sp_beefy::mmr::BeefyDataProvider<()> for BeefyDummyDataProvider {
 	fn extra_data() {}
 }
 
@@ -766,7 +766,7 @@ impl_runtime_apis! {
 		}
 	}
 
-	impl beefy_primitives::BeefyApi<Block> for Runtime {
+	impl sp_beefy::BeefyApi<Block> for Runtime {
 		fn validator_set() -> Option<ValidatorSet<BeefyId>> {
 			Beefy::validator_set()
 		}

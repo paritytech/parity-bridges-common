@@ -14,7 +14,7 @@
 // You should have received a copy of the GNU General Public License
 // along with Parity Bridges Common.  If not, see <http://www.gnu.org/licenses/>.
 
-use beefy_primitives::crypto::AuthorityId as BeefyId;
+use sp_beefy::crypto::AuthorityId as BeefyId;
 use frame_support::weights::Weight;
 use polkadot_primitives::v2::{AssignmentId, ValidatorId};
 use rialto_runtime::{

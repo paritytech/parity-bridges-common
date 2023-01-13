@@ -31,6 +31,7 @@ pallet-shift-session-manager = { path = "../../../modules/shift-session-manager"
 
 # Substrate Dependencies
 
+sp-beefy = { git = "https://github.com/paritytech/substrate", branch = "master", default-features = false }
 frame-benchmarking = { git = "https://github.com/paritytech/substrate", branch = "master", default-features = false, optional = true }
 frame-executive = { git = "https://github.com/paritytech/substrate", branch = "master", default-features = false }
 frame-support = { git = "https://github.com/paritytech/substrate", branch = "master", default-features = false }
@@ -80,6 +81,7 @@ substrate-wasm-builder = { git = "https://github.com/paritytech/substrate", bran
 [features]
 default = ["std"]
 std = [
+	"sp-beefy/std",
 	"bp-messages/std",
 	"bp-millau/std",
 	"bp-parachains/std",

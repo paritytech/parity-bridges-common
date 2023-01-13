@@ -52,7 +52,7 @@ pub use frame_support::{
 	match_types, parameter_types,
 	traits::{ConstU32, Everything, IsInVec, Nothing, Randomness},
 	weights::{
-		constants::{BlockExecutionWeight, ExtrinsicBaseWeight, RocksDbWeight, WEIGHT_PER_SECOND},
+		constants::{BlockExecutionWeight, ExtrinsicBaseWeight, RocksDbWeight, WEIGHT_REF_TIME_PER_SECOND},
 		IdentityFee, Weight,
 	},
 	StorageValue,

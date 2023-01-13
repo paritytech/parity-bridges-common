@@ -414,7 +414,7 @@ pub mod pallet {
 #[cfg(test)]
 mod tests {
 	use super::*;
-	use beefy_primitives::mmr::BeefyAuthoritySet;
+	use sp_beefy::mmr::BeefyAuthoritySet;
 	use bp_runtime::{BasicOperatingMode, OwnedBridgeModuleError};
 	use bp_test_utils::generate_owned_bridge_module_tests;
 	use frame_support::{assert_noop, assert_ok, traits::Get};
