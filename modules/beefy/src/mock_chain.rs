@@ -26,11 +26,11 @@ use crate::{
 	utils::get_authorities_mmr_root,
 };
 
-use sp_beefy::mmr::{BeefyNextAuthoritySet, MmrLeafVersion};
 use bp_beefy::{BeefyPayload, Commitment, ValidatorSetId, MMR_ROOT_PAYLOAD_ID};
 use codec::Encode;
 use pallet_mmr::NodeIndex;
 use rand::Rng;
+use sp_beefy::mmr::{BeefyNextAuthoritySet, MmrLeafVersion};
 use sp_core::Pair;
 use sp_runtime::traits::{Hash, Header as HeaderT};
 use std::collections::HashMap;

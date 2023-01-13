@@ -32,6 +32,7 @@ use bridge_runtime_common::{
 use frame_support::{
 	parameter_types,
 	traits::{ConstU32, Everything, Nothing},
+	weights::Weight,
 };
 use xcm::latest::prelude::*;
 use xcm_builder::{
@@ -97,7 +98,8 @@ pub const BASE_XCM_WEIGHT: u64 = 1_000_000_000;
 
 parameter_types! {
 	/// The amount of weight an XCM operation takes. This is a safe overestimate.
-	pub const BaseXcmWeight: u64 = BASE_XCM_WEIGHT;
+	// TODO: https://github.com/paritytech/parity-bridges-common/issues/1543 - check `set_proof_size` 0 or 64*1024 or 1026?
+	pub const BaseXcmWeight: Weight = Weight::from_parts(BASE_XCM_WEIGHT, 0);
 	/// Maximum number of instructions in a single XCM fragment. A sanity check against weight
 	/// calculations getting too crazy.
 	pub const MaxInstructions: u32 = 100;

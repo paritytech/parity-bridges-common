@@ -161,9 +161,9 @@ pub(crate) fn verify_beefy_mmr_leaf<T: Config<I>, I: 'static>(
 mod tests {
 	use super::*;
 	use crate::{mock::*, mock_chain::*, *};
-	use sp_beefy::ValidatorSet;
 	use bp_beefy::{BeefyPayload, MMR_ROOT_PAYLOAD_ID};
 	use frame_support::{assert_noop, assert_ok};
+	use sp_beefy::ValidatorSet;
 
 	#[test]
 	fn submit_commitment_checks_metadata() {

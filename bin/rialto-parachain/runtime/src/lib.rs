@@ -52,7 +52,9 @@ pub use frame_support::{
 	match_types, parameter_types,
 	traits::{ConstU32, Everything, IsInVec, Nothing, Randomness},
 	weights::{
-		constants::{BlockExecutionWeight, ExtrinsicBaseWeight, RocksDbWeight, WEIGHT_REF_TIME_PER_SECOND},
+		constants::{
+			BlockExecutionWeight, ExtrinsicBaseWeight, RocksDbWeight, WEIGHT_REF_TIME_PER_SECOND,
+		},
 		IdentityFee, Weight,
 	},
 	StorageValue,
@@ -370,7 +372,9 @@ pub type XcmOriginToTransactDispatchOrigin = (
 pub const BASE_XCM_WEIGHT: u64 = 1_000_000_000;
 
 parameter_types! {
-	pub UnitWeightCost: u64 = BASE_XCM_WEIGHT;
+	/// The amount of weight an XCM operation takes. This is a safe overestimate.
+	// TODO: https://github.com/paritytech/parity-bridges-common/issues/1543 - check `set_proof_size` 0 or 64*1024 or 1026?
+	pub UnitWeightCost: Weight = Weight::from_parts(BASE_XCM_WEIGHT, 0);
 	// One UNIT buys 1 second of weight.
 	pub const WeightPrice: (MultiLocation, u128) = (MultiLocation::parent(), UNIT);
 	pub const MaxInstructions: u32 = 100;
