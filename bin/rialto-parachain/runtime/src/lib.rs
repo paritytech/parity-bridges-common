@@ -464,7 +464,7 @@ impl XcmBridge for ToMillauBridge {
 
 #[cfg(feature = "runtime-benchmarks")]
 parameter_types! {
-	pub ReachableDest: Option<MultiLocation> = Some(Parent.into());
+	pub ReachableDest: Option<MultiLocation> = todo!("We dont use benchmarks for pallet_xcm, so if you hit this message, you need to remove this and define value instead");
 }
 
 impl pallet_xcm::Config for Runtime {
