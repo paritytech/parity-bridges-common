@@ -5481,6 +5481,7 @@ dependencies = [
  "frame-benchmarking-cli",
  "jsonrpsee 0.15.1",
  "millau-runtime",
+ "mmr-rpc",
  "node-inspect",
  "pallet-transaction-payment-rpc",
  "sc-basic-authorship",

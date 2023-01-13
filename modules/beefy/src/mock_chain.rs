@@ -227,7 +227,7 @@ impl HeaderBuilder {
 		let leaf_index = *self.header.number() - 1;
 		let leaf_count = *self.header.number();
 		self.leaf_proof = Some(f(TestBridgedMmrProof {
-			leaf_index,
+			leaf_indices: vec![leaf_index],
 			leaf_count,
 			items: proof.proof_items().iter().map(|i| i.hash()).collect(),
 		}));

@@ -272,7 +272,7 @@ pub fn new_full(mut config: Configuration) -> Result<TaskManager, ServiceError> 
 		use sc_finality_grandpa::FinalityProofProvider as GrandpaFinalityProofProvider;
 
 		use beefy_gadget_rpc::{Beefy, BeefyApiServer};
-		use pallet_mmr_rpc::{Mmr, MmrApiServer};
+		use mmr_rpc::{Mmr, MmrApiServer};
 		use pallet_transaction_payment_rpc::{TransactionPayment, TransactionPaymentApiServer};
 		use sc_finality_grandpa_rpc::{Grandpa, GrandpaApiServer};
 		use sc_rpc::DenyUnsafe;

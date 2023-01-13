@@ -278,7 +278,7 @@ mod tests {
 
 			// Fails if mmr proof is incorrect.
 			let mut header = ChainBuilder::new(1).append_finalized_header().to_header();
-			header.leaf_proof.leaf_index += 1;
+			header.leaf_proof.leaf_indices[0] += 1;
 			assert_noop!(
 				import_commitment(header),
 				Error::<TestRuntime, ()>::MmrProofVerificationFailed,
