@@ -19,7 +19,7 @@
 //! The code is mostly copy of `polkadot-parachains/src/service.rs` file from Cumulus
 //! repository with some parts removed. We have added two RPC extensions to the original
 //! service: `pallet_transaction_payment_rpc::TransactionPaymentApi` and
-//! `frame_rpc_system::SystemApi`.
+//! `substrate_frame_rpc_system::SystemApi`.
 
 // std
 use std::{sync::Arc, time::Duration};
@@ -415,9 +415,9 @@ pub async fn start_node(
 		collator_options,
 		id,
 		|_deny_unsafe, client, pool| {
-			use frame_rpc_system::{System, SystemApiServer};
 			use pallet_transaction_payment_rpc::{TransactionPayment, TransactionPaymentApiServer};
 			use sc_rpc::DenyUnsafe;
+			use substrate_frame_rpc_system::{System, SystemApiServer};
 
 			let mut io = jsonrpsee::RpcModule::new(());
 			let map_err = |e| sc_service::Error::Other(format!("{e}"));
