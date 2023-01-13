@@ -204,6 +204,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f52f63c5c1316a16a4b35eaac8b76a98248961a533f061684cb2a7cb0eafb6c6"
 
 [[package]]
+name = "array-bytes"
+version = "6.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "22f72e9d6fac4bc80778ea470b20197b88d28c292bb7d60c3fb099280003cd19"
+
+[[package]]
 name = "array_tool"
 version = "1.0.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -477,20 +483,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "backoff"
-version = "0.4.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b62ddb9cb1ec0a098ad4bbf9344d0713fa193ae1a80af55febcff2627b6a00c1"
-dependencies = [
- "futures-core",
- "getrandom 0.2.8",
- "instant",
- "pin-project-lite 0.2.9",
- "rand 0.8.5",
- "tokio",
-]
-
-[[package]]
 name = "backtrace"
 version = "0.3.67"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -555,7 +547,7 @@ name = "beefy-gadget"
 version = "4.0.0-dev"
 source = "git+https://github.com/paritytech//substrate?branch=sv-locked-for-gav-xcm-v3-and-bridges-2#4e383428ffc6d4eba173ca257c1aaf53d1ec339c"
 dependencies = [
- "array-bytes",
+ "array-bytes 4.2.0",
  "async-trait",
  "fnv",
  "futures",
@@ -1791,7 +1783,7 @@ dependencies = [
 [[package]]
 name = "cumulus-client-cli"
 version = "0.1.0"
-source = "git+https://github.com/paritytech//cumulus?branch=cumulus-locked-for-gav-xcm-v3-and-bridges#6ece1b652f805ffa7bd0052c77a38bd9fce11542"
+source = "git+https://github.com/paritytech//cumulus?branch=cumulus-locked-for-gav-xcm-v3-and-bridges-2#146c742e407b5f3c83cee4b8eb8ec7684949a40b"
 dependencies = [
  "clap 4.0.32",
  "parity-scale-codec",
@@ -1806,7 +1798,7 @@ dependencies = [
 [[package]]
 name = "cumulus-client-collator"
 version = "0.1.0"
-source = "git+https://github.com/paritytech//cumulus?branch=cumulus-locked-for-gav-xcm-v3-and-bridges#6ece1b652f805ffa7bd0052c77a38bd9fce11542"
+source = "git+https://github.com/paritytech//cumulus?branch=cumulus-locked-for-gav-xcm-v3-and-bridges-2#146c742e407b5f3c83cee4b8eb8ec7684949a40b"
 dependencies = [
  "cumulus-client-consensus-common",
  "cumulus-client-network",
@@ -1829,7 +1821,7 @@ dependencies = [
 [[package]]
 name = "cumulus-client-consensus-aura"
 version = "0.1.0"
-source = "git+https://github.com/paritytech//cumulus?branch=cumulus-locked-for-gav-xcm-v3-and-bridges#6ece1b652f805ffa7bd0052c77a38bd9fce11542"
+source = "git+https://github.com/paritytech//cumulus?branch=cumulus-locked-for-gav-xcm-v3-and-bridges-2#146c742e407b5f3c83cee4b8eb8ec7684949a40b"
 dependencies = [
  "async-trait",
  "cumulus-client-consensus-common",
@@ -1858,12 +1850,15 @@ dependencies = [
 [[package]]
 name = "cumulus-client-consensus-common"
 version = "0.1.0"
-source = "git+https://github.com/paritytech//cumulus?branch=cumulus-locked-for-gav-xcm-v3-and-bridges#6ece1b652f805ffa7bd0052c77a38bd9fce11542"
+source = "git+https://github.com/paritytech//cumulus?branch=cumulus-locked-for-gav-xcm-v3-and-bridges-2#146c742e407b5f3c83cee4b8eb8ec7684949a40b"
 dependencies = [
  "async-trait",
+ "cumulus-client-pov-recovery",
+ "cumulus-primitives-core",
  "cumulus-relay-chain-interface",
  "dyn-clone",
  "futures",
+ "log",
  "parity-scale-codec",
  "polkadot-primitives",
  "sc-client-api",
@@ -1878,7 +1873,7 @@ dependencies = [
 [[package]]
 name = "cumulus-client-network"
 version = "0.1.0"
-source = "git+https://github.com/paritytech//cumulus?branch=cumulus-locked-for-gav-xcm-v3-and-bridges#6ece1b652f805ffa7bd0052c77a38bd9fce11542"
+source = "git+https://github.com/paritytech//cumulus?branch=cumulus-locked-for-gav-xcm-v3-and-bridges-2#146c742e407b5f3c83cee4b8eb8ec7684949a40b"
 dependencies = [
  "async-trait",
  "cumulus-relay-chain-interface",
@@ -1901,7 +1896,7 @@ dependencies = [
 [[package]]
 name = "cumulus-client-pov-recovery"
 version = "0.1.0"
-source = "git+https://github.com/paritytech//cumulus?branch=cumulus-locked-for-gav-xcm-v3-and-bridges#6ece1b652f805ffa7bd0052c77a38bd9fce11542"
+source = "git+https://github.com/paritytech//cumulus?branch=cumulus-locked-for-gav-xcm-v3-and-bridges-2#146c742e407b5f3c83cee4b8eb8ec7684949a40b"
 dependencies = [
  "cumulus-primitives-core",
  "cumulus-relay-chain-interface",
@@ -1924,19 +1919,24 @@ dependencies = [
 [[package]]
 name = "cumulus-client-service"
 version = "0.1.0"
-source = "git+https://github.com/paritytech//cumulus?branch=cumulus-locked-for-gav-xcm-v3-and-bridges#6ece1b652f805ffa7bd0052c77a38bd9fce11542"
+source = "git+https://github.com/paritytech//cumulus?branch=cumulus-locked-for-gav-xcm-v3-and-bridges-2#146c742e407b5f3c83cee4b8eb8ec7684949a40b"
 dependencies = [
  "cumulus-client-cli",
  "cumulus-client-collator",
  "cumulus-client-consensus-common",
  "cumulus-client-pov-recovery",
  "cumulus-primitives-core",
+ "cumulus-relay-chain-inprocess-interface",
  "cumulus-relay-chain-interface",
+ "cumulus-relay-chain-minimal-node",
+ "futures",
  "parking_lot 0.12.1",
  "polkadot-primitives",
  "sc-client-api",
  "sc-consensus",
  "sc-service",
+ "sc-sysinfo",
+ "sc-telemetry",
  "sp-api",
  "sp-blockchain",
  "sp-consensus",
@@ -1947,7 +1947,7 @@ dependencies = [
 [[package]]
 name = "cumulus-pallet-aura-ext"
 version = "0.1.0"
-source = "git+https://github.com/paritytech//cumulus?branch=cumulus-locked-for-gav-xcm-v3-and-bridges#6ece1b652f805ffa7bd0052c77a38bd9fce11542"
+source = "git+https://github.com/paritytech//cumulus?branch=cumulus-locked-for-gav-xcm-v3-and-bridges-2#146c742e407b5f3c83cee4b8eb8ec7684949a40b"
 dependencies = [
  "frame-support",
  "frame-system",
@@ -1963,7 +1963,7 @@ dependencies = [
 [[package]]
 name = "cumulus-pallet-dmp-queue"
 version = "0.1.0"
-source = "git+https://github.com/paritytech//cumulus?branch=cumulus-locked-for-gav-xcm-v3-and-bridges#6ece1b652f805ffa7bd0052c77a38bd9fce11542"
+source = "git+https://github.com/paritytech//cumulus?branch=cumulus-locked-for-gav-xcm-v3-and-bridges-2#146c742e407b5f3c83cee4b8eb8ec7684949a40b"
 dependencies = [
  "cumulus-primitives-core",
  "frame-support",
@@ -1980,7 +1980,7 @@ dependencies = [
 [[package]]
 name = "cumulus-pallet-parachain-system"
 version = "0.1.0"
-source = "git+https://github.com/paritytech//cumulus?branch=cumulus-locked-for-gav-xcm-v3-and-bridges#6ece1b652f805ffa7bd0052c77a38bd9fce11542"
+source = "git+https://github.com/paritytech//cumulus?branch=cumulus-locked-for-gav-xcm-v3-and-bridges-2#146c742e407b5f3c83cee4b8eb8ec7684949a40b"
 dependencies = [
  "bytes",
  "cumulus-pallet-parachain-system-proc-macro",
@@ -2003,12 +2003,13 @@ dependencies = [
  "sp-std",
  "sp-trie",
  "sp-version",
+ "xcm",
 ]
 
 [[package]]
 name = "cumulus-pallet-parachain-system-proc-macro"
 version = "0.1.0"
-source = "git+https://github.com/paritytech//cumulus?branch=cumulus-locked-for-gav-xcm-v3-and-bridges#6ece1b652f805ffa7bd0052c77a38bd9fce11542"
+source = "git+https://github.com/paritytech//cumulus?branch=cumulus-locked-for-gav-xcm-v3-and-bridges-2#146c742e407b5f3c83cee4b8eb8ec7684949a40b"
 dependencies = [
  "proc-macro-crate",
  "proc-macro2 1.0.49",
@@ -2019,7 +2020,7 @@ dependencies = [
 [[package]]
 name = "cumulus-pallet-xcm"
 version = "0.1.0"
-source = "git+https://github.com/paritytech//cumulus?branch=cumulus-locked-for-gav-xcm-v3-and-bridges#6ece1b652f805ffa7bd0052c77a38bd9fce11542"
+source = "git+https://github.com/paritytech//cumulus?branch=cumulus-locked-for-gav-xcm-v3-and-bridges-2#146c742e407b5f3c83cee4b8eb8ec7684949a40b"
 dependencies = [
  "cumulus-primitives-core",
  "frame-support",
@@ -2035,7 +2036,7 @@ dependencies = [
 [[package]]
 name = "cumulus-pallet-xcmp-queue"
 version = "0.1.0"
-source = "git+https://github.com/paritytech//cumulus?branch=cumulus-locked-for-gav-xcm-v3-and-bridges#6ece1b652f805ffa7bd0052c77a38bd9fce11542"
+source = "git+https://github.com/paritytech//cumulus?branch=cumulus-locked-for-gav-xcm-v3-and-bridges-2#146c742e407b5f3c83cee4b8eb8ec7684949a40b"
 dependencies = [
  "cumulus-primitives-core",
  "frame-support",
@@ -2055,7 +2056,7 @@ dependencies = [
 [[package]]
 name = "cumulus-primitives-core"
 version = "0.1.0"
-source = "git+https://github.com/paritytech//cumulus?branch=cumulus-locked-for-gav-xcm-v3-and-bridges#6ece1b652f805ffa7bd0052c77a38bd9fce11542"
+source = "git+https://github.com/paritytech//cumulus?branch=cumulus-locked-for-gav-xcm-v3-and-bridges-2#146c742e407b5f3c83cee4b8eb8ec7684949a40b"
 dependencies = [
  "parity-scale-codec",
  "polkadot-core-primitives",
@@ -2065,12 +2066,13 @@ dependencies = [
  "sp-runtime",
  "sp-std",
  "sp-trie",
+ "xcm",
 ]
 
 [[package]]
 name = "cumulus-primitives-parachain-inherent"
 version = "0.1.0"
-source = "git+https://github.com/paritytech//cumulus?branch=cumulus-locked-for-gav-xcm-v3-and-bridges#6ece1b652f805ffa7bd0052c77a38bd9fce11542"
+source = "git+https://github.com/paritytech//cumulus?branch=cumulus-locked-for-gav-xcm-v3-and-bridges-2#146c742e407b5f3c83cee4b8eb8ec7684949a40b"
 dependencies = [
  "async-trait",
  "cumulus-primitives-core",
@@ -2093,7 +2095,7 @@ dependencies = [
 [[package]]
 name = "cumulus-primitives-timestamp"
 version = "0.1.0"
-source = "git+https://github.com/paritytech//cumulus?branch=cumulus-locked-for-gav-xcm-v3-and-bridges#6ece1b652f805ffa7bd0052c77a38bd9fce11542"
+source = "git+https://github.com/paritytech//cumulus?branch=cumulus-locked-for-gav-xcm-v3-and-bridges-2#146c742e407b5f3c83cee4b8eb8ec7684949a40b"
 dependencies = [
  "cumulus-primitives-core",
  "futures",
@@ -2106,7 +2108,7 @@ dependencies = [
 [[package]]
 name = "cumulus-relay-chain-inprocess-interface"
 version = "0.1.0"
-source = "git+https://github.com/paritytech//cumulus?branch=cumulus-locked-for-gav-xcm-v3-and-bridges#6ece1b652f805ffa7bd0052c77a38bd9fce11542"
+source = "git+https://github.com/paritytech//cumulus?branch=cumulus-locked-for-gav-xcm-v3-and-bridges-2#146c742e407b5f3c83cee4b8eb8ec7684949a40b"
 dependencies = [
  "async-trait",
  "cumulus-primitives-core",
@@ -2131,12 +2133,12 @@ dependencies = [
 [[package]]
 name = "cumulus-relay-chain-interface"
 version = "0.1.0"
-source = "git+https://github.com/paritytech//cumulus?branch=cumulus-locked-for-gav-xcm-v3-and-bridges#6ece1b652f805ffa7bd0052c77a38bd9fce11542"
+source = "git+https://github.com/paritytech//cumulus?branch=cumulus-locked-for-gav-xcm-v3-and-bridges-2#146c742e407b5f3c83cee4b8eb8ec7684949a40b"
 dependencies = [
  "async-trait",
  "cumulus-primitives-core",
  "futures",
- "jsonrpsee-core 0.15.1",
+ "jsonrpsee-core 0.16.2",
  "parity-scale-codec",
  "polkadot-overseer",
  "polkadot-service",
@@ -2145,24 +2147,23 @@ dependencies = [
  "sp-blockchain",
  "sp-state-machine",
  "thiserror",
+ "tokio",
 ]
 
 [[package]]
 name = "cumulus-relay-chain-minimal-node"
 version = "0.1.0"
-source = "git+https://github.com/paritytech//cumulus?branch=cumulus-locked-for-gav-xcm-v3-and-bridges#6ece1b652f805ffa7bd0052c77a38bd9fce11542"
+source = "git+https://github.com/paritytech//cumulus?branch=cumulus-locked-for-gav-xcm-v3-and-bridges-2#146c742e407b5f3c83cee4b8eb8ec7684949a40b"
 dependencies = [
- "array-bytes",
+ "array-bytes 6.0.0",
  "async-trait",
  "cumulus-primitives-core",
  "cumulus-relay-chain-interface",
  "cumulus-relay-chain-rpc-interface",
  "futures",
  "lru",
- "polkadot-availability-distribution",
  "polkadot-core-primitives",
  "polkadot-network-bridge",
- "polkadot-node-core-av-store",
  "polkadot-node-network-protocol",
  "polkadot-node-subsystem-util",
  "polkadot-overseer",
@@ -2174,8 +2175,6 @@ dependencies = [
  "sc-keystore",
  "sc-network",
  "sc-network-common",
- "sc-network-light",
- "sc-network-sync",
  "sc-service",
  "sc-telemetry",
  "sc-tracing",
@@ -2194,24 +2193,25 @@ dependencies = [
 [[package]]
 name = "cumulus-relay-chain-rpc-interface"
 version = "0.1.0"
-source = "git+https://github.com/paritytech//cumulus?branch=cumulus-locked-for-gav-xcm-v3-and-bridges#6ece1b652f805ffa7bd0052c77a38bd9fce11542"
+source = "git+https://github.com/paritytech//cumulus?branch=cumulus-locked-for-gav-xcm-v3-and-bridges-2#146c742e407b5f3c83cee4b8eb8ec7684949a40b"
 dependencies = [
  "async-trait",
- "backoff 0.4.0",
  "cumulus-primitives-core",
  "cumulus-relay-chain-interface",
  "futures",
  "futures-timer",
- "jsonrpsee 0.15.1",
+ "jsonrpsee 0.16.2",
+ "lru",
  "parity-scale-codec",
  "polkadot-service",
  "sc-client-api",
  "sc-rpc-api",
+ "serde",
+ "serde_json",
  "sp-api",
  "sp-authority-discovery",
  "sp-consensus-babe",
  "sp-core",
- "sp-runtime",
  "sp-state-machine",
  "sp-storage",
  "tokio",
@@ -2222,7 +2222,7 @@ dependencies = [
 [[package]]
 name = "cumulus-test-relay-sproof-builder"
 version = "0.1.0"
-source = "git+https://github.com/paritytech//cumulus?branch=cumulus-locked-for-gav-xcm-v3-and-bridges#6ece1b652f805ffa7bd0052c77a38bd9fce11542"
+source = "git+https://github.com/paritytech//cumulus?branch=cumulus-locked-for-gav-xcm-v3-and-bridges-2#146c742e407b5f3c83cee4b8eb8ec7684949a40b"
 dependencies = [
  "cumulus-primitives-core",
  "parity-scale-codec",
@@ -3030,7 +3030,7 @@ version = "0.1.0"
 dependencies = [
  "async-std",
  "async-trait",
- "backoff 0.2.1",
+ "backoff",
  "bp-header-chain",
  "futures",
  "log",
@@ -3147,7 +3147,7 @@ version = "4.0.0-dev"
 source = "git+https://github.com/paritytech//substrate?branch=sv-locked-for-gav-xcm-v3-and-bridges-2#4e383428ffc6d4eba173ca257c1aaf53d1ec339c"
 dependencies = [
  "Inflector",
- "array-bytes",
+ "array-bytes 4.2.0",
  "chrono",
  "clap 4.0.32",
  "comfy-table",
@@ -6276,7 +6276,7 @@ name = "pallet-beefy-mmr"
 version = "4.0.0-dev"
 source = "git+https://github.com/paritytech//substrate?branch=sv-locked-for-gav-xcm-v3-and-bridges-2#4e383428ffc6d4eba173ca257c1aaf53d1ec339c"
 dependencies = [
- "array-bytes",
+ "array-bytes 4.2.0",
  "beefy-merkle-tree",
  "frame-support",
  "frame-system",
@@ -7138,7 +7138,7 @@ dependencies = [
 [[package]]
 name = "parachain-info"
 version = "0.1.0"
-source = "git+https://github.com/paritytech//cumulus?branch=cumulus-locked-for-gav-xcm-v3-and-bridges#6ece1b652f805ffa7bd0052c77a38bd9fce11542"
+source = "git+https://github.com/paritytech//cumulus?branch=cumulus-locked-for-gav-xcm-v3-and-bridges-2#146c742e407b5f3c83cee4b8eb8ec7684949a40b"
 dependencies = [
  "cumulus-primitives-core",
  "frame-support",
@@ -9366,7 +9366,7 @@ dependencies = [
  "anyhow",
  "async-std",
  "async-trait",
- "backoff 0.2.1",
+ "backoff",
  "bp-runtime",
  "env_logger 0.8.4",
  "futures",
@@ -9995,7 +9995,7 @@ name = "sc-cli"
 version = "0.10.0-dev"
 source = "git+https://github.com/paritytech//substrate?branch=sv-locked-for-gav-xcm-v3-and-bridges-2#4e383428ffc6d4eba173ca257c1aaf53d1ec339c"
 dependencies = [
- "array-bytes",
+ "array-bytes 4.2.0",
  "chrono",
  "clap 4.0.32",
  "fdlimit",
@@ -10304,7 +10304,7 @@ version = "0.10.0-dev"
 source = "git+https://github.com/paritytech//substrate?branch=sv-locked-for-gav-xcm-v3-and-bridges-2#4e383428ffc6d4eba173ca257c1aaf53d1ec339c"
 dependencies = [
  "ahash",
- "array-bytes",
+ "array-bytes 4.2.0",
  "async-trait",
  "dyn-clone",
  "finality-grandpa",
@@ -10378,7 +10378,7 @@ name = "sc-keystore"
 version = "4.0.0-dev"
 source = "git+https://github.com/paritytech//substrate?branch=sv-locked-for-gav-xcm-v3-and-bridges-2#4e383428ffc6d4eba173ca257c1aaf53d1ec339c"
 dependencies = [
- "array-bytes",
+ "array-bytes 4.2.0",
  "async-trait",
  "parking_lot 0.12.1",
  "serde_json",
@@ -10393,7 +10393,7 @@ name = "sc-network"
 version = "0.10.0-dev"
 source = "git+https://github.com/paritytech//substrate?branch=sv-locked-for-gav-xcm-v3-and-bridges-2#4e383428ffc6d4eba173ca257c1aaf53d1ec339c"
 dependencies = [
- "array-bytes",
+ "array-bytes 4.2.0",
  "async-trait",
  "asynchronous-codec",
  "backtrace",
@@ -10498,7 +10498,7 @@ name = "sc-network-light"
 version = "0.10.0-dev"
 source = "git+https://github.com/paritytech//substrate?branch=sv-locked-for-gav-xcm-v3-and-bridges-2#4e383428ffc6d4eba173ca257c1aaf53d1ec339c"
 dependencies = [
- "array-bytes",
+ "array-bytes 4.2.0",
  "futures",
  "libp2p",
  "log",
@@ -10519,7 +10519,7 @@ name = "sc-network-sync"
 version = "0.10.0-dev"
 source = "git+https://github.com/paritytech//substrate?branch=sv-locked-for-gav-xcm-v3-and-bridges-2#4e383428ffc6d4eba173ca257c1aaf53d1ec339c"
 dependencies = [
- "array-bytes",
+ "array-bytes 4.2.0",
  "async-trait",
  "fork-tree",
  "futures",
@@ -10551,7 +10551,7 @@ name = "sc-network-transactions"
 version = "0.10.0-dev"
 source = "git+https://github.com/paritytech//substrate?branch=sv-locked-for-gav-xcm-v3-and-bridges-2#4e383428ffc6d4eba173ca257c1aaf53d1ec339c"
 dependencies = [
- "array-bytes",
+ "array-bytes 4.2.0",
  "futures",
  "libp2p",
  "log",
@@ -10570,7 +10570,7 @@ name = "sc-offchain"
 version = "4.0.0-dev"
 source = "git+https://github.com/paritytech//substrate?branch=sv-locked-for-gav-xcm-v3-and-bridges-2#4e383428ffc6d4eba173ca257c1aaf53d1ec339c"
 dependencies = [
- "array-bytes",
+ "array-bytes 4.2.0",
  "bytes",
  "fnv",
  "futures",
@@ -10685,7 +10685,7 @@ name = "sc-rpc-spec-v2"
 version = "0.10.0-dev"
 source = "git+https://github.com/paritytech//substrate?branch=sv-locked-for-gav-xcm-v3-and-bridges-2#4e383428ffc6d4eba173ca257c1aaf53d1ec339c"
 dependencies = [
- "array-bytes",
+ "array-bytes 4.2.0",
  "futures",
  "futures-util",
  "hex",
@@ -11609,7 +11609,7 @@ name = "sp-core"
 version = "7.0.0"
 source = "git+https://github.com/paritytech//substrate?branch=sv-locked-for-gav-xcm-v3-and-bridges-2#4e383428ffc6d4eba173ca257c1aaf53d1ec339c"
 dependencies = [
- "array-bytes",
+ "array-bytes 4.2.0",
  "base58",
  "bitflags",
  "blake2",

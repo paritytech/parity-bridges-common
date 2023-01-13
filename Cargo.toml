@@ -244,20 +244,20 @@ xcm-executor = { git = "https://github.com/paritytech//polkadot", branch = "lock
 xcm-procedural = { git = "https://github.com/paritytech//polkadot", branch = "locked-for-gav-xcm-v3-and-bridges-2" }
 
 [patch."https://github.com/paritytech/cumulus"]
-cumulus-client-consensus-aura = { git = "https://github.com/paritytech//cumulus", branch = "cumulus-locked-for-gav-xcm-v3-and-bridges" }
-cumulus-client-consensus-common = { git = "https://github.com/paritytech//cumulus", branch = "cumulus-locked-for-gav-xcm-v3-and-bridges" }
-cumulus-client-cli = { git = "https://github.com/paritytech//cumulus", branch = "cumulus-locked-for-gav-xcm-v3-and-bridges" }
-cumulus-client-network = { git = "https://github.com/paritytech//cumulus", branch = "cumulus-locked-for-gav-xcm-v3-and-bridges" }
-cumulus-client-service = { git = "https://github.com/paritytech//cumulus", branch = "cumulus-locked-for-gav-xcm-v3-and-bridges" }
-cumulus-primitives-core = { git = "https://github.com/paritytech//cumulus", branch = "cumulus-locked-for-gav-xcm-v3-and-bridges" }
-cumulus-primitives-parachain-inherent = { git = "https://github.com/paritytech//cumulus", branch = "cumulus-locked-for-gav-xcm-v3-and-bridges" }
-cumulus-relay-chain-interface = { git = "https://github.com/paritytech//cumulus", branch = "cumulus-locked-for-gav-xcm-v3-and-bridges" }
-cumulus-relay-chain-inprocess-interface = { git = "https://github.com/paritytech//cumulus", branch = "cumulus-locked-for-gav-xcm-v3-and-bridges" }
-cumulus-relay-chain-minimal-node = { git = "https://github.com/paritytech//cumulus", branch = "cumulus-locked-for-gav-xcm-v3-and-bridges" }
-cumulus-pallet-aura-ext = { git = "https://github.com/paritytech//cumulus", branch = "cumulus-locked-for-gav-xcm-v3-and-bridges" }
-cumulus-pallet-parachain-system = { git = "https://github.com/paritytech//cumulus", branch = "cumulus-locked-for-gav-xcm-v3-and-bridges" }
-cumulus-pallet-dmp-queue = { git = "https://github.com/paritytech//cumulus", branch = "cumulus-locked-for-gav-xcm-v3-and-bridges" }
-cumulus-pallet-xcm = { git = "https://github.com/paritytech//cumulus", branch = "cumulus-locked-for-gav-xcm-v3-and-bridges" }
-cumulus-pallet-xcmp-queue = { git = "https://github.com/paritytech//cumulus", branch = "cumulus-locked-for-gav-xcm-v3-and-bridges" }
-cumulus-primitives-timestamp = { git = "https://github.com/paritytech//cumulus", branch = "cumulus-locked-for-gav-xcm-v3-and-bridges" }
-parachain-info = { git = "https://github.com/paritytech//cumulus", branch = "cumulus-locked-for-gav-xcm-v3-and-bridges" }
+cumulus-client-consensus-aura = { git = "https://github.com/paritytech//cumulus", branch = "cumulus-locked-for-gav-xcm-v3-and-bridges-2" }
+cumulus-client-consensus-common = { git = "https://github.com/paritytech//cumulus", branch = "cumulus-locked-for-gav-xcm-v3-and-bridges-2" }
+cumulus-client-cli = { git = "https://github.com/paritytech//cumulus", branch = "cumulus-locked-for-gav-xcm-v3-and-bridges-2" }
+cumulus-client-network = { git = "https://github.com/paritytech//cumulus", branch = "cumulus-locked-for-gav-xcm-v3-and-bridges-2" }
+cumulus-client-service = { git = "https://github.com/paritytech//cumulus", branch = "cumulus-locked-for-gav-xcm-v3-and-bridges-2" }
+cumulus-primitives-core = { git = "https://github.com/paritytech//cumulus", branch = "cumulus-locked-for-gav-xcm-v3-and-bridges-2" }
+cumulus-primitives-parachain-inherent = { git = "https://github.com/paritytech//cumulus", branch = "cumulus-locked-for-gav-xcm-v3-and-bridges-2" }
+cumulus-relay-chain-interface = { git = "https://github.com/paritytech//cumulus", branch = "cumulus-locked-for-gav-xcm-v3-and-bridges-2" }
+cumulus-relay-chain-inprocess-interface = { git = "https://github.com/paritytech//cumulus", branch = "cumulus-locked-for-gav-xcm-v3-and-bridges-2" }
+cumulus-relay-chain-minimal-node = { git = "https://github.com/paritytech//cumulus", branch = "cumulus-locked-for-gav-xcm-v3-and-bridges-2" }
+cumulus-pallet-aura-ext = { git = "https://github.com/paritytech//cumulus", branch = "cumulus-locked-for-gav-xcm-v3-and-bridges-2" }
+cumulus-pallet-parachain-system = { git = "https://github.com/paritytech//cumulus", branch = "cumulus-locked-for-gav-xcm-v3-and-bridges-2" }
+cumulus-pallet-dmp-queue = { git = "https://github.com/paritytech//cumulus", branch = "cumulus-locked-for-gav-xcm-v3-and-bridges-2" }
+cumulus-pallet-xcm = { git = "https://github.com/paritytech//cumulus", branch = "cumulus-locked-for-gav-xcm-v3-and-bridges-2" }
+cumulus-pallet-xcmp-queue = { git = "https://github.com/paritytech//cumulus", branch = "cumulus-locked-for-gav-xcm-v3-and-bridges-2" }
+cumulus-primitives-timestamp = { git = "https://github.com/paritytech//cumulus", branch = "cumulus-locked-for-gav-xcm-v3-and-bridges-2" }
+parachain-info = { git = "https://github.com/paritytech//cumulus", branch = "cumulus-locked-for-gav-xcm-v3-and-bridges-2" }
