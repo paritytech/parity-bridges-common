@@ -49,14 +49,10 @@ change chain names. So the metrics are:
   number that is known to the bridge GRANDPA pallet at the target chain.
 
 - `Rialto_to_Millau_Sync_is_source_and_source_at_target_using_different_forks` - if this metrics is set to `1`, then
-  the 
+  the best source chain header, known to the target chain doesn't match the same-number-header at the source chain.
+  It means that the GRANDPA validators set has crafted the duplicate justification and it has been submitted to the
+  target chain. Normally (if majority of validators are honest and if you're running finality relay without large
+  breaks) this shall not happen and the metric will have `0` value.
 
-
-Theor
-
-based on the names of the source and target chains. Below
-are metrics, provided by the relay that relays Rialto (source chain) finality to Millau (target chain). For other
-chains, simply change these names in the names of metrics:
-
-- `best_source_block_number` - 
-
+If relay operates properly, you should see that the `Rialto_to_Millau_Sync_best_source_at_target_block_number`
+tries to reach the `Rialto_to_Millau_Sync_best_source_block_number`. And the latter one always increases.

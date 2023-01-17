@@ -5,38 +5,43 @@ chain, relay chain or a parachain). The source chain must have the
 [`paras` pallet](https://github.com/paritytech/polkadot/tree/master/runtime/parachains/src/paras) deployed at its
 runtime. The target chain must have the [bridge parachains pallet](../../modules/parachains/) deployed at its runtime.
 
+The relay is configured to submit heads of one or several parachains. It pokes source chain periodically and compares
+parachain heads that are known to the source relay chain to heads at the target chain. If there are new heads,
+they relay submits them to the target chain.
 
+## How to Use the Parachains Finality Relay
 
+There are only two traits that needs to be implemented. The [`SourceChain`](./src/parachains_loop.rs) implementation
+is supposed to connect to the source chain node. It must be able to read parachain heads from the `Heads` map of
+the [`paras` pallet](https://github.com/paritytech/polkadot/tree/master/runtime/parachains/src/paras) pallet.
+It also must create storage proofs of `Heads` map entries, when required.
 
-is able to work with different finality engines. In the modern Substrate world they are GRANDPA
-and BEEFY. Let's talk about GRANDPA here, because BEEFY relay and bridge BEEFY pallet are in development.
+The [`TargetChain`](./src/parachains_loop.rs) implementation connects to the target chain node. It must be able
+to return the best known head of given parachain. When required, it must be able to craft and submit parachains
+finality delivery transaction to the target node.
 
-In general, the relay works as follows: it connects to the source and target chain. The source chain must have the 
-[GRANDPA gadget](https://github.com/paritytech/finality-grandpa) running (so it can't be a parachain). The target
-chain must have the [bridge GRANDPA pallet](../../modules/grandpa/) deployed at its runtime. The relay subscribes
-to the GRANDPA finality notifications at the source chain and when the new justification is received, it is submitted
-to the pallet at the target chain.
+The main entrypoint for the crate is the [`run` function](./src/parachains_loop.rs), which takes source and target
+clients and [`ParachainSyncParams`](./src/parachains_loop.rs) parameters. The most imporant parameter is the
+`parachains` - it it the set of parachains, which relay tracks and updates. The other important parameter that
+may affect the relay operational costs is the `strategy`. If it is set to `Any`, then the finality delivery
+transaction is submitted if at least one of tracked parachain heads is updated. The other option is `All`. Then
+the relay waits until all tracked parachain heads are updated and submits them all in a single finality delivery
+transaction.
 
-Apart from that, the relay is watching for every source header that is missing at target. If it finds the missing
-mandatory header (header that is changing the current GRANDPA validators set), it submits the justification for
-this header. The case when the source node can't return the mandatory justification is considered a fatal error,
-because the pallet can't proceed without it.
+## Parachain Finality Relay Metrics
 
-## How to Use the Finality Relay
+Every parachain in Polkadot is identified by the 32-bit number. All metrics, exposed by the parachains finality
+relay have the `parachain` label, which is set to the parachain id. And the metrics are prefixed with the prefix,
+that depends on the name of the source relay and target chains. The list below shows metrics names for
+Rialto (source relay chain) to Millau (target chain) parachains finality relay. For other chains, simply
+change chain names. So the metrics are:
 
-The most important trait is the [`FinalitySyncPipeline`](./src/lib.rs), which defines the basic primitives of the
-source chain (like block hash and number) and the type of finality proof (GRANDPA jusitfication or MMR proof). Once
-that is defined, there are two other traits - [`SourceClient`](./src/finality_loop.rs) and
-[`TarggetClient`](./src/finality_loop.rs).
+- `Rialto_to_Millau_Parachains_best_parachain_block_number_at_source` - returns best known parachain block
+   number, registered in the `paras` pallet at the source relay chain (Rialto in our example);
 
-The `SourceClient` represents the Substrate node client that connects to the source chain. The client need to
-be able to return the best finalized header number, finalized header and its finality proof and the stream of
-finality proofs.
+- `Rialto_to_Millau_Parachains_best_parachain_block_number_at_target` - returns best known parachain block
+   number, registered in the bridge parachains pallet at the target chain (Millau in our example).
 
-The `TargetClient` implementation must be able to craft finality delivery transaction and submit it to the target
-node. The transaction is then tracked by the relay until it is mined and finalized.
-
-The main entrypoint for the crate is the [`run` function](./src/finality_loop.rs), which takes source and target
-clients and [`FinalitySyncParams`](./src/finality_loop.rs) parameters. The most imporant parameter is the
-`only_mandatory_headers` - it it is set to `true`, the relay will only submit mandatory headers. Since transactions
-with mandatory headers are fee-free, the cost of running such relay is zero (in terms of fees).
+If relay operates properly, you should see that the `Rialto_to_Millau_Parachains_best_parachain_block_number_at_target`
+tries to reach the `Rialto_to_Millau_Parachains_best_parachain_block_number_at_source`. And the latter one
+always increases.
