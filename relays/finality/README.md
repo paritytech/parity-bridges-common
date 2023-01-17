@@ -14,7 +14,7 @@ mandatory header (header that is changing the current GRANDPA validators set), i
 this header. The case when the source node can't return the mandatory justification is considered a fatal error,
 because the pallet can't proceed without it.
 
-More: [GRANDPA Finality Relay Sequence Diagram](./grandpa-finality-relay.html).
+More: [GRANDPA Finality Relay Sequence Diagram](../../docs/grandpa-finality-relay.html).
 
 ## How to Use the Finality Relay
 

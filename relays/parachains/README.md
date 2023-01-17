@@ -9,6 +9,8 @@ The relay is configured to submit heads of one or several parachains. It pokes s
 parachain heads that are known to the source relay chain to heads at the target chain. If there are new heads,
 they relay submits them to the target chain.
 
+More: [Parachains Finality Relay Sequence Diagram](../../docs/parachains-finality-relay.html).
+
 ## How to Use the Parachains Finality Relay
 
 There are only two traits that needs to be implemented. The [`SourceChain`](./src/parachains_loop.rs) implementation
