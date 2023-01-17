@@ -7,13 +7,13 @@ runtime. The target chain must have the [bridge parachains pallet](../../modules
 
 The relay is configured to submit heads of one or several parachains. It pokes source chain periodically and compares
 parachain heads that are known to the source relay chain to heads at the target chain. If there are new heads,
-they relay submits them to the target chain.
+the relay submits them to the target chain.
 
 More: [Parachains Finality Relay Sequence Diagram](../../docs/parachains-finality-relay.html).
 
 ## How to Use the Parachains Finality Relay
 
-There are only two traits that needs to be implemented. The [`SourceChain`](./src/parachains_loop.rs) implementation
+There are only two traits that need to be implemented. The [`SourceChain`](./src/parachains_loop.rs) implementation
 is supposed to connect to the source chain node. It must be able to read parachain heads from the `Heads` map of
 the [`paras` pallet](https://github.com/paritytech/polkadot/tree/master/runtime/parachains/src/paras) pallet.
 It also must create storage proofs of `Heads` map entries, when required.
