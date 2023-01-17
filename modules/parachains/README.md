@@ -44,10 +44,10 @@ parachain headers. Any finalized descendant of finalized relay block `RB`, which
 its `Heads` map, is guaranteed to have either `PB`, or its descendant. So parachain block number grows with relay
 block number.
 
-The pallet may reject parachain head if it laready knows better (or the same) head. In addition, pallet rejects
+The pallet may reject parachain head if it already knows better (or the same) head. In addition, pallet rejects
 heads of untracked parachains.
 
-The pallet deosn't track anything behind parachain heads. So it requires no initialization - it is ready to accept
+The pallet doesn't track anything behind parachain heads. So it requires no initialization - it is ready to accept
 headers right after deployment.
 
 ## Non-Essential Functionality
