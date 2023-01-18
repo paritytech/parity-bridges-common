@@ -98,7 +98,7 @@ pub trait Config<I: 'static>: crate::Config<I> {
 	/// Returns true if message has been dispatched (either successfully or not).
 	///
 	/// We assume that messages have near-zero dispatch weight, so most of times it
-	/// is hard to determine whether messages has ben dispatched or not. For example,
+	/// is hard to determine whether messages has been dispatched or not. For example,
 	/// XCM message can be a call that leaves entry in `frame_system::Events` vector,
 	/// but not all XCM messages do that and we don't want to include weight of this
 	/// action to the base weight of message delivery. Hence, the default `true` return
