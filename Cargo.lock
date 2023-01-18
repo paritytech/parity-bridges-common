@@ -944,6 +944,7 @@ version = "0.1.0"
 dependencies = [
  "bp-messages",
  "bp-rialto",
+ "bp-runtime",
  "frame-support",
  "hex",
  "hex-literal",
@@ -12401,6 +12402,7 @@ dependencies = [
  "bp-millau",
  "bp-parachains",
  "bp-polkadot-core",
+ "bp-relayers",
  "bp-rialto",
  "bp-rococo",
  "bp-runtime",
@@ -12411,6 +12413,7 @@ dependencies = [
  "frame-support",
  "frame-system",
  "futures",
+ "hex",
  "log",
  "messages-relay",
  "num-traits",
