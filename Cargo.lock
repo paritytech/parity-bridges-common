@@ -943,7 +943,6 @@ name = "bp-relayers"
 version = "0.1.0"
 dependencies = [
  "bp-messages",
- "bp-rialto",
  "bp-runtime",
  "frame-support",
  "hex",
