@@ -925,11 +925,10 @@ mod tests {
 			frame_system::CheckWeight::new(),
 			pallet_transaction_payment::ChargeTransactionPayment::from(10),
 		);
-		let indirect_payload: bp_rialto_parachain::SignedExtension =
-			bp_rialto_parachain::SignedExtension::new(
-				((), (), (), (), Era::Immortal, 10.into(), (), 10.into()),
-				None,
-			);
+		let indirect_payload = bp_rialto_parachain::SignedExtension::new(
+			((), (), (), (), Era::Immortal, 10.into(), (), 10.into()),
+			None,
+		);
 		assert_eq!(payload.encode(), indirect_payload.encode());
 
 		check_additional_signed::<SignedExtra, bp_rialto_parachain::SignedExtension>();
