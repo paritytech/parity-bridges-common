@@ -54,7 +54,7 @@ cat > $BRIDGES_FOLDER/Cargo.toml <<-CARGO_TOML
 resolver = "2"
 
 members = [
-#	"bin/runtime-common",
+	"bin/runtime-common",
 	"modules/*",
 	"primitives/*",
 ]
@@ -69,6 +69,10 @@ cargo check -p pallet-bridge-messages --features runtime-benchmarks
 cargo check -p pallet-bridge-parachains
 cargo check -p pallet-bridge-parachains --features runtime-benchmarks
 cargo check -p pallet-bridge-relayers
-#cargo check -p pallet-bridge-relayers --features runtime-benchmarks
+cargo check -p pallet-bridge-relayers --features runtime-benchmarks
 #cargo check -p bridge-runtime-common
 #cargo check -p bridge-runtime-common --features runtime-benchmarks
+
+# everything is ok - we may not clean the 
+
+#trap - EXIT
