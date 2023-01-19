@@ -72,7 +72,3 @@ cargo check -p pallet-bridge-relayers
 cargo check -p pallet-bridge-relayers --features runtime-benchmarks
 cargo check -p bridge-runtime-common
 cargo check -p bridge-runtime-common --features runtime-benchmarks
-
-# everything is ok - we may not clean the 
-
-#trap - EXIT
