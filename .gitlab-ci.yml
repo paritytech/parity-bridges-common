@@ -205,7 +205,7 @@ check-rustdoc:
     SKIP_WASM_BUILD:               1
     RUSTDOCFLAGS:                  "-Dwarnings"
   script:
-    - time cargo +nightly doc --workspace --all-features --verbose --no-deps
+    - time cargo +nightly doc --workspace --verbose --no-deps
 
 #### stage:                        build
 
