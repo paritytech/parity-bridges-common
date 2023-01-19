@@ -214,6 +214,7 @@ pub mod source {
 		)
 	}
 
+	/// `TargetHeaderChain` implementation that is using default types and perform default checks.
 	pub struct TargetHeaderChainAdapter<B>(PhantomData<B>);
 
 	impl<B: MessageBridge> TargetHeaderChain<FromThisChainMessagePayload, AccountIdOf<ThisChain<B>>>
@@ -570,6 +571,7 @@ pub mod target {
 		maximal_extrinsic_size / 3 * 2
 	}
 
+	/// `SourceHeaderChain` implementation that is using default types and perform default checks.
 	pub struct SourceHeaderChainAdapter<B>(PhantomData<B>);
 
 	impl<B: MessageBridge> SourceHeaderChain for SourceHeaderChainAdapter<B> {
