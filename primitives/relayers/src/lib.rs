@@ -96,17 +96,18 @@ where
 #[cfg(test)]
 mod tests {
 	use super::*;
+	use sp_runtime::testing::H256;
 
 	#[test]
 	fn lanes_are_using_different_accounts() {
 		assert_eq!(
-			PayLaneRewardFromAccount::<(), u8>::lane_rewards_account(LaneId([0, 0, 0, 0])),
+			PayLaneRewardFromAccount::<(), H256>::lane_rewards_account(LaneId([0, 0, 0, 0])),
 			hex_literal::hex!("626c616e000000006272696467652d6c616e6500000000000000000000000000")
 				.into(),
 		);
 
 		assert_eq!(
-			PayLaneRewardFromAccount::<(), u8>::lane_rewards_account(LaneId([0, 0, 0, 1])),
+			PayLaneRewardFromAccount::<(), H256>::lane_rewards_account(LaneId([0, 0, 0, 1])),
 			hex_literal::hex!("626c616e000000016272696467652d6c616e6500000000000000000000000000")
 				.into(),
 		);
