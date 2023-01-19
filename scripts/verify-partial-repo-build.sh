@@ -64,11 +64,17 @@ CARGO_TOML
 
 cargo check -p pallet-bridge-grandpa
 cargo check -p pallet-bridge-grandpa --features runtime-benchmarks
+cargo check -p pallet-bridge-grandpa --features try-runtime
 cargo check -p pallet-bridge-messages
 cargo check -p pallet-bridge-messages --features runtime-benchmarks
+cargo check -p pallet-bridge-messages --features try-runtime
 cargo check -p pallet-bridge-parachains
 cargo check -p pallet-bridge-parachains --features runtime-benchmarks
+cargo check -p pallet-bridge-parachains --features try-runtime
 cargo check -p pallet-bridge-relayers
 cargo check -p pallet-bridge-relayers --features runtime-benchmarks
+cargo check -p pallet-bridge-relayers --features try-runtime
 cargo check -p bridge-runtime-common
 cargo check -p bridge-runtime-common --features runtime-benchmarks
+
+echo "OK"
