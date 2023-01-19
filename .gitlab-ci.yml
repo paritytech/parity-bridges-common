@@ -199,9 +199,8 @@ benchmarks-test:
 
 check-rustdoc:
   stage:                           test
-  extends:
-    - .docker-env
-    - .build-refs
+  <<:                              *docker-env
+  <<:                              *test-refs
   variables:
     SKIP_WASM_BUILD:               1
     RUSTDOCFLAGS:                  "-Dwarnings"
