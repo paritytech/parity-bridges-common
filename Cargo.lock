@@ -2765,19 +2765,6 @@ dependencies = [
 
 [[package]]
 name = "env_logger"
-version = "0.8.4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a19187fea3ac7e84da7dacf48de0c45d63c6a76f9490dae389aead16c243fce3"
-dependencies = [
- "atty",
- "humantime",
- "log",
- "regex",
- "termcolor",
-]
-
-[[package]]
-name = "env_logger"
 version = "0.9.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a12e6657c4c97ebab115a42dcee77225f7f482cdd841cf7088c657a42e9e00e7"
@@ -5422,7 +5409,7 @@ dependencies = [
  "bp-runtime",
  "bp-westend",
  "bridge-runtime-common",
- "env_logger 0.8.4",
+ "env_logger 0.10.0",
  "frame-benchmarking",
  "frame-executive",
  "frame-support",
@@ -9271,7 +9258,7 @@ dependencies = [
  "async-trait",
  "backoff",
  "bp-runtime",
- "env_logger 0.8.4",
+ "env_logger 0.10.0",
  "futures",
  "isahc",
  "jsonpath_lib",
@@ -9482,7 +9469,7 @@ dependencies = [
  "bp-rialto",
  "bp-runtime",
  "bridge-runtime-common",
- "env_logger 0.8.4",
+ "env_logger 0.10.0",
  "frame-benchmarking",
  "frame-executive",
  "frame-support",
@@ -12121,7 +12108,7 @@ name = "storage-proof-fuzzer"
 version = "0.1.0"
 dependencies = [
  "bp-runtime",
- "env_logger 0.8.4",
+ "env_logger 0.10.0",
  "honggfuzz",
  "log",
  "sp-core",
@@ -13086,7 +13073,7 @@ version = "1.6.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "97fee6b57c6a41524a810daee9286c02d7752c4253064d0b05472833a438f675"
 dependencies = [
- "cfg-if 1.0.0",
+ "cfg-if 0.1.10",
  "digest 0.10.6",
  "rand 0.7.3",
  "static_assertions",
