@@ -161,13 +161,13 @@ pub mod source {
 	#[derive(RuntimeDebug)]
 	pub struct FromThisChainMessageVerifier<B>(PhantomData<B>);
 
-	/// The error message returned from LaneMessageVerifier when outbound lane is disabled.
+	/// The error message returned from `LaneMessageVerifier` when outbound lane is disabled.
 	pub const MESSAGE_REJECTED_BY_OUTBOUND_LANE: &str =
 		"The outbound message lane has rejected the message.";
-	/// The error message returned from LaneMessageVerifier when too many pending messages at the
+	/// The error message returned from `LaneMessageVerifier` when too many pending messages at the
 	/// lane.
 	pub const TOO_MANY_PENDING_MESSAGES: &str = "Too many pending messages at the lane.";
-	/// The error message returned from LaneMessageVerifier when call origin is mismatch.
+	/// The error message returned from `LaneMessageVerifier` when call origin is mismatch.
 	pub const BAD_ORIGIN: &str = "Unable to match the source origin to expected target origin.";
 
 	impl<B> LaneMessageVerifier<OriginOf<ThisChain<B>>, FromThisChainMessagePayload>
@@ -716,7 +716,7 @@ mod tests {
 	const BRIDGED_CHAIN_MAX_EXTRINSIC_SIZE: u32 = 1024;
 
 	/// Bridge that is deployed on ThisChain and allows sending/receiving messages to/from
-	/// BridgedChain.
+	/// `BridgedChain`.
 	#[derive(Debug, PartialEq, Eq)]
 	struct OnThisChainBridge;
 
@@ -730,8 +730,8 @@ mod tests {
 		type BridgedHeaderChain = BridgedHeaderChain;
 	}
 
-	/// Bridge that is deployed on BridgedChain and allows sending/receiving messages to/from
-	/// ThisChain;
+	/// Bridge that is deployed on `BridgedChain` and allows sending/receiving messages to/from
+	/// `ThisChain`.
 	#[derive(Debug, PartialEq, Eq)]
 	struct OnBridgedChainBridge;
 
