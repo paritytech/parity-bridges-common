@@ -1358,9 +1358,9 @@ dependencies = [
 
 [[package]]
 name = "clap"
-version = "4.1.0"
+version = "4.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "aa91278560fc226a5d9d736cc21e485ff9aad47d26b8ffe1f54cba868b684b9f"
+checksum = "4ec7a4128863c188deefe750ac1d1dfe66c236909f845af04beed823638dc1b2"
 dependencies = [
  "bitflags",
  "clap_derive",
@@ -1784,7 +1784,7 @@ name = "cumulus-client-cli"
 version = "0.1.0"
 source = "git+https://github.com/paritytech/cumulus?branch=master#3aae882437f6e3e744cf464e8272ae0fe2f8fc28"
 dependencies = [
- "clap 4.1.0",
+ "clap 4.1.1",
  "parity-scale-codec",
  "sc-chain-spec",
  "sc-cli",
@@ -3148,7 +3148,7 @@ dependencies = [
  "Inflector",
  "array-bytes 4.2.0",
  "chrono",
- "clap 4.1.0",
+ "clap 4.1.1",
  "comfy-table",
  "frame-benchmarking",
  "frame-support",
@@ -5426,7 +5426,7 @@ version = "0.1.0"
 dependencies = [
  "beefy-gadget",
  "beefy-gadget-rpc",
- "clap 4.1.0",
+ "clap 4.1.1",
  "frame-benchmarking",
  "frame-benchmarking-cli",
  "jsonrpsee 0.16.2",
@@ -5822,7 +5822,7 @@ name = "node-inspect"
 version = "0.9.0-dev"
 source = "git+https://github.com/paritytech/substrate?branch=master#cba59778aa5207b11f7513e5cbb127ea47dd8924"
 dependencies = [
- "clap 4.1.0",
+ "clap 4.1.1",
  "parity-scale-codec",
  "sc-cli",
  "sc-client-api",
@@ -7509,7 +7509,7 @@ name = "polkadot-cli"
 version = "0.9.33"
 source = "git+https://github.com/paritytech/polkadot?branch=master#a5cd3dd1a26dfb78daf3d743449934cbc7cc4090"
 dependencies = [
- "clap 4.1.0",
+ "clap 4.1.1",
  "frame-benchmarking-cli",
  "futures",
  "log",
@@ -9390,7 +9390,7 @@ dependencies = [
 name = "rialto-bridge-node"
 version = "0.1.0"
 dependencies = [
- "clap 4.1.0",
+ "clap 4.1.1",
  "frame-benchmarking",
  "frame-benchmarking-cli",
  "frame-support",
@@ -9417,7 +9417,7 @@ dependencies = [
 name = "rialto-parachain-collator"
 version = "0.1.0"
 dependencies = [
- "clap 4.1.0",
+ "clap 4.1.1",
  "cumulus-client-cli",
  "cumulus-client-consensus-aura",
  "cumulus-client-consensus-common",
@@ -9948,7 +9948,7 @@ source = "git+https://github.com/paritytech/substrate?branch=master#cba59778aa52
 dependencies = [
  "array-bytes 4.2.0",
  "chrono",
- "clap 4.1.0",
+ "clap 4.1.1",
  "fdlimit",
  "futures",
  "libp2p",
@@ -13101,7 +13101,7 @@ name = "try-runtime-cli"
 version = "0.10.0-dev"
 source = "git+https://github.com/paritytech/substrate?branch=master#cba59778aa5207b11f7513e5cbb127ea47dd8924"
 dependencies = [
- "clap 4.1.0",
+ "clap 4.1.1",
  "frame-remote-externalities",
  "hex",
  "log",
@@ -13157,7 +13157,7 @@ version = "1.6.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "97fee6b57c6a41524a810daee9286c02d7752c4253064d0b05472833a438f675"
 dependencies = [
- "cfg-if 0.1.10",
+ "cfg-if 1.0.0",
  "digest 0.10.6",
  "rand 0.8.5",
  "static_assertions",
