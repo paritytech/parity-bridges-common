@@ -943,7 +943,6 @@ name = "bp-relayers"
 version = "0.1.0"
 dependencies = [
  "bp-messages",
- "bp-rialto",
  "bp-runtime",
  "frame-support",
  "hex",
@@ -1055,14 +1054,12 @@ dependencies = [
  "bp-messages",
  "bp-parachains",
  "bp-polkadot-core",
- "bp-rialto",
  "bp-runtime",
  "bp-test-utils",
  "frame-support",
  "frame-system",
  "hash-db",
  "log",
- "millau-runtime",
  "pallet-balances",
  "pallet-bridge-grandpa",
  "pallet-bridge-messages",
