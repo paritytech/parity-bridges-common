@@ -3035,7 +3035,7 @@ dependencies = [
  "futures",
  "log",
  "num-traits",
- "parking_lot 0.11.2",
+ "parking_lot 0.12.1",
  "relay-utils",
 ]
 
@@ -5405,7 +5405,7 @@ dependencies = [
  "hex",
  "log",
  "num-traits",
- "parking_lot 0.11.2",
+ "parking_lot 0.12.1",
  "relay-utils",
  "sp-arithmetic",
 ]
