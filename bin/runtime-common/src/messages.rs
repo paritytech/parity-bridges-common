@@ -476,7 +476,7 @@ pub mod target {
 					let weight = XcmWeigher::weight(&mut payload.xcm.1);
 					let weight = weight.unwrap_or_else(|e| {
 						log::debug!(
-							target: "runtime::bridge-dispatch",
+							target: crate::LOG_TARGET_BRIDGE_DISPATCH,
 							"Failed to compute dispatch weight of incoming XCM message {:?}/{}: {:?}",
 							message.key.lane_id,
 							message.key.nonce,
@@ -504,7 +504,7 @@ pub mod target {
 				let FromBridgedChainMessagePayload { xcm: (location, xcm), weight: weight_limit } =
 					message.data.payload?;
 				log::trace!(
-					target: "runtime::bridge-dispatch",
+					target: crate::LOG_TARGET_BRIDGE_DISPATCH,
 					"Going to execute message {:?} (weight limit: {:?}): {:?} {:?}",
 					message_id,
 					weight_limit,
@@ -530,7 +530,7 @@ pub mod target {
 			match xcm_outcome {
 				Ok(outcome) => {
 					log::trace!(
-						target: "runtime::bridge-dispatch",
+						target: crate::LOG_TARGET_BRIDGE_DISPATCH,
 						"Incoming message {:?} dispatched with result: {:?}",
 						message_id,
 						outcome,
@@ -539,7 +539,7 @@ pub mod target {
 						Ok(_weight) => (),
 						Err(e) => {
 							log::error!(
-								target: "runtime::bridge-dispatch",
+								target: crate::LOG_TARGET_BRIDGE_DISPATCH,
 								"Incoming message {:?} was not dispatched, error: {:?}",
 								message_id,
 								e,
@@ -549,7 +549,7 @@ pub mod target {
 				},
 				Err(e) => {
 					log::error!(
-						target: "runtime::bridge-dispatch",
+						target: crate::LOG_TARGET_BRIDGE_DISPATCH,
 						"Incoming message {:?} was not dispatched, codec error: {:?}",
 						message_id,
 						e,
