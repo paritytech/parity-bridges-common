@@ -40,7 +40,6 @@ use bp_runtime::HeaderOf;
 #[cfg(feature = "runtime-benchmarks")]
 use codec::Encode;
 
-
 // Re-export in crate namespace for `construct_runtime!`.
 pub use pallet::*;
 
