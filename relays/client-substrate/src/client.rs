@@ -117,7 +117,7 @@ pub struct Client<C: Chain> {
 	/// Client connection params.
 	params: Arc<ConnectionParams>,
 	/// Substrate RPC client.
-	pub client: Arc<RpcClient>,
+	client: Arc<RpcClient>,
 	/// Genesis block hash.
 	genesis_hash: HashOf<C>,
 	/// If several tasks are submitting their transactions simultaneously using
