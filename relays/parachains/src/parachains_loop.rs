@@ -243,7 +243,7 @@ where
 					P::SourceChain::NAME,
 					e,
 				);
-				return Err(FailedClient::Target)
+				return Err(FailedClient::Source)
 			},
 		}
 
