@@ -478,6 +478,7 @@ where
 	// sync will stall.
 	let para_header_at_target = match para_header_at_target {
 		Ok(para_header_at_target) => Some(para_header_at_target.0),
+		Err(SubstrateError::BridgePalletIsNotInitialized) |
 		Err(SubstrateError::NoParachainHeadAtTarget(_, _)) => None,
 		Err(e) => return Err(map_target_err(e)),
 	};
