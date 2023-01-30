@@ -844,7 +844,7 @@ mod tests {
 				None,
 				futures::future::pending(),
 			)),
-			Err(FailedClient::Target),
+			Err(FailedClient::Source),
 		);
 	}
 
