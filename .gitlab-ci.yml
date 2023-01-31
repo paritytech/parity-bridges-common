@@ -202,7 +202,7 @@ partial-repo-build-test:
   <<:                              *docker-env
   <<:                              *test-refs # TODO: change to nightly
   script:
-    - ./scripts/verify-partial-repo-build.sh
+    - ./scripts/verify-partial-repo-build.sh --no-revert
   # we may live with failing partial repo build, it is just a signal for us
   allow_failure:                   true
 
