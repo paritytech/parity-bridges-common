@@ -561,10 +561,8 @@ where
 		}
 
 		// We may switch to `RelayingParaHeader` if parachain head is available.
-		if let Some(para_header_at_relay_header_at_target) =
-			data.para_header_at_relay_header_at_target.clone()
-		{
-			return RelayState::RelayingParaHeader(para_header_at_relay_header_at_target)
+		if let Some(para_header_at_relay_header_at_target) = data.para_header_at_relay_header_at_target.as_ref() {
+			return RelayState::RelayingParaHeader(para_header_at_relay_header_at_target.clone())
 		}
 
 		// else use the regular process - e.g. we may require to deliver new relay header first
