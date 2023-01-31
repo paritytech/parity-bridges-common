@@ -75,17 +75,18 @@ rm -f $BRIDGES_FOLDER/ci.Dockerfile
 rm -f $BRIDGES_FOLDER/Dockerfile
 
 # let's fix Cargo.toml a bit (it'll be helpful if we are in the bridges repo)
+if [[ ! -f "Cargo.toml" ]]; then
+	cat > Cargo.toml <<-CARGO_TOML
+	[workspace]
+	resolver = "2"
 
-cat > $BRIDGES_FOLDER/Cargo.toml <<-CARGO_TOML
-[workspace]
-resolver = "2"
-
-members = [
-	"bin/runtime-common",
-	"modules/*",
-	"primitives/*",
-]
-CARGO_TOML
+	members = [
+		"bin/runtime-common",
+		"modules/*",
+		"primitives/*",
+	]
+	CARGO_TOML
+fi
 
 # let's test if everything we need compiles
 
