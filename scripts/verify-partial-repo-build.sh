@@ -1,4 +1,13 @@
 #!/bin/bash
+
+# A script to remove everything from bridges repository/subtree, except:
+#
+# - modules/grandpa;
+# - modules/messages;
+# - modules/parachains;
+# - modules/relayers;
+# - everything required from primitives folder.
+
 set -eux
 
 # show CLI help
@@ -27,14 +36,6 @@ do
 			;;
 	esac
 done
-
-# A script to remove everything from bridges repository/subtree, except:
-#
-# - modules/grandpa;
-# - modules/messages;
-# - modules/parachains;
-# - modules/relayers;
-# - everything required from primitives folder.
 
 # the script is able to work only on clean git copy
 [[ -z "$(git status --porcelain)" ]] || { echo >&2 "The git copy must be clean"; exit 1; }
