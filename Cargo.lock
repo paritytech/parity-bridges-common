@@ -796,6 +796,7 @@ dependencies = [
  "frame-system",
  "polkadot-primitives",
  "sp-api",
+ "sp-std",
 ]
 
 [[package]]
