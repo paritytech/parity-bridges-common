@@ -267,7 +267,6 @@ impl SubstrateRelayBuildInfo {
 		// locally we don't have `CI_*` env variables, so we can't rely on them
 		// => we are using `CI_*` env variables or else `rbtag`
 		let maybe_sha_from_ci = option_env!("CI_COMMIT_SHORT_SHA");
-		compile_error!(env!("CI_COMMIT_SHORT_SHA")); // TODO: remove me, just for test
 		maybe_sha_from_ci
 			.map(|short_sha| {
 				// we assume that on CI the copy is always clean
