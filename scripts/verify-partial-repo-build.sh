@@ -1,6 +1,33 @@
 #!/bin/bash
 set -eux
 
+# show CLI help
+function show_help() {
+  set +x
+  echo " "
+  echo Error: $1
+  echo "Usage:"
+  echo "  ./scripts/verify-partial-repo-build.sh     Exit with code 0 if runtime code repo is well decoupled from the other code"
+  echo "Options:"
+  echo "  --no-revert                                Leaves only runtime code on exit"
+  exit 1
+}
+
+# parse CLI args
+NO_REVERT=
+for i in "$@"
+do
+	case $i in
+		--no-revert)
+			NO_REVERT=true
+			shift
+			;;
+		*)
+			show_help "Unknown option: $i"
+			;;
+	esac
+done
+
 # A script to remove everything from bridges repository/subtree, except:
 #
 # - modules/grandpa;
@@ -19,8 +46,7 @@ BRIDGES_FOLDER="$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && p
 
 # let's leave repository/subtree in its original (clean) state if something fails below
 function revert_to_clean_state {
-	echo "Reverting to clean state..."
-	git checkout .
+	[[ ! -z "${NO_REVERT}" ]] || { echo "Reverting to clean state..."; git checkout .; }
 }
 trap revert_to_clean_state EXIT
 
