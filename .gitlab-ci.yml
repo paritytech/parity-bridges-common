@@ -200,7 +200,7 @@ benchmarks-test:
 partial-repo-build-test:
   stage:                           test
   <<:                              *docker-env
-  <<:                              *test-refs # TODO: change to nightly
+  <<:                              *nightly-test
   script:
     - ./scripts/verify-partial-repo-build.sh --no-revert
   # we may live with failing partial repo build, it is just a signal for us
