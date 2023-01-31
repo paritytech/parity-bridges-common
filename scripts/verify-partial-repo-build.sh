@@ -1,4 +1,5 @@
 #!/bin/bash
+set -eux
 
 # A script to remove everything from bridges repository/subtree, except:
 #
