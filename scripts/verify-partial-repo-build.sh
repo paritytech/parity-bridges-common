@@ -20,7 +20,7 @@ BRIDGES_FOLDER="$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && p
 # let's leave repository/subtree in its original (clean) state if something fails below
 function revert_to_clean_state {
 	echo "Reverting to clean state..."
-	git reset --hard
+	git checkout .
 }
 trap revert_to_clean_state EXIT
 
