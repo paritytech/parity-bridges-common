@@ -270,7 +270,7 @@ impl SubstrateRelayBuildInfo {
 		maybe_sha_from_ci
 			.map(|short_sha| {
 				// we assume that on CI the copy is always clean
-				format!("{}-clean", short_sha)
+				format!("{short_sha}-clean")
 			})
 			.unwrap_or_else(|| SubstrateRelayBuildInfo.get_build_commit().into())
 	}
