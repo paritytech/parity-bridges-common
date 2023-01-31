@@ -539,7 +539,7 @@ where
 /// Select relay and parachain headers that need to be relayed.
 fn select_headers_to_relay<ParaHash, ParaNumber, RelayNumber>(
 	data: &RelayData<ParaHash, ParaNumber, RelayNumber>,
-	mut state: RelayState<ParaHash, ParaNumber, RelayNumber>,
+	state: RelayState<ParaHash, ParaNumber, RelayNumber>,
 ) -> RelayState<ParaHash, ParaNumber, RelayNumber>
 where
 	ParaHash: Clone,
