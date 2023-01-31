@@ -191,6 +191,15 @@ benchmarks-test:
   # we may live with failing benchmarks, it is just a signal for us
   allow_failure:                   true
 
+partial-repo-build-test:
+  stage:                           test
+  <<:                              *docker-env
+  <<:                              *nightly-test
+  script:
+    - ./scripts/verify-pallets-build.sh --no-revert
+  # we may live with failing partial repo build, it is just a signal for us
+  allow_failure:                   true
+
 #### stage:                        build
 
 build:
