@@ -16,7 +16,7 @@ function show_help() {
   echo " "
   echo Error: $1
   echo "Usage:"
-  echo "  ./scripts/verify-partial-repo-build.sh     Exit with code 0 if runtime code repo is well decoupled from the other code"
+  echo "  ./scripts/verify-pallets-build.sh          Exit with code 0 if pallets code is well decoupled from the other code in the repo"
   echo "Options:"
   echo "  --no-revert                                Leaves only runtime code on exit"
   exit 1
