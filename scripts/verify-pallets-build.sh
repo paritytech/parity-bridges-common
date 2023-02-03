@@ -68,6 +68,7 @@ rm -rf $BRIDGES_FOLDER/primitives/chain-rialto
 rm -rf $BRIDGES_FOLDER/primitives/chain-rialto-parachain
 rm -rf $BRIDGES_FOLDER/primitives/chain-westend
 rm -rf $BRIDGES_FOLDER/relays
+rm -rf $BRIDGES_FOLDER/tools
 rm -f $BRIDGES_FOLDER/.dockerignore
 rm -f $BRIDGES_FOLDER/.gitlab-ci.yml
 rm -f $BRIDGES_FOLDER/Cargo.lock

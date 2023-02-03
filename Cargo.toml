@@ -52,4 +52,5 @@ members = [
 	"relays/messages",
 	"relays/parachains",
 	"relays/utils",
+	"tools/runtime-codegen"
 ]
