@@ -40,8 +40,8 @@ use parachains_relay::parachains_loop::{
 	AvailableHeader, ParachainSyncParams, SourceClient, TargetClient,
 };
 use relay_substrate_client::{
-	AccountIdOf, AccountKeyPairOf, BlockNumberOf, CallOf, Chain, Client, Error as SubstrateError,
-	HashOf, HeaderIdOf, ParachainBase, ANCIENT_BLOCK_THRESHOLD,
+	is_ancient_block, AccountIdOf, AccountKeyPairOf, BlockNumberOf, CallOf, Chain, Client,
+	Error as SubstrateError, HashOf, HeaderIdOf, ParachainBase,
 };
 use relay_utils::{
 	metrics::MetricsParams, relay_loop::Client as RelayClient, BlockNumberBase, FailedClient,
@@ -422,11 +422,14 @@ struct RelayData<ParaHash, ParaNumber, RelayNumber> {
 	pub para_header_at_source: Option<HeaderId<ParaHash, ParaNumber>>,
 	/// Parachain header, that is available at the source relay chain at `relay_header_at_target`
 	/// block.
+	///
+	/// May be `None` if there's no `relay_header_at_target` yet, or if the
+	/// `relay_header_at_target` is too old and we think its state has been pruned.
 	pub para_header_at_relay_header_at_target: Option<HeaderId<ParaHash, ParaNumber>>,
 	/// Relay header number at the source chain.
 	pub relay_header_at_source: RelayNumber,
 	/// Relay header number at the target chain.
-	pub relay_header_at_target: RelayNumber,
+	pub relay_header_at_target: Option<RelayNumber>,
 }
 
 /// Read required data from source and target clients.
@@ -473,12 +476,12 @@ where
 		P::SourceParachain,
 	>(target.client(), best_target_block_hash)
 	.await;
-	// if there are no parachain heads at the target (`BridgePalletIsNotInitialized`), we'll need
-	// to submit at least one. Otherwise the pallet will be treated as uninitialized and messages
+	// if there are no parachain heads at the target (`NoParachainHeadAtTarget`), we'll need to
+	// submit at least one. Otherwise the pallet will be treated as uninitialized and messages
 	// sync will stall.
 	let para_header_at_target = match para_header_at_target {
-		Ok(para_header_at_target) => Some(para_header_at_target.0),
-		Err(SubstrateError::BridgePalletIsNotInitialized) => None,
+		Ok(Some(para_header_at_target)) => Some(para_header_at_target.0),
+		Ok(None) => None,
 		Err(e) => return Err(map_target_err(e)),
 	};
 
@@ -501,17 +504,34 @@ where
 	.await
 	.map_err(map_target_err)?;
 
-	let para_header_at_relay_header_at_target = source
-		.on_chain_para_head_id(relay_header_at_target, P::SourceParachain::PARACHAIN_ID.into())
-		.await
-		.map_err(map_source_err)?;
+	// if relay header at target is too old then its state may already be discarded at the source
+	// => just use `None` in this case
+	//
+	// the same is for case when there's no relay header at target at all
+	let available_relay_header_at_target =
+		relay_header_at_target.filter(|relay_header_at_target| {
+			!is_ancient_block(relay_header_at_target.number(), relay_header_at_source)
+		});
+	let para_header_at_relay_header_at_target =
+		if let Some(available_relay_header_at_target) = available_relay_header_at_target {
+			source
+				.on_chain_para_head_id(
+					available_relay_header_at_target,
+					P::SourceParachain::PARACHAIN_ID.into(),
+				)
+				.await
+				.map_err(map_source_err)?
+		} else {
+			None
+		};
 
 	Ok(RelayData {
 		required_para_header: required_header_number,
 		para_header_at_target,
 		para_header_at_source,
 		relay_header_at_source,
-		relay_header_at_target: relay_header_at_target.0,
+		relay_header_at_target: relay_header_at_target
+			.map(|relay_header_at_target| relay_header_at_target.0),
 		para_header_at_relay_header_at_target,
 	})
 }
@@ -519,25 +539,35 @@ where
 /// Select relay and parachain headers that need to be relayed.
 fn select_headers_to_relay<ParaHash, ParaNumber, RelayNumber>(
 	data: &RelayData<ParaHash, ParaNumber, RelayNumber>,
-	mut state: RelayState<ParaHash, ParaNumber, RelayNumber>,
+	state: RelayState<ParaHash, ParaNumber, RelayNumber>,
 ) -> RelayState<ParaHash, ParaNumber, RelayNumber>
 where
 	ParaHash: Clone,
 	ParaNumber: Copy + PartialOrd + Zero,
 	RelayNumber: Copy + Debug + Ord,
 {
+	// we can't do anything until **relay chain** bridge GRANDPA pallet is not initialized at the
+	// target chain
+	let relay_header_at_target = match data.relay_header_at_target {
+		Some(relay_header_at_target) => relay_header_at_target,
+		None => return RelayState::Idle,
+	};
+
 	// Process the `RelayingRelayHeader` state.
 	if let &RelayState::RelayingRelayHeader(relay_header_number) = &state {
-		if data.relay_header_at_target < relay_header_number {
+		if relay_header_at_target < relay_header_number {
 			// The required relay header hasn't yet been relayed. Ask / wait for it.
 			return state
 		}
 
 		// We may switch to `RelayingParaHeader` if parachain head is available.
-		state = data
-			.para_header_at_relay_header_at_target
-			.clone()
-			.map_or(RelayState::Idle, RelayState::RelayingParaHeader);
+		if let Some(para_header_at_relay_header_at_target) =
+			data.para_header_at_relay_header_at_target.as_ref()
+		{
+			return RelayState::RelayingParaHeader(para_header_at_relay_header_at_target.clone())
+		}
+
+		// else use the regular process - e.g. we may require to deliver new relay header first
 	}
 
 	// Process the `RelayingParaHeader` state.
@@ -576,7 +606,7 @@ where
 	// its ancestor
 
 	// we need relay chain header first
-	if data.relay_header_at_target < data.relay_header_at_source {
+	if relay_header_at_target < data.relay_header_at_source {
 		return RelayState::RelayingRelayHeader(data.relay_header_at_source)
 	}
 
@@ -631,7 +661,8 @@ impl<'a, P: SubstrateParachainsPipeline>
 			None,
 		)
 		.await?
-		.best_finalized_peer_at_best_self)
+		.best_finalized_peer_at_best_self
+		.ok_or(SubstrateError::BridgePalletIsNotInitialized)?)
 	}
 
 	async fn best_finalized_para_block_at_source(
@@ -677,11 +708,10 @@ where
 	// we don't require source node to be archive, so we can't craft storage proofs using
 	// ancient headers. So if the `best_finalized_relay_block_at_target` is too ancient, we
 	// can't craft storage proofs using it
-	let may_use_state_at_best_finalized_relay_block_at_target =
-		best_finalized_relay_block_at_source
-			.number()
-			.saturating_sub(best_finalized_relay_block_at_target.number()) <=
-			RBN::from(ANCIENT_BLOCK_THRESHOLD);
+	let may_use_state_at_best_finalized_relay_block_at_target = !is_ancient_block(
+		best_finalized_relay_block_at_target.number(),
+		best_finalized_relay_block_at_source.number(),
+	);
 
 	// now let's check if `required_header` may be proved using
 	// `best_finalized_relay_block_at_target`
@@ -718,7 +748,7 @@ mod tests {
 					para_header_at_target: Some(50),
 					para_header_at_source: Some(HeaderId(110, 110)),
 					relay_header_at_source: 800,
-					relay_header_at_target: 700,
+					relay_header_at_target: Some(700),
 					para_header_at_relay_header_at_target: Some(HeaderId(100, 100)),
 				},
 				RelayState::RelayingRelayHeader(750),
@@ -736,7 +766,7 @@ mod tests {
 					para_header_at_target: Some(50),
 					para_header_at_source: Some(HeaderId(110, 110)),
 					relay_header_at_source: 800,
-					relay_header_at_target: 750,
+					relay_header_at_target: Some(750),
 					para_header_at_relay_header_at_target: Some(HeaderId(100, 100)),
 				},
 				RelayState::RelayingRelayHeader(750),
@@ -754,7 +784,7 @@ mod tests {
 					para_header_at_target: Some(50),
 					para_header_at_source: Some(HeaderId(110, 110)),
 					relay_header_at_source: 800,
-					relay_header_at_target: 780,
+					relay_header_at_target: Some(780),
 					para_header_at_relay_header_at_target: Some(HeaderId(105, 105)),
 				},
 				RelayState::RelayingRelayHeader(750),
@@ -771,7 +801,7 @@ mod tests {
 					para_header_at_target: Some(50),
 					para_header_at_source: Some(HeaderId(110, 110)),
 					relay_header_at_source: 800,
-					relay_header_at_target: 780,
+					relay_header_at_target: Some(780),
 					para_header_at_relay_header_at_target: Some(HeaderId(105, 105)),
 				},
 				RelayState::RelayingParaHeader(HeaderId(105, 105)),
@@ -789,7 +819,7 @@ mod tests {
 					para_header_at_target: Some(105),
 					para_header_at_source: Some(HeaderId(110, 110)),
 					relay_header_at_source: 800,
-					relay_header_at_target: 780,
+					relay_header_at_target: Some(780),
 					para_header_at_relay_header_at_target: Some(HeaderId(105, 105)),
 				},
 				RelayState::Idle,
@@ -807,7 +837,7 @@ mod tests {
 					para_header_at_target: Some(105),
 					para_header_at_source: None,
 					relay_header_at_source: 800,
-					relay_header_at_target: 780,
+					relay_header_at_target: Some(780),
 					para_header_at_relay_header_at_target: Some(HeaderId(105, 105)),
 				},
 				RelayState::Idle,
@@ -825,7 +855,7 @@ mod tests {
 					para_header_at_target: Some(105),
 					para_header_at_source: Some(HeaderId(110, 110)),
 					relay_header_at_source: 800,
-					relay_header_at_target: 780,
+					relay_header_at_target: Some(780),
 					para_header_at_relay_header_at_target: Some(HeaderId(105, 105)),
 				},
 				RelayState::Idle,
@@ -843,7 +873,7 @@ mod tests {
 					para_header_at_target: Some(105),
 					para_header_at_source: Some(HeaderId(125, 125)),
 					relay_header_at_source: 800,
-					relay_header_at_target: 780,
+					relay_header_at_target: Some(780),
 					para_header_at_relay_header_at_target: Some(HeaderId(105, 105)),
 				},
 				RelayState::Idle,
@@ -861,7 +891,7 @@ mod tests {
 					para_header_at_target: Some(105),
 					para_header_at_source: Some(HeaderId(125, 125)),
 					relay_header_at_source: 800,
-					relay_header_at_target: 800,
+					relay_header_at_target: Some(800),
 					para_header_at_relay_header_at_target: Some(HeaderId(125, 125)),
 				},
 				RelayState::Idle,
@@ -879,7 +909,7 @@ mod tests {
 					para_header_at_target: Some(105),
 					para_header_at_source: None,
 					relay_header_at_source: 800,
-					relay_header_at_target: 800,
+					relay_header_at_target: Some(800),
 					para_header_at_relay_header_at_target: None,
 				},
 				RelayState::RelayingRelayHeader(800),
@@ -897,7 +927,7 @@ mod tests {
 					para_header_at_target: None,
 					para_header_at_source: Some(HeaderId(125, 125)),
 					relay_header_at_source: 800,
-					relay_header_at_target: 800,
+					relay_header_at_target: Some(800),
 					para_header_at_relay_header_at_target: Some(HeaderId(125, 125)),
 				},
 				RelayState::Idle,
@@ -915,7 +945,7 @@ mod tests {
 					para_header_at_target: None,
 					para_header_at_source: Some(HeaderId(125, 125)),
 					relay_header_at_source: 800,
-					relay_header_at_target: 700,
+					relay_header_at_target: Some(700),
 					para_header_at_relay_header_at_target: Some(HeaderId(125, 125)),
 				},
 				RelayState::Idle,

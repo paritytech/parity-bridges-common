@@ -815,6 +815,7 @@ dependencies = [
  "frame-system",
  "polkadot-primitives",
  "sp-api 4.0.0-dev (git+https://github.com/paritytech/substrate?branch=master)",
+ "sp-std 5.0.0",
 ]
 
 [[package]]
@@ -1372,9 +1373,9 @@ dependencies = [
 
 [[package]]
 name = "clap"
-version = "4.1.3"
+version = "4.1.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d8d93d855ce6a0aa87b8473ef9169482f40abaa2e9e0993024c35c902cbd5920"
+checksum = "f13b9c79b5d1dd500d20ef541215a6423c75829ef43117e1b4d17fd8af0b5d76"
 dependencies = [
  "bitflags",
  "clap_derive",
@@ -1825,7 +1826,7 @@ name = "cumulus-client-cli"
 version = "0.1.0"
 source = "git+https://github.com/paritytech/cumulus?branch=master#3aae882437f6e3e744cf464e8272ae0fe2f8fc28"
 dependencies = [
- "clap 4.1.3",
+ "clap 4.1.4",
  "parity-scale-codec",
  "sc-chain-spec",
  "sc-cli",
@@ -3167,7 +3168,7 @@ dependencies = [
  "Inflector",
  "array-bytes 4.2.0",
  "chrono",
- "clap 4.1.3",
+ "clap 4.1.4",
  "comfy-table",
  "frame-benchmarking",
  "frame-support",
@@ -4342,7 +4343,7 @@ dependencies = [
 [[package]]
 name = "jsonrpsee"
 version = "0.16.2"
-source = "git+https://github.com/paritytech/jsonrpsee#ad050afdc4fce236dd8c935719e53a46c5eb9df3"
+source = "git+https://github.com/paritytech/jsonrpsee#f6f4a0845d7c94dfb9befe625b2a779b3a40a127"
 dependencies = [
  "jsonrpsee-client-transport 0.16.2 (git+https://github.com/paritytech/jsonrpsee)",
  "jsonrpsee-core 0.16.2 (git+https://github.com/paritytech/jsonrpsee)",
@@ -4397,7 +4398,7 @@ dependencies = [
 [[package]]
 name = "jsonrpsee-client-transport"
 version = "0.16.2"
-source = "git+https://github.com/paritytech/jsonrpsee#ad050afdc4fce236dd8c935719e53a46c5eb9df3"
+source = "git+https://github.com/paritytech/jsonrpsee#f6f4a0845d7c94dfb9befe625b2a779b3a40a127"
 dependencies = [
  "anyhow",
  "futures-channel",
@@ -4472,13 +4473,12 @@ dependencies = [
 [[package]]
 name = "jsonrpsee-core"
 version = "0.16.2"
-source = "git+https://github.com/paritytech/jsonrpsee#ad050afdc4fce236dd8c935719e53a46c5eb9df3"
+source = "git+https://github.com/paritytech/jsonrpsee#f6f4a0845d7c94dfb9befe625b2a779b3a40a127"
 dependencies = [
  "anyhow",
  "async-lock",
  "async-trait",
  "beef",
- "futures-channel",
  "futures-timer",
  "futures-util",
  "hyper",
@@ -4488,6 +4488,7 @@ dependencies = [
  "serde_json",
  "thiserror",
  "tokio",
+ "tokio-stream",
  "tracing",
  "wasm-bindgen-futures",
 ]
@@ -4514,7 +4515,7 @@ dependencies = [
 [[package]]
 name = "jsonrpsee-http-client"
 version = "0.16.2"
-source = "git+https://github.com/paritytech/jsonrpsee#ad050afdc4fce236dd8c935719e53a46c5eb9df3"
+source = "git+https://github.com/paritytech/jsonrpsee#f6f4a0845d7c94dfb9befe625b2a779b3a40a127"
 dependencies = [
  "async-trait",
  "hyper",
@@ -4526,6 +4527,7 @@ dependencies = [
  "serde_json",
  "thiserror",
  "tokio",
+ "tower",
  "tracing",
 ]
 
@@ -4607,7 +4609,7 @@ dependencies = [
 [[package]]
 name = "jsonrpsee-types"
 version = "0.16.2"
-source = "git+https://github.com/paritytech/jsonrpsee#ad050afdc4fce236dd8c935719e53a46c5eb9df3"
+source = "git+https://github.com/paritytech/jsonrpsee#f6f4a0845d7c94dfb9befe625b2a779b3a40a127"
 dependencies = [
  "anyhow",
  "beef",
@@ -4620,7 +4622,7 @@ dependencies = [
 [[package]]
 name = "jsonrpsee-wasm-client"
 version = "0.16.2"
-source = "git+https://github.com/paritytech/jsonrpsee#ad050afdc4fce236dd8c935719e53a46c5eb9df3"
+source = "git+https://github.com/paritytech/jsonrpsee#f6f4a0845d7c94dfb9befe625b2a779b3a40a127"
 dependencies = [
  "jsonrpsee-client-transport 0.16.2 (git+https://github.com/paritytech/jsonrpsee)",
  "jsonrpsee-core 0.16.2 (git+https://github.com/paritytech/jsonrpsee)",
@@ -4654,7 +4656,7 @@ dependencies = [
 [[package]]
 name = "jsonrpsee-ws-client"
 version = "0.16.2"
-source = "git+https://github.com/paritytech/jsonrpsee#ad050afdc4fce236dd8c935719e53a46c5eb9df3"
+source = "git+https://github.com/paritytech/jsonrpsee#f6f4a0845d7c94dfb9befe625b2a779b3a40a127"
 dependencies = [
  "http",
  "jsonrpsee-client-transport 0.16.2 (git+https://github.com/paritytech/jsonrpsee)",
@@ -5641,7 +5643,7 @@ version = "0.1.0"
 dependencies = [
  "beefy-gadget",
  "beefy-gadget-rpc",
- "clap 4.1.3",
+ "clap 4.1.4",
  "frame-benchmarking",
  "frame-benchmarking-cli",
  "jsonrpsee 0.16.2 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -6037,7 +6039,7 @@ name = "node-inspect"
 version = "0.9.0-dev"
 source = "git+https://github.com/paritytech/substrate?branch=master#cba59778aa5207b11f7513e5cbb127ea47dd8924"
 dependencies = [
- "clap 4.1.3",
+ "clap 4.1.4",
  "parity-scale-codec",
  "sc-cli",
  "sc-client-api",
@@ -7774,7 +7776,7 @@ name = "polkadot-cli"
 version = "0.9.33"
 source = "git+https://github.com/paritytech/polkadot?branch=master#a5cd3dd1a26dfb78daf3d743449934cbc7cc4090"
 dependencies = [
- "clap 4.1.3",
+ "clap 4.1.4",
  "frame-benchmarking-cli",
  "futures",
  "log",
@@ -9680,7 +9682,7 @@ dependencies = [
 name = "rialto-bridge-node"
 version = "0.1.0"
 dependencies = [
- "clap 4.1.3",
+ "clap 4.1.4",
  "frame-benchmarking",
  "frame-benchmarking-cli",
  "frame-support",
@@ -9707,7 +9709,7 @@ dependencies = [
 name = "rialto-parachain-collator"
 version = "0.1.0"
 dependencies = [
- "clap 4.1.3",
+ "clap 4.1.4",
  "cumulus-client-cli",
  "cumulus-client-consensus-aura",
  "cumulus-client-consensus-common",
@@ -9972,7 +9974,7 @@ dependencies = [
 name = "runtime-codegen"
 version = "0.1.0"
 dependencies = [
- "clap 4.1.3",
+ "clap 4.1.4",
  "color-eyre",
  "parity-scale-codec",
  "proc-macro2 1.0.49",
@@ -10263,7 +10265,7 @@ source = "git+https://github.com/paritytech/substrate?branch=master#cba59778aa52
 dependencies = [
  "array-bytes 4.2.0",
  "chrono",
- "clap 4.1.3",
+ "clap 4.1.4",
  "fdlimit",
  "futures",
  "libp2p",
@@ -13662,7 +13664,7 @@ checksum = "6bdef32e8150c2a081110b42772ffe7d7c9032b606bc226c8260fd97e0976601"
 [[package]]
 name = "subxt"
 version = "0.26.0"
-source = "git+https://github.com/paritytech/subxt?branch=master#171bd62bb26f5a4820d5a6a54129be5626e0a6b6"
+source = "git+https://github.com/paritytech/subxt?branch=master#d7ad96aec74086773931ad7160ac9d0baca7c563"
 dependencies = [
  "base58",
  "blake2",
@@ -13694,7 +13696,7 @@ dependencies = [
 [[package]]
 name = "subxt-codegen"
 version = "0.26.0"
-source = "git+https://github.com/paritytech/subxt?branch=master#171bd62bb26f5a4820d5a6a54129be5626e0a6b6"
+source = "git+https://github.com/paritytech/subxt?branch=master#d7ad96aec74086773931ad7160ac9d0baca7c563"
 dependencies = [
  "darling",
  "frame-metadata",
@@ -13714,7 +13716,7 @@ dependencies = [
 [[package]]
 name = "subxt-macro"
 version = "0.26.0"
-source = "git+https://github.com/paritytech/subxt?branch=master#171bd62bb26f5a4820d5a6a54129be5626e0a6b6"
+source = "git+https://github.com/paritytech/subxt?branch=master#d7ad96aec74086773931ad7160ac9d0baca7c563"
 dependencies = [
  "darling",
  "proc-macro-error",
@@ -13725,7 +13727,7 @@ dependencies = [
 [[package]]
 name = "subxt-metadata"
 version = "0.26.0"
-source = "git+https://github.com/paritytech/subxt?branch=master#171bd62bb26f5a4820d5a6a54129be5626e0a6b6"
+source = "git+https://github.com/paritytech/subxt?branch=master#d7ad96aec74086773931ad7160ac9d0baca7c563"
 dependencies = [
  "frame-metadata",
  "parity-scale-codec",
@@ -14046,9 +14048,9 @@ checksum = "cda74da7e1a664f795bb1f8a87ec406fb89a02522cf6e50620d016add6dbbf5c"
 
 [[package]]
 name = "tokio"
-version = "1.24.2"
+version = "1.25.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "597a12a59981d9e3c38d216785b0c37399f6e415e8d0712047620f189371b0bb"
+checksum = "c8e00990ebabbe4c14c08aca901caed183ecd5c09562a12c824bb53d3c3fd3af"
 dependencies = [
  "autocfg",
  "bytes",
@@ -14128,6 +14130,10 @@ version = "0.4.13"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b8fa9be0de6cf49e536ce1851f987bd21a43b771b09473c3549a6c853db37c1c"
 dependencies = [
+ "futures-core",
+ "futures-util",
+ "pin-project",
+ "pin-project-lite 0.2.9",
  "tower-layer",
  "tower-service",
  "tracing",
@@ -14387,7 +14393,7 @@ name = "try-runtime-cli"
 version = "0.10.0-dev"
 source = "git+https://github.com/paritytech/substrate?branch=master#cba59778aa5207b11f7513e5cbb127ea47dd8924"
 dependencies = [
- "clap 4.1.3",
+ "clap 4.1.4",
  "frame-remote-externalities",
  "hex",
  "log",
@@ -14443,9 +14449,9 @@ version = "1.6.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "97fee6b57c6a41524a810daee9286c02d7752c4253064d0b05472833a438f675"
 dependencies = [
- "cfg-if 0.1.10",
+ "cfg-if 1.0.0",
  "digest 0.10.6",
- "rand 0.7.3",
+ "rand 0.8.5",
  "static_assertions",
 ]
 
