@@ -62,7 +62,7 @@ impl TypeSubstitute {
 	fn simple(subxt_type: &str) -> Self {
 		Self {
 			subxt_type: syn::parse_str::<syn::Path>(subxt_type).unwrap(),
-			substitute: syn::parse_str::<syn::Path>(&format!("::{}", subxt_type)).unwrap(),
+			substitute: syn::parse_str::<syn::Path>(&format!("::{subxt_type}")).unwrap(),
 		}
 	}
 
