@@ -70,7 +70,7 @@ const MAX_VOTE_ANCESTRIES_RANGE_END: u32 =
 fn validator_set_range_end<T: Config<I>, I: 'static>() -> u32 {
 	let max_bridged_authorities = T::MaxBridgedAuthorities::get();
 	if max_bridged_authorities > 128 {
-		max_bridged_authorities / 5
+		sp_std::cmp::max(128, max_bridged_authorities / 5)
 	} else {
 		max_bridged_authorities
 	}
