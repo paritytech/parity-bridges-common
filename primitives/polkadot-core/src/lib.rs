@@ -49,7 +49,7 @@ pub mod parachains;
 /// configurations. But right now it is set to the `100_000`, which makes PoV size for
 /// our bridge hub parachains huge. So let's stick to the real-world value here.
 ///
-/// Right now both Kusama and Polkadot aim to have ~1000 validators. Let's be safe here and
+/// Right now both Kusama and Polkadot aim to have around 1000 validators. Let's be safe here and
 /// take twice as much here.
 pub const MAX_AUTHORITIES_COUNT: u32 = 2_048;
 
