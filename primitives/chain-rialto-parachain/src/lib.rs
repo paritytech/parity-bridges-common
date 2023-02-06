@@ -55,7 +55,7 @@ pub const TX_EXTRA_BYTES: u32 = 104;
 ///
 /// This represents two seconds of compute assuming a target block time of six seconds.
 ///
-/// Max PoV size is set to 5Mb as all Cumulus-based parachains do.
+/// Max PoV size is set to `5Mb` as all Cumulus-based parachains do.
 pub const MAXIMUM_BLOCK_WEIGHT: Weight =
 	Weight::from_parts(WEIGHT_REF_TIME_PER_SECOND.saturating_mul(2), 5 * 1024 * 1024);
 
