@@ -533,7 +533,7 @@ parameter_types! {
 	/// Number of headers to keep.
 	///
 	/// Assuming the worst case of every header being finalized, we will keep headers at least for a
-	/// days.
+	/// day.
 	pub const HeadersToKeep: u32 = bp_millau::DAYS as u32;
 
 	/// Maximal number of authorities at Millau.
