@@ -398,7 +398,7 @@ pub mod pallet {
 
 			Self::deposit_event(Event::MessagesReceived(messages_received_status));
 
-			Ok(PostDispatchInfo { actual_weight: Some(actual_weight), pays_fee: Pays::No })
+			Ok(PostDispatchInfo { actual_weight: Some(actual_weight), pays_fee: Pays::Yes })
 		}
 
 		/// Receive messages delivery proof from bridged chain.
