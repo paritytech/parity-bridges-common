@@ -897,12 +897,12 @@ dependencies = [
  "bp-beefy",
  "bp-messages",
  "bp-runtime",
- "fixed-hash 0.8.0",
+ "fixed-hash",
  "frame-support",
  "frame-system",
  "hash256-std-hasher",
  "impl-codec",
- "impl-serde 0.4.0",
+ "impl-serde",
  "parity-util-mem",
  "scale-info",
  "serde",
@@ -2853,28 +2853,28 @@ dependencies = [
 
 [[package]]
 name = "ethbloom"
-version = "0.12.1"
+version = "0.13.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "11da94e443c60508eb62cf256243a64da87304c2802ac2528847f79d750007ef"
+checksum = "c22d4b5885b6aa2fe5e8b9329fb8d232bf739e434e6b87347c63bdd00c120f60"
 dependencies = [
  "crunchy",
- "fixed-hash 0.7.0",
+ "fixed-hash",
  "impl-rlp",
- "impl-serde 0.3.2",
+ "impl-serde",
  "tiny-keccak",
 ]
 
 [[package]]
 name = "ethereum-types"
-version = "0.13.1"
+version = "0.14.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b2827b94c556145446fcce834ca86b7abf0c39a805883fe20e72c5bfdb5a0dc6"
+checksum = "02d215cbf040552efcbe99a38372fe80ab9d00268e20012b79fcd0f073edd8ee"
 dependencies = [
  "ethbloom",
- "fixed-hash 0.7.0",
+ "fixed-hash",
  "impl-rlp",
- "impl-serde 0.3.2",
- "primitive-types 0.11.1",
+ "impl-serde",
+ "primitive-types",
  "uint",
 ]
 
@@ -3040,18 +3040,6 @@ dependencies = [
  "num-traits",
  "parking_lot 0.12.1",
  "relay-utils",
-]
-
-[[package]]
-name = "fixed-hash"
-version = "0.7.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "cfcf0ed7fe52a17a03854ec54a9f76d6d84508d1c0e66bc1793301c73fc8493c"
-dependencies = [
- "byteorder",
- "rand 0.8.5",
- "rustc-hex",
- "static_assertions",
 ]
 
 [[package]]
@@ -4054,15 +4042,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f28220f89297a075ddc7245cd538076ee98b01f2a9c23a53a4f1105d5a322808"
 dependencies = [
  "rlp",
-]
-
-[[package]]
-name = "impl-serde"
-version = "0.3.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4551f042f3438e64dbd6226b20527fc84a6e1fe65688b58746a2f53623f25f5c"
-dependencies = [
- "serde",
 ]
 
 [[package]]
@@ -5262,15 +5241,6 @@ checksum = "abb12e687cfb44aa40f41fc3978ef76448f9b6038cad6aef4259d3c095a2382e"
 dependencies = [
  "cfg-if 1.0.0",
  "value-bag",
-]
-
-[[package]]
-name = "lru"
-version = "0.7.8"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e999beba7b6e8345721bd280141ed958096a2e4abdf74f67ff4ce49b4b54e47a"
-dependencies = [
- "hashbrown 0.12.3",
 ]
 
 [[package]]
@@ -7236,18 +7206,18 @@ checksum = "aa9777aa91b8ad9dd5aaa04a9b6bcb02c7f1deb952fca5a66034d5e63afc5c6f"
 
 [[package]]
 name = "parity-util-mem"
-version = "0.11.0"
+version = "0.12.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c32561d248d352148124f036cac253a644685a21dc9fea383eb4907d7bd35a8f"
+checksum = "0d32c34f4f5ca7f9196001c0aba5a1f9a5a12382c8944b8b0f90233282d1e8f8"
 dependencies = [
  "cfg-if 1.0.0",
  "ethereum-types",
  "hashbrown 0.12.3",
  "impl-trait-for-tuples",
- "lru 0.7.8",
+ "lru 0.8.1",
  "parity-util-mem-derive",
  "parking_lot 0.12.1",
- "primitive-types 0.11.1",
+ "primitive-types",
  "smallvec",
  "winapi",
 ]
@@ -8715,26 +8685,14 @@ dependencies = [
 
 [[package]]
 name = "primitive-types"
-version = "0.11.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e28720988bff275df1f51b171e1b2a18c30d194c4d2b61defdacecd625a5d94a"
-dependencies = [
- "fixed-hash 0.7.0",
- "impl-codec",
- "impl-rlp",
- "impl-serde 0.3.2",
- "uint",
-]
-
-[[package]]
-name = "primitive-types"
 version = "0.12.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9f3486ccba82358b11a77516035647c34ba167dfa53312630de83b12bd4f3d66"
 dependencies = [
- "fixed-hash 0.8.0",
+ "fixed-hash",
  "impl-codec",
- "impl-serde 0.4.0",
+ "impl-rlp",
+ "impl-serde",
  "scale-info",
  "uint",
 ]
@@ -11746,14 +11704,14 @@ dependencies = [
  "futures",
  "hash-db",
  "hash256-std-hasher",
- "impl-serde 0.4.0",
+ "impl-serde",
  "lazy_static",
  "libsecp256k1",
  "log",
  "merlin",
  "parity-scale-codec",
  "parking_lot 0.12.1",
- "primitive-types 0.12.1",
+ "primitive-types",
  "rand 0.8.5",
  "regex",
  "scale-info",
@@ -11789,14 +11747,14 @@ dependencies = [
  "futures",
  "hash-db",
  "hash256-std-hasher",
- "impl-serde 0.4.0",
+ "impl-serde",
  "lazy_static",
  "libsecp256k1",
  "log",
  "merlin",
  "parity-scale-codec",
  "parking_lot 0.12.1",
- "primitive-types 0.12.1",
+ "primitive-types",
  "rand 0.8.5",
  "regex",
  "scale-info",
@@ -12174,7 +12132,7 @@ dependencies = [
  "bytes",
  "impl-trait-for-tuples",
  "parity-scale-codec",
- "primitive-types 0.12.1",
+ "primitive-types",
  "sp-externalities 0.13.0",
  "sp-runtime-interface-proc-macro 6.0.0",
  "sp-std 5.0.0",
@@ -12193,7 +12151,7 @@ dependencies = [
  "bytes",
  "impl-trait-for-tuples",
  "parity-scale-codec",
- "primitive-types 0.12.1",
+ "primitive-types",
  "sp-externalities 0.15.0",
  "sp-runtime-interface-proc-macro 7.0.0",
  "sp-std 6.0.0",
@@ -12311,7 +12269,7 @@ name = "sp-storage"
 version = "7.0.0"
 source = "git+https://github.com/paritytech/substrate?branch=master#51cf2e790f118f6cfe8d94fb9ca96bc580bd7c98"
 dependencies = [
- "impl-serde 0.4.0",
+ "impl-serde",
  "parity-scale-codec",
  "ref-cast",
  "serde",
@@ -12325,7 +12283,7 @@ version = "9.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9acb4059eb0ae4fa8cf9ca9119b0178ad312a592d4c6054bd17b411034f233e9"
 dependencies = [
- "impl-serde 0.4.0",
+ "impl-serde",
  "parity-scale-codec",
  "ref-cast",
  "serde",
@@ -12450,7 +12408,7 @@ name = "sp-version"
 version = "5.0.0"
 source = "git+https://github.com/paritytech/substrate?branch=master#51cf2e790f118f6cfe8d94fb9ca96bc580bd7c98"
 dependencies = [
- "impl-serde 0.4.0",
+ "impl-serde",
  "parity-scale-codec",
  "parity-wasm",
  "scale-info",
@@ -12950,11 +12908,11 @@ dependencies = [
  "futures",
  "getrandom 0.2.8",
  "hex",
- "impl-serde 0.4.0",
+ "impl-serde",
  "jsonrpsee 0.16.2",
  "parity-scale-codec",
  "parking_lot 0.12.1",
- "primitive-types 0.12.1",
+ "primitive-types",
  "scale-bits",
  "scale-decode",
  "scale-info",
