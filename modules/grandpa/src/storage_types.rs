@@ -20,7 +20,7 @@ use crate::Config;
 
 use bp_header_chain::AuthoritySet;
 use codec::{Decode, Encode, MaxEncodedLen};
-use frame_support::{BoundedVec, RuntimeDebugNoBound};
+use frame_support::{traits::Get, BoundedVec, RuntimeDebugNoBound};
 use scale_info::TypeInfo;
 use sp_finality_grandpa::{AuthorityId, AuthorityList, AuthorityWeight, SetId};
 
@@ -44,6 +44,24 @@ impl<T: Config<I>, I: 'static> StoredAuthoritySet<T, I> {
 	/// Returns error if number of authorities in the provided list is too large.
 	pub fn try_new(authorities: AuthorityList, set_id: SetId) -> Result<Self, ()> {
 		Ok(Self { authorities: TryFrom::try_from(authorities).map_err(drop)?, set_id })
+	}
+
+	/// Returns number of bytes that may be subtracted from the PoV component of
+	/// `submit_finality_proof` call, because the actual authorities set is smaller than the maximal
+	/// configured.
+	///
+	/// Maximal authorities set size is configured by the `MaxBridgedAuthorities` constant from
+	/// the pallet configuration. The PoV of the call includes the size of maximal authorities
+	/// count. If the actual size is smaller, we may subtract extra bytes from this component.
+	pub fn extra_proof_size_bytes(&self) -> u64 {
+		// we can only safely estimate bytes that are occupied by the authority data itself. We have
+		// no means here to compute PoV bytes, occupied by extra trie nodes or extra bytes in the
+		// whole set encoding
+		let single_authority_max_encoded_len =
+			<(AuthorityId, AuthorityWeight)>::max_encoded_len() as u64;
+		let extra_authorities =
+			T::MaxBridgedAuthorities::get().saturating_sub(self.authorities.len() as _);
+		single_authority_max_encoded_len.saturating_mul(extra_authorities as u64)
 	}
 }
 
