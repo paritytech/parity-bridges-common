@@ -82,3 +82,41 @@ impl<T: Config<I>, I: 'static> From<StoredAuthoritySet<T, I>> for AuthoritySet {
 		AuthoritySet { authorities: t.authorities.into(), set_id: t.set_id }
 	}
 }
+
+#[cfg(test)]
+mod tests {
+	use crate::mock::{TestRuntime, MAX_BRIDGED_AUTHORITIES};
+	use bp_test_utils::authority_list;
+
+	type StoredAuthoritySet = super::StoredAuthoritySet<TestRuntime, ()>;
+
+	#[test]
+	fn extra_proof_size_bytes_works() {
+		let authority_entry = authority_list().pop().unwrap();
+
+		// when we have exactly `MaxBridgedAuthorities` authorities
+		assert_eq!(
+			StoredAuthoritySet::try_new(
+				vec![authority_entry.clone(); MAX_BRIDGED_AUTHORITIES as usize],
+				0,
+			)
+			.unwrap()
+			.extra_proof_size_bytes(),
+			0,
+		);
+
+		// when we have less than `MaxBridgedAuthorities` authorities
+		assert_eq!(
+			StoredAuthoritySet::try_new(
+				vec![authority_entry; MAX_BRIDGED_AUTHORITIES as usize - 1],
+				0,
+			)
+			.unwrap()
+			.extra_proof_size_bytes(),
+			40,
+		);
+
+		// and we can't have more than `MaxBridgedAuthorities` authorities in the bounded vec, so
+		// no test for this case
+	}
+}
