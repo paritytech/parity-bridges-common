@@ -46,7 +46,10 @@ use bp_runtime::{BlockNumberOf, Chain, HashOf, HasherOf, HeaderId, HeaderOf, Own
 use finality_grandpa::voter_set::VoterSet;
 use frame_support::{dispatch::PostDispatchInfo, ensure, fail};
 use sp_finality_grandpa::{ConsensusLog, GRANDPA_ENGINE_ID};
-use sp_runtime::traits::{Header as HeaderT, Zero};
+use sp_runtime::{
+	traits::{Header as HeaderT, Zero},
+	SaturatedConversion,
+};
 use sp_std::{boxed::Box, convert::TryInto};
 
 mod extension;
@@ -152,8 +155,8 @@ pub mod pallet {
 		/// pallet.
 		#[pallet::call_index(0)]
 		#[pallet::weight(T::WeightInfo::submit_finality_proof(
-			justification.commit.precommits.len().try_into().unwrap_or(u32::MAX),
-			justification.votes_ancestries.len().try_into().unwrap_or(u32::MAX),
+			justification.commit.precommits.len().saturated_into(),
+			justification.votes_ancestries.len().saturated_into(),
 		))]
 		pub fn submit_finality_proof(
 			_origin: OriginFor<T>,
@@ -216,8 +219,8 @@ pub mod pallet {
 			// estimation). But if their number is lower, then we may "refund" some `proof_size`,
 			// making proof smaller and leaving block space to other useful transactions
 			let pre_dispatch_weight = T::WeightInfo::submit_finality_proof(
-				justification.commit.precommits.len().try_into().unwrap_or(u32::MAX),
-				justification.votes_ancestries.len().try_into().unwrap_or(u32::MAX),
+				justification.commit.precommits.len().saturated_into(),
+				justification.votes_ancestries.len().saturated_into(),
 			);
 			let actual_weight = pre_dispatch_weight.set_proof_size(
 				pre_dispatch_weight.proof_size().saturating_sub(extra_proof_size_bytes),
