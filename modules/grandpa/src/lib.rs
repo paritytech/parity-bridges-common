@@ -841,15 +841,13 @@ mod tests {
 
 			let result = submit_finality_proof(header_number);
 			assert_ok!(result);
-			assert_eq!(result.clone().unwrap().pays_fee, frame_support::dispatch::Pays::Yes);
+			assert_eq!(result.unwrap().pays_fee, frame_support::dispatch::Pays::Yes);
 			// our test config assumes 2048 max authorities and we are just using couple
 			let pre_dispatch_proof_size = pre_dispatch_weight.proof_size();
 			let actual_proof_size = result.unwrap().actual_weight.unwrap().proof_size();
 			assert!(
 				actual_proof_size < pre_dispatch_proof_size,
-				"Actual proof size {} must be less than the pre-dispatch {}",
-				actual_proof_size,
-				pre_dispatch_proof_size,
+				"Actual proof size {actual_proof_size} must be less than the pre-dispatch {pre_dispatch_proof_size}",
 			);
 
 			let header = test_header(1);
