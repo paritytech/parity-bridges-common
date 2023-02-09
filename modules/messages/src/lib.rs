@@ -2094,6 +2094,10 @@ mod tests {
 			storage(max_entries - 1).extra_proof_size_bytes(),
 			relayer_entry().encode().len() as u64
 		);
+		assert_eq!(
+			storage(max_entries - 2).extra_proof_size_bytes(),
+			2 * relayer_entry().encode().len() as u64
+		);
 
 		// when we have more than `MaxUnrewardedRelayerEntriesAtInboundLane` unrewarded relayers
 		// (shall not happen in practice)
