@@ -194,7 +194,7 @@ benchmarks-test:
 partial-repo-build-test:
   stage:                           test
   <<:                              *docker-env
-  <<:                              *nightly-test
+  <<:                              *test-refs
   script:
     - ./scripts/verify-pallets-build.sh --no-revert
   # we may live with failing partial repo build, it is just a signal for us
