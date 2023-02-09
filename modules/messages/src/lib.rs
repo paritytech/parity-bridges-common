@@ -1659,7 +1659,7 @@ mod tests {
 			.unwrap();
 			assert_eq!(post_dispatch_weight.proof_size(), pre_dispatch_weight.proof_size());
 
-			// if cound of unrewarded relayer entries is less than maximal, then some `proof_size`
+			// if count of unrewarded relayer entries is less than maximal, then some `proof_size`
 			// must be refunded
 			InboundLanes::<TestRuntime>::insert(
 				TEST_LANE_ID,
