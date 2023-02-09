@@ -234,6 +234,7 @@ pub trait WeightInfoExt: WeightInfo {
 	/// Returns weight that needs to be accounted when receiving confirmations for given a number of
 	/// messages with delivery confirmation transaction (`receive_messages_delivery_proof`).
 	fn receive_messages_delivery_proof_messages_overhead(messages: MessageNonce) -> Weight {
+// TODO: this would return 0. Is it used correctly?
 		let weight_of_two_messages =
 			Self::receive_delivery_proof_for_two_messages_by_single_relayer();
 		let weight_of_single_message = Self::receive_delivery_proof_for_single_message();
@@ -280,5 +281,127 @@ impl WeightInfoExt for () {
 impl<T: frame_system::Config> WeightInfoExt for crate::weights::BridgeWeight<T> {
 	fn expected_extra_storage_proof_size() -> u32 {
 		EXTRA_STORAGE_PROOF_SIZE
+	}
+}
+
+#[cfg(test)]
+mod tests {
+	use crate::{mock::TestRuntime, weights::BridgeWeight};
+	use super::*;
+
+	type Weights = BridgeWeight<TestRuntime>;
+
+	// TODO: maybe move this to `ensure_weights_are_correct`?
+
+	fn ensure_weight_components_are_not_zero(weight: Weight) {
+		assert_ne!(weight.ref_time(), 0);
+		assert_ne!(weight.proof_size(), 0);
+	}
+
+	fn ensure_ref_time_lesser(weight1: Weight, weight2: Weight, msg: &str) {
+		assert!(
+			weight1.ref_time() < weight2.ref_time(),
+			"{msg}: {} must be less than {}",
+			weight1.ref_time(),
+			weight2.ref_time(),
+		);
+	}
+
+	fn ensure_proof_size_is_the_same(weight1: Weight, weight2: Weight, msg: &str) {
+		assert_eq!(
+			weight1.proof_size(),
+			weight2.proof_size(),
+			"{msg}: {} must be equal to {}",
+			weight1.proof_size(),
+			weight2.proof_size(),
+		);
+	}
+
+	#[test]
+	fn messages_proof_size_does_not_affect_proof_size() {
+		let dispatch_weight = Weight::zero();
+		let weight_when_proof_size_is_8k = Weights::receive_messages_proof_weight(
+			&PreComputedSize(8 * 1024),
+			1,
+			dispatch_weight,
+		);
+		let weight_when_proof_size_is_16k = Weights::receive_messages_proof_weight(
+			&PreComputedSize(16 * 1024),
+			1,
+			dispatch_weight,
+		);
+
+		ensure_weight_components_are_not_zero(weight_when_proof_size_is_8k);
+		ensure_weight_components_are_not_zero(weight_when_proof_size_is_16k);
+		ensure_proof_size_is_the_same(
+			weight_when_proof_size_is_8k,
+			weight_when_proof_size_is_16k,
+			"Messages proof size does not affect values that we read from our storage",
+		);
+		ensure_ref_time_lesser(
+			weight_when_proof_size_is_8k,
+			weight_when_proof_size_is_16k,
+			"Larger message proofs mean more hashing and iterations => computation time",
+		);
+	}
+
+	#[test]
+	fn messages_count_does_not_affect_proof_size() {
+		let messages_proof_size = PreComputedSize(8 * 1024);
+		let dispatch_weight = Weight::zero();
+		let weight_of_one_incoming_message = Weights::receive_messages_proof_weight(
+			&messages_proof_size,
+			1,
+			dispatch_weight,
+		);
+		let weight_of_two_incoming_messages = Weights::receive_messages_proof_weight(
+			&messages_proof_size,
+			2,
+			dispatch_weight,
+		);
+
+		ensure_weight_components_are_not_zero(weight_of_one_incoming_message);
+		ensure_weight_components_are_not_zero(weight_of_two_incoming_messages);
+		ensure_proof_size_is_the_same(
+			weight_of_one_incoming_message,
+			weight_of_two_incoming_messages,
+			"Number of same-lane incoming messages does not affect values that we read from our storage",
+		);
+		ensure_ref_time_lesser(
+			weight_of_one_incoming_message,
+			weight_of_two_incoming_messages,
+			"More incoming messages mean more computation overhead",
+		);
+	}
+
+	#[test]
+	fn messages_delivery_proof_size_does_not_affect_proof_size() {
+		let relayers_state = UnrewardedRelayersState {
+			unrewarded_relayer_entries: 1,
+			messages_in_oldest_entry: 1,
+			total_messages: 1,
+			last_delivered_nonce: 1,
+		};
+		let weight_when_proof_size_is_8k = Weights::receive_messages_delivery_proof_weight(
+			&PreComputedSize(8 * 1024),
+			&relayers_state,
+		);
+		let weight_when_proof_size_is_16k = Weights::receive_messages_delivery_proof_weight(
+			&PreComputedSize(16 * 1024),
+			&relayers_state,
+		);
+
+		ensure_weight_components_are_not_zero(weight_when_proof_size_is_8k);
+		ensure_weight_components_are_not_zero(weight_when_proof_size_is_16k);
+		ensure_proof_size_is_the_same(
+			weight_when_proof_size_is_8k,
+			weight_when_proof_size_is_16k,
+			"Messages delivery proof size does not affect values that we read from our storage",
+		);
+		ensure_ref_time_lesser(
+			weight_when_proof_size_is_8k,
+			weight_when_proof_size_is_16k,
+			"Larger messages delivery proofs mean more hashing and iterations => computation time",
+		);
 	}
 }
