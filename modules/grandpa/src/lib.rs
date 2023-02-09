@@ -192,7 +192,7 @@ pub mod pallet {
 			ensure!(best_finalized_number < *number, <Error<T, I>>::OldHeader);
 
 			let authority_set = <CurrentAuthoritySet<T, I>>::get();
-			let extra_proof_size_bytes = authority_set.extra_proof_size_bytes();
+			let unused_proof_size = authority_set.unused_proof_size();
 			let set_id = authority_set.set_id;
 			verify_justification::<T, I>(&justification, hash, *number, authority_set.into())?;
 
@@ -222,9 +222,8 @@ pub mod pallet {
 				justification.commit.precommits.len().saturated_into(),
 				justification.votes_ancestries.len().saturated_into(),
 			);
-			let actual_weight = pre_dispatch_weight.set_proof_size(
-				pre_dispatch_weight.proof_size().saturating_sub(extra_proof_size_bytes),
-			);
+			let actual_weight = pre_dispatch_weight
+				.set_proof_size(pre_dispatch_weight.proof_size().saturating_sub(unused_proof_size));
 
 			Ok(PostDispatchInfo { actual_weight: Some(actual_weight), pays_fee })
 		}
@@ -851,6 +850,7 @@ mod tests {
 			// our test config assumes 2048 max authorities and we are just using couple
 			let pre_dispatch_proof_size = pre_dispatch_weight.proof_size();
 			let actual_proof_size = result.unwrap().actual_weight.unwrap().proof_size();
+			assert!(actual_proof_size > 0);
 			assert!(
 				actual_proof_size < pre_dispatch_proof_size,
 				"Actual proof size {actual_proof_size} must be less than the pre-dispatch {pre_dispatch_proof_size}",

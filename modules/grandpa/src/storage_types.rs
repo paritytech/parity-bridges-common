@@ -53,7 +53,7 @@ impl<T: Config<I>, I: 'static> StoredAuthoritySet<T, I> {
 	/// Maximal authorities set size is configured by the `MaxBridgedAuthorities` constant from
 	/// the pallet configuration. The PoV of the call includes the size of maximal authorities
 	/// count. If the actual size is smaller, we may subtract extra bytes from this component.
-	pub fn extra_proof_size_bytes(&self) -> u64 {
+	pub fn unused_proof_size(&self) -> u64 {
 		// we can only safely estimate bytes that are occupied by the authority data itself. We have
 		// no means here to compute PoV bytes, occupied by extra trie nodes or extra bytes in the
 		// whole set encoding
@@ -91,7 +91,7 @@ mod tests {
 	type StoredAuthoritySet = super::StoredAuthoritySet<TestRuntime, ()>;
 
 	#[test]
-	fn extra_proof_size_bytes_works() {
+	fn unused_proof_size_works() {
 		let authority_entry = authority_list().pop().unwrap();
 
 		// when we have exactly `MaxBridgedAuthorities` authorities
@@ -101,7 +101,7 @@ mod tests {
 				0,
 			)
 			.unwrap()
-			.extra_proof_size_bytes(),
+			.unused_proof_size(),
 			0,
 		);
 
@@ -112,7 +112,7 @@ mod tests {
 				0,
 			)
 			.unwrap()
-			.extra_proof_size_bytes(),
+			.unused_proof_size(),
 			40,
 		);
 
