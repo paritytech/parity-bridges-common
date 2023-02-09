@@ -1565,7 +1565,7 @@ mod tests {
 	}
 
 	#[test]
-	fn maybe_max_parachains_returns_correct_value() {
+	fn maybe_max_total_parachain_hashes_returns_correct_value() {
 		assert_eq!(
 			MaybeMaxTotalParachainHashes::<TestRuntime, ()>::get(),
 			Some(mock::TOTAL_PARACHAINS * mock::HeadsToKeep::get()),

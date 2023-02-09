@@ -647,6 +647,7 @@ mod tests {
 		assert_err, assert_noop, assert_ok, dispatch::PostDispatchInfo,
 		storage::generator::StorageValue,
 	};
+	use sp_core::Get;
 	use sp_runtime::{Digest, DigestItem, DispatchError};
 
 	fn initialize_substrate_bridge() {
