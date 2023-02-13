@@ -19,7 +19,10 @@
 
 #![cfg_attr(not(feature = "std"), no_std)]
 
-use bp_runtime::{BasicOperatingMode, Chain, HashOf, HasherOf, HeaderOf, StorageProofChecker};
+use bp_runtime::{
+	BasicOperatingMode, Chain, HashOf, HasherOf, HeaderOf, RawStorageProof, StorageProofChecker,
+	StorageProofError,
+};
 use codec::{Codec, Decode, Encode, EncodeLike, MaxEncodedLen};
 use core::{clone::Clone, cmp::Eq, default::Default, fmt::Debug};
 use frame_support::PalletError;
@@ -29,7 +32,6 @@ use serde::{Deserialize, Serialize};
 use sp_finality_grandpa::{AuthorityList, ConsensusLog, SetId, GRANDPA_ENGINE_ID};
 use sp_runtime::{traits::Header as HeaderT, Digest, RuntimeDebug};
 use sp_std::boxed::Box;
-use sp_trie::StorageProof;
 
 pub mod justification;
 pub mod storage_keys;
@@ -41,6 +43,17 @@ pub enum HeaderChainError {
 	UnknownHeader,
 	/// The storage proof doesn't contains storage root.
 	StorageRootMismatch,
+	/// The storage proof contains duplicate nodes.
+	DuplicateNodesInProof,
+}
+
+impl From<StorageProofError> for HeaderChainError {
+	fn from(err: StorageProofError) -> HeaderChainError {
+		match err {
+			StorageProofError::DuplicateNodesInProof => HeaderChainError::DuplicateNodesInProof,
+			_ => HeaderChainError::StorageRootMismatch,
+		}
+	}
 }
 
 impl From<HeaderChainError> for &'static str {
@@ -48,6 +61,7 @@ impl From<HeaderChainError> for &'static str {
 		match err {
 			HeaderChainError::UnknownHeader => "UnknownHeader",
 			HeaderChainError::StorageRootMismatch => "StorageRootMismatch",
+			HeaderChainError::DuplicateNodesInProof => "DuplicateNodesInProof",
 		}
 	}
 }
@@ -83,13 +97,13 @@ pub trait HeaderChain<C: Chain> {
 	/// Parse storage proof using finalized header.
 	fn parse_finalized_storage_proof<R>(
 		header_hash: HashOf<C>,
-		storage_proof: StorageProof,
+		storage_proof: RawStorageProof,
 		parse: impl FnOnce(StorageProofChecker<HasherOf<C>>) -> R,
 	) -> Result<R, HeaderChainError> {
 		let state_root = Self::finalized_header_state_root(header_hash)
 			.ok_or(HeaderChainError::UnknownHeader)?;
-		let storage_proof_checker = bp_runtime::StorageProofChecker::new(state_root, storage_proof)
-			.map_err(|_| HeaderChainError::StorageRootMismatch)?;
+		let storage_proof_checker =
+			bp_runtime::StorageProofChecker::new(state_root, storage_proof)?;
 
 		Ok(parse(storage_proof_checker))
 	}

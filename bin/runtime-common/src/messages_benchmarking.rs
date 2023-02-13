@@ -209,15 +209,9 @@ where
 	root = grow_trie(root, &mut mdb, params.size);
 
 	// generate storage proof to be delivered to This chain
-	let mut proof_recorder = Recorder::<LayoutV1<HasherOf<BridgedChain<B>>>>::new();
-	record_all_trie_keys::<LayoutV1<HasherOf<BridgedChain<B>>>, _>(
-		&mdb,
-		&root,
-		&mut proof_recorder,
-	)
-	.map_err(|_| "record_all_trie_keys has failed")
-	.expect("record_all_trie_keys should not fail in benchmarks");
-	let storage_proof = proof_recorder.drain().into_iter().map(|n| n.data.to_vec()).collect();
+	let storage_proof = record_all_trie_keys::<LayoutV1<HasherOf<BridgedChain<B>>>, _>(&mdb, &root)
+		.map_err(|_| "record_all_trie_keys has failed")
+		.expect("record_all_trie_keys should not fail in benchmarks");
 
 	(root, storage_proof)
 }

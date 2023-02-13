@@ -40,7 +40,7 @@ use num_traits::{CheckedSub, One};
 use sp_runtime::transaction_validity::TransactionValidity;
 pub use storage_proof::{
 	record_all_keys as record_all_trie_keys, Error as StorageProofError,
-	ProofSize as StorageProofSize, StorageProofChecker,
+	ProofSize as StorageProofSize, RawStorageProof, StorageProofChecker,
 };
 pub use storage_types::BoundedStorageValue;
 
