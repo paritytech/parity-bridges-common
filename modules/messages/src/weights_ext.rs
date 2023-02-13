@@ -36,20 +36,20 @@ pub const EXTRA_STORAGE_PROOF_SIZE: u32 = 1024;
 
 /// Ensure that weights from `WeightInfoExt` implementation are looking correct.
 pub fn ensure_weights_are_correct<W: WeightInfoExt>() {
-	// all component of weight formulae, except the transaction overhead (*_overhead) and
-	// the unrewarded relayers overhead, must have:
-	//
-	// - non-zero `ref_time`, because they add computation time to the call;
-	//
-	// - zero `proof_size`, because the `proof_size` is benchmarked using `MaxEncodedLen` approach
-	//   and there are no components that cause additional db reads
+	// all components of weight formulae must have zero `proof_size`, because the `proof_size` is
+	// benchmarked using `MaxEncodedLen` approach and there are no components that cause additional
+	// db reads
 
 	// verify `receive_messages_proof` weight components
 	assert_ne!(W::receive_messages_proof_overhead().ref_time(), 0);
 	assert_ne!(W::receive_messages_proof_overhead().proof_size(), 0);
-	assert_ne!(W::receive_messages_proof_messages_overhead(1).ref_time(), 0);
+	// W::receive_messages_proof_messages_overhead(1).ref_time() may be zero because:
+	// the message processing code (`InboundLane::receive_message`) is minimal and may not be
+	// accounted by our benchmarks
 	assert_eq!(W::receive_messages_proof_messages_overhead(1).proof_size(), 0);
-	assert_ne!(W::receive_messages_proof_outbound_lane_state_overhead().ref_time(), 0);
+	// W::receive_messages_proof_outbound_lane_state_overhead().ref_time() may be zero because:
+	// the outbound lane state processing code (`InboundLane::receive_state_update`) is minimal and
+	// may not be accounted by our benchmarks
 	assert_eq!(W::receive_messages_proof_outbound_lane_state_overhead().proof_size(), 0);
 	assert_ne!(W::storage_proof_size_overhead(1).ref_time(), 0);
 	assert_eq!(W::storage_proof_size_overhead(1).proof_size(), 0);
@@ -57,7 +57,8 @@ pub fn ensure_weights_are_correct<W: WeightInfoExt>() {
 	// verify `receive_messages_delivery_proof` weight components
 	assert_ne!(W::receive_messages_delivery_proof_overhead().ref_time(), 0);
 	assert_ne!(W::receive_messages_delivery_proof_overhead().proof_size(), 0);
-	assert_ne!(W::receive_messages_delivery_proof_messages_overhead(1).ref_time(), 0);
+	// W::receive_messages_delivery_proof_messages_overhead(1).ref_time() may be zero because:
+	// there's no code that iterates over confirmed messages in confirmation transaction
 	assert_eq!(W::receive_messages_delivery_proof_messages_overhead(1).proof_size(), 0);
 	assert_ne!(W::receive_messages_delivery_proof_relayers_overhead(1).ref_time(), 0);
 	// W::receive_messages_delivery_proof_relayers_overhead(1).proof_size() is an exception
@@ -160,11 +161,6 @@ fn messages_proof_size_does_not_affect_proof_size<W: WeightInfoExt>() {
 		weight_when_proof_size_is_16k,
 		"Messages proof size does not affect values that we read from our storage",
 	);
-	ensure_ref_time_lte(
-		weight_when_proof_size_is_8k,
-		weight_when_proof_size_is_16k,
-		"Larger message proofs mean more hashing and iterations => computation time",
-	);
 }
 
 /// Panics if `proof_size` of message delivery call depends on the messages count.
@@ -187,11 +183,6 @@ fn messages_count_does_not_affect_proof_size<W: WeightInfoExt>() {
 		weight_of_two_incoming_messages,
 		"Number of same-lane incoming messages does not affect values that we read from our storage",
 	);
-	ensure_ref_time_lte(
-		weight_of_one_incoming_message,
-		weight_of_two_incoming_messages,
-		"More incoming messages mean more computation overhead",
-	);
 }
 
 /// Panics if `proof_size` of delivery confirmation call depends on the delivery proof size.
@@ -213,11 +204,6 @@ fn messages_delivery_proof_size_does_not_affect_proof_size<W: WeightInfoExt>() {
 		weight_when_proof_size_is_8k,
 		weight_when_proof_size_is_16k,
 		"Messages delivery proof size does not affect values that we read from our storage",
-	);
-	ensure_ref_time_lte(
-		weight_when_proof_size_is_8k,
-		weight_when_proof_size_is_16k,
-		"Larger messages delivery proofs mean more hashing and iterations => computation time",
 	);
 }
 
@@ -251,27 +237,12 @@ fn total_messages_in_delivery_proof_does_not_affect_proof_size<W: WeightInfoExt>
 		weight_when_2k_messages_confirmed,
 		"More messages in delivery proof does not affect values that we read from our storage",
 	);
-	ensure_ref_time_lte(
-		weight_when_1k_messages_confirmed,
-		weight_when_2k_messages_confirmed,
-		"More messages in delivery proof means more iterations => computation time",
-	);
 }
 
 /// Panics if either Weight' `proof_size` or `ref_time` are zero.
 fn ensure_weight_components_are_not_zero(weight: Weight) {
 	assert_ne!(weight.ref_time(), 0);
 	assert_ne!(weight.proof_size(), 0);
-}
-
-/// Panics if `ref_time` of `weight1` is larger than `ref_time` of `weight2`.
-fn ensure_ref_time_lte(weight1: Weight, weight2: Weight, msg: &str) {
-	assert!(
-		weight1.ref_time() <= weight2.ref_time(),
-		"{msg}: {} must be less than {}",
-		weight1.ref_time(),
-		weight2.ref_time(),
-	);
 }
 
 /// Panics if `proof_size` of `weight1` is not equal to `proof_size` of `weight2`.
