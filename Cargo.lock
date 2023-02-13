@@ -12899,7 +12899,7 @@ checksum = "6bdef32e8150c2a081110b42772ffe7d7c9032b606bc226c8260fd97e0976601"
 [[package]]
 name = "subxt"
 version = "0.26.0"
-source = "git+https://github.com/paritytech/subxt?branch=master#20adb198e42d1a36d0c919737230423c17ca78e6"
+source = "git+https://github.com/paritytech/subxt?branch=master#9e2acff5b2838a59205fac1cedbf2c404f5eb9b7"
 dependencies = [
  "base58",
  "blake2",
@@ -12931,7 +12931,7 @@ dependencies = [
 [[package]]
 name = "subxt-codegen"
 version = "0.26.0"
-source = "git+https://github.com/paritytech/subxt?branch=master#20adb198e42d1a36d0c919737230423c17ca78e6"
+source = "git+https://github.com/paritytech/subxt?branch=master#9e2acff5b2838a59205fac1cedbf2c404f5eb9b7"
 dependencies = [
  "darling",
  "frame-metadata",
@@ -12951,7 +12951,7 @@ dependencies = [
 [[package]]
 name = "subxt-macro"
 version = "0.26.0"
-source = "git+https://github.com/paritytech/subxt?branch=master#20adb198e42d1a36d0c919737230423c17ca78e6"
+source = "git+https://github.com/paritytech/subxt?branch=master#9e2acff5b2838a59205fac1cedbf2c404f5eb9b7"
 dependencies = [
  "darling",
  "proc-macro-error",
@@ -12962,7 +12962,7 @@ dependencies = [
 [[package]]
 name = "subxt-metadata"
 version = "0.26.0"
-source = "git+https://github.com/paritytech/subxt?branch=master#20adb198e42d1a36d0c919737230423c17ca78e6"
+source = "git+https://github.com/paritytech/subxt?branch=master#9e2acff5b2838a59205fac1cedbf2c404f5eb9b7"
 dependencies = [
  "frame-metadata",
  "parity-scale-codec",
@@ -13656,7 +13656,7 @@ version = "1.6.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "97fee6b57c6a41524a810daee9286c02d7752c4253064d0b05472833a438f675"
 dependencies = [
- "cfg-if 1.0.0",
+ "cfg-if 0.1.10",
  "digest 0.10.6",
  "rand 0.8.5",
  "static_assertions",
