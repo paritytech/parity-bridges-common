@@ -368,13 +368,9 @@ pub type XcmOriginToTransactDispatchOrigin = (
 // TODO: until https://github.com/paritytech/parity-bridges-common/issues/1417 is fixed (in either way),
 // the following constant must match the similar constant in the Millau runtime.
 
-/// One XCM operation is `1_000_000_000` weight - almost certainly a conservative estimate.
-pub const BASE_XCM_WEIGHT: u64 = 1_000_000_000;
-
 parameter_types! {
 	/// The amount of weight an XCM operation takes. This is a safe overestimate.
-	// TODO: https://github.com/paritytech/parity-bridges-common/issues/1543 - check `set_proof_size` 0 or 64*1024 or 1026?
-	pub UnitWeightCost: Weight = Weight::from_parts(BASE_XCM_WEIGHT, 0);
+	pub const UnitWeightCost: Weight = Weight::from_parts(1_000_000, 64 * 1024);
 	// One UNIT buys 1 second of weight.
 	pub const WeightPrice: (MultiLocation, u128) = (MultiLocation::parent(), UNIT);
 	pub const MaxInstructions: u32 = 100;
@@ -533,8 +529,8 @@ parameter_types! {
 	/// Number of headers to keep.
 	///
 	/// Assuming the worst case of every header being finalized, we will keep headers at least for a
-	/// week.
-	pub const HeadersToKeep: u32 = 7 * bp_millau::DAYS as u32;
+	/// day.
+	pub const HeadersToKeep: u32 = bp_millau::DAYS as u32;
 
 	/// Maximal number of authorities at Millau.
 	pub const MaxAuthoritiesAtMillau: u32 = bp_millau::MAX_AUTHORITIES_COUNT;
@@ -581,7 +577,7 @@ impl pallet_bridge_messages::Config<WithMillauMessagesInstance> for Runtime {
 	type InboundRelayer = bp_millau::AccountId;
 	type DeliveryPayments = ();
 
-	type TargetHeaderChain = crate::millau_messages::Millau;
+	type TargetHeaderChain = crate::millau_messages::MillauAsTargetHeaderChain;
 	type LaneMessageVerifier = crate::millau_messages::ToMillauMessageVerifier;
 	type DeliveryConfirmationPayments = pallet_bridge_relayers::DeliveryConfirmationPaymentsAdapter<
 		Runtime,
@@ -589,7 +585,7 @@ impl pallet_bridge_messages::Config<WithMillauMessagesInstance> for Runtime {
 		frame_support::traits::ConstU128<100_000>,
 	>;
 
-	type SourceHeaderChain = crate::millau_messages::Millau;
+	type SourceHeaderChain = crate::millau_messages::MillauAsSourceHeaderChain;
 	type MessageDispatch = crate::millau_messages::FromMillauMessageDispatch;
 	type BridgedChainId = BridgedChainId;
 }
@@ -734,6 +730,12 @@ impl_runtime_apis! {
 			len: u32,
 		) -> pallet_transaction_payment::FeeDetails<Balance> {
 			TransactionPayment::query_fee_details(uxt, len)
+		}
+		fn query_weight_to_fee(weight: Weight) -> Balance {
+			TransactionPayment::weight_to_fee(weight)
+		}
+		fn query_length_to_fee(length: u32) -> Balance {
+			TransactionPayment::length_to_fee(length)
 		}
 	}
 
@@ -896,17 +898,14 @@ mod tests {
 			};
 
 			let dispatch_weight = MessageDispatcher::dispatch_weight(&mut incoming_message);
-			assert_eq!(
-				dispatch_weight,
-				frame_support::weights::Weight::from_ref_time(1_000_000_000)
-			);
+			assert_eq!(dispatch_weight, UnitWeightCost::get());
 
 			let dispatch_result =
 				MessageDispatcher::dispatch(&AccountId::from([0u8; 32]), incoming_message);
 			assert_eq!(
 				dispatch_result,
 				MessageDispatchResult {
-					unspent_weight: frame_support::weights::Weight::from_ref_time(0),
+					unspent_weight: frame_support::weights::Weight::zero(),
 					dispatch_level_result: (),
 				}
 			);

@@ -26,6 +26,7 @@ services:
       - ./bridges/rialto-millau/entrypoints:/entrypoints
     environment:
       RUST_LOG: rpc=trace,bridge=trace
+      GLOBAL_DEPLOYMENTS: $GLOBAL_DEPLOYMENTS
     ports:
       - "10016:9616"
     depends_on: &all-nodes

@@ -15,7 +15,7 @@ More: [Parachains Finality Relay Sequence Diagram](../../docs/parachains-finalit
 
 There are only two traits that need to be implemented. The [`SourceChain`](./src/parachains_loop.rs) implementation
 is supposed to connect to the source chain node. It must be able to read parachain heads from the `Heads` map of
-the [`paras` pallet](https://github.com/paritytech/polkadot/tree/master/runtime/parachains/src/paras) pallet.
+the [`paras` pallet](https://github.com/paritytech/polkadot/tree/master/runtime/parachains/src/paras).
 It also must create storage proofs of `Heads` map entries, when required.
 
 The [`TargetChain`](./src/parachains_loop.rs) implementation connects to the target chain node. It must be able
@@ -24,7 +24,7 @@ finality delivery transaction to the target node.
 
 The main entrypoint for the crate is the [`run` function](./src/parachains_loop.rs), which takes source and target
 clients and [`ParachainSyncParams`](./src/parachains_loop.rs) parameters. The most imporant parameter is the
-`parachains` - it it the set of parachains, which relay tracks and updates. The other important parameter that
+`parachains` - it is the set of parachains, which relay tracks and updates. The other important parameter that
 may affect the relay operational costs is the `strategy`. If it is set to `Any`, then the finality delivery
 transaction is submitted if at least one of tracked parachain heads is updated. The other option is `All`. Then
 the relay waits until all tracked parachain heads are updated and submits them all in a single finality delivery

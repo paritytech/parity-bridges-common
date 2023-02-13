@@ -33,6 +33,13 @@ use bp_runtime::{Chain, HashOf, HeaderId, HeaderIdOf, Parachain, StorageProofErr
 use frame_support::dispatch::PostDispatchInfo;
 use sp_std::{marker::PhantomData, vec::Vec};
 
+#[cfg(feature = "runtime-benchmarks")]
+use bp_parachains::ParaStoredHeaderDataBuilder;
+#[cfg(feature = "runtime-benchmarks")]
+use bp_runtime::HeaderOf;
+#[cfg(feature = "runtime-benchmarks")]
+use codec::Encode;
+
 // Re-export in crate namespace for `construct_runtime!`.
 pub use pallet::*;
 
@@ -214,27 +221,39 @@ pub mod pallet {
 	/// - the head of the `ImportedParaHashes` ring buffer
 	#[pallet::storage]
 	pub type ParasInfo<T: Config<I>, I: 'static = ()> = StorageMap<
-		_,
-		<ParasInfoKeyProvider as StorageMapKeyProvider>::Hasher,
-		<ParasInfoKeyProvider as StorageMapKeyProvider>::Key,
-		<ParasInfoKeyProvider as StorageMapKeyProvider>::Value,
+		Hasher = <ParasInfoKeyProvider as StorageMapKeyProvider>::Hasher,
+		Key = <ParasInfoKeyProvider as StorageMapKeyProvider>::Key,
+		Value = <ParasInfoKeyProvider as StorageMapKeyProvider>::Value,
+		QueryKind = OptionQuery,
+		OnEmpty = GetDefault,
+		MaxValues = MaybeMaxParachains<T, I>,
 	>;
 
 	/// State roots of parachain heads which have been imported into the pallet.
 	#[pallet::storage]
 	pub type ImportedParaHeads<T: Config<I>, I: 'static = ()> = StorageDoubleMap<
-		_,
-		<ImportedParaHeadsKeyProvider as StorageDoubleMapKeyProvider>::Hasher1,
-		<ImportedParaHeadsKeyProvider as StorageDoubleMapKeyProvider>::Key1,
-		<ImportedParaHeadsKeyProvider as StorageDoubleMapKeyProvider>::Hasher2,
-		<ImportedParaHeadsKeyProvider as StorageDoubleMapKeyProvider>::Key2,
-		StoredParaHeadDataOf<T, I>,
+		Hasher1 = <ImportedParaHeadsKeyProvider as StorageDoubleMapKeyProvider>::Hasher1,
+		Key1 = <ImportedParaHeadsKeyProvider as StorageDoubleMapKeyProvider>::Key1,
+		Hasher2 = <ImportedParaHeadsKeyProvider as StorageDoubleMapKeyProvider>::Hasher2,
+		Key2 = <ImportedParaHeadsKeyProvider as StorageDoubleMapKeyProvider>::Key2,
+		Value = StoredParaHeadDataOf<T, I>,
+		QueryKind = OptionQuery,
+		OnEmpty = GetDefault,
+		MaxValues = MaybeMaxTotalParachainHashes<T, I>,
 	>;
 
 	/// A ring buffer of imported parachain head hashes. Ordered by the insertion time.
 	#[pallet::storage]
-	pub(super) type ImportedParaHashes<T: Config<I>, I: 'static = ()> =
-		StorageDoubleMap<_, Blake2_128Concat, ParaId, Twox64Concat, u32, ParaHash>;
+	pub(super) type ImportedParaHashes<T: Config<I>, I: 'static = ()> = StorageDoubleMap<
+		Hasher1 = Blake2_128Concat,
+		Key1 = ParaId,
+		Hasher2 = Twox64Concat,
+		Key2 = u32,
+		Value = ParaHash,
+		QueryKind = OptionQuery,
+		OnEmpty = GetDefault,
+		MaxValues = MaybeMaxTotalParachainHashes<T, I>,
+	>;
 
 	#[pallet::pallet]
 	#[pallet::generate_store(pub(super) trait Store)]
@@ -639,6 +658,27 @@ pub mod pallet {
 			}
 		}
 	}
+
+	/// Returns maximal number of parachains, supported by the pallet.
+	pub struct MaybeMaxParachains<T, I>(PhantomData<(T, I)>);
+
+	impl<T: Config<I>, I: 'static> Get<Option<u32>> for MaybeMaxParachains<T, I> {
+		fn get() -> Option<u32> {
+			Some(T::ParaStoredHeaderDataBuilder::supported_parachains())
+		}
+	}
+
+	/// Returns total number of all parachains hashes/heads, stored by the pallet.
+	pub struct MaybeMaxTotalParachainHashes<T, I>(PhantomData<(T, I)>);
+
+	impl<T: Config<I>, I: 'static> Get<Option<u32>> for MaybeMaxTotalParachainHashes<T, I> {
+		fn get() -> Option<u32> {
+			Some(
+				T::ParaStoredHeaderDataBuilder::supported_parachains()
+					.saturating_mul(T::HeadsToKeep::get()),
+			)
+		}
+	}
 }
 
 /// Single parachain header chain adapter.
@@ -652,6 +692,25 @@ impl<T: Config<I>, I: 'static, C: Parachain<Hash = ParaHash>> HeaderChain<C>
 			.and_then(|head| head.decode_parachain_head_data::<C>().ok())
 			.map(|h| h.state_root)
 	}
+}
+
+/// (Re)initialize pallet with given header for using it in `pallet-bridge-messages` benchmarks.
+#[cfg(feature = "runtime-benchmarks")]
+pub fn initialize_for_benchmarks<T: Config<I>, I: 'static, PC: Parachain<Hash = ParaHash>>(
+	header: HeaderOf<PC>,
+) {
+	let parachain = ParaId(PC::PARACHAIN_ID);
+	let parachain_head = ParaHead(header.encode());
+	let updated_head_data = T::ParaStoredHeaderDataBuilder::try_build(parachain, &parachain_head)
+		.expect("failed to build stored parachain head in benchmarks");
+	Pallet::<T, I>::update_parachain_head(
+		parachain,
+		None,
+		0,
+		updated_head_data,
+		parachain_head.hash(),
+	)
+	.expect("failed to insert parachain head in benchmarks");
 }
 
 #[cfg(test)]
@@ -1487,8 +1546,11 @@ mod tests {
 			parachains: parachains.clone(),
 			parachain_heads_proof: proof.clone(),
 		};
-		let indirect_submit_parachain_heads_call =
-			BridgeParachainCall::submit_parachain_heads(relay_header_id, parachains, proof);
+		let indirect_submit_parachain_heads_call = BridgeParachainCall::submit_parachain_heads {
+			at_relay_block: relay_header_id,
+			parachains,
+			parachain_heads_proof: proof,
+		};
 		assert_eq!(
 			direct_submit_parachain_heads_call.encode(),
 			indirect_submit_parachain_heads_call.encode()
@@ -1496,4 +1558,17 @@ mod tests {
 	}
 
 	generate_owned_bridge_module_tests!(BasicOperatingMode::Normal, BasicOperatingMode::Halted);
+
+	#[test]
+	fn maybe_max_parachains_returns_correct_value() {
+		assert_eq!(MaybeMaxParachains::<TestRuntime, ()>::get(), Some(mock::TOTAL_PARACHAINS));
+	}
+
+	#[test]
+	fn maybe_max_total_parachain_hashes_returns_correct_value() {
+		assert_eq!(
+			MaybeMaxTotalParachainHashes::<TestRuntime, ()>::get(),
+			Some(mock::TOTAL_PARACHAINS * mock::HeadsToKeep::get()),
+		);
+	}
 }

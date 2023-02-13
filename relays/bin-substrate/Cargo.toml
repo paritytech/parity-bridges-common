@@ -10,16 +10,16 @@ anyhow = "1.0"
 async-std = "1.9.0"
 async-trait = "0.1"
 codec = { package = "parity-scale-codec", version = "3.1.5" }
-futures = "0.3.12"
+futures = "0.3.26"
 hex = "0.4"
 log = "0.4.17"
 num-format = "0.4"
 num-traits = "0.2"
 rbtag = "0.3"
 structopt = "0.3"
-signal-hook = "0.3.14"
+signal-hook = "0.3.15"
 signal-hook-async-std = "0.2.2"
-strum = { version = "0.21.0", features = ["derive"] }
+strum = { version = "0.24.1", features = ["derive"] }
 
 # Bridge dependencies
 bp-header-chain = { path = "../../primitives/header-chain" }
