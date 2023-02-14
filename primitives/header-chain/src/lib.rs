@@ -93,8 +93,8 @@ pub trait HeaderChain<C: Chain> {
 	) -> Result<R, HeaderChainError> {
 		let state_root = Self::finalized_header_state_root(header_hash)
 			.ok_or(HeaderChainError::UnknownHeader)?;
-		let storage_proof_checker =
-			bp_runtime::StorageProofChecker::new(state_root, storage_proof).map_err(HeaderChainError::StorageProof)?;
+		let storage_proof_checker = bp_runtime::StorageProofChecker::new(state_root, storage_proof)
+			.map_err(HeaderChainError::StorageProof)?;
 
 		Ok(parse(storage_proof_checker))
 	}

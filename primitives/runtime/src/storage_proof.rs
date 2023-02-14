@@ -223,11 +223,28 @@ pub mod tests {
 
 	#[test]
 	fn proof_with_duplicate_items_is_rejected() {
-		// TODO
+		let (root, mut proof) = craft_valid_storage_proof();
+		proof.push(proof.iter().next().unwrap().clone());
+
+		assert_eq!(
+			StorageProofChecker::<sp_core::Blake2Hasher>::new(root, proof).map(drop),
+			Err(Error::DuplicateNodesInProof),
+		);
 	}
 
 	#[test]
 	fn proof_with_unused_items_is_rejected() {
-		// TODO
+		let (root, proof) = craft_valid_storage_proof();
+
+		let mut checker =
+			StorageProofChecker::<sp_core::Blake2Hasher>::new(root, proof.clone()).unwrap();
+		checker.read_value(b"key1").unwrap();
+		checker.read_value(b"key2").unwrap();
+		checker.read_value(b"key4").unwrap();
+		checker.read_value(b"key22").unwrap();
+		assert_eq!(checker.ensure_no_unused_nodes(), Ok(()));
+
+		let checker = StorageProofChecker::<sp_core::Blake2Hasher>::new(root, proof).unwrap();
+		assert_eq!(checker.ensure_no_unused_nodes(), Err(Error::UnusedNodesInTheProof));
 	}
 }
