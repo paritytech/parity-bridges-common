@@ -44,7 +44,7 @@ use sp_runtime::{
 	transaction_validity::{TransactionValidity, TransactionValidityError, ValidTransaction},
 	DispatchResult, FixedPointOperand,
 };
-use sp_std::{fmt::Debug, marker::PhantomData, vec};
+use sp_std::{marker::PhantomData, vec, vec::Vec};
 
 // TODO (https://github.com/paritytech/parity-bridges-common/issues/1667):
 // support multiple bridges in this extension
@@ -77,14 +77,6 @@ where
 	}
 }
 
-/// Structure containing some data for each call in a supported (`utility::batch_all`) transaction.
-#[derive(Clone, Copy, PartialEq, RuntimeDebugNoBound)]
-pub struct TxData<Grandpa: Debug, Parachains: Debug, Messages: Debug> {
-	submit_finality_proof: Option<Grandpa>,
-	submit_parachain_heads: Option<Parachains>,
-	receive_messages_proof: Messages,
-}
-
 /// Signed extension that refunds relayer for new messages coming from the parachain.
 ///
 /// Also refunds relayer for successful finality delivery if it comes in batch (`utility.batchAll`)
@@ -114,11 +106,8 @@ where
 	R: UtilityConfig<RuntimeCall = CallOf<R>>,
 	CallOf<R>: IsSubType<CallableCallFor<UtilityPallet<R>, R>>,
 {
-	fn expand_call<'a>(
-		&self,
-		call: &'a CallOf<R>,
-	) -> Option<TxData<&'a CallOf<R>, &'a CallOf<R>, &'a CallOf<R>>> {
-		let mut calls = match call.is_sub_type() {
+	fn expand_call<'a>(&self, call: &'a CallOf<R>) -> Option<Vec<&'a CallOf<R>>> {
+		let calls = match call.is_sub_type() {
 			Some(UtilityCall::<R>::batch_all { ref calls }) => {
 				if calls.len() > 3 {
 					return None
@@ -128,15 +117,9 @@ where
 			},
 			Some(_) => return None,
 			None => vec![call],
-		}
-		.into_iter()
-		.rev();
+		};
 
-		let receive_messages_proof = calls.next()?;
-		let submit_parachain_heads = calls.next();
-		let submit_finality_proof = calls.next();
-
-		Some(TxData { submit_finality_proof, submit_parachain_heads, receive_messages_proof })
+		Some(calls)
 	}
 }
 
@@ -146,8 +129,30 @@ where
 pub struct PreDispatchData<AccountId> {
 	/// Transaction submitter (relayer) account.
 	relayer: AccountId,
-	/// The info for each call in the transaction.
-	tx_info: TxData<RelayBlockNumber, SubmitParachainHeadsInfo, ReceiveMessagesProofInfo>,
+	/// Type of the call.
+	pub call_type: CallType,
+}
+
+/// Type of the call that the extension recognizes.
+#[derive(Clone, Copy, PartialEq, RuntimeDebugNoBound)]
+pub enum CallType {
+	/// Relay chain finality + parachain finality + message delivery calls.
+	AllFinalityAndDelivery(RelayBlockNumber, SubmitParachainHeadsInfo, ReceiveMessagesProofInfo),
+	/// Parachain finality + message delivery calls.
+	ParachainFinalityAndDelivery(SubmitParachainHeadsInfo, ReceiveMessagesProofInfo),
+	/// Standalone message delivery call.
+	Delivery(ReceiveMessagesProofInfo),
+}
+
+impl CallType {
+	/// Returns the pre-dispatch messages pallet state.
+	fn receive_messages_proof_info(&self) -> ReceiveMessagesProofInfo {
+		match *self {
+			Self::AllFinalityAndDelivery(_, _, info) => info,
+			Self::ParachainFinalityAndDelivery(_, info) => info,
+			Self::Delivery(info) => info,
+		}
+	}
 }
 
 // without this typedef rustfmt fails with internal err
@@ -200,13 +205,11 @@ where
 			None => return Ok(ValidTransaction::default()),
 		};
 
-		if let Some(submit_finality_proof) = calls.submit_finality_proof {
-			submit_finality_proof.check_obsolete_submit_finality_proof()?;
+		for call in calls {
+			call.check_obsolete_submit_finality_proof()?;
+			call.check_obsolete_submit_parachain_heads()?;
+			call.check_obsolete_receive_messages_proof()?;
 		}
-		if let Some(submit_parachain_heads) = calls.submit_parachain_heads {
-			submit_parachain_heads.check_obsolete_submit_parachain_heads()?;
-		}
-		calls.receive_messages_proof.check_obsolete_receive_messages_proof()?;
 
 		Ok(ValidTransaction::default())
 	}
@@ -222,38 +225,35 @@ where
 		self.validate(who, call, info, len).map(drop)?;
 
 		// Try to check if the tx matches one of types we support.
-		let parse_call = || {
-			let calls = self.expand_call(call)?;
-
-			let mut tx_info = TxData {
-				submit_finality_proof: None,
-				submit_parachain_heads: None,
-				receive_messages_proof: calls
-					.receive_messages_proof
-					.receive_messages_proof_info_for(LID::get())?,
-			};
-			if let Some(submit_parachain_heads) = calls.submit_parachain_heads {
-				tx_info.submit_parachain_heads =
-					Some(submit_parachain_heads.submit_parachain_heads_info_for(PID::get())?);
+		let parse_call_type = || {
+			let mut calls = self.expand_call(call)?.into_iter();
+			match calls.len() {
+				3 => Some(CallType::AllFinalityAndDelivery(
+					calls.next()?.submit_finality_proof_info()?,
+					calls.next()?.submit_parachain_heads_info_for(PID::get())?,
+					calls.next()?.receive_messages_proof_info_for(LID::get())?,
+				)),
+				2 => Some(CallType::ParachainFinalityAndDelivery(
+					calls.next()?.submit_parachain_heads_info_for(PID::get())?,
+					calls.next()?.receive_messages_proof_info_for(LID::get())?,
+				)),
+				1 => Some(CallType::Delivery(
+					calls.next()?.receive_messages_proof_info_for(LID::get())?,
+				)),
+				_ => None,
 			}
-			if let Some(submit_finality_proof) = calls.submit_finality_proof {
-				tx_info.submit_finality_proof =
-					Some(submit_finality_proof.submit_finality_proof_info()?);
-			}
-
-			Some(tx_info)
 		};
 
-		Ok(parse_call().map(|tx_info| {
+		Ok(parse_call_type().map(|call_type| {
 			log::trace!(
 				target: "runtime::bridge",
 				"RefundRelayerForMessagesFromParachain from parachain {} via {:?} \
 				parsed bridge transaction in pre-dispatch: {:?}",
 				PID::get(),
 				LID::get(),
-				tx_info,
+				call_type,
 			);
-			PreDispatchData { relayer: who.clone(), tx_info }
+			PreDispatchData { relayer: who.clone(), call_type }
 		}))
 	}
 
@@ -270,13 +270,13 @@ where
 		}
 
 		// We don't refund anything for transactions that we don't support.
-		let (relayer, calls_info) = match pre {
-			Some(Some(pre)) => (pre.relayer, pre.tx_info),
+		let (relayer, call_type) = match pre {
+			Some(Some(pre)) => (pre.relayer, pre.call_type),
 			_ => return Ok(()),
 		};
 
 		// check if relay chain state has been updated
-		if let Some(relay_block_number) = calls_info.submit_finality_proof {
+		if let CallType::AllFinalityAndDelivery(relay_block_number, _, _) = call_type {
 			if !SubmitFinalityProofHelper::<R, GI>::was_successful(relay_block_number) {
 				// we only refund relayer if all calls have updated chain state
 				return Ok(())
@@ -291,18 +291,21 @@ where
 		}
 
 		// check if parachain state has been updated
-		if let Some(parachain_proof_info) = calls_info.submit_parachain_heads {
-			if !SubmitParachainHeadsHelper::<R, PI>::was_successful(&parachain_proof_info) {
-				// we only refund relayer if all calls have updated chain state
-				return Ok(())
-			}
+		match call_type {
+			CallType::AllFinalityAndDelivery(_, parachain_heads_info, _) |
+			CallType::ParachainFinalityAndDelivery(parachain_heads_info, _) => {
+				if !SubmitParachainHeadsHelper::<R, PI>::was_successful(&parachain_heads_info) {
+					// we only refund relayer if all calls have updated chain state
+					return Ok(())
+				}
+			},
+			_ => (),
 		}
 
 		// Check if the `ReceiveMessagesProof` call delivered at least some of the messages that
 		// it contained. If this happens, we consider the transaction "helpful" and refund it.
-		if !ReceiveMessagesProofHelper::<R, MI>::was_partially_successful(
-			calls_info.receive_messages_proof,
-		) {
+		let messages_proof_info = call_type.receive_messages_proof_info();
+		if !ReceiveMessagesProofHelper::<R, MI>::was_partially_successful(&messages_proof_info) {
 			return Ok(())
 		}
 
@@ -467,53 +470,48 @@ mod tests {
 	fn all_finality_pre_dispatch_data() -> PreDispatchData<ThisChainAccountId> {
 		PreDispatchData {
 			relayer: relayer_account_at_this_chain(),
-			tx_info: TxData {
-				submit_finality_proof: Some(200),
-				submit_parachain_heads: Some(SubmitParachainHeadsInfo {
+			call_type: CallType::AllFinalityAndDelivery(
+				200,
+				SubmitParachainHeadsInfo {
 					at_relay_block_number: 200,
 					para_id: ParaId(TestParachain::get()),
 					para_head_hash: [1u8; 32].into(),
-				}),
-				receive_messages_proof: ReceiveMessagesProofInfo {
+				},
+				ReceiveMessagesProofInfo {
 					lane_id: TEST_LANE_ID,
 					best_proof_nonce: 200,
 					best_stored_nonce: 100,
 				},
-			},
+			),
 		}
 	}
 
 	fn parachain_finality_pre_dispatch_data() -> PreDispatchData<ThisChainAccountId> {
 		PreDispatchData {
 			relayer: relayer_account_at_this_chain(),
-			tx_info: TxData {
-				submit_finality_proof: None,
-				submit_parachain_heads: Some(SubmitParachainHeadsInfo {
+			call_type: CallType::ParachainFinalityAndDelivery(
+				SubmitParachainHeadsInfo {
 					at_relay_block_number: 200,
 					para_id: ParaId(TestParachain::get()),
 					para_head_hash: [1u8; 32].into(),
-				}),
-				receive_messages_proof: ReceiveMessagesProofInfo {
+				},
+				ReceiveMessagesProofInfo {
 					lane_id: TEST_LANE_ID,
 					best_proof_nonce: 200,
 					best_stored_nonce: 100,
 				},
-			},
+			),
 		}
 	}
 
 	fn delivery_pre_dispatch_data() -> PreDispatchData<ThisChainAccountId> {
 		PreDispatchData {
 			relayer: relayer_account_at_this_chain(),
-			tx_info: TxData {
-				submit_finality_proof: None,
-				submit_parachain_heads: None,
-				receive_messages_proof: ReceiveMessagesProofInfo {
-					lane_id: TEST_LANE_ID,
-					best_proof_nonce: 200,
-					best_stored_nonce: 100,
-				},
-			},
+			call_type: CallType::Delivery(ReceiveMessagesProofInfo {
+				lane_id: TEST_LANE_ID,
+				best_proof_nonce: 200,
+				best_stored_nonce: 100,
+			}),
 		}
 	}
 

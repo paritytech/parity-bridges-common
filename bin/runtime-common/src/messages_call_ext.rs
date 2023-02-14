@@ -38,7 +38,7 @@ pub struct ReceiveMessagesProofHelper<T: Config<I>, I: 'static> {
 impl<T: Config<I>, I: 'static> ReceiveMessagesProofHelper<T, I> {
 	/// Check if the `ReceiveMessagesProof` call delivered at least some of the messages that
 	/// it contained.
-	pub fn was_partially_successful(info: ReceiveMessagesProofInfo) -> bool {
+	pub fn was_partially_successful(info: &ReceiveMessagesProofInfo) -> bool {
 		let inbound_lane_data = pallet_bridge_messages::InboundLanes::<T, I>::get(info.lane_id);
 		inbound_lane_data.last_delivered_nonce() > info.best_stored_nonce
 	}
