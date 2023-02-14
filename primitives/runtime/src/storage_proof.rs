@@ -224,7 +224,7 @@ pub mod tests {
 	#[test]
 	fn proof_with_duplicate_items_is_rejected() {
 		let (root, mut proof) = craft_valid_storage_proof();
-		proof.push(proof.iter().next().unwrap().clone());
+		proof.push(proof.first().unwrap().clone());
 
 		assert_eq!(
 			StorageProofChecker::<sp_core::Blake2Hasher>::new(root, proof).map(drop),
