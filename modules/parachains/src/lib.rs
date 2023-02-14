@@ -1500,7 +1500,7 @@ mod tests {
 
 	#[test]
 	fn ignores_parachain_head_if_it_is_missing_from_storage_proof() {
-		let (state_root, proof, _) = prepare_parachain_heads_proof(vec![(1, head_data(1, 0))]);
+		let (state_root, proof, _) = prepare_parachain_heads_proof(vec![]);
 		let parachains = vec![(ParaId(2), Default::default())];
 		run_test(|| {
 			initialize(state_root);
