@@ -22,7 +22,7 @@
 use crate::{
 	messages::{
 		source::FromBridgedChainMessagesDeliveryProof, target::FromBridgedChainMessagesProof,
-		AccountIdOf, BridgedChain, HashOf, HasherOf, MessageBridge, RawStorageProof, ThisChain,
+		AccountIdOf, BridgedChain, HashOf, HasherOf, MessageBridge, ThisChain,
 	},
 	messages_generation::{
 		encode_all_messages, encode_lane_data, grow_trie, prepare_messages_storage_proof,
@@ -31,13 +31,15 @@ use crate::{
 
 use bp_messages::storage_keys;
 use bp_polkadot_core::parachains::ParaHash;
-use bp_runtime::{record_all_trie_keys, Chain, Parachain, StorageProofSize, UnderlyingChainOf};
+use bp_runtime::{
+	record_all_trie_keys, Chain, Parachain, RawStorageProof, StorageProofSize, UnderlyingChainOf,
+};
 use codec::Encode;
 use frame_support::weights::Weight;
 use pallet_bridge_messages::benchmarking::{MessageDeliveryProofParams, MessageProofParams};
 use sp_runtime::traits::{Header, Zero};
 use sp_std::prelude::*;
-use sp_trie::{trie_types::TrieDBMutBuilderV1, LayoutV1, MemoryDB, Recorder, TrieMut};
+use sp_trie::{trie_types::TrieDBMutBuilderV1, LayoutV1, MemoryDB, TrieMut};
 
 /// Prepare proof of messages for the `receive_messages_proof` call.
 ///
