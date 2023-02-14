@@ -713,10 +713,6 @@ pub mod target {
 					"Failed to decode message from the proof",
 				MessageProofError::FailedToDecodeOutboundLaneState =>
 					"Failed to decode outbound lane data from the proof",
-				MessageProofError::StorageProof(StorageProofError::DuplicateNodesInProof) =>
-					"Storage proof contains duplicate nodes",
-				MessageProofError::StorageProof(StorageProofError::UnusedNodesInTheProof) =>
-					"Storage proof contains unused nodes",
 				MessageProofError::StorageProof(_) => "Invalid storage proof",
 			}
 		}
@@ -946,7 +942,43 @@ mod tests {
 				);
 				target::verify_messages_proof::<OnThisChainBridge>(proof, 10)
 			}),
-			Err(target::MessageProofError::HeaderChain(HeaderChainError::StorageRootMismatch)),
+			Err(target::MessageProofError::HeaderChain(HeaderChainError::StorageProof(StorageProofError::StorageRootMismatch))),
+		);
+	}
+
+	#[test]
+	fn message_proof_is_rejected_if_it_has_duplicate_trie_nodes() {
+		assert_eq!(
+			using_messages_proof(
+				10,
+				None,
+				encode_all_messages,
+				encode_lane_data,
+				|mut proof| {
+					let node = proof.storage_proof.pop().unwrap();
+					proof.storage_proof.push(node.clone());
+					proof.storage_proof.push(node);
+					target::verify_messages_proof::<OnThisChainBridge>(proof, 10)
+				},
+			),
+			Err(target::MessageProofError::HeaderChain(HeaderChainError::StorageProof(StorageProofError::DuplicateNodesInProof))),
+		);
+	}
+
+	#[test]
+	fn message_proof_is_rejected_if_it_has_unused_trie_nodes() {
+		assert_eq!(
+			using_messages_proof(
+				10,
+				None,
+				encode_all_messages,
+				encode_lane_data,
+				|mut proof| {
+					proof.storage_proof.push(vec![42]);
+					target::verify_messages_proof::<OnThisChainBridge>(proof, 10)
+				},
+			),
+			Err(target::MessageProofError::StorageProof(StorageProofError::UnusedNodesInTheProof)),
 		);
 	}
 

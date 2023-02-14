@@ -16,7 +16,7 @@
 
 //! Logic for checking Substrate storage proofs.
 
-use codec::Decode;
+use codec::{Decode, Encode};
 use hash_db::{HashDB, Hasher, EMPTY_PREFIX};
 use sp_runtime::RuntimeDebug;
 use sp_std::{boxed::Box, collections::btree_set::BTreeSet, vec::Vec};
@@ -125,7 +125,7 @@ where
 }
 
 /// Storage proof related errors.
-#[derive(Eq, RuntimeDebug, PartialEq)]
+#[derive(Clone, Eq, PartialEq, RuntimeDebug)]
 pub enum Error {
 	/// Duplicate trie nodes are found in the proof.
 	DuplicateNodesInProof,
@@ -144,7 +144,6 @@ pub enum Error {
 /// NOTE: This should only be used for **testing**.
 #[cfg(feature = "std")]
 pub fn craft_valid_storage_proof() -> (sp_core::H256, RawStorageProof) {
-	use codec::Encode;
 	use sp_state_machine::{backend::Backend, prove_read, InMemoryBackend};
 
 	let state_version = sp_runtime::StateVersion::default();
