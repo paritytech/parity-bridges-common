@@ -417,12 +417,9 @@ pub mod pallet {
 					storage.ensure_no_unused_nodes()
 				},
 			)
+			.and_then(|r| r.map_err(bp_header_chain::HeaderChainError::StorageProof))
 			.map_err(|e| {
-				log::trace!(target: LOG_TARGET, "Failed to read parachain heads. Storage proof is invalid: {:?}", e);
-				Error::<T, I>::InvalidStorageProof
-			})?
-			.map_err(|e| {
-				log::trace!(target: LOG_TARGET, "Failed to read parachain heads: {:?}", e);
+				log::trace!(target: LOG_TARGET, "Parachain heads storage proof is invalid: {:?}", e);
 				Error::<T, I>::InvalidStorageProof
 			})?;
 

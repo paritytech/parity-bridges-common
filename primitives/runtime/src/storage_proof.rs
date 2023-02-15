@@ -142,14 +142,10 @@ pub enum Error {
 impl From<Error> for &'static str {
 	fn from(err: Error) -> &'static str {
 		match err {
-			Error::DuplicateNodesInProof =>
-				"Storage proof contains duplicate nodes",
-			Error::UnusedNodesInTheProof =>
-				"Storage proof contains unused nodes",
-			Error::StorageRootMismatch =>
-				"Storage root is missing from the storage proof",
-			Error::StorageValueUnavailable =>
-				"Storage value is missing from the storage proof",
+			Error::DuplicateNodesInProof => "Storage proof contains duplicate nodes",
+			Error::UnusedNodesInTheProof => "Storage proof contains unused nodes",
+			Error::StorageRootMismatch => "Storage root is missing from the storage proof",
+			Error::StorageValueUnavailable => "Storage value is missing from the storage proof",
 			Error::StorageValueDecodeFailed(_) =>
 				"Failed to decode storage value from the storage proof",
 		}
