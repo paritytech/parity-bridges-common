@@ -22,12 +22,12 @@ use bp_header_chain::{
 	justification::{verify_justification, GrandpaJustification},
 	ConsensusLogReader, FinalityProof, GrandpaConsensusLogReader,
 };
-use bp_runtime::{BasicOperatingMode, OperatingMode};
+use bp_runtime::{BasicOperatingMode, OperatingMode, UnderlyingChainOf};
 use codec::{Decode, Encode};
 use finality_grandpa::voter_set::VoterSet;
 use num_traits::{One, Zero};
 use relay_substrate_client::{
-	BlockNumberOf, Chain, ChainWithGrandpa, Client, Error as SubstrateError, HashOf, HeaderOf,
+	BlockNumberOf, Chain, ChainWithGrandpa, ChainWithGrandpa, Client, Error as SubstrateError, HashOf, HeaderOf,
 	Subscription, SubstrateFinalityClient, SubstrateGrandpaFinalityClient,
 };
 use sp_core::{storage::StorageKey, Bytes};
@@ -132,11 +132,11 @@ impl<C: ChainWithGrandpa> Engine<C> for Grandpa<C> {
 	type OperatingMode = BasicOperatingMode;
 
 	fn is_initialized_key() -> StorageKey {
-		bp_header_chain::storage_keys::best_finalized_key(C::WITH_CHAIN_GRANDPA_PALLET_NAME)
+		bp_header_chain::storage_keys::best_finalized_key(<UnderlyingChainOf::<C> as ChainWithGrandpa>::WITH_CHAIN_GRANDPA_PALLET_NAME)
 	}
 
 	fn pallet_operating_mode_key() -> StorageKey {
-		bp_header_chain::storage_keys::pallet_operating_mode_key(C::WITH_CHAIN_GRANDPA_PALLET_NAME)
+		bp_header_chain::storage_keys::pallet_operating_mode_key(<UnderlyingChainOf::<C> as ChainWithGrandpa>::WITH_CHAIN_GRANDPA_PALLET_NAME)
 	}
 
 	/// Prepare initialization data for the GRANDPA verifier pallet.

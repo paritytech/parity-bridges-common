@@ -59,6 +59,12 @@ pub enum Error {
 	JustificationDecode,
 	/// Justification is finalizing unexpected header.
 	InvalidJustificationTarget,
+	/// Justification contains redundant votes.
+	RedundantVotesInJustification,
+	/// Justification contains unknown authority precommit.
+	UnknownAuthorityVote,
+	/// Justification contains duplicate authority precommit.
+	DuplicateAuthorityVote,
 	/// The authority has provided an invalid signature.
 	InvalidAuthoritySignature,
 	/// The justification contains precommit for header that is not a descendant of the commit
@@ -69,6 +75,14 @@ pub enum Error {
 	TooLowCumulativeWeight,
 	/// The justification contains extra (unused) headers in its `votes_ancestries` field.
 	ExtraHeadersInVotesAncestries,
+}
+
+/// Given GRANDPA authorities set size, return number of valid precommits that the justification
+/// must have to be valid.
+///
+/// This function assumes that all authorities have the same vote weight.
+pub fn required_justification_precommits(authorities_set_length: u32) -> u32 {
+	authorities_set_length - authorities_set_length.saturating_sub(1) / 3
 }
 
 /// Decode justification target.
@@ -95,18 +109,26 @@ where
 		return Err(Error::InvalidJustificationTarget)
 	}
 
+	let threshold = authorities_set.threshold().0.into();
 	let mut chain = AncestryChain::new(&justification.votes_ancestries);
 	let mut signature_buffer = Vec::new();
 	let mut votes = BTreeSet::new();
 	let mut cumulative_weight = 0u64;
 	for signed in &justification.commit.precommits {
+		// if we have already have required number of signatures, but justification has more
+		// signatures, we consider this justification incorrect (even though the justification
+		// still may be valid from the offchain client PoV)
+		if cumulative_weight >= threshold {
+			return Err(Error::RedundantVotesInJustification)
+		}
+
 		// authority must be in the set
 		let authority_info = match authorities_set.get(&signed.id) {
 			Some(authority_info) => authority_info,
 			None => {
-				// just ignore precommit from unknown authority as
-				// `finality_grandpa::import_precommit` does
-				continue
+				// `finality_grandpa::import_precommit` ignores that and accepts justification with
+				// unknown signatures, but we do not
+				return Err(Error::UnknownAuthorityVote)
 			},
 		};
 
@@ -116,7 +138,9 @@ where
 		// `finality-grandpa` crate (mostly related to reporting equivocations). But the only thing
 		// that we care about is that only first vote from the authority is accepted
 		if !votes.insert(signed.id.clone()) {
-			continue
+			// `finality_grandpa::import_precommit` accepts justifications with duplicate votes,
+			// but we do not
+			return Err(Error::DuplicateAuthorityVote)
 		}
 
 		// everything below this line can't just `continue`, because state is already altered
@@ -162,7 +186,6 @@ where
 
 	// check that the cumulative weight of validators voted for the justification target (or one
 	// of its descendents) is larger than required threshold.
-	let threshold = authorities_set.threshold().0.into();
 	if cumulative_weight >= threshold {
 		Ok(())
 	} else {

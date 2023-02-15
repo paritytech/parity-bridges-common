@@ -17,7 +17,7 @@
 //! Types used to connect to the Wococo-Substrate chain.
 
 use relay_substrate_client::{
-	Chain, ChainWithBalances, ChainWithGrandpa, RelayChain, UnderlyingChainProvider,
+	Chain, ChainWithBalances, RelayChain, UnderlyingChainProvider,
 };
 use sp_core::storage::StorageKey;
 use std::time::Duration;
@@ -45,10 +45,6 @@ impl Chain for Wococo {
 
 	type SignedBlock = bp_wococo::SignedBlock;
 	type Call = ();
-}
-
-impl ChainWithGrandpa for Wococo {
-	const WITH_CHAIN_GRANDPA_PALLET_NAME: &'static str = bp_wococo::WITH_WOCOCO_GRANDPA_PALLET_NAME;
 }
 
 impl ChainWithBalances for Wococo {

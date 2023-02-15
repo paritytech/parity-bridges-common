@@ -35,7 +35,7 @@ use std::time::Duration;
 pub use crate::{
 	chain::{
 		AccountKeyPairOf, BlockWithJustification, CallOf, Chain, ChainWithBalances,
-		ChainWithGrandpa, ChainWithMessages, ChainWithTransactions, ChainWithUtilityPallet,
+		ChainWithMessages, ChainWithTransactions, ChainWithUtilityPallet,
 		FullRuntimeUtilityPallet, Parachain, RelayChain, SignParam, TransactionStatusOf,
 		UnsignedTransaction, UtilityPallet,
 	},
@@ -48,6 +48,7 @@ pub use crate::{
 	sync_header::SyncHeader,
 	transaction_tracker::TransactionTracker,
 };
+pub use bp_header_chain::ChainWithGrandpa;
 pub use bp_runtime::{
 	AccountIdOf, AccountPublicOf, BalanceOf, BlockNumberOf, Chain as ChainBase, HashOf, HeaderIdOf,
 	HeaderOf, IndexOf, Parachain as ParachainBase, SignatureOf, TransactionEra, TransactionEraOf,

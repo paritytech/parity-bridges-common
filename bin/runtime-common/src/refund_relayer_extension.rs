@@ -27,9 +27,10 @@ use codec::{Decode, Encode};
 use frame_support::{
 	dispatch::{CallableCallFor, DispatchInfo, Dispatchable, PostDispatchInfo},
 	traits::IsSubType,
+	weights::Weight,
 	CloneNoBound, DefaultNoBound, EqNoBound, PartialEqNoBound, RuntimeDebugNoBound,
 };
-use pallet_bridge_grandpa::{CallSubType as GrandpaCallSubType, SubmitFinalityProofHelper};
+use pallet_bridge_grandpa::{CallSubType as GrandpaCallSubType, SubmitFinalityProofHelper, SubmitFinalityProofInfo};
 use pallet_bridge_messages::Config as MessagesConfig;
 use pallet_bridge_parachains::{
 	BoundedBridgeGrandpaConfig, CallSubType as ParachainsCallSubType, Config as ParachainsConfig,
@@ -130,14 +131,14 @@ pub struct PreDispatchData<AccountId> {
 	/// Transaction submitter (relayer) account.
 	relayer: AccountId,
 	/// Type of the call.
-	pub call_type: CallType,
+	call_type: CallType,
 }
 
 /// Type of the call that the extension recognizes.
 #[derive(Clone, Copy, PartialEq, RuntimeDebugNoBound)]
 pub enum CallType {
 	/// Relay chain finality + parachain finality + message delivery calls.
-	AllFinalityAndDelivery(RelayBlockNumber, SubmitParachainHeadsInfo, ReceiveMessagesProofInfo),
+	AllFinalityAndDelivery(SubmitFinalityProofInfo<RelayBlockNumber>, SubmitParachainHeadsInfo, ReceiveMessagesProofInfo),
 	/// Parachain finality + message delivery calls.
 	ParachainFinalityAndDelivery(SubmitParachainHeadsInfo, ReceiveMessagesProofInfo),
 	/// Standalone message delivery call.
@@ -264,6 +265,9 @@ where
 		len: usize,
 		result: &DispatchResult,
 	) -> Result<(), TransactionValidityError> {
+		let mut extra_weight = Weight::zero();
+		let mut extra_size = 0;
+
 		// We don't refund anything if the transaction has failed.
 		if result.is_err() {
 			return Ok(())
@@ -276,8 +280,8 @@ where
 		};
 
 		// check if relay chain state has been updated
-		if let CallType::AllFinalityAndDelivery(relay_block_number, _, _) = call_type {
-			if !SubmitFinalityProofHelper::<R, GI>::was_successful(relay_block_number) {
+		if let CallType::AllFinalityAndDelivery(submit_finality_proof_info, _, _) = call_type {
+			if !SubmitFinalityProofHelper::<R, GI>::was_successful(submit_finality_proof_info.block_number) {
 				// we only refund relayer if all calls have updated chain state
 				return Ok(())
 			}
@@ -288,6 +292,11 @@ where
 			// `utility.batchAll` transaction always requires payment. But in both cases we'll
 			// refund relayer - either explicitly here, or using `Pays::No` if he's choosing
 			// to submit dedicated transaction.
+
+			// submitter has means to include extra weight/bytes in the `submit_finality_proof` call, so
+			// let's subtract extra weight/size to avoid refunding for this extra stuff
+			extra_weight = submit_finality_proof_info.extra_weight;
+			extra_size = submit_finality_proof_info.extra_size;
 		}
 
 		// check if parachain state has been updated
@@ -316,8 +325,16 @@ where
 		// cost of this attack is nothing. Hence we use zero as tip here.
 		let tip = Zero::zero();
 
+		// decrease post-dispatch weight/size using extra weight/size that we know now
+		let post_info_len = len.saturating_sub(extra_size as usize);
+		let mut post_info = post_info.clone();
+		post_info.actual_weight = Some(post_info
+			.actual_weight
+			.unwrap_or(info.weight)
+			.saturating_sub(extra_weight));
+
 		// compute the relayer reward
-		let reward = FEE::compute_fee(info, post_info, len, tip);
+		let reward = FEE::compute_fee(info, &post_info, post_info_len, tip);
 
 		// finally - register reward in relayers pallet
 		RelayersPallet::<R>::register_relayer_reward(LID::get(), &relayer, reward);
@@ -471,7 +488,11 @@ mod tests {
 		PreDispatchData {
 			relayer: relayer_account_at_this_chain(),
 			call_type: CallType::AllFinalityAndDelivery(
-				200,
+				SubmitFinalityProofInfo {
+					block_number: 200,
+					extra_weight: Weitgh::zero(),
+					extra_size: 0,
+				},
 				SubmitParachainHeadsInfo {
 					at_relay_block_number: 200,
 					para_id: ParaId(TestParachain::get()),
