@@ -18,13 +18,10 @@ use crate::{Config, Pallet, RelayBlockNumber};
 use bp_parachains::BestParaHeadHash;
 use bp_polkadot_core::parachains::{ParaHash, ParaId};
 use frame_support::{dispatch::CallableCallFor, traits::IsSubType};
-use sp_runtime::{
-	transaction_validity::{InvalidTransaction, TransactionValidity, ValidTransaction},
-	RuntimeDebug,
-};
+use sp_runtime::transaction_validity::{InvalidTransaction, TransactionValidity, ValidTransaction};
 
 /// Info about a `SubmitParachainHeads` call which tries to update a single parachain.
-#[derive(Copy, Clone, PartialEq, RuntimeDebug)]
+#[derive(PartialEq, Debug)]
 pub struct SubmitParachainHeadsInfo {
 	pub at_relay_block_number: RelayBlockNumber,
 	pub para_id: ParaId,
