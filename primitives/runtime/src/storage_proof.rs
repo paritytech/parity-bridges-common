@@ -195,11 +195,13 @@ where
 		trie.get(&key)?;
 	}
 
+	// recorder may record the same trie node multiple times and we don't want duplicate nodes
+	// in our proofs => let's deduplicate it by collecting to the BTreeSet first
 	Ok(recorder
 		.drain()
 		.into_iter()
 		.map(|n| n.data.to_vec())
-		.collect::<BTreeSet<_>>() // deduplicate
+		.collect::<BTreeSet<_>>()
 		.into_iter()
 		.collect())
 }
