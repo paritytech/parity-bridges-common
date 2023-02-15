@@ -48,11 +48,7 @@ impl From<HeaderChainError> for &'static str {
 	fn from(err: HeaderChainError) -> &'static str {
 		match err {
 			HeaderChainError::UnknownHeader => "UnknownHeader",
-			HeaderChainError::StorageProof(StorageProofError::DuplicateNodesInProof) =>
-				"Storage proof contains duplicate nodes",
-			HeaderChainError::StorageProof(StorageProofError::UnusedNodesInTheProof) =>
-				"Storage proof contains unused nodes",
-			HeaderChainError::StorageProof(_) => "StorageProofError",
+			HeaderChainError::StorageProof(e) => e.into(),
 		}
 	}
 }
