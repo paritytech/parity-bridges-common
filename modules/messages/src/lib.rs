@@ -590,8 +590,14 @@ pub mod pallet {
 
 	/// Map of lane id => outbound lane data.
 	#[pallet::storage]
-	pub type OutboundLanes<T: Config<I>, I: 'static = ()> =
-		StorageMap<_, Blake2_128Concat, LaneId, OutboundLaneData, ValueQuery>;
+	pub type OutboundLanes<T: Config<I>, I: 'static = ()> = StorageMap<
+		Hasher = Blake2_128Concat,
+		Key = LaneId,
+		Value = OutboundLaneData,
+		QueryKind = ValueQuery,
+		OnEmpty = GetDefault,
+		MaxValues = MaybeOutboundLanesCount<T, I>,
+	>;
 
 	/// All queued outbound messages.
 	#[pallet::storage]
@@ -653,6 +659,15 @@ pub mod pallet {
 		/// Return inbound lane data.
 		pub fn inbound_lane_data(lane: LaneId) -> InboundLaneData<T::InboundRelayer> {
 			InboundLanes::<T, I>::get(lane).0
+		}
+	}
+
+	/// Get-parameter that returns number of active outbound lanes that the pallet maintains.
+	pub struct MaybeOutboundLanesCount<T, I>(PhantomData<(T, I)>);
+
+	impl<T: Config<I>, I: 'static> Get<Option<u32>> for MaybeOutboundLanesCount<T, I> {
+		fn get() -> Option<u32> {
+			Some(T::ActiveOutboundLanes::get().len() as u32)
 		}
 	}
 }
@@ -2102,5 +2117,13 @@ mod tests {
 		// when we have more than `MaxUnrewardedRelayerEntriesAtInboundLane` unrewarded relayers
 		// (shall not happen in practice)
 		assert_eq!(storage(max_entries + 1).extra_proof_size_bytes(), 0);
+	}
+
+	#[test]
+	fn maybe_outbound_lanes_count_returns_correct_value() {
+		assert_eq!(
+			MaybeOutboundLanesCount::<TestRuntime, ()>::get(),
+			Some(mock::ActiveOutboundLanes::get().len() as u32)
+		);
 	}
 }
