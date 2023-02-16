@@ -36,7 +36,7 @@
 // Runtime-generated enums
 #![allow(clippy::large_enum_variant)]
 
-use storage_types::StoredAuthoritySet;
+pub use storage_types::StoredAuthoritySet;
 
 use bp_header_chain::{
 	justification::GrandpaJustification, ChainWithGrandpa, HeaderChain, InitializationData,
@@ -313,7 +313,7 @@ pub mod pallet {
 
 	/// The current GRANDPA Authority set.
 	#[pallet::storage]
-	pub(super) type CurrentAuthoritySet<T: Config<I>, I: 'static = ()> =
+	pub type CurrentAuthoritySet<T: Config<I>, I: 'static = ()> =
 		StorageValue<_, StoredAuthoritySet<T, I>, ValueQuery>;
 
 	/// Optional pallet owner.

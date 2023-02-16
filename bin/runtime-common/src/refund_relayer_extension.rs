@@ -366,9 +366,9 @@ mod tests {
 	use bp_parachains::{BestParaHeadHash, ParaInfo};
 	use bp_polkadot_core::parachains::{ParaHash, ParaHeadsProof, ParaId};
 	use bp_runtime::HeaderId;
-	use bp_test_utils::make_default_justification;
+	use bp_test_utils::{make_default_justification, test_keyring};
 	use frame_support::{assert_storage_noop, parameter_types, weights::Weight};
-	use pallet_bridge_grandpa::Call as GrandpaCall;
+	use pallet_bridge_grandpa::{Call as GrandpaCall, StoredAuthoritySet};
 	use pallet_bridge_messages::Call as MessagesCall;
 	use pallet_bridge_parachains::{Call as ParachainsCall, RelayBlockHash};
 	use sp_runtime::{
@@ -404,7 +404,11 @@ mod tests {
 		parachain_head_hash: ParaHash,
 		best_delivered_message: MessageNonce,
 	) {
+		let authorities = test_keyring().into_iter().map(|(a, w)| (a.into(), w)).collect();
 		let best_relay_header = HeaderId(best_relay_header_number, RelayBlockHash::default());
+		pallet_bridge_grandpa::CurrentAuthoritySet::<TestRuntime>::put(
+			StoredAuthoritySet::try_new(authorities, 0).unwrap(),
+		);
 		pallet_bridge_grandpa::BestFinalized::<TestRuntime>::put(best_relay_header);
 
 		let para_id = ParaId(TestParachain::get());

@@ -132,15 +132,11 @@ impl<C: ChainWithGrandpa> Engine<C> for Grandpa<C> {
 	type OperatingMode = BasicOperatingMode;
 
 	fn is_initialized_key() -> StorageKey {
-		bp_header_chain::storage_keys::best_finalized_key(
-			C::WITH_CHAIN_GRANDPA_PALLET_NAME,
-		)
+		bp_header_chain::storage_keys::best_finalized_key(C::WITH_CHAIN_GRANDPA_PALLET_NAME)
 	}
 
 	fn pallet_operating_mode_key() -> StorageKey {
-		bp_header_chain::storage_keys::pallet_operating_mode_key(
-			C::WITH_CHAIN_GRANDPA_PALLET_NAME,
-		)
+		bp_header_chain::storage_keys::pallet_operating_mode_key(C::WITH_CHAIN_GRANDPA_PALLET_NAME)
 	}
 
 	/// Prepare initialization data for the GRANDPA verifier pallet.

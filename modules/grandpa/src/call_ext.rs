@@ -112,14 +112,13 @@ pub trait CallSubType<T: Config<I, RuntimeCall = Self>, I: 'static>:
 			.saturating_add(justification.encoded_size())
 			.saturated_into();
 
-		let authorities_set_sizegth =
+		let authorities_set_length =
 			CurrentAuthoritySet::<T, I>::get().authorities.len().saturated_into();
 		let required_precommits = bp_header_chain::justification::required_justification_precommits(
-			authorities_set_sizegth,
+			authorities_set_length,
 		);
 		let max_expected_call_weight = max_expected_call_weight::<T, I>(required_precommits);
 		let max_expected_call_size = max_expected_call_size::<T, I>(required_precommits);
-
 		SubmitFinalityProofInfo {
 			block_number,
 			extra_weight: actual_call_weight.saturating_sub(max_expected_call_weight),
@@ -129,7 +128,7 @@ pub trait CallSubType<T: Config<I, RuntimeCall = Self>, I: 'static>:
 
 	/// Extract finality proof info from a runtime call.
 	fn submit_finality_proof_info(
-		&self
+		&self,
 	) -> Option<SubmitFinalityProofInfo<BridgedBlockNumber<T, I>>> {
 		if let Some(crate::Call::<T, I>::submit_finality_proof { finality_target, justification }) =
 			self.is_sub_type()

@@ -1009,6 +1009,7 @@ dependencies = [
 name = "bp-rococo"
 version = "0.1.0"
 dependencies = [
+ "bp-header-chain",
  "bp-polkadot-core",
  "bp-runtime",
  "frame-support",
