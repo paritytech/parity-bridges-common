@@ -224,7 +224,7 @@ pub trait ChainWithGrandpa: Chain {
 	const MAX_HEADER_SIZE: u32;
 
 	/// Average size of the chain header from justification ancestry. We don't expect to see there
-	/// heders that change GRANDPA authorities set (GRANDPA will probably be able to finalize at
+	/// headers that change GRANDPA authorities set (GRANDPA will probably be able to finalize at
 	/// least one additional header per session on non test chains), so this is average size of
 	/// headers that aren't changing the set.
 	///
