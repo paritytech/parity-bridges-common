@@ -323,7 +323,6 @@ pub fn check_message_lane_weights<C: Chain, T: frame_system::Config>(
 ///
 /// This method doesn't perform any `assert`. If the condition is not true it will generate a
 /// compile-time error.
-#[allow(clippy::extra_unused_type_parameters)]
 pub fn check_additional_signed<SignedExt, IndirectSignedExt: SignedExtension>()
 where
 	SignedExt: SignedExtension,
