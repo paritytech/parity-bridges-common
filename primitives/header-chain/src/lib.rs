@@ -224,12 +224,12 @@ pub trait ChainWithGrandpa: Chain {
 	const MAX_HEADER_SIZE: u32;
 
 	/// Average size of the chain header from justification ancestry. We don't expect to see there
-	/// heders that change GRANDPA authorities set (GRANDPA will probably be able to finalize at least
-	/// one additional header per session on non test chains), so this is average size of headers
-	/// that aren't changing the set.
+	/// heders that change GRANDPA authorities set (GRANDPA will probably be able to finalize at
+	/// least one additional header per session on non test chains), so this is average size of
+	/// headers that aren't changing the set.
 	///
 	/// This isn't a strict limit. The relay may submit justifications with larger headers in its
-	/// ancestry and the pallet will accept the call. The limit is only used to compute maximal refund
-	/// amount and doing calls which exceed the limit, may be costly to submitter.
+	/// ancestry and the pallet will accept the call. The limit is only used to compute maximal
+	/// refund amount and doing calls which exceed the limit, may be costly to submitter.
 	const AVERAGE_HEADER_SIZE_IN_JUSTIFICATION: u32;
 }

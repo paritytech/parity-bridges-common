@@ -39,8 +39,8 @@
 use storage_types::StoredAuthoritySet;
 
 use bp_header_chain::{
-	justification::GrandpaJustification, ChainWithGrandpa, HeaderChain, InitializationData, StoredHeaderData,
-	StoredHeaderDataBuilder,
+	justification::GrandpaJustification, ChainWithGrandpa, HeaderChain, InitializationData,
+	StoredHeaderData, StoredHeaderDataBuilder,
 };
 use bp_runtime::{BlockNumberOf, HashOf, HasherOf, HeaderId, HeaderOf, OwnedBridgeModule};
 use finality_grandpa::voter_set::VoterSet;

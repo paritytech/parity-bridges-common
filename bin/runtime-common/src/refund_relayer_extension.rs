@@ -30,7 +30,9 @@ use frame_support::{
 	weights::Weight,
 	CloneNoBound, DefaultNoBound, EqNoBound, PartialEqNoBound, RuntimeDebugNoBound,
 };
-use pallet_bridge_grandpa::{CallSubType as GrandpaCallSubType, SubmitFinalityProofHelper, SubmitFinalityProofInfo};
+use pallet_bridge_grandpa::{
+	CallSubType as GrandpaCallSubType, SubmitFinalityProofHelper, SubmitFinalityProofInfo,
+};
 use pallet_bridge_messages::Config as MessagesConfig;
 use pallet_bridge_parachains::{
 	BoundedBridgeGrandpaConfig, CallSubType as ParachainsCallSubType, Config as ParachainsConfig,
@@ -138,7 +140,11 @@ pub struct PreDispatchData<AccountId> {
 #[derive(Clone, Copy, PartialEq, RuntimeDebugNoBound)]
 pub enum CallType {
 	/// Relay chain finality + parachain finality + message delivery calls.
-	AllFinalityAndDelivery(SubmitFinalityProofInfo<RelayBlockNumber>, SubmitParachainHeadsInfo, ReceiveMessagesProofInfo),
+	AllFinalityAndDelivery(
+		SubmitFinalityProofInfo<RelayBlockNumber>,
+		SubmitParachainHeadsInfo,
+		ReceiveMessagesProofInfo,
+	),
 	/// Parachain finality + message delivery calls.
 	ParachainFinalityAndDelivery(SubmitParachainHeadsInfo, ReceiveMessagesProofInfo),
 	/// Standalone message delivery call.
@@ -281,7 +287,9 @@ where
 
 		// check if relay chain state has been updated
 		if let CallType::AllFinalityAndDelivery(submit_finality_proof_info, _, _) = call_type {
-			if !SubmitFinalityProofHelper::<R, GI>::was_successful(submit_finality_proof_info.block_number) {
+			if !SubmitFinalityProofHelper::<R, GI>::was_successful(
+				submit_finality_proof_info.block_number,
+			) {
 				// we only refund relayer if all calls have updated chain state
 				return Ok(())
 			}
@@ -293,8 +301,8 @@ where
 			// refund relayer - either explicitly here, or using `Pays::No` if he's choosing
 			// to submit dedicated transaction.
 
-			// submitter has means to include extra weight/bytes in the `submit_finality_proof` call, so
-			// let's subtract extra weight/size to avoid refunding for this extra stuff
+			// submitter has means to include extra weight/bytes in the `submit_finality_proof`
+			// call, so let's subtract extra weight/size to avoid refunding for this extra stuff
 			extra_weight = submit_finality_proof_info.extra_weight;
 			extra_size = submit_finality_proof_info.extra_size;
 		}
@@ -328,10 +336,8 @@ where
 		// decrease post-dispatch weight/size using extra weight/size that we know now
 		let post_info_len = len.saturating_sub(extra_size as usize);
 		let mut post_info = post_info.clone();
-		post_info.actual_weight = Some(post_info
-			.actual_weight
-			.unwrap_or(info.weight)
-			.saturating_sub(extra_weight));
+		post_info.actual_weight =
+			Some(post_info.actual_weight.unwrap_or(info.weight).saturating_sub(extra_weight));
 
 		// compute the relayer reward
 		let reward = FEE::compute_fee(info, &post_info, post_info_len, tip);
@@ -490,7 +496,7 @@ mod tests {
 			call_type: CallType::AllFinalityAndDelivery(
 				SubmitFinalityProofInfo {
 					block_number: 200,
-					extra_weight: Weitgh::zero(),
+					extra_weight: Weight::zero(),
 					extra_size: 0,
 				},
 				SubmitParachainHeadsInfo {

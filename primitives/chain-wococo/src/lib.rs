@@ -24,7 +24,7 @@ pub use bp_rococo::{
 };
 
 use bp_header_chain::ChainWithGrandpa;
-use bp_runtime::{Chain, decl_bridge_finality_runtime_apis};
+use bp_runtime::{decl_bridge_finality_runtime_apis, Chain};
 use frame_support::weights::Weight;
 
 /// Wococo Chain
@@ -53,11 +53,11 @@ impl Chain for Wococo {
 impl ChainWithGrandpa for Wococo {
 	const WITH_CHAIN_GRANDPA_PALLET_NAME: &'static str = WITH_WOCOCO_GRANDPA_PALLET_NAME;
 	const MAX_AUTHORITIES_COUNT: u32 = MAX_AUTHORITIES_COUNT;
-	const REASONABLE_HEADERS_IN_JUSTIFICATON_ANCESTRY: u32 = REASONABLE_HEADERS_IN_JUSTIFICATON_ANCESTRY;
+	const REASONABLE_HEADERS_IN_JUSTIFICATON_ANCESTRY: u32 =
+		REASONABLE_HEADERS_IN_JUSTIFICATON_ANCESTRY;
 	const MAX_HEADER_SIZE: u32 = MAX_HEADER_SIZE;
 	const AVERAGE_HEADER_SIZE_IN_JUSTIFICATION: u32 = AVERAGE_HEADER_SIZE_IN_JUSTIFICATION;
 }
-
 
 /// Name of the With-Wococo GRANDPA pallet instance that is deployed at bridged chains.
 pub const WITH_WOCOCO_GRANDPA_PALLET_NAME: &str = "BridgeWococoGrandpa";

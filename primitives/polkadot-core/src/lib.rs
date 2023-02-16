@@ -58,7 +58,8 @@ pub const MAX_AUTHORITIES_COUNT: u32 = 2_048;
 /// See [`bp_header_chain::ChainWithGrandpa`] for more details.
 pub const REASONABLE_HEADERS_IN_JUSTIFICATON_ANCESTRY: u32 = 8;
 
-/// Approximate average header size in `votes_ancestries` field of justification on Polkadot-like chains.
+/// Approximate average header size in `votes_ancestries` field of justification on Polkadot-like
+/// chains.
 ///
 /// See [`bp_header_chain::ChainWithGrandpa`] for more details.
 pub const AVERAGE_HEADER_SIZE_IN_JUSTIFICATION: u32 = 256;

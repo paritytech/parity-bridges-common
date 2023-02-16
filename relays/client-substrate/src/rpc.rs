@@ -124,7 +124,7 @@ pub(crate) trait SubstrateGrandpa<C> {
 /// RPC finality methods of Substrate `grandpa` namespace, that we are using.
 pub struct SubstrateGrandpaFinalityClient;
 #[async_trait]
-impl<C: Chain + UnderlyingChainProvider, UnderlyingChainOf::<C>: ChainWithGrandpa> SubstrateFinalityClient<C> for SubstrateGrandpaFinalityClient {
+impl<C: ChainWithGrandpa> SubstrateFinalityClient<C> for SubstrateGrandpaFinalityClient {
 	async fn subscribe_justifications(client: &WsClient) -> RpcResult<Subscription<Bytes>> {
 		SubstrateGrandpaClient::<C>::subscribe_justifications(client).await
 	}

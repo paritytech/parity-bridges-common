@@ -73,6 +73,29 @@ pub trait RelayChain: Chain {
 	const PARACHAINS_FINALITY_PALLET_NAME: &'static str;
 }
 
+/// Substrate-based chain that is using direct GRANDPA finality from minimal relay-client point of
+/// view.
+///
+/// Keep in mind that parachains are relying on relay chain GRANDPA, so they should not implement
+/// this trait.
+pub trait ChainWithGrandpa: Chain {
+	/// Name of the bridge GRANDPA pallet (used in `construct_runtime` macro call) that is deployed
+	/// at some other chain to bridge with this `ChainWithGrandpa`.
+	///
+	/// We assume that all chains that are bridging with this `ChainWithGrandpa` are using
+	/// the same name.
+	const WITH_CHAIN_GRANDPA_PALLET_NAME: &'static str;
+}
+
+impl<T> ChainWithGrandpa for T
+where
+	T: Chain + UnderlyingChainProvider,
+	T::Chain: bp_header_chain::ChainWithGrandpa,
+{
+	const WITH_CHAIN_GRANDPA_PALLET_NAME: &'static str =
+		<T::Chain as bp_header_chain::ChainWithGrandpa>::WITH_CHAIN_GRANDPA_PALLET_NAME;
+}
+
 /// Substrate-based parachain from minimal relay-client point of view.
 pub trait Parachain: Chain + ParachainBase {}
 

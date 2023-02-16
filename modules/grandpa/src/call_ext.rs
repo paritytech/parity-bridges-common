@@ -14,8 +14,11 @@
 // You should have received a copy of the GNU General Public License
 // along with Parity Bridges Common.  If not, see <http://www.gnu.org/licenses/>.
 
-use crate::{weights::WeightInfo, BridgedBlockHash, BridgedBlockNumber, Config, CurrentAuthoritySet, Error, Pallet};
-use bp_header_chain::ChainWithGrandpa;
+use crate::{
+	weights::WeightInfo, BridgedBlockHash, BridgedBlockNumber, BridgedHeader, Config,
+	CurrentAuthoritySet, Error, Pallet,
+};
+use bp_header_chain::{justification::GrandpaJustification, ChainWithGrandpa};
 use bp_runtime::BlockNumberOf;
 use codec::{Encode, MaxEncodedLen};
 use frame_support::{dispatch::CallableCallFor, traits::IsSubType, weights::Weight, RuntimeDebug};
@@ -92,31 +95,46 @@ impl<T: Config<I>, I: 'static> SubmitFinalityProofHelper<T, I> {
 pub trait CallSubType<T: Config<I, RuntimeCall = Self>, I: 'static>:
 	IsSubType<CallableCallFor<Pallet<T, I>, T>>
 {
-	/// Extract the finality target from a `SubmitParachainHeads` call.
-	fn submit_finality_proof_info(&self) -> Option<SubmitFinalityProofInfo<BridgedBlockNumber<T, I>>> {
+	/// Extract finality proof info from the submitted header and justification.
+	fn submit_finality_proof_info_from_args(
+		&self,
+		finality_target: &BridgedHeader<T, I>,
+		justification: &GrandpaJustification<BridgedHeader<T, I>>,
+	) -> SubmitFinalityProofInfo<BridgedBlockNumber<T, I>> {
+		let block_number = *finality_target.number();
+
+		let actual_call_weight = T::WeightInfo::submit_finality_proof(
+			justification.commit.precommits.len().saturated_into(),
+			justification.votes_ancestries.len().saturated_into(),
+		);
+		let actual_call_size: u32 = finality_target
+			.encoded_size()
+			.saturating_add(justification.encoded_size())
+			.saturated_into();
+
+		let authorities_set_sizegth =
+			CurrentAuthoritySet::<T, I>::get().authorities.len().saturated_into();
+		let required_precommits = bp_header_chain::justification::required_justification_precommits(
+			authorities_set_sizegth,
+		);
+		let max_expected_call_weight = max_expected_call_weight::<T, I>(required_precommits);
+		let max_expected_call_size = max_expected_call_size::<T, I>(required_precommits);
+
+		SubmitFinalityProofInfo {
+			block_number,
+			extra_weight: actual_call_weight.saturating_sub(max_expected_call_weight),
+			extra_size: actual_call_size.saturating_sub(max_expected_call_size),
+		}
+	}
+
+	/// Extract finality proof info from a runtime call.
+	fn submit_finality_proof_info(
+		&self
+	) -> Option<SubmitFinalityProofInfo<BridgedBlockNumber<T, I>>> {
 		if let Some(crate::Call::<T, I>::submit_finality_proof { finality_target, justification }) =
 			self.is_sub_type()
 		{
-			let block_number = *finality_target.number();
-
-			let actual_call_weight = T::WeightInfo::submit_finality_proof(
-				justification.commit.precommits.len().saturated_into(),
-				justification.votes_ancestries.len().saturated_into(),
-			);
-			let actual_call_size: u32 = finality_target.encoded_size()
-				.saturating_add(justification.encoded_size())
-				.saturated_into();
-
-			let authorities_set_sizegth = CurrentAuthoritySet::<T, I>::get().authorities.len().saturated_into();
-			let required_precommits = bp_header_chain::justification::required_justification_precommits(authorities_set_sizegth);
-			let max_expected_call_weight = max_expected_call_weight::<T, I>(required_precommits);
-			let max_expected_call_size = max_expected_call_size::<T, I>(required_precommits);
-
-			return Some(SubmitFinalityProofInfo {
-				block_number,
-				extra_weight: actual_call_weight.saturating_sub(max_expected_call_weight),
-				extra_size: actual_call_size.saturating_sub(max_expected_call_size),
-			})
+			return Some(self.submit_finality_proof_info_from_args(finality_target, justification))
 		}
 
 		None
@@ -148,9 +166,7 @@ impl<T: Config<I>, I: 'static> CallSubType<T, I> for T::RuntimeCall where
 }
 
 /// Returns maximal expected `submit_finality_proof` call weight.
-fn max_expected_call_weight<T: Config<I>, I: 'static>(
-	required_precommits: u32,
-) -> Weight {
+fn max_expected_call_weight<T: Config<I>, I: 'static>(required_precommits: u32) -> Weight {
 	T::WeightInfo::submit_finality_proof(
 		required_precommits,
 		T::BridgedChain::REASONABLE_HEADERS_IN_JUSTIFICATON_ANCESTRY,
@@ -158,9 +174,7 @@ fn max_expected_call_weight<T: Config<I>, I: 'static>(
 }
 
 /// Returns maximal expected size of `submit_finality_proof` call arguments.
-fn max_expected_call_size<T: Config<I>, I: 'static>(
-	required_precommits: u32,
-) -> u32 {
+fn max_expected_call_size<T: Config<I>, I: 'static>(required_precommits: u32) -> u32 {
 	// we don't need precise results here - just estimations, so some details
 	// are removed from computations (e.g. bytes required to encode vector length)
 
@@ -181,8 +195,9 @@ fn max_expected_call_size<T: Config<I>, I: 'static>(
 		.saturating_add(BridgedBlockHash::<T, I>::max_encoded_len().saturated_into());
 
 	// justification is a signed GRANDPA commit, `votes_ancestries` vector and round number
-	let max_expected_votes_ancestries_size = T::BridgedChain::REASONABLE_HEADERS_IN_JUSTIFICATON_ANCESTRY
-		.saturating_mul(T::BridgedChain::AVERAGE_HEADER_SIZE_IN_JUSTIFICATION);
+	let max_expected_votes_ancestries_size =
+		T::BridgedChain::REASONABLE_HEADERS_IN_JUSTIFICATON_ANCESTRY
+			.saturating_mul(T::BridgedChain::AVERAGE_HEADER_SIZE_IN_JUSTIFICATION);
 	let max_expected_justification_size = 8u32
 		.saturating_add(max_expected_signed_commit_size)
 		.saturating_add(max_expected_votes_ancestries_size);

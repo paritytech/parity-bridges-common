@@ -21,7 +21,7 @@
 pub use bp_polkadot_core::*;
 
 use bp_header_chain::ChainWithGrandpa;
-use bp_runtime::{Chain, decl_bridge_finality_runtime_apis};
+use bp_runtime::{decl_bridge_finality_runtime_apis, Chain};
 use frame_support::weights::Weight;
 
 /// Kusama Chain
@@ -50,7 +50,8 @@ impl Chain for Kusama {
 impl ChainWithGrandpa for Kusama {
 	const WITH_CHAIN_GRANDPA_PALLET_NAME: &'static str = WITH_KUSAMA_GRANDPA_PALLET_NAME;
 	const MAX_AUTHORITIES_COUNT: u32 = MAX_AUTHORITIES_COUNT;
-	const REASONABLE_HEADERS_IN_JUSTIFICATON_ANCESTRY: u32 = REASONABLE_HEADERS_IN_JUSTIFICATON_ANCESTRY;
+	const REASONABLE_HEADERS_IN_JUSTIFICATON_ANCESTRY: u32 =
+		REASONABLE_HEADERS_IN_JUSTIFICATON_ANCESTRY;
 	const MAX_HEADER_SIZE: u32 = MAX_HEADER_SIZE;
 	const AVERAGE_HEADER_SIZE_IN_JUSTIFICATION: u32 = AVERAGE_HEADER_SIZE_IN_JUSTIFICATION;
 }

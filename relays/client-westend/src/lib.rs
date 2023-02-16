@@ -16,9 +16,7 @@
 
 //! Types used to connect to the Westend chain.
 
-use relay_substrate_client::{
-	Chain, ChainWithBalances, RelayChain, UnderlyingChainProvider,
-};
+use relay_substrate_client::{Chain, ChainWithBalances, RelayChain, UnderlyingChainProvider};
 use sp_core::storage::StorageKey;
 use std::time::Duration;
 
