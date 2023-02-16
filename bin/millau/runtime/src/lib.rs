@@ -395,7 +395,7 @@ impl pallet_bridge_grandpa::Config for Runtime {
 	// Note that once this is hit the pallet will essentially throttle incoming requests down to one
 	// call per block.
 	type MaxRequests = ConstU32<50>;
-	type HeadersToKeep = ConstU32<{ bp_rialto::DAYS as u32 }>;
+	type HeadersToKeep = ConstU32<{ bp_rialto::DAYS }>;
 	type WeightInfo = pallet_bridge_grandpa::weights::BridgeWeight<Runtime>;
 }
 
@@ -403,7 +403,7 @@ pub type WestendGrandpaInstance = pallet_bridge_grandpa::Instance1;
 impl pallet_bridge_grandpa::Config<WestendGrandpaInstance> for Runtime {
 	type BridgedChain = bp_westend::Westend;
 	type MaxRequests = ConstU32<50>;
-	type HeadersToKeep = ConstU32<{ bp_westend::DAYS as u32 }>;
+	type HeadersToKeep = ConstU32<{ bp_westend::DAYS }>;
 	type WeightInfo = pallet_bridge_grandpa::weights::BridgeWeight<Runtime>;
 }
 

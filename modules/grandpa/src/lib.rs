@@ -1046,7 +1046,7 @@ mod tests {
 			assert_noop!(
 				Pallet::<TestRuntime>::parse_finalized_storage_proof(
 					Default::default(),
-					sp_trie::StorageProof::new(vec![]),
+					vec![],
 					|_| (),
 				),
 				bp_header_chain::HeaderChainError::UnknownHeader,

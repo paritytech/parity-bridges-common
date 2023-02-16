@@ -19,35 +19,36 @@
 
 #![cfg_attr(not(feature = "std"), no_std)]
 
-use bp_runtime::{BasicOperatingMode, Chain, HashOf, HasherOf, HeaderOf, StorageProofChecker};
+use bp_runtime::{
+	BasicOperatingMode, Chain, HashOf, HasherOf, HeaderOf, RawStorageProof, StorageProofChecker,
+	StorageProofError,
+};
 use codec::{Codec, Decode, Encode, EncodeLike, MaxEncodedLen};
 use core::{clone::Clone, cmp::Eq, default::Default, fmt::Debug};
-use frame_support::PalletError;
 use scale_info::TypeInfo;
 #[cfg(feature = "std")]
 use serde::{Deserialize, Serialize};
 use sp_finality_grandpa::{AuthorityList, ConsensusLog, SetId, GRANDPA_ENGINE_ID};
 use sp_runtime::{traits::Header as HeaderT, Digest, RuntimeDebug};
 use sp_std::boxed::Box;
-use sp_trie::StorageProof;
 
 pub mod justification;
 pub mod storage_keys;
 
 /// Header chain error.
-#[derive(Clone, Copy, Decode, Encode, Eq, PalletError, PartialEq, RuntimeDebug, TypeInfo)]
+#[derive(Clone, Eq, PartialEq, RuntimeDebug)]
 pub enum HeaderChainError {
 	/// Header with given hash is missing from the chain.
 	UnknownHeader,
-	/// The storage proof doesn't contains storage root.
-	StorageRootMismatch,
+	/// Storage proof related error.
+	StorageProof(StorageProofError),
 }
 
 impl From<HeaderChainError> for &'static str {
 	fn from(err: HeaderChainError) -> &'static str {
 		match err {
 			HeaderChainError::UnknownHeader => "UnknownHeader",
-			HeaderChainError::StorageRootMismatch => "StorageRootMismatch",
+			HeaderChainError::StorageProof(e) => e.into(),
 		}
 	}
 }
@@ -83,13 +84,13 @@ pub trait HeaderChain<C: Chain> {
 	/// Parse storage proof using finalized header.
 	fn parse_finalized_storage_proof<R>(
 		header_hash: HashOf<C>,
-		storage_proof: StorageProof,
+		storage_proof: RawStorageProof,
 		parse: impl FnOnce(StorageProofChecker<HasherOf<C>>) -> R,
 	) -> Result<R, HeaderChainError> {
 		let state_root = Self::finalized_header_state_root(header_hash)
 			.ok_or(HeaderChainError::UnknownHeader)?;
 		let storage_proof_checker = bp_runtime::StorageProofChecker::new(state_root, storage_proof)
-			.map_err(|_| HeaderChainError::StorageRootMismatch)?;
+			.map_err(HeaderChainError::StorageProof)?;
 
 		Ok(parse(storage_proof_checker))
 	}
@@ -188,8 +189,7 @@ pub enum BridgeGrandpaCall<Header: HeaderT> {
 /// The `BridgeGrandpaCall` used by a chain.
 pub type BridgeGrandpaCallOf<C> = BridgeGrandpaCall<HeaderOf<C>>;
 
-/// Substrate-based chain that is using direct GRANDPA finality from minimal relay-client point of
-/// view.
+/// Substrate-based chain that is using direct GRANDPA finality.
 ///
 /// Keep in mind that parachains are relying on relay chain GRANDPA, so they should not implement
 /// this trait.
@@ -224,7 +224,7 @@ pub trait ChainWithGrandpa: Chain {
 	const MAX_HEADER_SIZE: u32;
 
 	/// Average size of the chain header from justification ancestry. We don't expect to see there
-	/// heders that change GRANDPA authorities set (GRANDPA will probably be able to finalize at
+	/// headers that change GRANDPA authorities set (GRANDPA will probably be able to finalize at
 	/// least one additional header per session on non test chains), so this is average size of
 	/// headers that aren't changing the set.
 	///

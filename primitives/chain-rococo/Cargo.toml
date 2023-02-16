@@ -25,6 +25,6 @@ std = [
 	"bp-header-chain/std",
 	"bp-polkadot-core/std",
 	"bp-runtime/std",
-	"sp-api/std",
 	"frame-support/std",
+	"sp-api/std",
 ]
