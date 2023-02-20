@@ -128,7 +128,7 @@ where
 
 /// Data that is crafted in `pre_dispatch` method and used at `post_dispatch`.
 #[derive(PartialEq)]
-#[cfg_attr(test, derive(Debug))]
+#[cfg_attr(test, derive(Clone, Debug))]
 pub struct PreDispatchData<AccountId> {
 	/// Transaction submitter (relayer) account.
 	relayer: AccountId,
@@ -565,7 +565,7 @@ mod tests {
 	fn dispatch_info() -> DispatchInfo {
 		DispatchInfo {
 			weight: Weight::from_ref_time(
-				frame_support::weights::constants::WEIGHT_REF_TIME_PER_SECOND,
+				frame_support::weights::constants::WEIGHT_REF_TIME_PER_SECOND * 2,
 			),
 			class: frame_support::dispatch::DispatchClass::Normal,
 			pays_fee: frame_support::dispatch::Pays::Yes,
@@ -798,6 +798,69 @@ mod tests {
 				Ok(())
 			));
 			assert_storage_noop!(run_post_dispatch(Some(delivery_pre_dispatch_data()), Ok(())));
+		});
+	}
+
+	#[test]
+	fn post_dispatch_refunds_relayer_in_all_finality_batch_with_extra_weight() {
+		run_test(|| {
+			initialize_environment(200, 200, [1u8; 32].into(), 200);
+
+			let mut pre_dispatch_data = all_finality_pre_dispatch_data();
+			let mut dispatch_info = dispatch_info();
+			dispatch_info.weight = Weight::from_ref_time(
+				frame_support::weights::constants::WEIGHT_REF_TIME_PER_SECOND * 2,
+			);
+
+			// without any size/weight refund: we expect regular reward
+			let regular_reward = expected_reward();
+			run_post_dispatch(Some(pre_dispatch_data.clone()), Ok(()));
+			assert_eq!(
+				RelayersPallet::<TestRuntime>::relayer_reward(
+					relayer_account_at_this_chain(),
+					TestLaneId::get()
+				),
+				Some(regular_reward),
+			);
+
+			// no repeat the same with size+weight refund: we expect smaller reward
+			match pre_dispatch_data.call_type {
+				CallType::AllFinalityAndDelivery(ref mut info, ..) => {
+					info.extra_weight.set_ref_time(
+						frame_support::weights::constants::WEIGHT_REF_TIME_PER_SECOND,
+					);
+					info.extra_size = 32;
+				},
+				_ => unreachable!(),
+			}
+			run_post_dispatch(Some(pre_dispatch_data.clone()), Ok(()));
+			let reward_after_two_calls = RelayersPallet::<TestRuntime>::relayer_reward(
+				relayer_account_at_this_chain(),
+				TestLaneId::get(),
+			)
+			.unwrap();
+			assert!(
+				reward_after_two_calls < 2 * regular_reward,
+				"{}  must be < 2 * {}",
+				reward_after_two_calls,
+				2 * regular_reward,
+			);
+		});
+	}
+
+	#[test]
+	fn post_dispatch_refunds_relayer_in_all_finality_batch_with_extra_size() {
+		run_test(|| {
+			initialize_environment(200, 200, [1u8; 32].into(), 200);
+
+			run_post_dispatch(Some(all_finality_pre_dispatch_data()), Ok(()));
+			assert_eq!(
+				RelayersPallet::<TestRuntime>::relayer_reward(
+					relayer_account_at_this_chain(),
+					TestLaneId::get()
+				),
+				Some(expected_reward()),
+			);
 		});
 	}
 
