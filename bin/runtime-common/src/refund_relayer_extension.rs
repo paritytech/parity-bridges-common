@@ -28,7 +28,7 @@ use codec::{Decode, Encode};
 use frame_support::{
 	dispatch::{CallableCallFor, DispatchInfo, Dispatchable, PostDispatchInfo},
 	traits::IsSubType,
-	CloneNoBound, DebugNoBound, DefaultNoBound, EqNoBound, PartialEqNoBound,
+	CloneNoBound, DefaultNoBound, EqNoBound, PartialEqNoBound, RuntimeDebugNoBound,
 };
 use pallet_bridge_grandpa::{CallSubType as GrandpaCallSubType, SubmitFinalityProofHelper};
 use pallet_bridge_messages::Config as MessagesConfig;
@@ -137,7 +137,7 @@ pub struct PreDispatchData<AccountId> {
 }
 
 /// Type of the call that the extension recognizes.
-#[derive(Debug, PartialEq)]
+#[derive(RuntimeDebugNoBound, PartialEq)]
 pub enum CallInfo {
 	/// Relay chain finality + parachain finality + message delivery calls.
 	AllFinalityAndDelivery(RelayBlockNumber, SubmitParachainHeadsInfo, ReceiveMessagesProofInfo),
@@ -190,7 +190,7 @@ impl CallInfo {
 	Encode,
 	EqNoBound,
 	PartialEqNoBound,
-	DebugNoBound,
+	RuntimeDebugNoBound,
 	TypeInfo,
 )]
 #[scale_info(skip_type_params(Runtime, Para, Msgs, Refund, Id))]
