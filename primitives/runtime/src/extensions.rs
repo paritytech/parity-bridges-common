@@ -77,7 +77,7 @@ pub type ChargeTransactionPayment<C> = GenericSignedExtensionSchema<Compact<Bala
 pub type BridgeRejectObsoleteHeadersAndMessages = GenericSignedExtensionSchema<(), ()>;
 
 /// The `SignedExtensionSchema` for `RefundBridgedParachainMessages`.
-pub type RefundBridgedParachainMessages = GenericSignedExtensionSchema<(), ()>;
+pub type RefundBridgedParachainMessages<P, A> = GenericSignedExtensionSchema<P, A>;
 
 #[impl_for_tuples(1, 12)]
 impl SignedExtensionSchema for Tuple {

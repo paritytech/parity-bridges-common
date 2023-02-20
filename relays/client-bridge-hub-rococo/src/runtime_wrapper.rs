@@ -19,6 +19,7 @@
 use codec::{Decode, Encode};
 use scale_info::TypeInfo;
 
+pub use bp_bridge_hub_rococo::rewarding_bridge_signed_extension;
 pub use bp_header_chain::BridgeGrandpaCallOf;
 pub use bp_parachains::BridgeParachainCall;
 pub use bridge_runtime_common::messages::BridgeMessagesCallOf;
@@ -27,7 +28,7 @@ pub use relay_substrate_client::calls::{SystemCall, UtilityCall};
 /// Unchecked BridgeHubRococo extrinsic.
 pub type UncheckedExtrinsic = bp_bridge_hub_rococo::UncheckedExtrinsic<
 	Call,
-	rewarding_bridge_signed_extension::RewardingBridgeSignedExtension,
+	rewarding_bridge_signed_extension::RewardingBridgeSignedExtension<((), ()), ((), ())>,
 >;
 
 // The indirect pallet call used to sync `Wococo` GRANDPA finality to `BHRococo`.
@@ -67,77 +68,5 @@ pub enum Call {
 impl From<UtilityCall<Call>> for Call {
 	fn from(call: UtilityCall<Call>) -> Call {
 		Call::Utility(call)
-	}
-}
-
-// TODO: remove this and use common from cumulus-like once fixed (https://github.com/paritytech/parity-bridges-common/issues/1598)
-/// Module with rewarding bridge signed extension support
-pub mod rewarding_bridge_signed_extension {
-	use bp_polkadot_core::{Balance, Hash, Nonce, PolkadotLike};
-	use bp_runtime::extensions::*;
-
-	type RewardingBridgeSignedExtra = (
-		CheckNonZeroSender,
-		CheckSpecVersion,
-		CheckTxVersion,
-		CheckGenesis<PolkadotLike>,
-		CheckEra<PolkadotLike>,
-		CheckNonce<Nonce>,
-		CheckWeight,
-		ChargeTransactionPayment<PolkadotLike>,
-		BridgeRejectObsoleteHeadersAndMessages,
-		RefundBridgedParachainMessages,
-		RefundBridgedParachainMessages,
-	);
-
-	/// The signed extension used by Cumulus and Cumulus-like parachain with bridging and rewarding.
-	pub type RewardingBridgeSignedExtension = GenericSignedExtension<RewardingBridgeSignedExtra>;
-
-	pub fn from_params(
-		spec_version: u32,
-		transaction_version: u32,
-		era: bp_runtime::TransactionEraOf<PolkadotLike>,
-		genesis_hash: Hash,
-		nonce: Nonce,
-		tip: Balance,
-	) -> RewardingBridgeSignedExtension {
-		GenericSignedExtension::<RewardingBridgeSignedExtra>::new(
-			(
-				(),              // non-zero sender
-				(),              // spec version
-				(),              // tx version
-				(),              // genesis
-				era.frame_era(), // era
-				nonce.into(),    // nonce (compact encoding)
-				(),              // Check weight
-				tip.into(),      // transaction payment / tip (compact encoding)
-				(),              // bridge reject obsolete headers and msgs
-				(),              // bridge-hub-rococo instance1 register reward for message passing
-				(),              // bridge-hub-rococo instance2 register reward for message passing
-			),
-			Some((
-				(),
-				spec_version,
-				transaction_version,
-				genesis_hash,
-				era.signed_payload(genesis_hash),
-				(),
-				(),
-				(),
-				(),
-				(),
-				(),
-			)),
-		)
-	}
-
-	/// Return signer nonce, used to craft transaction.
-	pub fn nonce(sign_ext: &RewardingBridgeSignedExtension) -> Nonce {
-		sign_ext.payload.5.into()
-	}
-
-	/// Return transaction tip.
-	pub fn tip(sign_ext: &RewardingBridgeSignedExtension) -> Balance {
-		sign_ext.payload.7.into()
 	}
 }

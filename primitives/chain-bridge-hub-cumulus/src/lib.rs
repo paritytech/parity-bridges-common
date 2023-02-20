@@ -130,8 +130,26 @@ pub mod rewarding_bridge_signed_extension {
 	use super::*;
 	use bp_polkadot_core::PolkadotLike;
 	use bp_runtime::extensions::*;
+	use frame_support::{
+		codec::{Decode, Encode},
+		scale_info::StaticTypeInfo,
+	};
 
-	type RewardingBridgeSignedExtra = (
+	// TODO: refactor this to extentions.rs
+	// TODO: replace with bound bellow
+	// #[impl_for_tuples(1, 12)]
+	// pub trait SignedExtensionSchemaPayload:
+	// 	Encode + Decode + std::fmt::Debug + Eq + Clone + StaticTypeInfo
+	// {
+	// }
+	//
+	// #[impl_for_tuples(1, 12)]
+	// pub trait SignedExtensionSchemaAdditionalSigned:
+	// 	Encode + std::fmt::Debug + Eq + Clone + StaticTypeInfo
+	// {
+	// }
+
+	type RewardingBridgeSignedExtra<RewardPayload, RewardAdditionalSigned> = (
 		CheckNonZeroSender,
 		CheckSpecVersion,
 		CheckTxVersion,
@@ -141,21 +159,27 @@ pub mod rewarding_bridge_signed_extension {
 		CheckWeight,
 		ChargeTransactionPayment<PolkadotLike>,
 		BridgeRejectObsoleteHeadersAndMessages,
-		RefundBridgedParachainMessages,
+		RefundBridgedParachainMessages<RewardPayload, RewardAdditionalSigned>,
 	);
 
 	/// The signed extension used by Cumulus and Cumulus-like parachain with bridging and rewarding.
-	pub type RewardingBridgeSignedExtension = GenericSignedExtension<RewardingBridgeSignedExtra>;
+	pub type RewardingBridgeSignedExtension<RewardPayload, RewardAdditionalSigned> =
+		GenericSignedExtension<RewardingBridgeSignedExtra<RewardPayload, RewardAdditionalSigned>>;
 
-	pub fn from_params(
+	pub fn from_params<
+		RewardPayload: Encode + Decode + std::fmt::Debug + Eq + Clone + StaticTypeInfo,
+		RewardAdditionalSigned: Encode + std::fmt::Debug + Eq + Clone + StaticTypeInfo,
+	>(
 		spec_version: u32,
 		transaction_version: u32,
 		era: bp_runtime::TransactionEraOf<PolkadotLike>,
 		genesis_hash: Hash,
 		nonce: Nonce,
 		tip: Balance,
-	) -> RewardingBridgeSignedExtension {
-		GenericSignedExtension::<RewardingBridgeSignedExtra>::new(
+		reward_payload: RewardPayload,
+		reward_additional_signed: RewardAdditionalSigned,
+	) -> RewardingBridgeSignedExtension<RewardPayload, RewardAdditionalSigned> {
+		GenericSignedExtension::<RewardingBridgeSignedExtra<_, _>>::new(
 			(
 				(),              // non-zero sender
 				(),              // spec version
@@ -166,7 +190,7 @@ pub mod rewarding_bridge_signed_extension {
 				(),              // Check weight
 				tip.into(),      // transaction payment / tip (compact encoding)
 				(),              // bridge reject obsolete headers and msgs
-				(),              // bridge register reward to relayer for message passing
+				reward_payload,  // bridge register reward to relayer for message passing
 			),
 			Some((
 				(),
@@ -178,18 +202,28 @@ pub mod rewarding_bridge_signed_extension {
 				(),
 				(),
 				(),
-				(),
+				reward_additional_signed,
 			)),
 		)
 	}
 
 	/// Return signer nonce, used to craft transaction.
-	pub fn nonce(sign_ext: &RewardingBridgeSignedExtension) -> Nonce {
+	pub fn nonce<
+		RewardPayload: Encode + Decode + std::fmt::Debug + Eq + Clone + StaticTypeInfo,
+		RewardAdditionalSigned: Encode + std::fmt::Debug + Eq + Clone + StaticTypeInfo,
+	>(
+		sign_ext: &RewardingBridgeSignedExtension<RewardPayload, RewardAdditionalSigned>,
+	) -> Nonce {
 		sign_ext.payload.5.into()
 	}
 
 	/// Return transaction tip.
-	pub fn tip(sign_ext: &RewardingBridgeSignedExtension) -> Balance {
+	pub fn tip<
+		RewardPayload: Encode + Decode + std::fmt::Debug + Eq + Clone + StaticTypeInfo,
+		RewardAdditionalSigned: Encode + std::fmt::Debug + Eq + Clone + StaticTypeInfo,
+	>(
+		sign_ext: &RewardingBridgeSignedExtension<RewardPayload, RewardAdditionalSigned>,
+	) -> Balance {
 		sign_ext.payload.7.into()
 	}
 }
