@@ -175,7 +175,7 @@ impl<C: ChainWithGrandpa> Engine<C> for Grandpa<C> {
 		bp_header_chain::justification::optimize_justification(
 			(header.hash(), *header.number()),
 			authority_set_id,
-			&authority_set.into(),
+			&authority_set,
 			proof,
 		)
 		.map_err(|e| {
