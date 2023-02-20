@@ -156,17 +156,17 @@ impl OptimizationCallbacks {
 impl VerificationCallbacks for OptimizationCallbacks {
 	fn on_unkown_authority(&mut self, precommit_idx: usize) -> Result<(), Error> {
 		self.0.push(precommit_idx);
-		Ok()
+		Ok(())
 	}
 
 	fn on_duplicate_authority_vote(&mut self, precommit_idx: usize) -> Result<(), Error> {
 		self.0.push(precommit_idx);
-		Ok()
+		Ok(())
 	}
 
 	fn on_redundant_authority_vote(&mut self, precommit_idx: usize) -> Result<(), Error> {
 		self.0.push(precommit_idx);
-		Ok()
+		Ok(())
 	}
 }
 
