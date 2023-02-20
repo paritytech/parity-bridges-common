@@ -111,9 +111,9 @@ impl ChainWithTransactions for BridgeHubRococo {
 		Some(
 			UnsignedTransaction::new(
 				tx.function,
-				bp_bridge_hub_rococo::rewarding_bridge_signed_extension::nonce(&extra),
+				bp_bridge_hub_rococo::rewarding_bridge_signed_extension::nonce(extra),
 			)
-			.tip(bp_bridge_hub_rococo::rewarding_bridge_signed_extension::tip(&extra)),
+			.tip(bp_bridge_hub_rococo::rewarding_bridge_signed_extension::tip(extra)),
 		)
 	}
 }

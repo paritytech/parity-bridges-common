@@ -125,7 +125,7 @@ pub const MAX_UNREWARDED_RELAYERS_IN_CONFIRMATION_TX: MessageNonce = 1024;
 /// Maximal number of unconfirmed messages at inbound lane for Cumulus-based parachains.
 pub const MAX_UNCONFIRMED_MESSAGES_IN_CONFIRMATION_TX: MessageNonce = 4096;
 
-/// Module with rewarding bridge signed extension utils
+/// Module with rewarding bridge signed extension support
 pub mod rewarding_bridge_signed_extension {
 	use super::*;
 	use bp_polkadot_core::PolkadotLike;
