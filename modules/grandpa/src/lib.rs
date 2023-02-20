@@ -635,7 +635,7 @@ pub fn initialize_for_benchmarks<T: Config<I>, I: 'static>(header: BridgedHeader
 mod tests {
 	use super::*;
 	use crate::mock::{
-		run_test, test_header, RuntimeOrigin, TestHeader, TestNumber, TestRuntime,
+		run_test, test_header, RuntimeOrigin, TestBridgedChain, TestHeader, TestNumber, TestRuntime,
 		MAX_BRIDGED_AUTHORITIES,
 	};
 	use bp_header_chain::BridgeGrandpaCall;
@@ -967,6 +967,64 @@ mod tests {
 				StoredAuthoritySet::<TestRuntime, ()>::try_new(next_authorities, next_set_id)
 					.unwrap(),
 			);
+		})
+	}
+
+	#[test]
+	fn relayer_pays_tx_fee_when_submitting_huge_mandatory_header() {
+		run_test(|| {
+			initialize_substrate_bridge();
+
+			// let's prepare a huge authorities change header, which is definitely above size limits
+			let mut header = test_header(2);
+			header.digest = change_log(0);
+			header.digest.push(DigestItem::Other(vec![42u8; 1024 * 1024]));
+			let justification = make_default_justification(&header);
+
+			// without large digest item ^^^ the relayer would have paid zero transaction fee
+			// (`Pays::No`)
+			let result = Pallet::<TestRuntime>::submit_finality_proof(
+				RuntimeOrigin::signed(1),
+				Box::new(header.clone()),
+				justification,
+			);
+			assert_ok!(result);
+			assert_eq!(result.unwrap().pays_fee, frame_support::dispatch::Pays::Yes);
+
+			// Make sure that our header is the best finalized
+			assert_eq!(<BestFinalized<TestRuntime>>::get().unwrap().1, header.hash());
+			assert!(<ImportedHeaders<TestRuntime>>::contains_key(header.hash()));
+		})
+	}
+
+	#[test]
+	fn relayer_pays_tx_fee_when_submitting_justification_with_long_ancestry_votes() {
+		run_test(|| {
+			initialize_substrate_bridge();
+
+			// let's prepare a huge authorities change header, which is definitely above weight
+			// limits
+			let mut header = test_header(2);
+			header.digest = change_log(0);
+			let justification = make_justification_for_header(JustificationGeneratorParams {
+				header: header.clone(),
+				ancestors: TestBridgedChain::REASONABLE_HEADERS_IN_JUSTIFICATON_ANCESTRY + 1,
+				..Default::default()
+			});
+
+			// without many headers in votes ancestries ^^^ the relayer would have paid zero
+			// transaction fee (`Pays::No`)
+			let result = Pallet::<TestRuntime>::submit_finality_proof(
+				RuntimeOrigin::signed(1),
+				Box::new(header.clone()),
+				justification,
+			);
+			assert_ok!(result);
+			assert_eq!(result.unwrap().pays_fee, frame_support::dispatch::Pays::Yes);
+
+			// Make sure that our header is the best finalized
+			assert_eq!(<BestFinalized<TestRuntime>>::get().unwrap().1, header.hash());
+			assert!(<ImportedHeaders<TestRuntime>>::contains_key(header.hash()));
 		})
 	}
 
