@@ -71,8 +71,8 @@ pub enum Error {
 	ExtraHeadersInVotesAncestries,
 }
 
-/// Given GRANDPA authorities set size, return number of valid authorities votes that the justification
-/// must have to be valid.
+/// Given GRANDPA authorities set size, return number of valid authorities votes that the
+/// justification must have to be valid.
 ///
 /// This function assumes that all authorities have the same vote weight.
 pub fn required_justification_precommits(authorities_set_length: u32) -> u32 {
