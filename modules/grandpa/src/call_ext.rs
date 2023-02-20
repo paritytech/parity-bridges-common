@@ -162,9 +162,7 @@ pub(crate) fn submit_finality_proof_info_from_args<T: Config<I>, I: 'static>(
 	let votes_ancestries_len = justification.votes_ancestries.len().saturated_into();
 	let extra_weight =
 		if votes_ancestries_len > T::BridgedChain::REASONABLE_HEADERS_IN_JUSTIFICATON_ANCESTRY {
-			let actual_call_weight =
-				T::WeightInfo::submit_finality_proof(precommits_len, votes_ancestries_len);
-			actual_call_weight
+			T::WeightInfo::submit_finality_proof(precommits_len, votes_ancestries_len)
 		} else {
 			Weight::zero()
 		};
