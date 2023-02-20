@@ -9201,6 +9201,8 @@ dependencies = [
  "bp-header-chain",
  "bp-messages",
  "bp-parachains",
+ "bp-polkadot-core",
+ "bp-runtime",
  "bp-wococo",
  "bridge-runtime-common",
  "parity-scale-codec",

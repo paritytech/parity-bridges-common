@@ -71,7 +71,7 @@ impl ChainWithTransactions for BridgeHubWococo {
 	) -> Result<Self::SignedTransaction, SubstrateError> {
 		let raw_payload = SignedPayload::new(
 			unsigned.call,
-			bp_bridge_hub_wococo::rewarding_bridge_signed_extension::from_params(
+			runtime::rewarding_bridge_signed_extension::from_params(
 				param.spec_version,
 				param.transaction_version,
 				unsigned.era,
@@ -111,9 +111,9 @@ impl ChainWithTransactions for BridgeHubWococo {
 		Some(
 			UnsignedTransaction::new(
 				tx.function,
-				bp_bridge_hub_wococo::rewarding_bridge_signed_extension::nonce(extra),
+				runtime::rewarding_bridge_signed_extension::nonce(extra),
 			)
-			.tip(bp_bridge_hub_wococo::rewarding_bridge_signed_extension::tip(extra)),
+			.tip(runtime::rewarding_bridge_signed_extension::tip(extra)),
 		)
 	}
 }
