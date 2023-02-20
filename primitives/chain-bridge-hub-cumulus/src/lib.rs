@@ -131,9 +131,6 @@ pub mod rewarding_bridge_signed_extension {
 	use bp_polkadot_core::PolkadotLike;
 	use bp_runtime::extensions::*;
 
-	/// The `SignedExtensionSchema` for `RefundRelayerForMessagesFromParachain`.
-	type RefundRelayerForMessagesFromParachain = GenericSignedExtensionSchema<(), ()>;
-
 	type RewardingBridgeSignedExtra = (
 		CheckNonZeroSender,
 		CheckSpecVersion,
@@ -144,7 +141,7 @@ pub mod rewarding_bridge_signed_extension {
 		CheckWeight,
 		ChargeTransactionPayment<PolkadotLike>,
 		BridgeRejectObsoleteHeadersAndMessages,
-		RefundRelayerForMessagesFromParachain,
+		RefundBridgedParachainMessages,
 	);
 
 	/// The signed extension used by Cumulus and Cumulus-like parachain with bridging and rewarding.
