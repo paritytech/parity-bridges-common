@@ -202,6 +202,7 @@ pub mod rewarding_bridge_signed_extension {
 				(),
 				(),
 				(),
+				(),
 				reward_additional_signed,
 			)),
 		)
