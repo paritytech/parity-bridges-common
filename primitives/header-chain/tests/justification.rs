@@ -237,7 +237,7 @@ fn duplicate_authority_votes_are_removed_by_optimizer() {
 	justification
 		.commit
 		.precommits
-		.push(justification.commit.precommits.iter().next().cloned().unwrap());
+		.push(justification.commit.precommits.first().unwrap());
 
 	let num_precommits_before = justification.commit.precommits.len();
 	let justification = optimize_justification::<TestHeader>(
