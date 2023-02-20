@@ -180,6 +180,9 @@ pub mod pallet {
 
 			let is_authorities_change_enacted =
 				try_enact_authority_change::<T, I>(&finality_target, set_id)?;
+			let may_refund_call_fee = is_authorities_change_enacted &&
+				submit_finality_proof_info_from_args::<T, I>(&*finality_target, &justification)
+					.fits_limits();
 			<RequestCount<T, I>>::mutate(|count| *count += 1);
 			insert_header::<T, I>(*finality_target, hash);
 			log::info!(
@@ -193,8 +196,10 @@ pub mod pallet {
 			//
 			// We don't want to charge extra costs for mandatory operations. So relayer is not
 			// paying fee for mandatory headers import transactions.
-			let is_mandatory_header = is_authorities_change_enacted;
-			let pays_fee = if is_mandatory_header { Pays::No } else { Pays::Yes };
+			//
+			// If size/weight of the call is exceeds our estimated limits, the relayer still needs
+			// to pay for the transaction.
+			let pays_fee = if may_refund_call_fee { Pays::No } else { Pays::Yes };
 
 			// the proof size component of the call weight assumes that there are
 			// `MaxBridgedAuthorities` in the `CurrentAuthoritySet` (we use `MaxEncodedLen`

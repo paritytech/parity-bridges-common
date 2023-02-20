@@ -23,7 +23,7 @@ use codec::{Encode, MaxEncodedLen};
 use frame_support::{dispatch::CallableCallFor, traits::IsSubType, weights::Weight, RuntimeDebug};
 use sp_finality_grandpa::AuthorityId;
 use sp_runtime::{
-	traits::Header,
+	traits::{Header, Zero},
 	transaction_validity::{InvalidTransaction, TransactionValidity, ValidTransaction},
 	SaturatedConversion,
 };
@@ -45,6 +45,13 @@ pub struct SubmitFinalityProofInfo<N> {
 	/// We know that if our assumptions are correct, then the call must not have the
 	/// weight above some limit. The fee paid for bytes above that limit, is never refunded.
 	pub extra_size: u32,
+}
+
+impl<N> SubmitFinalityProofInfo<N> {
+	/// Returns `true` if call size/weight is below our estimations for regular calls.
+	pub fn fits_limits(&self) -> bool {
+		self.extra_weight.is_zero() && self.extra_size.is_zero()
+	}
 }
 
 /// Helper struct that provides methods for working with the `SubmitFinalityProof` call.
@@ -94,46 +101,6 @@ impl<T: Config<I>, I: 'static> SubmitFinalityProofHelper<T, I> {
 pub trait CallSubType<T: Config<I, RuntimeCall = Self>, I: 'static>:
 	IsSubType<CallableCallFor<Pallet<T, I>, T>>
 {
-	/// Extract finality proof info from the submitted header and justification.
-	fn submit_finality_proof_info_from_args(
-		&self,
-		finality_target: &BridgedHeader<T, I>,
-		justification: &GrandpaJustification<BridgedHeader<T, I>>,
-	) -> SubmitFinalityProofInfo<BridgedBlockNumber<T, I>> {
-		let block_number = *finality_target.number();
-
-		// the `submit_finality_proof` call will reject justifications with invalid, duplicate,
-		// unknown and extra signatures. It'll also reject justifications with less than necessary
-		// signatures. So we do not care about extra weight because of additional signatures here.
-		let precommits_len = justification.commit.precommits.len().saturated_into();
-		let required_precommits = precommits_len;
-
-		// We do care about extra weight because of more-than-expected headers in the votes
-		// ancestries. But we have problems computing extra weight for additional headers (weight of
-		// additional header is zero). So if there are more than expected headers in votes
-		// ancestries, we will treat the whole call weight as an extra weight.
-		let votes_ancestries_len = justification.votes_ancestries.len().saturated_into();
-		let extra_weight = if votes_ancestries_len >
-			T::BridgedChain::REASONABLE_HEADERS_IN_JUSTIFICATON_ANCESTRY
-		{
-			let actual_call_weight =
-				T::WeightInfo::submit_finality_proof(precommits_len, votes_ancestries_len);
-			actual_call_weight
-		} else {
-			Weight::zero()
-		};
-
-		// we can estimate extra call size easily, without any additional significant overhead
-		let actual_call_size: u32 = finality_target
-			.encoded_size()
-			.saturating_add(justification.encoded_size())
-			.saturated_into();
-		let max_expected_call_size = max_expected_call_size::<T, I>(required_precommits);
-		let extra_size = actual_call_size.saturating_sub(max_expected_call_size);
-
-		SubmitFinalityProofInfo { block_number, extra_weight, extra_size }
-	}
-
 	/// Extract finality proof info from a runtime call.
 	fn submit_finality_proof_info(
 		&self,
@@ -141,7 +108,10 @@ pub trait CallSubType<T: Config<I, RuntimeCall = Self>, I: 'static>:
 		if let Some(crate::Call::<T, I>::submit_finality_proof { finality_target, justification }) =
 			self.is_sub_type()
 		{
-			return Some(self.submit_finality_proof_info_from_args(finality_target, justification))
+			return Some(submit_finality_proof_info_from_args::<T, I>(
+				finality_target,
+				justification,
+			))
 		}
 
 		None
@@ -170,6 +140,44 @@ pub trait CallSubType<T: Config<I, RuntimeCall = Self>, I: 'static>:
 impl<T: Config<I>, I: 'static> CallSubType<T, I> for T::RuntimeCall where
 	T::RuntimeCall: IsSubType<CallableCallFor<Pallet<T, I>, T>>
 {
+}
+
+/// Extract finality proof info from the submitted header and justification.
+pub(crate) fn submit_finality_proof_info_from_args<T: Config<I>, I: 'static>(
+	finality_target: &BridgedHeader<T, I>,
+	justification: &GrandpaJustification<BridgedHeader<T, I>>,
+) -> SubmitFinalityProofInfo<BridgedBlockNumber<T, I>> {
+	let block_number = *finality_target.number();
+
+	// the `submit_finality_proof` call will reject justifications with invalid, duplicate,
+	// unknown and extra signatures. It'll also reject justifications with less than necessary
+	// signatures. So we do not care about extra weight because of additional signatures here.
+	let precommits_len = justification.commit.precommits.len().saturated_into();
+	let required_precommits = precommits_len;
+
+	// We do care about extra weight because of more-than-expected headers in the votes
+	// ancestries. But we have problems computing extra weight for additional headers (weight of
+	// additional header is zero). So if there are more than expected headers in votes
+	// ancestries, we will treat the whole call weight as an extra weight.
+	let votes_ancestries_len = justification.votes_ancestries.len().saturated_into();
+	let extra_weight =
+		if votes_ancestries_len > T::BridgedChain::REASONABLE_HEADERS_IN_JUSTIFICATON_ANCESTRY {
+			let actual_call_weight =
+				T::WeightInfo::submit_finality_proof(precommits_len, votes_ancestries_len);
+			actual_call_weight
+		} else {
+			Weight::zero()
+		};
+
+	// we can estimate extra call size easily, without any additional significant overhead
+	let actual_call_size: u32 = finality_target
+		.encoded_size()
+		.saturating_add(justification.encoded_size())
+		.saturated_into();
+	let max_expected_call_size = max_expected_call_size::<T, I>(required_precommits);
+	let extra_size = actual_call_size.saturating_sub(max_expected_call_size);
+
+	SubmitFinalityProofInfo { block_number, extra_weight, extra_size }
 }
 
 /// Returns maximal expected size of `submit_finality_proof` call arguments.
