@@ -849,22 +849,6 @@ mod tests {
 	}
 
 	#[test]
-	fn post_dispatch_refunds_relayer_in_all_finality_batch_with_extra_size() {
-		run_test(|| {
-			initialize_environment(200, 200, [1u8; 32].into(), 200);
-
-			run_post_dispatch(Some(all_finality_pre_dispatch_data()), Ok(()));
-			assert_eq!(
-				RelayersPallet::<TestRuntime>::relayer_reward(
-					relayer_account_at_this_chain(),
-					TestLaneId::get()
-				),
-				Some(expected_reward()),
-			);
-		});
-	}
-
-	#[test]
 	fn post_dispatch_refunds_relayer_in_all_finality_batch() {
 		run_test(|| {
 			initialize_environment(200, 200, [1u8; 32].into(), 200);
