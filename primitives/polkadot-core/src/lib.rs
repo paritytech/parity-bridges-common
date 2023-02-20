@@ -366,7 +366,6 @@ impl PolkadotSignedExtension for BridgeSignedExtension {
 				(),
 				(),
 				(),
-				(),
 			)),
 		)
 	}
