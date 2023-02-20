@@ -635,8 +635,8 @@ pub fn initialize_for_benchmarks<T: Config<I>, I: 'static>(header: BridgedHeader
 mod tests {
 	use super::*;
 	use crate::mock::{
-		run_test, test_header, RuntimeOrigin, TestBridgedChain, TestHeader, TestNumber, TestRuntime,
-		MAX_BRIDGED_AUTHORITIES,
+		run_test, test_header, RuntimeOrigin, TestBridgedChain, TestHeader, TestNumber,
+		TestRuntime, MAX_BRIDGED_AUTHORITIES,
 	};
 	use bp_header_chain::BridgeGrandpaCall;
 	use bp_runtime::BasicOperatingMode;
