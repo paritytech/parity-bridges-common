@@ -201,7 +201,8 @@ fn optimizer_does_noting_with_minimal_justification() {
 		TEST_GRANDPA_SET_ID,
 		&voter_set(),
 		justification,
-	).unwrap();
+	)
+	.unwrap();
 	let num_precommits_after = justification.commit.precommits.len();
 
 	assert_eq!(num_precommits_before, num_precommits_after);
@@ -223,7 +224,8 @@ fn unknown_authority_votes_are_removed_by_optimizer() {
 		TEST_GRANDPA_SET_ID,
 		&voter_set(),
 		justification,
-	).unwrap();
+	)
+	.unwrap();
 	let num_precommits_after = justification.commit.precommits.len();
 
 	assert_eq!(num_precommits_before - 1, num_precommits_after);
@@ -232,7 +234,10 @@ fn unknown_authority_votes_are_removed_by_optimizer() {
 #[test]
 fn duplicate_authority_votes_are_removed_by_optimizer() {
 	let mut justification = make_default_justification::<TestHeader>(&test_header(1));
-	justification.commit.precommits.push(justification.commit.precommits.iter().next().cloned().unwrap());
+	justification
+		.commit
+		.precommits
+		.push(justification.commit.precommits.iter().next().cloned().unwrap());
 
 	let num_precommits_before = justification.commit.precommits.len();
 	let justification = optimize_justification::<TestHeader>(
@@ -240,7 +245,8 @@ fn duplicate_authority_votes_are_removed_by_optimizer() {
 		TEST_GRANDPA_SET_ID,
 		&voter_set(),
 		justification,
-	).unwrap();
+	)
+	.unwrap();
 	let num_precommits_after = justification.commit.precommits.len();
 
 	assert_eq!(num_precommits_before - 1, num_precommits_after);
@@ -262,7 +268,8 @@ fn redundant_authority_votes_are_removed_by_optimizer() {
 		TEST_GRANDPA_SET_ID,
 		&voter_set(),
 		justification,
-	).unwrap();
+	)
+	.unwrap();
 	let num_precommits_after = justification.commit.precommits.len();
 
 	assert_eq!(num_precommits_before - 1, num_precommits_after);

@@ -151,8 +151,13 @@ impl<C: ChainWithGrandpa> Engine<C> for Grandpa<C> {
 		header: &C::Header,
 		proof: Self::FinalityProof,
 	) -> Result<Self::FinalityProof, SubstrateError> {
-		let current_authority_set_key = bp_header_chain::storage_keys::current_authority_set_key(C::WITH_CHAIN_GRANDPA_PALLET_NAME);
-		let (authority_set, authority_set_id): (sp_finality_grandpa::AuthorityList, sp_finality_grandpa::SetId) = target_client
+		let current_authority_set_key = bp_header_chain::storage_keys::current_authority_set_key(
+			C::WITH_CHAIN_GRANDPA_PALLET_NAME,
+		);
+		let (authority_set, authority_set_id): (
+			sp_finality_grandpa::AuthorityList,
+			sp_finality_grandpa::SetId,
+		) = target_client
 			.storage_value(current_authority_set_key, None)
 			.await?
 			.map(Ok)
@@ -161,22 +166,26 @@ impl<C: ChainWithGrandpa> Engine<C> for Grandpa<C> {
 				C::NAME,
 				TargetChain::NAME,
 			))))?;
-		let authority_set = finality_grandpa::voter_set::VoterSet::new(authority_set).expect("TODO");
-		// we're risking with race here - we have decided to submit justification some time ago and actual
-		// authorities set (which we have read now) may have changed, so this `optimize_justification` may fail.
-		// But if target chain is configured properly, it'll fail anyway, after we submit transaction and
-		// failing earlier is better. So - it is fine
+		let authority_set =
+			finality_grandpa::voter_set::VoterSet::new(authority_set).expect("TODO");
+		// we're risking with race here - we have decided to submit justification some time ago and
+		// actual authorities set (which we have read now) may have changed, so this
+		// `optimize_justification` may fail. But if target chain is configured properly, it'll fail
+		// anyway, after we submit transaction and failing earlier is better. So - it is fine
 		bp_header_chain::justification::optimize_justification(
 			(header.hash(), *header.number()),
 			authority_set_id,
 			&authority_set.into(),
 			proof,
-		).map_err(|e| SubstrateError::Custom(format!(
-			"Failed to optimize {} GRANDPA jutification for header {:?}: {:?}",
-			C::NAME,
-			header.id(),
-			e,
-		)))
+		)
+		.map_err(|e| {
+			SubstrateError::Custom(format!(
+				"Failed to optimize {} GRANDPA jutification for header {:?}: {:?}",
+				C::NAME,
+				header.id(),
+				e,
+			))
+		})
 	}
 
 	/// Prepare initialization data for the GRANDPA verifier pallet.
