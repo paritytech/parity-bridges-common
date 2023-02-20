@@ -15,8 +15,7 @@
 // along with Parity Bridges Common.  If not, see <http://www.gnu.org/licenses/>.
 
 use crate::{
-	weights::WeightInfo, BridgedBlockHash, BridgedBlockNumber, BridgedHeader, Config,
-	CurrentAuthoritySet, Error, Pallet,
+	weights::WeightInfo, BridgedBlockHash, BridgedBlockNumber, BridgedHeader, Config, Error, Pallet,
 };
 use bp_header_chain::{justification::GrandpaJustification, ChainWithGrandpa};
 use bp_runtime::BlockNumberOf;
@@ -103,27 +102,36 @@ pub trait CallSubType<T: Config<I, RuntimeCall = Self>, I: 'static>:
 	) -> SubmitFinalityProofInfo<BridgedBlockNumber<T, I>> {
 		let block_number = *finality_target.number();
 
-		let actual_call_weight = T::WeightInfo::submit_finality_proof(
-			justification.commit.precommits.len().saturated_into(),
-			justification.votes_ancestries.len().saturated_into(),
-		);
+		// the `submit_finality_proof` call will reject justifications with invalid, duplicate,
+		// unknown and extra signatures. It'll also reject justifications with less than necessary
+		// signatures. So we do not care about extra weight because of additional signatures here.
+		let precommits_len = justification.commit.precommits.len().saturated_into();
+		let required_precommits = precommits_len;
+
+		// We do care about extra weight because of more-than-expected headers in the votes
+		// ancestries. But we have problems computing extra weight for additional headers (weight of
+		// additional header is zero). So if there are more than expected headers in votes
+		// ancestries, we will treat the whole call weight as an extra weight.
+		let votes_ancestries_len = justification.votes_ancestries.len().saturated_into();
+		let extra_weight = if votes_ancestries_len >
+			T::BridgedChain::REASONABLE_HEADERS_IN_JUSTIFICATON_ANCESTRY
+		{
+			let actual_call_weight =
+				T::WeightInfo::submit_finality_proof(precommits_len, votes_ancestries_len);
+			actual_call_weight
+		} else {
+			Weight::zero()
+		};
+
+		// we can estimate extra call size easily, without any additional significant overhead
 		let actual_call_size: u32 = finality_target
 			.encoded_size()
 			.saturating_add(justification.encoded_size())
 			.saturated_into();
-
-		let authorities_set_length =
-			CurrentAuthoritySet::<T, I>::get().authorities.len().saturated_into();
-		let required_precommits = bp_header_chain::justification::required_justification_precommits(
-			authorities_set_length,
-		);
-		let max_expected_call_weight = max_expected_call_weight::<T, I>(required_precommits);
 		let max_expected_call_size = max_expected_call_size::<T, I>(required_precommits);
-		SubmitFinalityProofInfo {
-			block_number,
-			extra_weight: actual_call_weight.saturating_sub(max_expected_call_weight),
-			extra_size: actual_call_size.saturating_sub(max_expected_call_size),
-		}
+		let extra_size = actual_call_size.saturating_sub(max_expected_call_size);
+
+		SubmitFinalityProofInfo { block_number, extra_weight, extra_size }
 	}
 
 	/// Extract finality proof info from a runtime call.
@@ -164,14 +172,6 @@ impl<T: Config<I>, I: 'static> CallSubType<T, I> for T::RuntimeCall where
 {
 }
 
-/// Returns maximal expected `submit_finality_proof` call weight.
-fn max_expected_call_weight<T: Config<I>, I: 'static>(required_precommits: u32) -> Weight {
-	T::WeightInfo::submit_finality_proof(
-		required_precommits,
-		T::BridgedChain::REASONABLE_HEADERS_IN_JUSTIFICATON_ANCESTRY,
-	)
-}
-
 /// Returns maximal expected size of `submit_finality_proof` call arguments.
 fn max_expected_call_size<T: Config<I>, I: 'static>(required_precommits: u32) -> u32 {
 	// we don't need precise results here - just estimations, so some details
@@ -201,7 +201,7 @@ fn max_expected_call_size<T: Config<I>, I: 'static>(required_precommits: u32) ->
 		.saturating_add(max_expected_signed_commit_size)
 		.saturating_add(max_expected_votes_ancestries_size);
 
-	// call arguments are header and jsutification
+	// call arguments are header and justification
 	T::BridgedChain::MAX_HEADER_SIZE.saturating_add(max_expected_justification_size)
 }
 
@@ -209,11 +209,16 @@ fn max_expected_call_size<T: Config<I>, I: 'static>(required_precommits: u32) ->
 mod tests {
 	use crate::{
 		call_ext::CallSubType,
-		mock::{run_test, test_header, RuntimeCall, TestNumber, TestRuntime},
-		BestFinalized,
+		mock::{run_test, test_header, RuntimeCall, TestBridgedChain, TestNumber, TestRuntime},
+		BestFinalized, Config, WeightInfo,
 	};
+	use bp_header_chain::ChainWithGrandpa;
 	use bp_runtime::HeaderId;
-	use bp_test_utils::make_default_justification;
+	use bp_test_utils::{
+		make_default_justification, make_justification_for_header, JustificationGeneratorParams,
+	};
+	use frame_support::weights::Weight;
+	use sp_runtime::{testing::DigestItem, traits::Header as _, SaturatedConversion};
 
 	fn validate_block_submit(num: TestNumber) -> bool {
 		let bridge_grandpa_call = crate::Call::<TestRuntime, ()>::submit_finality_proof {
@@ -259,5 +264,68 @@ mod tests {
 			sync_to_header_10();
 			assert!(validate_block_submit(15));
 		});
+	}
+
+	#[test]
+	fn extension_returns_correct_extra_size_if_call_arguments_are_too_large() {
+		// when call arguments are below our limit => no refund
+		let small_finality_target = test_header(1);
+		let justification_params = JustificationGeneratorParams {
+			header: small_finality_target.clone(),
+			..Default::default()
+		};
+		let small_justification = make_justification_for_header(justification_params);
+		let small_call = RuntimeCall::Grandpa(crate::Call::submit_finality_proof {
+			finality_target: Box::new(small_finality_target.clone()),
+			justification: small_justification,
+		});
+		assert_eq!(small_call.submit_finality_proof_info().unwrap().extra_size, 0);
+
+		// when call arguments are too large => partial refund
+		let mut large_finality_target = test_header(1);
+		large_finality_target
+			.digest_mut()
+			.push(DigestItem::Other(vec![42u8; 1024 * 1024]));
+		let justification_params = JustificationGeneratorParams {
+			header: large_finality_target.clone(),
+			..Default::default()
+		};
+		let large_justification = make_justification_for_header(justification_params);
+		let large_call = RuntimeCall::Grandpa(crate::Call::submit_finality_proof {
+			finality_target: Box::new(large_finality_target.clone()),
+			justification: large_justification,
+		});
+		assert_ne!(large_call.submit_finality_proof_info().unwrap().extra_size, 0);
+	}
+
+	#[test]
+	fn extension_returns_correct_extra_weight_if_there_are_too_many_headers_in_votes_ancestry() {
+		let finality_target = test_header(1);
+		let mut justification_params = JustificationGeneratorParams {
+			header: finality_target.clone(),
+			ancestors: TestBridgedChain::REASONABLE_HEADERS_IN_JUSTIFICATON_ANCESTRY,
+			..Default::default()
+		};
+
+		// when there are `REASONABLE_HEADERS_IN_JUSTIFICATON_ANCESTRY` headers => no refund
+		let justification = make_justification_for_header(justification_params.clone());
+		let call = RuntimeCall::Grandpa(crate::Call::submit_finality_proof {
+			finality_target: Box::new(finality_target.clone()),
+			justification,
+		});
+		assert_eq!(call.submit_finality_proof_info().unwrap().extra_weight, Weight::zero());
+
+		// when there are `REASONABLE_HEADERS_IN_JUSTIFICATON_ANCESTRY + 1` headers => full refund
+		justification_params.ancestors += 1;
+		let justification = make_justification_for_header(justification_params.clone());
+		let call_weight = <TestRuntime as Config>::WeightInfo::submit_finality_proof(
+			justification.commit.precommits.len().saturated_into(),
+			justification.votes_ancestries.len().saturated_into(),
+		);
+		let call = RuntimeCall::Grandpa(crate::Call::submit_finality_proof {
+			finality_target: Box::new(finality_target.clone()),
+			justification,
+		});
+		assert_eq!(call.submit_finality_proof_info().unwrap().extra_weight, call_weight);
 	}
 }
