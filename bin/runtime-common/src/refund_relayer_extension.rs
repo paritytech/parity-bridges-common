@@ -389,7 +389,7 @@ where
 
 		// decrease post-dispatch weight/size using extra weight/size that we know now
 		let post_info_len = len.saturating_sub(extra_size as usize);
-		let mut post_info = post_info.clone();
+		let mut post_info = *post_info;
 		post_info.actual_weight =
 			Some(post_info.actual_weight.unwrap_or(info.weight).saturating_sub(extra_weight));
 

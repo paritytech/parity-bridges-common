@@ -87,7 +87,7 @@ fn valid_justification_accepted_with_arbitrary_number_of_authorities() {
 		set_id: TEST_GRANDPA_SET_ID,
 		authorities: authorities.clone().into_iter().take(required_signatures as _).collect(),
 		ancestors: n.into(),
-		forks: required_signatures.into(),
+		forks: required_signatures,
 	};
 
 	let authorities = authorities

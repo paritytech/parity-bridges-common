@@ -283,7 +283,7 @@ mod tests {
 		};
 		let small_justification = make_justification_for_header(justification_params);
 		let small_call = RuntimeCall::Grandpa(crate::Call::submit_finality_proof {
-			finality_target: Box::new(small_finality_target.clone()),
+			finality_target: Box::new(small_finality_target),
 			justification: small_justification,
 		});
 		assert_eq!(small_call.submit_finality_proof_info().unwrap().extra_size, 0);
@@ -299,7 +299,7 @@ mod tests {
 		};
 		let large_justification = make_justification_for_header(justification_params);
 		let large_call = RuntimeCall::Grandpa(crate::Call::submit_finality_proof {
-			finality_target: Box::new(large_finality_target.clone()),
+			finality_target: Box::new(large_finality_target),
 			justification: large_justification,
 		});
 		assert_ne!(large_call.submit_finality_proof_info().unwrap().extra_size, 0);
@@ -324,7 +324,7 @@ mod tests {
 
 		// when there are `REASONABLE_HEADERS_IN_JUSTIFICATON_ANCESTRY + 1` headers => full refund
 		justification_params.ancestors += 1;
-		let justification = make_justification_for_header(justification_params.clone());
+		let justification = make_justification_for_header(justification_params);
 		let call_weight = <TestRuntime as Config>::WeightInfo::submit_finality_proof(
 			justification.commit.precommits.len().saturated_into(),
 			justification.votes_ancestries.len().saturated_into(),
