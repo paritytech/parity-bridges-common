@@ -14,14 +14,11 @@
 // You should have received a copy of the GNU General Public License
 // along with Parity Bridges Common.  If not, see <http://www.gnu.org/licenses/>.
 
-use crate::{
-	weights::WeightInfo, BridgedBlockHash, BridgedBlockNumber, BridgedHeader, Config, Error, Pallet,
-};
+use crate::{weights::WeightInfo, BridgedBlockNumber, BridgedHeader, Config, Error, Pallet};
 use bp_header_chain::{justification::GrandpaJustification, ChainWithGrandpa};
 use bp_runtime::BlockNumberOf;
-use codec::{Encode, MaxEncodedLen};
+use codec::Encode;
 use frame_support::{dispatch::CallableCallFor, traits::IsSubType, weights::Weight, RuntimeDebug};
-use sp_finality_grandpa::AuthorityId;
 use sp_runtime::{
 	traits::{Header, Zero},
 	transaction_validity::{InvalidTransaction, TransactionValidity, ValidTransaction},
@@ -181,32 +178,8 @@ pub(crate) fn submit_finality_proof_info_from_args<T: Config<I>, I: 'static>(
 
 /// Returns maximal expected size of `submit_finality_proof` call arguments.
 fn max_expected_call_size<T: Config<I>, I: 'static>(required_precommits: u32) -> u32 {
-	// we don't need precise results here - just estimations, so some details
-	// are removed from computations (e.g. bytes required to encode vector length)
-
-	// structures in `finality_grandpa` crate are not implementing `MaxEncodedLength`, so
-	// here's our estimation for the `finality_grandpa::Commit` struct size
-	//
-	// precommit is: hash + number
-	// signed precommit is: precommit + signature (64b) + authority id
-	// commit is: hash + number + vec of signed precommits
-	let signed_precommit_size: u32 = BridgedBlockNumber::<T, I>::max_encoded_len()
-		.saturating_add(BridgedBlockHash::<T, I>::max_encoded_len().saturated_into())
-		.saturating_add(64)
-		.saturating_add(AuthorityId::max_encoded_len().saturated_into())
-		.saturated_into();
-	let max_expected_signed_commit_size = signed_precommit_size
-		.saturating_mul(required_precommits)
-		.saturating_add(BridgedBlockNumber::<T, I>::max_encoded_len().saturated_into())
-		.saturating_add(BridgedBlockHash::<T, I>::max_encoded_len().saturated_into());
-
-	// justification is a signed GRANDPA commit, `votes_ancestries` vector and round number
-	let max_expected_votes_ancestries_size =
-		T::BridgedChain::REASONABLE_HEADERS_IN_JUSTIFICATON_ANCESTRY
-			.saturating_mul(T::BridgedChain::AVERAGE_HEADER_SIZE_IN_JUSTIFICATION);
-	let max_expected_justification_size = 8u32
-		.saturating_add(max_expected_signed_commit_size)
-		.saturating_add(max_expected_votes_ancestries_size);
+	let max_expected_justification_size =
+		GrandpaJustification::max_reasonable_size::<T::BridgedChain>(required_precommits);
 
 	// call arguments are header and justification
 	T::BridgedChain::MAX_HEADER_SIZE.saturating_add(max_expected_justification_size)

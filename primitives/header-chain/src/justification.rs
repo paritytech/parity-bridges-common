@@ -19,12 +19,15 @@
 //! Adapted copy of substrate/client/finality-grandpa/src/justification.rs. If origin
 //! will ever be moved to the sp_finality_grandpa, we should reuse that implementation.
 
-use codec::{Decode, Encode};
+use crate::ChainWithGrandpa;
+
+use bp_runtime::{BlockNumberOf, Chain, HashOf};
+use codec::{Decode, Encode, MaxEncodedLen};
 use finality_grandpa::voter_set::VoterSet;
 use frame_support::RuntimeDebug;
 use scale_info::TypeInfo;
 use sp_finality_grandpa::{AuthorityId, AuthoritySignature, SetId};
-use sp_runtime::traits::Header as HeaderT;
+use sp_runtime::{traits::Header as HeaderT, SaturatedConversion};
 use sp_std::{
 	collections::{btree_map::BTreeMap, btree_set::BTreeSet},
 	prelude::*,
@@ -44,6 +47,43 @@ pub struct GrandpaJustification<Header: HeaderT> {
 		finality_grandpa::Commit<Header::Hash, Header::Number, AuthoritySignature, AuthorityId>,
 	/// A proof that the chain of blocks in the commit are related to each other.
 	pub votes_ancestries: Vec<Header>,
+}
+
+impl<H: HeaderT> GrandpaJustification<H> {
+	/// Returns reasonable size of justification using constants from the provided chain.
+	///
+	/// An imprecise analogue of `MaxEncodedLen` implementation. We don't use it for
+	/// any precise calculations - that's just an estimation.
+	pub fn max_reasonable_size<C>(required_precommits: u32) -> u32
+	where
+		C: Chain<Header = H> + ChainWithGrandpa,
+	{
+		// we don't need precise results here - just estimations, so some details
+		// are removed from computations (e.g. bytes required to encode vector length)
+
+		// structures in `finality_grandpa` crate are not implementing `MaxEncodedLength`, so
+		// here's our estimation for the `finality_grandpa::Commit` struct size
+		//
+		// precommit is: hash + number
+		// signed precommit is: precommit + signature (64b) + authority id
+		// commit is: hash + number + vec of signed precommits
+		let signed_precommit_size: u32 = BlockNumberOf::<C>::max_encoded_len()
+			.saturating_add(HashOf::<C>::max_encoded_len().saturated_into())
+			.saturating_add(64)
+			.saturating_add(AuthorityId::max_encoded_len().saturated_into())
+			.saturated_into();
+		let max_expected_signed_commit_size = signed_precommit_size
+			.saturating_mul(required_precommits)
+			.saturating_add(BlockNumberOf::<C>::max_encoded_len().saturated_into())
+			.saturating_add(HashOf::<C>::max_encoded_len().saturated_into());
+
+		// justification is a signed GRANDPA commit, `votes_ancestries` vector and round number
+		let max_expected_votes_ancestries_size = C::REASONABLE_HEADERS_IN_JUSTIFICATON_ANCESTRY
+			.saturating_mul(C::AVERAGE_HEADER_SIZE_IN_JUSTIFICATION);
+
+		8u32.saturating_add(max_expected_signed_commit_size)
+			.saturating_add(max_expected_votes_ancestries_size)
+	}
 }
 
 impl<H: HeaderT> crate::FinalityProof<H::Number> for GrandpaJustification<H> {
