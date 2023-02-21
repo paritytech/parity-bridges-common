@@ -28,7 +28,7 @@ pub use relay_substrate_client::calls::{SystemCall, UtilityCall};
 /// Unchecked BridgeHubRococo extrinsic.
 pub type UncheckedExtrinsic = bp_bridge_hub_rococo::UncheckedExtrinsic<
 	Call,
-	rewarding_bridge_signed_extension::RewardingBridgeSignedExtension<((), ()), ((), ())>,
+	rewarding_bridge_signed_extension::RewardingBridgeSignedExtension,
 >;
 
 // The indirect pallet call used to sync `Wococo` GRANDPA finality to `BHRococo`.

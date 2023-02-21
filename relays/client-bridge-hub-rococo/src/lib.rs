@@ -78,8 +78,6 @@ impl ChainWithTransactions for BridgeHubRococo {
 				param.genesis_hash,
 				unsigned.nonce,
 				unsigned.tip,
-				((), ()),
-				((), ()),
 			),
 		)?;
 

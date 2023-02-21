@@ -77,7 +77,13 @@ pub type ChargeTransactionPayment<C> = GenericSignedExtensionSchema<Compact<Bala
 pub type BridgeRejectObsoleteHeadersAndMessages = GenericSignedExtensionSchema<(), ()>;
 
 /// The `SignedExtensionSchema` for `RefundBridgedParachainMessages`.
-pub type RefundBridgedParachainMessages<P, A> = GenericSignedExtensionSchema<P, A>;
+/// This schema is dedicated for `RefundBridgedParachainMessages` signed extension as
+/// wildcard/placeholder, which relies on the scale encoding for `()` or `((), ())`, or `((), (),
+/// ())` is the same. So runtime can contains any kind of tuple:
+/// `(BridgeRefundBridgeHubRococoMessages)`
+/// `(BridgeRefundBridgeHubRococoMessages, BridgeRefundBridgeHubWococoMessages)`
+/// `(BridgeRefundParachainMessages1, ..., BridgeRefundParachainMessagesN)`
+pub type RefundBridgedParachainMessagesSchema = GenericSignedExtensionSchema<(), ()>;
 
 #[impl_for_tuples(1, 12)]
 impl SignedExtensionSchema for Tuple {
