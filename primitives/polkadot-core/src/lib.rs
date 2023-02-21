@@ -69,7 +69,7 @@ pub const REASONABLE_HEADERS_IN_JUSTIFICATON_ANCESTRY: u32 = 2;
 /// See [`bp_header_chain::ChainWithGrandpa`] for more details.
 ///
 /// This value comes from recent (February, 2023) Kusama headers. Average is `336` there, but some
-/// non-mandatory headers has size `40kb` (they contain the BABE epoch dscriptor with all
+/// non-mandatory headers has size `40kb` (they contain the BABE epoch descriptor with all
 /// authorities - just like our mandatory header). Since we assume `2` headers in justification
 /// votes ancestry, let's set average header to `40kb / 2`.
 pub const AVERAGE_HEADER_SIZE_IN_JUSTIFICATION: u32 = 20 * 1024;

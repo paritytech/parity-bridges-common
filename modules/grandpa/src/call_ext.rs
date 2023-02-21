@@ -330,7 +330,7 @@ mod tests {
 			justification.votes_ancestries.len().saturated_into(),
 		);
 		let call = RuntimeCall::Grandpa(crate::Call::submit_finality_proof {
-			finality_target: Box::new(finality_target.clone()),
+			finality_target: Box::new(finality_target),
 			justification,
 		});
 		assert_eq!(call.submit_finality_proof_info().unwrap().extra_weight, call_weight);
