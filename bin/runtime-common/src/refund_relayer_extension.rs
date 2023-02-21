@@ -877,7 +877,7 @@ mod tests {
 				Some(regular_reward),
 			);
 
-			// no repeat the same with size+weight refund: we expect smaller reward
+			// now repeat the same with size+weight refund: we expect smaller reward
 			let mut pre_dispatch_data = all_finality_pre_dispatch_data();
 			match pre_dispatch_data.call_info {
 				CallInfo::AllFinalityAndDelivery(ref mut info, ..) => {

@@ -50,7 +50,7 @@ pub mod parachains;
 /// our bridge hub parachains huge. So let's stick to the real-world value here.
 ///
 /// Right now both Kusama and Polkadot aim to have around 1000 validators. Let's be safe here and
-/// take twice as much here.
+/// take a bit more here.
 pub const MAX_AUTHORITIES_COUNT: u32 = 1_256;
 
 /// Reasonable number of headers in the `votes_ancestries` on Polkadot-like chains.
