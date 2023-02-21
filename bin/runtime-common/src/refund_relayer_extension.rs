@@ -619,7 +619,7 @@ mod tests {
 	fn dispatch_info() -> DispatchInfo {
 		DispatchInfo {
 			weight: Weight::from_ref_time(
-				frame_support::weights::constants::WEIGHT_REF_TIME_PER_SECOND * 2,
+				frame_support::weights::constants::WEIGHT_REF_TIME_PER_SECOND,
 			),
 			class: frame_support::dispatch::DispatchClass::Normal,
 			pays_fee: frame_support::dispatch::Pays::Yes,
