@@ -157,8 +157,9 @@ pub(crate) fn submit_finality_proof_info_from_args<T: Config<I>, I: 'static>(
 
 	// We do care about extra weight because of more-than-expected headers in the votes
 	// ancestries. But we have problems computing extra weight for additional headers (weight of
-	// additional header is zero). So if there are more than expected headers in votes
-	// ancestries, we will treat the whole call weight as an extra weight.
+	// additional header is too small, so that our benchmarks aren't detecting that). So if there
+	// are more than expected headers in votes ancestries, we will treat the whole call weight
+	// as an extra weight.
 	let votes_ancestries_len = justification.votes_ancestries.len().saturated_into();
 	let extra_weight =
 		if votes_ancestries_len > T::BridgedChain::REASONABLE_HEADERS_IN_JUSTIFICATON_ANCESTRY {
