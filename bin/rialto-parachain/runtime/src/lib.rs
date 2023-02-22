@@ -570,7 +570,6 @@ impl pallet_bridge_messages::Config<WithMillauMessagesInstance> for Runtime {
 	type DeliveryConfirmationPayments = pallet_bridge_relayers::DeliveryConfirmationPaymentsAdapter<
 		Runtime,
 		frame_support::traits::ConstU128<100_000>,
-		frame_support::traits::ConstU128<100_000>,
 	>;
 
 	type SourceHeaderChain = crate::millau_messages::MillauAsSourceHeaderChain;

@@ -450,7 +450,6 @@ impl pallet_bridge_messages::Config<WithRialtoMessagesInstance> for Runtime {
 	type DeliveryConfirmationPayments = pallet_bridge_relayers::DeliveryConfirmationPaymentsAdapter<
 		Runtime,
 		frame_support::traits::ConstU64<100_000>,
-		frame_support::traits::ConstU64<10_000>,
 	>;
 
 	type SourceHeaderChain = crate::rialto_messages::RialtoAsSourceHeaderChain;
@@ -481,7 +480,6 @@ impl pallet_bridge_messages::Config<WithRialtoParachainMessagesInstance> for Run
 	type DeliveryConfirmationPayments = pallet_bridge_relayers::DeliveryConfirmationPaymentsAdapter<
 		Runtime,
 		frame_support::traits::ConstU64<100_000>,
-		frame_support::traits::ConstU64<10_000>,
 	>;
 
 	type SourceHeaderChain = crate::rialto_parachain_messages::RialtoParachainAsSourceHeaderChain;
