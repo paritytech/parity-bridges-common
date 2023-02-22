@@ -576,14 +576,10 @@ pub async fn run<P: MessageRace, SC: SourceClient<P>, TC: TargetClient<P>>(
 					"Going to submit proof of messages in range {:?} to {} node{}",
 					nonces_range,
 					P::target_name(),
-					if let Some(ref target_batch_transaction) = target_batch_transaction {
-						format!(
-							". This transaction is batched with sending the proof for header {:?}.",
-							target_batch_transaction.required_header_id(),
-						)
-					} else {
-						Default::default()
-					},
+					target_batch_transaction.as_ref().map(|tx| format!(
+						". This transaction is batched with sending the proof for header {:?}.",
+						tx.required_header_id())
+					).unwrap_or_default(),
 				);
 
 				target_submit_proof.set(
