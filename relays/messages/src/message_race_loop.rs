@@ -539,7 +539,7 @@ pub async fn run<P: MessageRace, SC: SourceClient<P>, TC: TargetClient<P>>(
 				};
 
 			let nonces_to_deliver =
-				select_nonces_to_deliver(expected_race_state, &mut strategy).await;
+				select_nonces_to_deliver(expected_race_state, &strategy).await;
 			let best_at_source = strategy.best_at_source();
 
 			if let Some((at_block, nonces_range, proof_parameters)) = nonces_to_deliver {
@@ -730,7 +730,7 @@ mod tests {
 
 		// the proof will be generated on source, but using BEST_AT_TARGET block
 		assert_eq!(
-			select_nonces_to_deliver(race_state, &mut strategy).await,
+			select_nonces_to_deliver(race_state, &strategy).await,
 			Some((HeaderId(BEST_AT_TARGET, BEST_AT_TARGET), 6..=10, (),))
 		);
 	}
