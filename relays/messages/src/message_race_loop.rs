@@ -538,8 +538,7 @@ pub async fn run<P: MessageRace, SC: SourceClient<P>, TC: TargetClient<P>>(
 					race_state.clone()
 				};
 
-			let nonces_to_deliver =
-				select_nonces_to_deliver(expected_race_state, &strategy).await;
+			let nonces_to_deliver = select_nonces_to_deliver(expected_race_state, &strategy).await;
 			let best_at_source = strategy.best_at_source();
 
 			if let Some((at_block, nonces_range, proof_parameters)) = nonces_to_deliver {
