@@ -234,6 +234,13 @@ pub struct RaceState<SourceHeaderId, TargetHeaderId, Proof> {
 	pub nonces_submitted: Option<RangeInclusive<MessageNonce>>,
 }
 
+impl<SourceHeaderId, TargetHeaderId, Proof> RaceState<SourceHeaderId, TargetHeaderId, Proof> {
+	/// Reset `nonces_submitted` to `None`.
+	fn reset_submitted(&mut self) {
+		self.nonces_submitted = None;
+	}
+}
+
 /// Run race loop until connection with target or source node is lost.
 pub async fn run<P: MessageRace, SC: SourceClient<P>, TC: TargetClient<P>>(
 	race_source: SC,
@@ -460,7 +467,7 @@ pub async fn run<P: MessageRace, SC: SourceClient<P>, TC: TargetClient<P>>(
 					(TrackedTransactionStatus::Finalized(at_block), Some(nonces_submitted)) => {
 						// our transaction has been mined, but was it successful or not? let's check the best
 						// nonce at the target node.
-						race_target.nonces(at_block, false)
+						let _ = race_target.nonces(at_block, false)
 							.await
 							.map_err(|e| format!("failed to read nonces from target node: {e:?}"))
 							.and_then(|(_, nonces_at_target)| {
@@ -477,26 +484,26 @@ pub async fn run<P: MessageRace, SC: SourceClient<P>, TC: TargetClient<P>>(
 							.map_err(|e| {
 								log::error!(
 									target: "bridge",
-									"{} -> {} race has stalled. Transaction failed: {}. Going to restart",
+									"{} -> {} race transaction failed: {}",
 									P::source_name(),
 									P::target_name(),
 									e,
 								);
 
-								FailedClient::Both
-							})?;
+								race_state.reset_submitted();
+							});
 					},
 					(TrackedTransactionStatus::Lost, _) => {
 						log::warn!(
 							target: "bridge",
-							"{} -> {} race has stalled. State: {:?}. Strategy: {:?}",
+							"{} -> {} race transaction has been lost. State: {:?}. Strategy: {:?}",
 							P::source_name(),
 							P::target_name(),
 							race_state,
 							strategy,
 						);
 
-						return Err(FailedClient::Both);
+						race_state.reset_submitted();
 					},
 					_ => (),
 				}
