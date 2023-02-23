@@ -211,7 +211,7 @@ pub trait RaceStrategy<SourceHeaderId, TargetHeaderId, Proof>: Debug {
 	/// data) from source to target node.
 	/// Additionally, parameters required to generate proof are returned.
 	async fn select_nonces_to_deliver(
-		&mut self,
+		&self,
 		race_state: RaceState<SourceHeaderId, TargetHeaderId, Proof>,
 	) -> Option<(RangeInclusive<MessageNonce>, Self::ProofParameters)>;
 }
@@ -665,7 +665,7 @@ where
 
 async fn select_nonces_to_deliver<SourceHeaderId, TargetHeaderId, Proof, Strategy>(
 	race_state: RaceState<SourceHeaderId, TargetHeaderId, Proof>,
-	strategy: &mut Strategy,
+	strategy: &Strategy,
 ) -> Option<(SourceHeaderId, RangeInclusive<MessageNonce>, Strategy::ProofParameters)>
 where
 	SourceHeaderId: Clone,
