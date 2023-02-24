@@ -26,8 +26,8 @@ use bp_messages::{
 		DeliveryPayments, DispatchMessage, DispatchMessageData, MessageDispatch,
 		ProvedLaneMessages, ProvedMessages, SourceHeaderChain,
 	},
-	DeliveredMessages, InboundLaneData, LaneId, Message, MessageKey, MessageNonce, MessagePayload,
-	OutboundLaneData, UnrewardedRelayer,
+	DeliveredMessages, FullLaneId, InboundLaneData, LaneId, Message, MessageKey, MessageNonce,
+	MessagePayload, OutboundLaneData, UnrewardedRelayer,
 };
 use bp_runtime::{messages::MessageDispatchResult, Size};
 use codec::{Decode, Encode};
@@ -334,7 +334,7 @@ impl DeliveryConfirmationPayments<AccountId> for TestDeliveryConfirmationPayment
 	type Error = &'static str;
 
 	fn pay_reward(
-		_lane_id: LaneId,
+		_lane_id: FullLaneId,
 		messages_relayers: VecDeque<UnrewardedRelayer<AccountId>>,
 		_confirmation_relayer: &AccountId,
 		received_range: &RangeInclusive<MessageNonce>,

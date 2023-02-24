@@ -16,7 +16,7 @@
 
 //! Primitives of messages module, that are used on the source chain.
 
-use crate::{InboundLaneData, LaneId, MessageNonce, OutboundLaneData};
+use crate::{FullLaneId, InboundLaneData, LaneId, MessageNonce, OutboundLaneData};
 
 use crate::UnrewardedRelayer;
 use bp_runtime::Size;
@@ -99,7 +99,7 @@ pub trait DeliveryConfirmationPayments<AccountId> {
 	/// The implementation may also choose to pay reward to the `confirmation_relayer`, which is
 	/// a relayer that has submitted delivery confirmation transaction.
 	fn pay_reward(
-		lane_id: LaneId,
+		lane_id: FullLaneId,
 		messages_relayers: VecDeque<UnrewardedRelayer<AccountId>>,
 		confirmation_relayer: &AccountId,
 		received_range: &RangeInclusive<MessageNonce>,
@@ -110,7 +110,7 @@ impl<AccountId> DeliveryConfirmationPayments<AccountId> for () {
 	type Error = &'static str;
 
 	fn pay_reward(
-		_lane_id: LaneId,
+		_lane_id: FullLaneId,
 		_messages_relayers: VecDeque<UnrewardedRelayer<AccountId>>,
 		_confirmation_relayer: &AccountId,
 		_received_range: &RangeInclusive<MessageNonce>,
@@ -200,7 +200,7 @@ impl<AccountId> DeliveryConfirmationPayments<AccountId> for ForbidOutboundMessag
 	type Error = &'static str;
 
 	fn pay_reward(
-		_lane_id: LaneId,
+		_lane_id: FullLaneId,
 		_messages_relayers: VecDeque<UnrewardedRelayer<AccountId>>,
 		_confirmation_relayer: &AccountId,
 		_received_range: &RangeInclusive<MessageNonce>,

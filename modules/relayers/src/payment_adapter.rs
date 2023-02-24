@@ -18,7 +18,10 @@
 
 use crate::{Config, Pallet};
 
-use bp_messages::source_chain::{DeliveryConfirmationPayments, RelayersRewards};
+use bp_messages::{
+	source_chain::{DeliveryConfirmationPayments, RelayersRewards},
+	FullLaneId,
+};
 use frame_support::{sp_runtime::SaturatedConversion, traits::Get};
 use sp_arithmetic::traits::{Saturating, UniqueSaturatedFrom, Zero};
 use sp_std::{collections::vec_deque::VecDeque, marker::PhantomData, ops::RangeInclusive};
@@ -39,7 +42,7 @@ where
 	type Error = &'static str;
 
 	fn pay_reward(
-		lane_id: bp_messages::LaneId,
+		lane_id: FullLaneId,
 		messages_relayers: VecDeque<bp_messages::UnrewardedRelayer<T::AccountId>>,
 		confirmation_relayer: &T::AccountId,
 		received_range: &RangeInclusive<bp_messages::MessageNonce>,
@@ -61,7 +64,7 @@ where
 fn register_relayers_rewards<T: Config>(
 	confirmation_relayer: &T::AccountId,
 	relayers_rewards: RelayersRewards<T::AccountId>,
-	lane_id: bp_messages::LaneId,
+	lane_id: FullLaneId,
 	delivery_fee: T::Reward,
 	confirmation_fee: T::Reward,
 ) {

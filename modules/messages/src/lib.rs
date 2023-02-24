@@ -89,7 +89,7 @@ pub const LOG_TARGET: &str = "runtime::bridge-messages";
 #[frame_support::pallet]
 pub mod pallet {
 	use super::*;
-	use bp_messages::{ReceivalResult, ReceivedMessages};
+	use bp_messages::{FullLaneId, LaneDirection, ReceivalResult, ReceivedMessages};
 	use frame_support::pallet_prelude::*;
 	use frame_system::pallet_prelude::*;
 
@@ -495,7 +495,7 @@ pub mod pallet {
 
 				// if some new messages have been confirmed, reward relayers
 				T::DeliveryConfirmationPayments::pay_reward(
-					lane_id,
+					FullLaneId::new(lane_id, T::BridgedChainId::get(), LaneDirection::Out),
 					lane_data.relayers,
 					&confirmation_relayer,
 					&received_range,

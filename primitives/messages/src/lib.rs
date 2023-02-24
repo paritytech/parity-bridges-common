@@ -20,7 +20,7 @@
 // RuntimeApi generated functions
 #![allow(clippy::too_many_arguments)]
 
-use bp_runtime::{BasicOperatingMode, OperatingMode};
+use bp_runtime::{BasicOperatingMode, ChainId, OperatingMode};
 use codec::{Decode, Encode, MaxEncodedLen};
 use frame_support::RuntimeDebug;
 use scale_info::TypeInfo;
@@ -87,6 +87,33 @@ impl AsRef<[u8]> for LaneId {
 
 impl TypeId for LaneId {
 	const TYPE_ID: [u8; 4] = *b"blan";
+}
+
+/// Lane direction.
+#[derive(Copy, Clone, Debug, Decode, Encode, Eq, PartialEq, TypeInfo, MaxEncodedLen)]
+pub enum LaneDirection {
+	/// Receiving proof for the messages sent by the bridge chain to this chain.
+	In,
+	/// Receiving delivery proof for the messages sent from this chain to the bridged chain.
+	Out,
+}
+
+/// Directed lane id which implements `TypeId`.
+#[derive(Copy, Clone, Debug, Decode, Encode, Eq, PartialEq, TypeInfo, MaxEncodedLen)]
+pub struct FullLaneId {
+	lane_id: LaneId,
+	bridged_chain_id: ChainId,
+	direction: LaneDirection,
+}
+
+impl FullLaneId {
+	pub const fn new(lane_id: LaneId, bridged_chain_id: ChainId, direction: LaneDirection) -> Self {
+		Self { lane_id, bridged_chain_id, direction }
+	}
+}
+
+impl TypeId for FullLaneId {
+	const TYPE_ID: [u8; 4] = *b"bfla";
 }
 
 /// Message nonce. Valid messages will never have 0 nonce.

@@ -18,7 +18,7 @@
 
 use crate::TaggedAccount;
 
-use bp_messages::LaneId;
+use bp_messages::{FullLaneId, LaneDirection, LaneId};
 use bp_runtime::StorageDoubleMapKeyProvider;
 use codec::Decode;
 use frame_system::AccountInfo;
@@ -88,10 +88,23 @@ where
 					bp_relayers::RelayerRewardsKeyProvider::<AccountIdOf<C>, BalanceOf<C>>::final_key(
 						relayers_pallet_name,
 						account.id(),
-						lane,
+						&FullLaneId::new(*lane, BC::ID, LaneDirection::In),
 					),
-					format!("at_{}_relay_{}_reward_for_lane_{}_with_{}", C::NAME, account.tag(), hex::encode(lane.as_ref()), BC::NAME),
-					format!("Reward of the {} relay account for serving lane {:?} with {} at the {}", account.tag(), lane, BC::NAME, C::NAME),
+					format!("at_{}_relay_{}_reward_for_in_lane_{}_with_{}", C::NAME, account.tag(), hex::encode(lane.as_ref()), BC::NAME),
+					format!("Reward of the {} relay account for serving inbound lane {:?} with {} at the {}", account.tag(), lane, BC::NAME, C::NAME),
+				)?;
+				relay_account_reward_metric.register_and_spawn(&metrics.registry)?;
+
+				let relay_account_reward_metric = FloatStorageValueMetric::new(
+					AccountBalance::<C> { token_decimals, _phantom: Default::default() },
+					client.clone(),
+					bp_relayers::RelayerRewardsKeyProvider::<AccountIdOf<C>, BalanceOf<C>>::final_key(
+						relayers_pallet_name,
+						account.id(),
+						&FullLaneId::new(*lane, BC::ID, LaneDirection::Out),
+					),
+					format!("at_{}_relay_{}_reward_for_out_lane_{}_with_{}", C::NAME, account.tag(), hex::encode(lane.as_ref()), BC::NAME),
+					format!("Reward of the {} relay account for serving outbound lane {:?} with {} at the {}", account.tag(), lane, BC::NAME, C::NAME),
 				)?;
 				relay_account_reward_metric.register_and_spawn(&metrics.registry)?;
 			}

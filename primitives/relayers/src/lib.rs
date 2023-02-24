@@ -19,7 +19,7 @@
 #![warn(missing_docs)]
 #![cfg_attr(not(feature = "std"), no_std)]
 
-use bp_messages::LaneId;
+use bp_messages::FullLaneId;
 use bp_runtime::StorageDoubleMapKeyProvider;
 use frame_support::{Blake2_128Concat, Identity};
 use sp_runtime::{
@@ -34,13 +34,17 @@ pub trait PaymentProcedure<Relayer, Reward> {
 	type Error: Debug;
 
 	/// Pay reward to the relayer for serving given message lane.
-	fn pay_reward(relayer: &Relayer, lane_id: LaneId, reward: Reward) -> Result<(), Self::Error>;
+	fn pay_reward(
+		relayer: &Relayer,
+		lane_id: FullLaneId,
+		reward: Reward,
+	) -> Result<(), Self::Error>;
 }
 
 impl<Relayer, Reward> PaymentProcedure<Relayer, Reward> for () {
 	type Error = &'static str;
 
-	fn pay_reward(_: &Relayer, _: LaneId, _: Reward) -> Result<(), Self::Error> {
+	fn pay_reward(_: &Relayer, _: FullLaneId, _: Reward) -> Result<(), Self::Error> {
 		Ok(())
 	}
 }
@@ -54,7 +58,7 @@ where
 	Relayer: Decode + Encode,
 {
 	/// Return account that pay rewards for serving given lane.
-	pub fn lane_rewards_account(lane_id: LaneId) -> Relayer {
+	pub fn lane_rewards_account(lane_id: FullLaneId) -> Relayer {
 		lane_id.into_sub_account_truncating(b"bridge-lane")
 	}
 }
@@ -68,7 +72,7 @@ where
 
 	fn pay_reward(
 		relayer: &Relayer,
-		lane_id: LaneId,
+		lane_id: FullLaneId,
 		reward: T::Balance,
 	) -> Result<(), Self::Error> {
 		T::transfer(&Self::lane_rewards_account(lane_id), relayer, reward, false).map(drop)
@@ -89,26 +93,58 @@ where
 	type Hasher1 = Blake2_128Concat;
 	type Key1 = AccountId;
 	type Hasher2 = Identity;
-	type Key2 = LaneId;
+	type Key2 = FullLaneId;
 	type Value = Reward;
 }
 
 #[cfg(test)]
 mod tests {
 	use super::*;
+	use bp_messages::{LaneDirection, LaneId};
 	use sp_runtime::testing::H256;
 
 	#[test]
-	fn lanes_are_using_different_accounts() {
+	fn different_lanes_are_using_different_accounts() {
 		assert_eq!(
-			PayLaneRewardFromAccount::<(), H256>::lane_rewards_account(LaneId([0, 0, 0, 0])),
-			hex_literal::hex!("626c616e000000006272696467652d6c616e6500000000000000000000000000")
+			PayLaneRewardFromAccount::<(), H256>::lane_rewards_account(FullLaneId::new(
+				LaneId([0, 0, 0, 0]),
+				*b"test",
+				LaneDirection::In
+			)),
+			hex_literal::hex!("62666c610000000074657374006272696467652d6c616e650000000000000000")
 				.into(),
 		);
 
 		assert_eq!(
-			PayLaneRewardFromAccount::<(), H256>::lane_rewards_account(LaneId([0, 0, 0, 1])),
-			hex_literal::hex!("626c616e000000016272696467652d6c616e6500000000000000000000000000")
+			PayLaneRewardFromAccount::<(), H256>::lane_rewards_account(FullLaneId::new(
+				LaneId([0, 0, 0, 1]),
+				*b"test",
+				LaneDirection::In
+			)),
+			hex_literal::hex!("62666c610000000174657374006272696467652d6c616e650000000000000000")
+				.into(),
+		);
+	}
+
+	#[test]
+	fn different_directions_are_using_different_accounts() {
+		assert_eq!(
+			PayLaneRewardFromAccount::<(), H256>::lane_rewards_account(FullLaneId::new(
+				LaneId([0, 0, 0, 0]),
+				*b"test",
+				LaneDirection::In
+			)),
+			hex_literal::hex!("62666c610000000074657374006272696467652d6c616e650000000000000000")
+				.into(),
+		);
+
+		assert_eq!(
+			PayLaneRewardFromAccount::<(), H256>::lane_rewards_account(FullLaneId::new(
+				LaneId([0, 0, 0, 0]),
+				*b"test",
+				LaneDirection::Out
+			)),
+			hex_literal::hex!("62666c610000000074657374016272696467652d6c616e650000000000000000")
 				.into(),
 		);
 	}

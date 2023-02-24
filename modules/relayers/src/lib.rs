@@ -20,7 +20,7 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 #![warn(missing_docs)]
 
-use bp_messages::LaneId;
+use bp_messages::FullLaneId;
 use bp_relayers::{PaymentProcedure, RelayerRewardsKeyProvider};
 use bp_runtime::StorageDoubleMapKeyProvider;
 use frame_support::sp_runtime::Saturating;
@@ -72,7 +72,7 @@ pub mod pallet {
 		/// Claim accumulated rewards.
 		#[pallet::call_index(0)]
 		#[pallet::weight(T::WeightInfo::claim_rewards())]
-		pub fn claim_rewards(origin: OriginFor<T>, lane_id: LaneId) -> DispatchResult {
+		pub fn claim_rewards(origin: OriginFor<T>, lane_id: FullLaneId) -> DispatchResult {
 			let relayer = ensure_signed(origin)?;
 
 			RelayerRewards::<T>::try_mutate_exists(
@@ -104,7 +104,11 @@ pub mod pallet {
 
 	impl<T: Config> Pallet<T> {
 		/// Register reward for given relayer.
-		pub fn register_relayer_reward(lane_id: LaneId, relayer: &T::AccountId, reward: T::Reward) {
+		pub fn register_relayer_reward(
+			lane_id: FullLaneId,
+			relayer: &T::AccountId,
+			reward: T::Reward,
+		) {
 			if reward.is_zero() {
 				return
 			}
@@ -132,7 +136,7 @@ pub mod pallet {
 			/// Relayer account that has been rewarded.
 			relayer: T::AccountId,
 			/// Relayer has received reward for serving this lane.
-			lane_id: LaneId,
+			lane_id: FullLaneId,
 			/// Reward amount.
 			reward: T::Reward,
 		},
@@ -166,6 +170,7 @@ mod tests {
 	use mock::{RuntimeEvent as TestEvent, *};
 
 	use crate::Event::RewardPaid;
+	use bp_messages::{LaneDirection, LaneId};
 	use frame_support::{
 		assert_noop, assert_ok,
 		traits::fungible::{Inspect, Mutate},
@@ -249,25 +254,28 @@ mod tests {
 		type PayLaneRewardFromAccount = bp_relayers::PayLaneRewardFromAccount<Balances, AccountId>;
 
 		run_test(|| {
-			let lane0_rewards_account =
-				PayLaneRewardFromAccount::lane_rewards_account(LaneId([0, 0, 0, 0]));
-			let lane1_rewards_account =
-				PayLaneRewardFromAccount::lane_rewards_account(LaneId([0, 0, 0, 1]));
+			let in_lane_0 = FullLaneId::new(LaneId([0, 0, 0, 0]), *b"test", LaneDirection::In);
+			let out_lane_1 = FullLaneId::new(LaneId([0, 0, 0, 1]), *b"test", LaneDirection::Out);
 
-			Balances::mint_into(&lane0_rewards_account, 100).unwrap();
-			Balances::mint_into(&lane1_rewards_account, 100).unwrap();
-			assert_eq!(Balances::balance(&lane0_rewards_account), 100);
-			assert_eq!(Balances::balance(&lane1_rewards_account), 100);
+			let in_lane0_rewards_account =
+				PayLaneRewardFromAccount::lane_rewards_account(in_lane_0);
+			let out_lane1_rewards_account =
+				PayLaneRewardFromAccount::lane_rewards_account(out_lane_1);
+
+			Balances::mint_into(&in_lane0_rewards_account, 100).unwrap();
+			Balances::mint_into(&out_lane1_rewards_account, 100).unwrap();
+			assert_eq!(Balances::balance(&in_lane0_rewards_account), 100);
+			assert_eq!(Balances::balance(&out_lane1_rewards_account), 100);
 			assert_eq!(Balances::balance(&1), 0);
 
-			PayLaneRewardFromAccount::pay_reward(&1, LaneId([0, 0, 0, 0]), 100).unwrap();
-			assert_eq!(Balances::balance(&lane0_rewards_account), 0);
-			assert_eq!(Balances::balance(&lane1_rewards_account), 100);
+			PayLaneRewardFromAccount::pay_reward(&1, in_lane_0, 100).unwrap();
+			assert_eq!(Balances::balance(&in_lane0_rewards_account), 0);
+			assert_eq!(Balances::balance(&out_lane1_rewards_account), 100);
 			assert_eq!(Balances::balance(&1), 100);
 
-			PayLaneRewardFromAccount::pay_reward(&1, LaneId([0, 0, 0, 1]), 100).unwrap();
-			assert_eq!(Balances::balance(&lane0_rewards_account), 0);
-			assert_eq!(Balances::balance(&lane1_rewards_account), 0);
+			PayLaneRewardFromAccount::pay_reward(&1, out_lane_1, 100).unwrap();
+			assert_eq!(Balances::balance(&in_lane0_rewards_account), 0);
+			assert_eq!(Balances::balance(&out_lane1_rewards_account), 0);
 			assert_eq!(Balances::balance(&1), 200);
 		});
 	}
