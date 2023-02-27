@@ -274,10 +274,17 @@ async fn background_task<P: SubstrateParachainsPipeline>(
 				// keep in mind that we are not updating `required_para_header_number_ref` here, because
 				// then we'll be submitting all previous headers as well (while required relay headers are
 				// delivered) and we want to avoid that (to reduce cost)
-				required_parachain_header_number = std::cmp::max(
-					required_parachain_header_number,
-					new_required_parachain_header_number,
-				);
+				if new_required_parachain_header_number > required_parachain_header_number {
+					log::trace!(
+						target: "bridge",
+						"[{}] More {} headers required. Going to sync up to the {}",
+						relay_task_name,
+						P::SourceParachain::NAME,
+						new_required_parachain_header_number,
+					);
+
+					required_parachain_header_number = new_required_parachain_header_number;
+				}
 			},
 			_ = async_std::task::sleep(P::TargetChain::AVERAGE_BLOCK_INTERVAL).fuse() => {},
 			_ = parachains_relay_task => {
@@ -344,8 +351,11 @@ async fn background_task<P: SubstrateParachainsPipeline>(
 		// we have selected our new 'state' => let's notify our source clients about our new
 		// requirements
 		match relay_state {
-			RelayState::Idle => (),
+			RelayState::Idle => {
+				*required_para_header_number_ref.lock().await = AvailableHeader::Unavailable;
+			},
 			RelayState::RelayingRelayHeader(required_relay_header) => {
+				*required_para_header_number_ref.lock().await = AvailableHeader::Unavailable;
 				on_demand_source_relay_to_target_headers
 					.require_more_headers(required_relay_header)
 					.await;
