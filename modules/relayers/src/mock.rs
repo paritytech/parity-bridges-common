@@ -18,8 +18,8 @@
 
 use crate as pallet_bridge_relayers;
 
-use bp_messages::{FullLaneId, LaneDirection, LaneId};
-use bp_relayers::PaymentProcedure;
+use bp_messages::LaneId;
+use bp_relayers::{PaymentProcedure, RewardsAccountOwner, RewardsAccountParams};
 use frame_support::{parameter_types, weights::RuntimeDbWeight};
 use sp_core::H256;
 use sp_runtime::{
@@ -96,8 +96,8 @@ impl pallet_bridge_relayers::Config for TestRuntime {
 }
 
 /// Message lane that we're using in tests.
-pub const TEST_LANE_ID: FullLaneId =
-	FullLaneId::new(LaneId([0, 0, 0, 0]), *b"test", LaneDirection::In);
+pub const TEST_LANE_ID: RewardsAccountParams =
+	RewardsAccountParams::new(LaneId([0, 0, 0, 0]), *b"test", RewardsAccountOwner::ThisChain);
 
 /// Regular relayer that may receive rewards.
 pub const REGULAR_RELAYER: AccountId = 1;
@@ -113,7 +113,7 @@ impl PaymentProcedure<AccountId, Balance> for TestPaymentProcedure {
 
 	fn pay_reward(
 		relayer: &AccountId,
-		_lane_id: FullLaneId,
+		_lane_id: RewardsAccountParams,
 		_reward: Balance,
 	) -> Result<(), Self::Error> {
 		match *relayer {

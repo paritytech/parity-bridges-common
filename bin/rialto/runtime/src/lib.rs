@@ -443,6 +443,7 @@ impl pallet_bridge_messages::Config<WithMillauMessagesInstance> for Runtime {
 	type LaneMessageVerifier = crate::millau_messages::ToMillauMessageVerifier;
 	type DeliveryConfirmationPayments = pallet_bridge_relayers::DeliveryConfirmationPaymentsAdapter<
 		Runtime,
+		WithMillauMessagesInstance,
 		frame_support::traits::ConstU128<100_000>,
 		frame_support::traits::ConstU128<100_000>,
 	>;

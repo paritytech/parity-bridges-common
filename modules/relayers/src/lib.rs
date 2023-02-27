@@ -20,8 +20,7 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 #![warn(missing_docs)]
 
-use bp_messages::FullLaneId;
-use bp_relayers::{PaymentProcedure, RelayerRewardsKeyProvider};
+use bp_relayers::{PaymentProcedure, RelayerRewardsKeyProvider, RewardsAccountParams};
 use bp_runtime::StorageDoubleMapKeyProvider;
 use frame_support::sp_runtime::Saturating;
 use sp_arithmetic::traits::{AtLeast32BitUnsigned, Zero};
@@ -72,7 +71,10 @@ pub mod pallet {
 		/// Claim accumulated rewards.
 		#[pallet::call_index(0)]
 		#[pallet::weight(T::WeightInfo::claim_rewards())]
-		pub fn claim_rewards(origin: OriginFor<T>, lane_id: FullLaneId) -> DispatchResult {
+		pub fn claim_rewards(
+			origin: OriginFor<T>,
+			lane_id: RewardsAccountParams,
+		) -> DispatchResult {
 			let relayer = ensure_signed(origin)?;
 
 			RelayerRewards::<T>::try_mutate_exists(
@@ -105,7 +107,7 @@ pub mod pallet {
 	impl<T: Config> Pallet<T> {
 		/// Register reward for given relayer.
 		pub fn register_relayer_reward(
-			lane_id: FullLaneId,
+			lane_id: RewardsAccountParams,
 			relayer: &T::AccountId,
 			reward: T::Reward,
 		) {
@@ -136,7 +138,7 @@ pub mod pallet {
 			/// Relayer account that has been rewarded.
 			relayer: T::AccountId,
 			/// Relayer has received reward for serving this lane.
-			lane_id: FullLaneId,
+			lane_id: RewardsAccountParams,
 			/// Reward amount.
 			reward: T::Reward,
 		},
@@ -170,7 +172,8 @@ mod tests {
 	use mock::{RuntimeEvent as TestEvent, *};
 
 	use crate::Event::RewardPaid;
-	use bp_messages::{LaneDirection, LaneId};
+	use bp_messages::LaneId;
+	use bp_relayers::RewardsAccountOwner;
 	use frame_support::{
 		assert_noop, assert_ok,
 		traits::fungible::{Inspect, Mutate},
@@ -254,8 +257,16 @@ mod tests {
 		type PayLaneRewardFromAccount = bp_relayers::PayLaneRewardFromAccount<Balances, AccountId>;
 
 		run_test(|| {
-			let in_lane_0 = FullLaneId::new(LaneId([0, 0, 0, 0]), *b"test", LaneDirection::In);
-			let out_lane_1 = FullLaneId::new(LaneId([0, 0, 0, 1]), *b"test", LaneDirection::Out);
+			let in_lane_0 = RewardsAccountParams::new(
+				LaneId([0, 0, 0, 0]),
+				*b"test",
+				RewardsAccountOwner::ThisChain,
+			);
+			let out_lane_1 = RewardsAccountParams::new(
+				LaneId([0, 0, 0, 1]),
+				*b"test",
+				RewardsAccountOwner::BridgedChain,
+			);
 
 			let in_lane0_rewards_account =
 				PayLaneRewardFromAccount::lane_rewards_account(in_lane_0);

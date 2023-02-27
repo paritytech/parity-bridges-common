@@ -22,7 +22,8 @@
 use crate::messages_call_ext::{
 	MessagesCallSubType, ReceiveMessagesProofHelper, ReceiveMessagesProofInfo,
 };
-use bp_messages::{FullLaneId, LaneDirection, LaneId};
+use bp_messages::LaneId;
+use bp_relayers::{RewardsAccountOwner, RewardsAccountParams};
 use bp_runtime::StaticStrProvider;
 use codec::{Decode, Encode};
 use frame_support::{
@@ -398,7 +399,11 @@ where
 
 		// finally - register refund in relayers pallet
 		RelayersPallet::<Runtime>::register_relayer_reward(
-			FullLaneId::new(Msgs::Id::get(), Runtime::BridgedChainId::get(), LaneDirection::In),
+			RewardsAccountParams::new(
+				Msgs::Id::get(),
+				Runtime::BridgedChainId::get(),
+				RewardsAccountOwner::ThisChain,
+			),
 			&relayer,
 			refund,
 		);
@@ -421,7 +426,7 @@ where
 mod tests {
 	use super::*;
 	use crate::{messages::target::FromBridgedChainMessagesProof, mock::*};
-	use bp_messages::{FullLaneId, InboundLaneData, MessageNonce};
+	use bp_messages::{InboundLaneData, MessageNonce};
 	use bp_parachains::{BestParaHeadHash, ParaInfo};
 	use bp_polkadot_core::parachains::{ParaHash, ParaHeadsProof, ParaId};
 	use bp_runtime::HeaderId;
@@ -437,7 +442,7 @@ mod tests {
 	parameter_types! {
 		TestParachain: u32 = 1000;
 		pub TestLaneId: LaneId = TEST_LANE_ID;
-		pub DirectedTestLaneId: FullLaneId = FullLaneId::new(TEST_LANE_ID, TEST_BRIDGED_CHAIN_ID, LaneDirection::In);
+		pub DirectedTestLaneId: RewardsAccountParams = RewardsAccountParams::new(TEST_LANE_ID, TEST_BRIDGED_CHAIN_ID, RewardsAccountOwner::ThisChain);
 	}
 
 	bp_runtime::generate_static_str_provider!(TestExtension);
