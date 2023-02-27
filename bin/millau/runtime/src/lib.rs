@@ -999,7 +999,14 @@ impl_runtime_apis! {
 				}
 
 				fn is_relayer_rewarded(relayer: &Self::AccountId) -> bool {
-					pallet_bridge_relayers::Pallet::<Runtime>::relayer_reward(relayer, &Self::bench_lane_id()).is_some()
+					use bridge_runtime_common::messages::MessageBridge;
+
+					let lane = Self::bench_lane_id();
+					let bridged_chain_id = WithRialtoMessageBridge::BRIDGED_CHAIN_ID;
+					pallet_bridge_relayers::Pallet::<Runtime>::relayer_reward(
+						relayer,
+						RewardsAccountParams::new(lane, bridged_chain_id, RewardsAccountOwner::BridgedChain)
+					).is_some()
 				}
 			}
 
@@ -1029,15 +1036,15 @@ impl_runtime_apis! {
 
 			impl RelayersConfig for Runtime {
 				fn prepare_environment(
-					lane: bp_messages::LaneId,
+					account_params: RewardsAccountParams,
 					reward: Balance,
 				) {
 					use frame_support::traits::fungible::Mutate;
-					let lane_rewards_account = bp_relayers::PayLaneRewardFromAccount::<
+					let rewards_account = bp_relayers::PayLaneRewardFromAccount::<
 						Balances,
 						AccountId
-					>::lane_rewards_account(lane);
-					Balances::mint_into(&lane_rewards_account, reward).unwrap();
+					>::rewards_account(account_params);
+					Balances::mint_into(&rewards_account, reward).unwrap();
 				}
 			}
 

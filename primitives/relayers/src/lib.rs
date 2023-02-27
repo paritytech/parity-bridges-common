@@ -100,9 +100,9 @@ impl<T, Relayer> PayLaneRewardFromAccount<T, Relayer>
 where
 	Relayer: Decode + Encode,
 {
-	/// Return account that pay rewards for serving given lane.
-	pub fn lane_rewards_account(lane_id: RewardsAccountParams) -> Relayer {
-		lane_id.into_sub_account_truncating(b"bridge-lane")
+	/// Return account that pays rewards based on the provided parameters.
+	pub fn rewards_account(params: RewardsAccountParams) -> Relayer {
+		params.into_sub_account_truncating(b"rewards-account")
 	}
 }
 
@@ -118,7 +118,7 @@ where
 		lane_id: RewardsAccountParams,
 		reward: T::Balance,
 	) -> Result<(), Self::Error> {
-		T::transfer(&Self::lane_rewards_account(lane_id), relayer, reward, false).map(drop)
+		T::transfer(&Self::rewards_account(lane_id), relayer, reward, false).map(drop)
 	}
 }
 
@@ -149,7 +149,7 @@ mod tests {
 	#[test]
 	fn different_lanes_are_using_different_accounts() {
 		assert_eq!(
-			PayLaneRewardFromAccount::<(), H256>::lane_rewards_account(RewardsAccountParams::new(
+			PayLaneRewardFromAccount::<(), H256>::rewards_account(RewardsAccountParams::new(
 				LaneId([0, 0, 0, 0]),
 				*b"test",
 				RewardsAccountOwner::ThisChain
@@ -159,7 +159,7 @@ mod tests {
 		);
 
 		assert_eq!(
-			PayLaneRewardFromAccount::<(), H256>::lane_rewards_account(RewardsAccountParams::new(
+			PayLaneRewardFromAccount::<(), H256>::rewards_account(RewardsAccountParams::new(
 				LaneId([0, 0, 0, 1]),
 				*b"test",
 				RewardsAccountOwner::ThisChain
@@ -172,7 +172,7 @@ mod tests {
 	#[test]
 	fn different_directions_are_using_different_accounts() {
 		assert_eq!(
-			PayLaneRewardFromAccount::<(), H256>::lane_rewards_account(RewardsAccountParams::new(
+			PayLaneRewardFromAccount::<(), H256>::rewards_account(RewardsAccountParams::new(
 				LaneId([0, 0, 0, 0]),
 				*b"test",
 				RewardsAccountOwner::ThisChain
@@ -182,7 +182,7 @@ mod tests {
 		);
 
 		assert_eq!(
-			PayLaneRewardFromAccount::<(), H256>::lane_rewards_account(RewardsAccountParams::new(
+			PayLaneRewardFromAccount::<(), H256>::rewards_account(RewardsAccountParams::new(
 				LaneId([0, 0, 0, 0]),
 				*b"test",
 				RewardsAccountOwner::BridgedChain

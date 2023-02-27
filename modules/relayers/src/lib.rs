@@ -268,10 +268,8 @@ mod tests {
 				RewardsAccountOwner::BridgedChain,
 			);
 
-			let in_lane0_rewards_account =
-				PayLaneRewardFromAccount::lane_rewards_account(in_lane_0);
-			let out_lane1_rewards_account =
-				PayLaneRewardFromAccount::lane_rewards_account(out_lane_1);
+			let in_lane0_rewards_account = PayLaneRewardFromAccount::rewards_account(in_lane_0);
+			let out_lane1_rewards_account = PayLaneRewardFromAccount::rewards_account(out_lane_1);
 
 			Balances::mint_into(&in_lane0_rewards_account, 100).unwrap();
 			Balances::mint_into(&out_lane1_rewards_account, 100).unwrap();
