@@ -115,10 +115,10 @@ where
 
 	fn pay_reward(
 		relayer: &Relayer,
-		lane_id: RewardsAccountParams,
+		account_params: RewardsAccountParams,
 		reward: T::Balance,
 	) -> Result<(), Self::Error> {
-		T::transfer(&Self::rewards_account(lane_id), relayer, reward, false).map(drop)
+		T::transfer(&Self::rewards_account(account_params), relayer, reward, false).map(drop)
 	}
 }
 

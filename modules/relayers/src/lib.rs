@@ -107,7 +107,7 @@ pub mod pallet {
 	impl<T: Config> Pallet<T> {
 		/// Register reward for given relayer.
 		pub fn register_relayer_reward(
-			lane_id: RewardsAccountParams,
+			rewards_account_params: RewardsAccountParams,
 			relayer: &T::AccountId,
 			reward: T::Reward,
 		) {
@@ -115,18 +115,22 @@ pub mod pallet {
 				return
 			}
 
-			RelayerRewards::<T>::mutate(relayer, lane_id, |old_reward: &mut Option<T::Reward>| {
-				let new_reward = old_reward.unwrap_or_else(Zero::zero).saturating_add(reward);
-				*old_reward = Some(new_reward);
+			RelayerRewards::<T>::mutate(
+				relayer,
+				rewards_account_params,
+				|old_reward: &mut Option<T::Reward>| {
+					let new_reward = old_reward.unwrap_or_else(Zero::zero).saturating_add(reward);
+					*old_reward = Some(new_reward);
 
-				log::trace!(
-					target: crate::LOG_TARGET,
-					"Relayer {:?} can now claim reward for serving lane {:?}: {:?}",
-					relayer,
-					lane_id,
-					new_reward,
-				);
-			});
+					log::trace!(
+						target: crate::LOG_TARGET,
+						"Relayer {:?} can now claim reward for serving payer {:?}: {:?}",
+						relayer,
+						rewards_account_params,
+						new_reward,
+					);
+				},
+			);
 		}
 	}
 
