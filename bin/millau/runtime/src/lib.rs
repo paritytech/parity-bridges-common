@@ -33,6 +33,8 @@ pub mod rialto_parachain_messages;
 pub mod xcm_config;
 
 use bp_parachains::SingleParaStoredHeaderDataBuilder;
+#[cfg(feature = "runtime-benchmarks")]
+use bp_relayers::{RewardsAccountOwner, RewardsAccountParams};
 use bp_runtime::HeaderId;
 use pallet_grandpa::{
 	fg_primitives, AuthorityId as GrandpaId, AuthorityList as GrandpaAuthorityList,
