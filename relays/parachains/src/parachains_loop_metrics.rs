@@ -16,7 +16,7 @@
 
 use bp_polkadot_core::parachains::ParaId;
 use relay_utils::{
-	metrics::{metric_name, register, Gauge, Metric, Opts, PrometheusError, Registry, U64},
+	metrics::{metric_name, register, Gauge, Metric, PrometheusError, Registry, U64},
 	UniqueSaturatedInto,
 };
 
@@ -34,16 +34,12 @@ impl ParachainsLoopMetrics {
 	pub fn new(prefix: Option<&str>) -> Result<Self, PrometheusError> {
 		Ok(ParachainsLoopMetrics {
 			best_source_block_numbers: Gauge::new(
-				Opts::new(
-					metric_name(prefix, "best_parachain_block_number_at_source"),
-					"Best parachain block numbers at the source relay chain".to_string(),
-				),
+				metric_name(prefix, "best_parachain_block_number_at_source"),
+				"Best parachain block numbers at the source relay chain".to_string(),
 			)?,
 			best_target_block_numbers: Gauge::new(
-				Opts::new(
-					metric_name(prefix, "best_parachain_block_number_at_target"),
-					"Best parachain block numbers at the target chain".to_string(),
-				),
+				metric_name(prefix, "best_parachain_block_number_at_target"),
+				"Best parachain block numbers at the target chain".to_string(),
 			)?,
 		})
 	}
