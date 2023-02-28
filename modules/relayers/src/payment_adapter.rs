@@ -130,13 +130,19 @@ mod tests {
 			register_relayers_rewards::<TestRuntime>(
 				&RELAYER_2,
 				relayers_rewards(),
-				TEST_LANE_ID,
+				TEST_REWARDS_ACCOUNT_PARAMS,
 				50,
 				10,
 			);
 
-			assert_eq!(RelayerRewards::<TestRuntime>::get(RELAYER_1, TEST_LANE_ID), Some(80));
-			assert_eq!(RelayerRewards::<TestRuntime>::get(RELAYER_2, TEST_LANE_ID), Some(170));
+			assert_eq!(
+				RelayerRewards::<TestRuntime>::get(RELAYER_1, TEST_REWARDS_ACCOUNT_PARAMS),
+				Some(80)
+			);
+			assert_eq!(
+				RelayerRewards::<TestRuntime>::get(RELAYER_2, TEST_REWARDS_ACCOUNT_PARAMS),
+				Some(170)
+			);
 		});
 	}
 
@@ -146,14 +152,23 @@ mod tests {
 			register_relayers_rewards::<TestRuntime>(
 				&RELAYER_3,
 				relayers_rewards(),
-				TEST_LANE_ID,
+				TEST_REWARDS_ACCOUNT_PARAMS,
 				50,
 				10,
 			);
 
-			assert_eq!(RelayerRewards::<TestRuntime>::get(RELAYER_1, TEST_LANE_ID), Some(80));
-			assert_eq!(RelayerRewards::<TestRuntime>::get(RELAYER_2, TEST_LANE_ID), Some(120));
-			assert_eq!(RelayerRewards::<TestRuntime>::get(RELAYER_3, TEST_LANE_ID), Some(50));
+			assert_eq!(
+				RelayerRewards::<TestRuntime>::get(RELAYER_1, TEST_REWARDS_ACCOUNT_PARAMS),
+				Some(80)
+			);
+			assert_eq!(
+				RelayerRewards::<TestRuntime>::get(RELAYER_2, TEST_REWARDS_ACCOUNT_PARAMS),
+				Some(120)
+			);
+			assert_eq!(
+				RelayerRewards::<TestRuntime>::get(RELAYER_3, TEST_REWARDS_ACCOUNT_PARAMS),
+				Some(50)
+			);
 		});
 	}
 
@@ -163,14 +178,23 @@ mod tests {
 			register_relayers_rewards::<TestRuntime>(
 				&RELAYER_3,
 				relayers_rewards(),
-				TEST_LANE_ID,
+				TEST_REWARDS_ACCOUNT_PARAMS,
 				50,
 				1000,
 			);
 
-			assert_eq!(RelayerRewards::<TestRuntime>::get(RELAYER_1, TEST_LANE_ID), None);
-			assert_eq!(RelayerRewards::<TestRuntime>::get(RELAYER_2, TEST_LANE_ID), None);
-			assert_eq!(RelayerRewards::<TestRuntime>::get(RELAYER_3, TEST_LANE_ID), Some(250));
+			assert_eq!(
+				RelayerRewards::<TestRuntime>::get(RELAYER_1, TEST_REWARDS_ACCOUNT_PARAMS),
+				None
+			);
+			assert_eq!(
+				RelayerRewards::<TestRuntime>::get(RELAYER_2, TEST_REWARDS_ACCOUNT_PARAMS),
+				None
+			);
+			assert_eq!(
+				RelayerRewards::<TestRuntime>::get(RELAYER_3, TEST_REWARDS_ACCOUNT_PARAMS),
+				Some(250)
+			);
 		});
 	}
 }

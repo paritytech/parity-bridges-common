@@ -32,23 +32,25 @@ use sp_std::{fmt::Debug, marker::PhantomData};
 
 /// The owner of the sovereign account that should pay the rewards.
 ///
-/// More details in the documentation for [`RewardsAccountParams`].
+/// Each of the 2 final points connected by a bridge owns a sovereign account at each end of the
+/// bridge. So here, at this end of the bridge there can be 2 sovereign accounts that pay rewards.
 #[derive(Copy, Clone, Debug, Decode, Encode, Eq, PartialEq, TypeInfo, MaxEncodedLen)]
 pub enum RewardsAccountOwner {
-	/// The rewards should be payed from the sovereign account of this parachain at the bridge hub.
+	/// The sovereign account of the final chain on this end of the bridge.
 	ThisChain,
-	/// The rewards should be payed from the sovereign account of the bridged parachain at the
-	/// bridge hub.
+	/// The sovereign account of the final chain on the other end of the bridge.
 	BridgedChain,
 }
 
 /// Structure used to identify the account that pays a reward to the relayer.
 ///
-/// A bridge connects 2 bridge hubs: one attached to this relay chain and one attached to the
-/// bridged relay chain. A messages lane between the 2 bridge hubs connects 2 parachains, one
-/// attached to this relay chain and one attached to the bridged relay chain. Each of these 2
-/// parachains have a sovereign account at each bridge hub. Each of the sovereign accounts will pay
-/// rewards for different operations.
+/// A bridge connects 2 bridge ends. Each one is located on a separate relay chain. The bridge ends
+/// can be the final destinations of the bridge, or they can be intermediary points
+/// (e.g. a bridge hub) used to forward messages between pairs of parachains on the bridged relay
+/// chains. A pair of such parachains is connected using a bridge lane. Each of the 2 final
+/// destinations of a bridge lane must have a sovereign account at each end of the bridge and each
+/// of the sovereign accounts will pay rewards for different operations. So we need multiple
+/// parameters to identify the account that pays a reward to the relayer.
 #[derive(Copy, Clone, Debug, Decode, Encode, Eq, PartialEq, TypeInfo, MaxEncodedLen)]
 pub struct RewardsAccountParams {
 	lane_id: LaneId,
@@ -76,10 +78,10 @@ pub trait PaymentProcedure<Relayer, Reward> {
 	/// Error that may be returned by the procedure.
 	type Error: Debug;
 
-	/// Pay reward to the relayer for serving given message lane.
+	/// Pay reward to the relayer from the account with provided params.
 	fn pay_reward(
 		relayer: &Relayer,
-		lane_id: RewardsAccountParams,
+		rewards_account_params: RewardsAccountParams,
 		reward: Reward,
 	) -> Result<(), Self::Error>;
 }
@@ -93,10 +95,10 @@ impl<Relayer, Reward> PaymentProcedure<Relayer, Reward> for () {
 }
 
 /// Reward payment procedure that does `balances::transfer` call from the account, derived from
-/// given lane.
-pub struct PayLaneRewardFromAccount<T, Relayer>(PhantomData<(T, Relayer)>);
+/// given params.
+pub struct PayRewardFromAccount<T, Relayer>(PhantomData<(T, Relayer)>);
 
-impl<T, Relayer> PayLaneRewardFromAccount<T, Relayer>
+impl<T, Relayer> PayRewardFromAccount<T, Relayer>
 where
 	Relayer: Decode + Encode,
 {
@@ -106,7 +108,7 @@ where
 	}
 }
 
-impl<T, Relayer> PaymentProcedure<Relayer, T::Balance> for PayLaneRewardFromAccount<T, Relayer>
+impl<T, Relayer> PaymentProcedure<Relayer, T::Balance> for PayRewardFromAccount<T, Relayer>
 where
 	T: frame_support::traits::fungible::Transfer<Relayer>,
 	Relayer: Decode + Encode,
@@ -115,10 +117,11 @@ where
 
 	fn pay_reward(
 		relayer: &Relayer,
-		account_params: RewardsAccountParams,
+		rewards_account_params: RewardsAccountParams,
 		reward: T::Balance,
 	) -> Result<(), Self::Error> {
-		T::transfer(&Self::rewards_account(account_params), relayer, reward, false).map(drop)
+		T::transfer(&Self::rewards_account(rewards_account_params), relayer, reward, false)
+			.map(drop)
 	}
 }
 
@@ -149,22 +152,22 @@ mod tests {
 	#[test]
 	fn different_lanes_are_using_different_accounts() {
 		assert_eq!(
-			PayLaneRewardFromAccount::<(), H256>::rewards_account(RewardsAccountParams::new(
+			PayRewardFromAccount::<(), H256>::rewards_account(RewardsAccountParams::new(
 				LaneId([0, 0, 0, 0]),
 				*b"test",
 				RewardsAccountOwner::ThisChain
 			)),
-			hex_literal::hex!("627261700000000074657374006272696467652d6c616e650000000000000000")
+			hex_literal::hex!("62726170000000007465737400726577617264732d6163636f756e7400000000")
 				.into(),
 		);
 
 		assert_eq!(
-			PayLaneRewardFromAccount::<(), H256>::rewards_account(RewardsAccountParams::new(
+			PayRewardFromAccount::<(), H256>::rewards_account(RewardsAccountParams::new(
 				LaneId([0, 0, 0, 1]),
 				*b"test",
 				RewardsAccountOwner::ThisChain
 			)),
-			hex_literal::hex!("627261700000000174657374006272696467652d6c616e650000000000000000")
+			hex_literal::hex!("62726170000000017465737400726577617264732d6163636f756e7400000000")
 				.into(),
 		);
 	}
@@ -172,22 +175,22 @@ mod tests {
 	#[test]
 	fn different_directions_are_using_different_accounts() {
 		assert_eq!(
-			PayLaneRewardFromAccount::<(), H256>::rewards_account(RewardsAccountParams::new(
+			PayRewardFromAccount::<(), H256>::rewards_account(RewardsAccountParams::new(
 				LaneId([0, 0, 0, 0]),
 				*b"test",
 				RewardsAccountOwner::ThisChain
 			)),
-			hex_literal::hex!("627261700000000074657374006272696467652d6c616e650000000000000000")
+			hex_literal::hex!("62726170000000007465737400726577617264732d6163636f756e7400000000")
 				.into(),
 		);
 
 		assert_eq!(
-			PayLaneRewardFromAccount::<(), H256>::rewards_account(RewardsAccountParams::new(
+			PayRewardFromAccount::<(), H256>::rewards_account(RewardsAccountParams::new(
 				LaneId([0, 0, 0, 0]),
 				*b"test",
 				RewardsAccountOwner::BridgedChain
 			)),
-			hex_literal::hex!("627261700000000074657374016272696467652d6c616e650000000000000000")
+			hex_literal::hex!("62726170000000007465737401726577617264732d6163636f756e7400000000")
 				.into(),
 		);
 	}

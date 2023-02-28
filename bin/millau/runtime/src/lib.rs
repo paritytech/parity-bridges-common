@@ -389,7 +389,7 @@ impl pallet_bridge_relayers::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 	type Reward = Balance;
 	type PaymentProcedure =
-		bp_relayers::PayLaneRewardFromAccount<pallet_balances::Pallet<Runtime>, AccountId>;
+		bp_relayers::PayRewardFromAccount<pallet_balances::Pallet<Runtime>, AccountId>;
 	type WeightInfo = ();
 }
 
@@ -1040,7 +1040,7 @@ impl_runtime_apis! {
 					reward: Balance,
 				) {
 					use frame_support::traits::fungible::Mutate;
-					let rewards_account = bp_relayers::PayLaneRewardFromAccount::<
+					let rewards_account = bp_relayers::PayRewardFromAccount::<
 						Balances,
 						AccountId
 					>::rewards_account(account_params);

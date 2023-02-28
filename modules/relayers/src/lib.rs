@@ -73,29 +73,30 @@ pub mod pallet {
 		#[pallet::weight(T::WeightInfo::claim_rewards())]
 		pub fn claim_rewards(
 			origin: OriginFor<T>,
-			lane_id: RewardsAccountParams,
+			rewards_account_params: RewardsAccountParams,
 		) -> DispatchResult {
 			let relayer = ensure_signed(origin)?;
 
 			RelayerRewards::<T>::try_mutate_exists(
 				&relayer,
-				lane_id,
+				rewards_account_params,
 				|maybe_reward| -> DispatchResult {
 					let reward = maybe_reward.take().ok_or(Error::<T>::NoRewardForRelayer)?;
-					T::PaymentProcedure::pay_reward(&relayer, lane_id, reward).map_err(|e| {
-						log::trace!(
-							target: LOG_TARGET,
-							"Failed to pay {:?} rewards to {:?}: {:?}",
-							lane_id,
-							relayer,
-							e,
-						);
-						Error::<T>::FailedToPayReward
-					})?;
+					T::PaymentProcedure::pay_reward(&relayer, rewards_account_params, reward)
+						.map_err(|e| {
+							log::trace!(
+								target: LOG_TARGET,
+								"Failed to pay {:?} rewards to {:?}: {:?}",
+								rewards_account_params,
+								relayer,
+								e,
+							);
+							Error::<T>::FailedToPayReward
+						})?;
 
 					Self::deposit_event(Event::<T>::RewardPaid {
 						relayer: relayer.clone(),
-						lane_id,
+						rewards_account_params,
 						reward,
 					});
 					Ok(())
@@ -141,8 +142,8 @@ pub mod pallet {
 		RewardPaid {
 			/// Relayer account that has been rewarded.
 			relayer: T::AccountId,
-			/// Relayer has received reward for serving this lane.
-			lane_id: RewardsAccountParams,
+			/// Relayer has received reward from this account.
+			rewards_account_params: RewardsAccountParams,
 			/// Reward amount.
 			reward: T::Reward,
 		},
@@ -194,7 +195,10 @@ mod tests {
 	fn root_cant_claim_anything() {
 		run_test(|| {
 			assert_noop!(
-				Pallet::<TestRuntime>::claim_rewards(RuntimeOrigin::root(), TEST_LANE_ID),
+				Pallet::<TestRuntime>::claim_rewards(
+					RuntimeOrigin::root(),
+					TEST_REWARDS_ACCOUNT_PARAMS
+				),
 				DispatchError::BadOrigin,
 			);
 		});
@@ -206,7 +210,7 @@ mod tests {
 			assert_noop!(
 				Pallet::<TestRuntime>::claim_rewards(
 					RuntimeOrigin::signed(REGULAR_RELAYER),
-					TEST_LANE_ID
+					TEST_REWARDS_ACCOUNT_PARAMS
 				),
 				Error::<TestRuntime>::NoRewardForRelayer,
 			);
@@ -216,11 +220,15 @@ mod tests {
 	#[test]
 	fn relayer_cant_claim_if_payment_procedure_fails() {
 		run_test(|| {
-			RelayerRewards::<TestRuntime>::insert(FAILING_RELAYER, TEST_LANE_ID, 100);
+			RelayerRewards::<TestRuntime>::insert(
+				FAILING_RELAYER,
+				TEST_REWARDS_ACCOUNT_PARAMS,
+				100,
+			);
 			assert_noop!(
 				Pallet::<TestRuntime>::claim_rewards(
 					RuntimeOrigin::signed(FAILING_RELAYER),
-					TEST_LANE_ID
+					TEST_REWARDS_ACCOUNT_PARAMS
 				),
 				Error::<TestRuntime>::FailedToPayReward,
 			);
@@ -232,12 +240,19 @@ mod tests {
 		run_test(|| {
 			get_ready_for_events();
 
-			RelayerRewards::<TestRuntime>::insert(REGULAR_RELAYER, TEST_LANE_ID, 100);
+			RelayerRewards::<TestRuntime>::insert(
+				REGULAR_RELAYER,
+				TEST_REWARDS_ACCOUNT_PARAMS,
+				100,
+			);
 			assert_ok!(Pallet::<TestRuntime>::claim_rewards(
 				RuntimeOrigin::signed(REGULAR_RELAYER),
-				TEST_LANE_ID
+				TEST_REWARDS_ACCOUNT_PARAMS
 			));
-			assert_eq!(RelayerRewards::<TestRuntime>::get(REGULAR_RELAYER, TEST_LANE_ID), None);
+			assert_eq!(
+				RelayerRewards::<TestRuntime>::get(REGULAR_RELAYER, TEST_REWARDS_ACCOUNT_PARAMS),
+				None
+			);
 
 			//Check if the `RewardPaid` event was emitted.
 			assert_eq!(
@@ -246,7 +261,7 @@ mod tests {
 					phase: Phase::Initialization,
 					event: TestEvent::Relayers(RewardPaid {
 						relayer: REGULAR_RELAYER,
-						lane_id: TEST_LANE_ID,
+						rewards_account_params: TEST_REWARDS_ACCOUNT_PARAMS,
 						reward: 100
 					}),
 					topics: vec![],
@@ -256,9 +271,9 @@ mod tests {
 	}
 
 	#[test]
-	fn pay_lane_reward_from_account_actually_pays_reward() {
+	fn pay_reward_from_account_actually_pays_reward() {
 		type Balances = pallet_balances::Pallet<TestRuntime>;
-		type PayLaneRewardFromAccount = bp_relayers::PayLaneRewardFromAccount<Balances, AccountId>;
+		type PayLaneRewardFromAccount = bp_relayers::PayRewardFromAccount<Balances, AccountId>;
 
 		run_test(|| {
 			let in_lane_0 = RewardsAccountParams::new(

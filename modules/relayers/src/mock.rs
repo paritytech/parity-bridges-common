@@ -96,7 +96,7 @@ impl pallet_bridge_relayers::Config for TestRuntime {
 }
 
 /// Message lane that we're using in tests.
-pub const TEST_LANE_ID: RewardsAccountParams =
+pub const TEST_REWARDS_ACCOUNT_PARAMS: RewardsAccountParams =
 	RewardsAccountParams::new(LaneId([0, 0, 0, 0]), *b"test", RewardsAccountOwner::ThisChain);
 
 /// Regular relayer that may receive rewards.
