@@ -397,7 +397,7 @@ async fn read_head_at_source<P: ParachainsPipeline>(
 				P::SourceParachain::PARACHAIN_ID,
 				e,
 			);
-			return Err(FailedClient::Source)
+			Err(FailedClient::Source)
 		},
 	}
 }
@@ -647,7 +647,7 @@ mod tests {
 			&self,
 			_at_block: HeaderIdOf<TestChain>,
 		) -> Result<(ParaHeadsProof, ParaHash), TestError> {
-			let head = self.data.lock().await.source_head.clone()?.as_available().unwrap().clone();
+			let head = *self.data.lock().await.source_head.clone()?.as_available().unwrap();
 			let proof = (ParaHeadsProof(vec![head.hash().encode()]), head.hash());
 			self.data.lock().await.source_proof.clone().map(|_| proof)
 		}
@@ -907,68 +907,47 @@ mod tests {
 
 	#[test]
 	fn parachain_is_not_updated_if_it_is_unavailable() {
-		assert_eq!(
-			is_update_required::<TestParachainsPipeline>(AvailableHeader::Unavailable, None),
-			false
-		);
-		assert_eq!(
-			is_update_required::<TestParachainsPipeline>(
-				AvailableHeader::Unavailable,
-				Some(HeaderId(10, PARA_10_HASH))
-			),
-			false
-		);
+		assert!(!is_update_required::<TestParachainsPipeline>(AvailableHeader::Unavailable, None));
+		assert!(!is_update_required::<TestParachainsPipeline>(
+			AvailableHeader::Unavailable,
+			Some(HeaderId(10, PARA_10_HASH))
+		));
 	}
 
 	#[test]
 	fn parachain_is_not_updated_if_it_is_unknown_to_both_clients() {
-		assert_eq!(
-			is_update_required::<TestParachainsPipeline>(AvailableHeader::Missing, None),
-			false,
-		);
+		assert!(!is_update_required::<TestParachainsPipeline>(AvailableHeader::Missing, None),);
 	}
 
 	#[test]
 	fn parachain_is_not_updated_if_target_has_better_head() {
-		assert_eq!(
-			is_update_required::<TestParachainsPipeline>(
-				AvailableHeader::Available(HeaderId(10, Default::default())),
-				Some(HeaderId(20, Default::default())),
-			),
-			false,
-		);
+		assert!(!is_update_required::<TestParachainsPipeline>(
+			AvailableHeader::Available(HeaderId(10, Default::default())),
+			Some(HeaderId(20, Default::default())),
+		),);
 	}
 
 	#[test]
 	fn parachain_is_updated_after_offboarding() {
-		assert_eq!(
-			is_update_required::<TestParachainsPipeline>(
-				AvailableHeader::Missing,
-				Some(HeaderId(20, Default::default())),
-			),
-			true,
-		);
+		assert!(is_update_required::<TestParachainsPipeline>(
+			AvailableHeader::Missing,
+			Some(HeaderId(20, Default::default())),
+		),);
 	}
 
 	#[test]
 	fn parachain_is_updated_after_onboarding() {
-		assert_eq!(
-			is_update_required::<TestParachainsPipeline>(
-				AvailableHeader::Available(HeaderId(30, Default::default())),
-				None,
-			),
-			true,
-		);
+		assert!(is_update_required::<TestParachainsPipeline>(
+			AvailableHeader::Available(HeaderId(30, Default::default())),
+			None,
+		),);
 	}
 
 	#[test]
 	fn parachain_is_updated_if_newer_head_is_known() {
-		assert_eq!(
-			is_update_required::<TestParachainsPipeline>(
-				AvailableHeader::Available(HeaderId(40, Default::default())),
-				Some(HeaderId(30, Default::default())),
-			),
-			true,
-		);
+		assert!(is_update_required::<TestParachainsPipeline>(
+			AvailableHeader::Available(HeaderId(40, Default::default())),
+			Some(HeaderId(30, Default::default())),
+		),);
 	}
 }
