@@ -356,7 +356,7 @@ async fn background_task<P: SubstrateParachainsPipeline>(
 					.await;
 			},
 			RelayState::RelayingParaHeader(required_para_header) => {
-				*required_para_header_number_ref.lock().await =
+				*required_para_header_ref.lock().await =
 					AvailableHeader::Available(required_para_header);
 			},
 		}

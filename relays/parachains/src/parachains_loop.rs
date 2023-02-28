@@ -121,7 +121,7 @@ pub trait TargetClient<P: ParachainsPipeline>: RelayClient {
 /// sync loop.
 pub fn metrics_prefix<P: ParachainsPipeline>() -> String {
 	format!(
-		"{}_to_{}_Parachains({})",
+		"{}_to_{}_Parachains_{}",
 		P::SourceRelayChain::NAME,
 		P::TargetChain::NAME,
 		P::SourceParachain::PARACHAIN_ID
