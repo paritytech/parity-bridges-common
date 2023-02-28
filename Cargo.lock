@@ -971,6 +971,8 @@ dependencies = [
  "frame-support",
  "hex",
  "hex-literal",
+ "parity-scale-codec",
+ "scale-info",
  "sp-runtime 7.0.0",
  "sp-std 5.0.0",
 ]
@@ -1083,6 +1085,7 @@ dependencies = [
  "bp-messages",
  "bp-parachains",
  "bp-polkadot-core",
+ "bp-relayers",
  "bp-runtime",
  "bp-test-utils",
  "frame-support",
@@ -6317,6 +6320,7 @@ dependencies = [
  "frame-system",
  "log",
  "pallet-balances",
+ "pallet-bridge-messages",
  "parity-scale-codec",
  "scale-info",
  "sp-arithmetic 6.0.0",
@@ -9106,6 +9110,7 @@ dependencies = [
  "bp-header-chain",
  "bp-messages",
  "bp-parachains",
+ "bp-runtime",
  "bp-wococo",
  "bridge-runtime-common",
  "parity-scale-codec",
@@ -9141,6 +9146,7 @@ name = "relay-kusama-client"
 version = "0.1.0"
 dependencies = [
  "bp-kusama",
+ "bp-runtime",
  "relay-substrate-client",
  "relay-utils",
  "sp-core 7.0.0",
@@ -9152,6 +9158,7 @@ version = "0.1.0"
 dependencies = [
  "bp-messages",
  "bp-millau",
+ "bp-runtime",
  "frame-support",
  "frame-system",
  "millau-runtime",
@@ -9168,6 +9175,7 @@ name = "relay-polkadot-client"
 version = "0.1.0"
 dependencies = [
  "bp-polkadot",
+ "bp-runtime",
  "relay-substrate-client",
  "relay-utils",
  "sp-core 7.0.0",
@@ -9179,6 +9187,7 @@ version = "0.1.0"
 dependencies = [
  "bp-messages",
  "bp-rialto",
+ "bp-runtime",
  "frame-support",
  "frame-system",
  "pallet-transaction-payment",
@@ -9199,6 +9208,7 @@ dependencies = [
  "bp-millau",
  "bp-polkadot-core",
  "bp-rialto-parachain",
+ "bp-runtime",
  "bridge-runtime-common",
  "parity-scale-codec",
  "relay-substrate-client",
@@ -9214,6 +9224,7 @@ name = "relay-rococo-client"
 version = "0.1.0"
 dependencies = [
  "bp-rococo",
+ "bp-runtime",
  "relay-substrate-client",
  "relay-utils",
  "sp-core 7.0.0",
@@ -9288,6 +9299,7 @@ dependencies = [
 name = "relay-westend-client"
 version = "0.1.0"
 dependencies = [
+ "bp-runtime",
  "bp-westend",
  "relay-substrate-client",
  "relay-utils",
@@ -9298,6 +9310,7 @@ dependencies = [
 name = "relay-wococo-client"
 version = "0.1.0"
 dependencies = [
+ "bp-runtime",
  "bp-wococo",
  "relay-substrate-client",
  "relay-utils",
