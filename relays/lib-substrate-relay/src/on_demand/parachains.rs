@@ -245,10 +245,8 @@ async fn background_task<P: SubstrateParachainsPipeline>(
 	let parachains_relay_task = futures::future::Fuse::terminated();
 	futures::pin_mut!(parachains_relay_task);
 
-	let mut parachains_source = ParachainsSource::<P>::new(
-		source_relay_client.clone(),
-		required_para_header_ref.clone(),
-	);
+	let mut parachains_source =
+		ParachainsSource::<P>::new(source_relay_client.clone(), required_para_header_ref.clone());
 	let mut parachains_target =
 		ParachainsTarget::<P>::new(target_client.clone(), target_transaction_params.clone());
 
