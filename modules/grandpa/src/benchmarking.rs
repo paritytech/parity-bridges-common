@@ -66,7 +66,7 @@ const MAX_VOTE_ANCESTRIES_RANGE_BEGIN: u32 = MAX_VOTE_ANCESTRIES / 20;
 const MAX_VOTE_ANCESTRIES_RANGE_END: u32 =
 	MAX_VOTE_ANCESTRIES_RANGE_BEGIN + MAX_VOTE_ANCESTRIES_RANGE_BEGIN;
 
-/// We don't want to run test on large number of authorities, so we
+// the same with validators - if there are too much validators, let's run benchmarks on subrange
 fn precommits_range_end<T: Config<I>, I: 'static>() -> u32 {
 	let max_bridged_authorities = T::BridgedChain::MAX_AUTHORITIES_COUNT;
 	if max_bridged_authorities > 128 {
