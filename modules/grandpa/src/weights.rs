@@ -42,12 +42,15 @@
 #![allow(unused_imports)]
 #![allow(missing_docs)]
 
-use frame_support::{traits::Get, weights::{Weight, constants::RocksDbWeight}};
+use frame_support::{
+	traits::Get,
+	weights::{constants::RocksDbWeight, Weight},
+};
 use sp_std::marker::PhantomData;
 
 /// Weight functions needed for pallet_bridge_grandpa.
 pub trait WeightInfo {
-	fn submit_finality_proof(p: u32, v: u32, ) -> Weight;
+	fn submit_finality_proof(p: u32, v: u32) -> Weight;
 }
 
 /// Weights for `pallet_bridge_grandpa` that are generated using one of the Bridge testnets.
@@ -57,37 +60,43 @@ pub struct BridgeWeight<T>(PhantomData<T>);
 impl<T: frame_system::Config> WeightInfo for BridgeWeight<T> {
 	/// Storage: BridgeRialtoGrandpa PalletOperatingMode (r:1 w:0)
 	///
-	/// Proof: BridgeRialtoGrandpa PalletOperatingMode (max_values: Some(1), max_size: Some(1), added: 496, mode: MaxEncodedLen)
+	/// Proof: BridgeRialtoGrandpa PalletOperatingMode (max_values: Some(1), max_size: Some(1),
+	/// added: 496, mode: MaxEncodedLen)
 	///
 	/// Storage: BridgeRialtoGrandpa RequestCount (r:1 w:1)
 	///
-	/// Proof: BridgeRialtoGrandpa RequestCount (max_values: Some(1), max_size: Some(4), added: 499, mode: MaxEncodedLen)
+	/// Proof: BridgeRialtoGrandpa RequestCount (max_values: Some(1), max_size: Some(4), added: 499,
+	/// mode: MaxEncodedLen)
 	///
 	/// Storage: BridgeRialtoGrandpa BestFinalized (r:1 w:1)
 	///
-	/// Proof: BridgeRialtoGrandpa BestFinalized (max_values: Some(1), max_size: Some(36), added: 531, mode: MaxEncodedLen)
+	/// Proof: BridgeRialtoGrandpa BestFinalized (max_values: Some(1), max_size: Some(36), added:
+	/// 531, mode: MaxEncodedLen)
 	///
 	/// Storage: BridgeRialtoGrandpa CurrentAuthoritySet (r:1 w:0)
 	///
-	/// Proof: BridgeRialtoGrandpa CurrentAuthoritySet (max_values: Some(1), max_size: Some(209), added: 704, mode: MaxEncodedLen)
+	/// Proof: BridgeRialtoGrandpa CurrentAuthoritySet (max_values: Some(1), max_size: Some(209),
+	/// added: 704, mode: MaxEncodedLen)
 	///
 	/// Storage: BridgeRialtoGrandpa ImportedHashesPointer (r:1 w:1)
 	///
-	/// Proof: BridgeRialtoGrandpa ImportedHashesPointer (max_values: Some(1), max_size: Some(4), added: 499, mode: MaxEncodedLen)
+	/// Proof: BridgeRialtoGrandpa ImportedHashesPointer (max_values: Some(1), max_size: Some(4),
+	/// added: 499, mode: MaxEncodedLen)
 	///
 	/// Storage: BridgeRialtoGrandpa ImportedHashes (r:1 w:1)
 	///
-	/// Proof: BridgeRialtoGrandpa ImportedHashes (max_values: Some(14400), max_size: Some(36), added: 2016, mode: MaxEncodedLen)
+	/// Proof: BridgeRialtoGrandpa ImportedHashes (max_values: Some(14400), max_size: Some(36),
+	/// added: 2016, mode: MaxEncodedLen)
 	///
 	/// Storage: BridgeRialtoGrandpa ImportedHeaders (r:0 w:2)
 	///
-	/// Proof: BridgeRialtoGrandpa ImportedHeaders (max_values: Some(14400), max_size: Some(68), added: 2048, mode: MaxEncodedLen)
+	/// Proof: BridgeRialtoGrandpa ImportedHeaders (max_values: Some(14400), max_size: Some(68),
+	/// added: 2048, mode: MaxEncodedLen)
 	///
 	/// The range of component `p` is `[1, 4]`.
 	///
 	/// The range of component `v` is `[50, 100]`.
-	///
-	fn submit_finality_proof(p: u32, v: u32, ) -> Weight {
+	fn submit_finality_proof(p: u32, v: u32) -> Weight {
 		// Proof Size summary in bytes:
 		//  Measured:  `394 + p * (60 ±0)`
 		//  Estimated: `4745`
@@ -106,37 +115,43 @@ impl<T: frame_system::Config> WeightInfo for BridgeWeight<T> {
 impl WeightInfo for () {
 	/// Storage: BridgeRialtoGrandpa PalletOperatingMode (r:1 w:0)
 	///
-	/// Proof: BridgeRialtoGrandpa PalletOperatingMode (max_values: Some(1), max_size: Some(1), added: 496, mode: MaxEncodedLen)
+	/// Proof: BridgeRialtoGrandpa PalletOperatingMode (max_values: Some(1), max_size: Some(1),
+	/// added: 496, mode: MaxEncodedLen)
 	///
 	/// Storage: BridgeRialtoGrandpa RequestCount (r:1 w:1)
 	///
-	/// Proof: BridgeRialtoGrandpa RequestCount (max_values: Some(1), max_size: Some(4), added: 499, mode: MaxEncodedLen)
+	/// Proof: BridgeRialtoGrandpa RequestCount (max_values: Some(1), max_size: Some(4), added: 499,
+	/// mode: MaxEncodedLen)
 	///
 	/// Storage: BridgeRialtoGrandpa BestFinalized (r:1 w:1)
 	///
-	/// Proof: BridgeRialtoGrandpa BestFinalized (max_values: Some(1), max_size: Some(36), added: 531, mode: MaxEncodedLen)
+	/// Proof: BridgeRialtoGrandpa BestFinalized (max_values: Some(1), max_size: Some(36), added:
+	/// 531, mode: MaxEncodedLen)
 	///
 	/// Storage: BridgeRialtoGrandpa CurrentAuthoritySet (r:1 w:0)
 	///
-	/// Proof: BridgeRialtoGrandpa CurrentAuthoritySet (max_values: Some(1), max_size: Some(209), added: 704, mode: MaxEncodedLen)
+	/// Proof: BridgeRialtoGrandpa CurrentAuthoritySet (max_values: Some(1), max_size: Some(209),
+	/// added: 704, mode: MaxEncodedLen)
 	///
 	/// Storage: BridgeRialtoGrandpa ImportedHashesPointer (r:1 w:1)
 	///
-	/// Proof: BridgeRialtoGrandpa ImportedHashesPointer (max_values: Some(1), max_size: Some(4), added: 499, mode: MaxEncodedLen)
+	/// Proof: BridgeRialtoGrandpa ImportedHashesPointer (max_values: Some(1), max_size: Some(4),
+	/// added: 499, mode: MaxEncodedLen)
 	///
 	/// Storage: BridgeRialtoGrandpa ImportedHashes (r:1 w:1)
 	///
-	/// Proof: BridgeRialtoGrandpa ImportedHashes (max_values: Some(14400), max_size: Some(36), added: 2016, mode: MaxEncodedLen)
+	/// Proof: BridgeRialtoGrandpa ImportedHashes (max_values: Some(14400), max_size: Some(36),
+	/// added: 2016, mode: MaxEncodedLen)
 	///
 	/// Storage: BridgeRialtoGrandpa ImportedHeaders (r:0 w:2)
 	///
-	/// Proof: BridgeRialtoGrandpa ImportedHeaders (max_values: Some(14400), max_size: Some(68), added: 2048, mode: MaxEncodedLen)
+	/// Proof: BridgeRialtoGrandpa ImportedHeaders (max_values: Some(14400), max_size: Some(68),
+	/// added: 2048, mode: MaxEncodedLen)
 	///
 	/// The range of component `p` is `[1, 4]`.
 	///
 	/// The range of component `v` is `[50, 100]`.
-	///
-	fn submit_finality_proof(p: u32, v: u32, ) -> Weight {
+	fn submit_finality_proof(p: u32, v: u32) -> Weight {
 		// Proof Size summary in bytes:
 		//  Measured:  `394 + p * (60 ±0)`
 		//  Estimated: `4745`

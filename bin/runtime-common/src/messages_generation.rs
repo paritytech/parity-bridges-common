@@ -67,13 +67,12 @@ where
 		for (i, nonce) in message_nonces.into_iter().enumerate() {
 			let message_key = MessageKey { lane_id: lane, nonce };
 			let message_payload = match encode_message(nonce, &message_payload) {
-				Some(message_payload) => {
+				Some(message_payload) =>
 					if i == 0 {
 						grow_trie_leaf_value(message_payload, size)
 					} else {
 						message_payload
-					}
-				},
+					},
 				None => continue,
 			};
 			let storage_key = storage_keys::message_key(

@@ -204,7 +204,8 @@ where
 	{
 		let mut trie =
 			TrieDBMutBuilderV1::<HasherOf<BridgedChain<B>>>::new(&mut mdb, &mut root).build();
-		let inbound_lane_data = grow_trie_leaf_value(params.inbound_lane_data.encode(), params.size);
+		let inbound_lane_data =
+			grow_trie_leaf_value(params.inbound_lane_data.encode(), params.size);
 		trie.insert(&storage_key, &inbound_lane_data)
 			.map_err(|_| "TrieMut::insert has failed")
 			.expect("TrieMut::insert should not fail in benchmarks");

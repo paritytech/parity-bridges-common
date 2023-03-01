@@ -42,7 +42,10 @@
 #![allow(unused_imports)]
 #![allow(missing_docs)]
 
-use frame_support::{traits::Get, weights::{Weight, constants::RocksDbWeight}};
+use frame_support::{
+	traits::Get,
+	weights::{constants::RocksDbWeight, Weight},
+};
 use sp_std::marker::PhantomData;
 
 /// Weight functions needed for pallet_bridge_relayers.
@@ -57,12 +60,13 @@ pub struct BridgeWeight<T>(PhantomData<T>);
 impl<T: frame_system::Config> WeightInfo for BridgeWeight<T> {
 	/// Storage: BridgeRelayers RelayerRewards (r:1 w:1)
 	///
-	/// Proof: BridgeRelayers RelayerRewards (max_values: None, max_size: Some(65), added: 2540, mode: MaxEncodedLen)
+	/// Proof: BridgeRelayers RelayerRewards (max_values: None, max_size: Some(65), added: 2540,
+	/// mode: MaxEncodedLen)
 	///
 	/// Storage: System Account (r:1 w:1)
 	///
-	/// Proof: System Account (max_values: None, max_size: Some(96), added: 2571, mode: MaxEncodedLen)
-	///
+	/// Proof: System Account (max_values: None, max_size: Some(96), added: 2571, mode:
+	/// MaxEncodedLen)
 	fn claim_rewards() -> Weight {
 		// Proof Size summary in bytes:
 		//  Measured:  `275`
@@ -78,12 +82,13 @@ impl<T: frame_system::Config> WeightInfo for BridgeWeight<T> {
 impl WeightInfo for () {
 	/// Storage: BridgeRelayers RelayerRewards (r:1 w:1)
 	///
-	/// Proof: BridgeRelayers RelayerRewards (max_values: None, max_size: Some(65), added: 2540, mode: MaxEncodedLen)
+	/// Proof: BridgeRelayers RelayerRewards (max_values: None, max_size: Some(65), added: 2540,
+	/// mode: MaxEncodedLen)
 	///
 	/// Storage: System Account (r:1 w:1)
 	///
-	/// Proof: System Account (max_values: None, max_size: Some(96), added: 2571, mode: MaxEncodedLen)
-	///
+	/// Proof: System Account (max_values: None, max_size: Some(96), added: 2571, mode:
+	/// MaxEncodedLen)
 	fn claim_rewards() -> Weight {
 		// Proof Size summary in bytes:
 		//  Measured:  `275`

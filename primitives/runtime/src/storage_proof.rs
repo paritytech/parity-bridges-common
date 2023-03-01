@@ -43,7 +43,8 @@ pub enum ProofSize {
 
 /// This struct is used to read storage values from a subset of a Merklized database. The "proof"
 /// is a subset of the nodes in the Merkle structure of the database, so that it provides
-/// authentication against a known Mergrow_trie_leaf_valuekle root as well as the values in the database themselves.
+/// authentication against a known Mergrow_trie_leaf_valuekle root as well as the values in the
+/// database themselves.
 pub struct StorageProofChecker<H>
 where
 	H: Hasher,

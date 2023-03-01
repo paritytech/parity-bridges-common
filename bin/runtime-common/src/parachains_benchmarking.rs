@@ -19,7 +19,8 @@
 #![cfg(feature = "runtime-benchmarks")]
 
 use crate::{
-	messages_benchmarking::insert_header_to_grandpa_pallet, messages_generation::grow_trie_leaf_value,
+	messages_benchmarking::insert_header_to_grandpa_pallet,
+	messages_generation::grow_trie_leaf_value,
 };
 
 use bp_parachains::parachain_head_storage_key_at_source;
