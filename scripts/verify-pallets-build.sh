@@ -66,6 +66,7 @@ rm -rf $BRIDGES_FOLDER/bin/rialto
 rm -rf $BRIDGES_FOLDER/bin/rialto-parachain
 rm -rf $BRIDGES_FOLDER/bin/.keep
 rm -rf $BRIDGES_FOLDER/deployments
+rm -f $BRIDGES_FOLDER/docs/dockerhub-*
 rm -rf $BRIDGES_FOLDER/fuzz
 rm -rf $BRIDGES_FOLDER/modules/beefy
 rm -rf $BRIDGES_FOLDER/modules/shift-session-manager
