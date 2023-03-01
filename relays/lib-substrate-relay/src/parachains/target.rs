@@ -29,10 +29,10 @@ use bp_runtime::HeaderIdProvider;
 use codec::Decode;
 use parachains_relay::parachains_loop::TargetClient;
 use relay_substrate_client::{
-	AccountIdOf, AccountKeyPairOf, BlockNumberOf, Chain, Client, Error as SubstrateError, HashOf,
-	HeaderIdOf, ParachainBase, TransactionEra, TransactionTracker, UnsignedTransaction,
+	AccountIdOf, AccountKeyPairOf, Chain, Client, Error as SubstrateError, HeaderIdOf,
+	ParachainBase, TransactionEra, TransactionTracker, UnsignedTransaction,
 };
-use relay_utils::{relay_loop::Client as RelayClient, HeaderId};
+use relay_utils::relay_loop::Client as RelayClient;
 use sp_core::{Bytes, Pair};
 
 /// Substrate client as parachain heads source.
@@ -93,21 +93,15 @@ where
 		&self,
 		at_block: &HeaderIdOf<P::TargetChain>,
 	) -> Result<HeaderIdOf<P::SourceRelayChain>, Self::Error> {
-		let encoded_best_finalized_source_relay_block = self
-			.client
-			.state_call(
+		self.client
+			.typed_state_call::<_, Option<HeaderIdOf<P::SourceRelayChain>>>(
 				P::SourceRelayChain::BEST_FINALIZED_HEADER_ID_METHOD.into(),
-				Bytes(Vec::new()),
+				(),
 				Some(at_block.1),
 			)
-			.await?;
-
-		Option::<HeaderId<HashOf<P::SourceRelayChain>, BlockNumberOf<P::SourceRelayChain>>>::decode(
-			&mut &encoded_best_finalized_source_relay_block.0[..],
-		)
-		.map_err(SubstrateError::ResponseParseFailed)?
-		.map(Ok)
-		.unwrap_or(Err(SubstrateError::BridgePalletIsNotInitialized))
+			.await?
+			.map(Ok)
+			.unwrap_or(Err(SubstrateError::BridgePalletIsNotInitialized))
 	}
 
 	async fn parachain_head(
