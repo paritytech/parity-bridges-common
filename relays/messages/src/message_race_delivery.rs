@@ -1005,7 +1005,7 @@ mod tests {
 		// 2) relayer witnessed M2 at block 2 => it has separate entry in the `source_queue`
 		// 3) if block 2 is known to the target node, then both M1 and M2 are selected for single
 		// delivery,    even though weight(M1+M2) > larger than largest allowed weight
-		//agag
+		//
 		// This was happening because selector (`select_nonces_for_delivery_transaction`) has been
 		// called for every `source_queue` entry separately without preserving any context.
 		let (mut state, mut strategy) = prepare_strategy();
