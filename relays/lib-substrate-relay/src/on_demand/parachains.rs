@@ -120,10 +120,11 @@ where
 	P::SourceParachain: Chain<Hash = ParaHash>,
 {
 	async fn reconnect(&self) -> Result<(), SubstrateError> {
-		// using clone is fine here (to avoid mut requirement), because clone on Client clones internal references
+		// using clone is fine here (to avoid mut requirement), because clone on Client clones
+		// internal references
 		self.source_relay_client.clone().reconnect().await?;
 		self.target_client.clone().reconnect().await?;
-		// we'll probably need to reconnect relay chain relayer clients also 
+		// we'll probably need to reconnect relay chain relayer clients also
 		self.on_demand_source_relay_to_target_headers.reconnect().await
 	}
 

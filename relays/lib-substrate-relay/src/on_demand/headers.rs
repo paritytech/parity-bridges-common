@@ -108,7 +108,8 @@ impl<P: SubstrateFinalitySyncPipeline> OnDemandRelay<P::SourceChain, P::TargetCh
 	for OnDemandHeadersRelay<P>
 {
 	async fn reconnect(&self) -> Result<(), SubstrateError> {
-		// using clone is fine here (to avoid mut requirement), because clone on Client clones internal references
+		// using clone is fine here (to avoid mut requirement), because clone on Client clones
+		// internal references
 		self.source_client.clone().reconnect().await?;
 		self.target_client.clone().reconnect().await
 	}

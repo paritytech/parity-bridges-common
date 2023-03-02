@@ -44,4 +44,5 @@ pub trait OnDemandRelay<SourceChain: Chain, TargetChain: Chain>: Send + Sync {
 	async fn prove_header(
 		&self,
 		required_header: BlockNumberOf<SourceChain>,
-	) -> Result<(HeaderIdOf<SourceChain>, Vec<CallOf<TargetChain>>), SubstrateError>;}
+	) -> Result<(HeaderIdOf<SourceChain>, Vec<CallOf<TargetChain>>), SubstrateError>;
+}
