@@ -139,7 +139,7 @@ impl<P: SubstrateMessageLane> RelayClient for SubstrateMessagesSource<P> {
 		//
 		// this may lead to multiple reconnects to the same node during the same call and it
 		// needs to be addressed in the future
-		// TODO: add issue reference here!!!!!!!!!!!!!!!!!!!!
+		// TODO: https://github.com/paritytech/parity-bridges-common/issues/1928
 		if let Some(ref mut target_to_source_headers_relay) = self.target_to_source_headers_relay {
 			target_to_source_headers_relay.reconnect().await?;
 		}
