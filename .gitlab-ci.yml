@@ -376,6 +376,7 @@ dockerhub-bridges-common-relay:
 
 deploy-bridges-common-relay-testnet:
   <<: *deploy-refs
+  <<: *kubernetes-build
   needs:
     - job: bridges-common-relay
   stage: deploy
