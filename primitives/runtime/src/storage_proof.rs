@@ -16,8 +16,11 @@
 
 //! Logic for checking Substrate storage proofs.
 
-use codec::Decode;
+use crate::StrippableError;
+use codec::{Decode, Encode};
+use frame_support::PalletError;
 use hash_db::{HashDB, Hasher, EMPTY_PREFIX};
+use scale_info::TypeInfo;
 use sp_runtime::RuntimeDebug;
 use sp_std::{boxed::Box, collections::btree_set::BTreeSet, vec::Vec};
 use sp_trie::{
@@ -116,14 +119,14 @@ where
 	/// read, but decoding fails, this function returns an error.
 	pub fn read_and_decode_value<T: Decode>(&mut self, key: &[u8]) -> Result<Option<T>, Error> {
 		self.read_value(key).and_then(|v| {
-			v.map(|v| T::decode(&mut &v[..]).map_err(Error::StorageValueDecodeFailed))
+			v.map(|v| T::decode(&mut &v[..]).map_err(|e| Error::StorageValueDecodeFailed(e.into())))
 				.transpose()
 		})
 	}
 }
 
 /// Storage proof related errors.
-#[derive(Clone, Eq, PartialEq, RuntimeDebug)]
+#[derive(Encode, Decode, Clone, Eq, PartialEq, PalletError, RuntimeDebug, TypeInfo)]
 pub enum Error {
 	/// Duplicate trie nodes are found in the proof.
 	DuplicateNodesInProof,
@@ -134,7 +137,7 @@ pub enum Error {
 	/// Unable to reach expected storage value using provided trie nodes.
 	StorageValueUnavailable,
 	/// Failed to decode storage value.
-	StorageValueDecodeFailed(codec::Error),
+	StorageValueDecodeFailed(StrippableError<codec::Error>),
 }
 
 impl From<Error> for &'static str {
@@ -155,7 +158,6 @@ impl From<Error> for &'static str {
 /// NOTE: This should only be used for **testing**.
 #[cfg(feature = "std")]
 pub fn craft_valid_storage_proof() -> (sp_core::H256, RawStorageProof) {
-	use codec::Encode;
 	use sp_state_machine::{backend::Backend, prove_read, InMemoryBackend};
 
 	let state_version = sp_runtime::StateVersion::default();
