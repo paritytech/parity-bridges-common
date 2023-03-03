@@ -318,7 +318,7 @@ impl<C: Chain> Client<C> {
 		.await
 		.map_err(|e| Error::FailedToReadHeaderByHash {
 			chain: C::NAME.into(),
-			hash: format!("{}", block_hash),
+			hash: format!("{block_hash}"),
 			error: e.boxed(),
 		})
 	}
