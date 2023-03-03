@@ -123,6 +123,24 @@ where
 				.transpose()
 		})
 	}
+
+	/// Reads and decodes a value from the available subset of storage. If the value cannot be read
+	/// due to an incomplete or otherwise invalid proof, or if the value is `None`, this function
+	/// returns an error. If value is read, but decoding fails, this function returns an error.
+	pub fn read_and_decode_mandatory_value<T: Decode>(&mut self, key: &[u8]) -> Result<T, Error> {
+		self.read_and_decode_value(key)?.ok_or(Error::StorageValueEmpty)
+	}
+
+	/// Reads and decodes a value from the available subset of storage. If the value cannot be read
+	/// due to an incomplete or otherwise invalid proof, this function returns `Ok(None)`.
+	/// If value is read, but decoding fails, this function returns an error.
+	pub fn read_and_decode_opt_value<T: Decode>(&mut self, key: &[u8]) -> Result<Option<T>, Error> {
+		match self.read_and_decode_value(key) {
+			Ok(outbound_lane_data) => Ok(outbound_lane_data),
+			Err(Error::StorageValueUnavailable) => Ok(None),
+			Err(e) => Err(e),
+		}
+	}
 }
 
 /// Storage proof related errors.
@@ -136,6 +154,8 @@ pub enum Error {
 	StorageRootMismatch,
 	/// Unable to reach expected storage value using provided trie nodes.
 	StorageValueUnavailable,
+	/// The storage value is `None`.
+	StorageValueEmpty,
 	/// Failed to decode storage value.
 	StorageValueDecodeFailed(StrippableError<codec::Error>),
 }
@@ -146,6 +166,7 @@ impl From<Error> for &'static str {
 			Error::DuplicateNodesInProof => "Storage proof contains duplicate nodes",
 			Error::UnusedNodesInTheProof => "Storage proof contains unused nodes",
 			Error::StorageRootMismatch => "Storage root is missing from the storage proof",
+			Error::StorageValueEmpty => "Storage value is empty",
 			Error::StorageValueUnavailable => "Storage value is missing from the storage proof",
 			Error::StorageValueDecodeFailed(_) =>
 				"Failed to decode storage value from the storage proof",
