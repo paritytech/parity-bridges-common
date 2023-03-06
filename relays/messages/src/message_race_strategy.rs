@@ -593,8 +593,6 @@ mod tests {
 		);
 
 		// now we have to select nonce 1 for delivery again
-		println!("state: {:?}", state);
-		println!("strategy: {:?}", strategy);
 		assert_eq!(strategy.select_nonces_to_deliver(state.clone()).await, Some((1..=2, ())),);
 	}
 }
