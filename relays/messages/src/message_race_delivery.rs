@@ -255,7 +255,7 @@ struct MessageDeliveryStrategy<P: MessageLane, SC, TC> {
 	/// Latest confirmed nonces at the source client + the header id where we have first met this
 	/// nonce.
 	latest_confirmed_nonces_at_source: VecDeque<(SourceHeaderIdOf<P>, MessageNonce)>,
-	/// Target nonces avalaible at the **best** block of the target chain.
+	/// Target nonces available at the **best** block of the target chain.
 	target_nonces: Option<TargetClientNonces<DeliveryRaceTargetNoncesData>>,
 	/// Basic delivery strategy.
 	strategy: MessageDeliveryStrategyBase<P>,
