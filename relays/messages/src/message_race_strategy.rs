@@ -256,26 +256,8 @@ impl<
 			Proof,
 		>,
 	) {
-		// TODO: check that https://github.com/paritytech/parity-bridges-common/pull/719 is fixed!!!
 		let nonce = nonces.latest_nonce;
-		/*
-				if let Some(best_target_nonce) = self.best_target_nonce {
-					if nonce < best_target_nonce {
-						return
-					}
-				}
-		*/
-		/*
-				while let Some(true) = self.source_queue.front().map(|(_, range)| range.begin() <= nonce) {
-					let maybe_subrange = self.source_queue.pop_front().and_then(|(at_block, range)| {
-						range.greater_than(nonce).map(|subrange| (at_block, subrange))
-					});
-					if let Some((at_block, subrange)) = maybe_subrange {
-						self.source_queue.push_front((at_block, subrange));
-						break
-					}
-				}
-		*/
+
 		let need_to_select_new_nonces = race_state
 			.nonces_to_submit
 			.as_ref()
@@ -293,10 +275,7 @@ impl<
 		if need_new_nonces_to_submit {
 			race_state.nonces_submitted = None;
 		}
-		/*
-				self.best_target_nonce =
-					Some(std::cmp::max(self.best_target_nonce.unwrap_or(nonces.latest_nonce), nonce));
-		*/
+
 		self.best_target_nonce = Some(nonce);
 	}
 
