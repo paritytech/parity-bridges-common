@@ -529,8 +529,8 @@ where
 		let lane_source_client = self.lane_source_client.clone();
 		let lane_target_client = self.lane_target_client.clone();
 
-		let maximal_source_queue_index =
-			self.strategy.maximal_available_source_queue_index(race_state)?;
+		let available_source_queue_indices =
+			self.strategy.available_source_queue_indices(race_state)?;
 		let source_queue = self.strategy.source_queue();
 
 		let reference = RelayMessagesBatchReference {
@@ -539,8 +539,9 @@ where
 			max_messages_size_in_single_batch,
 			lane_source_client: lane_source_client.clone(),
 			lane_target_client: lane_target_client.clone(),
+			best_target_nonce: self.strategy.best_at_target()?,
 			nonces_queue: source_queue.clone(),
-			nonces_queue_range: 0..maximal_source_queue_index + 1,
+			nonces_queue_range: available_source_queue_indices,
 			metrics: self.metrics_msg.clone(),
 		};
 
