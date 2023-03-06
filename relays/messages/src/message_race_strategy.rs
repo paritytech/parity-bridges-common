@@ -514,4 +514,62 @@ mod tests {
 		strategy.remove_le_nonces_from_source_queue(100);
 		assert_eq!(source_queue_nonces(&strategy.source_queue), Vec::<MessageNonce>::new(),);
 	}
+
+	#[async_std::test]
+	async fn previous_nonces_are_selected_if_reorg_happens_at_target_chain() {
+		let source_header_1 = header_id(1);
+		let target_header_1 = header_id(1);
+
+		// we start in perfec sync state - all headers are synced and finalized on both ends
+		let mut state = RaceState::<_, _, TestMessagesProof> {
+			best_finalized_source_header_id_at_source: Some(source_header_1),
+			best_finalized_source_header_id_at_best_target: Some(source_header_1),
+			best_target_header_id: Some(target_header_1),
+			best_finalized_target_header_id: Some(target_header_1),
+			nonces_to_submit: None,
+			nonces_submitted: None,
+		};
+
+		// in this state we have 1 available nonce for delivery
+		let mut strategy = BasicStrategy::<TestMessageLane> {
+			source_queue: vec![(header_id(1), 1..=1)].into_iter().collect(),
+			best_target_nonce: Some(0),
+			_phantom: PhantomData,
+		};
+		assert_eq!(strategy.select_nonces_to_deliver(state.clone()).await, Some((1..=1, ())),);
+
+		// let's say we have submitted 1..=1
+		state.nonces_submitted = Some(1..=1);
+
+		// then new nonce 2 appear at the source block 2
+		let source_header_2 = header_id(2);
+		state.best_finalized_source_header_id_at_source = Some(source_header_2);
+		strategy.source_nonces_updated(
+			source_header_2,
+			SourceClientNonces { new_nonces: 2..=2, confirmed_nonce: None },
+		);
+		// and nonce 1 appear at the best block of the target node (best finalized still has 0
+		// nonces)
+		let target_header_2 = header_id(2);
+		state.best_target_header_id = Some(target_header_2);
+		strategy.best_target_nonces_updated(
+			TargetClientNonces { latest_nonce: 1, nonces_data: () },
+			&mut state,
+		);
+
+		// then best target header is retracted and some fork with zero delivered nonces is
+		// finalized
+		let target_header_2_fork = header_id(2_1);
+		state.best_finalized_source_header_id_at_source = Some(source_header_2);
+		state.best_finalized_source_header_id_at_best_target = Some(source_header_2);
+		state.best_target_header_id = Some(target_header_2_fork);
+		state.best_finalized_target_header_id = Some(target_header_2_fork);
+		strategy.finalized_target_nonces_updated(
+			TargetClientNonces { latest_nonce: 0, nonces_data: () },
+			&mut state,
+		);
+
+		// now we have to select nonce 1 for delivery again
+		assert_eq!(strategy.select_nonces_to_deliver(state.clone()).await, Some((1..=1, ())),);
+	}
 }
