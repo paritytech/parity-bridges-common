@@ -100,7 +100,7 @@ impl MessageRaceLimits {
 		TargetClient: MessageLaneTargetClient<P>,
 	>(
 		reference: RelayMessagesBatchReference<P, SourceClient, TargetClient>,
-	) -> Option<MessageNonce> {
+	) -> Option<RangeInclusive<MessageNonce>> {
 		let mut hard_selected_count = 0;
 
 		let mut selected_weight = Weight::zero();
@@ -198,7 +198,7 @@ impl MessageRaceLimits {
 		if hard_selected_count != 0 {
 			let selected_max_nonce =
 				hard_selected_begin_nonce + hard_selected_count as MessageNonce - 1;
-			Some(selected_max_nonce)
+			Some(hard_selected_begin_nonce..=selected_max_nonce)
 		} else {
 			None
 		}

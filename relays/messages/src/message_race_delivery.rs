@@ -545,10 +545,7 @@ where
 			metrics: self.metrics_msg.clone(),
 		};
 
-		let range_end = MessageRaceLimits::decide(reference).await?;
-
-		let range_begin = source_queue[0].1.begin();
-		let selected_nonces = range_begin..=range_end;
+		let selected_nonces = MessageRaceLimits::decide(reference).await?;
 		let dispatch_weight = self.dispatch_weight_for_range(&selected_nonces);
 
 		Some((
