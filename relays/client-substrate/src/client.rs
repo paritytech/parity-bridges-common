@@ -157,7 +157,7 @@ impl<C: Chain> Clone for Client<C> {
 			params: self.params.clone(),
 			chain_runtime_version: self.chain_runtime_version.clone(),
 			submit_signed_extrinsic_lock: self.submit_signed_extrinsic_lock.clone(),
-			genesis_hash: self.genesis_hash.clone(),
+			genesis_hash: self.genesis_hash,
 			data: self.data.clone(),
 		}
 	}
