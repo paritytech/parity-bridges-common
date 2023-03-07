@@ -130,7 +130,7 @@ pub struct Client<C: Chain> {
 	data: Arc<RwLock<ClientData>>,
 }
 
-/// Client data, shared bty all `Client` clones.
+/// Client data, shared by all `Client` clones.
 struct ClientData {
 	/// Tokio runtime handle.
 	tokio: Arc<tokio::runtime::Runtime>,
