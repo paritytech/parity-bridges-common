@@ -37,21 +37,12 @@ pub mod justification;
 pub mod storage_keys;
 
 /// Header chain error.
-#[derive(Clone, Decode, Encode, Eq, PartialEq, PalletError, RuntimeDebug, TypeInfo)]
+#[derive(Clone, Decode, Encode, Eq, PartialEq, PalletError, Debug, TypeInfo)]
 pub enum HeaderChainError {
 	/// Header with given hash is missing from the chain.
 	UnknownHeader,
 	/// Storage proof related error.
 	StorageProof(StorageProofError),
-}
-
-impl From<HeaderChainError> for &'static str {
-	fn from(err: HeaderChainError) -> &'static str {
-		match err {
-			HeaderChainError::UnknownHeader => "UnknownHeader",
-			HeaderChainError::StorageProof(e) => e.into(),
-		}
-	}
 }
 
 /// Header data that we're storing on-chain.

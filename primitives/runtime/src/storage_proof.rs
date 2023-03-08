@@ -21,7 +21,6 @@ use codec::{Decode, Encode};
 use frame_support::PalletError;
 use hash_db::{HashDB, Hasher, EMPTY_PREFIX};
 use scale_info::TypeInfo;
-use sp_runtime::RuntimeDebug;
 use sp_std::{boxed::Box, collections::btree_set::BTreeSet, vec::Vec};
 use sp_trie::{
 	read_trie_value, LayoutV1, MemoryDB, Recorder, StorageProof, Trie, TrieConfiguration,
@@ -144,7 +143,7 @@ where
 }
 
 /// Storage proof related errors.
-#[derive(Encode, Decode, Clone, Eq, PartialEq, PalletError, RuntimeDebug, TypeInfo)]
+#[derive(Encode, Decode, Clone, Eq, PartialEq, PalletError, Debug, TypeInfo)]
 pub enum Error {
 	/// Duplicate trie nodes are found in the proof.
 	DuplicateNodesInProof,
@@ -158,20 +157,6 @@ pub enum Error {
 	StorageValueEmpty,
 	/// Failed to decode storage value.
 	StorageValueDecodeFailed(StrippableError<codec::Error>),
-}
-
-impl From<Error> for &'static str {
-	fn from(err: Error) -> &'static str {
-		match err {
-			Error::DuplicateNodesInProof => "Storage proof contains duplicate nodes",
-			Error::UnusedNodesInTheProof => "Storage proof contains unused nodes",
-			Error::StorageRootMismatch => "Storage root is missing from the storage proof",
-			Error::StorageValueEmpty => "Storage value is empty",
-			Error::StorageValueUnavailable => "Storage value is missing from the storage proof",
-			Error::StorageValueDecodeFailed(_) =>
-				"Failed to decode storage value from the storage proof",
-		}
-	}
 }
 
 /// Return valid storage proof and state root.

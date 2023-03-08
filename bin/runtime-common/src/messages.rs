@@ -651,7 +651,7 @@ pub mod target {
 				if proved_lane_messages.lane_state.is_none() &&
 					proved_lane_messages.messages.is_empty()
 				{
-					return Err(Error::EmptyProof)
+					return Err(Error::EmptyMessageProof)
 				}
 
 				// check that the storage proof doesn't have any untouched trie nodes
@@ -671,38 +671,23 @@ pub mod target {
 	#[derive(Debug, PartialEq, Eq)]
 	pub enum Error {
 		/// The message proof is empty.
-		EmptyProof,
+		EmptyMessageProof,
 		/// Error returned by the bridged header chain.
 		HeaderChain(HeaderChainError),
+		/// Error returned while reading/decoding inbound lane data from the storage proof.
 		InboundLaneStorage(StorageProofError),
+		/// The declared message weight is incorrect.
 		InvalidMessageWeight,
 		/// Declared messages count doesn't match actual value.
 		MessagesCountMismatch,
+		/// Error returned while reading/decoding message data from the storage proof.
 		MessageStorage(StorageProofError),
+		/// The message is too large to be sent over the lane.
 		MessageTooLarge,
+		/// Error returned while reading/decoding outbound lane data from the storage proof.
 		OutboundLaneStorage(StorageProofError),
 		/// Storage proof related error.
 		StorageProof(StorageProofError),
-	}
-
-	impl From<Error> for &'static str {
-		fn from(err: Error) -> &'static str {
-			match err {
-				Error::HeaderChain(err) => err.into(),
-				Error::EmptyProof => "Messages proof is empty",
-				Error::MessagesCountMismatch =>
-					"Declared messages count doesn't match actual value",
-				Error::StorageProof(_) => "Invalid storage proof",
-				Error::InboundLaneStorage(_) =>
-					"Error reading/decoding inbound lane data from storage proof",
-				Error::InvalidMessageWeight => "Incorrect message weight declared",
-				Error::MessageStorage(_) =>
-					"Error reading/decoding message data from storage proof",
-				Error::MessageTooLarge => "The message is too large to be sent over the lane",
-				Error::OutboundLaneStorage(_) =>
-					"Error reading/decoding outbound lane data from storage proof",
-			}
-		}
 	}
 
 	struct StorageProofCheckerAdapter<H: Hasher, B> {
@@ -1034,7 +1019,7 @@ mod tests {
 			using_messages_proof(0, None, encode_all_messages, encode_lane_data, |proof| {
 				target::verify_messages_proof::<OnThisChainBridge>(proof, 0)
 			},),
-			Err(target::Error::EmptyProof),
+			Err(target::Error::EmptyMessageProof),
 		);
 	}
 
