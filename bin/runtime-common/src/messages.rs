@@ -100,10 +100,32 @@ pub type OriginOf<C> = <C as ThisChainWithMessages>::RuntimeOrigin;
 /// Type of call that is used on this chain.
 pub type CallOf<C> = <C as ThisChainWithMessages>::RuntimeCall;
 
+/// Error that happens during message verification.
+#[derive(Debug, PartialEq, Eq)]
+pub enum Error {
+	/// The message proof is empty.
+	EmptyMessageProof,
+	/// Error returned by the bridged header chain.
+	HeaderChain(HeaderChainError),
+	/// Error returned while reading/decoding inbound lane data from the storage proof.
+	InboundLaneStorage(StorageProofError),
+	/// The declared message weight is incorrect.
+	InvalidMessageWeight,
+	/// Declared messages count doesn't match actual value.
+	MessagesCountMismatch,
+	/// Error returned while reading/decoding message data from the storage proof.
+	MessageStorage(StorageProofError),
+	/// The message is too large.
+	MessageTooLarge,
+	/// Error returned while reading/decoding outbound lane data from the storage proof.
+	OutboundLaneStorage(StorageProofError),
+	/// Storage proof related error.
+	StorageProof(StorageProofError),
+}
+
 /// Sub-module that is declaring types required for processing This -> Bridged chain messages.
 pub mod source {
 	use super::*;
-	use crate::messages::target::Error;
 
 	/// Message payload for This -> Bridged chain messages.
 	pub type FromThisChainMessagePayload = Vec<u8>;
@@ -170,8 +192,6 @@ pub mod source {
 	/// The error message returned from `LaneMessageVerifier` when too many pending messages at the
 	/// lane.
 	pub const TOO_MANY_PENDING_MESSAGES: &str = "Too many pending messages at the lane.";
-	/// The error message returned from `LaneMessageVerifier` when call origin is mismatch.
-	pub const BAD_ORIGIN: &str = "Unable to match the source origin to expected target origin.";
 
 	impl<B> LaneMessageVerifier<OriginOf<ThisChain<B>>, FromThisChainMessagePayload>
 		for FromThisChainMessageVerifier<B>
@@ -667,29 +687,6 @@ pub mod target {
 		.map_err(Error::HeaderChain)?
 	}
 
-	/// Error that happens during message proof verification.
-	#[derive(Debug, PartialEq, Eq)]
-	pub enum Error {
-		/// The message proof is empty.
-		EmptyMessageProof,
-		/// Error returned by the bridged header chain.
-		HeaderChain(HeaderChainError),
-		/// Error returned while reading/decoding inbound lane data from the storage proof.
-		InboundLaneStorage(StorageProofError),
-		/// The declared message weight is incorrect.
-		InvalidMessageWeight,
-		/// Declared messages count doesn't match actual value.
-		MessagesCountMismatch,
-		/// Error returned while reading/decoding message data from the storage proof.
-		MessageStorage(StorageProofError),
-		/// The message is too large to be sent over the lane.
-		MessageTooLarge,
-		/// Error returned while reading/decoding outbound lane data from the storage proof.
-		OutboundLaneStorage(StorageProofError),
-		/// Storage proof related error.
-		StorageProof(StorageProofError),
-	}
-
 	struct StorageProofCheckerAdapter<H: Hasher, B> {
 		storage: StorageProofChecker<H>,
 		_dummy: sp_std::marker::PhantomData<B>,
@@ -879,7 +876,7 @@ mod tests {
 			using_messages_proof(10, None, encode_all_messages, encode_lane_data, |proof| {
 				target::verify_messages_proof::<OnThisChainBridge>(proof, 5)
 			}),
-			Err(target::Error::MessagesCountMismatch),
+			Err(Error::MessagesCountMismatch),
 		);
 	}
 
@@ -889,7 +886,7 @@ mod tests {
 			using_messages_proof(10, None, encode_all_messages, encode_lane_data, |proof| {
 				target::verify_messages_proof::<OnThisChainBridge>(proof, 15)
 			}),
-			Err(target::Error::MessagesCountMismatch),
+			Err(Error::MessagesCountMismatch),
 		);
 	}
 
@@ -902,7 +899,7 @@ mod tests {
 				pallet_bridge_grandpa::ImportedHeaders::<TestRuntime>::remove(bridged_header_hash);
 				target::verify_messages_proof::<OnThisChainBridge>(proof, 10)
 			}),
-			Err(target::Error::HeaderChain(HeaderChainError::UnknownHeader)),
+			Err(Error::HeaderChain(HeaderChainError::UnknownHeader)),
 		);
 	}
 
@@ -925,7 +922,7 @@ mod tests {
 				);
 				target::verify_messages_proof::<OnThisChainBridge>(proof, 10)
 			}),
-			Err(target::Error::HeaderChain(HeaderChainError::StorageProof(
+			Err(Error::HeaderChain(HeaderChainError::StorageProof(
 				StorageProofError::StorageRootMismatch
 			))),
 		);
@@ -940,7 +937,7 @@ mod tests {
 				proof.storage_proof.push(node);
 				target::verify_messages_proof::<OnThisChainBridge>(proof, 10)
 			},),
-			Err(target::Error::HeaderChain(HeaderChainError::StorageProof(
+			Err(Error::HeaderChain(HeaderChainError::StorageProof(
 				StorageProofError::DuplicateNodesInProof
 			))),
 		);
@@ -953,7 +950,7 @@ mod tests {
 				proof.storage_proof.push(vec![42]);
 				target::verify_messages_proof::<OnThisChainBridge>(proof, 10)
 			},),
-			Err(target::Error::StorageProof(StorageProofError::UnusedNodesInTheProof)),
+			Err(Error::StorageProof(StorageProofError::UnusedNodesInTheProof)),
 		);
 	}
 
@@ -967,7 +964,7 @@ mod tests {
 				encode_lane_data,
 				|proof| target::verify_messages_proof::<OnThisChainBridge>(proof, 10)
 			),
-			Err(target::Error::MessageStorage(StorageProofError::StorageValueEmpty)),
+			Err(Error::MessageStorage(StorageProofError::StorageValueEmpty)),
 		);
 	}
 
@@ -987,7 +984,7 @@ mod tests {
 				encode_lane_data,
 				|proof| target::verify_messages_proof::<OnThisChainBridge>(proof, 10),
 			),
-			Err(target::Error::MessageStorage(StorageProofError::StorageValueDecodeFailed(_))),
+			Err(Error::MessageStorage(StorageProofError::StorageValueDecodeFailed(_))),
 		);
 	}
 
@@ -1009,7 +1006,7 @@ mod tests {
 				},
 				|proof| target::verify_messages_proof::<OnThisChainBridge>(proof, 10),
 			),
-			Err(target::Error::OutboundLaneStorage(StorageProofError::StorageValueDecodeFailed(_))),
+			Err(Error::OutboundLaneStorage(StorageProofError::StorageValueDecodeFailed(_))),
 		);
 	}
 
@@ -1019,7 +1016,7 @@ mod tests {
 			using_messages_proof(0, None, encode_all_messages, encode_lane_data, |proof| {
 				target::verify_messages_proof::<OnThisChainBridge>(proof, 0)
 			},),
-			Err(target::Error::EmptyMessageProof),
+			Err(Error::EmptyMessageProof),
 		);
 	}
 
@@ -1093,7 +1090,7 @@ mod tests {
 				proof.nonces_end = u64::MAX;
 				target::verify_messages_proof::<OnThisChainBridge>(proof, u32::MAX)
 			},),
-			Err(target::Error::MessagesCountMismatch),
+			Err(Error::MessagesCountMismatch),
 		);
 	}
 }
