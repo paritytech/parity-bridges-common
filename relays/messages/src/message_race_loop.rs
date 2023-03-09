@@ -757,7 +757,7 @@ where
 	Strategy: RaceStrategy<SourceHeaderId, TargetHeaderId, Proof>,
 {
 	let best_finalized_source_header_id_at_best_target =
-		race_state.best_finalized_source_header_id_at_best_target().clone()?;
+		race_state.best_finalized_source_header_id_at_best_target()?;
 	strategy
 		.select_nonces_to_deliver(race_state)
 		.await

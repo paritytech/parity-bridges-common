@@ -438,7 +438,7 @@ where
 	) -> Option<(RangeInclusive<MessageNonce>, Self::ProofParameters)> {
 		let best_target_nonce = self.strategy.best_at_target()?;
 		let best_finalized_source_header_id_at_best_target =
-			race_state.best_finalized_source_header_id_at_best_target().clone()?;
+			race_state.best_finalized_source_header_id_at_best_target()?;
 		let latest_confirmed_nonce_at_source = self
 			.latest_confirmed_nonces_at_source
 			.iter()
