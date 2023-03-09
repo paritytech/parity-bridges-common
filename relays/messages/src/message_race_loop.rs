@@ -41,14 +41,14 @@ use std::{
 /// One of races within lane.
 pub trait MessageRace {
 	/// Header id of the race source.
-	type SourceHeaderId: Debug + Clone + PartialEq;
+	type SourceHeaderId: Debug + Clone + PartialEq + Send;
 	/// Header id of the race source.
-	type TargetHeaderId: Debug + Clone + PartialEq;
+	type TargetHeaderId: Debug + Clone + PartialEq + Send;
 
 	/// Message nonce used in the race.
 	type MessageNonce: Debug + Clone;
 	/// Proof that is generated and delivered in this race.
-	type Proof: Debug + Clone;
+	type Proof: Debug + Clone + Send;
 
 	/// Name of the race source.
 	fn source_name() -> String;
@@ -175,10 +175,10 @@ pub trait RaceStrategy<SourceHeaderId, TargetHeaderId, Proof>: Debug {
 	/// Should return true if nothing has to be synced.
 	fn is_empty(&self) -> bool;
 	/// Return id of source header that is required to be on target to continue synchronization.
-	fn required_source_header_at_target(
+	fn required_source_header_at_target<RS: RaceState<SourceHeaderId, TargetHeaderId>>(
 		&self,
 		current_best: &SourceHeaderId,
-		race_state: RaceState<SourceHeaderId, TargetHeaderId, Proof>,
+		race_state: RS,
 	) -> Option<SourceHeaderId>;
 	/// Return the best nonce at source node.
 	///
@@ -197,38 +197,53 @@ pub trait RaceStrategy<SourceHeaderId, TargetHeaderId, Proof>: Debug {
 		nonces: SourceClientNonces<Self::SourceNoncesRange>,
 	);
 	/// Called when best nonces are updated at target node of the race.
-	fn best_target_nonces_updated(
+	fn best_target_nonces_updated<RS: RaceState<SourceHeaderId, TargetHeaderId>>(
 		&mut self,
 		nonces: TargetClientNonces<Self::TargetNoncesData>,
-		race_state: &mut RaceState<SourceHeaderId, TargetHeaderId, Proof>,
+		race_state: &mut RS,
 	);
 	/// Called when finalized nonces are updated at target node of the race.
-	fn finalized_target_nonces_updated(
+	fn finalized_target_nonces_updated<RS: RaceState<SourceHeaderId, TargetHeaderId>>(
 		&mut self,
 		nonces: TargetClientNonces<Self::TargetNoncesData>,
-		race_state: &mut RaceState<SourceHeaderId, TargetHeaderId, Proof>,
+		race_state: &mut RS,
 	);
 	/// Should return `Some(nonces)` if we need to deliver proof of `nonces` (and associated
 	/// data) from source to target node.
 	/// Additionally, parameters required to generate proof are returned.
-	async fn select_nonces_to_deliver(
+	async fn select_nonces_to_deliver<RS: RaceState<SourceHeaderId, TargetHeaderId>>(
 		&self,
-		race_state: RaceState<SourceHeaderId, TargetHeaderId, Proof>,
+		race_state: RS,
 	) -> Option<(RangeInclusive<MessageNonce>, Self::ProofParameters)>;
 }
 
-/// State of the race and prepared batch transaction (if available).
-struct RaceStateWithBatch<SourceHeaderId, TargetHeaderId, Proof, BatchTx> {
-	/// Race state.
-	pub state: RaceState<SourceHeaderId, TargetHeaderId, Proof>,
-	/// Batch transaction ready to include and deliver selected `nonces_to_submit` from the
-	/// `state`.
-	pub batch: Option<BatchTx>,
+/// State of the race.
+pub trait RaceState<SourceHeaderId, TargetHeaderId>: Send {
+	/// Best finalized source header id at the source client.
+	fn best_finalized_source_header_id_at_source(&self) -> Option<SourceHeaderId>;
+	/// Best finalized source header id at the best block on the target
+	/// client (at the `best_finalized_source_header_id_at_best_target`).
+	fn best_finalized_source_header_id_at_best_target(&self) -> Option<SourceHeaderId>;
+	/// The best header id at the target client.
+	fn best_target_header_id(&self) -> Option<TargetHeaderId>;
+	/// Best finalized header id at the target client.
+	fn best_finalized_target_header_id(&self) -> Option<TargetHeaderId>;
+
+	/// Returns `true` if we have selected nonces to submit to the target node.
+	fn nonces_to_submit(&self) -> Option<RangeInclusive<MessageNonce>>;
+	/// Reset our nonces selection.
+	fn reset_nonces_to_submit(&mut self);
+
+	/// Returns `true` if we have submitted some nonces to the target node and are
+	/// waiting for them to appear there.
+	fn nonces_submitted(&self) -> Option<RangeInclusive<MessageNonce>>;
+	/// Reset our nonces submission.
+	fn reset_nonces_submitted(&mut self);
 }
 
-/// State of the race.
+/// State of the race and prepared batch transaction (if available).
 #[derive(Debug, Clone)]
-pub struct RaceState<SourceHeaderId, TargetHeaderId, Proof> {
+pub(crate) struct RaceStateImpl<SourceHeaderId, TargetHeaderId, Proof, BatchTx> {
 	/// Best finalized source header id at the source client.
 	pub best_finalized_source_header_id_at_source: Option<SourceHeaderId>,
 	/// Best finalized source header id at the best block on the target
@@ -240,30 +255,68 @@ pub struct RaceState<SourceHeaderId, TargetHeaderId, Proof> {
 	pub best_finalized_target_header_id: Option<TargetHeaderId>,
 	/// Range of nonces that we have selected to submit.
 	pub nonces_to_submit: Option<(SourceHeaderId, RangeInclusive<MessageNonce>, Proof)>,
+	/// Batch transaction ready to include and deliver selected `nonces_to_submit` from the
+	/// `state`.
+	pub nonces_to_submit_batch: Option<BatchTx>,
 	/// Range of nonces that is currently submitted.
 	pub nonces_submitted: Option<RangeInclusive<MessageNonce>>,
 }
 
 impl<SourceHeaderId, TargetHeaderId, Proof, BatchTx> Default
-	for RaceStateWithBatch<SourceHeaderId, TargetHeaderId, Proof, BatchTx>
+	for RaceStateImpl<SourceHeaderId, TargetHeaderId, Proof, BatchTx>
 {
 	fn default() -> Self {
-		RaceStateWithBatch { state: Default::default(), batch: None }
+		RaceStateImpl {
+			best_finalized_source_header_id_at_source: None,
+			best_finalized_source_header_id_at_best_target: None,
+			best_target_header_id: None,
+			best_finalized_target_header_id: None,
+			nonces_to_submit: None,
+			nonces_to_submit_batch: None,
+			nonces_submitted: None,
+		}
 	}
 }
 
-impl<SourceHeaderId, TargetHeaderId, Proof, BatchTx>
-	RaceStateWithBatch<SourceHeaderId, TargetHeaderId, Proof, BatchTx>
+impl<SourceHeaderId, TargetHeaderId, Proof, BatchTx> RaceState<SourceHeaderId, TargetHeaderId>
+	for RaceStateImpl<SourceHeaderId, TargetHeaderId, Proof, BatchTx>
+where
+	SourceHeaderId: Clone + Send,
+	TargetHeaderId: Clone + Send,
+	Proof: Clone + Send,
+	BatchTx: Clone + Send,
 {
-	/// Reset `nonces_to_submit` to `None`.
-	fn reset_selected(&mut self) {
-		self.state.nonces_to_submit = None;
-		self.batch = None;
+	fn best_finalized_source_header_id_at_source(&self) -> Option<SourceHeaderId> {
+		self.best_finalized_source_header_id_at_source.clone()
 	}
 
-	/// Reset `nonces_submitted` to `None`.
-	fn reset_submitted(&mut self) {
-		self.state.nonces_submitted = None;
+	fn best_finalized_source_header_id_at_best_target(&self) -> Option<SourceHeaderId> {
+		self.best_finalized_source_header_id_at_best_target.clone()
+	}
+
+	fn best_target_header_id(&self) -> Option<TargetHeaderId> {
+		self.best_target_header_id.clone()
+	}
+
+	fn best_finalized_target_header_id(&self) -> Option<TargetHeaderId> {
+		self.best_finalized_target_header_id.clone()
+	}
+
+	fn nonces_to_submit(&self) -> Option<RangeInclusive<MessageNonce>> {
+		self.nonces_to_submit.as_ref().map(|(_, nonces, _)| nonces.clone())
+	}
+
+	fn reset_nonces_to_submit(&mut self) {
+		self.nonces_to_submit = None;
+		self.nonces_to_submit_batch = None;
+	}
+
+	fn nonces_submitted(&self) -> Option<RangeInclusive<MessageNonce>> {
+		self.nonces_submitted.clone()
+	}
+
+	fn reset_nonces_submitted(&mut self) {
+		self.nonces_submitted = None;
 	}
 }
 
@@ -283,7 +336,7 @@ pub async fn run<P: MessageRace, SC: SourceClient<P>, TC: TargetClient<P>>(
 	>,
 ) -> Result<(), FailedClient> {
 	let mut progress_context = Instant::now();
-	let mut race_state = RaceStateWithBatch::default();
+	let mut race_state = RaceStateImpl::default();
 
 	let mut source_retry_backoff = retry_backoff();
 	let mut source_client_is_online = true;
@@ -324,32 +377,32 @@ pub async fn run<P: MessageRace, SC: SourceClient<P>, TC: TargetClient<P>>(
 			// when headers ids are updated
 			source_state = race_source_updated.next() => {
 				if let Some(source_state) = source_state {
-					let is_source_state_updated = race_state.state.best_finalized_source_header_id_at_source.as_ref()
+					let is_source_state_updated = race_state.best_finalized_source_header_id_at_source.as_ref()
 						!= Some(&source_state.best_finalized_self);
 					if is_source_state_updated {
 						source_nonces_required = true;
-						race_state.state.best_finalized_source_header_id_at_source
+						race_state.best_finalized_source_header_id_at_source
 							= Some(source_state.best_finalized_self);
 					}
 				}
 			},
 			target_state = race_target_updated.next() => {
 				if let Some(target_state) = target_state {
-					let is_target_best_state_updated = race_state.state.best_target_header_id.as_ref()
+					let is_target_best_state_updated = race_state.best_target_header_id.as_ref()
 						!= Some(&target_state.best_self);
 
 					if is_target_best_state_updated {
 						target_best_nonces_required = true;
-						race_state.state.best_target_header_id = Some(target_state.best_self);
-						race_state.state.best_finalized_source_header_id_at_best_target
+						race_state.best_target_header_id = Some(target_state.best_self);
+						race_state.best_finalized_source_header_id_at_best_target
 							= target_state.best_finalized_peer_at_best_self;
 					}
 
-					let is_target_finalized_state_updated = race_state.state.best_finalized_target_header_id.as_ref()
+					let is_target_finalized_state_updated = race_state.best_finalized_target_header_id.as_ref()
 						!= Some(&target_state.best_finalized_self);
 					if  is_target_finalized_state_updated {
 						target_finalized_nonces_required = true;
-						race_state.state.best_finalized_target_header_id = Some(target_state.best_finalized_self);
+						race_state.best_finalized_target_header_id = Some(target_state.best_finalized_self);
 					}
 				}
 			},
@@ -378,10 +431,9 @@ pub async fn run<P: MessageRace, SC: SourceClient<P>, TC: TargetClient<P>>(
 
 				// ask for more headers if we have nonces to deliver and required headers are missing
 				source_required_header = race_state
-					.state
 					.best_finalized_source_header_id_at_best_target
 					.as_ref()
-					.and_then(|best| strategy.required_source_header_at_target(best, race_state.state.clone()));
+					.and_then(|best| strategy.required_source_header_at_target(best, race_state.clone()));
 			},
 			nonces = target_best_nonces => {
 				target_best_nonces_required = false;
@@ -397,7 +449,7 @@ pub async fn run<P: MessageRace, SC: SourceClient<P>, TC: TargetClient<P>>(
 							nonces,
 						);
 
-						strategy.best_target_nonces_updated(nonces, &mut race_state.state);
+						strategy.best_target_nonces_updated(nonces, &mut race_state);
 					},
 					&mut target_go_offline_future,
 					async_std::task::sleep,
@@ -418,7 +470,7 @@ pub async fn run<P: MessageRace, SC: SourceClient<P>, TC: TargetClient<P>>(
 							nonces,
 						);
 
-						strategy.finalized_target_nonces_updated(nonces, &mut race_state.state);
+						strategy.finalized_target_nonces_updated(nonces, &mut race_state);
 					},
 					&mut target_go_offline_future,
 					async_std::task::sleep,
@@ -464,8 +516,8 @@ pub async fn run<P: MessageRace, SC: SourceClient<P>, TC: TargetClient<P>>(
 							P::source_name(),
 						);
 
-						race_state.state.nonces_to_submit = Some((at_block, nonces_range, proof));
-						race_state.batch = batch_transaction;
+						race_state.nonces_to_submit = Some((at_block, nonces_range, proof));
+						race_state.nonces_to_submit_batch = batch_transaction;
 					},
 					&mut source_go_offline_future,
 					async_std::task::sleep,
@@ -484,8 +536,8 @@ pub async fn run<P: MessageRace, SC: SourceClient<P>, TC: TargetClient<P>>(
 							P::target_name(),
 						);
 
-						race_state.reset_selected();
-						race_state.state.nonces_submitted = Some(artifacts.nonces);
+						race_state.reset_nonces_to_submit();
+						race_state.nonces_submitted = Some(artifacts.nonces);
 						target_tx_tracker.set(artifacts.tx_tracker.wait().fuse());
 					},
 					&mut target_go_offline_future,
@@ -494,7 +546,7 @@ pub async fn run<P: MessageRace, SC: SourceClient<P>, TC: TargetClient<P>>(
 				).fail_if_error(FailedClient::Target).map(|_| true)?;
 			},
 			target_transaction_status = target_tx_tracker => {
-				match (target_transaction_status, race_state.state.nonces_submitted.as_ref()) {
+				match (target_transaction_status, race_state.nonces_submitted.as_ref()) {
 					(TrackedTransactionStatus::Finalized(at_block), Some(nonces_submitted)) => {
 						// our transaction has been mined, but was it successful or not? let's check the best
 						// nonce at the target node.
@@ -521,7 +573,7 @@ pub async fn run<P: MessageRace, SC: SourceClient<P>, TC: TargetClient<P>>(
 									e,
 								);
 
-								race_state.reset_submitted();
+								race_state.reset_nonces_submitted();
 							});
 					},
 					(TrackedTransactionStatus::Lost, _) => {
@@ -530,11 +582,11 @@ pub async fn run<P: MessageRace, SC: SourceClient<P>, TC: TargetClient<P>>(
 							"{} -> {} race transaction has been lost. State: {:?}. Strategy: {:?}",
 							P::source_name(),
 							P::target_name(),
-							race_state.state,
+							race_state,
 							strategy,
 						);
 
-						race_state.reset_submitted();
+						race_state.reset_nonces_submitted();
 					},
 					_ => (),
 				}
@@ -567,12 +619,12 @@ pub async fn run<P: MessageRace, SC: SourceClient<P>, TC: TargetClient<P>>(
 					// source header is already at the target chain
 					let required_source_header_at_target =
 						target_batch_transaction.required_header_id();
-					let mut expected_race_state = race_state.state.clone();
+					let mut expected_race_state = race_state.clone();
 					expected_race_state.best_finalized_source_header_id_at_best_target =
 						Some(required_source_header_at_target);
 					expected_race_state
 				} else {
-					race_state.state.clone()
+					race_state.clone()
 				};
 
 			let nonces_to_deliver = select_nonces_to_deliver(expected_race_state, &strategy).await;
@@ -598,7 +650,6 @@ pub async fn run<P: MessageRace, SC: SourceClient<P>, TC: TargetClient<P>>(
 			} else if source_nonces_required && best_at_source.is_some() {
 				log::debug!(target: "bridge", "Asking {} about message nonces", P::source_name());
 				let at_block = race_state
-					.state
 					.best_finalized_source_header_id_at_source
 					.as_ref()
 					.expect(
@@ -619,15 +670,13 @@ pub async fn run<P: MessageRace, SC: SourceClient<P>, TC: TargetClient<P>>(
 		if target_client_is_online {
 			target_client_is_online = false;
 
-			if let Some((at_block, nonces_range, proof)) =
-				race_state.state.nonces_to_submit.as_ref()
-			{
+			if let Some((at_block, nonces_range, proof)) = race_state.nonces_to_submit.as_ref() {
 				log::debug!(
 					target: "bridge",
 					"Going to submit proof of messages in range {:?} to {} node{}",
 					nonces_range,
 					P::target_name(),
-					race_state.batch.as_ref().map(|tx| format!(
+					race_state.nonces_to_submit_batch.as_ref().map(|tx| format!(
 						". This transaction is batched with sending the proof for header {:?}.",
 						tx.required_header_id())
 					).unwrap_or_default(),
@@ -636,7 +685,7 @@ pub async fn run<P: MessageRace, SC: SourceClient<P>, TC: TargetClient<P>>(
 				target_submit_proof.set(
 					race_target
 						.submit_proof(
-							race_state.batch.clone(),
+							race_state.nonces_to_submit_batch.clone(),
 							at_block.clone(),
 							nonces_range.clone(),
 							proof.clone(),
@@ -650,7 +699,6 @@ pub async fn run<P: MessageRace, SC: SourceClient<P>, TC: TargetClient<P>>(
 			} else if target_best_nonces_required {
 				log::debug!(target: "bridge", "Asking {} about best message nonces", P::target_name());
 				let at_block = race_state
-					.state
 					.best_target_header_id
 					.as_ref()
 					.expect("target_best_nonces_required is only true when best_target_header_id is Some; qed")
@@ -659,7 +707,6 @@ pub async fn run<P: MessageRace, SC: SourceClient<P>, TC: TargetClient<P>>(
 			} else if target_finalized_nonces_required {
 				log::debug!(target: "bridge", "Asking {} about finalized message nonces", P::target_name());
 				let at_block = race_state
-					.state
 					.best_finalized_target_header_id
 					.as_ref()
 					.expect(
@@ -671,21 +718,6 @@ pub async fn run<P: MessageRace, SC: SourceClient<P>, TC: TargetClient<P>>(
 			} else {
 				target_client_is_online = true;
 			}
-		}
-	}
-}
-
-impl<SourceHeaderId, TargetHeaderId, Proof> Default
-	for RaceState<SourceHeaderId, TargetHeaderId, Proof>
-{
-	fn default() -> Self {
-		RaceState {
-			best_finalized_source_header_id_at_source: None,
-			best_finalized_source_header_id_at_best_target: None,
-			best_target_header_id: None,
-			best_finalized_target_header_id: None,
-			nonces_to_submit: None,
-			nonces_submitted: None,
 		}
 	}
 }
@@ -717,7 +749,7 @@ where
 }
 
 async fn select_nonces_to_deliver<SourceHeaderId, TargetHeaderId, Proof, Strategy>(
-	race_state: RaceState<SourceHeaderId, TargetHeaderId, Proof>,
+	race_state: impl RaceState<SourceHeaderId, TargetHeaderId>,
 	strategy: &Strategy,
 ) -> Option<(SourceHeaderId, RangeInclusive<MessageNonce>, Strategy::ProofParameters)>
 where
@@ -725,7 +757,7 @@ where
 	Strategy: RaceStrategy<SourceHeaderId, TargetHeaderId, Proof>,
 {
 	let best_finalized_source_header_id_at_best_target =
-		race_state.best_finalized_source_header_id_at_best_target.clone()?;
+		race_state.best_finalized_source_header_id_at_best_target().clone()?;
 	strategy
 		.select_nonces_to_deliver(race_state)
 		.await
@@ -748,7 +780,7 @@ mod tests {
 
 		// target node only knows about source' BEST_AT_TARGET block
 		// source node has BEST_AT_SOURCE > BEST_AT_TARGET block
-		let mut race_state = RaceState::<_, _, ()> {
+		let mut race_state = RaceStateImpl::<_, _, (), ()> {
 			best_finalized_source_header_id_at_source: Some(HeaderId(
 				BEST_AT_SOURCE,
 				BEST_AT_SOURCE,
@@ -760,11 +792,12 @@ mod tests {
 			best_target_header_id: Some(HeaderId(0, 0)),
 			best_finalized_target_header_id: Some(HeaderId(0, 0)),
 			nonces_to_submit: None,
+			nonces_to_submit_batch: None,
 			nonces_submitted: None,
 		};
 
 		// we have some nonces to deliver and they're generated at GENERATED_AT < BEST_AT_SOURCE
-		let mut strategy = BasicStrategy::new();
+		let mut strategy = BasicStrategy::<_, _, _, _, _, ()>::new();
 		strategy.source_nonces_updated(
 			HeaderId(GENERATED_AT, GENERATED_AT),
 			SourceClientNonces { new_nonces: 0..=10, confirmed_nonce: None },

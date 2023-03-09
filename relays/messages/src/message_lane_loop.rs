@@ -111,7 +111,7 @@ pub struct NoncesSubmitArtifacts<T> {
 
 /// Batch transaction that already submit some headers and needs to be extended with
 /// messages/delivery proof before sending.
-pub trait BatchTransaction<HeaderId>: Send {
+pub trait BatchTransaction<HeaderId>: Debug + Send {
 	/// Header that was required in the original call and which is bundled within this
 	/// batch transaction.
 	fn required_header_id(&self) -> HeaderId;

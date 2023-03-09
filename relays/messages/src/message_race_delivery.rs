@@ -322,13 +322,13 @@ where
 		self.strategy.is_empty()
 	}
 
-	fn required_source_header_at_target(
+	fn required_source_header_at_target<RS: RaceState<SourceHeaderIdOf<P>, TargetHeaderIdOf<P>>>(
 		&self,
 		current_best: &SourceHeaderIdOf<P>,
-		race_state: RaceState<SourceHeaderIdOf<P>, TargetHeaderIdOf<P>, P::MessagesProof>,
+		race_state: RS,
 	) -> Option<SourceHeaderIdOf<P>> {
 		// we have already submitted something - let's wait until it is mined
-		if race_state.nonces_submitted.is_some() {
+		if race_state.nonces_submitted().is_some() {
 			return None
 		}
 
@@ -387,10 +387,10 @@ where
 		self.strategy.source_nonces_updated(at_block, nonces)
 	}
 
-	fn best_target_nonces_updated(
+	fn best_target_nonces_updated<RS: RaceState<SourceHeaderIdOf<P>, TargetHeaderIdOf<P>>>(
 		&mut self,
 		nonces: TargetClientNonces<DeliveryRaceTargetNoncesData>,
-		race_state: &mut RaceState<SourceHeaderIdOf<P>, TargetHeaderIdOf<P>, P::MessagesProof>,
+		race_state: &mut RS,
 	) {
 		// best target nonces must always be ge than finalized target nonces
 		let latest_nonce = nonces.latest_nonce;
@@ -402,13 +402,13 @@ where
 		)
 	}
 
-	fn finalized_target_nonces_updated(
+	fn finalized_target_nonces_updated<RS: RaceState<SourceHeaderIdOf<P>, TargetHeaderIdOf<P>>>(
 		&mut self,
 		nonces: TargetClientNonces<DeliveryRaceTargetNoncesData>,
-		race_state: &mut RaceState<SourceHeaderIdOf<P>, TargetHeaderIdOf<P>, P::MessagesProof>,
+		race_state: &mut RS,
 	) {
 		if let Some(ref best_finalized_source_header_id_at_best_target) =
-			race_state.best_finalized_source_header_id_at_best_target
+			race_state.best_finalized_source_header_id_at_best_target()
 		{
 			let oldest_header_number_to_keep = best_finalized_source_header_id_at_best_target.0;
 			while self
@@ -432,13 +432,13 @@ where
 		)
 	}
 
-	async fn select_nonces_to_deliver(
+	async fn select_nonces_to_deliver<RS: RaceState<SourceHeaderIdOf<P>, TargetHeaderIdOf<P>>>(
 		&self,
-		race_state: RaceState<SourceHeaderIdOf<P>, TargetHeaderIdOf<P>, P::MessagesProof>,
+		race_state: RS,
 	) -> Option<(RangeInclusive<MessageNonce>, Self::ProofParameters)> {
 		let best_target_nonce = self.strategy.best_at_target()?;
 		let best_finalized_source_header_id_at_best_target =
-			race_state.best_finalized_source_header_id_at_best_target.clone()?;
+			race_state.best_finalized_source_header_id_at_best_target().clone()?;
 		let latest_confirmed_nonce_at_source = self
 			.latest_confirmed_nonces_at_source
 			.iter()
@@ -582,12 +582,16 @@ impl<SourceChainBalance: std::fmt::Debug> NoncesRange for MessageDetailsMap<Sour
 
 #[cfg(test)]
 mod tests {
-	use crate::message_lane_loop::{
-		tests::{
-			header_id, TestMessageLane, TestMessagesProof, TestSourceChainBalance,
-			TestSourceClient, TestSourceHeaderId, TestTargetClient, TestTargetHeaderId,
+	use crate::{
+		message_lane_loop::{
+			tests::{
+				header_id, TestMessageLane, TestMessagesBatchTransaction, TestMessagesProof,
+				TestSourceChainBalance, TestSourceClient, TestSourceHeaderId, TestTargetClient,
+				TestTargetHeaderId,
+			},
+			MessageDetails,
 		},
-		MessageDetails,
+		message_race_loop::RaceStateImpl,
 	};
 
 	use super::*;
@@ -595,7 +599,12 @@ mod tests {
 	const DEFAULT_DISPATCH_WEIGHT: Weight = Weight::from_parts(1, 0);
 	const DEFAULT_SIZE: u32 = 1;
 
-	type TestRaceState = RaceState<TestSourceHeaderId, TestTargetHeaderId, TestMessagesProof>;
+	type TestRaceState = RaceStateImpl<
+		TestSourceHeaderId,
+		TestTargetHeaderId,
+		TestMessagesProof,
+		TestMessagesBatchTransaction,
+	>;
 	type TestStrategy =
 		MessageDeliveryStrategy<TestMessageLane, TestSourceClient, TestTargetClient>;
 
@@ -623,12 +632,13 @@ mod tests {
 	}
 
 	fn prepare_strategy() -> (TestRaceState, TestStrategy) {
-		let mut race_state = RaceState {
+		let mut race_state = RaceStateImpl {
 			best_finalized_source_header_id_at_source: Some(header_id(1)),
 			best_finalized_source_header_id_at_best_target: Some(header_id(1)),
 			best_target_header_id: Some(header_id(1)),
 			best_finalized_target_header_id: Some(header_id(1)),
 			nonces_to_submit: None,
+			nonces_to_submit_batch: None,
 			nonces_submitted: None,
 		};
 
