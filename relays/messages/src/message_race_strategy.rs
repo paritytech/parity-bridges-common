@@ -207,6 +207,11 @@ impl<
 	fn required_source_header_at_target(
 		&self,
 		current_best: &HeaderId<SourceHeaderHash, SourceHeaderNumber>,
+		_race_state: RaceState<
+			HeaderId<SourceHeaderHash, SourceHeaderNumber>,
+			HeaderId<TargetHeaderHash, TargetHeaderNumber>,
+			Proof,
+		>,
 	) -> Option<HeaderId<SourceHeaderHash, SourceHeaderNumber>> {
 		self.source_queue
 			.back()
@@ -264,7 +269,7 @@ impl<
 			.map(|(_, nonces, _)| *nonces.end() <= nonce)
 			.unwrap_or(false);
 		if need_to_select_new_nonces {
-			race_state.nonces_to_submit = None;
+			race_state.nonces_to_submit = None; // TODO: also reset batch transaction
 		}
 
 		let need_new_nonces_to_submit = race_state

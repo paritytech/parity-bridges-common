@@ -325,10 +325,16 @@ where
 	fn required_source_header_at_target(
 		&self,
 		current_best: &SourceHeaderIdOf<P>,
+		race_state: RaceState<SourceHeaderIdOf<P>, TargetHeaderIdOf<P>, P::MessagesProof>,
 	) -> Option<SourceHeaderIdOf<P>> {
+		// we have already submitted something - let's wait until it is mined
+		if race_state.nonces_submitted.is_some() {
+			return None
+		}
+
 		let has_nonces_to_deliver = !self.strategy.is_empty();
 		let header_required_for_messages_delivery =
-			self.strategy.required_source_header_at_target(current_best);
+			self.strategy.required_source_header_at_target(current_best, race_state);
 		let header_required_for_reward_confirmations_delivery = self
 			.latest_confirmed_nonces_at_source
 			.back()
@@ -964,14 +970,17 @@ mod tests {
 		);
 		// nothing needs to be delivered now and we don't need any new headers
 		assert_eq!(strategy.select_nonces_to_deliver(state.clone()).await, None);
-		assert_eq!(strategy.required_source_header_at_target(&header_id(1)), None);
+		assert_eq!(strategy.required_source_header_at_target(&header_id(1), state.clone()), None);
 
 		// now let's generate two more nonces [24; 25] at the soruce;
 		strategy.source_nonces_updated(header_id(2), source_nonces(24..=25, 19, 0));
 		//
 		// - so now we'll need to relay source block#2 to be able to accept messages [24; 25].
 		assert_eq!(strategy.select_nonces_to_deliver(state.clone()).await, None);
-		assert_eq!(strategy.required_source_header_at_target(&header_id(1)), Some(header_id(2)));
+		assert_eq!(
+			strategy.required_source_header_at_target(&header_id(1), state.clone()),
+			Some(header_id(2))
+		);
 
 		// let's relay source block#2
 		state.best_finalized_source_header_id_at_source = Some(header_id(2));
@@ -982,7 +991,7 @@ mod tests {
 		// and ask strategy again => still nothing to deliver, because parallel confirmations
 		// race need to be pushed further
 		assert_eq!(strategy.select_nonces_to_deliver(state.clone()).await, None);
-		assert_eq!(strategy.required_source_header_at_target(&header_id(2)), None);
+		assert_eq!(strategy.required_source_header_at_target(&header_id(2), state.clone()), None);
 
 		// let's confirm messages [20; 23]
 		strategy.source_nonces_updated(header_id(2), source_nonces(24..=25, 23, 0));
@@ -990,10 +999,10 @@ mod tests {
 		// and ask strategy again => now we have everything required to deliver remaining
 		// [24; 25] nonces and proof of [20; 23] confirmation
 		assert_eq!(
-			strategy.select_nonces_to_deliver(state).await,
+			strategy.select_nonces_to_deliver(state.clone()).await,
 			Some(((24..=25), proof_parameters(true, 2))),
 		);
-		assert_eq!(strategy.required_source_header_at_target(&header_id(2)), None);
+		assert_eq!(strategy.required_source_header_at_target(&header_id(2), state), None);
 	}
 
 	#[async_std::test]
@@ -1025,6 +1034,7 @@ mod tests {
 	#[test]
 	#[allow(clippy::reversed_empty_ranges)]
 	fn no_source_headers_required_at_target_if_lanes_are_empty() {
+		let (state, _) = prepare_strategy();
 		let mut strategy = TestStrategy {
 			max_unrewarded_relayer_entries_at_target: 4,
 			max_unconfirmed_nonces_at_target: 4,
@@ -1053,7 +1063,7 @@ mod tests {
 			strategy.latest_confirmed_nonces_at_source,
 			VecDeque::from([(source_header_id, 0)])
 		);
-		assert_eq!(strategy.required_source_header_at_target(&source_header_id), None);
+		assert_eq!(strategy.required_source_header_at_target(&source_header_id, state), None);
 	}
 
 	#[async_std::test]
