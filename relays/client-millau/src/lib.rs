@@ -17,11 +17,12 @@
 //! Types used to connect to the Millau-Substrate chain.
 
 use bp_messages::MessageNonce;
+use bp_runtime::ChainId;
 use codec::{Compact, Decode, Encode};
 use relay_substrate_client::{
-	BalanceOf, Chain, ChainWithBalances, ChainWithGrandpa, ChainWithMessages,
-	ChainWithTransactions, ChainWithUtilityPallet, Error as SubstrateError,
-	FullRuntimeUtilityPallet, IndexOf, SignParam, UnderlyingChainProvider, UnsignedTransaction,
+	BalanceOf, Chain, ChainWithBalances, ChainWithMessages, ChainWithTransactions,
+	ChainWithUtilityPallet, Error as SubstrateError, FullRuntimeUtilityPallet, IndexOf, SignParam,
+	UnderlyingChainProvider, UnsignedTransaction,
 };
 use sp_core::{storage::StorageKey, Pair};
 use sp_runtime::{generic::SignedPayload, traits::IdentifyAccount};
@@ -38,10 +39,6 @@ impl UnderlyingChainProvider for Millau {
 	type Chain = bp_millau::Millau;
 }
 
-impl ChainWithGrandpa for Millau {
-	const WITH_CHAIN_GRANDPA_PALLET_NAME: &'static str = bp_millau::WITH_MILLAU_GRANDPA_PALLET_NAME;
-}
-
 impl ChainWithMessages for Millau {
 	const WITH_CHAIN_MESSAGES_PALLET_NAME: &'static str =
 		bp_millau::WITH_MILLAU_MESSAGES_PALLET_NAME;
@@ -55,10 +52,10 @@ impl ChainWithMessages for Millau {
 		bp_millau::MAX_UNREWARDED_RELAYERS_IN_CONFIRMATION_TX;
 	const MAX_UNCONFIRMED_MESSAGES_IN_CONFIRMATION_TX: MessageNonce =
 		bp_millau::MAX_UNCONFIRMED_MESSAGES_IN_CONFIRMATION_TX;
-	type WeightInfo = ();
 }
 
 impl Chain for Millau {
+	const ID: ChainId = bp_runtime::MILLAU_CHAIN_ID;
 	const NAME: &'static str = "Millau";
 	// Rialto token has no value, but we associate it with KSM token
 	const TOKEN_ID: Option<&'static str> = Some("kusama");
@@ -99,7 +96,7 @@ impl ChainWithTransactions for Millau {
 				frame_system::CheckWeight::<millau_runtime::Runtime>::new(),
 				pallet_transaction_payment::ChargeTransactionPayment::<millau_runtime::Runtime>::from(unsigned.tip),
 				millau_runtime::BridgeRejectObsoleteHeadersAndMessages,
-				millau_runtime::BridgeRefundRialtoParachainRelayers::default(),
+				millau_runtime::BridgeRefundRialtoParachainMessages::default(),
 			),
 			(
 				(),

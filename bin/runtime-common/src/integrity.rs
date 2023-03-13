@@ -90,7 +90,6 @@ macro_rules! assert_bridge_messages_pallet_types(
 
 			assert_type_eq_all!(<$r as MessagesConfig<$i>>::OutboundPayload, FromThisChainMessagePayload);
 
-			assert_type_eq_all!(<$r as MessagesConfig<$i>>::InboundPayload, FromBridgedChainMessagePayload<CallOf<ThisChain<$bridge>>>);
 			assert_type_eq_all!(<$r as MessagesConfig<$i>>::InboundRelayer, AccountIdOf<BridgedChain<$bridge>>);
 
 			assert_type_eq_all!(<$r as MessagesConfig<$i>>::TargetHeaderChain, TargetHeaderChainAdapter<$bridge>);
@@ -142,10 +141,9 @@ pub struct AssertChainConstants {
 ///
 /// 1) block weight limits are matching;
 /// 2) block size limits are matching.
-pub fn assert_chain_constants<R, C>(params: AssertChainConstants)
+pub fn assert_chain_constants<R>(params: AssertChainConstants)
 where
 	R: frame_system::Config,
-	C: Chain,
 {
 	// we don't check runtime version here, because in our case we'll be building relay from one
 	// repo and runtime will live in another repo, along with outdated relay version. To avoid
@@ -275,7 +273,7 @@ pub struct AssertCompleteBridgeConstants<'a> {
 
 /// All bridge-related constants tests for the complete standard messages bridge (i.e. with bridge
 /// GRANDPA and messages pallets deployed).
-pub fn assert_complete_bridge_constants<R, GI, MI, B, This>(params: AssertCompleteBridgeConstants)
+pub fn assert_complete_bridge_constants<R, GI, MI, B>(params: AssertCompleteBridgeConstants)
 where
 	R: frame_system::Config
 		+ pallet_bridge_grandpa::Config<GI>
@@ -283,9 +281,8 @@ where
 	GI: 'static,
 	MI: 'static,
 	B: MessageBridge,
-	This: Chain,
 {
-	assert_chain_constants::<R, This>(params.this_chain_constants);
+	assert_chain_constants::<R>(params.this_chain_constants);
 	assert_bridge_grandpa_pallet_constants::<R, GI>();
 	assert_bridge_messages_pallet_constants::<R, MI>(params.messages_pallet_constants);
 	assert_bridge_pallet_names::<B, R, GI, MI>(params.pallet_names);

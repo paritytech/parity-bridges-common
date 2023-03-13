@@ -16,12 +16,14 @@
 
 //! Types used to connect to the BridgeHub-Rococo-Substrate parachain.
 
-use bp_bridge_hub_wococo::PolkadotSignedExtension;
+use bp_bridge_hub_rococo::AVERAGE_BLOCK_INTERVAL;
 use bp_messages::MessageNonce;
+use bp_runtime::ChainId;
 use codec::Encode;
 use relay_substrate_client::{
-	Chain, ChainWithBalances, ChainWithMessages, ChainWithTransactions, Error as SubstrateError,
-	SignParam, UnderlyingChainProvider, UnsignedTransaction,
+	Chain, ChainWithBalances, ChainWithMessages, ChainWithTransactions, ChainWithUtilityPallet,
+	Error as SubstrateError, MockedRuntimeUtilityPallet, SignParam, UnderlyingChainProvider,
+	UnsignedTransaction,
 };
 use sp_core::{storage::StorageKey, Pair};
 use sp_runtime::{generic::SignedPayload, traits::IdentifyAccount};
@@ -40,11 +42,12 @@ impl UnderlyingChainProvider for BridgeHubRococo {
 }
 
 impl Chain for BridgeHubRococo {
+	const ID: ChainId = bp_runtime::BRIDGE_HUB_ROCOCO_CHAIN_ID;
 	const NAME: &'static str = "BridgeHubRococo";
 	const TOKEN_ID: Option<&'static str> = None;
 	const BEST_FINALIZED_HEADER_ID_METHOD: &'static str =
 		bp_bridge_hub_rococo::BEST_FINALIZED_BRIDGE_HUB_ROCOCO_HEADER_METHOD;
-	const AVERAGE_BLOCK_INTERVAL: Duration = Duration::from_secs(6);
+	const AVERAGE_BLOCK_INTERVAL: Duration = AVERAGE_BLOCK_INTERVAL;
 
 	type SignedBlock = bp_bridge_hub_rococo::SignedBlock;
 	type Call = runtime::Call;
@@ -54,6 +57,10 @@ impl ChainWithBalances for BridgeHubRococo {
 	fn account_info_storage_key(account_id: &Self::AccountId) -> StorageKey {
 		bp_bridge_hub_rococo::AccountInfoStorageMapKeyProvider::final_key(account_id)
 	}
+}
+
+impl ChainWithUtilityPallet for BridgeHubRococo {
+	type UtilityPallet = MockedRuntimeUtilityPallet<runtime::Call>;
 }
 
 impl ChainWithTransactions for BridgeHubRococo {
@@ -66,7 +73,7 @@ impl ChainWithTransactions for BridgeHubRococo {
 	) -> Result<Self::SignedTransaction, SubstrateError> {
 		let raw_payload = SignedPayload::new(
 			unsigned.call,
-			bp_bridge_hub_rococo::SignedExtension::from_params(
+			runtime::rewarding_bridge_signed_extension::from_params(
 				param.spec_version,
 				param.transaction_version,
 				unsigned.era,
@@ -80,7 +87,7 @@ impl ChainWithTransactions for BridgeHubRococo {
 		let signer: sp_runtime::MultiSigner = param.signer.public().into();
 		let (call, extra, _) = raw_payload.deconstruct();
 
-		Ok(bp_bridge_hub_rococo::UncheckedExtrinsic::new_signed(
+		Ok(runtime::UncheckedExtrinsic::new_signed(
 			call,
 			signer.into_account().into(),
 			signature.into(),
@@ -103,7 +110,13 @@ impl ChainWithTransactions for BridgeHubRococo {
 
 	fn parse_transaction(tx: Self::SignedTransaction) -> Option<UnsignedTransaction<Self>> {
 		let extra = &tx.signature.as_ref()?.2;
-		Some(UnsignedTransaction::new(tx.function, extra.nonce()).tip(extra.tip()))
+		Some(
+			UnsignedTransaction::new(
+				tx.function,
+				runtime::rewarding_bridge_signed_extension::nonce(extra),
+			)
+			.tip(runtime::rewarding_bridge_signed_extension::tip(extra)),
+		)
 	}
 }
 
@@ -121,9 +134,6 @@ impl ChainWithMessages for BridgeHubRococo {
 		bp_bridge_hub_rococo::MAX_UNREWARDED_RELAYERS_IN_CONFIRMATION_TX;
 	const MAX_UNCONFIRMED_MESSAGES_IN_CONFIRMATION_TX: MessageNonce =
 		bp_bridge_hub_rococo::MAX_UNCONFIRMED_MESSAGES_IN_CONFIRMATION_TX;
-
-	// TODO: fix (https://github.com/paritytech/parity-bridges-common/issues/1640)
-	type WeightInfo = ();
 }
 
 #[cfg(test)]

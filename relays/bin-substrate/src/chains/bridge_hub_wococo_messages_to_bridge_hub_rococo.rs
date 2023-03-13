@@ -19,7 +19,7 @@
 use crate::cli::bridge::{CliBridgeBase, MessagesCliBridge};
 use relay_bridge_hub_rococo_client::BridgeHubRococo;
 use relay_bridge_hub_wococo_client::BridgeHubWococo;
-use substrate_relay_helper::messages_lane::SubstrateMessageLane;
+use substrate_relay_helper::{messages_lane::SubstrateMessageLane, UtilityPalletBatchCallBuilder};
 
 pub struct BridgeHubWococoToBridgeHubRococoMessagesCliBridge {}
 
@@ -32,14 +32,14 @@ impl MessagesCliBridge for BridgeHubWococoToBridgeHubRococoMessagesCliBridge {
 	type MessagesLane = BridgeHubWococoMessagesToBridgeHubRococoMessageLane;
 }
 
-substrate_relay_helper::generate_mocked_receive_message_proof_call_builder!(
+substrate_relay_helper::generate_receive_message_proof_call_builder!(
 	BridgeHubWococoMessagesToBridgeHubRococoMessageLane,
 	BridgeHubWococoMessagesToBridgeHubRococoMessageLaneReceiveMessagesProofCallBuilder,
 	relay_bridge_hub_rococo_client::runtime::Call::BridgeWococoMessages,
 	relay_bridge_hub_rococo_client::runtime::BridgeWococoMessagesCall::receive_messages_proof
 );
 
-substrate_relay_helper::generate_mocked_receive_message_delivery_proof_call_builder!(
+substrate_relay_helper::generate_receive_message_delivery_proof_call_builder!(
 	BridgeHubWococoMessagesToBridgeHubRococoMessageLane,
 	BridgeHubWococoMessagesToBridgeHubRococoMessageLaneReceiveMessagesDeliveryProofCallBuilder,
 	relay_bridge_hub_wococo_client::runtime::Call::BridgeRococoMessages,
@@ -59,6 +59,6 @@ impl SubstrateMessageLane for BridgeHubWococoMessagesToBridgeHubRococoMessageLan
 	type ReceiveMessagesDeliveryProofCallBuilder =
 		BridgeHubWococoMessagesToBridgeHubRococoMessageLaneReceiveMessagesDeliveryProofCallBuilder;
 
-	type SourceBatchCallBuilder = ();
-	type TargetBatchCallBuilder = ();
+	type SourceBatchCallBuilder = UtilityPalletBatchCallBuilder<BridgeHubWococo>;
+	type TargetBatchCallBuilder = UtilityPalletBatchCallBuilder<BridgeHubRococo>;
 }

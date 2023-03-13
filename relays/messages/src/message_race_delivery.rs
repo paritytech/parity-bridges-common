@@ -124,8 +124,8 @@ where
 			self.client.latest_confirmed_received_nonce(at_block).await?;
 
 		if let Some(metrics_msg) = self.metrics_msg.as_ref() {
-			metrics_msg.update_source_latest_generated_nonce::<P>(latest_generated_nonce);
-			metrics_msg.update_source_latest_confirmed_nonce::<P>(latest_confirmed_nonce);
+			metrics_msg.update_source_latest_generated_nonce(latest_generated_nonce);
+			metrics_msg.update_source_latest_confirmed_nonce(latest_confirmed_nonce);
 		}
 
 		let new_nonces = if latest_generated_nonce > prev_latest_nonce {
@@ -195,8 +195,8 @@ where
 
 		if update_metrics {
 			if let Some(metrics_msg) = self.metrics_msg.as_ref() {
-				metrics_msg.update_target_latest_received_nonce::<P>(latest_received_nonce);
-				metrics_msg.update_target_latest_confirmed_nonce::<P>(latest_confirmed_nonce);
+				metrics_msg.update_target_latest_received_nonce(latest_received_nonce);
+				metrics_msg.update_target_latest_confirmed_nonce(latest_confirmed_nonce);
 			}
 		}
 
@@ -255,7 +255,7 @@ struct MessageDeliveryStrategy<P: MessageLane, SC, TC> {
 	/// Latest confirmed nonces at the source client + the header id where we have first met this
 	/// nonce.
 	latest_confirmed_nonces_at_source: VecDeque<(SourceHeaderIdOf<P>, MessageNonce)>,
-	/// Target nonces from the source client.
+	/// Target nonces available at the **best** block of the target chain.
 	target_nonces: Option<TargetClientNonces<DeliveryRaceTargetNoncesData>>,
 	/// Basic delivery strategy.
 	strategy: MessageDeliveryStrategyBase<P>,
@@ -292,11 +292,16 @@ impl<P: MessageLane, SC, TC> std::fmt::Debug for MessageDeliveryStrategy<P, SC, 
 
 impl<P: MessageLane, SC, TC> MessageDeliveryStrategy<P, SC, TC> {
 	/// Returns total weight of all undelivered messages.
-	fn total_queued_dispatch_weight(&self) -> Weight {
+	fn dispatch_weight_for_range(&self, range: &RangeInclusive<MessageNonce>) -> Weight {
 		self.strategy
 			.source_queue()
 			.iter()
-			.flat_map(|(_, range)| range.values().map(|details| details.dispatch_weight))
+			.flat_map(|(_, subrange)| {
+				subrange
+					.iter()
+					.filter(|(nonce, _)| range.contains(nonce))
+					.map(|(_, details)| details.dispatch_weight)
+			})
 			.fold(Weight::zero(), |total, weight| total.saturating_add(weight))
 	}
 }
@@ -382,13 +387,11 @@ where
 		race_state: &mut RaceState<SourceHeaderIdOf<P>, TargetHeaderIdOf<P>, P::MessagesProof>,
 	) {
 		// best target nonces must always be ge than finalized target nonces
-		let mut target_nonces = self.target_nonces.take().unwrap_or_else(|| nonces.clone());
-		target_nonces.nonces_data = nonces.nonces_data.clone();
-		target_nonces.latest_nonce = std::cmp::max(target_nonces.latest_nonce, nonces.latest_nonce);
-		self.target_nonces = Some(target_nonces);
+		let latest_nonce = nonces.latest_nonce;
+		self.target_nonces = Some(nonces);
 
 		self.strategy.best_target_nonces_updated(
-			TargetClientNonces { latest_nonce: nonces.latest_nonce, nonces_data: () },
+			TargetClientNonces { latest_nonce, nonces_data: () },
 			race_state,
 		)
 	}
@@ -424,9 +427,10 @@ where
 	}
 
 	async fn select_nonces_to_deliver(
-		&mut self,
+		&self,
 		race_state: RaceState<SourceHeaderIdOf<P>, TargetHeaderIdOf<P>, P::MessagesProof>,
 	) -> Option<(RangeInclusive<MessageNonce>, Self::ProofParameters)> {
+		let best_target_nonce = self.strategy.best_at_target()?;
 		let best_finalized_source_header_id_at_best_target =
 			race_state.best_finalized_source_header_id_at_best_target.clone()?;
 		let latest_confirmed_nonce_at_source = self
@@ -434,7 +438,8 @@ where
 			.iter()
 			.take_while(|(id, _)| id.0 <= best_finalized_source_header_id_at_best_target.0)
 			.last()
-			.map(|(_, nonce)| *nonce)?;
+			.map(|(_, nonce)| *nonce)
+			.unwrap_or(best_target_nonce);
 		let target_nonces = self.target_nonces.as_ref()?;
 
 		// There's additional condition in the message delivery race: target would reject messages
@@ -524,9 +529,8 @@ where
 		let lane_source_client = self.lane_source_client.clone();
 		let lane_target_client = self.lane_target_client.clone();
 
-		let maximal_source_queue_index =
-			self.strategy.maximal_available_source_queue_index(race_state)?;
-		let previous_total_dispatch_weight = self.total_queued_dispatch_weight();
+		let available_source_queue_indices =
+			self.strategy.available_source_queue_indices(race_state)?;
 		let source_queue = self.strategy.source_queue();
 
 		let reference = RelayMessagesBatchReference {
@@ -535,19 +539,14 @@ where
 			max_messages_size_in_single_batch,
 			lane_source_client: lane_source_client.clone(),
 			lane_target_client: lane_target_client.clone(),
+			best_target_nonce,
 			nonces_queue: source_queue.clone(),
-			nonces_queue_range: 0..maximal_source_queue_index + 1,
+			nonces_queue_range: available_source_queue_indices,
 			metrics: self.metrics_msg.clone(),
 		};
 
-		let range_end = MessageRaceLimits::decide(reference).await?;
-
-		let range_begin = source_queue[0].1.begin();
-		let selected_nonces = range_begin..=range_end;
-		self.strategy.remove_le_nonces_from_source_queue(range_end);
-
-		let new_total_dispatch_weight = self.total_queued_dispatch_weight();
-		let dispatch_weight = previous_total_dispatch_weight - new_total_dispatch_weight;
+		let selected_nonces = MessageRaceLimits::decide(reference).await?;
+		let dispatch_weight = self.dispatch_weight_for_range(&selected_nonces);
 
 		Some((
 			selected_nonces,
@@ -587,7 +586,7 @@ mod tests {
 
 	use super::*;
 
-	const DEFAULT_DISPATCH_WEIGHT: Weight = Weight::from_ref_time(1);
+	const DEFAULT_DISPATCH_WEIGHT: Weight = Weight::from_parts(1, 0);
 	const DEFAULT_SIZE: u32 = 1;
 
 	type TestRaceState = RaceState<TestSourceHeaderId, TestTargetHeaderId, TestMessagesProof>;
@@ -631,7 +630,7 @@ mod tests {
 			max_unrewarded_relayer_entries_at_target: 4,
 			max_unconfirmed_nonces_at_target: 4,
 			max_messages_in_single_batch: 4,
-			max_messages_weight_in_single_batch: Weight::from_ref_time(4),
+			max_messages_weight_in_single_batch: Weight::from_parts(4, 0),
 			max_messages_size_in_single_batch: 4,
 			latest_confirmed_nonces_at_source: vec![(header_id(1), 19)].into_iter().collect(),
 			lane_source_client: TestSourceClient::default(),
@@ -670,7 +669,7 @@ mod tests {
 	fn proof_parameters(state_required: bool, weight: u32) -> MessageProofParameters {
 		MessageProofParameters {
 			outbound_state_proof_required: state_required,
-			dispatch_weight: Weight::from_ref_time(weight as u64),
+			dispatch_weight: Weight::from_parts(weight as u64, 0),
 		}
 	}
 
@@ -684,7 +683,7 @@ mod tests {
 					(
 						idx,
 						MessageDetails {
-							dispatch_weight: Weight::from_ref_time(idx),
+							dispatch_weight: Weight::from_parts(idx, 0),
 							size: idx as _,
 							reward: idx as _,
 						},
@@ -707,7 +706,7 @@ mod tests {
 
 	#[async_std::test]
 	async fn message_delivery_strategy_selects_messages_to_deliver() {
-		let (state, mut strategy) = prepare_strategy();
+		let (state, strategy) = prepare_strategy();
 
 		// both sides are ready to relay new messages
 		assert_eq!(
@@ -812,7 +811,7 @@ mod tests {
 		let (state, mut strategy) = prepare_strategy();
 
 		// not all queued messages may fit in the batch, because batch has max weight
-		strategy.max_messages_weight_in_single_batch = Weight::from_ref_time(3);
+		strategy.max_messages_weight_in_single_batch = Weight::from_parts(3, 0);
 		assert_eq!(
 			strategy.select_nonces_to_deliver(state).await,
 			Some(((20..=22), proof_parameters(false, 3)))
@@ -827,7 +826,7 @@ mod tests {
 		// first message doesn't fit in the batch, because it has weight (10) that overflows max
 		// weight (4)
 		strategy.strategy.source_queue_mut()[0].1.get_mut(&20).unwrap().dispatch_weight =
-			Weight::from_ref_time(10);
+			Weight::from_parts(10, 0);
 		assert_eq!(
 			strategy.select_nonces_to_deliver(state).await,
 			Some(((20..=20), proof_parameters(false, 10)))
@@ -1013,7 +1012,7 @@ mod tests {
 		strategy.max_unrewarded_relayer_entries_at_target = 100;
 		strategy.max_unconfirmed_nonces_at_target = 100;
 		strategy.max_messages_in_single_batch = 5;
-		strategy.max_messages_weight_in_single_batch = Weight::from_ref_time(100);
+		strategy.max_messages_weight_in_single_batch = Weight::from_parts(100, 0);
 		strategy.max_messages_size_in_single_batch = 100;
 		state.best_finalized_source_header_id_at_best_target = Some(header_id(2));
 
@@ -1030,7 +1029,7 @@ mod tests {
 			max_unrewarded_relayer_entries_at_target: 4,
 			max_unconfirmed_nonces_at_target: 4,
 			max_messages_in_single_batch: 4,
-			max_messages_weight_in_single_batch: Weight::from_ref_time(4),
+			max_messages_weight_in_single_batch: Weight::from_parts(4, 0),
 			max_messages_size_in_single_batch: 4,
 			latest_confirmed_nonces_at_source: VecDeque::new(),
 			lane_source_client: TestSourceClient::default(),
@@ -1055,5 +1054,89 @@ mod tests {
 			VecDeque::from([(source_header_id, 0)])
 		);
 		assert_eq!(strategy.required_source_header_at_target(&source_header_id), None);
+	}
+
+	#[async_std::test]
+	async fn previous_nonces_are_selected_if_reorg_happens_at_target_chain() {
+		// this is the copy of the similar test in the `mesage_race_strategy.rs`, but it also tests
+		// that the `MessageDeliveryStrategy` acts properly in the similar scenario
+
+		// tune parameters to allow 5 nonces per delivery transaction
+		let (mut state, mut strategy) = prepare_strategy();
+		strategy.max_unrewarded_relayer_entries_at_target = 5;
+		strategy.max_unconfirmed_nonces_at_target = 5;
+		strategy.max_messages_in_single_batch = 5;
+		strategy.max_messages_weight_in_single_batch = Weight::from_parts(5, 0);
+		strategy.max_messages_size_in_single_batch = 5;
+
+		// in this state we have 4 available nonces for delivery
+		assert_eq!(
+			strategy.select_nonces_to_deliver(state.clone()).await,
+			Some((
+				20..=23,
+				MessageProofParameters {
+					outbound_state_proof_required: false,
+					dispatch_weight: Weight::from_parts(4, 0),
+				}
+			)),
+		);
+
+		// let's say we have submitted 20..=23
+		state.nonces_submitted = Some(20..=23);
+
+		// then new nonce 24 appear at the source block 2
+		let new_nonce_24 = vec![(
+			24,
+			MessageDetails { dispatch_weight: Weight::from_parts(1, 0), size: 0, reward: 0 },
+		)]
+		.into_iter()
+		.collect();
+		let source_header_2 = header_id(2);
+		state.best_finalized_source_header_id_at_source = Some(source_header_2);
+		strategy.source_nonces_updated(
+			source_header_2,
+			SourceClientNonces { new_nonces: new_nonce_24, confirmed_nonce: None },
+		);
+		// and nonce 23 appear at the best block of the target node (best finalized still has 0
+		// nonces)
+		let target_nonces_data = DeliveryRaceTargetNoncesData {
+			confirmed_nonce: 19,
+			unrewarded_relayers: UnrewardedRelayersState::default(),
+		};
+		let target_header_2 = header_id(2);
+		state.best_target_header_id = Some(target_header_2);
+		strategy.best_target_nonces_updated(
+			TargetClientNonces { latest_nonce: 23, nonces_data: target_nonces_data.clone() },
+			&mut state,
+		);
+
+		// then best target header is retracted
+		strategy.best_target_nonces_updated(
+			TargetClientNonces { latest_nonce: 19, nonces_data: target_nonces_data.clone() },
+			&mut state,
+		);
+
+		// ... and some fork with 19 delivered nonces is finalized
+		let target_header_2_fork = header_id(2_1);
+		state.best_finalized_source_header_id_at_source = Some(source_header_2);
+		state.best_finalized_source_header_id_at_best_target = Some(source_header_2);
+		state.best_target_header_id = Some(target_header_2_fork);
+		state.best_finalized_target_header_id = Some(target_header_2_fork);
+		strategy.finalized_target_nonces_updated(
+			TargetClientNonces { latest_nonce: 19, nonces_data: target_nonces_data.clone() },
+			&mut state,
+		);
+
+		// now we have to select nonces 20..=23 for delivery again
+		assert_eq!(
+			strategy.select_nonces_to_deliver(state.clone()).await,
+			Some((
+				20..=24,
+				MessageProofParameters {
+					outbound_state_proof_required: false,
+					dispatch_weight: Weight::from_parts(5, 0),
+				}
+			)),
+		);
 	}
 }

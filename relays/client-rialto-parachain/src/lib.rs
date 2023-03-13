@@ -16,10 +16,11 @@
 
 //! Types used to connect to the Rialto-Substrate chain.
 
-pub mod runtime_wrapper;
+pub mod codegen_runtime;
 
 use bp_messages::MessageNonce;
 use bp_polkadot_core::PolkadotSignedExtension;
+use bp_runtime::ChainId;
 use codec::Encode;
 use relay_substrate_client::{
 	Chain, ChainWithBalances, ChainWithMessages, ChainWithTransactions, Error as SubstrateError,
@@ -29,7 +30,12 @@ use sp_core::{storage::StorageKey, Pair};
 use sp_runtime::{generic::SignedPayload, traits::IdentifyAccount, MultiAddress};
 use std::time::Duration;
 
-pub use runtime_wrapper as runtime;
+pub use codegen_runtime::api::runtime_types;
+
+pub type RuntimeCall = runtime_types::rialto_parachain_runtime::RuntimeCall;
+pub type SudoCall = runtime_types::pallet_sudo::pallet::Call;
+pub type BridgeGrandpaCall = runtime_types::pallet_bridge_grandpa::pallet::Call;
+pub type BridgeMessagesCall = runtime_types::pallet_bridge_messages::pallet::Call;
 
 /// The address format for describing accounts.
 pub type Address = MultiAddress<bp_rialto_parachain::AccountId, ()>;
@@ -43,6 +49,7 @@ impl UnderlyingChainProvider for RialtoParachain {
 }
 
 impl Chain for RialtoParachain {
+	const ID: ChainId = bp_runtime::RIALTO_PARACHAIN_CHAIN_ID;
 	const NAME: &'static str = "RialtoParachain";
 	// RialtoParachain token has no value, but we associate it with DOT token
 	const TOKEN_ID: Option<&'static str> = Some("polkadot");
@@ -51,12 +58,13 @@ impl Chain for RialtoParachain {
 	const AVERAGE_BLOCK_INTERVAL: Duration = Duration::from_secs(5);
 
 	type SignedBlock = bp_polkadot_core::SignedBlock;
-	type Call = runtime::Call;
+	type Call = runtime_types::rialto_parachain_runtime::RuntimeCall;
 }
 
 impl ChainWithBalances for RialtoParachain {
 	fn account_info_storage_key(account_id: &Self::AccountId) -> StorageKey {
-		bp_polkadot_core::AccountInfoStorageMapKeyProvider::final_key(account_id)
+		let key = codegen_runtime::api::storage().system().account(account_id);
+		StorageKey(key.to_bytes())
 	}
 }
 
@@ -73,7 +81,6 @@ impl ChainWithMessages for RialtoParachain {
 		bp_rialto_parachain::MAX_UNREWARDED_RELAYERS_IN_CONFIRMATION_TX;
 	const MAX_UNCONFIRMED_MESSAGES_IN_CONFIRMATION_TX: MessageNonce =
 		bp_rialto_parachain::MAX_UNCONFIRMED_MESSAGES_IN_CONFIRMATION_TX;
-	type WeightInfo = ();
 }
 
 impl ChainWithTransactions for RialtoParachain {

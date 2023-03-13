@@ -16,9 +16,8 @@
 
 //! Types used to connect to the Rococo-Substrate chain.
 
-use relay_substrate_client::{
-	Chain, ChainWithBalances, ChainWithGrandpa, RelayChain, UnderlyingChainProvider,
-};
+use bp_runtime::ChainId;
+use relay_substrate_client::{Chain, ChainWithBalances, RelayChain, UnderlyingChainProvider};
 use sp_core::storage::StorageKey;
 use std::time::Duration;
 
@@ -37,6 +36,7 @@ impl UnderlyingChainProvider for Rococo {
 }
 
 impl Chain for Rococo {
+	const ID: ChainId = bp_runtime::ROCOCO_CHAIN_ID;
 	const NAME: &'static str = "Rococo";
 	const TOKEN_ID: Option<&'static str> = None;
 	const BEST_FINALIZED_HEADER_ID_METHOD: &'static str =
@@ -45,10 +45,6 @@ impl Chain for Rococo {
 
 	type SignedBlock = bp_rococo::SignedBlock;
 	type Call = ();
-}
-
-impl ChainWithGrandpa for Rococo {
-	const WITH_CHAIN_GRANDPA_PALLET_NAME: &'static str = bp_rococo::WITH_ROCOCO_GRANDPA_PALLET_NAME;
 }
 
 impl ChainWithBalances for Rococo {

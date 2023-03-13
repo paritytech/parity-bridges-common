@@ -57,7 +57,9 @@ pub use frame_support::{
 	construct_runtime,
 	dispatch::DispatchClass,
 	parameter_types,
-	traits::{ConstU32, ConstU8, Currency, ExistenceRequirement, Imbalance, KeyOwnerProofSystem},
+	traits::{
+		ConstU32, ConstU64, ConstU8, Currency, ExistenceRequirement, Imbalance, KeyOwnerProofSystem,
+	},
 	weights::{constants::WEIGHT_REF_TIME_PER_SECOND, IdentityFee, RuntimeDbWeight, Weight},
 	StorageValue,
 };
@@ -263,6 +265,7 @@ impl pallet_grandpa::Config for Runtime {
 	type HandleEquivocation = ();
 	// TODO: update me (https://github.com/paritytech/parity-bridges-common/issues/78)
 	type WeightInfo = ();
+	type MaxSetIdSessionEntries = ConstU64<0>;
 }
 
 impl pallet_mmr::Config for Runtime {
@@ -390,19 +393,8 @@ impl pallet_bridge_relayers::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 	type Reward = Balance;
 	type PaymentProcedure =
-		bp_relayers::PayLaneRewardFromAccount<pallet_balances::Pallet<Runtime>, AccountId>;
+		bp_relayers::PayRewardFromAccount<pallet_balances::Pallet<Runtime>, AccountId>;
 	type WeightInfo = ();
-}
-
-parameter_types! {
-	/// Number of headers to keep.
-	///
-	/// Assuming the worst case of every header being finalized, we will keep headers at least for a
-	/// week.
-	pub const HeadersToKeep: u32 = 7 * bp_rialto::DAYS;
-
-	/// Maximal number of authorities at Millau.
-	pub const MaxAuthoritiesAtMillau: u32 = bp_millau::MAX_AUTHORITIES_COUNT;
 }
 
 pub type MillauGrandpaInstance = ();
@@ -413,8 +405,7 @@ impl pallet_bridge_grandpa::Config for Runtime {
 	/// Note that once this is hit the pallet will essentially throttle incoming requests down to
 	/// one call per block.
 	type MaxRequests = ConstU32<50>;
-	type HeadersToKeep = HeadersToKeep;
-	type MaxBridgedAuthorities = MaxAuthoritiesAtMillau;
+	type HeadersToKeep = ConstU32<{ bp_millau::DAYS as u32 }>;
 	type WeightInfo = pallet_bridge_grandpa::weights::BridgeWeight<Runtime>;
 }
 
@@ -452,7 +443,7 @@ impl pallet_bridge_messages::Config<WithMillauMessagesInstance> for Runtime {
 	type LaneMessageVerifier = crate::millau_messages::ToMillauMessageVerifier;
 	type DeliveryConfirmationPayments = pallet_bridge_relayers::DeliveryConfirmationPaymentsAdapter<
 		Runtime,
-		frame_support::traits::ConstU128<100_000>,
+		WithMillauMessagesInstance,
 		frame_support::traits::ConstU128<100_000>,
 	>;
 
@@ -626,6 +617,10 @@ impl_runtime_apis! {
 	}
 
 	impl sp_beefy::BeefyApi<Block> for Runtime {
+		fn beefy_genesis() -> Option<BlockNumber> {
+			Beefy::genesis_block()
+		}
+
 		fn validator_set() -> Option<ValidatorSet<BeefyId>> {
 			Beefy::validator_set()
 		}
@@ -863,6 +858,12 @@ impl_runtime_apis! {
 		}
 		fn query_fee_details(uxt: <Block as BlockT>::Extrinsic, len: u32) -> FeeDetails<Balance> {
 			TransactionPayment::query_fee_details(uxt, len)
+		}
+		fn query_weight_to_fee(weight: Weight) -> Balance {
+			TransactionPayment::weight_to_fee(weight)
+		}
+		fn query_length_to_fee(length: u32) -> Balance {
+			TransactionPayment::length_to_fee(length)
 		}
 	}
 

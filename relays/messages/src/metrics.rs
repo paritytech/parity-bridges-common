@@ -66,28 +66,42 @@ impl MessageLaneLoopMetrics {
 	pub fn update_source_state<P: MessageLane>(&self, source_client_state: SourceClientState<P>) {
 		self.source_to_target_finality_metrics
 			.update_best_block_at_source(source_client_state.best_self.0);
-		self.target_to_source_finality_metrics
-			.update_best_block_at_target(source_client_state.best_finalized_peer_at_best_self.0);
-		self.target_to_source_finality_metrics.update_using_same_fork(
-			source_client_state.best_finalized_peer_at_best_self.1 ==
-				source_client_state.actual_best_finalized_peer_at_best_self.1,
-		);
+		if let Some(best_finalized_peer_at_best_self) =
+			source_client_state.best_finalized_peer_at_best_self
+		{
+			self.target_to_source_finality_metrics
+				.update_best_block_at_target(best_finalized_peer_at_best_self.0);
+			if let Some(actual_best_finalized_peer_at_best_self) =
+				source_client_state.actual_best_finalized_peer_at_best_self
+			{
+				self.target_to_source_finality_metrics.update_using_same_fork(
+					best_finalized_peer_at_best_self.1 == actual_best_finalized_peer_at_best_self.1,
+				);
+			}
+		}
 	}
 
 	/// Update target client state metrics.
 	pub fn update_target_state<P: MessageLane>(&self, target_client_state: TargetClientState<P>) {
 		self.target_to_source_finality_metrics
 			.update_best_block_at_source(target_client_state.best_self.0);
-		self.source_to_target_finality_metrics
-			.update_best_block_at_target(target_client_state.best_finalized_peer_at_best_self.0);
-		self.source_to_target_finality_metrics.update_using_same_fork(
-			target_client_state.best_finalized_peer_at_best_self.1 ==
-				target_client_state.actual_best_finalized_peer_at_best_self.1,
-		);
+		if let Some(best_finalized_peer_at_best_self) =
+			target_client_state.best_finalized_peer_at_best_self
+		{
+			self.source_to_target_finality_metrics
+				.update_best_block_at_target(best_finalized_peer_at_best_self.0);
+			if let Some(actual_best_finalized_peer_at_best_self) =
+				target_client_state.actual_best_finalized_peer_at_best_self
+			{
+				self.source_to_target_finality_metrics.update_using_same_fork(
+					best_finalized_peer_at_best_self.1 == actual_best_finalized_peer_at_best_self.1,
+				);
+			}
+		}
 	}
 
 	/// Update latest generated nonce at source.
-	pub fn update_source_latest_generated_nonce<P: MessageLane>(
+	pub fn update_source_latest_generated_nonce(
 		&self,
 		source_latest_generated_nonce: MessageNonce,
 	) {
@@ -97,7 +111,7 @@ impl MessageLaneLoopMetrics {
 	}
 
 	/// Update the latest confirmed nonce at source.
-	pub fn update_source_latest_confirmed_nonce<P: MessageLane>(
+	pub fn update_source_latest_confirmed_nonce(
 		&self,
 		source_latest_confirmed_nonce: MessageNonce,
 	) {
@@ -107,17 +121,14 @@ impl MessageLaneLoopMetrics {
 	}
 
 	/// Update the latest received nonce at target.
-	pub fn update_target_latest_received_nonce<P: MessageLane>(
-		&self,
-		target_latest_generated_nonce: MessageNonce,
-	) {
+	pub fn update_target_latest_received_nonce(&self, target_latest_generated_nonce: MessageNonce) {
 		self.lane_state_nonces
 			.with_label_values(&["target_latest_received"])
 			.set(target_latest_generated_nonce);
 	}
 
 	/// Update the latest confirmed nonce at target.
-	pub fn update_target_latest_confirmed_nonce<P: MessageLane>(
+	pub fn update_target_latest_confirmed_nonce(
 		&self,
 		target_latest_confirmed_nonce: MessageNonce,
 	) {

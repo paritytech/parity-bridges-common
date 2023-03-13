@@ -19,7 +19,8 @@
 #![cfg(feature = "runtime-benchmarks")]
 
 use crate::{
-	messages_benchmarking::insert_header_to_grandpa_pallet, messages_generation::grow_trie,
+	messages_benchmarking::insert_header_to_grandpa_pallet,
+	messages_generation::grow_trie_leaf_value,
 };
 
 use bp_parachains::parachain_head_storage_key_at_source;
@@ -29,7 +30,7 @@ use codec::Encode;
 use frame_support::traits::Get;
 use pallet_bridge_parachains::{RelayBlockHash, RelayBlockHasher, RelayBlockNumber};
 use sp_std::prelude::*;
-use sp_trie::{trie_types::TrieDBMutBuilderV1, LayoutV1, MemoryDB, Recorder, TrieMut};
+use sp_trie::{trie_types::TrieDBMutBuilderV1, LayoutV1, MemoryDB, TrieMut};
 
 /// Prepare proof of messages for the `receive_messages_proof` call.
 ///
@@ -59,24 +60,26 @@ where
 			TrieDBMutBuilderV1::<RelayBlockHasher>::new(&mut mdb, &mut state_root).build();
 
 		// insert parachain heads
-		for parachain in parachains {
+		for (i, parachain) in parachains.into_iter().enumerate() {
 			let storage_key =
 				parachain_head_storage_key_at_source(R::ParasPalletName::get(), *parachain);
-			trie.insert(&storage_key.0, &parachain_head.encode())
+			let leaf_data = if i == 0 {
+				grow_trie_leaf_value(parachain_head.encode(), size)
+			} else {
+				parachain_head.encode()
+			};
+			trie.insert(&storage_key.0, &leaf_data)
 				.map_err(|_| "TrieMut::insert has failed")
 				.expect("TrieMut::insert should not fail in benchmarks");
 			storage_keys.push(storage_key);
 			parachain_heads.push((*parachain, parachain_head.hash()))
 		}
 	}
-	state_root = grow_trie(state_root, &mut mdb, size);
 
 	// generate heads storage proof
-	let mut proof_recorder = Recorder::<LayoutV1<RelayBlockHasher>>::new();
-	record_all_trie_keys::<LayoutV1<RelayBlockHasher>, _>(&mdb, &state_root, &mut proof_recorder)
+	let proof = record_all_trie_keys::<LayoutV1<RelayBlockHasher>, _>(&mdb, &state_root)
 		.map_err(|_| "record_all_trie_keys has failed")
 		.expect("record_all_trie_keys should not fail in benchmarks");
-	let proof = proof_recorder.drain().into_iter().map(|n| n.data.to_vec()).collect();
 
 	let (relay_block_number, relay_block_hash) =
 		insert_header_to_grandpa_pallet::<R, R::BridgesGrandpaPalletInstance>(state_root);

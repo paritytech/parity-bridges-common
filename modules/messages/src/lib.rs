@@ -43,6 +43,7 @@ pub use weights::WeightInfo;
 pub use weights_ext::{
 	ensure_able_to_receive_confirmation, ensure_able_to_receive_message,
 	ensure_weights_are_correct, WeightInfoExt, EXPECTED_DEFAULT_MESSAGE_LENGTH,
+	EXTRA_STORAGE_PROOF_SIZE,
 };
 
 use crate::{
@@ -303,6 +304,13 @@ pub mod pallet {
 			for (lane_id, lane_data) in messages {
 				let mut lane = inbound_lane::<T, I>(lane_id);
 
+				// subtract extra storage proof bytes from the actual PoV size - there may be
+				// less unrewarded relayers than the maximal configured value
+				let lane_extra_proof_size_bytes = lane.storage().extra_proof_size_bytes();
+				actual_weight = actual_weight.set_proof_size(
+					actual_weight.proof_size().saturating_sub(lane_extra_proof_size_bytes),
+				);
+
 				if let Some(lane_state) = lane_data.lane_state {
 					let updated_latest_confirmed_nonce = lane.receive_state_update(lane_state);
 					if let Some(updated_latest_confirmed_nonce) = updated_latest_confirmed_nonce {
@@ -398,7 +406,7 @@ pub mod pallet {
 
 			Self::deposit_event(Event::MessagesReceived(messages_received_status));
 
-			Ok(PostDispatchInfo { actual_weight: Some(actual_weight), pays_fee: Pays::No })
+			Ok(PostDispatchInfo { actual_weight: Some(actual_weight), pays_fee: Pays::Yes })
 		}
 
 		/// Receive messages delivery proof from bridged chain.
@@ -583,8 +591,14 @@ pub mod pallet {
 
 	/// Map of lane id => outbound lane data.
 	#[pallet::storage]
-	pub type OutboundLanes<T: Config<I>, I: 'static = ()> =
-		StorageMap<_, Blake2_128Concat, LaneId, OutboundLaneData, ValueQuery>;
+	pub type OutboundLanes<T: Config<I>, I: 'static = ()> = StorageMap<
+		Hasher = Blake2_128Concat,
+		Key = LaneId,
+		Value = OutboundLaneData,
+		QueryKind = ValueQuery,
+		OnEmpty = GetDefault,
+		MaxValues = MaybeOutboundLanesCount<T, I>,
+	>;
 
 	/// All queued outbound messages.
 	#[pallet::storage]
@@ -646,6 +660,15 @@ pub mod pallet {
 		/// Return inbound lane data.
 		pub fn inbound_lane_data(lane: LaneId) -> InboundLaneData<T::InboundRelayer> {
 			InboundLanes::<T, I>::get(lane).0
+		}
+	}
+
+	/// Get-parameter that returns number of active outbound lanes that the pallet maintains.
+	pub struct MaybeOutboundLanesCount<T, I>(PhantomData<(T, I)>);
+
+	impl<T: Config<I>, I: 'static> Get<Option<u32>> for MaybeOutboundLanesCount<T, I> {
+		fn get() -> Option<u32> {
+			Some(T::ActiveOutboundLanes::get().len() as u32)
 		}
 	}
 }
@@ -781,6 +804,25 @@ struct RuntimeInboundLaneStorage<T: Config<I>, I: 'static = ()> {
 	_phantom: PhantomData<I>,
 }
 
+impl<T: Config<I>, I: 'static> RuntimeInboundLaneStorage<T, I> {
+	/// Returns number of bytes that may be subtracted from the PoV component of
+	/// `receive_messages_proof` call, because the actual inbound lane state is smaller than the
+	/// maximal configured.
+	///
+	/// Maximal inbound lane state set size is configured by the
+	/// `MaxUnrewardedRelayerEntriesAtInboundLane` constant from the pallet configuration. The PoV
+	/// of the call includes the maximal size of inbound lane state. If the actual size is smaller,
+	/// we may subtract extra bytes from this component.
+	pub fn extra_proof_size_bytes(&self) -> u64 {
+		let max_encoded_len = StoredInboundLaneData::<T, I>::max_encoded_len();
+		let relayers_count = self.data().relayers.len();
+		let actual_encoded_len =
+			InboundLaneData::<T::InboundRelayer>::encoded_size_hint(relayers_count)
+				.unwrap_or(usize::MAX);
+		max_encoded_len.saturating_sub(actual_encoded_len) as _
+	}
+}
+
 impl<T: Config<I>, I: 'static> InboundLaneStorage for RuntimeInboundLaneStorage<T, I> {
 	type Relayer = T::InboundRelayer;
 
@@ -891,14 +933,15 @@ mod tests {
 	use crate::mock::{
 		message, message_payload, run_test, unrewarded_relayer, AccountId, DbWeight,
 		RuntimeEvent as TestEvent, RuntimeOrigin, TestDeliveryConfirmationPayments,
-		TestDeliveryPayments, TestMessagesDeliveryProof, TestMessagesProof, TestRuntime,
-		MAX_OUTBOUND_PAYLOAD_SIZE, PAYLOAD_REJECTED_BY_TARGET_CHAIN, REGULAR_PAYLOAD, TEST_LANE_ID,
-		TEST_LANE_ID_2, TEST_LANE_ID_3, TEST_RELAYER_A, TEST_RELAYER_B,
+		TestDeliveryPayments, TestMessagesDeliveryProof, TestMessagesProof, TestRelayer,
+		TestRuntime, MAX_OUTBOUND_PAYLOAD_SIZE, PAYLOAD_REJECTED_BY_TARGET_CHAIN, REGULAR_PAYLOAD,
+		TEST_LANE_ID, TEST_LANE_ID_2, TEST_LANE_ID_3, TEST_RELAYER_A, TEST_RELAYER_B,
 	};
 	use bp_messages::{BridgeMessagesCall, UnrewardedRelayer, UnrewardedRelayersState};
 	use bp_test_utils::generate_owned_bridge_module_tests;
 	use frame_support::{
 		assert_noop, assert_ok,
+		dispatch::Pays,
 		storage::generator::{StorageMap, StorageValue},
 		traits::Hooks,
 		weights::Weight,
@@ -1270,7 +1313,7 @@ mod tests {
 					TEST_RELAYER_A,
 					Err(()).into(),
 					1,
-					Weight::from_ref_time(0),
+					Weight::zero(),
 				),
 				Error::<TestRuntime, ()>::InvalidMessagesProof,
 			);
@@ -1286,7 +1329,7 @@ mod tests {
 					TEST_RELAYER_A,
 					Ok(vec![message(1, REGULAR_PAYLOAD)]).into(),
 					u32::MAX,
-					Weight::from_ref_time(0),
+					Weight::zero(),
 				),
 				Error::<TestRuntime, ()>::TooManyMessagesInTheProof,
 			);
@@ -1478,8 +1521,8 @@ mod tests {
 				TEST_RELAYER_A,
 				Ok(vec![invalid_message]).into(),
 				1,
-				Weight::from_ref_time(0), /* weight may be zero in this case (all messages are
-				                           * improperly encoded) */
+				Weight::zero(), /* weight may be zero in this case (all messages are
+				                 * improperly encoded) */
 			),);
 
 			assert_eq!(InboundLanes::<TestRuntime>::get(TEST_LANE_ID).last_delivered_nonce(), 1,);
@@ -1527,7 +1570,7 @@ mod tests {
 	}
 
 	#[test]
-	fn weight_refund_from_receive_messages_proof_works() {
+	fn ref_time_refund_from_receive_messages_proof_works() {
 		run_test(|| {
 			fn submit_with_unspent_weight(
 				nonce: MessageNonce,
@@ -1543,16 +1586,19 @@ mod tests {
 						messages_count,
 						REGULAR_PAYLOAD.declared_weight,
 					);
-				let post_dispatch_weight = Pallet::<TestRuntime>::receive_messages_proof(
+				let result = Pallet::<TestRuntime>::receive_messages_proof(
 					RuntimeOrigin::signed(1),
 					TEST_RELAYER_A,
 					proof,
 					messages_count,
 					REGULAR_PAYLOAD.declared_weight,
 				)
-				.expect("delivery has failed")
-				.actual_weight
-				.expect("receive_messages_proof always returns Some");
+				.expect("delivery has failed");
+				let post_dispatch_weight =
+					result.actual_weight.expect("receive_messages_proof always returns Some");
+
+				// message delivery transactions are never free
+				assert_eq!(result.pays_fee, Pays::Yes);
 
 				(pre_dispatch_weight, post_dispatch_weight)
 			}
@@ -1579,11 +1625,89 @@ mod tests {
 
 			// when there's no unspent weight
 			let (pre, post) = submit_with_unspent_weight(4, 0);
-			assert_eq!(post, pre);
+			assert_eq!(post.ref_time(), pre.ref_time());
 
 			// when dispatch is returning `unspent_weight < declared_weight`
 			let (pre, post) = submit_with_unspent_weight(5, 1);
 			assert_eq!(post.ref_time(), pre.ref_time() - 1);
+		});
+	}
+
+	#[test]
+	fn proof_size_refund_from_receive_messages_proof_works() {
+		run_test(|| {
+			let max_entries = crate::mock::MaxUnrewardedRelayerEntriesAtInboundLane::get() as usize;
+
+			// if there's maximal number of unrewarded relayer entries at the inbound lane, then
+			// `proof_size` is unchanged in post-dispatch weight
+			let proof: TestMessagesProof = Ok(vec![message(101, REGULAR_PAYLOAD)]).into();
+			let messages_count = 1;
+			let pre_dispatch_weight =
+				<TestRuntime as Config>::WeightInfo::receive_messages_proof_weight(
+					&proof,
+					messages_count,
+					REGULAR_PAYLOAD.declared_weight,
+				);
+			InboundLanes::<TestRuntime>::insert(
+				TEST_LANE_ID,
+				StoredInboundLaneData(InboundLaneData {
+					relayers: vec![
+						UnrewardedRelayer {
+							relayer: 42,
+							messages: DeliveredMessages { begin: 0, end: 100 }
+						};
+						max_entries
+					]
+					.into_iter()
+					.collect(),
+					last_confirmed_nonce: 0,
+				}),
+			);
+			let post_dispatch_weight = Pallet::<TestRuntime>::receive_messages_proof(
+				RuntimeOrigin::signed(1),
+				TEST_RELAYER_A,
+				proof.clone(),
+				messages_count,
+				REGULAR_PAYLOAD.declared_weight,
+			)
+			.unwrap()
+			.actual_weight
+			.unwrap();
+			assert_eq!(post_dispatch_weight.proof_size(), pre_dispatch_weight.proof_size());
+
+			// if count of unrewarded relayer entries is less than maximal, then some `proof_size`
+			// must be refunded
+			InboundLanes::<TestRuntime>::insert(
+				TEST_LANE_ID,
+				StoredInboundLaneData(InboundLaneData {
+					relayers: vec![
+						UnrewardedRelayer {
+							relayer: 42,
+							messages: DeliveredMessages { begin: 0, end: 100 }
+						};
+						max_entries - 1
+					]
+					.into_iter()
+					.collect(),
+					last_confirmed_nonce: 0,
+				}),
+			);
+			let post_dispatch_weight = Pallet::<TestRuntime>::receive_messages_proof(
+				RuntimeOrigin::signed(1),
+				TEST_RELAYER_A,
+				proof,
+				messages_count,
+				REGULAR_PAYLOAD.declared_weight,
+			)
+			.unwrap()
+			.actual_weight
+			.unwrap();
+			assert!(
+				post_dispatch_weight.proof_size() < pre_dispatch_weight.proof_size(),
+				"Expected post-dispatch PoV {} to be less than pre-dispatch PoV {}",
+				post_dispatch_weight.proof_size(),
+				pre_dispatch_weight.proof_size(),
+			);
 		});
 	}
 
@@ -1706,11 +1830,7 @@ mod tests {
 				Pallet::<TestRuntime>::inbound_message_data(
 					TEST_LANE_ID,
 					REGULAR_PAYLOAD.encode(),
-					OutboundMessageDetails {
-						nonce: 0,
-						dispatch_weight: Weight::from_ref_time(0),
-						size: 0,
-					},
+					OutboundMessageDetails { nonce: 0, dispatch_weight: Weight::zero(), size: 0 },
 				),
 				InboundMessageDetails { dispatch_weight: REGULAR_PAYLOAD.declared_weight },
 			);
@@ -1928,12 +2048,12 @@ mod tests {
 			AccountId,
 			TestMessagesProof,
 			TestMessagesDeliveryProof,
-		>::receive_messages_proof(
-			account_id,
-			message_proof,
-			1,
-			REGULAR_PAYLOAD.declared_weight,
-		);
+		>::receive_messages_proof {
+			relayer_id_at_bridged_chain: account_id,
+			proof: message_proof,
+			messages_count: 1,
+			dispatch_weight: REGULAR_PAYLOAD.declared_weight,
+		};
 		assert_eq!(
 			direct_receive_messages_proof_call.encode(),
 			indirect_receive_messages_proof_call.encode()
@@ -1948,10 +2068,10 @@ mod tests {
 			AccountId,
 			TestMessagesProof,
 			TestMessagesDeliveryProof,
-		>::receive_messages_delivery_proof(
-			message_delivery_proof,
-			unrewarded_relayer_state,
-		);
+		>::receive_messages_delivery_proof {
+			proof: message_delivery_proof,
+			relayers_state: unrewarded_relayer_state,
+		};
 		assert_eq!(
 			direct_receive_messages_delivery_proof_call.encode(),
 			indirect_receive_messages_delivery_proof_call.encode()
@@ -1962,4 +2082,49 @@ mod tests {
 		MessagesOperatingMode::Basic(BasicOperatingMode::Normal),
 		MessagesOperatingMode::Basic(BasicOperatingMode::Halted)
 	);
+
+	#[test]
+	fn inbound_storage_extra_proof_size_bytes_works() {
+		fn relayer_entry() -> UnrewardedRelayer<TestRelayer> {
+			UnrewardedRelayer { relayer: 42u64, messages: DeliveredMessages { begin: 0, end: 100 } }
+		}
+
+		fn storage(relayer_entries: usize) -> RuntimeInboundLaneStorage<TestRuntime, ()> {
+			RuntimeInboundLaneStorage {
+				lane_id: Default::default(),
+				cached_data: RefCell::new(Some(InboundLaneData {
+					relayers: vec![relayer_entry(); relayer_entries].into_iter().collect(),
+					last_confirmed_nonce: 0,
+				})),
+				_phantom: Default::default(),
+			}
+		}
+
+		let max_entries = crate::mock::MaxUnrewardedRelayerEntriesAtInboundLane::get() as usize;
+
+		// when we have exactly `MaxUnrewardedRelayerEntriesAtInboundLane` unrewarded relayers
+		assert_eq!(storage(max_entries).extra_proof_size_bytes(), 0);
+
+		// when we have less than `MaxUnrewardedRelayerEntriesAtInboundLane` unrewarded relayers
+		assert_eq!(
+			storage(max_entries - 1).extra_proof_size_bytes(),
+			relayer_entry().encode().len() as u64
+		);
+		assert_eq!(
+			storage(max_entries - 2).extra_proof_size_bytes(),
+			2 * relayer_entry().encode().len() as u64
+		);
+
+		// when we have more than `MaxUnrewardedRelayerEntriesAtInboundLane` unrewarded relayers
+		// (shall not happen in practice)
+		assert_eq!(storage(max_entries + 1).extra_proof_size_bytes(), 0);
+	}
+
+	#[test]
+	fn maybe_outbound_lanes_count_returns_correct_value() {
+		assert_eq!(
+			MaybeOutboundLanesCount::<TestRuntime, ()>::get(),
+			Some(mock::ActiveOutboundLanes::get().len() as u32)
+		);
+	}
 }

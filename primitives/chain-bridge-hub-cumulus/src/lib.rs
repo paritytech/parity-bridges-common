@@ -19,8 +19,8 @@
 use bp_messages::*;
 pub use bp_polkadot_core::{
 	AccountId, AccountInfoStorageMapKeyProvider, AccountPublic, Balance, BlockNumber, Hash, Hasher,
-	Hashing, Header, Index, Nonce, Perbill, PolkadotSignedExtension, Signature, SignedBlock,
-	UncheckedExtrinsic, EXTRA_STORAGE_PROOF_SIZE, TX_EXTRA_BYTES,
+	Hashing, Header, Index, Nonce, Perbill, Signature, SignedBlock, UncheckedExtrinsic,
+	EXTRA_STORAGE_PROOF_SIZE, TX_EXTRA_BYTES,
 };
 use frame_support::{
 	dispatch::DispatchClass,
@@ -29,6 +29,12 @@ use frame_support::{
 	weights::constants,
 };
 use frame_system::limits;
+use sp_std::time::Duration;
+
+/// Average block interval in Cumulus-based parachains.
+///
+/// Corresponds to the `MILLISECS_PER_BLOCK` from `parachains_common` crate.
+pub const AVERAGE_BLOCK_INTERVAL: Duration = Duration::from_secs(12);
 
 /// All cumulus bridge hubs allow normal extrinsics to fill block up to 75 percent.
 ///
@@ -39,8 +45,7 @@ pub const NORMAL_DISPATCH_RATIO: Perbill = Perbill::from_percent(75);
 /// time.
 ///
 /// This is a copy-paste from the cumulus repo's `parachains-common` crate.
-// TODO: https://github.com/paritytech/parity-bridges-common/issues/1543 - remove `set_proof_size`
-const MAXIMUM_BLOCK_WEIGHT: Weight = Weight::from_ref_time(constants::WEIGHT_REF_TIME_PER_SECOND)
+const MAXIMUM_BLOCK_WEIGHT: Weight = Weight::from_parts(constants::WEIGHT_REF_TIME_PER_SECOND, 0)
 	.saturating_div(2)
 	.set_proof_size(polkadot_primitives::v2::MAX_POV_SIZE as u64);
 
@@ -56,9 +61,12 @@ parameter_types! {
 		NORMAL_DISPATCH_RATIO,
 	);
 
-	pub const BlockExecutionWeight: Weight = Weight::from_ref_time(constants::WEIGHT_REF_TIME_PER_NANOS).saturating_mul(5_000_000);
-
-	pub const ExtrinsicBaseWeight: Weight = Weight::from_ref_time(constants::WEIGHT_REF_TIME_PER_NANOS).saturating_mul(125_000);
+	/// Importing a block with 0 Extrinsics.
+	pub const BlockExecutionWeight: Weight = Weight::from_parts(constants::WEIGHT_REF_TIME_PER_NANOS, 0)
+		.saturating_mul(5_000_000);
+	/// Executing a NO-OP `System::remarks` Extrinsic.
+	pub const ExtrinsicBaseWeight: Weight = Weight::from_parts(constants::WEIGHT_REF_TIME_PER_NANOS, 0)
+		.saturating_mul(125_000);
 
 	pub BlockWeights: limits::BlockWeights = limits::BlockWeights::builder()
 		.base_block(BlockExecutionWeight::get())
@@ -116,3 +124,72 @@ pub const MAX_UNREWARDED_RELAYERS_IN_CONFIRMATION_TX: MessageNonce = 1024;
 
 /// Maximal number of unconfirmed messages at inbound lane for Cumulus-based parachains.
 pub const MAX_UNCONFIRMED_MESSAGES_IN_CONFIRMATION_TX: MessageNonce = 4096;
+
+/// Module with rewarding bridge signed extension support
+pub mod rewarding_bridge_signed_extension {
+	use super::*;
+	use bp_polkadot_core::PolkadotLike;
+	use bp_runtime::extensions::*;
+
+	type RewardingBridgeSignedExtra = (
+		CheckNonZeroSender,
+		CheckSpecVersion,
+		CheckTxVersion,
+		CheckGenesis<PolkadotLike>,
+		CheckEra<PolkadotLike>,
+		CheckNonce<Nonce>,
+		CheckWeight,
+		ChargeTransactionPayment<PolkadotLike>,
+		BridgeRejectObsoleteHeadersAndMessages,
+		RefundBridgedParachainMessagesSchema,
+	);
+
+	/// The signed extension used by Cumulus and Cumulus-like parachain with bridging and rewarding.
+	pub type RewardingBridgeSignedExtension = GenericSignedExtension<RewardingBridgeSignedExtra>;
+
+	pub fn from_params(
+		spec_version: u32,
+		transaction_version: u32,
+		era: bp_runtime::TransactionEraOf<PolkadotLike>,
+		genesis_hash: Hash,
+		nonce: Nonce,
+		tip: Balance,
+	) -> RewardingBridgeSignedExtension {
+		GenericSignedExtension::<RewardingBridgeSignedExtra>::new(
+			(
+				(),              // non-zero sender
+				(),              // spec version
+				(),              // tx version
+				(),              // genesis
+				era.frame_era(), // era
+				nonce.into(),    // nonce (compact encoding)
+				(),              // Check weight
+				tip.into(),      // transaction payment / tip (compact encoding)
+				(),              // bridge reject obsolete headers and msgs
+				(),              // bridge register reward to relayer for message passing
+			),
+			Some((
+				(),
+				spec_version,
+				transaction_version,
+				genesis_hash,
+				era.signed_payload(genesis_hash),
+				(),
+				(),
+				(),
+				(),
+				(),
+			)),
+		)
+	}
+
+	/// Return signer nonce, used to craft transaction.
+	pub fn nonce(sign_ext: &RewardingBridgeSignedExtension) -> Nonce {
+		sign_ext.payload.5.into()
+	}
+
+	/// Return transaction tip.
+	pub fn tip(sign_ext: &RewardingBridgeSignedExtension) -> Balance {
+		sign_ext.payload.7.into()
+	}
+}

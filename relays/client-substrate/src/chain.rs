@@ -14,10 +14,12 @@
 // You should have received a copy of the GNU General Public License
 // along with Parity Bridges Common.  If not, see <http://www.gnu.org/licenses/>.
 
+use crate::calls::UtilityCall;
+
 use bp_messages::MessageNonce;
 use bp_runtime::{
-	Chain as ChainBase, EncodedOrDecodedCall, HashOf, Parachain as ParachainBase, TransactionEra,
-	TransactionEraOf, UnderlyingChainProvider,
+	Chain as ChainBase, ChainId, EncodedOrDecodedCall, HashOf, Parachain as ParachainBase,
+	TransactionEra, TransactionEraOf, UnderlyingChainProvider,
 };
 use codec::{Codec, Encode};
 use jsonrpsee::core::{DeserializeOwned, Serialize};
@@ -33,6 +35,8 @@ use std::{fmt::Debug, time::Duration};
 
 /// Substrate-based chain from minimal relay-client point of view.
 pub trait Chain: ChainBase + Clone {
+	/// Chain id.
+	const ID: ChainId;
 	/// Chain name.
 	const NAME: &'static str;
 	/// Identifier of the basic token of the chain (if applicable).
@@ -68,15 +72,10 @@ pub trait RelayChain: Chain {
 	/// Name of the bridge parachains pallet (used in `construct_runtime` macro call) that is
 	/// deployed at the **bridged** chain.
 	///
-	/// We assume that all chains that are bridging with this `ChainWithGrandpa` are using
+	/// We assume that all chains that are bridging with this `RelayChain` are using
 	/// the same name.
 	const PARACHAINS_FINALITY_PALLET_NAME: &'static str;
 }
-
-/// Substrate-based parachain from minimal relay-client point of view.
-pub trait Parachain: Chain + ParachainBase {}
-
-impl<T> Parachain for T where T: UnderlyingChainProvider + Chain + ParachainBase {}
 
 /// Substrate-based chain that is using direct GRANDPA finality from minimal relay-client point of
 /// view.
@@ -91,6 +90,20 @@ pub trait ChainWithGrandpa: Chain {
 	/// the same name.
 	const WITH_CHAIN_GRANDPA_PALLET_NAME: &'static str;
 }
+
+impl<T> ChainWithGrandpa for T
+where
+	T: Chain + UnderlyingChainProvider,
+	T::Chain: bp_header_chain::ChainWithGrandpa,
+{
+	const WITH_CHAIN_GRANDPA_PALLET_NAME: &'static str =
+		<T::Chain as bp_header_chain::ChainWithGrandpa>::WITH_CHAIN_GRANDPA_PALLET_NAME;
+}
+
+/// Substrate-based parachain from minimal relay-client point of view.
+pub trait Parachain: Chain + ParachainBase {}
+
+impl<T> Parachain for T where T: UnderlyingChainProvider + Chain + ParachainBase {}
 
 /// Substrate-based chain with messaging support from minimal relay-client point of view.
 pub trait ChainWithMessages: Chain {
@@ -125,9 +138,6 @@ pub trait ChainWithMessages: Chain {
 	/// Maximal number of unconfirmed messages in a single confirmation transaction at this
 	/// `ChainWithMessages`.
 	const MAX_UNCONFIRMED_MESSAGES_IN_CONFIRMATION_TX: MessageNonce;
-
-	/// Weights of message pallet calls.
-	type WeightInfo: pallet_bridge_messages::WeightInfoExt;
 }
 
 /// Call type used by the chain.
@@ -264,6 +274,21 @@ where
 {
 	fn build_batch_call(calls: Vec<C::Call>) -> C::Call {
 		pallet_utility::Call::batch_all { calls }.into()
+	}
+}
+
+/// Structure that implements `UtilityPalletProvider` based on a call conversion.
+pub struct MockedRuntimeUtilityPallet<Call> {
+	_phantom: std::marker::PhantomData<Call>,
+}
+
+impl<C, Call> UtilityPallet<C> for MockedRuntimeUtilityPallet<Call>
+where
+	C: Chain,
+	C::Call: From<UtilityCall<C::Call>>,
+{
+	fn build_batch_call(calls: Vec<C::Call>) -> C::Call {
+		UtilityCall::batch_all(calls).into()
 	}
 }
 

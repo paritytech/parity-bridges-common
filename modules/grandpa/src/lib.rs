@@ -36,20 +36,23 @@
 // Runtime-generated enums
 #![allow(clippy::large_enum_variant)]
 
-use storage_types::StoredAuthoritySet;
+pub use storage_types::StoredAuthoritySet;
 
 use bp_header_chain::{
-	justification::GrandpaJustification, HeaderChain, InitializationData, StoredHeaderData,
-	StoredHeaderDataBuilder,
+	justification::GrandpaJustification, ChainWithGrandpa, HeaderChain, InitializationData,
+	StoredHeaderData, StoredHeaderDataBuilder,
 };
-use bp_runtime::{BlockNumberOf, Chain, HashOf, HasherOf, HeaderId, HeaderOf, OwnedBridgeModule};
+use bp_runtime::{BlockNumberOf, HashOf, HasherOf, HeaderId, HeaderOf, OwnedBridgeModule};
 use finality_grandpa::voter_set::VoterSet;
-use frame_support::{ensure, fail};
+use frame_support::{dispatch::PostDispatchInfo, ensure};
 use sp_finality_grandpa::{ConsensusLog, GRANDPA_ENGINE_ID};
-use sp_runtime::traits::{Header as HeaderT, Zero};
+use sp_runtime::{
+	traits::{Header as HeaderT, Zero},
+	SaturatedConversion,
+};
 use sp_std::{boxed::Box, convert::TryInto};
 
-mod extension;
+mod call_ext;
 #[cfg(test)]
 mod mock;
 mod storage_types;
@@ -61,6 +64,7 @@ pub mod weights;
 pub mod benchmarking;
 
 // Re-export in crate namespace for `construct_runtime!`
+pub use call_ext::*;
 pub use pallet::*;
 pub use weights::WeightInfo;
 
@@ -93,7 +97,7 @@ pub mod pallet {
 	#[pallet::config]
 	pub trait Config<I: 'static = ()>: frame_system::Config {
 		/// The chain we are bridging to here.
-		type BridgedChain: Chain;
+		type BridgedChain: ChainWithGrandpa;
 
 		/// The upper bound on the number of requests allowed by the pallet.
 		///
@@ -113,10 +117,6 @@ pub mod pallet {
 		/// Incautious change of this constant may lead to orphan entries in the runtime storage.
 		#[pallet::constant]
 		type HeadersToKeep: Get<u32>;
-
-		/// Max number of authorities at the bridged chain.
-		#[pallet::constant]
-		type MaxBridgedAuthorities: Get<u32>;
 
 		/// Weights gathered through benchmarking.
 		type WeightInfo: WeightInfo;
@@ -151,9 +151,9 @@ pub mod pallet {
 		/// If successful in verification, it will write the target header to the underlying storage
 		/// pallet.
 		#[pallet::call_index(0)]
-		#[pallet::weight(T::WeightInfo::submit_finality_proof(
-			justification.commit.precommits.len().try_into().unwrap_or(u32::MAX),
-			justification.votes_ancestries.len().try_into().unwrap_or(u32::MAX),
+		#[pallet::weight(<T::WeightInfo as WeightInfo>::submit_finality_proof(
+			justification.commit.precommits.len().saturated_into(),
+			justification.votes_ancestries.len().saturated_into(),
 		))]
 		pub fn submit_finality_proof(
 			_origin: OriginFor<T>,
@@ -171,29 +171,18 @@ pub mod pallet {
 				finality_target
 			);
 
-			let best_finalized_number = match BestFinalized::<T, I>::get() {
-				Some(best_finalized_id) => best_finalized_id.number(),
-				None => {
-					log::error!(
-						target: LOG_TARGET,
-						"Cannot finalize header {:?} because pallet is not yet initialized",
-						finality_target,
-					);
-					fail!(<Error<T, I>>::NotInitialized);
-				},
-			};
-
-			// We do a quick check here to ensure that our header chain is making progress and isn't
-			// "travelling back in time" (which could be indicative of something bad, e.g a
-			// hard-fork).
-			ensure!(best_finalized_number < *number, <Error<T, I>>::OldHeader);
+			SubmitFinalityProofHelper::<T, I>::check_obsolete(*number)?;
 
 			let authority_set = <CurrentAuthoritySet<T, I>>::get();
+			let unused_proof_size = authority_set.unused_proof_size();
 			let set_id = authority_set.set_id;
 			verify_justification::<T, I>(&justification, hash, *number, authority_set.into())?;
 
 			let is_authorities_change_enacted =
 				try_enact_authority_change::<T, I>(&finality_target, set_id)?;
+			let may_refund_call_fee = is_authorities_change_enacted &&
+				submit_finality_proof_info_from_args::<T, I>(&finality_target, &justification)
+					.fits_limits();
 			<RequestCount<T, I>>::mutate(|count| *count += 1);
 			insert_header::<T, I>(*finality_target, hash);
 			log::info!(
@@ -207,10 +196,23 @@ pub mod pallet {
 			//
 			// We don't want to charge extra costs for mandatory operations. So relayer is not
 			// paying fee for mandatory headers import transactions.
-			let is_mandatory_header = is_authorities_change_enacted;
-			let pays_fee = if is_mandatory_header { Pays::No } else { Pays::Yes };
+			//
+			// If size/weight of the call is exceeds our estimated limits, the relayer still needs
+			// to pay for the transaction.
+			let pays_fee = if may_refund_call_fee { Pays::No } else { Pays::Yes };
 
-			Ok(pays_fee.into())
+			// the proof size component of the call weight assumes that there are
+			// `MaxBridgedAuthorities` in the `CurrentAuthoritySet` (we use `MaxEncodedLen`
+			// estimation). But if their number is lower, then we may "refund" some `proof_size`,
+			// making proof smaller and leaving block space to other useful transactions
+			let pre_dispatch_weight = T::WeightInfo::submit_finality_proof(
+				justification.commit.precommits.len().saturated_into(),
+				justification.votes_ancestries.len().saturated_into(),
+			);
+			let actual_weight = pre_dispatch_weight
+				.set_proof_size(pre_dispatch_weight.proof_size().saturating_sub(unused_proof_size));
+
+			Ok(PostDispatchInfo { actual_weight: Some(actual_weight), pays_fee })
 		}
 
 		/// Bootstrap the bridge pallet with an initial header and authority set from which to sync.
@@ -289,8 +291,14 @@ pub mod pallet {
 
 	/// A ring buffer of imported hashes. Ordered by the insertion time.
 	#[pallet::storage]
-	pub(super) type ImportedHashes<T: Config<I>, I: 'static = ()> =
-		StorageMap<_, Identity, u32, BridgedBlockHash<T, I>>;
+	pub(super) type ImportedHashes<T: Config<I>, I: 'static = ()> = StorageMap<
+		Hasher = Identity,
+		Key = u32,
+		Value = BridgedBlockHash<T, I>,
+		QueryKind = OptionQuery,
+		OnEmpty = GetDefault,
+		MaxValues = MaybeHeadersToKeep<T, I>,
+	>;
 
 	/// Current ring buffer position.
 	#[pallet::storage]
@@ -299,12 +307,18 @@ pub mod pallet {
 
 	/// Relevant fields of imported headers.
 	#[pallet::storage]
-	pub type ImportedHeaders<T: Config<I>, I: 'static = ()> =
-		StorageMap<_, Identity, BridgedBlockHash<T, I>, BridgedStoredHeaderData<T, I>>;
+	pub type ImportedHeaders<T: Config<I>, I: 'static = ()> = StorageMap<
+		Hasher = Identity,
+		Key = BridgedBlockHash<T, I>,
+		Value = BridgedStoredHeaderData<T, I>,
+		QueryKind = OptionQuery,
+		OnEmpty = GetDefault,
+		MaxValues = MaybeHeadersToKeep<T, I>,
+	>;
 
 	/// The current GRANDPA Authority set.
 	#[pallet::storage]
-	pub(super) type CurrentAuthoritySet<T: Config<I>, I: 'static = ()> =
+	pub type CurrentAuthoritySet<T: Config<I>, I: 'static = ()> =
 		StorageValue<_, StoredAuthoritySet<T, I>, ValueQuery>;
 
 	/// Optional pallet owner.
@@ -495,15 +509,15 @@ pub mod pallet {
 			init_params;
 		let authority_set_length = authority_list.len();
 		let authority_set = StoredAuthoritySet::<T, I>::try_new(authority_list, set_id)
-			.map_err(|_| {
+			.map_err(|e| {
 				log::error!(
 					target: LOG_TARGET,
 					"Failed to initialize bridge. Number of authorities in the set {} is larger than the configured value {}",
 					authority_set_length,
-					T::MaxBridgedAuthorities::get(),
+					T::BridgedChain::MAX_AUTHORITIES_COUNT,
 				);
 
-				Error::TooManyAuthoritiesInSet
+				e
 			})?;
 		let initial_hash = header.hash();
 
@@ -518,27 +532,35 @@ pub mod pallet {
 		Ok(())
 	}
 
+	/// Adapter for using `Config::HeadersToKeep` as `MaxValues` bound in our storage maps.
+	pub struct MaybeHeadersToKeep<T, I>(PhantomData<(T, I)>);
+
+	// this implementation is required to use the struct as `MaxValues`
+	impl<T: Config<I>, I: 'static> Get<Option<u32>> for MaybeHeadersToKeep<T, I> {
+		fn get() -> Option<u32> {
+			Some(T::HeadersToKeep::get())
+		}
+	}
+
+	/// Initialize pallet so that it is ready for inserting new header.
+	///
+	/// The function makes sure that the new insertion will cause the pruning of some old header.
+	///
+	/// Returns parent header for the new header.
 	#[cfg(feature = "runtime-benchmarks")]
 	pub(crate) fn bootstrap_bridge<T: Config<I>, I: 'static>(
 		init_params: super::InitializationData<BridgedHeader<T, I>>,
-	) {
-		let start_number = *init_params.header.number();
-		let end_number = start_number + T::HeadersToKeep::get().into();
+	) -> BridgedHeader<T, I> {
+		let start_header = init_params.header.clone();
 		initialize_bridge::<T, I>(init_params).expect("benchmarks are correct");
 
-		let mut number = start_number;
-		while number < end_number {
-			number = number + sp_runtime::traits::One::one();
-			let header = <BridgedHeader<T, I>>::new(
-				number,
-				Default::default(),
-				Default::default(),
-				Default::default(),
-				Default::default(),
-			);
-			let hash = header.hash();
-			insert_header::<T, I>(header, hash);
-		}
+		// the most obvious way to cause pruning during next insertion would be to insert
+		// `HeadersToKeep` headers. But it'll make our benchmarks slow. So we will just play with
+		// our pruning ring-buffer.
+		assert_eq!(ImportedHashesPointer::<T, I>::get(), 1);
+		ImportedHashesPointer::<T, I>::put(0);
+
+		*start_header
 	}
 }
 
@@ -613,8 +635,8 @@ pub fn initialize_for_benchmarks<T: Config<I>, I: 'static>(header: BridgedHeader
 mod tests {
 	use super::*;
 	use crate::mock::{
-		run_test, test_header, RuntimeOrigin, TestHeader, TestNumber, TestRuntime,
-		MAX_BRIDGED_AUTHORITIES,
+		run_test, test_header, RuntimeOrigin, TestBridgedChain, TestHeader, TestNumber,
+		TestRuntime, MAX_BRIDGED_AUTHORITIES,
 	};
 	use bp_header_chain::BridgeGrandpaCall;
 	use bp_runtime::BasicOperatingMode;
@@ -627,6 +649,7 @@ mod tests {
 		assert_err, assert_noop, assert_ok, dispatch::PostDispatchInfo,
 		storage::generator::StorageValue,
 	};
+	use sp_core::Get;
 	use sp_runtime::{Digest, DigestItem, DispatchError};
 
 	fn initialize_substrate_bridge() {
@@ -799,12 +822,26 @@ mod tests {
 	fn succesfully_imports_header_with_valid_finality() {
 		run_test(|| {
 			initialize_substrate_bridge();
-			assert_ok!(
-				submit_finality_proof(1),
-				PostDispatchInfo {
-					actual_weight: None,
-					pays_fee: frame_support::dispatch::Pays::Yes,
-				},
+
+			let header_number = 1;
+			let header = test_header(header_number.into());
+			let justification = make_default_justification(&header);
+
+			let pre_dispatch_weight = <TestRuntime as Config>::WeightInfo::submit_finality_proof(
+				justification.commit.precommits.len().try_into().unwrap_or(u32::MAX),
+				justification.votes_ancestries.len().try_into().unwrap_or(u32::MAX),
+			);
+
+			let result = submit_finality_proof(header_number);
+			assert_ok!(result);
+			assert_eq!(result.unwrap().pays_fee, frame_support::dispatch::Pays::Yes);
+			// our test config assumes 2048 max authorities and we are just using couple
+			let pre_dispatch_proof_size = pre_dispatch_weight.proof_size();
+			let actual_proof_size = result.unwrap().actual_weight.unwrap().proof_size();
+			assert!(actual_proof_size > 0);
+			assert!(
+				actual_proof_size < pre_dispatch_proof_size,
+				"Actual proof size {actual_proof_size} must be less than the pre-dispatch {pre_dispatch_proof_size}",
 			);
 
 			let header = test_header(1);
@@ -912,17 +949,13 @@ mod tests {
 			let justification = make_default_justification(&header);
 
 			// Let's import our test header
-			assert_ok!(
-				Pallet::<TestRuntime>::submit_finality_proof(
-					RuntimeOrigin::signed(1),
-					Box::new(header.clone()),
-					justification
-				),
-				PostDispatchInfo {
-					actual_weight: None,
-					pays_fee: frame_support::dispatch::Pays::No,
-				},
+			let result = Pallet::<TestRuntime>::submit_finality_proof(
+				RuntimeOrigin::signed(1),
+				Box::new(header.clone()),
+				justification,
 			);
+			assert_ok!(result);
+			assert_eq!(result.unwrap().pays_fee, frame_support::dispatch::Pays::No);
 
 			// Make sure that our header is the best finalized
 			assert_eq!(<BestFinalized<TestRuntime>>::get().unwrap().1, header.hash());
@@ -934,6 +967,64 @@ mod tests {
 				StoredAuthoritySet::<TestRuntime, ()>::try_new(next_authorities, next_set_id)
 					.unwrap(),
 			);
+		})
+	}
+
+	#[test]
+	fn relayer_pays_tx_fee_when_submitting_huge_mandatory_header() {
+		run_test(|| {
+			initialize_substrate_bridge();
+
+			// let's prepare a huge authorities change header, which is definitely above size limits
+			let mut header = test_header(2);
+			header.digest = change_log(0);
+			header.digest.push(DigestItem::Other(vec![42u8; 1024 * 1024]));
+			let justification = make_default_justification(&header);
+
+			// without large digest item ^^^ the relayer would have paid zero transaction fee
+			// (`Pays::No`)
+			let result = Pallet::<TestRuntime>::submit_finality_proof(
+				RuntimeOrigin::signed(1),
+				Box::new(header.clone()),
+				justification,
+			);
+			assert_ok!(result);
+			assert_eq!(result.unwrap().pays_fee, frame_support::dispatch::Pays::Yes);
+
+			// Make sure that our header is the best finalized
+			assert_eq!(<BestFinalized<TestRuntime>>::get().unwrap().1, header.hash());
+			assert!(<ImportedHeaders<TestRuntime>>::contains_key(header.hash()));
+		})
+	}
+
+	#[test]
+	fn relayer_pays_tx_fee_when_submitting_justification_with_long_ancestry_votes() {
+		run_test(|| {
+			initialize_substrate_bridge();
+
+			// let's prepare a huge authorities change header, which is definitely above weight
+			// limits
+			let mut header = test_header(2);
+			header.digest = change_log(0);
+			let justification = make_justification_for_header(JustificationGeneratorParams {
+				header: header.clone(),
+				ancestors: TestBridgedChain::REASONABLE_HEADERS_IN_JUSTIFICATON_ANCESTRY + 1,
+				..Default::default()
+			});
+
+			// without many headers in votes ancestries ^^^ the relayer would have paid zero
+			// transaction fee (`Pays::No`)
+			let result = Pallet::<TestRuntime>::submit_finality_proof(
+				RuntimeOrigin::signed(1),
+				Box::new(header.clone()),
+				justification,
+			);
+			assert_ok!(result);
+			assert_eq!(result.unwrap().pays_fee, frame_support::dispatch::Pays::Yes);
+
+			// Make sure that our header is the best finalized
+			assert_eq!(<BestFinalized<TestRuntime>>::get().unwrap().1, header.hash());
+			assert!(<ImportedHeaders<TestRuntime>>::contains_key(header.hash()));
 		})
 	}
 
@@ -1018,7 +1109,7 @@ mod tests {
 			assert_noop!(
 				Pallet::<TestRuntime>::parse_finalized_storage_proof(
 					Default::default(),
-					sp_trie::StorageProof::new(vec![]),
+					vec![],
 					|_| (),
 				),
 				bp_header_chain::HeaderChainError::UnknownHeader,
@@ -1160,6 +1251,11 @@ mod tests {
 		);
 
 		assert_eq!(
+			CurrentAuthoritySet::<TestRuntime>::storage_value_final_key().to_vec(),
+			bp_header_chain::storage_keys::current_authority_set_key("Grandpa").0,
+		);
+
+		assert_eq!(
 			BestFinalized::<TestRuntime>::storage_value_final_key().to_vec(),
 			bp_header_chain::storage_keys::best_finalized_key("Grandpa").0,
 		);
@@ -1178,7 +1274,7 @@ mod tests {
 
 		let direct_initialize_call =
 			Call::<TestRuntime>::initialize { init_data: init_data.clone() };
-		let indirect_initialize_call = BridgeGrandpaCall::<TestHeader>::initialize(init_data);
+		let indirect_initialize_call = BridgeGrandpaCall::<TestHeader>::initialize { init_data };
 		assert_eq!(direct_initialize_call.encode(), indirect_initialize_call.encode());
 
 		let direct_submit_finality_proof_call = Call::<TestRuntime>::submit_finality_proof {
@@ -1186,7 +1282,10 @@ mod tests {
 			justification: justification.clone(),
 		};
 		let indirect_submit_finality_proof_call =
-			BridgeGrandpaCall::<TestHeader>::submit_finality_proof(Box::new(header), justification);
+			BridgeGrandpaCall::<TestHeader>::submit_finality_proof {
+				finality_target: Box::new(header),
+				justification,
+			};
 		assert_eq!(
 			direct_submit_finality_proof_call.encode(),
 			indirect_submit_finality_proof_call.encode()
@@ -1194,4 +1293,9 @@ mod tests {
 	}
 
 	generate_owned_bridge_module_tests!(BasicOperatingMode::Normal, BasicOperatingMode::Halted);
+
+	#[test]
+	fn maybe_headers_to_keep_returns_correct_value() {
+		assert_eq!(MaybeHeadersToKeep::<TestRuntime, ()>::get(), Some(mock::HeadersToKeep::get()));
+	}
 }

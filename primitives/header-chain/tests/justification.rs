@@ -16,14 +16,17 @@
 
 //! Tests for Grandpa Justification code.
 
-use bp_header_chain::justification::{verify_justification, Error};
+use bp_header_chain::justification::{
+	required_justification_precommits, verify_and_optimize_justification, verify_justification,
+	Error,
+};
 use bp_test_utils::*;
 
 type TestHeader = sp_runtime::testing::Header;
 
 #[test]
 fn valid_justification_accepted() {
-	let authorities = vec![(ALICE, 1), (BOB, 1), (CHARLIE, 1), (DAVE, 1)];
+	let authorities = vec![(ALICE, 1), (BOB, 1), (CHARLIE, 1)];
 	let params = JustificationGeneratorParams {
 		header: test_header(1),
 		round: TEST_GRANDPA_ROUND,
@@ -54,7 +57,7 @@ fn valid_justification_accepted_with_single_fork() {
 		header: test_header(1),
 		round: TEST_GRANDPA_ROUND,
 		set_id: TEST_GRANDPA_SET_ID,
-		authorities: vec![(ALICE, 1), (BOB, 1), (CHARLIE, 1), (DAVE, 1), (EVE, 1)],
+		authorities: vec![(ALICE, 1), (BOB, 1), (CHARLIE, 1)],
 		ancestors: 5,
 		forks: 1,
 	};
@@ -76,15 +79,16 @@ fn valid_justification_accepted_with_arbitrary_number_of_authorities() {
 	use sp_finality_grandpa::AuthorityId;
 
 	let n = 15;
+	let required_signatures = required_justification_precommits(n as _);
 	let authorities = accounts(n).iter().map(|k| (*k, 1)).collect::<Vec<_>>();
 
 	let params = JustificationGeneratorParams {
 		header: test_header(1),
 		round: TEST_GRANDPA_ROUND,
 		set_id: TEST_GRANDPA_SET_ID,
-		authorities: authorities.clone(),
+		authorities: authorities.clone().into_iter().take(required_signatures as _).collect(),
 		ancestors: n.into(),
-		forks: n.into(),
+		forks: required_signatures,
 	};
 
 	let authorities = authorities
@@ -189,4 +193,88 @@ fn justification_is_invalid_if_we_dont_meet_threshold() {
 		),
 		Err(Error::TooLowCumulativeWeight),
 	);
+}
+
+#[test]
+fn optimizer_does_noting_with_minimal_justification() {
+	let justification = make_default_justification::<TestHeader>(&test_header(1));
+
+	let num_precommits_before = justification.commit.precommits.len();
+	let justification = verify_and_optimize_justification::<TestHeader>(
+		header_id::<TestHeader>(1),
+		TEST_GRANDPA_SET_ID,
+		&voter_set(),
+		justification,
+	)
+	.unwrap();
+	let num_precommits_after = justification.commit.precommits.len();
+
+	assert_eq!(num_precommits_before, num_precommits_after);
+}
+
+#[test]
+fn unknown_authority_votes_are_removed_by_optimizer() {
+	let mut justification = make_default_justification::<TestHeader>(&test_header(1));
+	justification.commit.precommits.push(signed_precommit::<TestHeader>(
+		&bp_test_utils::Account(42),
+		header_id::<TestHeader>(1),
+		justification.round,
+		TEST_GRANDPA_SET_ID,
+	));
+
+	let num_precommits_before = justification.commit.precommits.len();
+	let justification = verify_and_optimize_justification::<TestHeader>(
+		header_id::<TestHeader>(1),
+		TEST_GRANDPA_SET_ID,
+		&voter_set(),
+		justification,
+	)
+	.unwrap();
+	let num_precommits_after = justification.commit.precommits.len();
+
+	assert_eq!(num_precommits_before - 1, num_precommits_after);
+}
+
+#[test]
+fn duplicate_authority_votes_are_removed_by_optimizer() {
+	let mut justification = make_default_justification::<TestHeader>(&test_header(1));
+	justification
+		.commit
+		.precommits
+		.push(justification.commit.precommits.first().cloned().unwrap());
+
+	let num_precommits_before = justification.commit.precommits.len();
+	let justification = verify_and_optimize_justification::<TestHeader>(
+		header_id::<TestHeader>(1),
+		TEST_GRANDPA_SET_ID,
+		&voter_set(),
+		justification,
+	)
+	.unwrap();
+	let num_precommits_after = justification.commit.precommits.len();
+
+	assert_eq!(num_precommits_before - 1, num_precommits_after);
+}
+
+#[test]
+fn redundant_authority_votes_are_removed_by_optimizer() {
+	let mut justification = make_default_justification::<TestHeader>(&test_header(1));
+	justification.commit.precommits.push(signed_precommit::<TestHeader>(
+		&EVE,
+		header_id::<TestHeader>(1),
+		justification.round,
+		TEST_GRANDPA_SET_ID,
+	));
+
+	let num_precommits_before = justification.commit.precommits.len();
+	let justification = verify_and_optimize_justification::<TestHeader>(
+		header_id::<TestHeader>(1),
+		TEST_GRANDPA_SET_ID,
+		&voter_set(),
+		justification,
+	)
+	.unwrap();
+	let num_precommits_after = justification.commit.precommits.len();
+
+	assert_eq!(num_precommits_before - 1, num_precommits_after);
 }

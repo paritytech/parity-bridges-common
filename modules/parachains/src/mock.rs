@@ -14,6 +14,7 @@
 // You should have received a copy of the GNU General Public License
 // along with Parity Bridges Common.  If not, see <http://www.gnu.org/licenses/>.
 
+use bp_header_chain::ChainWithGrandpa;
 use bp_polkadot_core::parachains::ParaId;
 use bp_runtime::{Chain, Parachain};
 use frame_support::{construct_runtime, parameter_types, traits::ConstU32, weights::Weight};
@@ -38,6 +39,8 @@ pub const PARAS_PALLET_NAME: &str = "Paras";
 pub const UNTRACKED_PARACHAIN_ID: u32 = 10;
 // use exact expected encoded size: `vec_len_size + header_number_size + state_root_hash_size`
 pub const MAXIMAL_PARACHAIN_HEAD_DATA_SIZE: u32 = 1 + 8 + 32;
+// total parachains that we use in tests
+pub const TOTAL_PARACHAINS: u32 = 4;
 
 pub type RegularParachainHeader = sp_runtime::testing::Header;
 pub type RegularParachainHasher = BlakeTwo256;
@@ -155,7 +158,7 @@ construct_runtime! {
 
 parameter_types! {
 	pub const BlockHashCount: TestNumber = 250;
-	pub const MaximumBlockWeight: Weight = Weight::from_ref_time(1024);
+	pub const MaximumBlockWeight: Weight = Weight::from_parts(1024, 0);
 	pub const MaximumBlockLength: u32 = 2 * 1024;
 	pub const AvailableBlockRatio: Perbill = Perbill::one();
 }
@@ -184,7 +187,7 @@ impl frame_system::Config for TestRuntime {
 	type BlockLength = ();
 	type SS58Prefix = ();
 	type OnSetCode = ();
-	type MaxConsumers = frame_support::traits::ConstU32<16>;
+	type MaxConsumers = ConstU32<16>;
 }
 
 parameter_types! {
@@ -197,7 +200,6 @@ impl pallet_bridge_grandpa::Config<pallet_bridge_grandpa::Instance1> for TestRun
 	type BridgedChain = TestBridgedChain;
 	type MaxRequests = ConstU32<2>;
 	type HeadersToKeep = HeadersToKeep;
-	type MaxBridgedAuthorities = frame_support::traits::ConstU32<5>;
 	type WeightInfo = ();
 }
 
@@ -205,7 +207,6 @@ impl pallet_bridge_grandpa::Config<pallet_bridge_grandpa::Instance2> for TestRun
 	type BridgedChain = TestBridgedChain;
 	type MaxRequests = ConstU32<2>;
 	type HeadersToKeep = HeadersToKeep;
-	type MaxBridgedAuthorities = frame_support::traits::ConstU32<5>;
 	type WeightInfo = ();
 }
 
@@ -222,7 +223,7 @@ impl pallet_bridge_parachains::Config for TestRuntime {
 	type ParasPalletName = ParasPalletName;
 	type ParaStoredHeaderDataBuilder = (Parachain1, Parachain2, Parachain3, BigParachain);
 	type HeadsToKeep = HeadsToKeep;
-	type MaxParaHeadDataSize = frame_support::traits::ConstU32<MAXIMAL_PARACHAIN_HEAD_DATA_SIZE>;
+	type MaxParaHeadDataSize = ConstU32<MAXIMAL_PARACHAIN_HEAD_DATA_SIZE>;
 }
 
 #[derive(Debug)]
@@ -248,6 +249,14 @@ impl Chain for TestBridgedChain {
 	}
 }
 
+impl ChainWithGrandpa for TestBridgedChain {
+	const WITH_CHAIN_GRANDPA_PALLET_NAME: &'static str = "";
+	const MAX_AUTHORITIES_COUNT: u32 = 16;
+	const REASONABLE_HEADERS_IN_JUSTIFICATON_ANCESTRY: u32 = 8;
+	const MAX_HEADER_SIZE: u32 = 256;
+	const AVERAGE_HEADER_SIZE_IN_JUSTIFICATION: u32 = 64;
+}
+
 #[derive(Debug)]
 pub struct OtherBridgedChain;
 
@@ -269,6 +278,14 @@ impl Chain for OtherBridgedChain {
 	fn max_extrinsic_weight() -> Weight {
 		unreachable!()
 	}
+}
+
+impl ChainWithGrandpa for OtherBridgedChain {
+	const WITH_CHAIN_GRANDPA_PALLET_NAME: &'static str = "";
+	const MAX_AUTHORITIES_COUNT: u32 = 16;
+	const REASONABLE_HEADERS_IN_JUSTIFICATON_ANCESTRY: u32 = 8;
+	const MAX_HEADER_SIZE: u32 = 256;
+	const AVERAGE_HEADER_SIZE_IN_JUSTIFICATION: u32 = 64;
 }
 
 pub fn run_test<T>(test: impl FnOnce() -> T) -> T {
