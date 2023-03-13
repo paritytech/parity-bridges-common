@@ -27,8 +27,8 @@ use xcm::v3::NetworkId;
 pub mod messages;
 pub mod messages_api;
 pub mod messages_benchmarking;
-pub mod messages_xcm_extension;
 pub mod messages_call_ext;
+pub mod messages_xcm_extension;
 pub mod parachains_benchmarking;
 pub mod refund_relayer_extension;
 

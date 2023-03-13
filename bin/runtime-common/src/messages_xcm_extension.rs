@@ -1,18 +1,18 @@
-// Copyright 2022 Parity Technologies (UK) Ltd.
-// This file is part of Cumulus.
+// Copyright 2023 Parity Technologies (UK) Ltd.
+// This file is part of Parity Bridges Common.
 
-// Cumulus is free software: you can redistribute it and/or modify
+// Parity Bridges Common is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 
-// Cumulus is distributed in the hope that it will be useful,
+// Parity Bridges Common is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
 
 // You should have received a copy of the GNU General Public License
-// along with Cumulus.  If not, see <http://www.gnu.org/licenses/>.
+// along with Parity Bridges Common.  If not, see <http://www.gnu.org/licenses/>.
 
 //! Module provides utilities for easier XCM handling, e.g:
 //! [`XcmExecutor`] -> [`MessageSender`] -> <outbound message queue>
@@ -28,7 +28,7 @@ use bp_messages::{
 };
 use bp_runtime::{messages::MessageDispatchResult, AccountIdOf, Chain};
 use codec::{Decode, Encode};
-use frame_support::{dispatch::Weight, CloneNoBound, EqNoBound, PartialEqNoBound};
+use frame_support::{dispatch::Weight, traits::Get, CloneNoBound, EqNoBound, PartialEqNoBound};
 use scale_info::TypeInfo;
 use xcm_builder::{DispatchBlob, DispatchBlobError, HaulBlob, HaulBlobError};
 
@@ -44,25 +44,38 @@ pub enum XcmBlobMessageDispatchResult {
 }
 
 /// [`XcmBlobMessageDispatch`] is responsible for dispatching received messages
-pub struct XcmBlobMessageDispatch<SourceBridgeHubChain, TargetBridgeHubChain, DispatchBlob> {
-	_marker:
-		sp_std::marker::PhantomData<(SourceBridgeHubChain, TargetBridgeHubChain, DispatchBlob)>,
+pub struct XcmBlobMessageDispatch<
+	SourceBridgeHubChain,
+	TargetBridgeHubChain,
+	DispatchBlob,
+	DispatchBlobWeigher,
+> {
+	_marker: sp_std::marker::PhantomData<(
+		SourceBridgeHubChain,
+		TargetBridgeHubChain,
+		DispatchBlob,
+		DispatchBlobWeigher,
+	)>,
 }
 
-impl<SourceBridgeHubChain: Chain, TargetBridgeHubChain: Chain, BlobDispatcher: DispatchBlob>
-	MessageDispatch<AccountIdOf<SourceBridgeHubChain>>
-	for XcmBlobMessageDispatch<SourceBridgeHubChain, TargetBridgeHubChain, BlobDispatcher>
+impl<
+		SourceBridgeHubChain: Chain,
+		TargetBridgeHubChain: Chain,
+		BlobDispatcher: DispatchBlob,
+		DispatchBlobWeigher: Get<Weight>,
+	> MessageDispatch<AccountIdOf<SourceBridgeHubChain>>
+	for XcmBlobMessageDispatch<
+		SourceBridgeHubChain,
+		TargetBridgeHubChain,
+		BlobDispatcher,
+		DispatchBlobWeigher,
+	>
 {
 	type DispatchPayload = XcmAsPlainPayload;
 	type DispatchLevelResult = XcmBlobMessageDispatchResult;
 
 	fn dispatch_weight(_message: &mut DispatchMessage<Self::DispatchPayload>) -> Weight {
-		log::error!(
-			target: crate::LOG_TARGET_BRIDGE_DISPATCH,
-			"[XcmBlobMessageDispatch] TODO: change here to XCMv3 dispatch_weight with XcmExecutor - message: ?...?",
-		);
-		// TODO:check-parameter - setup weight?
-		Weight::zero()
+		DispatchBlobWeigher::get()
 	}
 
 	fn dispatch(
@@ -79,7 +92,7 @@ impl<SourceBridgeHubChain: Chain, TargetBridgeHubChain: Chain, BlobDispatcher: D
 					message.key.nonce
 				);
 				return MessageDispatchResult {
-					// TODO:check-parameter - setup uspent_weight?
+					// TODO:check-parameter - setup uspent_weight? https://github.com/paritytech/polkadot/issues/6629
 					unspent_weight: Weight::zero(),
 					dispatch_level_result: XcmBlobMessageDispatchResult::InvalidPayload,
 				}
@@ -116,7 +129,7 @@ impl<SourceBridgeHubChain: Chain, TargetBridgeHubChain: Chain, BlobDispatcher: D
 			},
 		};
 		MessageDispatchResult {
-			// TODO:check-parameter - setup uspent_weight?
+			// TODO:check-parameter - setup uspent_weight?  https://github.com/paritytech/polkadot/issues/6629
 			unspent_weight: Weight::zero(),
 			dispatch_level_result,
 		}
