@@ -16,9 +16,9 @@
 
 //! Module provides utilities for easier XCM handling, e.g:
 //! [`XcmExecutor`] -> [`MessageSender`] -> <outbound message queue>
-//!												|
-//!											<relayer>
-//!												|
+//!                                             |
+//!                                          <relayer>
+//!                                             |
 //! [`XcmRouter`] <- [`MessageDispatch`] <- <inbound message queue>
 
 use bp_messages::{
@@ -32,7 +32,7 @@ use frame_support::{dispatch::Weight, traits::Get, CloneNoBound, EqNoBound, Part
 use scale_info::TypeInfo;
 use xcm_builder::{DispatchBlob, DispatchBlobError, HaulBlob, HaulBlobError};
 
-/// PLain "XCM" payload, which we transfer through bridge
+/// Plain "XCM" payload, which we transfer through bridge
 pub type XcmAsPlainPayload = sp_std::prelude::Vec<u8>;
 
 /// Message dispatch result type for single message
@@ -142,7 +142,7 @@ pub trait XcmBlobHauler {
 	/// Runtime message sender adapter.
 	type MessageSender: MessagesBridge<Self::MessageSenderOrigin, XcmAsPlainPayload>;
 
-	/// Runtime message sender origin, which is used by MessageSender.
+	/// Runtime message sender origin, which is used by [`MessageSender`].
 	type MessageSenderOrigin;
 	/// Our location within the Consensus Universe.
 	fn message_sender_origin() -> Self::MessageSenderOrigin;
@@ -160,10 +160,8 @@ impl<HaulerOrigin, H: XcmBlobHauler<MessageSenderOrigin = HaulerOrigin>> HaulBlo
 	fn haul_blob(blob: sp_std::prelude::Vec<u8>) -> Result<(), HaulBlobError> {
 		let lane = H::xcm_lane();
 		let result = H::MessageSender::send_message(H::message_sender_origin(), lane, blob);
-		let result = result.map(|artifacts| {
-			let hash = (lane, artifacts.nonce).using_encoded(sp_io::hashing::blake2_256);
-			hash
-		});
+		let result = result
+			.map(|artifacts| (lane, artifacts.nonce).using_encoded(sp_io::hashing::blake2_256));
 		match &result {
 			Ok(result) => log::info!(
 				target: crate::LOG_TARGET_BRIDGE_DISPATCH,
