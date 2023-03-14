@@ -51,7 +51,7 @@ use sp_std::prelude::*;
 pub trait ChainWithBeefy: Chain {
 	/// The hashing algorithm used to compute the digest of the BEEFY commitment.
 	///
-	/// Corresponds to the hashing algorithm, used by `beefy_gadget::BeefyKeystore`.
+	/// Corresponds to the hashing algorithm, used by `sc_consensus_beefy::BeefyKeystore`.
 	type CommitmentHasher: sp_runtime::traits::Hash;
 
 	/// The hashing algorithm used to build the MMR.
