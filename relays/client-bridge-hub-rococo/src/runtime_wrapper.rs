@@ -14,21 +14,22 @@
 // You should have received a copy of the GNU General Public License
 // along with Parity Bridges Common.  If not, see <http://www.gnu.org/licenses/>.
 
-// TODO: join with primitives do we need this here or move to the primitives?
-
 //! Types that are specific to the BridgeHubRococo runtime.
 
 use codec::{Decode, Encode};
 use scale_info::TypeInfo;
 
-use bp_bridge_hub_rococo::SignedExtension;
+pub use bp_bridge_hub_rococo::rewarding_bridge_signed_extension;
 pub use bp_header_chain::BridgeGrandpaCallOf;
 pub use bp_parachains::BridgeParachainCall;
 pub use bridge_runtime_common::messages::BridgeMessagesCallOf;
-pub use relay_substrate_client::calls::SystemCall;
+pub use relay_substrate_client::calls::{SystemCall, UtilityCall};
 
 /// Unchecked BridgeHubRococo extrinsic.
-pub type UncheckedExtrinsic = bp_bridge_hub_rococo::UncheckedExtrinsic<Call, SignedExtension>;
+pub type UncheckedExtrinsic = bp_bridge_hub_rococo::UncheckedExtrinsic<
+	Call,
+	rewarding_bridge_signed_extension::RewardingBridgeSignedExtension,
+>;
 
 // The indirect pallet call used to sync `Wococo` GRANDPA finality to `BHRococo`.
 pub type BridgeWococoGrandpaCall = BridgeGrandpaCallOf<bp_wococo::Wococo>;
@@ -49,6 +50,9 @@ pub enum Call {
 	#[cfg(test)]
 	#[codec(index = 0)]
 	System(SystemCall),
+	/// Utility pallet.
+	#[codec(index = 40)]
+	Utility(UtilityCall<Call>),
 
 	/// Wococo bridge pallet.
 	#[codec(index = 41)]
@@ -59,4 +63,10 @@ pub enum Call {
 	/// Wococo messages bridge pallet.
 	#[codec(index = 46)]
 	BridgeWococoMessages(BridgeWococoMessagesCall),
+}
+
+impl From<UtilityCall<Call>> for Call {
+	fn from(call: UtilityCall<Call>) -> Call {
+		Call::Utility(call)
+	}
 }

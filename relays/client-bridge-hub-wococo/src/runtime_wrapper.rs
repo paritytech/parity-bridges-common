@@ -19,14 +19,17 @@
 use codec::{Decode, Encode};
 use scale_info::TypeInfo;
 
-use bp_bridge_hub_wococo::SignedExtension;
+pub use bp_bridge_hub_wococo::rewarding_bridge_signed_extension;
 pub use bp_header_chain::BridgeGrandpaCallOf;
 pub use bp_parachains::BridgeParachainCall;
 pub use bridge_runtime_common::messages::BridgeMessagesCallOf;
-pub use relay_substrate_client::calls::SystemCall;
+pub use relay_substrate_client::calls::{SystemCall, UtilityCall};
 
 /// Unchecked BridgeHubWococo extrinsic.
-pub type UncheckedExtrinsic = bp_bridge_hub_wococo::UncheckedExtrinsic<Call, SignedExtension>;
+pub type UncheckedExtrinsic = bp_bridge_hub_wococo::UncheckedExtrinsic<
+	Call,
+	rewarding_bridge_signed_extension::RewardingBridgeSignedExtension,
+>;
 
 // The indirect pallet call used to sync `Rococo` GRANDPA finality to `BHWococo`.
 pub type BridgeRococoGrandpaCall = BridgeGrandpaCallOf<bp_rococo::Rococo>;
@@ -47,6 +50,9 @@ pub enum Call {
 	#[cfg(test)]
 	#[codec(index = 0)]
 	System(SystemCall),
+	/// Utility pallet.
+	#[codec(index = 40)]
+	Utility(UtilityCall<Call>),
 
 	/// Rococo bridge pallet.
 	#[codec(index = 43)]
@@ -59,12 +65,18 @@ pub enum Call {
 	BridgeRococoMessages(BridgeRococoMessagesCall),
 }
 
+impl From<UtilityCall<Call>> for Call {
+	fn from(call: UtilityCall<Call>) -> Call {
+		Call::Utility(call)
+	}
+}
+
 #[cfg(test)]
 mod tests {
 	use super::*;
 	use bp_runtime::BasicOperatingMode;
+	use sp_consensus_grandpa::AuthorityList;
 	use sp_core::hexdisplay::HexDisplay;
-	use sp_finality_grandpa::AuthorityList;
 	use sp_runtime::traits::Header;
 	use std::str::FromStr;
 

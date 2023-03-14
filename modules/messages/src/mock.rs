@@ -34,7 +34,7 @@ use codec::{Decode, Encode};
 use frame_support::{
 	parameter_types,
 	traits::ConstU64,
-	weights::{RuntimeDbWeight, Weight},
+	weights::{constants::RocksDbWeight, Weight},
 };
 use scale_info::TypeInfo;
 use sp_core::H256;
@@ -89,11 +89,12 @@ frame_support::construct_runtime! {
 
 parameter_types! {
 	pub const BlockHashCount: u64 = 250;
-	pub const MaximumBlockWeight: Weight = Weight::from_ref_time(1024);
+	pub const MaximumBlockWeight: Weight = Weight::from_parts(1024, 0);
 	pub const MaximumBlockLength: u32 = 2 * 1024;
 	pub const AvailableBlockRatio: Perbill = Perbill::one();
-	pub const DbWeight: RuntimeDbWeight = RuntimeDbWeight { read: 1, write: 2 };
 }
+
+pub type DbWeight = RocksDbWeight;
 
 impl frame_system::Config for TestRuntime {
 	type RuntimeOrigin = RuntimeOrigin;
@@ -409,7 +410,7 @@ pub const fn message_payload(id: u64, declared_weight: u64) -> TestPayload {
 	TestPayload {
 		id,
 		reject_by_lane_verifier: false,
-		declared_weight: Weight::from_ref_time(declared_weight),
+		declared_weight: Weight::from_parts(declared_weight, 0),
 		dispatch_result: dispatch_result(0),
 		extra: Vec::new(),
 	}
@@ -420,7 +421,7 @@ pub const fn dispatch_result(
 	unspent_weight: u64,
 ) -> MessageDispatchResult<TestDispatchLevelResult> {
 	MessageDispatchResult {
-		unspent_weight: Weight::from_ref_time(unspent_weight),
+		unspent_weight: Weight::from_parts(unspent_weight, 0),
 		dispatch_level_result: (),
 	}
 }

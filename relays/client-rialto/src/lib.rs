@@ -17,11 +17,12 @@
 //! Types used to connect to the Rialto-Substrate chain.
 
 use bp_messages::MessageNonce;
+use bp_runtime::ChainId;
 use codec::{Compact, Decode, Encode};
 use relay_substrate_client::{
-	BalanceOf, Chain, ChainWithBalances, ChainWithGrandpa, ChainWithMessages,
-	ChainWithTransactions, Error as SubstrateError, IndexOf, RelayChain, SignParam,
-	UnderlyingChainProvider, UnsignedTransaction,
+	BalanceOf, Chain, ChainWithBalances, ChainWithMessages, ChainWithTransactions,
+	Error as SubstrateError, IndexOf, RelayChain, SignParam, UnderlyingChainProvider,
+	UnsignedTransaction,
 };
 use sp_core::{storage::StorageKey, Pair};
 use sp_runtime::{generic::SignedPayload, traits::IdentifyAccount};
@@ -39,6 +40,7 @@ impl UnderlyingChainProvider for Rialto {
 }
 
 impl Chain for Rialto {
+	const ID: ChainId = bp_runtime::RIALTO_CHAIN_ID;
 	const NAME: &'static str = "Rialto";
 	// Rialto token has no value, but we associate it with DOT token
 	const TOKEN_ID: Option<&'static str> = Some("polkadot");
@@ -56,10 +58,6 @@ impl RelayChain for Rialto {
 		bp_rialto::WITH_RIALTO_BRIDGE_PARAS_PALLET_NAME;
 }
 
-impl ChainWithGrandpa for Rialto {
-	const WITH_CHAIN_GRANDPA_PALLET_NAME: &'static str = bp_rialto::WITH_RIALTO_GRANDPA_PALLET_NAME;
-}
-
 impl ChainWithMessages for Rialto {
 	const WITH_CHAIN_MESSAGES_PALLET_NAME: &'static str =
 		bp_rialto::WITH_RIALTO_MESSAGES_PALLET_NAME;
@@ -73,7 +71,6 @@ impl ChainWithMessages for Rialto {
 		bp_rialto::MAX_UNREWARDED_RELAYERS_IN_CONFIRMATION_TX;
 	const MAX_UNCONFIRMED_MESSAGES_IN_CONFIRMATION_TX: MessageNonce =
 		bp_rialto::MAX_UNCONFIRMED_MESSAGES_IN_CONFIRMATION_TX;
-	type WeightInfo = ();
 }
 
 impl ChainWithBalances for Rialto {

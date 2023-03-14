@@ -302,8 +302,6 @@ impl parachain_info::Config for Runtime {}
 
 impl cumulus_pallet_aura_ext::Config for Runtime {}
 
-impl pallet_randomness_collective_flip::Config for Runtime {}
-
 parameter_types! {
 	pub const RelayLocation: MultiLocation = MultiLocation::parent();
 	pub const RelayNetwork: NetworkId = CustomNetworkId::Rialto.as_network_id();
@@ -521,19 +519,8 @@ impl pallet_bridge_relayers::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 	type Reward = Balance;
 	type PaymentProcedure =
-		bp_relayers::PayLaneRewardFromAccount<pallet_balances::Pallet<Runtime>, AccountId>;
+		bp_relayers::PayRewardFromAccount<pallet_balances::Pallet<Runtime>, AccountId>;
 	type WeightInfo = ();
-}
-
-parameter_types! {
-	/// Number of headers to keep.
-	///
-	/// Assuming the worst case of every header being finalized, we will keep headers at least for a
-	/// day.
-	pub const HeadersToKeep: u32 = bp_millau::DAYS as u32;
-
-	/// Maximal number of authorities at Millau.
-	pub const MaxAuthoritiesAtMillau: u32 = bp_millau::MAX_AUTHORITIES_COUNT;
 }
 
 pub type MillauGrandpaInstance = ();
@@ -544,8 +531,7 @@ impl pallet_bridge_grandpa::Config for Runtime {
 	/// Note that once this is hit the pallet will essentially throttle incoming requests down to
 	/// one call per block.
 	type MaxRequests = ConstU32<50>;
-	type HeadersToKeep = HeadersToKeep;
-	type MaxBridgedAuthorities = MaxAuthoritiesAtMillau;
+	type HeadersToKeep = ConstU32<{ bp_millau::DAYS as u32 }>;
 	type WeightInfo = pallet_bridge_grandpa::weights::BridgeWeight<Runtime>;
 }
 
@@ -581,7 +567,7 @@ impl pallet_bridge_messages::Config<WithMillauMessagesInstance> for Runtime {
 	type LaneMessageVerifier = crate::millau_messages::ToMillauMessageVerifier;
 	type DeliveryConfirmationPayments = pallet_bridge_relayers::DeliveryConfirmationPaymentsAdapter<
 		Runtime,
-		frame_support::traits::ConstU128<100_000>,
+		WithMillauMessagesInstance,
 		frame_support::traits::ConstU128<100_000>,
 	>;
 
@@ -600,7 +586,6 @@ construct_runtime!(
 		System: frame_system::{Pallet, Call, Storage, Config, Event<T>},
 		Timestamp: pallet_timestamp::{Pallet, Call, Storage, Inherent},
 		Sudo: pallet_sudo::{Pallet, Call, Storage, Config<T>, Event<T>},
-		RandomnessCollectiveFlip: pallet_randomness_collective_flip::{Pallet, Storage},
 		TransactionPayment: pallet_transaction_payment::{Pallet, Storage, Event<T>},
 
 		ParachainSystem: cumulus_pallet_parachain_system::{Pallet, Call, Storage, Inherent, Event<T>} = 20,

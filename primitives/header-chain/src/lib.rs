@@ -19,37 +19,30 @@
 
 #![cfg_attr(not(feature = "std"), no_std)]
 
-use bp_runtime::{BasicOperatingMode, Chain, HashOf, HasherOf, HeaderOf, StorageProofChecker};
+use bp_runtime::{
+	BasicOperatingMode, Chain, HashOf, HasherOf, HeaderOf, RawStorageProof, StorageProofChecker,
+	StorageProofError,
+};
 use codec::{Codec, Decode, Encode, EncodeLike, MaxEncodedLen};
 use core::{clone::Clone, cmp::Eq, default::Default, fmt::Debug};
 use frame_support::PalletError;
 use scale_info::TypeInfo;
 #[cfg(feature = "std")]
 use serde::{Deserialize, Serialize};
-use sp_finality_grandpa::{AuthorityList, ConsensusLog, SetId, GRANDPA_ENGINE_ID};
+use sp_consensus_grandpa::{AuthorityList, ConsensusLog, SetId, GRANDPA_ENGINE_ID};
 use sp_runtime::{traits::Header as HeaderT, Digest, RuntimeDebug};
 use sp_std::boxed::Box;
-use sp_trie::StorageProof;
 
 pub mod justification;
 pub mod storage_keys;
 
 /// Header chain error.
-#[derive(Clone, Copy, Decode, Encode, Eq, PalletError, PartialEq, RuntimeDebug, TypeInfo)]
+#[derive(Clone, Decode, Encode, Eq, PartialEq, PalletError, Debug, TypeInfo)]
 pub enum HeaderChainError {
 	/// Header with given hash is missing from the chain.
 	UnknownHeader,
-	/// The storage proof doesn't contains storage root.
-	StorageRootMismatch,
-}
-
-impl From<HeaderChainError> for &'static str {
-	fn from(err: HeaderChainError) -> &'static str {
-		match err {
-			HeaderChainError::UnknownHeader => "UnknownHeader",
-			HeaderChainError::StorageRootMismatch => "StorageRootMismatch",
-		}
-	}
+	/// Storage proof related error.
+	StorageProof(StorageProofError),
 }
 
 /// Header data that we're storing on-chain.
@@ -83,13 +76,13 @@ pub trait HeaderChain<C: Chain> {
 	/// Parse storage proof using finalized header.
 	fn parse_finalized_storage_proof<R>(
 		header_hash: HashOf<C>,
-		storage_proof: StorageProof,
+		storage_proof: RawStorageProof,
 		parse: impl FnOnce(StorageProofChecker<HasherOf<C>>) -> R,
 	) -> Result<R, HeaderChainError> {
 		let state_root = Self::finalized_header_state_root(header_hash)
 			.ok_or(HeaderChainError::UnknownHeader)?;
 		let storage_proof_checker = bp_runtime::StorageProofChecker::new(state_root, storage_proof)
-			.map_err(|_| HeaderChainError::StorageRootMismatch)?;
+			.map_err(HeaderChainError::StorageProof)?;
 
 		Ok(parse(storage_proof_checker))
 	}
@@ -118,7 +111,7 @@ impl AuthoritySet {
 	}
 }
 
-/// Data required for initializing the bridge pallet.
+/// Data required for initializing the GRANDPA bridge pallet.
 ///
 /// The bridge needs to know where to start its sync from, and this provides that initial context.
 #[derive(Default, Encode, Decode, RuntimeDebug, PartialEq, Eq, Clone, TypeInfo)]
@@ -152,7 +145,7 @@ pub struct GrandpaConsensusLogReader<Number>(sp_std::marker::PhantomData<Number>
 impl<Number: Codec> GrandpaConsensusLogReader<Number> {
 	pub fn find_authorities_change(
 		digest: &Digest,
-	) -> Option<sp_finality_grandpa::ScheduledChange<Number>> {
+	) -> Option<sp_consensus_grandpa::ScheduledChange<Number>> {
 		// find the first consensus digest with the right ID which converts to
 		// the right kind of consensus log.
 		digest
@@ -187,3 +180,48 @@ pub enum BridgeGrandpaCall<Header: HeaderT> {
 
 /// The `BridgeGrandpaCall` used by a chain.
 pub type BridgeGrandpaCallOf<C> = BridgeGrandpaCall<HeaderOf<C>>;
+
+/// Substrate-based chain that is using direct GRANDPA finality.
+///
+/// Keep in mind that parachains are relying on relay chain GRANDPA, so they should not implement
+/// this trait.
+pub trait ChainWithGrandpa: Chain {
+	/// Name of the bridge GRANDPA pallet (used in `construct_runtime` macro call) that is deployed
+	/// at some other chain to bridge with this `ChainWithGrandpa`.
+	///
+	/// We assume that all chains that are bridging with this `ChainWithGrandpa` are using
+	/// the same name.
+	const WITH_CHAIN_GRANDPA_PALLET_NAME: &'static str;
+
+	/// Max number of GRANDPA authorities at the chain.
+	///
+	/// This is a strict constant. If bridged chain will have more authorities than that,
+	/// the GRANDPA bridge pallet may halt.
+	const MAX_AUTHORITIES_COUNT: u32;
+
+	/// Max reasonable number of headers in `votes_ancestries` vector of the GRANDPA justification.
+	///
+	/// This isn't a strict limit. The relay may submit justifications with more headers in its
+	/// ancestry and the pallet will accept such justification. The limit is only used to compute
+	/// maximal refund amount and submitting justifications which exceed the limit, may be costly
+	/// to submitter.
+	const REASONABLE_HEADERS_IN_JUSTIFICATON_ANCESTRY: u32;
+
+	/// Maximal size of the chain header. The header may be the header that enacts new GRANDPA
+	/// authorities set (so it has large digest inside).
+	///
+	/// This isn't a strict limit. The relay may submit larger headers and the pallet will accept
+	/// the call. The limit is only used to compute maximal refund amount and doing calls which
+	/// exceed the limit, may be costly to submitter.
+	const MAX_HEADER_SIZE: u32;
+
+	/// Average size of the chain header from justification ancestry. We don't expect to see there
+	/// headers that change GRANDPA authorities set (GRANDPA will probably be able to finalize at
+	/// least one additional header per session on non test chains), so this is average size of
+	/// headers that aren't changing the set.
+	///
+	/// This isn't a strict limit. The relay may submit justifications with larger headers in its
+	/// ancestry and the pallet will accept the call. The limit is only used to compute maximal
+	/// refund amount and doing calls which exceed the limit, may be costly to submitter.
+	const AVERAGE_HEADER_SIZE_IN_JUSTIFICATION: u32;
+}

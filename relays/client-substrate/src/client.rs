@@ -21,25 +21,25 @@ use crate::{
 	rpc::{
 		SubstrateAuthorClient, SubstrateChainClient, SubstrateFinalityClient,
 		SubstrateFrameSystemClient, SubstrateStateClient, SubstrateSystemClient,
-		SubstrateTransactionPaymentClient,
 	},
 	transaction_stall_timeout, AccountKeyPairOf, ConnectionParams, Error, HashOf, HeaderIdOf,
 	Result, SignParam, TransactionTracker, UnsignedTransaction,
 };
 
-use async_std::sync::{Arc, Mutex};
+use async_std::sync::{Arc, Mutex, RwLock};
 use async_trait::async_trait;
 use bp_runtime::{HeaderIdProvider, StorageDoubleMapKeyProvider, StorageMapKeyProvider};
 use codec::{Decode, Encode};
+use frame_support::weights::Weight;
 use frame_system::AccountInfo;
 use futures::{SinkExt, StreamExt};
 use jsonrpsee::{
 	core::DeserializeOwned,
 	ws_client::{WsClient as RpcClient, WsClientBuilder as RpcClientBuilder},
 };
-use num_traits::{Bounded, Saturating, Zero};
+use num_traits::{Saturating, Zero};
 use pallet_balances::AccountData;
-use pallet_transaction_payment::InclusionFee;
+use pallet_transaction_payment::RuntimeDispatchInfo;
 use relay_utils::{relay_loop::RECONNECT_DELAY, STALL_TIMEOUT};
 use sp_core::{
 	storage::{StorageData, StorageKey},
@@ -51,10 +51,11 @@ use sp_runtime::{
 };
 use sp_trie::StorageProof;
 use sp_version::RuntimeVersion;
-use std::{convert::TryFrom, future::Future};
+use std::future::Future;
 
 const SUB_API_GRANDPA_AUTHORITIES: &str = "GrandpaApi_grandpa_authorities";
 const SUB_API_TXPOOL_VALIDATE_TRANSACTION: &str = "TaggedTransactionQueue_validate_transaction";
+const SUB_API_TX_PAYMENT_QUERY_INFO: &str = "TransactionPaymentApi_query_info";
 const MAX_SUBSCRIPTION_CAPACITY: usize = 4096;
 
 /// The difference between best block number and number of its ancestor, that is enough
@@ -110,23 +111,31 @@ pub enum ChainRuntimeVersion {
 
 /// Substrate client type.
 ///
-/// Cloning `Client` is a cheap operation.
+/// Cloning `Client` is a cheap operation that only clones internal references. Different
+/// clones of the same client are guaranteed to use the same references.
 pub struct Client<C: Chain> {
-	/// Tokio runtime handle.
-	tokio: Arc<tokio::runtime::Runtime>,
+	// Lock order: `submit_signed_extrinsic_lock`, `data`
 	/// Client connection params.
 	params: Arc<ConnectionParams>,
-	/// Substrate RPC client.
-	client: Arc<RpcClient>,
-	/// Genesis block hash.
-	genesis_hash: HashOf<C>,
+	/// Saved chain runtime version.
+	chain_runtime_version: ChainRuntimeVersion,
 	/// If several tasks are submitting their transactions simultaneously using
 	/// `submit_signed_extrinsic` method, they may get the same transaction nonce. So one of
 	/// transactions will be rejected from the pool. This lock is here to prevent situations like
 	/// that.
 	submit_signed_extrinsic_lock: Arc<Mutex<()>>,
-	/// Saved chain runtime version
-	chain_runtime_version: ChainRuntimeVersion,
+	/// Genesis block hash.
+	genesis_hash: HashOf<C>,
+	/// Shared dynamic data.
+	data: Arc<RwLock<ClientData>>,
+}
+
+/// Client data, shared by all `Client` clones.
+struct ClientData {
+	/// Tokio runtime handle.
+	tokio: Arc<tokio::runtime::Runtime>,
+	/// Substrate RPC client.
+	client: Arc<RpcClient>,
 }
 
 #[async_trait]
@@ -134,9 +143,10 @@ impl<C: Chain> relay_utils::relay_loop::Client for Client<C> {
 	type Error = Error;
 
 	async fn reconnect(&mut self) -> Result<()> {
+		let mut data = self.data.write().await;
 		let (tokio, client) = Self::build_client(&self.params).await?;
-		self.tokio = tokio;
-		self.client = client;
+		data.tokio = tokio;
+		data.client = client;
 		Ok(())
 	}
 }
@@ -144,12 +154,11 @@ impl<C: Chain> relay_utils::relay_loop::Client for Client<C> {
 impl<C: Chain> Clone for Client<C> {
 	fn clone(&self) -> Self {
 		Client {
-			tokio: self.tokio.clone(),
 			params: self.params.clone(),
-			client: self.client.clone(),
-			genesis_hash: self.genesis_hash,
-			submit_signed_extrinsic_lock: self.submit_signed_extrinsic_lock.clone(),
 			chain_runtime_version: self.chain_runtime_version.clone(),
+			submit_signed_extrinsic_lock: self.submit_signed_extrinsic_lock.clone(),
+			genesis_hash: self.genesis_hash,
+			data: self.data.clone(),
 		}
 	}
 }
@@ -198,12 +207,11 @@ impl<C: Chain> Client<C> {
 
 		let chain_runtime_version = params.chain_runtime_version.clone();
 		Ok(Self {
-			tokio,
 			params,
-			client,
-			genesis_hash,
-			submit_signed_extrinsic_lock: Arc::new(Mutex::new(())),
 			chain_runtime_version,
+			submit_signed_extrinsic_lock: Arc::new(Mutex::new(())),
+			genesis_hash,
+			data: Arc::new(RwLock::new(ClientData { tokio, client })),
 		})
 	}
 
@@ -270,6 +278,10 @@ impl<C: Chain> Client<C> {
 			Ok(SubstrateChainClient::<C>::finalized_head(&*client).await?)
 		})
 		.await
+		.map_err(|e| Error::FailedToReadBestFinalizedHeaderHash {
+			chain: C::NAME.into(),
+			error: e.boxed(),
+		})
 	}
 
 	/// Return number of the best finalized block.
@@ -291,6 +303,7 @@ impl<C: Chain> Client<C> {
 			Ok(SubstrateChainClient::<C>::header(&*client, None).await?)
 		})
 		.await
+		.map_err(|e| Error::FailedToReadBestHeader { chain: C::NAME.into(), error: e.boxed() })
 	}
 
 	/// Get a Substrate block from its hash.
@@ -310,6 +323,11 @@ impl<C: Chain> Client<C> {
 			Ok(SubstrateChainClient::<C>::header(&*client, Some(block_hash)).await?)
 		})
 		.await
+		.map_err(|e| Error::FailedToReadHeaderByHash {
+			chain: C::NAME.into(),
+			hash: format!("{block_hash}"),
+			error: e.boxed(),
+		})
 	}
 
 	/// Get a Substrate block hash by its number.
@@ -393,10 +411,17 @@ impl<C: Chain> Client<C> {
 		storage_key: StorageKey,
 		block_hash: Option<C::Hash>,
 	) -> Result<Option<StorageData>> {
+		let cloned_storage_key = storage_key.clone();
 		self.jsonrpsee_execute(move |client| async move {
-			Ok(SubstrateStateClient::<C>::storage(&*client, storage_key, block_hash).await?)
+			Ok(SubstrateStateClient::<C>::storage(&*client, storage_key.clone(), block_hash)
+				.await?)
 		})
 		.await
+		.map_err(|e| Error::FailedToReadRuntimeStorageValue {
+			chain: C::NAME.into(),
+			key: cloned_storage_key,
+			error: e.boxed(),
+		})
 	}
 
 	/// Return native tokens balance of the account.
@@ -554,7 +579,7 @@ impl<C: Chain> Client<C> {
 				Ok((tracker, subscription))
 			})
 			.await?;
-		self.tokio.spawn(Subscription::background_worker(
+		self.data.read().await.tokio.spawn(Subscription::background_worker(
 			C::NAME.into(),
 			"extrinsic".into(),
 			subscription,
@@ -591,33 +616,24 @@ impl<C: Chain> Client<C> {
 		.await
 	}
 
-	/// Estimate fee that will be spent on given extrinsic.
-	pub async fn estimate_extrinsic_fee(
+	/// Returns weight of the given transaction.
+	pub async fn extimate_extrinsic_weight<SignedTransaction: Encode + Send + 'static>(
 		&self,
-		transaction: Bytes,
-	) -> Result<InclusionFee<C::Balance>> {
+		transaction: SignedTransaction,
+	) -> Result<Weight> {
 		self.jsonrpsee_execute(move |client| async move {
-			let fee_details =
-				SubstrateTransactionPaymentClient::<C>::fee_details(&*client, transaction, None)
-					.await?;
-			let inclusion_fee = fee_details
-				.inclusion_fee
-				.map(|inclusion_fee| InclusionFee {
-					base_fee: C::Balance::try_from(inclusion_fee.base_fee.into_u256())
-						.unwrap_or_else(|_| C::Balance::max_value()),
-					len_fee: C::Balance::try_from(inclusion_fee.len_fee.into_u256())
-						.unwrap_or_else(|_| C::Balance::max_value()),
-					adjusted_weight_fee: C::Balance::try_from(
-						inclusion_fee.adjusted_weight_fee.into_u256(),
-					)
-					.unwrap_or_else(|_| C::Balance::max_value()),
-				})
-				.unwrap_or_else(|| InclusionFee {
-					base_fee: Zero::zero(),
-					len_fee: Zero::zero(),
-					adjusted_weight_fee: Zero::zero(),
-				});
-			Ok(inclusion_fee)
+			let transaction_len = transaction.encoded_size() as u32;
+
+			let call = SUB_API_TX_PAYMENT_QUERY_INFO.to_string();
+			let data = Bytes((transaction, transaction_len).encode());
+
+			let encoded_response =
+				SubstrateStateClient::<C>::call(&*client, call, data, None).await?;
+			let dispatch_info =
+				RuntimeDispatchInfo::<C::Balance>::decode(&mut &encoded_response.0[..])
+					.map_err(Error::ResponseParseFailed)?;
+
+			Ok(dispatch_info.weight)
 		})
 		.await
 	}
@@ -648,7 +664,14 @@ impl<C: Chain> Client<C> {
 		input: Input,
 		at_block: Option<C::Hash>,
 	) -> Result<Output> {
-		let encoded_output = self.state_call(method_name, Bytes(input.encode()), at_block).await?;
+		let encoded_output = self
+			.state_call(method_name.clone(), Bytes(input.encode()), at_block)
+			.await
+			.map_err(|e| Error::ErrorExecutingRuntimeCall {
+				chain: C::NAME.into(),
+				method: method_name,
+				error: e.boxed(),
+			})?;
 		Output::decode(&mut &encoded_output.0[..]).map_err(Error::ResponseParseFailed)
 	}
 
@@ -703,7 +726,7 @@ impl<C: Chain> Client<C> {
 			})
 			.await?;
 		let (sender, receiver) = futures::channel::mpsc::channel(MAX_SUBSCRIPTION_CAPACITY);
-		self.tokio.spawn(Subscription::background_worker(
+		self.data.read().await.tokio.spawn(Subscription::background_worker(
 			C::NAME.into(),
 			"justification".into(),
 			subscription,
@@ -719,8 +742,9 @@ impl<C: Chain> Client<C> {
 		F: Future<Output = Result<T>> + Send,
 		T: Send + 'static,
 	{
-		let client = self.client.clone();
-		self.tokio.spawn(async move { make_jsonrpsee_future(client).await }).await?
+		let data = self.data.read().await;
+		let client = data.client.clone();
+		data.tokio.spawn(async move { make_jsonrpsee_future(client).await }).await?
 	}
 
 	/// Returns `true` if version guard can be started.

@@ -37,10 +37,9 @@ pub use chain::{
 };
 pub use frame_support::storage::storage_prefix as storage_value_final_key;
 use num_traits::{CheckedSub, One};
-use sp_runtime::transaction_validity::TransactionValidity;
 pub use storage_proof::{
 	record_all_keys as record_all_trie_keys, Error as StorageProofError,
-	ProofSize as StorageProofSize, StorageProofChecker,
+	ProofSize as StorageProofSize, RawStorageProof, StorageProofChecker,
 };
 pub use storage_types::BoundedStorageValue;
 
@@ -74,6 +73,12 @@ pub const POLKADOT_CHAIN_ID: ChainId = *b"pdot";
 
 /// Bridge-with-Kusama instance id.
 pub const KUSAMA_CHAIN_ID: ChainId = *b"ksma";
+
+/// Bridge-with-Westend instance id.
+pub const WESTEND_CHAIN_ID: ChainId = *b"wend";
+
+/// Bridge-with-Westend instance id.
+pub const WESTMINT_CHAIN_ID: ChainId = *b"wmnt";
 
 /// Bridge-with-Rococo instance id.
 pub const ROCOCO_CHAIN_ID: ChainId = *b"roco";
@@ -490,12 +495,6 @@ pub trait OwnedBridgeModule<T: frame_system::Config> {
 	}
 }
 
-/// A trait for querying whether a runtime call is valid.
-pub trait FilterCall<Call> {
-	/// Checks if a runtime call is valid.
-	fn validate(call: &Call) -> TransactionValidity;
-}
-
 /// All extra operations with weights that we need in bridges.
 pub trait WeightExtraOps {
 	/// Checked division of individual components of two weights.
@@ -511,6 +510,55 @@ impl WeightExtraOps for Weight {
 			self.ref_time().checked_div(other.ref_time())?,
 			self.proof_size().checked_div(other.proof_size())?,
 		))
+	}
+}
+
+/// Trait that provides a static `str`.
+pub trait StaticStrProvider {
+	const STR: &'static str;
+}
+
+#[macro_export]
+macro_rules! generate_static_str_provider {
+	($str:expr) => {
+		$crate::paste::item! {
+			pub struct [<Str $str>];
+
+			impl $crate::StaticStrProvider for [<Str $str>] {
+				const STR: &'static str = stringify!($str);
+			}
+		}
+	};
+}
+
+#[derive(Encode, Decode, Clone, Eq, PartialEq, PalletError, TypeInfo)]
+#[scale_info(skip_type_params(T))]
+pub struct StrippableError<T> {
+	_phantom_data: sp_std::marker::PhantomData<T>,
+	#[codec(skip)]
+	#[cfg(feature = "std")]
+	message: String,
+}
+
+impl<T: Debug> From<T> for StrippableError<T> {
+	fn from(err: T) -> Self {
+		Self {
+			_phantom_data: Default::default(),
+			#[cfg(feature = "std")]
+			message: format!("{:?}", err),
+		}
+	}
+}
+
+impl<T> Debug for StrippableError<T> {
+	#[cfg(feature = "std")]
+	fn fmt(&self, f: &mut sp_std::fmt::Formatter<'_>) -> sp_std::fmt::Result {
+		f.write_str(&self.message)
+	}
+
+	#[cfg(not(feature = "std"))]
+	fn fmt(&self, f: &mut sp_std::fmt::Formatter<'_>) -> sp_std::fmt::Result {
+		f.write_str("Stripped error")
 	}
 }
 
@@ -537,5 +585,11 @@ mod tests {
 				.to_vec()
 			),
 		);
+	}
+
+	#[test]
+	fn generate_static_str_provider_works() {
+		generate_static_str_provider!(Test);
+		assert_eq!(StrTest::STR, "Test");
 	}
 }

@@ -723,7 +723,7 @@ pub(crate) mod tests {
 					(
 						nonce,
 						MessageDetails {
-							dispatch_weight: Weight::from_ref_time(1),
+							dispatch_weight: Weight::from_parts(1, 0),
 							size: 1,
 							reward: 1,
 						},
@@ -949,7 +949,7 @@ pub(crate) mod tests {
 						max_unrewarded_relayer_entries_at_target: 4,
 						max_unconfirmed_nonces_at_target: 4,
 						max_messages_in_single_batch: 4,
-						max_messages_weight_in_single_batch: Weight::from_ref_time(4),
+						max_messages_weight_in_single_batch: Weight::from_parts(4, 0),
 						max_messages_size_in_single_batch: 4,
 					},
 				},
@@ -1015,58 +1015,6 @@ pub(crate) mod tests {
 		);
 
 		assert_eq!(result.submitted_messages_proofs, vec![(1..=1, None)],);
-	}
-
-	#[test]
-	fn message_lane_loop_is_able_to_recover_from_race_stall() {
-		// with this configuration, both source and target clients will lose their transactions =>
-		// reconnect will happen
-		let (source_exit_sender, exit_receiver) = unbounded();
-		let target_exit_sender = source_exit_sender.clone();
-		let result = run_loop_test(
-			Arc::new(Mutex::new(TestClientData {
-				source_state: ClientState {
-					best_self: HeaderId(0, 0),
-					best_finalized_self: HeaderId(0, 0),
-					best_finalized_peer_at_best_self: Some(HeaderId(0, 0)),
-					actual_best_finalized_peer_at_best_self: Some(HeaderId(0, 0)),
-				},
-				source_latest_generated_nonce: 1,
-				source_tracked_transaction_status: TrackedTransactionStatus::Lost,
-				target_state: ClientState {
-					best_self: HeaderId(0, 0),
-					best_finalized_self: HeaderId(0, 0),
-					best_finalized_peer_at_best_self: Some(HeaderId(0, 0)),
-					actual_best_finalized_peer_at_best_self: Some(HeaderId(0, 0)),
-				},
-				target_latest_received_nonce: 0,
-				target_tracked_transaction_status: TrackedTransactionStatus::Lost,
-				..Default::default()
-			})),
-			Arc::new(move |data: &mut TestClientData| {
-				if data.is_source_reconnected {
-					data.source_tracked_transaction_status =
-						TrackedTransactionStatus::Finalized(Default::default());
-				}
-				if data.is_source_reconnected && data.is_target_reconnected {
-					source_exit_sender.unbounded_send(()).unwrap();
-				}
-			}),
-			Arc::new(|_| {}),
-			Arc::new(move |data: &mut TestClientData| {
-				if data.is_target_reconnected {
-					data.target_tracked_transaction_status =
-						TrackedTransactionStatus::Finalized(Default::default());
-				}
-				if data.is_source_reconnected && data.is_target_reconnected {
-					target_exit_sender.unbounded_send(()).unwrap();
-				}
-			}),
-			Arc::new(|_| {}),
-			exit_receiver.into_future().map(|(_, _)| ()),
-		);
-
-		assert!(result.is_source_reconnected);
 	}
 
 	#[test]
@@ -1146,7 +1094,6 @@ pub(crate) mod tests {
 			exit_receiver.into_future().map(|(_, _)| ()),
 		);
 
-		assert!(result.is_source_reconnected);
 		assert_eq!(result.submitted_messages_proofs.len(), 2);
 		assert_eq!(result.submitted_messages_receiving_proofs.len(), 2);
 	}

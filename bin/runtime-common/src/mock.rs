@@ -32,7 +32,7 @@ use crate::messages::{
 	BridgedChainWithMessages, HashOf, MessageBridge, ThisChainWithMessages,
 };
 
-use bp_header_chain::HeaderChain;
+use bp_header_chain::{ChainWithGrandpa, HeaderChain};
 use bp_messages::{target_chain::ForbidInboundMessages, LaneId, MessageNonce};
 use bp_parachains::SingleParaStoredHeaderDataBuilder;
 use bp_runtime::{Chain, ChainId, Parachain, UnderlyingChainProvider};
@@ -85,6 +85,8 @@ pub type BridgedChainHeader =
 
 /// Message lane used in tests.
 pub const TEST_LANE_ID: LaneId = LaneId([0, 0, 0, 0]);
+/// Bridged chain id used in tests.
+pub const TEST_BRIDGED_CHAIN_ID: ChainId = *b"brdg";
 /// Maximal number of queued messages at the test lane.
 pub const MAXIMAL_PENDING_MESSAGES_AT_TEST_LANE: MessageNonce = 32;
 /// Minimal extrinsic weight at the `BridgedChain`.
@@ -118,7 +120,7 @@ crate::generate_bridge_reject_obsolete_headers_and_messages! {
 
 parameter_types! {
 	pub const ActiveOutboundLanes: &'static [LaneId] = &[TEST_LANE_ID];
-	pub const BridgedChainId: ChainId = *b"brdg";
+	pub const BridgedChainId: ChainId = TEST_BRIDGED_CHAIN_ID;
 	pub const BridgedParasPalletName: &'static str = "Paras";
 	pub const ExistentialDeposit: ThisChainBalance = 500;
 	pub const DbWeight: RuntimeDbWeight = RuntimeDbWeight { read: 1, write: 2 };
@@ -195,7 +197,6 @@ impl pallet_bridge_grandpa::Config for TestRuntime {
 	type BridgedChain = BridgedUnderlyingChain;
 	type MaxRequests = ConstU32<50>;
 	type HeadersToKeep = ConstU32<8>;
-	type MaxBridgedAuthorities = ConstU32<1024>;
 	type WeightInfo = pallet_bridge_grandpa::weights::BridgeWeight<TestRuntime>;
 }
 
@@ -228,8 +229,8 @@ impl pallet_bridge_messages::Config for TestRuntime {
 	type LaneMessageVerifier = FromThisChainMessageVerifier<OnThisChainBridge>;
 	type DeliveryConfirmationPayments = pallet_bridge_relayers::DeliveryConfirmationPaymentsAdapter<
 		TestRuntime,
-		frame_support::traits::ConstU64<100_000>,
-		frame_support::traits::ConstU64<10_000>,
+		(),
+		ConstU64<100_000>,
 	>;
 
 	type SourceHeaderChain = SourceHeaderChainAdapter<OnThisChainBridge>;
@@ -252,7 +253,7 @@ pub struct OnThisChainBridge;
 
 impl MessageBridge for OnThisChainBridge {
 	const THIS_CHAIN_ID: ChainId = *b"this";
-	const BRIDGED_CHAIN_ID: ChainId = *b"brdg";
+	const BRIDGED_CHAIN_ID: ChainId = TEST_BRIDGED_CHAIN_ID;
 	const BRIDGED_MESSAGES_PALLET_NAME: &'static str = "";
 
 	type ThisChain = ThisChain;
@@ -266,7 +267,7 @@ impl MessageBridge for OnThisChainBridge {
 pub struct OnBridgedChainBridge;
 
 impl MessageBridge for OnBridgedChainBridge {
-	const THIS_CHAIN_ID: ChainId = *b"brdg";
+	const THIS_CHAIN_ID: ChainId = TEST_BRIDGED_CHAIN_ID;
 	const BRIDGED_CHAIN_ID: ChainId = *b"this";
 	const BRIDGED_MESSAGES_PALLET_NAME: &'static str = "";
 
@@ -370,6 +371,14 @@ impl Chain for BridgedUnderlyingChain {
 	fn max_extrinsic_weight() -> Weight {
 		Weight::zero()
 	}
+}
+
+impl ChainWithGrandpa for BridgedUnderlyingChain {
+	const WITH_CHAIN_GRANDPA_PALLET_NAME: &'static str = "";
+	const MAX_AUTHORITIES_COUNT: u32 = 16;
+	const REASONABLE_HEADERS_IN_JUSTIFICATON_ANCESTRY: u32 = 8;
+	const MAX_HEADER_SIZE: u32 = 256;
+	const AVERAGE_HEADER_SIZE_IN_JUSTIFICATION: u32 = 64;
 }
 
 impl Chain for BridgedUnderlyingParachain {

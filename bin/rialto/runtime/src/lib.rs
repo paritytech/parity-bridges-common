@@ -39,8 +39,8 @@ use pallet_grandpa::{
 use pallet_transaction_payment::{FeeDetails, Multiplier, RuntimeDispatchInfo};
 use sp_api::impl_runtime_apis;
 use sp_authority_discovery::AuthorityId as AuthorityDiscoveryId;
-use sp_beefy::{crypto::AuthorityId as BeefyId, mmr::MmrLeafVersion, ValidatorSet};
-use sp_core::{crypto::KeyTypeId, OpaqueMetadata};
+use sp_consensus_beefy::{crypto::AuthorityId as BeefyId, mmr::MmrLeafVersion, ValidatorSet};
+use sp_core::OpaqueMetadata;
 use sp_runtime::{
 	create_runtime_str, generic, impl_opaque_keys,
 	traits::{AccountIdLookup, Block as BlockT, Keccak256, NumberFor, OpaqueKeys},
@@ -225,56 +225,47 @@ parameter_types! {
 impl pallet_babe::Config for Runtime {
 	type EpochDuration = EpochDuration;
 	type ExpectedBlockTime = ExpectedBlockTime;
-	type MaxAuthorities = ConstU32<10>;
-
 	// session module is the trigger
 	type EpochChangeTrigger = pallet_babe::ExternalTrigger;
 
-	// equivocation related configuration - we don't expect any equivocations in our testnets
-	type KeyOwnerProofSystem = ();
-	type KeyOwnerProof = <Self::KeyOwnerProofSystem as KeyOwnerProofSystem<(
-		KeyTypeId,
-		pallet_babe::AuthorityId,
-	)>>::Proof;
-	type KeyOwnerIdentification = <Self::KeyOwnerProofSystem as KeyOwnerProofSystem<(
-		KeyTypeId,
-		pallet_babe::AuthorityId,
-	)>>::IdentificationTuple;
-	type HandleEquivocation = ();
-
 	type DisabledValidators = ();
+
 	type WeightInfo = ();
+
+	type MaxAuthorities = ConstU32<10>;
+
+	// equivocation related configuration - we don't expect any equivocations in our testnets
+	type KeyOwnerProof = sp_core::Void;
+	type EquivocationReportSystem = ();
 }
 
 impl pallet_beefy::Config for Runtime {
 	type BeefyId = BeefyId;
 	type MaxAuthorities = ConstU32<10>;
+	type MaxSetIdSessionEntries = ConstU64<0>;
 	type OnNewValidatorSet = MmrLeaf;
+	type WeightInfo = ();
+	type KeyOwnerProof = sp_core::Void;
+	type EquivocationReportSystem = ();
 }
 
 impl pallet_grandpa::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
-	type MaxAuthorities = ConstU32<10>;
-	type KeyOwnerProofSystem = ();
-	type KeyOwnerProof =
-		<Self::KeyOwnerProofSystem as KeyOwnerProofSystem<(KeyTypeId, GrandpaId)>>::Proof;
-	type KeyOwnerIdentification = <Self::KeyOwnerProofSystem as KeyOwnerProofSystem<(
-		KeyTypeId,
-		GrandpaId,
-	)>>::IdentificationTuple;
-	type HandleEquivocation = ();
 	// TODO: update me (https://github.com/paritytech/parity-bridges-common/issues/78)
 	type WeightInfo = ();
+	type MaxAuthorities = ConstU32<10>;
 	type MaxSetIdSessionEntries = ConstU64<0>;
+	type KeyOwnerProof = sp_core::Void;
+	type EquivocationReportSystem = ();
 }
 
 impl pallet_mmr::Config for Runtime {
 	const INDEXING_PREFIX: &'static [u8] = b"mmr";
 	type Hashing = Keccak256;
 	type Hash = <Keccak256 as sp_runtime::traits::Hash>::Output;
+	type LeafData = pallet_beefy_mmr::Pallet<Runtime>;
 	type OnNewRoot = pallet_beefy_mmr::DepositBeefyDigest<Runtime>;
 	type WeightInfo = ();
-	type LeafData = pallet_beefy_mmr::Pallet<Runtime>;
 }
 
 parameter_types! {
@@ -296,7 +287,7 @@ parameter_types! {
 
 pub struct BeefyDummyDataProvider;
 
-impl sp_beefy::mmr::BeefyDataProvider<()> for BeefyDummyDataProvider {
+impl sp_consensus_beefy::mmr::BeefyDataProvider<()> for BeefyDummyDataProvider {
 	fn extra_data() {}
 }
 
@@ -393,19 +384,8 @@ impl pallet_bridge_relayers::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 	type Reward = Balance;
 	type PaymentProcedure =
-		bp_relayers::PayLaneRewardFromAccount<pallet_balances::Pallet<Runtime>, AccountId>;
+		bp_relayers::PayRewardFromAccount<pallet_balances::Pallet<Runtime>, AccountId>;
 	type WeightInfo = ();
-}
-
-parameter_types! {
-	/// Number of headers to keep.
-	///
-	/// Assuming the worst case of every header being finalized, we will keep headers at least for a
-	/// day.
-	pub const HeadersToKeep: u32 = bp_rialto::DAYS;
-
-	/// Maximal number of authorities at Millau.
-	pub const MaxAuthoritiesAtMillau: u32 = bp_millau::MAX_AUTHORITIES_COUNT;
 }
 
 pub type MillauGrandpaInstance = ();
@@ -416,8 +396,7 @@ impl pallet_bridge_grandpa::Config for Runtime {
 	/// Note that once this is hit the pallet will essentially throttle incoming requests down to
 	/// one call per block.
 	type MaxRequests = ConstU32<50>;
-	type HeadersToKeep = HeadersToKeep;
-	type MaxBridgedAuthorities = MaxAuthoritiesAtMillau;
+	type HeadersToKeep = ConstU32<{ bp_millau::DAYS as u32 }>;
 	type WeightInfo = pallet_bridge_grandpa::weights::BridgeWeight<Runtime>;
 }
 
@@ -455,7 +434,7 @@ impl pallet_bridge_messages::Config<WithMillauMessagesInstance> for Runtime {
 	type LaneMessageVerifier = crate::millau_messages::ToMillauMessageVerifier;
 	type DeliveryConfirmationPayments = pallet_bridge_relayers::DeliveryConfirmationPaymentsAdapter<
 		Runtime,
-		frame_support::traits::ConstU128<100_000>,
+		WithMillauMessagesInstance,
 		frame_support::traits::ConstU128<100_000>,
 	>;
 
@@ -628,7 +607,7 @@ impl_runtime_apis! {
 		}
 	}
 
-	impl sp_beefy::BeefyApi<Block> for Runtime {
+	impl sp_consensus_beefy::BeefyApi<Block> for Runtime {
 		fn beefy_genesis() -> Option<BlockNumber> {
 			Beefy::genesis_block()
 		}
@@ -636,6 +615,20 @@ impl_runtime_apis! {
 		fn validator_set() -> Option<ValidatorSet<BeefyId>> {
 			Beefy::validator_set()
 		}
+
+		fn submit_report_equivocation_unsigned_extrinsic(
+			_equivocation_proof: sp_consensus_beefy::EquivocationProof<
+				NumberFor<Block>,
+				sp_consensus_beefy::crypto::AuthorityId,
+				sp_consensus_beefy::crypto::Signature
+			>,
+			_key_owner_proof: sp_consensus_beefy::OpaqueKeyOwnershipProof,
+		) -> Option<()> { None }
+
+		fn generate_key_ownership_proof(
+			_set_id: sp_consensus_beefy::ValidatorSetId,
+			_authority_id: sp_consensus_beefy::crypto::AuthorityId,
+		) -> Option<sp_consensus_beefy::OpaqueKeyOwnershipProof> { None }
 	}
 
 	impl pallet_mmr::primitives::MmrApi<
