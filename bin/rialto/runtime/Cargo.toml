@@ -39,7 +39,7 @@ pallet-beefy = { git = "https://github.com/paritytech/substrate", branch = "mast
 pallet-beefy-mmr = { git = "https://github.com/paritytech/substrate", branch = "master", default-features = false }
 pallet-grandpa = { git = "https://github.com/paritytech/substrate", branch = "master", default-features = false }
 pallet-mmr = { git = "https://github.com/paritytech/substrate", branch = "master", default-features = false }
-pallet-session = { git = "https://github.com/paritytech/substrate", branch = "master", default-features = false }
+pallet-session = { git = "https://github.com/paritytech/substrate", branch = "master", default-features = false, features = ["historical"]}
 pallet-sudo = { git = "https://github.com/paritytech/substrate", branch = "master", default-features = false }
 pallet-timestamp = { git = "https://github.com/paritytech/substrate", branch = "master", default-features = false }
 pallet-transaction-payment = { git = "https://github.com/paritytech/substrate", branch = "master", default-features = false }
@@ -103,6 +103,7 @@ std = [
 	"pallet-grandpa/std",
 	"pallet-mmr/std",
 	"pallet-xcm/std",
+	"pallet-session/std",
 	"pallet-shift-session-manager/std",
 	"pallet-sudo/std",
 	"pallet-timestamp/std",

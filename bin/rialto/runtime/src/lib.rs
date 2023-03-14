@@ -36,6 +36,7 @@ use bp_runtime::HeaderId;
 use pallet_grandpa::{
 	fg_primitives, AuthorityId as GrandpaId, AuthorityList as GrandpaAuthorityList,
 };
+use pallet_session::historical as session_historical;
 use pallet_transaction_payment::{FeeDetails, Multiplier, RuntimeDispatchInfo};
 use sp_api::impl_runtime_apis;
 use sp_authority_discovery::AuthorityId as AuthorityDiscoveryId;
@@ -225,56 +226,48 @@ parameter_types! {
 impl pallet_babe::Config for Runtime {
 	type EpochDuration = EpochDuration;
 	type ExpectedBlockTime = ExpectedBlockTime;
-	type MaxAuthorities = ConstU32<10>;
-
 	// session module is the trigger
 	type EpochChangeTrigger = pallet_babe::ExternalTrigger;
 
-	// equivocation related configuration - we don't expect any equivocations in our testnets
-	type KeyOwnerProofSystem = ();
-	type KeyOwnerProof = <Self::KeyOwnerProofSystem as KeyOwnerProofSystem<(
-		KeyTypeId,
-		pallet_babe::AuthorityId,
-	)>>::Proof;
-	type KeyOwnerIdentification = <Self::KeyOwnerProofSystem as KeyOwnerProofSystem<(
-		KeyTypeId,
-		pallet_babe::AuthorityId,
-	)>>::IdentificationTuple;
-	type HandleEquivocation = ();
-
 	type DisabledValidators = ();
+
 	type WeightInfo = ();
+
+	type MaxAuthorities = ConstU32<10>;
+
+	// equivocation related configuration - we don't expect any equivocations in our testnets
+	type KeyOwnerProof =
+		<Historical as KeyOwnerProofSystem<(KeyTypeId, pallet_babe::AuthorityId)>>::Proof;
+	type EquivocationReportSystem = ();
 }
 
 impl pallet_beefy::Config for Runtime {
 	type BeefyId = BeefyId;
 	type MaxAuthorities = ConstU32<10>;
+	type MaxSetIdSessionEntries = ConstU64<0>;
 	type OnNewValidatorSet = MmrLeaf;
+	type WeightInfo = ();
+	type KeyOwnerProof = <Historical as KeyOwnerProofSystem<(KeyTypeId, BeefyId)>>::Proof;
+	type EquivocationReportSystem = ();
 }
 
 impl pallet_grandpa::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
-	type MaxAuthorities = ConstU32<10>;
-	type KeyOwnerProofSystem = ();
-	type KeyOwnerProof =
-		<Self::KeyOwnerProofSystem as KeyOwnerProofSystem<(KeyTypeId, GrandpaId)>>::Proof;
-	type KeyOwnerIdentification = <Self::KeyOwnerProofSystem as KeyOwnerProofSystem<(
-		KeyTypeId,
-		GrandpaId,
-	)>>::IdentificationTuple;
-	type HandleEquivocation = ();
 	// TODO: update me (https://github.com/paritytech/parity-bridges-common/issues/78)
 	type WeightInfo = ();
+	type MaxAuthorities = ConstU32<10>;
 	type MaxSetIdSessionEntries = ConstU64<0>;
+	type KeyOwnerProof = <Historical as KeyOwnerProofSystem<(KeyTypeId, GrandpaId)>>::Proof;
+	type EquivocationReportSystem = ();
 }
 
 impl pallet_mmr::Config for Runtime {
 	const INDEXING_PREFIX: &'static [u8] = b"mmr";
 	type Hashing = Keccak256;
 	type Hash = <Keccak256 as sp_runtime::traits::Hash>::Output;
+	type LeafData = pallet_beefy_mmr::Pallet<Runtime>;
 	type OnNewRoot = pallet_beefy_mmr::DepositBeefyDigest<Runtime>;
 	type WeightInfo = ();
-	type LeafData = pallet_beefy_mmr::Pallet<Runtime>;
 }
 
 parameter_types! {
@@ -385,6 +378,11 @@ impl pallet_session::Config for Runtime {
 	type WeightInfo = ();
 }
 
+impl pallet_session::historical::Config for Runtime {
+	type FullIdentification = ();
+	type FullIdentificationOf = ();
+}
+
 impl pallet_authority_discovery::Config for Runtime {
 	type MaxAuthorities = ConstU32<10>;
 }
@@ -477,6 +475,7 @@ construct_runtime!(
 
 		// Consensus support.
 		AuthorityDiscovery: pallet_authority_discovery::{Pallet, Config},
+		Historical: session_historical::{Pallet},
 		Session: pallet_session::{Pallet, Call, Storage, Event, Config<T>},
 		Grandpa: pallet_grandpa::{Pallet, Call, Storage, Config, Event},
 		ShiftSessionManager: pallet_shift_session_manager::{Pallet},
@@ -624,6 +623,20 @@ impl_runtime_apis! {
 		fn validator_set() -> Option<ValidatorSet<BeefyId>> {
 			Beefy::validator_set()
 		}
+
+		fn submit_report_equivocation_unsigned_extrinsic(
+			_equivocation_proof: sp_consensus_beefy::EquivocationProof<
+				NumberFor<Block>,
+				sp_consensus_beefy::crypto::AuthorityId,
+				sp_consensus_beefy::crypto::Signature
+			>,
+			_key_owner_proof: sp_consensus_beefy::OpaqueKeyOwnershipProof,
+		) -> Option<()> { None }
+
+		fn generate_key_ownership_proof(
+			_set_id: sp_consensus_beefy::ValidatorSetId,
+			_authority_id: sp_consensus_beefy::crypto::AuthorityId,
+		) -> Option<sp_consensus_beefy::OpaqueKeyOwnershipProof> { None }
 	}
 
 	impl pallet_mmr::primitives::MmrApi<

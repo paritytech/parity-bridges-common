@@ -44,7 +44,7 @@ pallet-beefy-mmr = { git = "https://github.com/paritytech/substrate", branch = "
 pallet-grandpa = { git = "https://github.com/paritytech/substrate", branch = "master", default-features = false }
 pallet-mmr = { git = "https://github.com/paritytech/substrate", branch = "master", default-features = false }
 pallet-insecure-randomness-collective-flip = { git = "https://github.com/paritytech/substrate", default-features = false, branch = "master" }
-pallet-session = { git = "https://github.com/paritytech/substrate", branch = "master", default-features = false }
+pallet-session = { git = "https://github.com/paritytech/substrate", branch = "master", default-features = false, features = ["historical"]}
 pallet-sudo = { git = "https://github.com/paritytech/substrate", branch = "master", default-features = false }
 pallet-timestamp = { git = "https://github.com/paritytech/substrate", branch = "master", default-features = false }
 pallet-transaction-payment = { git = "https://github.com/paritytech/substrate", branch = "master", default-features = false }
