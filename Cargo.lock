@@ -943,6 +943,7 @@ dependencies = [
 name = "bp-rialto-parachain"
 version = "0.1.0"
 dependencies = [
+ "bp-bridge-hub-cumulus",
  "bp-messages",
  "bp-polkadot-core",
  "bp-runtime",
@@ -8917,6 +8918,7 @@ dependencies = [
 name = "relay-rialto-parachain-client"
 version = "0.1.0"
 dependencies = [
+ "bp-bridge-hub-cumulus",
  "bp-header-chain",
  "bp-messages",
  "bp-millau",
