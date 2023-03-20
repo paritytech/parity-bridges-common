@@ -20,6 +20,10 @@ use structopt::StructOpt;
 use strum::VariantNames;
 
 use crate::bridges::{
+	kusama_polkadot::{
+		bridge_hub_kusama_messages_to_bridge_hub_polkadot::BridgeHubKusamaToBridgeHubPolkadotMessagesCliBridge,
+		bridge_hub_polkadot_messages_to_bridge_hub_kusama::BridgeHubPolkadotToBridgeHubKusamaMessagesCliBridge,
+	},
 	rialto_millau::{
 		millau_headers_to_rialto::MillauToRialtoCliBridge,
 		rialto_headers_to_millau::RialtoToMillauCliBridge,
@@ -102,6 +106,8 @@ impl MessagesRelayer for MillauToRialtoParachainCliBridge {}
 impl MessagesRelayer for RialtoParachainToMillauCliBridge {}
 impl MessagesRelayer for BridgeHubRococoToBridgeHubWococoMessagesCliBridge {}
 impl MessagesRelayer for BridgeHubWococoToBridgeHubRococoMessagesCliBridge {}
+impl MessagesRelayer for BridgeHubKusamaToBridgeHubPolkadotMessagesCliBridge {}
+impl MessagesRelayer for BridgeHubPolkadotToBridgeHubKusamaMessagesCliBridge {}
 
 impl RelayMessages {
 	/// Run the command.
@@ -117,6 +123,10 @@ impl RelayMessages {
 				BridgeHubRococoToBridgeHubWococoMessagesCliBridge::relay_messages(self),
 			FullBridge::BridgeHubWococoToBridgeHubRococo =>
 				BridgeHubWococoToBridgeHubRococoMessagesCliBridge::relay_messages(self),
+			FullBridge::BridgeHubKusamaToBridgeHubPolkadot =>
+				BridgeHubKusamaToBridgeHubPolkadotMessagesCliBridge::relay_messages(self),
+			FullBridge::BridgeHubPolkadotToBridgeHubKusama =>
+				BridgeHubPolkadotToBridgeHubKusamaMessagesCliBridge::relay_messages(self),
 		}
 		.await
 	}

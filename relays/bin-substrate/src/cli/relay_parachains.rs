@@ -15,6 +15,10 @@
 // along with Parity Bridges Common.  If not, see <http://www.gnu.org/licenses/>.
 
 use crate::bridges::{
+	kusama_polkadot::{
+		kusama_parachains_to_bridge_hub_polkadot::BridgeHubKusamaToBridgeHubPolkadotCliBridge,
+		polkadot_parachains_to_bridge_hub_kusama::BridgeHubPolkadotToBridgeHubKusamaCliBridge,
+	},
 	rialto_parachain_millau::rialto_parachains_to_millau::RialtoParachainToMillauCliBridge,
 	rococo_wococo::{
 		rococo_parachains_to_bridge_hub_wococo::BridgeHubRococoToBridgeHubWococoCliBridge,
@@ -62,10 +66,11 @@ pub struct RelayParachains {
 #[strum(serialize_all = "kebab_case")]
 pub enum RelayParachainsBridge {
 	RialtoToMillau,
-	// TODO:check-parameter - rename to WestmintToMillau?
 	WestendToMillau,
-	BridgeHubRococoToBridgeHubWococo,
-	BridgeHubWococoToBridgeHubRococo,
+	RococoToBridgeHubWococo,
+	WococoToBridgeHubRococo,
+	KusamaToBridgeHubPolkadot,
+	PolkadotToBridgeHubKusama,
 }
 
 #[async_trait]
@@ -77,7 +82,7 @@ where
 		TargetClient<ParachainsPipelineAdapter<Self::ParachainFinality>>,
 	<Self as CliBridgeBase>::Source: Parachain,
 {
-	async fn relay_headers(data: RelayParachains) -> anyhow::Result<()> {
+	async fn relay_parachains(data: RelayParachains) -> anyhow::Result<()> {
 		let source_client = data.source.into_client::<Self::SourceRelay>().await?;
 		let source_client = ParachainsSource::<Self::ParachainFinality>::new(
 			source_client,
@@ -110,25 +115,28 @@ where
 }
 
 impl ParachainsRelayer for RialtoParachainToMillauCliBridge {}
-
 impl ParachainsRelayer for WestmintToMillauCliBridge {}
-
 impl ParachainsRelayer for BridgeHubRococoToBridgeHubWococoCliBridge {}
-
 impl ParachainsRelayer for BridgeHubWococoToBridgeHubRococoCliBridge {}
+impl ParachainsRelayer for BridgeHubKusamaToBridgeHubPolkadotCliBridge {}
+impl ParachainsRelayer for BridgeHubPolkadotToBridgeHubKusamaCliBridge {}
 
 impl RelayParachains {
 	/// Run the command.
 	pub async fn run(self) -> anyhow::Result<()> {
 		match self.bridge {
 			RelayParachainsBridge::RialtoToMillau =>
-				RialtoParachainToMillauCliBridge::relay_headers(self),
+				RialtoParachainToMillauCliBridge::relay_parachains(self),
 			RelayParachainsBridge::WestendToMillau =>
-				WestmintToMillauCliBridge::relay_headers(self),
-			RelayParachainsBridge::BridgeHubRococoToBridgeHubWococo =>
-				BridgeHubRococoToBridgeHubWococoCliBridge::relay_headers(self),
-			RelayParachainsBridge::BridgeHubWococoToBridgeHubRococo =>
-				BridgeHubWococoToBridgeHubRococoCliBridge::relay_headers(self),
+				WestmintToMillauCliBridge::relay_parachains(self),
+			RelayParachainsBridge::RococoToBridgeHubWococo =>
+				BridgeHubRococoToBridgeHubWococoCliBridge::relay_parachains(self),
+			RelayParachainsBridge::WococoToBridgeHubRococo =>
+				BridgeHubWococoToBridgeHubRococoCliBridge::relay_parachains(self),
+			RelayParachainsBridge::KusamaToBridgeHubPolkadot =>
+				BridgeHubKusamaToBridgeHubPolkadotCliBridge::relay_parachains(self),
+			RelayParachainsBridge::PolkadotToBridgeHubKusama =>
+				BridgeHubPolkadotToBridgeHubKusamaCliBridge::relay_parachains(self),
 		}
 		.await
 	}

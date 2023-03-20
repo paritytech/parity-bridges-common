@@ -21,6 +21,10 @@ use structopt::StructOpt;
 use strum::{EnumString, EnumVariantNames, VariantNames};
 
 use crate::bridges::{
+	kusama_polkadot::{
+		kusama_headers_to_bridge_hub_polkadot::KusamaToBridgeHubPolkadotCliBridge,
+		polkadot_headers_to_bridge_hub_kusama::PolkadotToBridgeHubKusamaCliBridge,
+	},
 	rialto_millau::{
 		millau_headers_to_rialto::MillauToRialtoCliBridge,
 		rialto_headers_to_millau::RialtoToMillauCliBridge,
@@ -67,6 +71,8 @@ pub enum RelayHeadersBridge {
 	MillauToRialtoParachain,
 	RococoToBridgeHubWococo,
 	WococoToBridgeHubRococo,
+	KusamaToBridgeHubPolkadot,
+	PolkadotToBridgeHubKusama,
 }
 
 #[async_trait]
@@ -113,6 +119,8 @@ impl HeadersRelayer for WestendToMillauCliBridge {}
 impl HeadersRelayer for MillauToRialtoParachainCliBridge {}
 impl HeadersRelayer for RococoToBridgeHubWococoCliBridge {}
 impl HeadersRelayer for WococoToBridgeHubRococoCliBridge {}
+impl HeadersRelayer for KusamaToBridgeHubPolkadotCliBridge {}
+impl HeadersRelayer for PolkadotToBridgeHubKusamaCliBridge {}
 
 impl RelayHeaders {
 	/// Run the command.
@@ -127,6 +135,10 @@ impl RelayHeaders {
 				RococoToBridgeHubWococoCliBridge::relay_headers(self),
 			RelayHeadersBridge::WococoToBridgeHubRococo =>
 				WococoToBridgeHubRococoCliBridge::relay_headers(self),
+			RelayHeadersBridge::KusamaToBridgeHubPolkadot =>
+				KusamaToBridgeHubPolkadotCliBridge::relay_headers(self),
+			RelayHeadersBridge::PolkadotToBridgeHubKusama =>
+				PolkadotToBridgeHubKusamaCliBridge::relay_headers(self),
 		}
 		.await
 	}
