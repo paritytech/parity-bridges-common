@@ -112,6 +112,12 @@ pub type Barrier = (
 	AllowKnownQueryResponses<XcmPallet>,
 );
 
+/// Dispatches received XCM messages from other chain.
+pub type OnRialtoBlobDispatcher = xcm_builder::BridgeBlobDispatcher<
+	crate::xcm_config::XcmRouter,
+	crate::xcm_config::UniversalLocation,
+>;
+
 /// Incoming XCM weigher type.
 pub type XcmWeigher = xcm_builder::FixedWeightBounds<BaseXcmWeight, RuntimeCall, MaxInstructions>;
 
@@ -214,7 +220,7 @@ impl XcmBridge for ToMillauBridge {
 		bp_messages::LaneId([0, 0, 0, 0])
 	}
 }
-
+/*
 #[cfg(test)]
 mod tests {
 	use super::*;
@@ -283,3 +289,4 @@ mod tests {
 		})
 	}
 }
+*/

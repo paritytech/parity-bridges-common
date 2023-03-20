@@ -48,7 +48,7 @@ pub type ToRialtoMessageVerifier =
 	messages::source::FromThisChainMessageVerifier<WithRialtoMessageBridge>;
 
 /// Message payload for Rialto -> Millau messages.
-pub type FromRialtoMessagePayload = messages::target::FromBridgedChainMessagePayload<RuntimeCall>;
+pub type FromRialtoMessagePayload = messages::target::FromBridgedChainMessagePayload;
 
 /// Messages proof for Rialto -> Millau messages.
 pub type FromRialtoMessagesProof = messages::target::FromBridgedChainMessagesProof<bp_rialto::Hash>;
@@ -58,12 +58,13 @@ pub type ToRialtoMessagesDeliveryProof =
 	messages::source::FromBridgedChainMessagesDeliveryProof<bp_rialto::Hash>;
 
 /// Call-dispatch based message dispatch for Rialto -> Millau messages.
-pub type FromRialtoMessageDispatch = messages::target::FromBridgedChainMessageDispatch<
-	WithRialtoMessageBridge,
-	xcm_executor::XcmExecutor<crate::xcm_config::XcmConfig>,
-	crate::xcm_config::XcmWeigher,
-	WeightCredit,
->;
+pub type FromRialtoMessageDispatch =
+	bridge_runtime_common::messages_xcm_extension::XcmBlobMessageDispatch<
+		bp_millau::Millau,
+		bp_rialto::Rialto,
+		crate::xcm_config::OnMillauBlobDispatcher,
+		bridge_runtime_common::messages_xcm_extension::XcmRouterWeigher<crate::DbWeight>,
+	>;
 
 /// Maximal outbound payload size of Millau -> Rialto messages.
 pub type ToRialtoMaximalOutboundPayloadSize =

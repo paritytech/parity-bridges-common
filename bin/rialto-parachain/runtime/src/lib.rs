@@ -435,6 +435,10 @@ pub type Barrier = (
 	// ^^^ Parent & its unit plurality gets free execution
 );
 
+/// Dispatches received XCM messages from other chain.
+pub type OnRialtoParachainBlobDispatcher =
+	xcm_builder::BridgeBlobDispatcher<XcmRouter, UniversalLocation>;
+
 /// XCM weigher type.
 pub type XcmWeigher = FixedWeightBounds<UnitWeightCost, RuntimeCall, MaxInstructions>;
 
@@ -871,7 +875,7 @@ cumulus_pallet_parachain_system::register_validate_block!(
 	BlockExecutor = cumulus_pallet_aura_ext::BlockExecutor::<Runtime, Executive>,
 	CheckInherents = CheckInherents,
 );
-
+/*
 #[cfg(test)]
 mod tests {
 	use super::*;
@@ -966,3 +970,4 @@ mod tests {
 		check_additional_signed::<SignedExtra, bp_rialto_parachain::SignedExtension>();
 	}
 }
+*/

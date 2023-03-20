@@ -34,7 +34,7 @@ use bp_runtime::{
 	messages::MessageDispatchResult, Chain, ChainId, RawStorageProof, Size, StorageProofChecker,
 	StorageProofError,
 };
-use codec::{Decode, DecodeLimit, Encode};
+use codec::{Decode, Encode};
 use frame_support::{traits::Get, weights::Weight, RuntimeDebug};
 use hash_db::Hasher;
 use scale_info::TypeInfo;
@@ -409,35 +409,7 @@ pub mod target {
 	use super::*;
 
 	/// Decoded Bridged -> This message payload.
-	#[derive(RuntimeDebug, PartialEq, Eq)]
-	pub struct FromBridgedChainMessagePayload<Call> {
-		/// Data that is actually sent over the wire.
-		pub xcm: (xcm::v3::MultiLocation, xcm::v3::Xcm<Call>),
-		/// Weight of the message, computed by the weigher. Unknown initially.
-		pub weight: Option<Weight>,
-	}
-
-	impl<Call: Decode> Decode for FromBridgedChainMessagePayload<Call> {
-		fn decode<I: codec::Input>(input: &mut I) -> Result<Self, codec::Error> {
-			let _: codec::Compact<u32> = Decode::decode(input)?;
-			type XcmPairType<Call> = (xcm::v3::MultiLocation, xcm::v3::Xcm<Call>);
-			Ok(FromBridgedChainMessagePayload {
-				xcm: XcmPairType::<Call>::decode_with_depth_limit(
-					sp_api::MAX_EXTRINSIC_DEPTH,
-					input,
-				)?,
-				weight: None,
-			})
-		}
-	}
-
-	impl<Call> From<(xcm::v3::MultiLocation, xcm::v3::Xcm<Call>)>
-		for FromBridgedChainMessagePayload<Call>
-	{
-		fn from(xcm: (xcm::v3::MultiLocation, xcm::v3::Xcm<Call>)) -> Self {
-			FromBridgedChainMessagePayload { xcm, weight: None }
-		}
-	}
+	pub type FromBridgedChainMessagePayload = Vec<u8>;
 
 	/// Messages proof from bridged chain:
 	///
@@ -467,118 +439,6 @@ pub mod target {
 					.fold(0usize, |sum, node| sum.saturating_add(node.len())),
 			)
 			.unwrap_or(u32::MAX)
-		}
-	}
-
-	/// Dispatching Bridged -> This chain messages.
-	#[derive(RuntimeDebug, Clone, Copy)]
-	pub struct FromBridgedChainMessageDispatch<B, XcmExecutor, XcmWeigher, WeightCredit> {
-		_marker: PhantomData<(B, XcmExecutor, XcmWeigher, WeightCredit)>,
-	}
-
-	impl<B: MessageBridge, XcmExecutor, XcmWeigher, WeightCredit>
-		MessageDispatch<AccountIdOf<ThisChain<B>>>
-		for FromBridgedChainMessageDispatch<B, XcmExecutor, XcmWeigher, WeightCredit>
-	where
-		XcmExecutor: xcm::v3::ExecuteXcm<CallOf<ThisChain<B>>>,
-		XcmWeigher: xcm_executor::traits::WeightBounds<CallOf<ThisChain<B>>>,
-		WeightCredit: Get<Weight>,
-	{
-		type DispatchPayload = FromBridgedChainMessagePayload<CallOf<ThisChain<B>>>;
-		type DispatchLevelResult = ();
-
-		fn dispatch_weight(
-			message: &mut DispatchMessage<Self::DispatchPayload>,
-		) -> frame_support::weights::Weight {
-			match message.data.payload {
-				Ok(ref mut payload) => {
-					// I have no idea why this method takes `&mut` reference and there's nothing
-					// about that in documentation. Hope it'll only mutate iff error is returned.
-					let weight = XcmWeigher::weight(&mut payload.xcm.1);
-					let weight = weight.unwrap_or_else(|e| {
-						log::debug!(
-							target: crate::LOG_TARGET_BRIDGE_DISPATCH,
-							"Failed to compute dispatch weight of incoming XCM message {:?}/{}: {:?}",
-							message.key.lane_id,
-							message.key.nonce,
-							e,
-						);
-
-						// we shall return 0 and then the XCM executor will fail to execute XCM
-						// if we'll return something else (e.g. maximal value), the lane may stuck
-						Weight::zero()
-					});
-
-					payload.weight = Some(weight);
-					weight
-				},
-				_ => Weight::zero(),
-			}
-		}
-
-		fn dispatch(
-			_relayer_account: &AccountIdOf<ThisChain<B>>,
-			message: DispatchMessage<Self::DispatchPayload>,
-		) -> MessageDispatchResult<Self::DispatchLevelResult> {
-			let message_id = (message.key.lane_id, message.key.nonce);
-			let do_dispatch = move || -> sp_std::result::Result<Outcome, codec::Error> {
-				let FromBridgedChainMessagePayload { xcm: (location, xcm), weight: weight_limit } =
-					message.data.payload?;
-				log::trace!(
-					target: crate::LOG_TARGET_BRIDGE_DISPATCH,
-					"Going to execute message {:?} (weight limit: {:?}): {:?} {:?}",
-					message_id,
-					weight_limit,
-					location,
-					xcm,
-				);
-				let hash = message_id.using_encoded(sp_io::hashing::blake2_256);
-
-				// if this cod will end up in production, this most likely needs to be set to zero
-				let weight_credit = WeightCredit::get();
-
-				let xcm_outcome = XcmExecutor::execute_xcm_in_credit(
-					location,
-					xcm,
-					hash,
-					weight_limit.unwrap_or_else(Weight::zero),
-					weight_credit,
-				);
-				Ok(xcm_outcome)
-			};
-
-			let xcm_outcome = do_dispatch();
-			match xcm_outcome {
-				Ok(outcome) => {
-					log::trace!(
-						target: crate::LOG_TARGET_BRIDGE_DISPATCH,
-						"Incoming message {:?} dispatched with result: {:?}",
-						message_id,
-						outcome,
-					);
-					match outcome.ensure_execution() {
-						Ok(_weight) => (),
-						Err(e) => {
-							log::error!(
-								target: crate::LOG_TARGET_BRIDGE_DISPATCH,
-								"Incoming message {:?} was not dispatched, error: {:?}",
-								message_id,
-								e,
-							);
-						},
-					}
-				},
-				Err(e) => {
-					log::error!(
-						target: crate::LOG_TARGET_BRIDGE_DISPATCH,
-						"Incoming message {:?} was not dispatched, codec error: {:?}",
-						message_id,
-						e,
-					);
-				},
-			}
-
-			MessageDispatchResult { unspent_weight: Weight::zero(), dispatch_level_result: () }
 		}
 	}
 

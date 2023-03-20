@@ -222,7 +222,7 @@ impl pallet_bridge_messages::Config for TestRuntime {
 	type MaximalOutboundPayloadSize = FromThisChainMaximalOutboundPayloadSize<OnThisChainBridge>;
 	type OutboundPayload = FromThisChainMessagePayload;
 
-	type InboundPayload = FromBridgedChainMessagePayload<ThisChainRuntimeCall>;
+	type InboundPayload = FromBridgedChainMessagePayload;
 	type InboundRelayer = BridgedChainAccountId;
 	type DeliveryPayments = ();
 
@@ -235,8 +235,7 @@ impl pallet_bridge_messages::Config for TestRuntime {
 	>;
 
 	type SourceHeaderChain = SourceHeaderChainAdapter<OnThisChainBridge>;
-	type MessageDispatch =
-		ForbidInboundMessages<(), FromBridgedChainMessagePayload<ThisChainRuntimeCall>>;
+	type MessageDispatch = ForbidInboundMessages<(), FromBridgedChainMessagePayload>;
 	type BridgedChainId = BridgedChainId;
 }
 

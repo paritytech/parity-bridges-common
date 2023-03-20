@@ -48,15 +48,16 @@ pub type ToMillauMessageVerifier =
 	messages::source::FromThisChainMessageVerifier<WithMillauMessageBridge>;
 
 /// Message payload for Millau -> Rialto messages.
-pub type FromMillauMessagePayload = messages::target::FromBridgedChainMessagePayload<RuntimeCall>;
+pub type FromMillauMessagePayload = messages::target::FromBridgedChainMessagePayload;
 
 /// Call-dispatch based message dispatch for Millau -> Rialto messages.
-pub type FromMillauMessageDispatch = messages::target::FromBridgedChainMessageDispatch<
-	WithMillauMessageBridge,
-	xcm_executor::XcmExecutor<crate::xcm_config::XcmConfig>,
-	crate::xcm_config::XcmWeigher,
-	WeightCredit,
->;
+pub type FromMillauMessageDispatch =
+	bridge_runtime_common::messages_xcm_extension::XcmBlobMessageDispatch<
+		bp_rialto::Rialto,
+		bp_millau::Millau,
+		crate::xcm_config::OnRialtoBlobDispatcher,
+		bridge_runtime_common::messages_xcm_extension::XcmRouterWeigher<crate::DbWeight>,
+	>;
 
 /// Messages proof for Millau -> Rialto messages.
 pub type FromMillauMessagesProof = messages::target::FromBridgedChainMessagesProof<bp_millau::Hash>;
