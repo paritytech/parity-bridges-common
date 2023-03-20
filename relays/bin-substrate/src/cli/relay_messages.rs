@@ -19,13 +19,19 @@ use sp_core::Pair;
 use structopt::StructOpt;
 use strum::VariantNames;
 
-use crate::chains::{
-	bridge_hub_rococo_messages_to_bridge_hub_wococo::BridgeHubRococoToBridgeHubWococoMessagesCliBridge,
-	bridge_hub_wococo_messages_to_bridge_hub_rococo::BridgeHubWococoToBridgeHubRococoMessagesCliBridge,
-	millau_headers_to_rialto::MillauToRialtoCliBridge,
-	millau_headers_to_rialto_parachain::MillauToRialtoParachainCliBridge,
-	rialto_headers_to_millau::RialtoToMillauCliBridge,
-	rialto_parachains_to_millau::RialtoParachainToMillauCliBridge,
+use crate::bridges::{
+	rialto_millau::{
+		millau_headers_to_rialto::MillauToRialtoCliBridge,
+		rialto_headers_to_millau::RialtoToMillauCliBridge,
+	},
+	rialto_parachain_millau::{
+		millau_headers_to_rialto_parachain::MillauToRialtoParachainCliBridge,
+		rialto_parachains_to_millau::RialtoParachainToMillauCliBridge,
+	},
+	rococo_wococo::{
+		bridge_hub_rococo_messages_to_bridge_hub_wococo::BridgeHubRococoToBridgeHubWococoMessagesCliBridge,
+		bridge_hub_wococo_messages_to_bridge_hub_rococo::BridgeHubWococoToBridgeHubRococoMessagesCliBridge,
+	},
 };
 use relay_substrate_client::{AccountIdOf, AccountKeyPairOf, BalanceOf, ChainWithTransactions};
 use substrate_relay_helper::{messages_lane::MessagesRelayParams, TransactionParams};

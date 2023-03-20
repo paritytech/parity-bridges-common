@@ -14,11 +14,13 @@
 // You should have received a copy of the GNU General Public License
 // along with Parity Bridges Common.  If not, see <http://www.gnu.org/licenses/>.
 
-use crate::chains::{
-	rialto_parachains_to_millau::RialtoParachainToMillauCliBridge,
-	rococo_parachains_to_bridge_hub_wococo::BridgeHubRococoToBridgeHubWococoCliBridge,
-	westend_parachains_to_millau::WestmintToMillauCliBridge,
-	wococo_parachains_to_bridge_hub_rococo::BridgeHubWococoToBridgeHubRococoCliBridge,
+use crate::bridges::{
+	rialto_parachain_millau::rialto_parachains_to_millau::RialtoParachainToMillauCliBridge,
+	rococo_wococo::{
+		rococo_parachains_to_bridge_hub_wococo::BridgeHubRococoToBridgeHubWococoCliBridge,
+		wococo_parachains_to_bridge_hub_rococo::BridgeHubWococoToBridgeHubRococoCliBridge,
+	},
+	westend_millau::westend_parachains_to_millau::WestmintToMillauCliBridge,
 };
 use async_std::sync::Mutex;
 use async_trait::async_trait;
