@@ -16,7 +16,9 @@
 
 //! Chain-specific relayer configuration.
 
+mod kusama;
 mod millau;
+mod polkadot;
 mod rialto;
 mod rialto_parachain;
 mod rococo;
