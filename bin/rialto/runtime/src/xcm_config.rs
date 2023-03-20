@@ -17,14 +17,12 @@
 //! XCM configurations for the Rialto runtime.
 
 use super::{
-	millau_messages::WithMillauMessageBridge, AccountId, AllPalletsWithSystem, Balances, Runtime,
-	RuntimeCall, RuntimeEvent, RuntimeOrigin, WithMillauMessagesInstance, XcmPallet,
+	millau_messages::{ToMillauBlobExporter, WithMillauMessageBridge},
+	AccountId, AllPalletsWithSystem, Balances, Runtime, RuntimeCall, RuntimeEvent, RuntimeOrigin,
+	WithMillauMessagesInstance, XcmPallet,
 };
 use bp_rialto::WeightToFee;
-use bridge_runtime_common::{
-	messages::source::{XcmBridge, XcmBridgeAdapter},
-	CustomNetworkId,
-};
+use bridge_runtime_common::CustomNetworkId;
 use frame_support::{
 	parameter_types,
 	traits::{ConstU32, Everything, Nothing},
@@ -36,6 +34,7 @@ use xcm_builder::{
 	CurrencyAdapter as XcmCurrencyAdapter, IsConcrete, MintLocation, SignedAccountId32AsNative,
 	SignedToAccountId32, SovereignSignedViaLocation, TakeWeightCredit, UsingComponents,
 };
+use xcm_executor::traits::ExportXcm;
 
 parameter_types! {
 	/// The location of the `MLAU` token, from the context of this chain. Since this token is native to this
@@ -95,12 +94,8 @@ parameter_types! {
 	pub const MaxInstructions: u32 = 100;
 }
 
-/// The XCM router. When we want to send an XCM message, we use this type. It amalgamates all of our
-/// individual routers.
-pub type XcmRouter = (
-	// Router to send messages to Millau.
-	XcmBridgeAdapter<ToMillauBridge>,
-);
+/// The XCM router. We are not sending messages to sibling/parent/child chains here.
+pub type XcmRouter = ();
 
 /// The barriers one of which must be passed for an XCM message to be executed.
 pub type Barrier = (
@@ -124,7 +119,7 @@ pub type XcmWeigher = xcm_builder::FixedWeightBounds<BaseXcmWeight, RuntimeCall,
 pub struct XcmConfig;
 impl xcm_executor::Config for XcmConfig {
 	type RuntimeCall = RuntimeCall;
-	type XcmSender = XcmRouter;
+	type XcmSender = ();
 	type AssetTransactor = LocalAssetTransactor;
 	type OriginConverter = LocalOriginConverter;
 	type IsReserve = ();
@@ -143,7 +138,7 @@ impl xcm_executor::Config for XcmConfig {
 	type PalletInstancesInfo = AllPalletsWithSystem;
 	type MaxAssetsIntoHolding = ConstU32<64>;
 	type FeeManager = ();
-	type MessageExporter = ();
+	type MessageExporter = ToMillauBlobExporter;
 	type UniversalAliases = Nothing;
 	type CallDispatcher = RuntimeCall;
 	type SafeCallFilter = Everything;
@@ -195,31 +190,6 @@ impl pallet_xcm::Config for Runtime {
 	type ReachableDest = ReachableDest;
 }
 
-/// With-Millau bridge.
-pub struct ToMillauBridge;
-
-impl XcmBridge for ToMillauBridge {
-	type MessageBridge = WithMillauMessageBridge;
-	type MessageSender = pallet_bridge_messages::Pallet<Runtime, WithMillauMessagesInstance>;
-
-	fn universal_location() -> InteriorMultiLocation {
-		UniversalLocation::get()
-	}
-
-	fn verify_destination(dest: &MultiLocation) -> bool {
-		matches!(*dest, MultiLocation { parents: 1, interior: X1(GlobalConsensus(r)) } if r == MillauNetwork::get())
-	}
-
-	fn build_destination() -> MultiLocation {
-		let dest: InteriorMultiLocation = MillauNetwork::get().into();
-		let here = UniversalLocation::get();
-		dest.relative_to(&here)
-	}
-
-	fn xcm_lane() -> bp_messages::LaneId {
-		bp_messages::LaneId([0, 0, 0, 0])
-	}
-}
 /*
 #[cfg(test)]
 mod tests {

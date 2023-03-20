@@ -16,14 +16,22 @@
 
 //! Everything required to serve Millau <-> RialtoParachain messages.
 
-use crate::{Runtime, RuntimeCall, RuntimeOrigin, WithRialtoParachainsInstance};
+use crate::{
+	Runtime, RuntimeCall, RuntimeOrigin, WithRialtoParachainMessagesInstance,
+	WithRialtoParachainsInstance,
+};
 
 use bp_messages::{LaneId, MessageNonce};
 use bp_runtime::{ChainId, MILLAU_CHAIN_ID, RIALTO_PARACHAIN_CHAIN_ID};
-use bridge_runtime_common::messages::{
-	self, source::TargetHeaderChainAdapter, target::SourceHeaderChainAdapter, MessageBridge,
+use bridge_runtime_common::{
+	messages::{
+		self, source::TargetHeaderChainAdapter, target::SourceHeaderChainAdapter, MessageBridge,
+	},
+	messages_xcm_extension::{XcmBlobHauler, XcmBlobHaulerAdapter},
 };
 use frame_support::{parameter_types, weights::Weight, RuntimeDebug};
+use xcm::latest::prelude::*;
+use xcm_builder::HaulBlobExporter;
 
 /// Default lane that is used to send messages to Rialto parachain.
 pub const XCM_LANE: LaneId = LaneId([0, 0, 0, 0]);
@@ -119,5 +127,30 @@ impl messages::UnderlyingChainProvider for RialtoParachain {
 impl messages::BridgedChainWithMessages for RialtoParachain {
 	fn verify_dispatch_weight(_message_payload: &[u8]) -> bool {
 		true
+	}
+}
+
+/// Export XCM messages to be relayed to Rialto.
+pub type ToRialtoParachainBlobExporter = HaulBlobExporter<
+	XcmBlobHaulerAdapter<ToRialtoParachainXcmBlobHauler>,
+	crate::xcm_config::RialtoParachainNetwork,
+	(),
+>;
+
+/// To-RialtoParachain XCM hauler.
+pub struct ToRialtoParachainXcmBlobHauler;
+
+impl XcmBlobHauler for ToRialtoParachainXcmBlobHauler {
+	type MessageSender =
+		pallet_bridge_messages::Pallet<Runtime, WithRialtoParachainMessagesInstance>;
+	type MessageSenderOrigin = RuntimeOrigin;
+
+	fn message_sender_origin() -> RuntimeOrigin {
+		pallet_xcm::Origin::from(MultiLocation::new(1, crate::xcm_config::UniversalLocation::get()))
+			.into()
+	}
+
+	fn xcm_lane() -> LaneId {
+		XCM_LANE
 	}
 }

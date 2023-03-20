@@ -28,10 +28,7 @@ include!(concat!(env!("OUT_DIR"), "/wasm_binary.rs"));
 
 use crate::millau_messages::{WithMillauMessageBridge, XCM_LANE};
 
-use bridge_runtime_common::{
-	generate_bridge_reject_obsolete_headers_and_messages,
-	messages::source::{XcmBridge, XcmBridgeAdapter},
-};
+use bridge_runtime_common::generate_bridge_reject_obsolete_headers_and_messages;
 use codec::{Decode, Encode};
 use cumulus_pallet_parachain_system::AnyRelayNumber;
 use scale_info::TypeInfo;
@@ -445,7 +442,7 @@ pub type XcmWeigher = FixedWeightBounds<UnitWeightCost, RuntimeCall, MaxInstruct
 pub struct XcmConfig;
 impl Config for XcmConfig {
 	type RuntimeCall = RuntimeCall;
-	type XcmSender = XcmRouter;
+	type XcmSender = ();
 	type AssetTransactor = LocalAssetTransactor;
 	type OriginConverter = XcmOriginToTransactDispatchOrigin;
 	type IsReserve = NativeAsset;
@@ -463,7 +460,7 @@ impl Config for XcmConfig {
 	type AssetLocker = ();
 	type AssetExchanger = ();
 	type FeeManager = ();
-	type MessageExporter = ();
+	type MessageExporter = millau_messages::ToMillauBlobExporter;
 	type UniversalAliases = Nothing;
 	type CallDispatcher = RuntimeCall;
 	type SafeCallFilter = Everything;
@@ -472,38 +469,8 @@ impl Config for XcmConfig {
 /// No local origins on this chain are allowed to dispatch XCM sends/executions.
 pub type LocalOriginToLocation = SignedToAccountId32<RuntimeOrigin, AccountId, RelayNetwork>;
 
-/// The means for routing XCM messages which are not for local execution into the right message
-/// queues.
-pub type XcmRouter = (
-	// Bridge is used to communicate with other relay chain (Millau).
-	XcmBridgeAdapter<ToMillauBridge>,
-);
-
-/// With-Millau bridge.
-pub struct ToMillauBridge;
-
-impl XcmBridge for ToMillauBridge {
-	type MessageBridge = WithMillauMessageBridge;
-	type MessageSender = pallet_bridge_messages::Pallet<Runtime, WithMillauMessagesInstance>;
-
-	fn universal_location() -> InteriorMultiLocation {
-		UniversalLocation::get()
-	}
-
-	fn verify_destination(dest: &MultiLocation) -> bool {
-		matches!(*dest, MultiLocation { parents: 1, interior: X1(GlobalConsensus(r)) } if r == MillauNetwork::get())
-	}
-
-	fn build_destination() -> MultiLocation {
-		let dest: InteriorMultiLocation = MillauNetwork::get().into();
-		let here = UniversalLocation::get();
-		dest.relative_to(&here)
-	}
-
-	fn xcm_lane() -> bp_messages::LaneId {
-		XCM_LANE
-	}
-}
+/// The XCM router. We are not sending messages to sibling/parent/child chains here.
+pub type XcmRouter = ();
 
 #[cfg(feature = "runtime-benchmarks")]
 parameter_types! {

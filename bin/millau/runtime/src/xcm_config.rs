@@ -17,18 +17,18 @@
 //! XCM configurations for the Millau runtime.
 
 use super::{
-	rialto_messages::{WithRialtoMessageBridge, XCM_LANE},
-	rialto_parachain_messages::{WithRialtoParachainMessageBridge, XCM_LANE as XCM_LANE_PARACHAIN},
+	rialto_messages::{ToRialtoBlobExporter, WithRialtoMessageBridge, XCM_LANE},
+	rialto_parachain_messages::{
+		ToRialtoParachainBlobExporter, WithRialtoParachainMessageBridge,
+		XCM_LANE as XCM_LANE_PARACHAIN,
+	},
 	AccountId, AllPalletsWithSystem, Balances, Runtime, RuntimeCall, RuntimeEvent, RuntimeOrigin,
 	WithRialtoMessagesInstance, WithRialtoParachainMessagesInstance, XcmPallet,
 };
 use bp_messages::LaneId;
 use bp_millau::WeightToFee;
 use bp_rialto_parachain::RIALTO_PARACHAIN_ID;
-use bridge_runtime_common::{
-	messages::source::{XcmBridge, XcmBridgeAdapter},
-	CustomNetworkId,
-};
+use bridge_runtime_common::CustomNetworkId;
 use frame_support::{
 	parameter_types,
 	traits::{ConstU32, Everything, Nothing},
@@ -40,6 +40,7 @@ use xcm_builder::{
 	CurrencyAdapter as XcmCurrencyAdapter, IsConcrete, MintLocation, SignedAccountId32AsNative,
 	SignedToAccountId32, SovereignSignedViaLocation, TakeWeightCredit, UsingComponents,
 };
+use xcm_executor::traits::ExportXcm;
 
 parameter_types! {
 	/// The location of the `MLAU` token, from the context of this chain. Since this token is native to this
@@ -101,14 +102,8 @@ parameter_types! {
 	pub const MaxInstructions: u32 = 100;
 }
 
-/// The XCM router. When we want to send an XCM message, we use this type. It amalgamates all of our
-/// individual routers.
-pub type XcmRouter = (
-	// Router to send messages to Rialto.
-	XcmBridgeAdapter<ToRialtoBridge>,
-	// Router to send messages to RialtoParachains.
-	XcmBridgeAdapter<ToRialtoParachainBridge>,
-);
+/// The XCM router. We are not sending messages to sibling/parent/child chains here.
+pub type XcmRouter = ();
 
 /// The barriers one of which must be passed for an XCM message to be executed.
 pub type Barrier = (
@@ -132,7 +127,7 @@ pub type XcmWeigher = xcm_builder::FixedWeightBounds<BaseXcmWeight, RuntimeCall,
 pub struct XcmConfig;
 impl xcm_executor::Config for XcmConfig {
 	type RuntimeCall = RuntimeCall;
-	type XcmSender = XcmRouter;
+	type XcmSender = ();
 	type AssetTransactor = LocalAssetTransactor;
 	type OriginConverter = LocalOriginConverter;
 	type IsReserve = ();
@@ -151,7 +146,7 @@ impl xcm_executor::Config for XcmConfig {
 	type PalletInstancesInfo = AllPalletsWithSystem;
 	type MaxAssetsIntoHolding = ConstU32<64>;
 	type FeeManager = ();
-	type MessageExporter = ();
+	type MessageExporter = ToRialtoOrRialtoParachainSwitchExporter;
 	type UniversalAliases = Nothing;
 	type CallDispatcher = RuntimeCall;
 	type SafeCallFilter = Everything;
@@ -176,7 +171,7 @@ impl pallet_xcm::Config for Runtime {
 	// the DOT to send from the Relay-chain). But it's useless until we bring in XCM v3 which will
 	// make `DescendOrigin` a bit more useful.
 	type SendXcmOrigin = xcm_builder::EnsureXcmOrigin<RuntimeOrigin, LocalOriginToLocation>;
-	type XcmRouter = XcmRouter;
+	type XcmRouter = ();
 	// Anyone can execute XCM messages locally.
 	type ExecuteXcmOrigin = xcm_builder::EnsureXcmOrigin<RuntimeOrigin, LocalOriginToLocation>;
 	type XcmExecuteFilter = Everything;
@@ -203,58 +198,47 @@ impl pallet_xcm::Config for Runtime {
 	type ReachableDest = ReachableDest;
 }
 
-/// With-Rialto bridge.
-pub struct ToRialtoBridge;
+pub struct ToRialtoOrRialtoParachainSwitchExporter;
 
-impl XcmBridge for ToRialtoBridge {
-	type MessageBridge = WithRialtoMessageBridge;
-	type MessageSender = pallet_bridge_messages::Pallet<Runtime, WithRialtoMessagesInstance>;
+impl ExportXcm for ToRialtoOrRialtoParachainSwitchExporter {
+	type Ticket = (NetworkId, (sp_std::prelude::Vec<u8>, XcmHash));
 
-	fn universal_location() -> InteriorMultiLocation {
-		UniversalLocation::get()
+	fn validate(
+		network: NetworkId,
+		channel: u32,
+		universal_source: &mut Option<InteriorMultiLocation>,
+		destination: &mut Option<InteriorMultiLocation>,
+		message: &mut Option<Xcm<()>>,
+	) -> SendResult<Self::Ticket> {
+		if network == RialtoNetwork::get() {
+			ToRialtoBlobExporter::validate(network, channel, universal_source, destination, message)
+				.map(|result| ((RialtoNetwork::get(), result.0), result.1))
+		} else if network == RialtoParachainNetwork::get() {
+			ToRialtoParachainBlobExporter::validate(
+				network,
+				channel,
+				universal_source,
+				destination,
+				message,
+			)
+			.map(|result| ((RialtoParachainNetwork::get(), result.0), result.1))
+		} else {
+			Err(SendError::Unroutable)
+		}
 	}
 
-	fn verify_destination(dest: &MultiLocation) -> bool {
-		matches!(*dest, MultiLocation { parents: 1, interior: X1(GlobalConsensus(r)) } if r == RialtoNetwork::get())
-	}
-
-	fn build_destination() -> MultiLocation {
-		let dest: InteriorMultiLocation = RialtoNetwork::get().into();
-		let here = UniversalLocation::get();
-		dest.relative_to(&here)
-	}
-
-	fn xcm_lane() -> LaneId {
-		XCM_LANE
-	}
-}
-
-/// With-RialtoParachain bridge.
-pub struct ToRialtoParachainBridge;
-
-impl XcmBridge for ToRialtoParachainBridge {
-	type MessageBridge = WithRialtoParachainMessageBridge;
-	type MessageSender =
-		pallet_bridge_messages::Pallet<Runtime, WithRialtoParachainMessagesInstance>;
-
-	fn universal_location() -> InteriorMultiLocation {
-		UniversalLocation::get()
-	}
-
-	fn verify_destination(dest: &MultiLocation) -> bool {
-		matches!(*dest, MultiLocation { parents: 1, interior: X2(GlobalConsensus(r), Parachain(RIALTO_PARACHAIN_ID)) } if r == RialtoNetwork::get())
-	}
-
-	fn build_destination() -> MultiLocation {
-		let dest: InteriorMultiLocation = RialtoParachainNetwork::get().into();
-		let here = UniversalLocation::get();
-		dest.relative_to(&here)
-	}
-
-	fn xcm_lane() -> LaneId {
-		XCM_LANE_PARACHAIN
+	fn deliver(ticket: Self::Ticket) -> Result<XcmHash, SendError> {
+		let (network, ticket) = ticket;
+		if network == RialtoNetwork::get() {
+			ToRialtoBlobExporter::deliver(ticket)
+		} else if network == RialtoParachainNetwork::get() {
+			ToRialtoParachainBlobExporter::deliver(ticket)
+		} else {
+			Err(SendError::Unroutable)
+		}
 	}
 }
+
 /*
 #[cfg(test)]
 mod tests {
