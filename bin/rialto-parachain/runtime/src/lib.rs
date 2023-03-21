@@ -26,8 +26,6 @@
 #[cfg(feature = "std")]
 include!(concat!(env!("OUT_DIR"), "/wasm_binary.rs"));
 
-use crate::millau_messages::{WithMillauMessageBridge, XCM_LANE};
-
 use bridge_runtime_common::generate_bridge_reject_obsolete_headers_and_messages;
 use codec::{Decode, Encode};
 use cumulus_pallet_parachain_system::AnyRelayNumber;
@@ -85,11 +83,10 @@ use pallet_xcm::XcmPassthrough;
 use polkadot_parachain::primitives::Sibling;
 use xcm::latest::prelude::*;
 use xcm_builder::{
-	AccountId32Aliases, AllowTopLevelPaidExecutionFrom, AllowUnpaidExecutionFrom, CurrencyAdapter,
-	EnsureXcmOrigin, FixedWeightBounds, IsConcrete, NativeAsset, ParentAsSuperuser, ParentIsPreset,
-	RelayChainAsNative, SiblingParachainAsNative, SiblingParachainConvertsVia,
-	SignedAccountId32AsNative, SignedToAccountId32, SovereignSignedViaLocation, TakeWeightCredit,
-	UsingComponents,
+	AccountId32Aliases, CurrencyAdapter, EnsureXcmOrigin, FixedWeightBounds, IsConcrete,
+	NativeAsset, ParentAsSuperuser, ParentIsPreset, RelayChainAsNative, SiblingParachainAsNative,
+	SiblingParachainConvertsVia, SignedAccountId32AsNative, SignedToAccountId32,
+	SovereignSignedViaLocation, TakeWeightCredit, UsingComponents,
 };
 use xcm_executor::{Config, XcmExecutor};
 
@@ -409,8 +406,8 @@ pub type XcmOriginToTransactDispatchOrigin = (
 // the following constant must match the similar constant in the Millau runtime.
 
 parameter_types! {
-	/// The amount of weight an XCM operation takes. This is a safe overestimate.
-	pub const UnitWeightCost: Weight = Weight::from_parts(1_000_000, 64 * 1024);
+	/// The amount of weight an XCM operation takes. We don't care much about those values as we're on testnet.
+	pub const UnitWeightCost: Weight = Weight::from_parts(1_000_000, 1024);
 	// One UNIT buys 1 second of weight.
 	pub const WeightPrice: (MultiLocation, u128) = (MultiLocation::parent(), UNIT);
 	pub const MaxInstructions: u32 = 100;
@@ -425,12 +422,7 @@ match_types! {
 	};
 }
 
-pub type Barrier = (
-	TakeWeightCredit,
-	AllowTopLevelPaidExecutionFrom<Everything>,
-	AllowUnpaidExecutionFrom<ParentOrParentsUnitPlurality>,
-	// ^^^ Parent & its unit plurality gets free execution
-);
+pub type Barrier = TakeWeightCredit;
 
 /// Dispatches received XCM messages from other chain.
 pub type OnRialtoParachainBlobDispatcher =
@@ -851,7 +843,6 @@ mod tests {
 		target_chain::{DispatchMessage, DispatchMessageData, MessageDispatch},
 		LaneId, MessageKey,
 	};
-	use bp_runtime::messages::MessageDispatchResult;
 	use bridge_runtime_common::{
 		integrity::check_additional_signed,
 		messages_xcm_extension::{XcmBlobMessageDispatchResult, XcmRouterWeigher},
@@ -878,7 +869,7 @@ mod tests {
 	}
 
 	#[test]
-	fn xcm_messages_to_rialto_are_sent_using_bridge_exporter() {
+	fn xcm_messages_to_millau_are_sent_using_bridge_exporter() {
 		new_test_ext().execute_with(|| {
 			// ensure that the there are no messages queued
 			assert_eq!(

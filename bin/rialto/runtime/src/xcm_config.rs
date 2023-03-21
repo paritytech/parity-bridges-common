@@ -17,9 +17,8 @@
 //! XCM configurations for the Rialto runtime.
 
 use super::{
-	millau_messages::{ToMillauBlobExporter, WithMillauMessageBridge},
-	AccountId, AllPalletsWithSystem, Balances, Runtime, RuntimeCall, RuntimeEvent, RuntimeOrigin,
-	WithMillauMessagesInstance, XcmPallet,
+	millau_messages::ToMillauBlobExporter, AccountId, AllPalletsWithSystem, Balances, Runtime,
+	RuntimeCall, RuntimeEvent, RuntimeOrigin, XcmPallet,
 };
 use bp_rialto::WeightToFee;
 use bridge_runtime_common::CustomNetworkId;
@@ -30,11 +29,10 @@ use frame_support::{
 };
 use xcm::latest::prelude::*;
 use xcm_builder::{
-	AccountId32Aliases, AllowKnownQueryResponses, AllowTopLevelPaidExecutionFrom,
-	CurrencyAdapter as XcmCurrencyAdapter, IsConcrete, MintLocation, SignedAccountId32AsNative,
-	SignedToAccountId32, SovereignSignedViaLocation, TakeWeightCredit, UsingComponents,
+	AccountId32Aliases, CurrencyAdapter as XcmCurrencyAdapter, IsConcrete, MintLocation,
+	SignedAccountId32AsNative, SignedToAccountId32, SovereignSignedViaLocation, TakeWeightCredit,
+	UsingComponents,
 };
-use xcm_executor::traits::ExportXcm;
 
 parameter_types! {
 	/// The location of the `MLAU` token, from the context of this chain. Since this token is native to this
@@ -101,10 +99,6 @@ pub type XcmRouter = ();
 pub type Barrier = (
 	// Weight that is paid for may be consumed.
 	TakeWeightCredit,
-	// If the message is one that immediately attemps to pay for execution, then allow it.
-	AllowTopLevelPaidExecutionFrom<Everything>,
-	// Expected responses are OK.
-	AllowKnownQueryResponses<XcmPallet>,
 );
 
 /// Dispatches received XCM messages from other chain.
@@ -195,13 +189,12 @@ mod tests {
 	use super::*;
 	use crate::{
 		millau_messages::{FromMillauMessageDispatch, XCM_LANE},
-		DbWeight,
+		DbWeight, WithMillauMessagesInstance,
 	};
 	use bp_messages::{
 		target_chain::{DispatchMessage, DispatchMessageData, MessageDispatch},
 		LaneId, MessageKey,
 	};
-	use bp_runtime::messages::MessageDispatchResult;
 	use bridge_runtime_common::messages_xcm_extension::{
 		XcmBlobMessageDispatchResult, XcmRouterWeigher,
 	};
@@ -226,7 +219,7 @@ mod tests {
 	}
 
 	#[test]
-	fn xcm_messages_to_rialto_are_sent_using_bridge_exporter() {
+	fn xcm_messages_to_millau_are_sent_using_bridge_exporter() {
 		new_test_ext().execute_with(|| {
 			// ensure that the there are no messages queued
 			assert_eq!(

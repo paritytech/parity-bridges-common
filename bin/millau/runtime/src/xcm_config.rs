@@ -17,17 +17,11 @@
 //! XCM configurations for the Millau runtime.
 
 use super::{
-	rialto_messages::{ToRialtoBlobExporter, WithRialtoMessageBridge, XCM_LANE},
-	rialto_parachain_messages::{
-		ToRialtoParachainBlobExporter, WithRialtoParachainMessageBridge,
-		XCM_LANE as XCM_LANE_PARACHAIN,
-	},
-	AccountId, AllPalletsWithSystem, Balances, Runtime, RuntimeCall, RuntimeEvent, RuntimeOrigin,
-	WithRialtoMessagesInstance, WithRialtoParachainMessagesInstance, XcmPallet,
+	rialto_messages::ToRialtoBlobExporter,
+	rialto_parachain_messages::ToRialtoParachainBlobExporter, AccountId, AllPalletsWithSystem,
+	Balances, Runtime, RuntimeCall, RuntimeEvent, RuntimeOrigin, XcmPallet,
 };
-use bp_messages::LaneId;
 use bp_millau::WeightToFee;
-use bp_rialto_parachain::RIALTO_PARACHAIN_ID;
 use bridge_runtime_common::CustomNetworkId;
 use frame_support::{
 	parameter_types,
@@ -36,9 +30,9 @@ use frame_support::{
 };
 use xcm::latest::prelude::*;
 use xcm_builder::{
-	AccountId32Aliases, AllowKnownQueryResponses, AllowTopLevelPaidExecutionFrom,
-	CurrencyAdapter as XcmCurrencyAdapter, IsConcrete, MintLocation, SignedAccountId32AsNative,
-	SignedToAccountId32, SovereignSignedViaLocation, TakeWeightCredit, UsingComponents,
+	AccountId32Aliases, CurrencyAdapter as XcmCurrencyAdapter, IsConcrete, MintLocation,
+	SignedAccountId32AsNative, SignedToAccountId32, SovereignSignedViaLocation, TakeWeightCredit,
+	UsingComponents,
 };
 use xcm_executor::traits::ExportXcm;
 
@@ -241,12 +235,12 @@ mod tests {
 	use crate::{
 		rialto_messages::FromRialtoMessageDispatch,
 		rialto_parachain_messages::FromRialtoParachainMessageDispatch, DbWeight,
+		WithRialtoMessagesInstance, WithRialtoParachainMessagesInstance,
 	};
 	use bp_messages::{
 		target_chain::{DispatchMessage, DispatchMessageData, MessageDispatch},
-		MessageKey,
+		LaneId, MessageKey,
 	};
-	use bp_runtime::messages::MessageDispatchResult;
 	use bridge_runtime_common::messages_xcm_extension::{
 		XcmBlobMessageDispatchResult, XcmRouterWeigher,
 	};
@@ -275,8 +269,10 @@ mod tests {
 		new_test_ext().execute_with(|| {
 			// ensure that the there are no messages queued
 			assert_eq!(
-				OutboundLanes::<Runtime, WithRialtoMessagesInstance>::get(XCM_LANE)
-					.latest_generated_nonce,
+				OutboundLanes::<Runtime, WithRialtoMessagesInstance>::get(
+					crate::rialto_messages::XCM_LANE
+				)
+				.latest_generated_nonce,
 				0,
 			);
 
@@ -293,8 +289,10 @@ mod tests {
 
 			// ensure that the message has been queued
 			assert_eq!(
-				OutboundLanes::<Runtime, WithRialtoMessagesInstance>::get(XCM_LANE)
-					.latest_generated_nonce,
+				OutboundLanes::<Runtime, WithRialtoMessagesInstance>::get(
+					crate::rialto_messages::XCM_LANE
+				)
+				.latest_generated_nonce,
 				1,
 			);
 		})
@@ -305,8 +303,10 @@ mod tests {
 		new_test_ext().execute_with(|| {
 			// ensure that the there are no messages queued
 			assert_eq!(
-				OutboundLanes::<Runtime, WithRialtoParachainMessagesInstance>::get(XCM_LANE)
-					.latest_generated_nonce,
+				OutboundLanes::<Runtime, WithRialtoParachainMessagesInstance>::get(
+					crate::rialto_parachain_messages::XCM_LANE
+				)
+				.latest_generated_nonce,
 				0,
 			);
 
@@ -323,8 +323,10 @@ mod tests {
 
 			// ensure that the message has been queued
 			assert_eq!(
-				OutboundLanes::<Runtime, WithRialtoParachainMessagesInstance>::get(XCM_LANE)
-					.latest_generated_nonce,
+				OutboundLanes::<Runtime, WithRialtoParachainMessagesInstance>::get(
+					crate::rialto_parachain_messages::XCM_LANE
+				)
+				.latest_generated_nonce,
 				1,
 			);
 		})

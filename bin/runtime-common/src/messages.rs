@@ -25,21 +25,15 @@ pub use bp_runtime::{UnderlyingChainOf, UnderlyingChainProvider};
 use bp_header_chain::{HeaderChain, HeaderChainError};
 use bp_messages::{
 	source_chain::{LaneMessageVerifier, TargetHeaderChain},
-	target_chain::{
-		DispatchMessage, MessageDispatch, ProvedLaneMessages, ProvedMessages, SourceHeaderChain,
-	},
+	target_chain::{ProvedLaneMessages, ProvedMessages, SourceHeaderChain},
 	InboundLaneData, LaneId, Message, MessageKey, MessageNonce, MessagePayload, OutboundLaneData,
 };
-use bp_runtime::{
-	messages::MessageDispatchResult, Chain, ChainId, RawStorageProof, Size, StorageProofChecker,
-	StorageProofError,
-};
+use bp_runtime::{Chain, ChainId, RawStorageProof, Size, StorageProofChecker, StorageProofError};
 use codec::{Decode, Encode};
 use frame_support::{traits::Get, weights::Weight, RuntimeDebug};
 use hash_db::Hasher;
 use scale_info::TypeInfo;
 use sp_std::{convert::TryFrom, fmt::Debug, marker::PhantomData, vec::Vec};
-use xcm::latest::prelude::*;
 
 /// Bidirectional message bridge.
 pub trait MessageBridge {
