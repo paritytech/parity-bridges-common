@@ -33,6 +33,8 @@ pub enum FullBridge {
 	RialtoParachainToMillau,
 	BridgeHubRococoToBridgeHubWococo,
 	BridgeHubWococoToBridgeHubRococo,
+	BridgeHubKusamaToBridgeHubPolkadot,
+	BridgeHubPolkadotToBridgeHubKusama,
 }
 
 /// Minimal bridge representation that can be used from the CLI.
