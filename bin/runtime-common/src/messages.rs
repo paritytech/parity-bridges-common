@@ -102,7 +102,7 @@ pub mod source {
 	use super::*;
 
 	/// Message payload for This -> Bridged chain messages.
-	pub type FromThisChainMessagePayload = Vec<u8>;
+	pub type FromThisChainMessagePayload = crate::messages_xcm_extension::XcmAsPlainPayload;
 
 	/// Maximal size of outbound message payload.
 	pub struct FromThisChainMaximalOutboundPayloadSize<B>(PhantomData<B>);
@@ -288,7 +288,7 @@ pub mod target {
 	use super::*;
 
 	/// Decoded Bridged -> This message payload.
-	pub type FromBridgedChainMessagePayload = Vec<u8>;
+	pub type FromBridgedChainMessagePayload = crate::messages_xcm_extension::XcmAsPlainPayload;
 
 	/// Messages proof from bridged chain:
 	///
