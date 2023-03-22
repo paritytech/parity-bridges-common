@@ -19,12 +19,9 @@
 // TODO: this is almost exact copy of `millau_messages.rs` from Rialto runtime.
 // Should be extracted to a separate crate and reused here.
 
-use crate::{
-	MillauGrandpaInstance, Runtime, RuntimeCall, RuntimeOrigin, WithMillauMessagesInstance,
-};
+use crate::{MillauGrandpaInstance, Runtime, RuntimeOrigin, WithMillauMessagesInstance};
 
-use bp_messages::{LaneId, MessageNonce};
-use bp_runtime::{ChainId, MILLAU_CHAIN_ID, RIALTO_PARACHAIN_CHAIN_ID};
+use bp_messages::LaneId;
 use bridge_runtime_common::{
 	messages::{
 		self, source::TargetHeaderChainAdapter, target::SourceHeaderChainAdapter, MessageBridge,
@@ -85,8 +82,6 @@ pub type ToMillauMaximalOutboundPayloadSize =
 pub struct WithMillauMessageBridge;
 
 impl MessageBridge for WithMillauMessageBridge {
-	const THIS_CHAIN_ID: ChainId = RIALTO_PARACHAIN_CHAIN_ID;
-	const BRIDGED_CHAIN_ID: ChainId = MILLAU_CHAIN_ID;
 	const BRIDGED_MESSAGES_PALLET_NAME: &'static str =
 		bp_rialto_parachain::WITH_RIALTO_PARACHAIN_MESSAGES_PALLET_NAME;
 
@@ -105,16 +100,7 @@ impl messages::UnderlyingChainProvider for RialtoParachain {
 }
 
 impl messages::ThisChainWithMessages for RialtoParachain {
-	type RuntimeCall = RuntimeCall;
 	type RuntimeOrigin = RuntimeOrigin;
-
-	fn is_message_accepted(_send_origin: &Self::RuntimeOrigin, _lane: &LaneId) -> bool {
-		true
-	}
-
-	fn maximal_pending_messages_at_outbound_lane() -> MessageNonce {
-		MessageNonce::MAX
-	}
 }
 
 /// Millau chain from message lane point of view.
@@ -129,11 +115,7 @@ impl messages::UnderlyingChainProvider for Millau {
 	type Chain = bp_millau::Millau;
 }
 
-impl messages::BridgedChainWithMessages for Millau {
-	fn verify_dispatch_weight(_message_payload: &[u8]) -> bool {
-		true
-	}
-}
+impl messages::BridgedChainWithMessages for Millau {}
 
 /// Export XCM messages to be relayed to Millau.
 pub type ToMillauBlobExporter =

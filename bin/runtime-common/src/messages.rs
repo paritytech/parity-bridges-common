@@ -28,7 +28,7 @@ use bp_messages::{
 	target_chain::{ProvedLaneMessages, ProvedMessages, SourceHeaderChain},
 	InboundLaneData, LaneId, Message, MessageKey, MessageNonce, MessagePayload, OutboundLaneData,
 };
-use bp_runtime::{Chain, ChainId, RawStorageProof, Size, StorageProofChecker, StorageProofError};
+use bp_runtime::{Chain, RawStorageProof, Size, StorageProofChecker, StorageProofError};
 use codec::{Decode, Encode};
 use frame_support::{traits::Get, weights::Weight, RuntimeDebug};
 use hash_db::Hasher;
@@ -37,10 +37,6 @@ use sp_std::{convert::TryFrom, fmt::Debug, marker::PhantomData, vec::Vec};
 
 /// Bidirectional message bridge.
 pub trait MessageBridge {
-	/// Identifier of this chain.
-	const THIS_CHAIN_ID: ChainId;
-	/// Identifier of the Bridged chain.
-	const BRIDGED_CHAIN_ID: ChainId;
 	/// Name of the paired messages pallet instance at the Bridged chain.
 	///
 	/// Should be the name that is used in the `construct_runtime!()` macro.
@@ -58,24 +54,10 @@ pub trait MessageBridge {
 pub trait ThisChainWithMessages: UnderlyingChainProvider {
 	/// Call origin on the chain.
 	type RuntimeOrigin;
-	/// Call type on the chain.
-	type RuntimeCall: Encode + Decode;
-
-	/// Do we accept message sent by given origin to given lane?
-	fn is_message_accepted(origin: &Self::RuntimeOrigin, lane: &LaneId) -> bool;
-
-	/// Maximal number of pending (not yet delivered) messages at This chain.
-	///
-	/// Any messages over this limit, will be rejected.
-	fn maximal_pending_messages_at_outbound_lane() -> MessageNonce;
 }
 
 /// Bridged chain that has `pallet-bridge-messages` module.
-pub trait BridgedChainWithMessages: UnderlyingChainProvider {
-	/// Returns `true` if message dispatch weight is withing expected limits. `false` means
-	/// that the message is too heavy to be sent over the bridge and shall be rejected.
-	fn verify_dispatch_weight(message_payload: &[u8]) -> bool;
-}
+pub trait BridgedChainWithMessages: UnderlyingChainProvider {}
 
 /// This chain in context of message bridge.
 pub type ThisChain<B> = <B as MessageBridge>::ThisChain;
@@ -91,8 +73,6 @@ pub type AccountIdOf<C> = bp_runtime::AccountIdOf<UnderlyingChainOf<C>>;
 pub type BalanceOf<C> = bp_runtime::BalanceOf<UnderlyingChainOf<C>>;
 /// Type of origin that is used on the chain.
 pub type OriginOf<C> = <C as ThisChainWithMessages>::RuntimeOrigin;
-/// Type of call that is used on this chain.
-pub type CallOf<C> = <C as ThisChainWithMessages>::RuntimeCall;
 
 /// Error that happens during message verification.
 #[derive(Debug, PartialEq, Eq)]
@@ -180,13 +160,6 @@ pub mod source {
 	#[derive(RuntimeDebug)]
 	pub struct FromThisChainMessageVerifier<B>(PhantomData<B>);
 
-	/// The error message returned from `LaneMessageVerifier` when outbound lane is disabled.
-	pub const MESSAGE_REJECTED_BY_OUTBOUND_LANE: &str =
-		"The outbound message lane has rejected the message.";
-	/// The error message returned from `LaneMessageVerifier` when too many pending messages at the
-	/// lane.
-	pub const TOO_MANY_PENDING_MESSAGES: &str = "Too many pending messages at the lane.";
-
 	impl<B> LaneMessageVerifier<OriginOf<ThisChain<B>>, FromThisChainMessagePayload>
 		for FromThisChainMessageVerifier<B>
 	where
@@ -199,24 +172,16 @@ pub mod source {
 		type Error = &'static str;
 
 		fn verify_message(
-			submitter: &OriginOf<ThisChain<B>>,
-			lane: &LaneId,
-			lane_outbound_data: &OutboundLaneData,
+			_submitter: &OriginOf<ThisChain<B>>,
+			_lane: &LaneId,
+			_lane_outbound_data: &OutboundLaneData,
 			_payload: &FromThisChainMessagePayload,
 		) -> Result<(), Self::Error> {
-			// reject message if lane is blocked
-			if !ThisChain::<B>::is_message_accepted(submitter, lane) {
-				return Err(MESSAGE_REJECTED_BY_OUTBOUND_LANE)
-			}
-
-			// reject message if there are too many pending messages at this lane
-			let max_pending_messages = ThisChain::<B>::maximal_pending_messages_at_outbound_lane();
-			let pending_messages = lane_outbound_data
-				.latest_generated_nonce
-				.saturating_sub(lane_outbound_data.latest_received_nonce);
-			if pending_messages > max_pending_messages {
-				return Err(TOO_MANY_PENDING_MESSAGES)
-			}
+			// IMPORTANT: any error that is returned here is fatal for the bridge, because
+			// this code is executed at the bridge hub and message sender actually lives
+			// at some sibling parachain. So we are failing **after** the message has been
+			// sent and we can't report it back to sender (unless error report mechanism is
+			// embedded into message and its dispatcher).
 
 			Ok(())
 		}
@@ -257,9 +222,15 @@ pub mod source {
 	pub fn verify_chain_message<B: MessageBridge>(
 		payload: &FromThisChainMessagePayload,
 	) -> Result<(), Error> {
-		if !BridgedChain::<B>::verify_dispatch_weight(payload) {
-			return Err(Error::InvalidMessageWeight)
-		}
+		// IMPORTANT: any error that is returned here is fatal for the bridge, because
+		// this code is executed at the bridge hub and message sender actually lives
+		// at some sibling parachain. So we are failing **after** the message has been
+		// sent and we can't report it back to sender (unless error report mechanism is
+		// embedded into message and its dispatcher).
+
+		// apart from maximal message size check (see below), we should also check the message
+		// dispatch weight here. But we assume that the bridged chain will just push the message
+		// to some queue (XCMP, UMP, DMP), so the weight is constant and fits the block.
 
 		// The maximal size of extrinsic at Substrate-based chain depends on the
 		// `frame_system::Config::MaximumBlockLength` and
@@ -512,54 +483,6 @@ mod tests {
 	use codec::Encode;
 	use sp_core::H256;
 	use sp_runtime::traits::Header as _;
-
-	fn test_lane_outbound_data() -> OutboundLaneData {
-		OutboundLaneData::default()
-	}
-
-	fn regular_outbound_message_payload() -> source::FromThisChainMessagePayload {
-		vec![42]
-	}
-
-	#[test]
-	fn message_is_rejected_when_sent_using_disabled_lane() {
-		assert_eq!(
-			source::FromThisChainMessageVerifier::<OnThisChainBridge>::verify_message(
-				&frame_system::RawOrigin::Root.into(),
-				&LaneId(*b"dsbl"),
-				&test_lane_outbound_data(),
-				&regular_outbound_message_payload(),
-			),
-			Err(source::MESSAGE_REJECTED_BY_OUTBOUND_LANE)
-		);
-	}
-
-	#[test]
-	fn message_is_rejected_when_there_are_too_many_pending_messages_at_outbound_lane() {
-		assert_eq!(
-			source::FromThisChainMessageVerifier::<OnThisChainBridge>::verify_message(
-				&frame_system::RawOrigin::Root.into(),
-				&TEST_LANE_ID,
-				&OutboundLaneData {
-					latest_received_nonce: 100,
-					latest_generated_nonce: 100 + MAXIMAL_PENDING_MESSAGES_AT_TEST_LANE + 1,
-					..Default::default()
-				},
-				&regular_outbound_message_payload(),
-			),
-			Err(source::TOO_MANY_PENDING_MESSAGES)
-		);
-	}
-
-	#[test]
-	fn verify_chain_message_rejects_message_with_too_small_declared_weight() {
-		assert!(source::verify_chain_message::<OnThisChainBridge>(&vec![
-			42;
-			BRIDGED_CHAIN_MIN_EXTRINSIC_WEIGHT -
-				1
-		])
-		.is_err());
-	}
 
 	#[test]
 	fn verify_chain_message_rejects_message_with_too_large_declared_weight() {
