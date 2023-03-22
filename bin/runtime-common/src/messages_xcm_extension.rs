@@ -40,7 +40,7 @@ use xcm_builder::{DispatchBlob, DispatchBlobError, HaulBlob, HaulBlobError};
 pub type XcmAsPlainPayload = sp_std::prelude::Vec<u8>;
 
 // TODO: below are just rough estimations. Other things also happen there (including hashing and so
-// on). Shall we do some benchmarking???
+// on). Shall we do some benchmarking??? TODO: add proof_size component here
 
 /// Simple weigher for incoming XCM dispatch at **bridge hubs** to use with
 /// `XcmBlobMessageDispatch`.
@@ -53,7 +53,7 @@ pub type XcmAsPlainPayload = sp_std::prelude::Vec<u8>;
 /// 1 db read and 1 db write (in its `send_upward_message` method).
 ///
 /// If message is redirected to some sibling parachain, then `XcmpQueue` is used and
-/// it roughty does 2 db reads and 2 db writes (in its `SendXcm` implementation).
+/// it roughly does 2 db reads and 2 db writes (in its `SendXcm` implementation).
 ///
 /// The difference is not that big, so let's choose maximal.
 pub struct XcmRouterWeigher<T>(PhantomData<T>);
