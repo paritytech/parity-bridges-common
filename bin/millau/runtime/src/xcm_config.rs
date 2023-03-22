@@ -335,7 +335,7 @@ mod tests {
 	fn prepare_inbound_bridge_message() -> DispatchMessage<Vec<u8>> {
 		let xcm = xcm::VersionedXcm::<RuntimeCall>::V3(vec![Instruction::Trap(42)].into());
 		let location =
-			xcm::VersionedInteriorMultiLocation::V3(X1(GlobalConsensus(ThisNetwork::get().into())));
+			xcm::VersionedInteriorMultiLocation::V3(X1(GlobalConsensus(ThisNetwork::get())));
 		// this is the `BridgeMessage` from polkadot xcm builder, but it has no constructor
 		// or public fields, so just tuple
 		let bridge_message = (location, xcm).encode();
