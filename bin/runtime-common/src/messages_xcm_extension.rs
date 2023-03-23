@@ -41,6 +41,7 @@ pub type XcmAsPlainPayload = sp_std::prelude::Vec<u8>;
 
 // TODO: below are just rough estimations. Other things also happen there (including hashing and so
 // on). Shall we do some benchmarking??? TODO: add proof_size component here
+// https://github.com/paritytech/parity-bridges-common/issues/1986
 
 /// Simple weigher for incoming XCM dispatch at **bridge hubs** to use with
 /// `XcmBlobMessageDispatch`.
