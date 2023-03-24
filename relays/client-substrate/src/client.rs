@@ -200,14 +200,9 @@ impl<C: Chain> Client<C> {
 		let number: C::BlockNumber = Zero::zero();
 		let genesis_hash_client = client.clone();
 		let genesis_hash = tokio
-			.spawn(
-				// We can't use the clippy suggestion because we have to borrow
-				// `genesis_hash_client` for &'static.
-				#[allow(clippy::redundant_async_block)]
-				async move {
-					SubstrateChainClient::<C>::block_hash(&*genesis_hash_client, Some(number)).await
-				},
-			)
+			.spawn(async move {
+				SubstrateChainClient::<C>::block_hash(&*genesis_hash_client, Some(number)).await
+			})
 			.await??;
 
 		let chain_runtime_version = params.chain_runtime_version.clone();
@@ -234,16 +229,12 @@ impl<C: Chain> Client<C> {
 		log::info!(target: "bridge", "Connecting to {} node at {}", C::NAME, uri);
 
 		let client = tokio
-			.spawn(
-				// We can't use the clippy suggestion because we have to borrow `uri` for &'static.
-				#[allow(clippy::redundant_async_block)]
-				async move {
-					RpcClientBuilder::default()
-						.max_notifs_per_subscription(MAX_SUBSCRIPTION_CAPACITY)
-						.build(&uri)
-						.await
-				},
-			)
+			.spawn(async move {
+				RpcClientBuilder::default()
+					.max_notifs_per_subscription(MAX_SUBSCRIPTION_CAPACITY)
+					.build(&uri)
+					.await
+			})
 			.await??;
 
 		Ok((Arc::new(tokio), Arc::new(client)))
