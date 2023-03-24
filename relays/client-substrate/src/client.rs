@@ -200,9 +200,14 @@ impl<C: Chain> Client<C> {
 		let number: C::BlockNumber = Zero::zero();
 		let genesis_hash_client = client.clone();
 		let genesis_hash = tokio
-			.spawn(async move {
-				SubstrateChainClient::<C>::block_hash(&*genesis_hash_client, Some(number)).await
-			})
+			.spawn(
+				// We can't use the clippy suggestion because we have to borrow
+				// `genesis_hash_client` for &'static.
+				#[allow(clippy::redundant_async_block)]
+				async move {
+					SubstrateChainClient::<C>::block_hash(&*genesis_hash_client, Some(number)).await
+				},
+			)
 			.await??;
 
 		let chain_runtime_version = params.chain_runtime_version.clone();
@@ -229,12 +234,16 @@ impl<C: Chain> Client<C> {
 		log::info!(target: "bridge", "Connecting to {} node at {}", C::NAME, uri);
 
 		let client = tokio
-			.spawn(async move {
-				RpcClientBuilder::default()
-					.max_notifs_per_subscription(MAX_SUBSCRIPTION_CAPACITY)
-					.build(&uri)
-					.await
-			})
+			.spawn(
+				// We can't use the clippy suggestion because we have to borrow `uri` for &'static.
+				#[allow(clippy::redundant_async_block)]
+				async move {
+					RpcClientBuilder::default()
+						.max_notifs_per_subscription(MAX_SUBSCRIPTION_CAPACITY)
+						.build(&uri)
+						.await
+				},
+			)
 			.await??;
 
 		Ok((Arc::new(tokio), Arc::new(client)))
@@ -739,12 +748,12 @@ impl<C: Chain> Client<C> {
 	async fn jsonrpsee_execute<MF, F, T>(&self, make_jsonrpsee_future: MF) -> Result<T>
 	where
 		MF: FnOnce(Arc<RpcClient>) -> F + Send + 'static,
-		F: Future<Output = Result<T>> + Send,
+		F: Future<Output = Result<T>> + Send + 'static,
 		T: Send + 'static,
 	{
 		let data = self.data.read().await;
 		let client = data.client.clone();
-		data.tokio.spawn(async move { make_jsonrpsee_future(client).await }).await?
+		data.tokio.spawn(make_jsonrpsee_future(client)).await?
 	}
 
 	/// Returns `true` if version guard can be started.
