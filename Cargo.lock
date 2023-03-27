@@ -1428,7 +1428,7 @@ dependencies = [
  "heck 0.4.1",
  "proc-macro2 1.0.53",
  "quote 1.0.26",
- "syn 2.0.8",
+ "syn 2.0.10",
 ]
 
 [[package]]
