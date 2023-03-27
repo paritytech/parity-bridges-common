@@ -477,7 +477,7 @@ pub fn unrewarded_relayer(
 	UnrewardedRelayer { relayer, messages: DeliveredMessages { begin, end } }
 }
 
-/// Return test extenalities to use in tests.
+/// Return test externalities to use in tests.
 pub fn new_test_ext() -> sp_io::TestExternalities {
 	let mut t = frame_system::GenesisConfig::default().build_storage::<TestRuntime>().unwrap();
 	pallet_balances::GenesisConfig::<TestRuntime> { balances: vec![(ENDOWED_ACCOUNT, 1_000_000)] }

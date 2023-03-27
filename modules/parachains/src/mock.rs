@@ -320,14 +320,14 @@ impl ChainWithGrandpa for OtherBridgedChain {
 	const AVERAGE_HEADER_SIZE_IN_JUSTIFICATION: u32 = 64;
 }
 
-/// Return test extenalities to use in tests.
+/// Return test externalities to use in tests.
 pub fn new_test_ext() -> sp_io::TestExternalities {
 	sp_io::TestExternalities::new(Default::default())
 }
 
 /// Run pallet test.
 pub fn run_test<T>(test: impl FnOnce() -> T) -> T {
-	sp_io::TestExternalities::new(Default::default()).execute_with(|| {
+	new_test_ext().execute_with(|| {
 		System::set_block_number(1);
 		System::reset_events();
 		test()

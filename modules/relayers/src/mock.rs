@@ -139,7 +139,7 @@ impl PaymentProcedure<AccountId, Balance> for TestPaymentProcedure {
 	}
 }
 
-/// Return test extenalities to use in tests.
+/// Return test externalities to use in tests.
 pub fn new_test_ext() -> sp_io::TestExternalities {
 	let t = frame_system::GenesisConfig::default().build_storage::<TestRuntime>().unwrap();
 	sp_io::TestExternalities::new(t)

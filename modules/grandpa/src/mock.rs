@@ -131,12 +131,12 @@ impl ChainWithGrandpa for TestBridgedChain {
 	const AVERAGE_HEADER_SIZE_IN_JUSTIFICATION: u32 = 64;
 }
 
-/// Return test extenalities to use in tests.
+/// Return test externalities to use in tests.
 pub fn new_test_ext() -> sp_io::TestExternalities {
 	sp_io::TestExternalities::new(Default::default())
 }
 
-/// Return test within defaul test externalities context.
+/// Return test within default test externalities context.
 pub fn run_test<T>(test: impl FnOnce() -> T) -> T {
 	new_test_ext().execute_with(test)
 }
