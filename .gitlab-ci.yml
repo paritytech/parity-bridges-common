@@ -152,6 +152,7 @@ test:
 #    RUSTFLAGS:                     "-D warnings"
   script:                          &test-script
     - time cargo fetch
+    - time cargo fetch --target wasm32-unknown-unknown
     # Enable this, when you see: "`cargo metadata` can not fail on project `Cargo.toml`"
     #- time cargo fetch --manifest-path=`cargo metadata --format-version=1 | jq --compact-output --raw-output  ".packages[] | select(.name == \"polkadot-runtime\").manifest_path"`
     #- time cargo fetch --manifest-path=`cargo metadata --format-version=1 | jq --compact-output --raw-output  ".packages[] | select(.name == \"kusama-runtime\").manifest_path"`
