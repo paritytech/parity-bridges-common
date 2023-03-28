@@ -284,7 +284,7 @@ pub mod pallet {
 		}
 	}
 
-	/// Number mandatory headers that we have accepted in the current block for free (returning
+	/// Number mandatory headers that we may accept in the current block for free (returning
 	/// `Pays::No`).
 	///
 	/// If the `FreeMandatoryHeadersRemaining` hits zero, all following mandatory headers in the
