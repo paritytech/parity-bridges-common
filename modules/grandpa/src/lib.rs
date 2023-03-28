@@ -189,7 +189,7 @@ pub mod pallet {
 			let is_authorities_change_enacted =
 				try_enact_authority_change::<T, I>(&finality_target, set_id)?;
 			let may_refund_call_fee = is_authorities_change_enacted &&
-				// if we are seeing too much mandatory headers, we don't want to refund
+				// if we have seen too many mandatory headers in this block, we don't want to refund
 				Self::free_mandatory_headers_remaining() > 0 &&
 				// if arguments out of expected bounds, we don't want to refund
 				submit_finality_proof_info_from_args::<T, I>(&finality_target, &justification)
