@@ -290,9 +290,9 @@ pub mod pallet {
 	/// If the `FreeMandatoryHeadersRemaining` hits zero, all following mandatory headers in the
 	/// current block are accepted with fee (`Pays::Yes` is returned).
 	///
-	/// The `RequestCount` is an ephemeral value that is set to `MaxFreeMandatoryHeadersPerBlock`
-	/// at each block initialization and is killed on block finalization. So it never ends up
-	/// in the storage trie.
+	/// The `FreeMandatoryHeadersRemaining` is an ephemeral value that is set to
+	/// `MaxFreeMandatoryHeadersPerBlock` at each block initialization and is killed on block
+	/// finalization. So it never ends up in the storage trie.
 	#[pallet::storage]
 	#[pallet::whitelist_storage]
 	#[pallet::getter(fn free_mandatory_headers_remaining)]
