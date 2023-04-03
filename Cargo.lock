@@ -854,7 +854,7 @@ dependencies = [
  "finality-grandpa",
  "frame-support",
  "hex",
- "hex-literal",
+ "hex-literal 0.4.0",
  "parity-scale-codec",
  "scale-info",
  "serde",
@@ -882,7 +882,7 @@ dependencies = [
  "bp-runtime",
  "frame-support",
  "hex",
- "hex-literal",
+ "hex-literal 0.4.0",
  "parity-scale-codec",
  "scale-info",
  "serde",
@@ -968,7 +968,7 @@ dependencies = [
  "bp-runtime",
  "frame-support",
  "hex",
- "hex-literal",
+ "hex-literal 0.4.0",
  "parity-scale-codec",
  "scale-info",
  "sp-runtime",
@@ -1024,7 +1024,7 @@ dependencies = [
  "frame-support",
  "frame-system",
  "hash-db",
- "hex-literal",
+ "hex-literal 0.4.0",
  "impl-trait-for-tuples",
  "num-traits",
  "parity-scale-codec",
@@ -3881,6 +3881,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7ebdb29d2ea9ed0083cd8cece49bbd968021bd99b0849edb4a9a7ee0fdf6a4e0"
 
 [[package]]
+name = "hex-literal"
+version = "0.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4bcb5b3e439c92a7191df2f9bbe733de8de55c3f86368cdb1c63f8be7e9e328e"
+
+[[package]]
 name = "hkdf"
 version = "0.12.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4524,7 +4530,7 @@ dependencies = [
  "frame-system-benchmarking",
  "frame-system-rpc-runtime-api",
  "frame-try-runtime",
- "hex-literal",
+ "hex-literal 0.3.4",
  "kusama-runtime-constants",
  "log",
  "pallet-authority-discovery",
@@ -5564,7 +5570,7 @@ dependencies = [
  "frame-support",
  "frame-system",
  "frame-system-rpc-runtime-api",
- "hex-literal",
+ "hex-literal 0.4.0",
  "pallet-aura",
  "pallet-balances",
  "pallet-beefy",
@@ -8381,7 +8387,7 @@ version = "0.9.39"
 source = "git+https://github.com/paritytech/polkadot?branch=master#2bbef460d24f44aeba9d4014062bb8c631327496"
 dependencies = [
  "bitvec",
- "hex-literal",
+ "hex-literal 0.3.4",
  "parity-scale-codec",
  "polkadot-core-primitives",
  "polkadot-parachain",
@@ -8447,7 +8453,7 @@ dependencies = [
  "frame-system-benchmarking",
  "frame-system-rpc-runtime-api",
  "frame-try-runtime",
- "hex-literal",
+ "hex-literal 0.3.4",
  "log",
  "pallet-authority-discovery",
  "pallet-authorship",
@@ -8653,7 +8659,7 @@ dependencies = [
  "frame-support",
  "frame-system-rpc-runtime-api",
  "futures",
- "hex-literal",
+ "hex-literal 0.3.4",
  "kusama-runtime",
  "kvdb",
  "kvdb-rocksdb",
@@ -9799,7 +9805,7 @@ dependencies = [
  "frame-system",
  "frame-system-benchmarking",
  "frame-system-rpc-runtime-api",
- "hex-literal",
+ "hex-literal 0.4.0",
  "pallet-aura",
  "pallet-balances",
  "pallet-bridge-grandpa",
@@ -9940,7 +9946,7 @@ dependencies = [
  "frame-system-benchmarking",
  "frame-system-rpc-runtime-api",
  "frame-try-runtime",
- "hex-literal",
+ "hex-literal 0.3.4",
  "log",
  "pallet-authority-discovery",
  "pallet-authorship",
@@ -12930,7 +12936,7 @@ dependencies = [
  "frame-support",
  "futures",
  "hex",
- "hex-literal",
+ "hex-literal 0.4.0",
  "log",
  "millau-runtime",
  "num-format",
@@ -14689,7 +14695,7 @@ dependencies = [
  "frame-system-benchmarking",
  "frame-system-rpc-runtime-api",
  "frame-try-runtime",
- "hex-literal",
+ "hex-literal 0.3.4",
  "log",
  "pallet-authority-discovery",
  "pallet-authorship",
