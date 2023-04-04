@@ -32,7 +32,7 @@ use frame_support::{dispatch::Weight, CloneNoBound, EqNoBound, PartialEqNoBound}
 use pallet_bridge_messages::WeightInfoExt as MessagesPalletWeights;
 use scale_info::TypeInfo;
 use sp_runtime::SaturatedConversion;
-use xcm_builder::{DispatchBlob, HaulBlob, HaulBlobError};
+use xcm_builder::{DispatchBlob, DispatchBlobError, HaulBlob, HaulBlobError};
 
 /// Plain "XCM" payload, which we transfer through bridge
 pub type XcmAsPlainPayload = sp_std::prelude::Vec<u8>;
@@ -42,7 +42,7 @@ pub type XcmAsPlainPayload = sp_std::prelude::Vec<u8>;
 pub enum XcmBlobMessageDispatchResult {
 	InvalidPayload,
 	Dispatched,
-	NotDispatched,
+	NotDispatched(#[codec(skip)] Option<DispatchBlobError>),
 }
 
 /// [`XcmBlobMessageDispatch`] is responsible for dispatching received messages
@@ -111,7 +111,7 @@ impl<
 					"[XcmBlobMessageDispatch] DispatchBlob::dispatch_blob failed, error: {:?} - message_nonce: {:?}",
 					e, message.key.nonce
 				);
-				XcmBlobMessageDispatchResult::NotDispatched
+				XcmBlobMessageDispatchResult::NotDispatched(Some(e))
 			},
 		};
 		MessageDispatchResult { unspent_weight: Weight::zero(), dispatch_level_result }

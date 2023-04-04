@@ -353,7 +353,7 @@ mod tests {
 			FromRialtoMessageDispatch::dispatch(&AccountId::from([0u8; 32]), incoming_message);
 		assert!(matches!(
 			dispatch_result.dispatch_level_result,
-			XcmBlobMessageDispatchResult::NotDispatched,
+			XcmBlobMessageDispatchResult::NotDispatched(_),
 		));
 	}
 
@@ -367,7 +367,7 @@ mod tests {
 			FromRialtoMessageDispatch::dispatch(&AccountId::from([0u8; 32]), incoming_message);
 		assert!(matches!(
 			dispatch_result.dispatch_level_result,
-			XcmBlobMessageDispatchResult::NotDispatched,
+			XcmBlobMessageDispatchResult::NotDispatched(_),
 		));
 	}
 }
