@@ -539,7 +539,7 @@ mod tests {
 				storage_proof: vec![],
 				lane: TestLaneId::get(),
 				nonces_start: pallet_bridge_messages::InboundLanes::<TestRuntime>::get(
-					&TEST_LANE_ID,
+					TEST_LANE_ID,
 				)
 				.last_delivered_nonce() +
 					1,
