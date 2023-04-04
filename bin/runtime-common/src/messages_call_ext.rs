@@ -21,18 +21,24 @@ use bp_messages::{LaneId, MessageNonce};
 use frame_support::{dispatch::CallableCallFor, traits::IsSubType, RuntimeDebug};
 use pallet_bridge_messages::{Config, Pallet};
 use sp_runtime::transaction_validity::TransactionValidity;
+use sp_std::ops::RangeInclusive;
 
 /// Generic info about a messages delivery/confirmation proof.
 #[derive(PartialEq, RuntimeDebug)]
 pub struct BaseMessagesProofInfo {
+	/// Message lane, used by the call.
 	pub lane_id: LaneId,
-	pub best_bundled_nonce: MessageNonce,
+	/// Nonces of messages, included in the call.
+	pub bundled_range: RangeInclusive<MessageNonce>,
+	/// Nonce of the best message, stored by this chain before the call is dispatched.
 	pub best_stored_nonce: MessageNonce,
 }
 
 impl BaseMessagesProofInfo {
+	/// Returns true if `bundled_range` cannot be directly appended to the `best_stored_nonce`
+	/// or if the `bundled_range` is empty.
 	fn is_obsolete(&self) -> bool {
-		self.best_bundled_nonce <= self.best_stored_nonce
+		*self.bundled_range.start() != self.best_stored_nonce + 1 || self.bundled_range.is_empty()
 	}
 }
 
@@ -126,7 +132,9 @@ impl<
 
 			return Some(ReceiveMessagesProofInfo(BaseMessagesProofInfo {
 				lane_id: proof.lane,
-				best_bundled_nonce: proof.nonces_end,
+				// we want all messages in this range to be new for us. Otherwise transaction will
+				// be considered obsolete.
+				bundled_range: proof.nonces_start..=proof.nonces_end,
 				best_stored_nonce: inbound_lane_data.last_delivered_nonce(),
 			}))
 		}
@@ -145,7 +153,12 @@ impl<
 
 			return Some(ReceiveMessagesDeliveryProofInfo(BaseMessagesProofInfo {
 				lane_id: proof.lane,
-				best_bundled_nonce: relayers_state.last_delivered_nonce,
+				// there's a time frame between message delivery, message confirmation and reward
+				// confirmation. Because of that, we can't assume that our state has been confirmed
+				// to the bridged chain. So we are accepting any proof that brings new
+				// confirmations.
+				bundled_range: outbound_lane_data.latest_received_nonce + 1..=
+					relayers_state.last_delivered_nonce,
 				best_stored_nonce: outbound_lane_data.latest_received_nonce,
 			}))
 		}
@@ -247,8 +260,8 @@ mod tests {
 	#[test]
 	fn extension_rejects_obsolete_messages() {
 		sp_io::TestExternalities::new(Default::default()).execute_with(|| {
-			// when current best delivered is message#10 and we're trying to deliver message#5 => tx
-			// is rejected
+			// when current best delivered is message#10 and we're trying to deliver messages 8..=9
+			// => tx is rejected
 			deliver_message_10();
 			assert!(!validate_message_delivery(8, 9));
 		});
@@ -257,20 +270,40 @@ mod tests {
 	#[test]
 	fn extension_rejects_same_message() {
 		sp_io::TestExternalities::new(Default::default()).execute_with(|| {
-			// when current best delivered is message#10 and we're trying to import message#10 => tx
-			// is rejected
+			// when current best delivered is message#10 and we're trying to import messages 10..=10
+			// => tx is rejected
 			deliver_message_10();
 			assert!(!validate_message_delivery(8, 10));
 		});
 	}
 
 	#[test]
-	fn extension_accepts_new_message() {
+	fn extension_rejects_call_with_some_obsolete_messages() {
 		sp_io::TestExternalities::new(Default::default()).execute_with(|| {
-			// when current best delivered is message#10 and we're trying to deliver message#15 =>
-			// tx is accepted
+			// when current best delivered is message#10 and we're trying to deliver messages
+			// 10..=15 => tx is rejected
 			deliver_message_10();
-			assert!(validate_message_delivery(10, 15));
+			assert!(!validate_message_delivery(10, 15));
+		});
+	}
+
+	#[test]
+	fn extension_rejects_call_with_future_messages() {
+		sp_io::TestExternalities::new(Default::default()).execute_with(|| {
+			// when current best delivered is message#10 and we're trying to deliver messages
+			// 13..=15 => tx is rejected
+			deliver_message_10();
+			assert!(!validate_message_delivery(13, 15));
+		});
+	}
+
+	#[test]
+	fn extension_accepts_new_messages() {
+		sp_io::TestExternalities::new(Default::default()).execute_with(|| {
+			// when current best delivered is message#10 and we're trying to deliver message 11..=15
+			// => tx is accepted
+			deliver_message_10();
+			assert!(validate_message_delivery(11, 15));
 		});
 	}
 

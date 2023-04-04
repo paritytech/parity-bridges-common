@@ -538,7 +538,11 @@ mod tests {
 				bridged_header_hash: Default::default(),
 				storage_proof: vec![],
 				lane: TestLaneId::get(),
-				nonces_start: best_message,
+				nonces_start: pallet_bridge_messages::InboundLanes::<TestRuntime>::get(
+					&TEST_LANE_ID,
+				)
+				.last_delivered_nonce() +
+					1,
 				nonces_end: best_message,
 			},
 			messages_count: 1,
@@ -629,7 +633,7 @@ mod tests {
 				MessagesCallInfo::ReceiveMessagesProof(ReceiveMessagesProofInfo(
 					BaseMessagesProofInfo {
 						lane_id: TEST_LANE_ID,
-						best_bundled_nonce: 200,
+						bundled_range: 101..=200,
 						best_stored_nonce: 100,
 					},
 				)),
@@ -654,7 +658,7 @@ mod tests {
 				MessagesCallInfo::ReceiveMessagesDeliveryProof(ReceiveMessagesDeliveryProofInfo(
 					BaseMessagesProofInfo {
 						lane_id: TEST_LANE_ID,
-						best_bundled_nonce: 200,
+						bundled_range: 101..=200,
 						best_stored_nonce: 100,
 					},
 				)),
@@ -674,7 +678,7 @@ mod tests {
 				MessagesCallInfo::ReceiveMessagesProof(ReceiveMessagesProofInfo(
 					BaseMessagesProofInfo {
 						lane_id: TEST_LANE_ID,
-						best_bundled_nonce: 200,
+						bundled_range: 101..=200,
 						best_stored_nonce: 100,
 					},
 				)),
@@ -694,7 +698,7 @@ mod tests {
 				MessagesCallInfo::ReceiveMessagesDeliveryProof(ReceiveMessagesDeliveryProofInfo(
 					BaseMessagesProofInfo {
 						lane_id: TEST_LANE_ID,
-						best_bundled_nonce: 200,
+						bundled_range: 101..=200,
 						best_stored_nonce: 100,
 					},
 				)),
@@ -708,7 +712,7 @@ mod tests {
 			call_info: CallInfo::Msgs(MessagesCallInfo::ReceiveMessagesProof(
 				ReceiveMessagesProofInfo(BaseMessagesProofInfo {
 					lane_id: TEST_LANE_ID,
-					best_bundled_nonce: 200,
+					bundled_range: 101..=200,
 					best_stored_nonce: 100,
 				}),
 			)),
@@ -721,7 +725,7 @@ mod tests {
 			call_info: CallInfo::Msgs(MessagesCallInfo::ReceiveMessagesDeliveryProof(
 				ReceiveMessagesDeliveryProofInfo(BaseMessagesProofInfo {
 					lane_id: TEST_LANE_ID,
-					best_bundled_nonce: 200,
+					bundled_range: 101..=200,
 					best_stored_nonce: 100,
 				}),
 			)),
