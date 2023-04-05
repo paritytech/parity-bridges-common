@@ -217,7 +217,7 @@ impl pallet_bridge_messages::Config for TestRuntime {
 	type WeightInfo = pallet_bridge_messages::weights::BridgeWeight<TestRuntime>;
 	type ActiveOutboundLanes = ActiveOutboundLanes;
 	type MaxUnrewardedRelayerEntriesAtInboundLane = ConstU64<16>;
-	type MaxUnconfirmedMessagesAtInboundLane = ConstU64<16>;
+	type MaxUnconfirmedMessagesAtInboundLane = ConstU64<1_000_000>;
 
 	type MaximalOutboundPayloadSize = FromThisChainMaximalOutboundPayloadSize<OnThisChainBridge>;
 	type OutboundPayload = FromThisChainMessagePayload;
