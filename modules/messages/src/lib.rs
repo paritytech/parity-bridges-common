@@ -66,7 +66,7 @@ use bp_messages::{
 use bp_runtime::{BasicOperatingMode, ChainId, OwnedBridgeModule, Size};
 use codec::{Decode, Encode, MaxEncodedLen};
 use frame_support::{dispatch::PostDispatchInfo, ensure, fail, traits::Get};
-use sp_runtime::traits::UniqueSaturatedFrom;
+use sp_runtime::{traits::UniqueSaturatedFrom, SaturatedConversion};
 use sp_std::{cell::RefCell, marker::PhantomData, prelude::*};
 
 mod inbound_lane;
@@ -814,8 +814,11 @@ impl<T: Config<I>, I: 'static> RuntimeInboundLaneStorage<T, I> {
 	pub fn extra_proof_size_bytes(&self) -> u64 {
 		let max_encoded_len = StoredInboundLaneData::<T, I>::max_encoded_len();
 		let relayers_count = self.data().relayers.len();
+		let messages_count = self.data().relayers.iter().fold(0usize, |sum, relayer| {
+			sum.saturating_add(relayer.messages.total_messages().saturated_into::<usize>())
+		});
 		let actual_encoded_len =
-			InboundLaneData::<T::InboundRelayer>::encoded_size_hint(relayers_count)
+			InboundLaneData::<T::InboundRelayer>::encoded_size_hint(relayers_count, messages_count)
 				.unwrap_or(usize::MAX);
 		max_encoded_len.saturating_sub(actual_encoded_len) as _
 	}
@@ -1003,7 +1006,7 @@ mod tests {
 					last_confirmed_nonce: 1,
 					relayers: vec![UnrewardedRelayer {
 						relayer: 0,
-						messages: DeliveredMessages::new(1),
+						messages: DeliveredMessages::new(1, true),
 					}]
 					.into_iter()
 					.collect(),
@@ -1023,7 +1026,7 @@ mod tests {
 				phase: Phase::Initialization,
 				event: TestEvent::Messages(Event::MessagesDelivered {
 					lane_id: TEST_LANE_ID,
-					messages: DeliveredMessages::new(1),
+					messages: DeliveredMessages::new(1, true),
 				}),
 				topics: vec![],
 			}],
@@ -1651,7 +1654,11 @@ mod tests {
 					relayers: vec![
 						UnrewardedRelayer {
 							relayer: 42,
-							messages: DeliveredMessages { begin: 0, end: 100 }
+							messages: DeliveredMessages {
+								begin: 0,
+								end: 100,
+								dispatch_results: FromIterator::from_iter(vec![true; 100])
+							}
 						};
 						max_entries
 					]
@@ -1680,7 +1687,11 @@ mod tests {
 					relayers: vec![
 						UnrewardedRelayer {
 							relayer: 42,
-							messages: DeliveredMessages { begin: 0, end: 100 }
+							messages: DeliveredMessages {
+								begin: 0,
+								end: 100,
+								dispatch_results: FromIterator::from_iter(vec![true; 100])
+							}
 						};
 						max_entries - 1
 					]
@@ -1717,8 +1728,8 @@ mod tests {
 
 			// messages 1+2 are confirmed in 1 tx, message 3 in a separate tx
 			// dispatch of message 2 has failed
-			let mut delivered_messages_1_and_2 = DeliveredMessages::new(1);
-			delivered_messages_1_and_2.note_dispatched_message();
+			let mut delivered_messages_1_and_2 = DeliveredMessages::new(1, true);
+			delivered_messages_1_and_2.note_dispatched_message(true);
 			let messages_1_and_2_proof = Ok((
 				TEST_LANE_ID,
 				InboundLaneData {
@@ -1731,7 +1742,7 @@ mod tests {
 					.collect(),
 				},
 			));
-			let delivered_message_3 = DeliveredMessages::new(3);
+			let delivered_message_3 = DeliveredMessages::new(3, true);
 			let messages_3_proof = Ok((
 				TEST_LANE_ID,
 				InboundLaneData {
@@ -2022,7 +2033,7 @@ mod tests {
 				last_confirmed_nonce: 1,
 				relayers: vec![UnrewardedRelayer {
 					relayer: 0,
-					messages: DeliveredMessages::new(1),
+					messages: DeliveredMessages::new(1, true),
 				}]
 				.into_iter()
 				.collect(),
@@ -2083,7 +2094,14 @@ mod tests {
 	#[test]
 	fn inbound_storage_extra_proof_size_bytes_works() {
 		fn relayer_entry() -> UnrewardedRelayer<TestRelayer> {
-			UnrewardedRelayer { relayer: 42u64, messages: DeliveredMessages { begin: 0, end: 100 } }
+			UnrewardedRelayer {
+				relayer: 42u64,
+				messages: DeliveredMessages {
+					begin: 0,
+					end: 100,
+					dispatch_results: FromIterator::from_iter(vec![true; 100]),
+				},
+			}
 		}
 
 		fn storage(relayer_entries: usize) -> RuntimeInboundLaneStorage<TestRuntime, ()> {

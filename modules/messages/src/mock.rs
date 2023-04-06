@@ -19,6 +19,7 @@
 
 use crate::Config;
 
+use bitvec::prelude::*;
 use bp_messages::{
 	calc_relayers_rewards,
 	source_chain::{DeliveryConfirmationPayments, LaneMessageVerifier, TargetHeaderChain},
@@ -462,7 +463,7 @@ pub const fn message_payload(id: u64, declared_weight: u64) -> TestPayload {
 pub const fn dispatch_result(unspent_weight: u64) -> MessageDispatchResult<TestDispatchError> {
 	MessageDispatchResult {
 		unspent_weight: Weight::from_parts(unspent_weight, 0),
-		dispatch_result: Err(()),
+		dispatch_result: Ok(()),
 	}
 }
 
@@ -472,7 +473,18 @@ pub fn unrewarded_relayer(
 	end: MessageNonce,
 	relayer: TestRelayer,
 ) -> UnrewardedRelayer<TestRelayer> {
-	UnrewardedRelayer { relayer, messages: DeliveredMessages { begin, end } }
+	UnrewardedRelayer {
+		relayer,
+		messages: DeliveredMessages {
+			begin,
+			end,
+			dispatch_results: if end >= begin {
+				bitvec![u8, Msb0; 1; (end - begin + 1) as _]
+			} else {
+				Default::default()
+			},
+		},
+	}
 }
 
 /// Return test externalities to use in tests.
