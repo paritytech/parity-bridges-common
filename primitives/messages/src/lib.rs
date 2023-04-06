@@ -157,24 +157,69 @@ impl<RelayerId> Default for InboundLaneData<RelayerId> {
 }
 
 impl<RelayerId> InboundLaneData<RelayerId> {
+	fn dispatch_results_encoded_size_hint(
+		relayers_entries: usize,
+		message_count: usize,
+	) -> Option<usize>
+	where
+		RelayerId: MaxEncodedLen,
+	{
+		// The worst-case scenario for the bitvecs size is the one in which we have as many relayer
+		// entries as possible taking an extra 1 byte slot with just 1 bit of actual information.
+		// For example:
+		// 11111111 1-------
+		// 11111111 1-------
+		// 1-------
+		// 1-------
+
+		// If there are less msgs than relayer entries, in the worst case, each dispatch result
+		// belongs to a different relayer slot. This means 1 byte for the len prefix and 1 byte
+		// for the actual data.
+		if relayers_entries >= message_count {
+			return relayers_entries.checked_add(message_count)
+		}
+
+		let msgs_per_byte = 8;
+		// At the begining each relayer slot has 1 message, using 1 byte
+		let mut num_result_bytes = relayers_entries;
+		// Then we add batches of 8 messages to some relayer slot until there are no more messages.
+		// Each batch takes up 1 more byte.
+		num_result_bytes =
+			num_result_bytes.checked_add((message_count - relayers_entries) / msgs_per_byte)?;
+
+		// The len is stored in a `Compact<u32>`. `Compact<u32>` can store a max value of
+		// 63 on 1 byte, 16383 on 2 bytes, etc.
+		let max_len_per_first_byte = 0b0011_1111;
+		// At the begining each relayer slot uses 1 byte for the len prefix
+		// (each relayer slot contains 1 message)
+		let mut num_len_bytes = relayers_entries;
+		// Then we add batches of 63 messages to as many relayer slots as possible, requiring 2
+		// bytes for the `len` prefix. It's hard to believe that we'll need more than 2 bytes
+		// (more than 16383 messages in 1 relayer slot).
+		num_len_bytes = num_len_bytes.checked_add(sp_std::cmp::min(
+			(message_count - relayers_entries) / max_len_per_first_byte,
+			relayers_entries,
+		))?;
+
+		num_result_bytes.checked_add(num_len_bytes)
+	}
+
 	/// Returns approximate size of the struct, given a number of entries in the `relayers` set and
 	/// size of each entry.
 	///
 	/// Returns `None` if size overflows `usize` limits.
-	pub fn encoded_size_hint(relayers_entries: usize, messages_count: usize) -> Option<usize>
+	pub fn encoded_size_hint(relayers_entries: usize, message_count: usize) -> Option<usize>
 	where
 		RelayerId: MaxEncodedLen,
 	{
 		let message_nonce_size = MessageNonce::max_encoded_len();
 		let relayer_id_encoded_size = RelayerId::max_encoded_len();
 		let relayers_entry_size = relayer_id_encoded_size.checked_add(2 * message_nonce_size)?;
-		let relayers_size = relayers_entries.checked_mul(relayers_entry_size)?;
-		let dispatch_results_per_byte = 8;
-		let dispatch_result_size =
-			sp_std::cmp::max(relayers_entries, messages_count / dispatch_results_per_byte);
-		relayers_size
-			.checked_add(message_nonce_size)
-			.and_then(|result| result.checked_add(dispatch_result_size))
+		let relayers_size = relayers_entries.checked_mul(relayers_entry_size)?.checked_add(
+			Self::dispatch_results_encoded_size_hint(relayers_entries, message_count)?,
+		)?;
+
+		relayers_size.checked_add(message_nonce_size)
 	}
 
 	/// Returns the approximate size of the struct as u32, given a number of entries in the
@@ -325,14 +370,9 @@ impl DeliveredMessages {
 	/// Dispatch result flag must be interpreted using the knowledge of dispatch mechanism
 	/// at the target chain. See `dispatch_result` field of the
 	/// `bp_runtime::messages::MessageDispatchResult` structure for more information.
-	///
-	/// Panics if message nonce is not in the `begin..=end` range. Typically you'll first
-	/// check if message is within the range by calling `contains_message`.
-	pub fn message_dispatch_result(&self, nonce: MessageNonce) -> bool {
-		const INVALID_NONCE: &str = "Invalid nonce used to index dispatch_results";
-
-		let index = nonce.checked_sub(self.begin).expect(INVALID_NONCE) as usize;
-		*self.dispatch_results.get(index).expect(INVALID_NONCE)
+	pub fn message_dispatch_result(&self, nonce: MessageNonce) -> Option<bool> {
+		let index = nonce.checked_sub(self.begin)? as usize;
+		self.dispatch_results.get(index).map(|bit| *bit)
 	}
 }
 
@@ -508,7 +548,7 @@ mod tests {
 		assert!(delivered_messages.contains_message(150));
 		assert!(!delivered_messages.contains_message(151));
 
-		assert!(delivered_messages.message_dispatch_result(125));
+		assert_eq!(delivered_messages.message_dispatch_result(125), Some(true));
 	}
 
 	#[test]

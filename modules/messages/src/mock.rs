@@ -478,11 +478,7 @@ pub fn unrewarded_relayer(
 		messages: DeliveredMessages {
 			begin,
 			end,
-			dispatch_results: if end >= begin {
-				bitvec![u8, Msb0; 1; (end - begin + 1) as _]
-			} else {
-				Default::default()
-			},
+			dispatch_results: bitvec![u8, Msb0; 1; (end + 1).saturating_sub(begin) as _],
 		},
 	}
 }

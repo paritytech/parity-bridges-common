@@ -195,22 +195,19 @@ fn extract_dispatch_results<RelayerId>(
 	// confirmations at all
 	let mut received_dispatch_result =
 		BitVec::with_capacity((latest_received_nonce - prev_latest_received_nonce + 1) as _);
-	let mut last_entry_end: Option<MessageNonce> = None;
+	let mut expected_entry_begin = relayers.front().map(|entry| entry.messages.begin);
 	for entry in relayers {
 		// unrewarded relayer entry must have at least 1 unconfirmed message
 		// (guaranteed by the `InboundLane::receive_message()`)
-		if entry.messages.end < entry.messages.begin {
+		if entry.messages.total_messages() == 0 {
 			return Err(ReceivalConfirmationResult::EmptyUnrewardedRelayerEntry)
 		}
 		// every entry must confirm range of messages that follows previous entry range
 		// (guaranteed by the `InboundLane::receive_message()`)
-		if let Some(last_entry_end) = last_entry_end {
-			let expected_entry_begin = last_entry_end.checked_add(1);
-			if expected_entry_begin != Some(entry.messages.begin) {
-				return Err(ReceivalConfirmationResult::NonConsecutiveUnrewardedRelayerEntries)
-			}
+		if expected_entry_begin != Some(entry.messages.begin) {
+			return Err(ReceivalConfirmationResult::NonConsecutiveUnrewardedRelayerEntries)
 		}
-		last_entry_end = Some(entry.messages.end);
+		expected_entry_begin = entry.messages.end.checked_add(1);
 		// entry can't confirm messages larger than `inbound_lane_data.latest_received_nonce()`
 		// (guaranteed by the `InboundLane::receive_message()`)
 		if entry.messages.end > latest_received_nonce {
@@ -221,8 +218,7 @@ fn extract_dispatch_results<RelayerId>(
 		}
 		// entry must have single dispatch result for every message
 		// (guaranteed by the `InboundLane::receive_message()`)
-		if entry.messages.dispatch_results.len() as MessageNonce !=
-			entry.messages.end - entry.messages.begin + 1
+		if entry.messages.dispatch_results.len() as MessageNonce != entry.messages.total_messages()
 		{
 			return Err(ReceivalConfirmationResult::InvalidNumberOfDispatchResults)
 		}
@@ -231,9 +227,7 @@ fn extract_dispatch_results<RelayerId>(
 		// => let's check if it brings new confirmations
 		let new_messages_begin =
 			sp_std::cmp::max(entry.messages.begin, prev_latest_received_nonce + 1);
-		let new_messages_end = sp_std::cmp::min(entry.messages.end, latest_received_nonce);
-		let new_messages_range = new_messages_begin..=new_messages_end;
-		if new_messages_range.is_empty() {
+		if entry.messages.end < new_messages_begin {
 			continue
 		}
 
