@@ -23,16 +23,13 @@
 
 #![cfg(test)]
 
-use crate::{
-	messages::{
-		source::{
-			FromThisChainMaximalOutboundPayloadSize, FromThisChainMessagePayload,
-			FromThisChainMessageVerifier, TargetHeaderChainAdapter,
-		},
-		target::{FromBridgedChainMessagePayload, SourceHeaderChainAdapter},
-		BridgedChainWithMessages, HashOf, MessageBridge, ThisChainWithMessages,
+use crate::messages::{
+	source::{
+		FromThisChainMaximalOutboundPayloadSize, FromThisChainMessagePayload,
+		FromThisChainMessageVerifier, TargetHeaderChainAdapter,
 	},
-	relayer_slashing::DeliveryStakeAndSlashFromBalance,
+	target::{FromBridgedChainMessagePayload, SourceHeaderChainAdapter},
+	BridgedChainWithMessages, HashOf, MessageBridge, ThisChainWithMessages,
 };
 
 use bp_header_chain::{ChainWithGrandpa, HeaderChain};
@@ -92,8 +89,14 @@ pub type TestPaymentProcedure = PayRewardFromAccount<Balances, ThisChainAccountI
 /// Stake that we are using in tests.
 pub type TestStake = ConstU64<5_000>;
 /// Stake and slash mechanism to use in tests.
-pub type TestDeliveryStakeAndSlash =
-	DeliveryStakeAndSlashFromBalance<ThisChainAccountId, Balances, TestRuntime, TestStake>;
+pub type TestStakeAndSlash = pallet_bridge_relayers::StakeAndSlashNamed<
+	ThisChainAccountId,
+	ThisChainBlockNumber,
+	Balances,
+	ReserveId,
+	TestStake,
+	ConstU32<8>,
+>;
 
 /// Message lane used in tests.
 pub const TEST_LANE_ID: LaneId = LaneId([0, 0, 0, 0]);
@@ -140,6 +143,7 @@ parameter_types! {
 	pub MaximumMultiplier: Multiplier = sp_runtime::traits::Bounded::max_value();
 	pub const MaxUnrewardedRelayerEntriesAtInboundLane: MessageNonce = 16;
 	pub const MaxUnconfirmedMessagesAtInboundLane: MessageNonce = 1_000;
+	pub const ReserveId: [u8; 8] = *b"brdgrlrs";
 }
 
 impl frame_system::Config for TestRuntime {
@@ -257,6 +261,7 @@ impl pallet_bridge_relayers::Config for TestRuntime {
 	type RuntimeEvent = RuntimeEvent;
 	type Reward = ThisChainBalance;
 	type PaymentProcedure = TestPaymentProcedure;
+	type StakeAndSlash = TestStakeAndSlash;
 	type WeightInfo = ();
 }
 

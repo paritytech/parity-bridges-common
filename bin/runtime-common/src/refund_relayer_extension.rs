@@ -19,11 +19,8 @@
 //! with calls that are: delivering new messsage and all necessary underlying headers
 //! (parachain or relay chain).
 
-use crate::{
-	messages_call_ext::{
-		CallHelper as MessagesCallHelper, CallInfo as MessagesCallInfo, MessagesCallSubType,
-	},
-	relayer_slashing::DeliveryStakeAndSlash,
+use crate::messages_call_ext::{
+	CallHelper as MessagesCallHelper, CallInfo as MessagesCallInfo, MessagesCallSubType,
 };
 use bp_messages::LaneId;
 use bp_relayers::{RewardsAccountOwner, RewardsAccountParams};
@@ -50,8 +47,7 @@ use scale_info::TypeInfo;
 use sp_runtime::{
 	traits::{DispatchInfoOf, Get, PostDispatchInfoOf, SignedExtension, Zero},
 	transaction_validity::{
-		InvalidTransaction, TransactionPriority, TransactionValidity, TransactionValidityError,
-		ValidTransactionBuilder,
+		TransactionPriority, TransactionValidity, TransactionValidityError, ValidTransactionBuilder,
 	},
 	DispatchResult, FixedPointOperand,
 };
@@ -203,7 +199,7 @@ enum RelayerAccountAction<AccountId, Reward> {
 	/// Do nothing with relayer account.
 	None,
 	/// Reward the relayer.
-	Reward(bool, AccountId, RewardsAccountParams, Reward),
+	Reward(AccountId, RewardsAccountParams, Reward),
 	/// Slash the relayer.
 	Slash(AccountId, RewardsAccountParams),
 }
@@ -226,8 +222,8 @@ enum RelayerAccountAction<AccountId, Reward> {
 	RuntimeDebugNoBound,
 	TypeInfo,
 )]
-#[scale_info(skip_type_params(Runtime, Para, Msgs, Refund, Priority, Stake, Id))]
-pub struct RefundBridgedParachainMessages<Runtime, Para, Msgs, Refund, Priority, Stake, Id>(
+#[scale_info(skip_type_params(Runtime, Para, Msgs, Refund, Priority, Id))]
+pub struct RefundBridgedParachainMessages<Runtime, Para, Msgs, Refund, Priority, Id>(
 	PhantomData<(
 		// runtime with `frame-utility`, `pallet-bridge-grandpa`, `pallet-bridge-parachains`,
 		// `pallet=-bridge-messages` and `pallet-bridge-relayers` pallets deployed
@@ -244,16 +240,13 @@ pub struct RefundBridgedParachainMessages<Runtime, Para, Msgs, Refund, Priority,
 		// getter for per-message `TransactionPriority` boost that we give to message
 		// delivery transactions
 		Priority,
-		// implementation of the `DeliveryStakeAndSlash` trait, that is used as a guarantee that
-		// the provided message delivery transaction is correct
-		Stake,
 		// the runtime-unique identifier of this signed extension
 		Id,
 	)>,
 );
 
-impl<Runtime, Para, Msgs, Refund, Priority, Stake, Id>
-	RefundBridgedParachainMessages<Runtime, Para, Msgs, Refund, Priority, Stake, Id>
+impl<Runtime, Para, Msgs, Refund, Priority, Id>
+	RefundBridgedParachainMessages<Runtime, Para, Msgs, Refund, Priority, Id>
 where
 	Self: 'static + Send + Sync,
 	Runtime: UtilityConfig<RuntimeCall = CallOf<Runtime>>
@@ -265,7 +258,6 @@ where
 	Msgs: RefundableMessagesLaneId,
 	Refund: RefundCalculator<Balance = Runtime::Reward>,
 	Priority: Get<TransactionPriority>,
-	Stake: DeliveryStakeAndSlash<AccountIdOf<Runtime>>,
 	Id: StaticStrProvider,
 	CallOf<Runtime>: Dispatchable<Info = DispatchInfo, PostInfo = PostDispatchInfo>
 		+ IsSubType<CallableCallFor<UtilityPallet<Runtime>, Runtime>>
@@ -417,8 +409,7 @@ where
 		// Check if the `ReceiveMessagesProof` call delivered at least some of the messages that
 		// it contained. If this happens, we consider the transaction "helpful" and refund it.
 		let msgs_call_info = call_info.messages_call_info();
-		if !MessagesCallHelper::<Runtime, Msgs::Instance>::was_partially_successful(msgs_call_info)
-		{
+		if !MessagesCallHelper::<Runtime, Msgs::Instance>::was_successful(msgs_call_info) {
 			log::trace!(
 				target: "runtime::bridge",
 				"{} from parachain {} via {:?}: relayer {:?} has submitted invalid messages call",
@@ -447,17 +438,12 @@ where
 		let refund = Refund::compute_refund(info, &post_info, post_info_len, tip);
 
 		// we can finally reward relayer
-		RelayerAccountAction::Reward(
-			is_message_delivery_call,
-			relayer,
-			reward_account_params,
-			refund,
-		)
+		RelayerAccountAction::Reward(relayer, reward_account_params, refund)
 	}
 }
 
-impl<Runtime, Para, Msgs, Refund, Priority, Stake, Id> SignedExtension
-	for RefundBridgedParachainMessages<Runtime, Para, Msgs, Refund, Priority, Stake, Id>
+impl<Runtime, Para, Msgs, Refund, Priority, Id> SignedExtension
+	for RefundBridgedParachainMessages<Runtime, Para, Msgs, Refund, Priority, Id>
 where
 	Self: 'static + Send + Sync,
 	Runtime: UtilityConfig<RuntimeCall = CallOf<Runtime>>
@@ -469,7 +455,6 @@ where
 	Msgs: RefundableMessagesLaneId,
 	Refund: RefundCalculator<Balance = Runtime::Reward>,
 	Priority: Get<TransactionPriority>,
-	Stake: DeliveryStakeAndSlash<AccountIdOf<Runtime>>,
 	Id: StaticStrProvider,
 	CallOf<Runtime>: Dispatchable<Info = DispatchInfo, PostInfo = PostDispatchInfo>
 		+ IsSubType<CallableCallFor<UtilityPallet<Runtime>, Runtime>>
@@ -502,41 +487,33 @@ where
 		let parsed_call = self.parse_and_check_for_obsolete_call(call)?;
 
 		// the following code just plays with transaction priority and never returns an error
-		let mut valid_transaction = ValidTransactionBuilder::default();
-		if let Some(parsed_call) = parsed_call {
-			// we give delivery transactions some boost, that depends on number of messages inside
-			let messages_call_info = parsed_call.messages_call_info();
-			if let MessagesCallInfo::ReceiveMessagesProof(_) = messages_call_info {
-				// the relayer needs to stake some balance, which serves as a guraantee that he's
-				// not cheating and the delivery tranasction (which we're going to prioritize for
-				// free) actually delivers messages
-				// => let's check that he has enough balance here and do actual reserve from
-				// `pre_dispatch`
-				if !Stake::can_reserve(who) {
-					log::trace!(
-						target: "runtime::bridge",
-						"{} from parachain {} via {:?}: relayer {:?} has no enough free balance for the stake",
-						Self::IDENTIFIER,
-						Para::Id::get(),
-						Msgs::Id::get(),
-						who,
-					);
 
-					return Err(InvalidTransaction::Payment.into())
-				}
+		// we only boost priority of message delivery transactions
+		let parsed_call = match parsed_call {
+			Some(parsed_call) if parsed_call.is_message_delivery_call() => parsed_call,
+			_ => return Ok(Default::default()),
+		};
 
-				// compute total number of messages in transaction
-				let bundled_messages = messages_call_info.bundled_messages();
-
-				// a quick check to avoid invalid high-priority transactions
-				if bundled_messages <= Runtime::MaxUnconfirmedMessagesAtInboundLane::get() {
-					let priority_boost = crate::priority_calculator::compute_priority_boost::<
-						Priority,
-					>(bundled_messages);
-					valid_transaction = valid_transaction.priority(priority_boost);
-				}
-			}
+		// we only boost priority if relayer has staked required balance
+		if !RelayersPallet::<Runtime>::is_registration_active(who) {
+			return Ok(Default::default())
 		}
+
+		// compute priority boost
+		let mut valid_transaction = ValidTransactionBuilder::default();
+
+		// compute total number of messages in transaction
+		let bundled_messages = parsed_call.messages_call_info().bundled_messages();
+
+		// a quick check to avoid invalid high-priority transactions
+		if bundled_messages > Runtime::MaxUnconfirmedMessagesAtInboundLane::get() {
+			return Ok(Default::default())
+		}
+
+		// finally - compute priority boost
+		let priority_boost =
+			crate::priority_calculator::compute_priority_boost::<Priority>(bundled_messages);
+		valid_transaction = valid_transaction.priority(priority_boost);
 
 		valid_transaction.build()
 	}
@@ -550,28 +527,6 @@ where
 	) -> Result<Self::Pre, TransactionValidityError> {
 		// this is a relevant piece of `validate` that we need here (in `pre_dispatch`)
 		let parsed_call = self.parse_and_check_for_obsolete_call(call)?;
-
-		// the relayer needs to stake some balance, which serves as a guraantee that he's
-		// not cheating and the delivery tranasction (which we're going to prioritize for
-		// free) actually delivers messages
-		// => let's check that he has enough balance here and do actual reserve from `pre_dispatch`
-		if let Some(ref parsed_call) = parsed_call {
-			if parsed_call.is_message_delivery_call() {
-				if let Err(e) = Stake::reserve(who) {
-					log::trace!(
-						target: "runtime::bridge",
-						"{} from parachain {} via {:?}: failed to reserve stake of relayer {:?}: {:?}",
-						Self::IDENTIFIER,
-						Para::Id::get(),
-						Msgs::Id::get(),
-						who,
-						e,
-					);
-
-					return Err(InvalidTransaction::Payment.into())
-				}
-			}
-		}
 
 		Ok(parsed_call.map(|call_info| {
 			log::trace!(
@@ -597,11 +552,7 @@ where
 
 		match call_result {
 			RelayerAccountAction::None => (),
-			RelayerAccountAction::Reward(need_unreserve, relayer, reward_account, reward) => {
-				if need_unreserve {
-					Stake::unreserve(&relayer);
-				}
-
+			RelayerAccountAction::Reward(relayer, reward_account, reward) => {
 				RelayersPallet::<Runtime>::register_relayer_reward(
 					reward_account,
 					&relayer,
@@ -618,9 +569,8 @@ where
 					relayer,
 				);
 			},
-			RelayerAccountAction::Slash(relayer, slash_account) => {
-				Stake::repatriate_reserved(&relayer, slash_account);
-			},
+			RelayerAccountAction::Slash(relayer, slash_account) =>
+				RelayersPallet::<Runtime>::slash_and_deregister(&relayer, slash_account),
 		}
 
 		Ok(())
@@ -681,7 +631,6 @@ mod tests {
 		RefundableMessagesLane<(), TestLaneId>,
 		ActualFeeRefund<TestRuntime>,
 		ConstU64<1>,
-		TestDeliveryStakeAndSlash,
 		StrTestExtension,
 	>;
 
@@ -1052,23 +1001,20 @@ mod tests {
 	}
 
 	#[test]
-	fn validate_rejects_message_delivery_transacion_if_relayer_cant_stake() {
+	fn validate_doesnt_boost_transaction_priority_if_relayer_is_not_registered() {
 		run_test(|| {
 			initialize_environment(100, 100, 100);
 			Balances::set_balance(&relayer_account_at_this_chain(), ExistentialDeposit::get());
 
 			// message delivery is failing
-			assert_eq!(
-				run_validate(message_delivery_call(200)),
-				InvalidTransaction::Payment.into(),
-			);
+			assert_eq!(run_validate(message_delivery_call(200)), Ok(Default::default()),);
 			assert_eq!(
 				run_validate(parachain_finality_and_delivery_batch_call(200, 200)),
-				InvalidTransaction::Payment.into(),
+				Ok(Default::default()),
 			);
 			assert_eq!(
 				run_validate(all_finality_and_delivery_batch_call(200, 200, 200)),
-				InvalidTransaction::Payment.into(),
+				Ok(Default::default()),
 			);
 			// message confirmation validation is passing
 			assert_eq!(
@@ -1095,6 +1041,9 @@ mod tests {
 		run_test(|| {
 			initialize_environment(100, 100, 100);
 
+			BridgeRelayers::register(RuntimeOrigin::signed(relayer_account_at_this_chain()), 1000)
+				.unwrap();
+
 			let priority_of_100_messages_delivery =
 				run_validate(message_delivery_call(200)).unwrap().priority;
 			let priority_of_200_messages_delivery =
@@ -1120,7 +1069,10 @@ mod tests {
 	#[test]
 	fn validate_does_not_boost_priority_of_message_delivery_transactons_with_too_many_messages() {
 		run_test(|| {
-			initialize_environment(100, 100, Default::default(), 100);
+			initialize_environment(100, 100, 100);
+
+			BridgeRelayers::register(RuntimeOrigin::signed(relayer_account_at_this_chain()), 1000)
+				.unwrap();
 
 			let priority_of_max_messages_delivery = run_validate(message_delivery_call(
 				100 + MaxUnconfirmedMessagesAtInboundLane::get(),
@@ -1337,44 +1289,6 @@ mod tests {
 	}
 
 	#[test]
-	fn pre_dispatch_reserves_relayer_stake() {
-		run_test(|| {
-			let test_stake: ThisChainBalance = TestStake::get();
-			initialize_environment(100, 100, 100);
-
-			// reserve works for message delivery calls
-			run_pre_dispatch(message_delivery_call(200)).unwrap();
-			assert_eq!(Balances::reserved_balance(&relayer_account_at_this_chain()), test_stake);
-			run_pre_dispatch(parachain_finality_and_delivery_batch_call(200, 200)).unwrap();
-			assert_eq!(
-				Balances::reserved_balance(&relayer_account_at_this_chain()),
-				test_stake * 2
-			);
-			run_pre_dispatch(all_finality_and_delivery_batch_call(200, 200, 200)).unwrap();
-			assert_eq!(
-				Balances::reserved_balance(&relayer_account_at_this_chain()),
-				test_stake * 3
-			);
-			// reserve doesn't work for message confirmaion calls
-			run_pre_dispatch(message_confirmation_call(200)).unwrap();
-			assert_eq!(
-				Balances::reserved_balance(&relayer_account_at_this_chain()),
-				test_stake * 3
-			);
-			run_pre_dispatch(parachain_finality_and_confirmation_batch_call(200, 200)).unwrap();
-			assert_eq!(
-				Balances::reserved_balance(&relayer_account_at_this_chain()),
-				test_stake * 3
-			);
-			run_pre_dispatch(all_finality_and_confirmation_batch_call(200, 200, 200)).unwrap();
-			assert_eq!(
-				Balances::reserved_balance(&relayer_account_at_this_chain()),
-				test_stake * 3
-			);
-		});
-	}
-
-	#[test]
 	fn post_dispatch_ignores_unknown_transaction() {
 		run_test(|| {
 			assert_storage_noop!(run_post_dispatch(None, Ok(())));
@@ -1440,7 +1354,7 @@ mod tests {
 	#[test]
 	fn post_dispatch_ignores_transaction_that_has_not_delivered_all_messages() {
 		run_test(|| {
-			initialize_environment(200, 200, Default::default(), 150);
+			initialize_environment(200, 200, 150);
 
 			assert_storage_noop!(run_post_dispatch(Some(all_finality_pre_dispatch_data()), Ok(())));
 			assert_storage_noop!(run_post_dispatch(
@@ -1586,64 +1500,6 @@ mod tests {
 	}
 
 	#[test]
-	fn post_dispatch_unreserves_relayer_stake() {
-		run_test(|| {
-			initialize_environment(200, 200, 200);
-
-			let delivery_rewards_account_balance =
-				Balances::free_balance(&delivery_rewards_account());
-
-			let test_stake: ThisChainBalance = TestStake::get();
-			Balances::set_balance(
-				&relayer_account_at_this_chain(),
-				ExistentialDeposit::get() + test_stake,
-			);
-
-			// reserve works for message delivery calls
-			Balances::reserve(&relayer_account_at_this_chain(), test_stake).unwrap();
-			assert_eq!(Balances::reserved_balance(&relayer_account_at_this_chain()), test_stake);
-			run_post_dispatch(Some(delivery_pre_dispatch_data()), Ok(()));
-			assert_eq!(Balances::reserved_balance(&relayer_account_at_this_chain()), 0);
-
-			Balances::reserve(&relayer_account_at_this_chain(), test_stake).unwrap();
-			assert_eq!(Balances::reserved_balance(&relayer_account_at_this_chain()), test_stake);
-			run_post_dispatch(Some(parachain_finality_pre_dispatch_data()), Ok(()));
-			assert_eq!(Balances::reserved_balance(&relayer_account_at_this_chain()), 0);
-
-			Balances::reserve(&relayer_account_at_this_chain(), test_stake).unwrap();
-			assert_eq!(Balances::reserved_balance(&relayer_account_at_this_chain()), test_stake);
-			run_post_dispatch(Some(all_finality_pre_dispatch_data()), Ok(()));
-			assert_eq!(Balances::reserved_balance(&relayer_account_at_this_chain()), 0);
-
-			// reserve doesn't work for message confirmation calls
-			let confirmation_rewards_account_balance =
-				Balances::free_balance(&confirmation_rewards_account());
-
-			Balances::reserve(&relayer_account_at_this_chain(), test_stake).unwrap();
-			assert_eq!(Balances::reserved_balance(&relayer_account_at_this_chain()), test_stake);
-
-			run_post_dispatch(Some(confirmation_pre_dispatch_data()), Ok(()));
-			assert_eq!(Balances::reserved_balance(&relayer_account_at_this_chain()), test_stake);
-
-			run_post_dispatch(Some(parachain_finality_confirmation_pre_dispatch_data()), Ok(()));
-			assert_eq!(Balances::reserved_balance(&relayer_account_at_this_chain()), test_stake);
-
-			run_post_dispatch(Some(all_finality_confirmation_pre_dispatch_data()), Ok(()));
-			assert_eq!(Balances::reserved_balance(&relayer_account_at_this_chain()), test_stake);
-
-			// check that unreserve has happened, not slashing
-			assert_eq!(
-				delivery_rewards_account_balance,
-				Balances::free_balance(&delivery_rewards_account())
-			);
-			assert_eq!(
-				confirmation_rewards_account_balance,
-				Balances::free_balance(&confirmation_rewards_account())
-			);
-		});
-	}
-
-	#[test]
 	fn post_dispatch_slashing_relayer_stake() {
 		run_test(|| {
 			initialize_environment(200, 200, 100);
@@ -1657,8 +1513,9 @@ mod tests {
 				ExistentialDeposit::get() + test_stake * 10,
 			);
 
-			// reserve works for message delivery calls
-			Balances::reserve(&relayer_account_at_this_chain(), test_stake).unwrap();
+			// slashing works for message delivery calls
+			BridgeRelayers::register(RuntimeOrigin::signed(relayer_account_at_this_chain()), 1000)
+				.unwrap();
 			assert_eq!(Balances::reserved_balance(&relayer_account_at_this_chain()), test_stake);
 			run_post_dispatch(Some(delivery_pre_dispatch_data()), Ok(()));
 			assert_eq!(Balances::reserved_balance(&relayer_account_at_this_chain()), 0);
@@ -1667,7 +1524,8 @@ mod tests {
 				Balances::free_balance(&delivery_rewards_account())
 			);
 
-			Balances::reserve(&relayer_account_at_this_chain(), test_stake).unwrap();
+			BridgeRelayers::register(RuntimeOrigin::signed(relayer_account_at_this_chain()), 1000)
+				.unwrap();
 			assert_eq!(Balances::reserved_balance(&relayer_account_at_this_chain()), test_stake);
 			run_post_dispatch(Some(parachain_finality_pre_dispatch_data()), Ok(()));
 			assert_eq!(Balances::reserved_balance(&relayer_account_at_this_chain()), 0);
@@ -1676,7 +1534,8 @@ mod tests {
 				Balances::free_balance(&delivery_rewards_account())
 			);
 
-			Balances::reserve(&relayer_account_at_this_chain(), test_stake).unwrap();
+			BridgeRelayers::register(RuntimeOrigin::signed(relayer_account_at_this_chain()), 1000)
+				.unwrap();
 			assert_eq!(Balances::reserved_balance(&relayer_account_at_this_chain()), test_stake);
 			run_post_dispatch(Some(all_finality_pre_dispatch_data()), Ok(()));
 			assert_eq!(Balances::reserved_balance(&relayer_account_at_this_chain()), 0);
