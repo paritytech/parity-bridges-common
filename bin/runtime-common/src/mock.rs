@@ -23,18 +23,22 @@
 
 #![cfg(test)]
 
-use crate::messages::{
-	source::{
-		FromThisChainMaximalOutboundPayloadSize, FromThisChainMessagePayload,
-		FromThisChainMessageVerifier, TargetHeaderChainAdapter,
+use crate::{
+	messages::{
+		source::{
+			FromThisChainMaximalOutboundPayloadSize, FromThisChainMessagePayload,
+			FromThisChainMessageVerifier, TargetHeaderChainAdapter,
+		},
+		target::{FromBridgedChainMessagePayload, SourceHeaderChainAdapter},
+		BridgedChainWithMessages, HashOf, MessageBridge, ThisChainWithMessages,
 	},
-	target::{FromBridgedChainMessagePayload, SourceHeaderChainAdapter},
-	BridgedChainWithMessages, HashOf, MessageBridge, ThisChainWithMessages,
+	relayer_slashing::DeliveryStakeAndSlashFromBalance,
 };
 
 use bp_header_chain::{ChainWithGrandpa, HeaderChain};
 use bp_messages::{target_chain::ForbidInboundMessages, LaneId, MessageNonce};
 use bp_parachains::SingleParaStoredHeaderDataBuilder;
+use bp_relayers::PayRewardFromAccount;
 use bp_runtime::{Chain, ChainId, Parachain, UnderlyingChainProvider};
 use codec::{Decode, Encode};
 use frame_support::{
@@ -82,6 +86,14 @@ pub type BridgedChainHasher = BlakeTwo256;
 /// Header of the `BridgedChain`.
 pub type BridgedChainHeader =
 	sp_runtime::generic::Header<BridgedChainBlockNumber, BridgedChainHasher>;
+
+/// Rewards payment procedure.
+pub type TestPaymentProcedure = PayRewardFromAccount<Balances, ThisChainAccountId>;
+/// Stake that we are using in tests.
+pub type TestStake = ConstU64<5_000>;
+/// Stake and slash mechanism to use in tests.
+pub type TestDeliveryStakeAndSlash =
+	DeliveryStakeAndSlashFromBalance<ThisChainAccountId, Balances, TestRuntime, TestStake>;
 
 /// Message lane used in tests.
 pub const TEST_LANE_ID: LaneId = LaneId([0, 0, 0, 0]);
@@ -244,7 +256,7 @@ impl pallet_bridge_messages::Config for TestRuntime {
 impl pallet_bridge_relayers::Config for TestRuntime {
 	type RuntimeEvent = RuntimeEvent;
 	type Reward = ThisChainBalance;
-	type PaymentProcedure = ();
+	type PaymentProcedure = TestPaymentProcedure;
 	type WeightInfo = ();
 }
 
@@ -400,3 +412,8 @@ impl ThisChainWithMessages for BridgedChain {
 }
 
 impl BridgedChainWithMessages for BridgedChain {}
+
+/// Run test within test externalities.
+pub fn run_test(test: impl FnOnce()) {
+	sp_io::TestExternalities::new(Default::default()).execute_with(test)
+}

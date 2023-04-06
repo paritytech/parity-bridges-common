@@ -32,6 +32,7 @@ pub mod messages_xcm_extension;
 pub mod parachains_benchmarking;
 pub mod priority_calculator;
 pub mod refund_relayer_extension;
+pub mod relayer_slashing;
 
 mod messages_generation;
 mod mock;

@@ -88,6 +88,7 @@ use bridge_runtime_common::{
 		ActualFeeRefund, RefundBridgedParachainMessages, RefundableMessagesLane,
 		RefundableParachain,
 	},
+	relayer_slashing::DeliveryStakeAndSlashFromBalance,
 };
 #[cfg(any(feature = "std", test))]
 pub use sp_runtime::BuildStorage;
@@ -590,12 +591,15 @@ generate_bridge_reject_obsolete_headers_and_messages! {
 bp_runtime::generate_static_str_provider!(BridgeRefundRialtoPara2000Lane0Msgs);
 /// Signed extension that refunds relayers that are delivering messages from the Rialto parachain.
 pub type PriorityBoostPerMessage = ConstU64<921_900_294>;
+pub type DeliveryStakeAndSlash =
+	DeliveryStakeAndSlashFromBalance<AccountId, Balances, Runtime, ConstU64<1_000>>;
 pub type BridgeRefundRialtoParachainMessages = RefundBridgedParachainMessages<
 	Runtime,
 	RefundableParachain<WithRialtoParachainsInstance, RialtoParachainId>,
 	RefundableMessagesLane<WithRialtoParachainMessagesInstance, RialtoParachainMessagesLane>,
 	ActualFeeRefund<Runtime>,
 	PriorityBoostPerMessage,
+	DeliveryStakeAndSlash,
 	StrBridgeRefundRialtoPara2000Lane0Msgs,
 >;
 
