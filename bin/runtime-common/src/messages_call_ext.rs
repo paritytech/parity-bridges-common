@@ -475,6 +475,7 @@ mod tests {
 	}
 
 	#[test]
+	#[allow(clippy::reversed_empty_ranges)]
 	fn was_successful_returns_false_for_failed_reward_confirmation_transaction() {
 		sp_io::TestExternalities::new(Default::default()).execute_with(|| {
 			fill_unrewarded_relayers();
@@ -483,6 +484,7 @@ mod tests {
 	}
 
 	#[test]
+	#[allow(clippy::reversed_empty_ranges)]
 	fn was_successful_returns_true_for_successful_reward_confirmation_transaction() {
 		sp_io::TestExternalities::new(Default::default()).execute_with(|| {
 			assert!(was_message_delivery_successful(10..=9));
