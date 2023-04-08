@@ -66,7 +66,7 @@ use bp_messages::{
 use bp_runtime::{BasicOperatingMode, ChainId, OwnedBridgeModule, Size};
 use codec::{Decode, Encode, MaxEncodedLen};
 use frame_support::{dispatch::PostDispatchInfo, ensure, fail, traits::Get};
-use sp_runtime::traits::UniqueSaturatedFrom;
+use sp_runtime::{traits::UniqueSaturatedFrom, SaturatedConversion};
 use sp_std::{cell::RefCell, marker::PhantomData, prelude::*};
 
 mod inbound_lane;
@@ -814,7 +814,13 @@ impl<T: Config<I>, I: 'static> RuntimeInboundLaneStorage<T, I> {
 	/// from this component.
 	pub fn extra_proof_size_bytes(&self) -> u64 {
 		let max_encoded_len = StoredInboundLaneData::<T, I>::max_encoded_len();
-		let actual_encoded_len = self.data().encoded_size();
+		let relayers_count = self.data().relayers.len();
+		let messages_count = self.data().relayers.iter().fold(0usize, |sum, relayer| {
+			sum.saturating_add(relayer.messages.total_messages().saturated_into::<usize>())
+		});
+		let actual_encoded_len =
+			InboundLaneData::<T::InboundRelayer>::encoded_size_hint(relayers_count, messages_count)
+				.unwrap_or(usize::MAX);
 		max_encoded_len.saturating_sub(actual_encoded_len) as _
 	}
 }
@@ -944,6 +950,7 @@ mod tests {
 	};
 	use frame_system::{EventRecord, Pallet as System, Phase};
 	use sp_runtime::DispatchError;
+	use std::collections::VecDeque;
 
 	fn get_ready_for_events() {
 		System::<TestRuntime>::set_block_number(1);
@@ -1026,6 +1033,37 @@ mod tests {
 				topics: vec![],
 			}],
 		);
+	}
+
+	fn unrewarded_relayer_entry(msg_count: usize) -> UnrewardedRelayer<TestRelayer> {
+		UnrewardedRelayer {
+			relayer: 42u64,
+			messages: DeliveredMessages {
+				begin: 0,
+				end: msg_count as MessageNonce - 1,
+				dispatch_results: FromIterator::from_iter(vec![true; msg_count]),
+			},
+		}
+	}
+
+	fn unrewarded_relayers_vec(
+		entry_count: usize,
+		msg_count: usize,
+	) -> VecDeque<UnrewardedRelayer<TestRelayer>> {
+		if entry_count > msg_count {
+			panic!("unrewarded_relayers_vec(): expecting msg_count to be >= entry_count");
+		}
+
+		let mut unrewarded_relayers = vec![];
+		let mut available_msg_count = msg_count;
+		for _ in 0..entry_count - 1 {
+			unrewarded_relayers
+				.push(unrewarded_relayer_entry(std::cmp::min(1, available_msg_count)));
+			available_msg_count -= 1
+		}
+		unrewarded_relayers.push(unrewarded_relayer_entry(available_msg_count));
+
+		unrewarded_relayers.into_iter().collect()
 	}
 
 	#[test]
@@ -1632,6 +1670,7 @@ mod tests {
 	fn proof_size_refund_from_receive_messages_proof_works() {
 		run_test(|| {
 			let max_entries = crate::mock::MaxUnrewardedRelayerEntriesAtInboundLane::get() as usize;
+			let max_msgs = crate::mock::MaxUnconfirmedMessagesAtInboundLane::get() as usize;
 
 			// if there's maximal number of unrewarded relayer entries at the inbound lane, then
 			// `proof_size` is unchanged in post-dispatch weight
@@ -1646,19 +1685,7 @@ mod tests {
 			InboundLanes::<TestRuntime>::insert(
 				TEST_LANE_ID,
 				StoredInboundLaneData(InboundLaneData {
-					relayers: vec![
-						UnrewardedRelayer {
-							relayer: 42,
-							messages: DeliveredMessages {
-								begin: 0,
-								end: 100,
-								dispatch_results: FromIterator::from_iter(vec![true; 100])
-							}
-						};
-						max_entries
-					]
-					.into_iter()
-					.collect(),
+					relayers: unrewarded_relayers_vec(max_entries, max_msgs),
 					last_confirmed_nonce: 0,
 				}),
 			);
@@ -1679,19 +1706,7 @@ mod tests {
 			InboundLanes::<TestRuntime>::insert(
 				TEST_LANE_ID,
 				StoredInboundLaneData(InboundLaneData {
-					relayers: vec![
-						UnrewardedRelayer {
-							relayer: 42,
-							messages: DeliveredMessages {
-								begin: 0,
-								end: 100,
-								dispatch_results: FromIterator::from_iter(vec![true; 100])
-							}
-						};
-						max_entries - 1
-					]
-					.into_iter()
-					.collect(),
+					relayers: unrewarded_relayers_vec(max_entries - 1, max_msgs),
 					last_confirmed_nonce: 0,
 				}),
 			);
@@ -1706,8 +1721,8 @@ mod tests {
 			.actual_weight
 			.unwrap();
 			assert!(
-				post_dispatch_weight.proof_size() <= pre_dispatch_weight.proof_size(),
-				"Expected post-dispatch PoV {} to be <= than pre-dispatch PoV {}",
+				post_dispatch_weight.proof_size() < pre_dispatch_weight.proof_size(),
+				"Expected post-dispatch PoV {} to be < than pre-dispatch PoV {}",
 				post_dispatch_weight.proof_size(),
 				pre_dispatch_weight.proof_size(),
 			);
@@ -2090,63 +2105,37 @@ mod tests {
 	fn inbound_storage_extra_proof_size_bytes_works() {
 		let max_entries = crate::mock::MaxUnrewardedRelayerEntriesAtInboundLane::get() as usize;
 		let max_msgs = crate::mock::MaxUnconfirmedMessagesAtInboundLane::get() as usize;
-		let avg_msg_count = max_msgs / max_entries;
-		let last_entry_msg_count = avg_msg_count + max_msgs % max_entries;
-
-		fn relayer_entry(msg_count: usize) -> UnrewardedRelayer<TestRelayer> {
-			UnrewardedRelayer {
-				relayer: 42u64,
-				messages: DeliveredMessages {
-					begin: 0,
-					end: msg_count as MessageNonce - 1,
-					dispatch_results: FromIterator::from_iter(vec![true; msg_count]),
-				},
-			}
-		}
 
 		fn storage(
-			relayer_entries: usize,
-			avg_msg_count: usize,
-			last_entry_msg_count: usize,
+			entry_count: usize,
+			msg_count: usize,
 		) -> RuntimeInboundLaneStorage<TestRuntime, ()> {
-			let mut relayers = vec![relayer_entry(avg_msg_count); relayer_entries - 1];
-			relayers.push(relayer_entry(last_entry_msg_count));
-
 			RuntimeInboundLaneStorage {
 				lane_id: Default::default(),
 				cached_data: RefCell::new(Some(InboundLaneData {
-					relayers: relayers.into_iter().collect(),
+					relayers: unrewarded_relayers_vec(entry_count, msg_count),
 					last_confirmed_nonce: 0,
 				})),
 				_phantom: Default::default(),
 			}
 		}
 
-		// Note that there can be an error of some bytes because of the estimations for the
-		// dispatch_results bitvec. With the current configs the error is at most 1 for the
-		// validations that follow.
-
 		// when we have exactly `MaxUnrewardedRelayerEntriesAtInboundLane` unrewarded relayers
-		assert!(
-			storage(max_entries, avg_msg_count, last_entry_msg_count).extra_proof_size_bytes() <= 1
-		);
+		assert_eq!(storage(max_entries, max_msgs).extra_proof_size_bytes(), 0);
 
 		// when we have less than `MaxUnrewardedRelayerEntriesAtInboundLane` unrewarded relayers
-		assert!(
-			storage(max_entries - 1, avg_msg_count, last_entry_msg_count).extra_proof_size_bytes() <=
-				relayer_entry(avg_msg_count).encoded_size() as u64 + 1
+		assert_eq!(
+			storage(max_entries - 1, max_msgs).extra_proof_size_bytes(),
+			unrewarded_relayer_entry(1).encoded_size() as u64
 		);
-		assert!(
-			storage(max_entries - 2, avg_msg_count, last_entry_msg_count).extra_proof_size_bytes() <=
-				2 * relayer_entry(avg_msg_count).encoded_size() as u64 + 1
+		assert_eq!(
+			storage(max_entries - 2, max_msgs).extra_proof_size_bytes(),
+			2 * unrewarded_relayer_entry(1).encoded_size() as u64
 		);
 
 		// when we have more than `MaxUnrewardedRelayerEntriesAtInboundLane` unrewarded relayers
 		// (shall not happen in practice)
-		assert_eq!(
-			storage(max_entries + 1, avg_msg_count, last_entry_msg_count).extra_proof_size_bytes(),
-			0
-		);
+		assert_eq!(storage(max_entries + 1, max_msgs).extra_proof_size_bytes(), 0);
 	}
 
 	#[test]
