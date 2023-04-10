@@ -224,75 +224,40 @@ where
 		+ ParachainsCallSubType<Runtime, Para::Instance>
 		+ MessagesCallSubType<Runtime, Msgs::Instance>,
 {
-	fn expand_call<'a>(&self, call: &'a CallOf<Runtime>) -> Option<Vec<&'a CallOf<Runtime>>> {
-		let calls = match call.is_sub_type() {
-			Some(UtilityCall::<Runtime>::batch_all { ref calls }) => {
-				if calls.len() > 3 {
-					return None
-				}
-
-				calls.iter().collect()
-			},
-			Some(_) => return None,
+	fn expand_call<'a>(&self, call: &'a CallOf<Runtime>) -> Vec<&'a CallOf<Runtime>> {
+		match call.is_sub_type() {
+			Some(UtilityCall::<Runtime>::batch_all { ref calls }) if calls.len() <= 3 =>
+				calls.iter().collect(),
+			Some(_) => return vec![],
 			None => vec![call],
-		};
-
-		Some(calls)
+		}
 	}
 
 	fn parse_and_check_for_obsolete_call(
 		&self,
 		call: &CallOf<Runtime>,
 	) -> Result<Option<CallInfo>, TransactionValidityError> {
-		let mut calls = match self.expand_call(call) {
-			Some(calls) => calls.into_iter().map(Self::check_obsolete_call),
-			None => return Ok(None),
-		};
-		match calls.len() {
-			3 => {
-				let relay_finality_call =
-					calls.next().transpose()?.and_then(|c| c.submit_finality_proof_info());
-				let para_finality_call = calls
-					.next()
-					.transpose()?
-					.and_then(|c| c.submit_parachain_heads_info_for(Para::Id::get()));
-				let message_call =
-					calls.next().transpose()?.and_then(|c| c.call_info_for(Msgs::Id::get()));
-				match (relay_finality_call, para_finality_call, message_call) {
-					(Some(relay_finality_call), Some(para_finality_call), Some(message_call)) =>
-						Ok(Some(CallInfo::AllFinalityAndMsgs(
-							relay_finality_call,
-							para_finality_call,
-							message_call,
-						))),
-					_ => Ok(None),
-				}
-			},
-			2 => {
-				let para_finality_call = calls
-					.next()
-					.transpose()?
-					.and_then(|c| c.submit_parachain_heads_info_for(Para::Id::get()));
-				let message_call =
-					calls.next().transpose()?.and_then(|c| c.call_info_for(Msgs::Id::get()));
-				match (para_finality_call, message_call) {
-					(Some(para_finality_call), Some(message_call)) => Ok(Some(
-						CallInfo::ParachainFinalityAndMsgs(para_finality_call, message_call),
-					)),
-					_ => Ok(None),
-				}
-			},
-			1 => {
-				let message_call =
-					calls.next().transpose()?.and_then(|c| c.call_info_for(Msgs::Id::get()));
-				if let Some(message_call) = message_call {
-					Ok(Some(CallInfo::Msgs(message_call)))
-				} else {
-					Ok(None)
-				}
-			},
-			_ => Ok(None),
-		}
+		let calls = self.expand_call(call);
+		let total_calls = calls.len();
+		let mut calls = calls.into_iter().map(Self::check_obsolete_call).rev();
+
+		let msgs_call = calls.next().transpose()?.and_then(|c| c.call_info_for(Msgs::Id::get()));
+		let para_finality_call = calls
+			.next()
+			.transpose()?
+			.and_then(|c| c.submit_parachain_heads_info_for(Para::Id::get()));
+		let relay_finality_call =
+			calls.next().transpose()?.and_then(|c| c.submit_finality_proof_info());
+
+		Ok(match (total_calls, relay_finality_call, para_finality_call, msgs_call) {
+			(3, Some(relay_finality_call), Some(para_finality_call), Some(msgs_call)) => Some(
+				CallInfo::AllFinalityAndMsgs(relay_finality_call, para_finality_call, msgs_call),
+			),
+			(2, None, Some(para_finality_call), Some(msgs_call)) =>
+				Some(CallInfo::ParachainFinalityAndMsgs(para_finality_call, msgs_call)),
+			(1, None, None, Some(msgs_call)) => Some(CallInfo::Msgs(msgs_call)),
+			_ => None,
+		})
 	}
 
 	fn check_obsolete_call(
