@@ -319,14 +319,9 @@ where
 		if let Some(parsed_call) = parsed_call {
 			// we give delivery transactions some boost, that depends on number of messages inside
 			let messages_call_info = parsed_call.messages_call_info();
-			if let MessagesCallInfo::ReceiveMessagesProof(ref delivery_info) = messages_call_info {
+			if let MessagesCallInfo::ReceiveMessagesProof(_) = messages_call_info {
 				// compute total number of messages in transaction
-				let bundled_range = &delivery_info.0.bundled_range;
-				let bundled_messages = bundled_range
-					.end()
-					.checked_sub(*bundled_range.start())
-					.map(|d| d.saturating_add(1))
-					.unwrap_or(0);
+				let bundled_messages = messages_call_info.bundled_messages();
 
 				// a quick check to avoid invalid high-priority transactions
 				if bundled_messages <= Runtime::MaxUnconfirmedMessagesAtInboundLane::get() {
