@@ -461,6 +461,7 @@ mod tests {
 		},
 		messages_call_ext::{
 			BaseMessagesProofInfo, ReceiveMessagesDeliveryProofInfo, ReceiveMessagesProofInfo,
+			UnrewardedRelayerOccupation,
 		},
 		mock::*,
 	};
@@ -664,7 +665,10 @@ mod tests {
 						lane_id: TEST_LANE_ID,
 						bundled_range: 101..=200,
 						best_stored_nonce: 100,
-						stored_free_unrewarded_entries: Some(16),
+						unrewarded_relayers: Some(UnrewardedRelayerOccupation {
+							free_relayer_slots: MaxUnrewardedRelayerEntriesAtInboundLane::get(),
+							free_message_slots: MaxUnconfirmedMessagesAtInboundLane::get(),
+						}),
 					},
 				)),
 			),
@@ -690,7 +694,7 @@ mod tests {
 						lane_id: TEST_LANE_ID,
 						bundled_range: 101..=200,
 						best_stored_nonce: 100,
-						stored_free_unrewarded_entries: None,
+						unrewarded_relayers: None,
 					},
 				)),
 			),
@@ -711,7 +715,10 @@ mod tests {
 						lane_id: TEST_LANE_ID,
 						bundled_range: 101..=200,
 						best_stored_nonce: 100,
-						stored_free_unrewarded_entries: Some(16),
+						unrewarded_relayers: Some(UnrewardedRelayerOccupation {
+							free_relayer_slots: MaxUnrewardedRelayerEntriesAtInboundLane::get(),
+							free_message_slots: MaxUnconfirmedMessagesAtInboundLane::get(),
+						}),
 					},
 				)),
 			),
@@ -732,7 +739,7 @@ mod tests {
 						lane_id: TEST_LANE_ID,
 						bundled_range: 101..=200,
 						best_stored_nonce: 100,
-						stored_free_unrewarded_entries: None,
+						unrewarded_relayers: None,
 					},
 				)),
 			),
@@ -747,7 +754,10 @@ mod tests {
 					lane_id: TEST_LANE_ID,
 					bundled_range: 101..=200,
 					best_stored_nonce: 100,
-					stored_free_unrewarded_entries: Some(16),
+					unrewarded_relayers: Some(UnrewardedRelayerOccupation {
+						free_relayer_slots: MaxUnrewardedRelayerEntriesAtInboundLane::get(),
+						free_message_slots: MaxUnconfirmedMessagesAtInboundLane::get(),
+					}),
 				}),
 			)),
 		}
@@ -761,7 +771,7 @@ mod tests {
 					lane_id: TEST_LANE_ID,
 					bundled_range: 101..=200,
 					best_stored_nonce: 100,
-					stored_free_unrewarded_entries: None,
+					unrewarded_relayers: None,
 				}),
 			)),
 		}
