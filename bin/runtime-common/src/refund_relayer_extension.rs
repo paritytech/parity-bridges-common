@@ -1505,7 +1505,7 @@ mod tests {
 			initialize_environment(200, 200, 100);
 
 			let delivery_rewards_account_balance =
-				Balances::free_balance(&delivery_rewards_account());
+				Balances::free_balance(delivery_rewards_account());
 
 			let test_stake: ThisChainBalance = TestStake::get();
 			Balances::set_balance(
@@ -1516,62 +1516,62 @@ mod tests {
 			// slashing works for message delivery calls
 			BridgeRelayers::register(RuntimeOrigin::signed(relayer_account_at_this_chain()), 1000)
 				.unwrap();
-			assert_eq!(Balances::reserved_balance(&relayer_account_at_this_chain()), test_stake);
+			assert_eq!(Balances::reserved_balance(relayer_account_at_this_chain()), test_stake);
 			run_post_dispatch(Some(delivery_pre_dispatch_data()), Ok(()));
-			assert_eq!(Balances::reserved_balance(&relayer_account_at_this_chain()), 0);
+			assert_eq!(Balances::reserved_balance(relayer_account_at_this_chain()), 0);
 			assert_eq!(
 				delivery_rewards_account_balance + test_stake,
-				Balances::free_balance(&delivery_rewards_account())
+				Balances::free_balance(delivery_rewards_account())
 			);
 
 			BridgeRelayers::register(RuntimeOrigin::signed(relayer_account_at_this_chain()), 1000)
 				.unwrap();
-			assert_eq!(Balances::reserved_balance(&relayer_account_at_this_chain()), test_stake);
+			assert_eq!(Balances::reserved_balance(relayer_account_at_this_chain()), test_stake);
 			run_post_dispatch(Some(parachain_finality_pre_dispatch_data()), Ok(()));
-			assert_eq!(Balances::reserved_balance(&relayer_account_at_this_chain()), 0);
+			assert_eq!(Balances::reserved_balance(relayer_account_at_this_chain()), 0);
 			assert_eq!(
 				delivery_rewards_account_balance + test_stake * 2,
-				Balances::free_balance(&delivery_rewards_account())
+				Balances::free_balance(delivery_rewards_account())
 			);
 
 			BridgeRelayers::register(RuntimeOrigin::signed(relayer_account_at_this_chain()), 1000)
 				.unwrap();
-			assert_eq!(Balances::reserved_balance(&relayer_account_at_this_chain()), test_stake);
+			assert_eq!(Balances::reserved_balance(relayer_account_at_this_chain()), test_stake);
 			run_post_dispatch(Some(all_finality_pre_dispatch_data()), Ok(()));
-			assert_eq!(Balances::reserved_balance(&relayer_account_at_this_chain()), 0);
+			assert_eq!(Balances::reserved_balance(relayer_account_at_this_chain()), 0);
 			assert_eq!(
 				delivery_rewards_account_balance + test_stake * 3,
-				Balances::free_balance(&delivery_rewards_account())
+				Balances::free_balance(delivery_rewards_account())
 			);
 
 			// reserve doesn't work for message confirmation calls
 			let confirmation_rewards_account_balance =
-				Balances::free_balance(&confirmation_rewards_account());
+				Balances::free_balance(confirmation_rewards_account());
 
 			Balances::reserve(&relayer_account_at_this_chain(), test_stake).unwrap();
-			assert_eq!(Balances::reserved_balance(&relayer_account_at_this_chain()), test_stake);
+			assert_eq!(Balances::reserved_balance(relayer_account_at_this_chain()), test_stake);
 
 			assert_eq!(
 				confirmation_rewards_account_balance,
-				Balances::free_balance(&confirmation_rewards_account())
+				Balances::free_balance(confirmation_rewards_account())
 			);
 			run_post_dispatch(Some(confirmation_pre_dispatch_data()), Ok(()));
-			assert_eq!(Balances::reserved_balance(&relayer_account_at_this_chain()), test_stake);
+			assert_eq!(Balances::reserved_balance(relayer_account_at_this_chain()), test_stake);
 
 			run_post_dispatch(Some(parachain_finality_confirmation_pre_dispatch_data()), Ok(()));
-			assert_eq!(Balances::reserved_balance(&relayer_account_at_this_chain()), test_stake);
+			assert_eq!(Balances::reserved_balance(relayer_account_at_this_chain()), test_stake);
 
 			run_post_dispatch(Some(all_finality_confirmation_pre_dispatch_data()), Ok(()));
-			assert_eq!(Balances::reserved_balance(&relayer_account_at_this_chain()), test_stake);
+			assert_eq!(Balances::reserved_balance(relayer_account_at_this_chain()), test_stake);
 
 			// check that unreserve has happened, not slashing
 			assert_eq!(
 				delivery_rewards_account_balance + test_stake * 3,
-				Balances::free_balance(&delivery_rewards_account())
+				Balances::free_balance(delivery_rewards_account())
 			);
 			assert_eq!(
 				confirmation_rewards_account_balance,
-				Balances::free_balance(&confirmation_rewards_account())
+				Balances::free_balance(confirmation_rewards_account())
 			);
 		});
 	}

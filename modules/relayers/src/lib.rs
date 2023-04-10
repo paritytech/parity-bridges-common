@@ -619,9 +619,9 @@ mod tests {
 				RuntimeOrigin::signed(REGISTER_RELAYER),
 				150
 			));
-			assert_eq!(Balances::reserved_balance(&REGISTER_RELAYER), Stake::get());
+			assert_eq!(Balances::reserved_balance(REGISTER_RELAYER), Stake::get());
 			assert_eq!(
-				Pallet::<TestRuntime>::registered_relayer(&REGISTER_RELAYER),
+				Pallet::<TestRuntime>::registered_relayer(REGISTER_RELAYER),
 				Some(Registration { valid_till: 150, stake: Stake::get() }),
 			);
 
@@ -679,17 +679,17 @@ mod tests {
 				Registration { valid_till: 150, stake: Stake::get() + 1 },
 			);
 			TestStakeAndSlash::reserve(&REGISTER_RELAYER, Stake::get() + 1).unwrap();
-			assert_eq!(Balances::reserved_balance(&REGISTER_RELAYER), Stake::get() + 1);
-			let free_balance = Balances::free_balance(&REGISTER_RELAYER);
+			assert_eq!(Balances::reserved_balance(REGISTER_RELAYER), Stake::get() + 1);
+			let free_balance = Balances::free_balance(REGISTER_RELAYER);
 
 			assert_ok!(Pallet::<TestRuntime>::register(
 				RuntimeOrigin::signed(REGISTER_RELAYER),
 				150
 			));
-			assert_eq!(Balances::reserved_balance(&REGISTER_RELAYER), Stake::get());
-			assert_eq!(Balances::free_balance(&REGISTER_RELAYER), free_balance + 1);
+			assert_eq!(Balances::reserved_balance(REGISTER_RELAYER), Stake::get());
+			assert_eq!(Balances::free_balance(REGISTER_RELAYER), free_balance + 1);
 			assert_eq!(
-				Pallet::<TestRuntime>::registered_relayer(&REGISTER_RELAYER),
+				Pallet::<TestRuntime>::registered_relayer(REGISTER_RELAYER),
 				Some(Registration { valid_till: 150, stake: Stake::get() }),
 			);
 
@@ -745,15 +745,15 @@ mod tests {
 			);
 			TestStakeAndSlash::reserve(&REGISTER_RELAYER, Stake::get() - 1).unwrap();
 
-			let free_balance = Balances::free_balance(&REGISTER_RELAYER);
+			let free_balance = Balances::free_balance(REGISTER_RELAYER);
 			assert_ok!(Pallet::<TestRuntime>::register(
 				RuntimeOrigin::signed(REGISTER_RELAYER),
 				150
 			));
-			assert_eq!(Balances::reserved_balance(&REGISTER_RELAYER), Stake::get());
-			assert_eq!(Balances::free_balance(&REGISTER_RELAYER), free_balance - 1);
+			assert_eq!(Balances::reserved_balance(REGISTER_RELAYER), Stake::get());
+			assert_eq!(Balances::free_balance(REGISTER_RELAYER), free_balance - 1);
 			assert_eq!(
-				Pallet::<TestRuntime>::registered_relayer(&REGISTER_RELAYER),
+				Pallet::<TestRuntime>::registered_relayer(REGISTER_RELAYER),
 				Some(Registration { valid_till: 150, stake: Stake::get() }),
 			);
 
@@ -810,14 +810,14 @@ mod tests {
 
 			System::<TestRuntime>::set_block_number(151);
 
-			let reserved_balance = Balances::reserved_balance(&REGISTER_RELAYER);
-			let free_balance = Balances::free_balance(&REGISTER_RELAYER);
+			let reserved_balance = Balances::reserved_balance(REGISTER_RELAYER);
+			let free_balance = Balances::free_balance(REGISTER_RELAYER);
 			assert_ok!(Pallet::<TestRuntime>::deregister(RuntimeOrigin::signed(REGISTER_RELAYER)));
 			assert_eq!(
-				Balances::reserved_balance(&REGISTER_RELAYER),
+				Balances::reserved_balance(REGISTER_RELAYER),
 				reserved_balance - Stake::get()
 			);
-			assert_eq!(Balances::free_balance(&REGISTER_RELAYER), free_balance + Stake::get());
+			assert_eq!(Balances::free_balance(REGISTER_RELAYER), free_balance + Stake::get());
 
 			assert_eq!(
 				System::<TestRuntime>::events().last(),
