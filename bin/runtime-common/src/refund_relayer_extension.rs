@@ -867,6 +867,31 @@ mod tests {
 	}
 
 	#[test]
+	fn validate_does_not_boost_priority_of_message_delivery_transactons_with_too_many_messages() {
+		run_test(|| {
+			initialize_environment(100, 100, Default::default(), 100);
+
+			let priority_of_max_messages_delivery = run_validate(message_delivery_call(
+				100 + MaxUnconfirmedMessagesAtInboundLane::get(),
+			))
+			.unwrap()
+			.priority;
+			let priority_of_more_than_max_messages_delivery = run_validate(message_delivery_call(
+				100 + MaxUnconfirmedMessagesAtInboundLane::get() + 1,
+			))
+			.unwrap()
+			.priority;
+
+			assert!(
+				priority_of_max_messages_delivery > priority_of_more_than_max_messages_delivery,
+				"Invalid priorities: {} for MAX messages vs {} for MAX+1 messages",
+				priority_of_max_messages_delivery,
+				priority_of_more_than_max_messages_delivery,
+			);
+		});
+	}
+
+	#[test]
 	fn validate_allows_non_obsolete_transactions() {
 		run_test(|| {
 			initialize_environment(100, 100, Default::default(), 100);
