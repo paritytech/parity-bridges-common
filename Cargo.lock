@@ -5553,6 +5553,7 @@ dependencies = [
  "async-std",
  "async-trait",
  "bp-messages",
+ "env_logger",
  "finality-relay",
  "futures",
  "hex",

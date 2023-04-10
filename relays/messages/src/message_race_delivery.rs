@@ -490,10 +490,12 @@ where
 		// The target node would also reject messages if there are too many entries in the
 		// "unrewarded relayers" set. If we are unable to prove new rewards to the target node, then
 		// we should wait for confirmations race.
-		let unrewarded_relayer_entries_limit_reached =
+		let unrewarded_limit_reached =
 			target_nonces.nonces_data.unrewarded_relayers.unrewarded_relayer_entries >=
-				self.max_unrewarded_relayer_entries_at_target;
-		if unrewarded_relayer_entries_limit_reached {
+				self.max_unrewarded_relayer_entries_at_target ||
+				target_nonces.nonces_data.unrewarded_relayers.total_messages >=
+					self.max_unconfirmed_nonces_at_target;
+		if unrewarded_limit_reached {
 			// so there are already too many unrewarded relayer entries in the set
 			//
 			// => check if we can prove enough rewards. If not, we should wait for more rewards to
@@ -503,6 +505,7 @@ where
 			let enough_rewards_being_proved = number_of_rewards_being_proved >=
 				target_nonces.nonces_data.unrewarded_relayers.messages_in_oldest_entry;
 			if !enough_rewards_being_proved {
+				println!("=== XXX.2");
 				return None
 			}
 		}
@@ -535,25 +538,40 @@ where
 		let lane_source_client = self.lane_source_client.clone();
 		let lane_target_client = self.lane_target_client.clone();
 
-		let available_source_queue_indices =
-			self.strategy.available_source_queue_indices(race_state)?;
-		let source_queue = self.strategy.source_queue();
+		// select nonces from nonces, available for delivery
+		let selected_nonces = match self.strategy.available_source_queue_indices(race_state) {
+			Some(available_source_queue_indices) => {
+				let source_queue = self.strategy.source_queue();
+				let reference = RelayMessagesBatchReference {
+					max_messages_in_this_batch: max_nonces,
+					max_messages_weight_in_single_batch,
+					max_messages_size_in_single_batch,
+					lane_source_client: lane_source_client.clone(),
+					lane_target_client: lane_target_client.clone(),
+					best_target_nonce,
+					nonces_queue: source_queue.clone(),
+					nonces_queue_range: available_source_queue_indices,
+					metrics: self.metrics_msg.clone(),
+				};
 
-		let reference = RelayMessagesBatchReference {
-			max_messages_in_this_batch: max_nonces,
-			max_messages_weight_in_single_batch,
-			max_messages_size_in_single_batch,
-			lane_source_client: lane_source_client.clone(),
-			lane_target_client: lane_target_client.clone(),
-			best_target_nonce,
-			nonces_queue: source_queue.clone(),
-			nonces_queue_range: available_source_queue_indices,
-			metrics: self.metrics_msg.clone(),
+				MessageRaceLimits::decide(reference).await
+			},
+			None => {
+				// we still may need to submit delivery transaction with zero messages to
+				// unblock the lane. But it'll only be accepted if the lane is blocked
+				// (i.e. when `unrewarded_limit_reached` is `true`)
+				None
+			},
 		};
 
-		let selected_nonces = MessageRaceLimits::decide(reference).await?;
-		let dispatch_weight = self.dispatch_weight_for_range(&selected_nonces);
+		// check if we need unblocking transaction and we may submit it
+		let selected_nonces = match selected_nonces {
+			Some(selected_nonces) => selected_nonces,
+			None if unrewarded_limit_reached && outbound_state_proof_required => 1..=0,
+			_ => return None,
+		};
 
+		let dispatch_weight = self.dispatch_weight_for_range(&selected_nonces);
 		Some((
 			selected_nonces,
 			MessageProofParameters { outbound_state_proof_required, dispatch_weight },
@@ -1157,6 +1175,139 @@ mod tests {
 					dispatch_weight: Weight::from_parts(5, 0),
 				}
 			)),
+		);
+	}
+
+	#[async_std::test]
+	async fn delivery_race_is_able_to_unblock_lane() {
+		// step 1: messages 20..=23 are delivered from source to target at target block 2
+		fn at_target_block_2_deliver_messages(
+			strategy: &mut TestStrategy,
+			state: &mut TestRaceState,
+			occupied_relayer_slots: MessageNonce,
+			occupied_message_slots: MessageNonce,
+		) {
+			let nonces_at_target = TargetClientNonces {
+				latest_nonce: 23,
+				nonces_data: DeliveryRaceTargetNoncesData {
+					confirmed_nonce: 19,
+					unrewarded_relayers: UnrewardedRelayersState {
+						unrewarded_relayer_entries: occupied_relayer_slots,
+						total_messages: occupied_message_slots,
+						..Default::default()
+					},
+				},
+			};
+
+			state.best_target_header_id = Some(header_id(2));
+			state.best_finalized_target_header_id = Some(header_id(2));
+
+			strategy.best_target_nonces_updated(nonces_at_target.clone(), state);
+			strategy.finalized_target_nonces_updated(nonces_at_target, state);
+		}
+
+		// step 2: delivery of messages 20..=23 is confirmed to the source node at source block 2
+		fn at_source_block_2_deliver_confirmations(
+			strategy: &mut TestStrategy,
+			state: &mut TestRaceState,
+		) {
+			state.best_finalized_source_header_id_at_source = Some(header_id(2));
+
+			strategy.source_nonces_updated(
+				header_id(2),
+				SourceClientNonces { new_nonces: Default::default(), confirmed_nonce: Some(23) },
+			);
+		}
+
+		// step 3: finalize source block 2 at target block 3 and select nonces to deliver
+		async fn at_target_block_3_select_nonces_to_deliver(
+			strategy: &TestStrategy,
+			mut state: TestRaceState,
+		) -> Option<(RangeInclusive<MessageNonce>, MessageProofParameters)> {
+			state.best_finalized_source_header_id_at_best_target = Some(header_id(2));
+			state.best_target_header_id = Some(header_id(3));
+			state.best_finalized_target_header_id = Some(header_id(3));
+
+			strategy.select_nonces_to_deliver(state).await
+		}
+
+		let max_unrewarded_relayer_entries_at_target = 4;
+		let max_unconfirmed_nonces_at_target = 4;
+		let expected_rewards_proof = Some((
+			1..=0,
+			MessageProofParameters {
+				outbound_state_proof_required: true,
+				dispatch_weight: Weight::zero(),
+			},
+		));
+
+		// TODO: also fix + test `required_source_header_at_target`
+
+		// when lane is NOT blocked
+		let (mut state, mut strategy) = prepare_strategy();
+		at_target_block_2_deliver_messages(
+			&mut strategy,
+			&mut state,
+			max_unrewarded_relayer_entries_at_target - 1,
+			max_unconfirmed_nonces_at_target - 1,
+		);
+		at_source_block_2_deliver_confirmations(&mut strategy, &mut state);
+		assert_eq!(strategy.required_source_header_at_target(&header_id(2), state.clone()), None);
+		assert_eq!(at_target_block_3_select_nonces_to_deliver(&strategy, state).await, None);
+
+		// when lane is blocked by no-relayer-slots in unrewarded relayers vector
+		let (mut state, mut strategy) = prepare_strategy();
+		at_target_block_2_deliver_messages(
+			&mut strategy,
+			&mut state,
+			max_unrewarded_relayer_entries_at_target,
+			max_unconfirmed_nonces_at_target - 1,
+		);
+		at_source_block_2_deliver_confirmations(&mut strategy, &mut state);
+		assert_eq!(
+			strategy.required_source_header_at_target(&header_id(2), state.clone()),
+			Some(header_id(2))
+		);
+		assert_eq!(
+			at_target_block_3_select_nonces_to_deliver(&strategy, state).await,
+			expected_rewards_proof
+		);
+
+		// when lane is blocked by no-message-slots in unrewarded relayers vector
+		let (mut state, mut strategy) = prepare_strategy();
+		at_target_block_2_deliver_messages(
+			&mut strategy,
+			&mut state,
+			max_unrewarded_relayer_entries_at_target - 1,
+			max_unconfirmed_nonces_at_target,
+		);
+		at_source_block_2_deliver_confirmations(&mut strategy, &mut state);
+		assert_eq!(
+			strategy.required_source_header_at_target(&header_id(2), state.clone()),
+			Some(header_id(2))
+		);
+		assert_eq!(
+			at_target_block_3_select_nonces_to_deliver(&strategy, state).await,
+			expected_rewards_proof
+		);
+
+		// when lane is blocked by no-message-slots and no-message-slots in unrewarded relayers
+		// vector
+		let (mut state, mut strategy) = prepare_strategy();
+		at_target_block_2_deliver_messages(
+			&mut strategy,
+			&mut state,
+			max_unrewarded_relayer_entries_at_target - 1,
+			max_unconfirmed_nonces_at_target,
+		);
+		at_source_block_2_deliver_confirmations(&mut strategy, &mut state);
+		assert_eq!(
+			strategy.required_source_header_at_target(&header_id(2), state.clone()),
+			Some(header_id(2))
+		);
+		assert_eq!(
+			at_target_block_3_select_nonces_to_deliver(&strategy, state).await,
+			expected_rewards_proof
 		);
 	}
 }
