@@ -39,10 +39,9 @@ pub type XcmAsPlainPayload = sp_std::prelude::Vec<u8>;
 
 /// Message dispatch result type for single message
 #[derive(CloneNoBound, EqNoBound, PartialEqNoBound, Encode, Decode, Debug, TypeInfo)]
-pub enum XcmBlobMessageDispatchResult {
+pub enum XcmBlobMessageDispatchError {
 	InvalidPayload,
-	Dispatched,
-	NotDispatched(#[codec(skip)] &'static str),
+	NotDispatched(#[codec(skip)] Option<DispatchBlobError>),
 }
 
 /// [`XcmBlobMessageDispatch`] is responsible for dispatching received messages
@@ -65,7 +64,7 @@ impl<
 	for XcmBlobMessageDispatch<SourceBridgeHubChain, TargetBridgeHubChain, BlobDispatcher, Weights>
 {
 	type DispatchPayload = XcmAsPlainPayload;
-	type DispatchLevelResult = XcmBlobMessageDispatchResult;
+	type DispatchError = XcmBlobMessageDispatchError;
 
 	fn dispatch_weight(message: &mut DispatchMessage<Self::DispatchPayload>) -> Weight {
 		match message.data.payload {
@@ -80,7 +79,7 @@ impl<
 	fn dispatch(
 		_relayer_account: &AccountIdOf<SourceBridgeHubChain>,
 		message: DispatchMessage<Self::DispatchPayload>,
-	) -> MessageDispatchResult<Self::DispatchLevelResult> {
+	) -> MessageDispatchResult<Self::DispatchError> {
 		let payload = match message.data.payload {
 			Ok(payload) => payload,
 			Err(e) => {
@@ -92,7 +91,7 @@ impl<
 				);
 				return MessageDispatchResult {
 					unspent_weight: Weight::zero(),
-					dispatch_level_result: XcmBlobMessageDispatchResult::InvalidPayload,
+					dispatch_result: Err(XcmBlobMessageDispatchError::InvalidPayload),
 				}
 			},
 		};
@@ -103,30 +102,21 @@ impl<
 					"[XcmBlobMessageDispatch] DispatchBlob::dispatch_blob was ok - message_nonce: {:?}",
 					message.key.nonce
 				);
-				XcmBlobMessageDispatchResult::Dispatched
+				Ok(())
 			},
 			Err(e) => {
-				let e = match e {
-					DispatchBlobError::Unbridgable => "DispatchBlobError::Unbridgable",
-					DispatchBlobError::InvalidEncoding => "DispatchBlobError::InvalidEncoding",
-					DispatchBlobError::UnsupportedLocationVersion =>
-						"DispatchBlobError::UnsupportedLocationVersion",
-					DispatchBlobError::UnsupportedXcmVersion =>
-						"DispatchBlobError::UnsupportedXcmVersion",
-					DispatchBlobError::RoutingError => "DispatchBlobError::RoutingError",
-					DispatchBlobError::NonUniversalDestination =>
-						"DispatchBlobError::NonUniversalDestination",
-					DispatchBlobError::WrongGlobal => "DispatchBlobError::WrongGlobal",
-				};
 				log::error!(
 					target: crate::LOG_TARGET_BRIDGE_DISPATCH,
 					"[XcmBlobMessageDispatch] DispatchBlob::dispatch_blob failed, error: {:?} - message_nonce: {:?}",
 					e, message.key.nonce
 				);
-				XcmBlobMessageDispatchResult::NotDispatched(e)
+				Err(XcmBlobMessageDispatchError::NotDispatched(Some(e)))
 			},
 		};
-		MessageDispatchResult { unspent_weight: Weight::zero(), dispatch_level_result }
+		MessageDispatchResult {
+			unspent_weight: Weight::zero(),
+			dispatch_result: dispatch_level_result,
+		}
 	}
 }
 

@@ -386,6 +386,16 @@ where
 				finality_proof_info.block_number,
 			) {
 				// we only refund relayer if all calls have updated chain state
+				log::trace!(
+					target: "runtime::bridge",
+					"{} from parachain {} via {:?}: failed to refund relayer {:?}, because \
+					relay chain finality proof has not been accepted",
+					Self::IDENTIFIER,
+					Para::Id::get(),
+					Msgs::Id::get(),
+					relayer,
+				);
+
 				return Ok(())
 			}
 
@@ -408,15 +418,34 @@ where
 				para_proof_info,
 			) {
 				// we only refund relayer if all calls have updated chain state
+				log::trace!(
+					target: "runtime::bridge",
+					"{} from parachain {} via {:?}: failed to refund relayer {:?}, because \
+					parachain finality proof has not been accepted",
+					Self::IDENTIFIER,
+					Para::Id::get(),
+					Msgs::Id::get(),
+					relayer,
+				);
+
 				return Ok(())
 			}
 		}
 
-		// Check if the `ReceiveMessagesProof` call delivered at least some of the messages that
+		// Check if the `ReceiveMessagesProof` call delivered all the messages that
 		// it contained. If this happens, we consider the transaction "helpful" and refund it.
 		let msgs_call_info = call_info.messages_call_info();
-		if !MessagesCallHelper::<Runtime, Msgs::Instance>::was_partially_successful(msgs_call_info)
-		{
+		if !MessagesCallHelper::<Runtime, Msgs::Instance>::was_successful(msgs_call_info) {
+			log::trace!(
+				target: "runtime::bridge",
+				"{} from parachain {} via {:?}: failed to refund relayer {:?}, because \
+				some of messages have not been accepted",
+				Self::IDENTIFIER,
+				Para::Id::get(),
+				Msgs::Id::get(),
+				relayer,
+			);
+
 			return Ok(())
 		}
 
@@ -474,6 +503,7 @@ mod tests {
 		},
 		messages_call_ext::{
 			BaseMessagesProofInfo, ReceiveMessagesDeliveryProofInfo, ReceiveMessagesProofInfo,
+			UnrewardedRelayerOccupation,
 		},
 		mock::*,
 	};
@@ -688,6 +718,10 @@ mod tests {
 						lane_id: TEST_LANE_ID,
 						bundled_range: 101..=200,
 						best_stored_nonce: 100,
+						unrewarded_relayers: Some(UnrewardedRelayerOccupation {
+							free_relayer_slots: MaxUnrewardedRelayerEntriesAtInboundLane::get(),
+							free_message_slots: MaxUnconfirmedMessagesAtInboundLane::get(),
+						}),
 					},
 				)),
 			),
@@ -713,6 +747,7 @@ mod tests {
 						lane_id: TEST_LANE_ID,
 						bundled_range: 101..=200,
 						best_stored_nonce: 100,
+						unrewarded_relayers: None,
 					},
 				)),
 			),
@@ -733,6 +768,10 @@ mod tests {
 						lane_id: TEST_LANE_ID,
 						bundled_range: 101..=200,
 						best_stored_nonce: 100,
+						unrewarded_relayers: Some(UnrewardedRelayerOccupation {
+							free_relayer_slots: MaxUnrewardedRelayerEntriesAtInboundLane::get(),
+							free_message_slots: MaxUnconfirmedMessagesAtInboundLane::get(),
+						}),
 					},
 				)),
 			),
@@ -753,6 +792,7 @@ mod tests {
 						lane_id: TEST_LANE_ID,
 						bundled_range: 101..=200,
 						best_stored_nonce: 100,
+						unrewarded_relayers: None,
 					},
 				)),
 			),
@@ -767,6 +807,10 @@ mod tests {
 					lane_id: TEST_LANE_ID,
 					bundled_range: 101..=200,
 					best_stored_nonce: 100,
+					unrewarded_relayers: Some(UnrewardedRelayerOccupation {
+						free_relayer_slots: MaxUnrewardedRelayerEntriesAtInboundLane::get(),
+						free_message_slots: MaxUnconfirmedMessagesAtInboundLane::get(),
+					}),
 				}),
 			)),
 		}
@@ -780,6 +824,7 @@ mod tests {
 					lane_id: TEST_LANE_ID,
 					bundled_range: 101..=200,
 					best_stored_nonce: 100,
+					unrewarded_relayers: None,
 				}),
 			)),
 		}
@@ -1135,6 +1180,30 @@ mod tests {
 	fn post_dispatch_ignores_transaction_that_has_not_delivered_any_messages() {
 		run_test(|| {
 			initialize_environment(200, 200, Default::default(), 100);
+
+			assert_storage_noop!(run_post_dispatch(Some(all_finality_pre_dispatch_data()), Ok(())));
+			assert_storage_noop!(run_post_dispatch(
+				Some(parachain_finality_pre_dispatch_data()),
+				Ok(())
+			));
+			assert_storage_noop!(run_post_dispatch(Some(delivery_pre_dispatch_data()), Ok(())));
+
+			assert_storage_noop!(run_post_dispatch(
+				Some(all_finality_confirmation_pre_dispatch_data()),
+				Ok(())
+			));
+			assert_storage_noop!(run_post_dispatch(
+				Some(parachain_finality_confirmation_pre_dispatch_data()),
+				Ok(())
+			));
+			assert_storage_noop!(run_post_dispatch(Some(confirmation_pre_dispatch_data()), Ok(())));
+		});
+	}
+
+	#[test]
+	fn post_dispatch_ignores_transaction_that_has_not_delivered_all_messages() {
+		run_test(|| {
+			initialize_environment(200, 200, Default::default(), 150);
 
 			assert_storage_noop!(run_post_dispatch(Some(all_finality_pre_dispatch_data()), Ok(())));
 			assert_storage_noop!(run_post_dispatch(
