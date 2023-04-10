@@ -228,7 +228,7 @@ where
 		match call.is_sub_type() {
 			Some(UtilityCall::<Runtime>::batch_all { ref calls }) if calls.len() <= 3 =>
 				calls.iter().collect(),
-			Some(_) => return vec![],
+			Some(_) => vec![],
 			None => vec![call],
 		}
 	}
