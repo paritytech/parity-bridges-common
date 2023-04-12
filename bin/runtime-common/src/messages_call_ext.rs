@@ -310,8 +310,6 @@ fn unrewarded_relayers_occupation<T: Config<I>, I: 'static>(
 		free_relayer_slots: T::MaxUnrewardedRelayerEntriesAtInboundLane::get()
 			.saturating_sub(inbound_lane_data.relayers.len() as MessageNonce),
 		free_message_slots: {
-			// 5 - 0 = 5 ==> 1,2,3,4,5
-			// 5 - 3 = 2 ==> 4,5
 			let unconfirmed_messages = inbound_lane_data
 				.last_delivered_nonce()
 				.saturating_sub(inbound_lane_data.last_confirmed_nonce);
