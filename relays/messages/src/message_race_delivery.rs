@@ -424,6 +424,7 @@ where
 		};
 
 		// check if we need unblocking transaction and we may submit it
+		#[allow(clippy::reversed_empty_ranges)]
 		let selected_nonces = match selected_nonces {
 			Some(selected_nonces) => selected_nonces,
 			None if unrewarded_limit_reached && outbound_state_proof_required => 1..=0,
@@ -1221,6 +1222,7 @@ mod tests {
 	}
 
 	#[async_std::test]
+	#[allow(clippy::reversed_empty_ranges)]
 	async fn delivery_race_is_able_to_unblock_lane() {
 		// step 1: messages 20..=23 are delivered from source to target at target block 2
 		fn at_target_block_2_deliver_messages(
