@@ -80,11 +80,8 @@ impl ReceiveMessagesProofInfo {
 				self.unrewarded_relayers.free_relayer_slots == 0 ||
 				// or if we can't accept new messages at all
 				self.unrewarded_relayers.free_message_slots == 0;
-			if empty_transactions_allowed {
-				return false
-			}
-
-			return true
+			
+			return !empty_transactions_allowed;
 		}
 
 		// otherwise we require bundled messages to continue stored range
