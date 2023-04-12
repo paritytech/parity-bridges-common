@@ -461,7 +461,6 @@ impl<P: MessageLane, SC, TC> MessageDeliveryStrategy<P, SC, TC> where
 			Some(selected_nonces) => selected_nonces,
 			None if unrewarded_limit_reached && outbound_state_proof_required => 1..=0,
 			None => return self.strategy.required_source_header_at_target(
-				&best_finalized_source_header_id_at_best_target,
 				race_state,
 			).await.map(RaceAction::RelayHeader),
 		};
@@ -516,7 +515,6 @@ where
 
 	async fn required_source_header_at_target<RS: RaceState<SourceHeaderIdOf<P>, TargetHeaderIdOf<P>>>(
 		&self,
-		current_best: &SourceHeaderIdOf<P>,
 		race_state: RS,
 	) -> Option<SourceHeaderIdOf<P>> {
 		// we have already submitted something - let's wait until it is mined
@@ -524,9 +522,10 @@ where
 			return None
 		}
 
+		let current_best = race_state.best_finalized_source_header_id_at_best_target()?;
 		let has_nonces_to_deliver = !self.strategy.is_empty();
 		let header_required_for_messages_delivery =
-			self.strategy.required_source_header_at_target(current_best, race_state).await;
+			self.strategy.required_source_header_at_target(race_state).await;
 		let header_required_for_reward_confirmations_delivery = self
 			.latest_confirmed_nonces_at_source
 			.back()
@@ -1053,7 +1052,7 @@ mod tests {
 		);
 		// nothing needs to be delivered now and we don't need any new headers
 		assert_eq!(strategy.select_nonces_to_deliver(state.clone()).await, None);
-		assert_eq!(strategy.required_source_header_at_target(&header_id(1), state.clone()).await, None);
+		assert_eq!(strategy.required_source_header_at_target(state.clone()).await, None);
 
 		// now let's generate two more nonces [24; 25] at the soruce;
 		strategy.source_nonces_updated(header_id(2), source_nonces(24..=25, 19, 0));
@@ -1061,7 +1060,7 @@ mod tests {
 		// - so now we'll need to relay source block#2 to be able to accept messages [24; 25].
 		assert_eq!(strategy.select_nonces_to_deliver(state.clone()).await, None);
 		assert_eq!(
-			strategy.required_source_header_at_target(&header_id(1), state.clone()).await,
+			strategy.required_source_header_at_target(state.clone()).await,
 			Some(header_id(2))
 		);
 
@@ -1074,7 +1073,7 @@ mod tests {
 		// and ask strategy again => still nothing to deliver, because parallel confirmations
 		// race need to be pushed further
 		assert_eq!(strategy.select_nonces_to_deliver(state.clone()).await, None);
-		assert_eq!(strategy.required_source_header_at_target(&header_id(2), state.clone()).await, None);
+		assert_eq!(strategy.required_source_header_at_target(state.clone()).await, None);
 
 		// let's confirm messages [20; 23]
 		strategy.source_nonces_updated(header_id(2), source_nonces(24..=25, 23, 0));
@@ -1085,7 +1084,7 @@ mod tests {
 			strategy.select_nonces_to_deliver(state.clone()).await,
 			Some(((24..=25), proof_parameters(true, 2))),
 		);
-		assert_eq!(strategy.required_source_header_at_target(&header_id(2), state).await, None);
+		assert_eq!(strategy.required_source_header_at_target(state).await, None);
 	}
 
 	#[async_std::test]
@@ -1146,7 +1145,7 @@ mod tests {
 			strategy.latest_confirmed_nonces_at_source,
 			VecDeque::from([(source_header_id, 0)])
 		);
-		assert_eq!(strategy.required_source_header_at_target(&source_header_id, state).await, None);
+		assert_eq!(strategy.required_source_header_at_target(state).await, None);
 	}
 
 	#[async_std::test]
@@ -1307,7 +1306,7 @@ mod tests {
 			max_unconfirmed_nonces_at_target - 1,
 		);
 		at_source_block_2_deliver_confirmations(&mut strategy, &mut state);
-		assert_eq!(strategy.required_source_header_at_target(&header_id(2), state.clone()).await, None);
+		assert_eq!(strategy.required_source_header_at_target(state.clone()).await, None);
 		assert_eq!(at_target_block_3_select_nonces_to_deliver(&strategy, state).await, None);
 
 		// when lane is blocked by no-relayer-slots in unrewarded relayers vector
@@ -1320,7 +1319,7 @@ mod tests {
 		);
 		at_source_block_2_deliver_confirmations(&mut strategy, &mut state);
 		assert_eq!(
-			strategy.required_source_header_at_target(&header_id(2), state.clone()).await,
+			strategy.required_source_header_at_target(state.clone()).await,
 			Some(header_id(2))
 		);
 		assert_eq!(
@@ -1338,7 +1337,7 @@ mod tests {
 		);
 		at_source_block_2_deliver_confirmations(&mut strategy, &mut state);
 		assert_eq!(
-			strategy.required_source_header_at_target(&header_id(2), state.clone()).await,
+			strategy.required_source_header_at_target(state.clone()).await,
 			Some(header_id(2))
 		);
 		assert_eq!(
@@ -1357,7 +1356,7 @@ mod tests {
 		);
 		at_source_block_2_deliver_confirmations(&mut strategy, &mut state);
 		assert_eq!(
-			strategy.required_source_header_at_target(&header_id(2), state.clone()).await,
+			strategy.required_source_header_at_target(state.clone()).await,
 			Some(header_id(2))
 		);
 		assert_eq!(
