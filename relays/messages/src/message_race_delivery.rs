@@ -303,11 +303,7 @@ impl<P: MessageLane, SC, TC> MessageDeliveryStrategy<P, SC, TC> where
 		let best_finalized_source_header_id_at_best_target =
 			race_state.best_finalized_source_header_id_at_best_target()?;
 		let latest_confirmed_nonce_at_source = self
-			.latest_confirmed_nonces_at_source
-			.iter()
-			.take_while(|(id, _)| id.0 <= best_finalized_source_header_id_at_best_target.0)
-			.last()
-			.map(|(_, nonce)| *nonce)
+			.latest_confirmed_nonce_at_source(&best_finalized_source_header_id_at_best_target)
 			.unwrap_or(best_target_nonce);
 		let target_nonces = self.target_nonces.as_ref()?;
 
@@ -438,6 +434,16 @@ impl<P: MessageLane, SC, TC> MessageDeliveryStrategy<P, SC, TC> where
 			selected_nonces,
 			MessageProofParameters { outbound_state_proof_required, dispatch_weight },
 		))
+	}
+
+	/// Returns lastest confirmed message at source chain, given source block.
+	fn latest_confirmed_nonce_at_source(&self, at: &SourceHeaderIdOf<P>) -> Option<MessageNonce> {
+		self
+			.latest_confirmed_nonces_at_source
+			.iter()
+			.take_while(|(id, _)| id.0 <= at.0)
+			.last()
+			.map(|(_, nonce)| *nonce)
 	}
 
 	/// Returns total weight of all undelivered messages.
