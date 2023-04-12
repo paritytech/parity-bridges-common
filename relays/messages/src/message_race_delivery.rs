@@ -290,24 +290,6 @@ impl<P: MessageLane, SC, TC> std::fmt::Debug for MessageDeliveryStrategy<P, SC, 
 	}
 }
 
-/// Delivery race action.
-enum RaceAction<SourceHeaderId> {
-	/// Relay given source header to target.
-	RelayHeader(SourceHeaderId),
-	/// Relay given messages to target.
-	RelayMessages(RangeInclusive<MessageNonce>, MessageProofParameters),
-}
-
-impl<SourceHeaderId> RaceAction<SourceHeaderId> {
-	/// Convert self into messages relay request.
-	fn into_relay_messages(self) -> Option<(RangeInclusive<MessageNonce>, MessageProofParameters)> {
-		match self {
-			Self::RelayMessages(messages, proof_parameters) => Some((messages, proof_parameters)),
-			_ => None,
-		}
-	}
-}
-
 impl<P: MessageLane, SC, TC> MessageDeliveryStrategy<P, SC, TC> where
 	P: MessageLane,
 	SC: MessageLaneSourceClient<P>,
@@ -316,7 +298,7 @@ impl<P: MessageLane, SC, TC> MessageDeliveryStrategy<P, SC, TC> where
 	async fn select_race_action<RS: RaceState<SourceHeaderIdOf<P>, TargetHeaderIdOf<P>>>(
 		&self,
 		race_state: RS,
-	) -> Option<RaceAction<SourceHeaderIdOf<P>>> {
+	) -> Option<(RangeInclusive<MessageNonce>, MessageProofParameters)> {
 		let best_target_nonce = self.strategy.best_at_target()?;
 		let best_finalized_source_header_id_at_best_target =
 			race_state.best_finalized_source_header_id_at_best_target()?;
@@ -382,23 +364,7 @@ impl<P: MessageLane, SC, TC> MessageDeliveryStrategy<P, SC, TC> where
 			let enough_rewards_being_proved = number_of_rewards_being_proved >=
 				target_nonces.nonces_data.unrewarded_relayers.messages_in_oldest_entry;
 			if !enough_rewards_being_proved {
-				// we can't submit delivery transaction right now, but maybe we can ask for more
-				// source headers at target node, thus increasing the `latest_confirmed_nonce_at_source`
-				// and opening way to delivery transaction?
-				let future_best_finalized_source_header_id_at_best_target = race_state
-					.best_finalized_source_header_id_at_source()?;
-				let future_latest_confirmed_nonce_at_source = self
-					.latest_confirmed_nonce_at_source(&future_best_finalized_source_header_id_at_best_target)
-					.unwrap_or(best_target_nonce);
-				let future_number_of_rewards_being_proved =
-					future_latest_confirmed_nonce_at_source.saturating_sub(latest_confirmed_nonce_at_target);
-				let future_enough_rewards_being_proved = future_number_of_rewards_being_proved >=
-					target_nonces.nonces_data.unrewarded_relayers.messages_in_oldest_entry;
-				if future_enough_rewards_being_proved {
-					return Some(RaceAction::RelayHeader(future_best_finalized_source_header_id_at_best_target));
-				} else {
-					return None;
-				}
+				return None
 			}
 		}
 
@@ -431,7 +397,7 @@ impl<P: MessageLane, SC, TC> MessageDeliveryStrategy<P, SC, TC> where
 		let lane_target_client = self.lane_target_client.clone();
 
 		// select nonces from nonces, available for delivery
-		let selected_nonces = match self.strategy.available_source_queue_indices(race_state.clone()) {
+		let selected_nonces = match self.strategy.available_source_queue_indices(race_state) {
 			Some(available_source_queue_indices) => {
 				let source_queue = self.strategy.source_queue();
 				let reference = RelayMessagesBatchReference {
@@ -460,13 +426,11 @@ impl<P: MessageLane, SC, TC> MessageDeliveryStrategy<P, SC, TC> where
 		let selected_nonces = match selected_nonces {
 			Some(selected_nonces) => selected_nonces,
 			None if unrewarded_limit_reached && outbound_state_proof_required => 1..=0,
-			None => return self.strategy.required_source_header_at_target(
-				race_state,
-			).await.map(RaceAction::RelayHeader),
+			_ => return None,
 		};
 
 		let dispatch_weight = self.dispatch_weight_for_range(&selected_nonces);
-		Some(RaceAction::RelayMessages(
+		Some((
 			selected_nonces,
 			MessageProofParameters { outbound_state_proof_required, dispatch_weight },
 		))
@@ -627,9 +591,7 @@ where
 		&self,
 		race_state: RS,
 	) -> Option<(RangeInclusive<MessageNonce>, Self::ProofParameters)> {
-		self.select_race_action(race_state)
-			.await
-			.and_then(RaceAction::into_relay_messages)
+		self.select_race_action(race_state).await
 	}
 }
 

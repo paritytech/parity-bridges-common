@@ -41,14 +41,14 @@ use std::{
 /// One of races within lane.
 pub trait MessageRace {
 	/// Header id of the race source.
-	type SourceHeaderId: Debug + Clone + PartialEq + Send + Sync;
+	type SourceHeaderId: Debug + Clone + PartialEq + Send;
 	/// Header id of the race source.
-	type TargetHeaderId: Debug + Clone + PartialEq + Send + Sync;
+	type TargetHeaderId: Debug + Clone + PartialEq + Send;
 
 	/// Message nonce used in the race.
 	type MessageNonce: Debug + Clone;
 	/// Proof that is generated and delivered in this race.
-	type Proof: Debug + Clone + Send + Sync;
+	type Proof: Debug + Clone + Send;
 
 	/// Name of the race source.
 	fn source_name() -> String;
@@ -217,7 +217,7 @@ pub trait RaceStrategy<SourceHeaderId, TargetHeaderId, Proof>: Debug {
 }
 
 /// State of the race.
-pub trait RaceState<SourceHeaderId, TargetHeaderId>: Clone + Send + Sync {
+pub trait RaceState<SourceHeaderId, TargetHeaderId>: Send {
 	/// Best finalized source header id at the source client.
 	fn best_finalized_source_header_id_at_source(&self) -> Option<SourceHeaderId>;
 	/// Best finalized source header id at the best block on the target
@@ -280,10 +280,10 @@ impl<SourceHeaderId, TargetHeaderId, Proof, BatchTx> Default
 impl<SourceHeaderId, TargetHeaderId, Proof, BatchTx> RaceState<SourceHeaderId, TargetHeaderId>
 	for RaceStateImpl<SourceHeaderId, TargetHeaderId, Proof, BatchTx>
 where
-	SourceHeaderId: Clone + Send + Sync,
-	TargetHeaderId: Clone + Send + Sync,
-	Proof: Clone + Send + Sync,
-	BatchTx: Clone + Send + Sync,
+	SourceHeaderId: Clone + Send,
+	TargetHeaderId: Clone + Send,
+	Proof: Clone + Send,
+	BatchTx: Clone + Send,
 {
 	fn best_finalized_source_header_id_at_source(&self) -> Option<SourceHeaderId> {
 		self.best_finalized_source_header_id_at_source.clone()
