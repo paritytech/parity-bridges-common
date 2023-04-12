@@ -205,7 +205,7 @@ impl<
 		self.source_queue.is_empty()
 	}
 
-	fn required_source_header_at_target<
+	async fn required_source_header_at_target<
 		RS: RaceState<
 			HeaderId<SourceHeaderHash, SourceHeaderNumber>,
 			HeaderId<TargetHeaderHash, TargetHeaderNumber>,

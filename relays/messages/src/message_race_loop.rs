@@ -175,7 +175,7 @@ pub trait RaceStrategy<SourceHeaderId, TargetHeaderId, Proof>: Debug {
 	/// Should return true if nothing has to be synced.
 	fn is_empty(&self) -> bool;
 	/// Return id of source header that is required to be on target to continue synchronization.
-	fn required_source_header_at_target<RS: RaceState<SourceHeaderId, TargetHeaderId>>(
+	async fn required_source_header_at_target<RS: RaceState<SourceHeaderId, TargetHeaderId>>(
 		&self,
 		current_best: &SourceHeaderId,
 		race_state: RS,
@@ -430,10 +430,12 @@ pub async fn run<P: MessageRace, SC: SourceClient<P>, TC: TargetClient<P>>(
 				).fail_if_connection_error(FailedClient::Source)?;
 
 				// ask for more headers if we have nonces to deliver and required headers are missing
-				source_required_header = race_state
-					.best_finalized_source_header_id_at_best_target
-					.as_ref()
-					.and_then(|best| strategy.required_source_header_at_target(best, race_state.clone()));
+				source_required_header = match race_state.best_finalized_source_header_id_at_best_target {
+					Some(ref best) => strategy
+						.required_source_header_at_target(best, race_state.clone())
+						.await,
+					None => None,
+				}
 			},
 			nonces = target_best_nonces => {
 				target_best_nonces_required = false;
