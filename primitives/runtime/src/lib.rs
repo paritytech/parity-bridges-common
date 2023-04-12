@@ -523,7 +523,7 @@ impl<T> Debug for StrippableError<T> {
 	}
 }
 
-trait RangeInclusiveExt<Idx> {
+pub trait RangeInclusiveExt<Idx> {
 	fn checked_len(&self) -> Option<Idx>;
 }
 
