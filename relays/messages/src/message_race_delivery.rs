@@ -290,7 +290,8 @@ impl<P: MessageLane, SC, TC> std::fmt::Debug for MessageDeliveryStrategy<P, SC, 
 	}
 }
 
-impl<P: MessageLane, SC, TC> MessageDeliveryStrategy<P, SC, TC> where
+impl<P: MessageLane, SC, TC> MessageDeliveryStrategy<P, SC, TC>
+where
 	P: MessageLane,
 	SC: MessageLaneSourceClient<P>,
 	TC: MessageLaneTargetClient<P>,
@@ -438,8 +439,7 @@ impl<P: MessageLane, SC, TC> MessageDeliveryStrategy<P, SC, TC> where
 
 	/// Returns lastest confirmed message at source chain, given source block.
 	fn latest_confirmed_nonce_at_source(&self, at: &SourceHeaderIdOf<P>) -> Option<MessageNonce> {
-		self
-			.latest_confirmed_nonces_at_source
+		self.latest_confirmed_nonces_at_source
 			.iter()
 			.take_while(|(id, _)| id.0 <= at.0)
 			.last()
@@ -477,51 +477,54 @@ where
 		self.strategy.is_empty()
 	}
 
-	async fn required_source_header_at_target<RS: RaceState<SourceHeaderIdOf<P>, TargetHeaderIdOf<P>>>(
+	async fn required_source_header_at_target<
+		RS: RaceState<SourceHeaderIdOf<P>, TargetHeaderIdOf<P>>,
+	>(
 		&self,
 		race_state: RS,
 	) -> Option<SourceHeaderIdOf<P>> {
 		// we have already submitted something - let's wait until it is mined
 		if race_state.nonces_submitted().is_some() {
-			return None;
+			return None
 		}
 
 		// if we can deliver something using current race state, go on
 		let selected_nonces = self.select_race_action(race_state.clone()).await;
 		if selected_nonces.is_some() {
-			return None;
+			return None
 		}
 
 		// check if we may deliver some messages if we'll relay require source header
 		// to target first
-		let maybe_source_header_for_delivery = self
-			.strategy
-			.source_queue()
-			.back()
-			.map(|(id, _)| id.clone());
+		let maybe_source_header_for_delivery =
+			self.strategy.source_queue().back().map(|(id, _)| id.clone());
 		if let Some(source_header_for_delivery) = maybe_source_header_for_delivery {
 			let mut race_state = race_state.clone();
-			race_state.set_best_finalized_source_header_id_at_best_target(source_header_for_delivery.clone());
+			race_state.set_best_finalized_source_header_id_at_best_target(
+				source_header_for_delivery.clone(),
+			);
 
 			let selected_nonces = self.select_race_action(race_state.clone()).await;
 			if selected_nonces.is_some() {
-				return Some(source_header_for_delivery);
+				return Some(source_header_for_delivery)
 			}
 		}
 
 		// ok, we can't delivery anything even if we relay some source blocks first. But maybe
 		// the lane is blocked and we need to submit unblock transaction?
-		let maybe_source_header_for_reward_confirmation = self
-			.latest_confirmed_nonces_at_source
-			.back()
-			.map(|(id, _)| id.clone());
-		if let Some(source_header_for_reward_confirmation) = maybe_source_header_for_reward_confirmation {
+		let maybe_source_header_for_reward_confirmation =
+			self.latest_confirmed_nonces_at_source.back().map(|(id, _)| id.clone());
+		if let Some(source_header_for_reward_confirmation) =
+			maybe_source_header_for_reward_confirmation
+		{
 			let mut race_state = race_state.clone();
-			race_state.set_best_finalized_source_header_id_at_best_target(source_header_for_reward_confirmation.clone());
+			race_state.set_best_finalized_source_header_id_at_best_target(
+				source_header_for_reward_confirmation.clone(),
+			);
 
 			let selected_nonces = self.select_race_action(race_state.clone()).await;
 			if selected_nonces.is_some() {
-				return Some(source_header_for_reward_confirmation);
+				return Some(source_header_for_reward_confirmation)
 			}
 		}
 

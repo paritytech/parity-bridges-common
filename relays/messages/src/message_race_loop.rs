@@ -221,7 +221,7 @@ pub trait RaceState<SourceHeaderId, TargetHeaderId>: Clone + Send + Sync {
 	/// Set best finalized source header id at the best block on the target
 	/// client (at the `best_finalized_source_header_id_at_best_target`).
 	fn set_best_finalized_source_header_id_at_best_target(&mut self, id: SourceHeaderId);
-	
+
 	/// Best finalized source header id at the source client.
 	fn best_finalized_source_header_id_at_source(&self) -> Option<SourceHeaderId>;
 	/// Best finalized source header id at the best block on the target

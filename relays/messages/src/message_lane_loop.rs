@@ -632,7 +632,8 @@ pub(crate) mod tests {
 			self.target_state.best_finalized_self = self.target_state.best_self;
 			self.target_latest_received_nonce = *proof.0.end();
 			if let Some(maybe_batch_tx) = maybe_batch_tx {
-				self.target_state.best_finalized_peer_at_best_self = Some(maybe_batch_tx.required_header_id());
+				self.target_state.best_finalized_peer_at_best_self =
+					Some(maybe_batch_tx.required_header_id());
 			}
 			if let Some(target_latest_confirmed_received_nonce) = proof.1 {
 				self.target_latest_confirmed_received_nonce =
@@ -650,7 +651,8 @@ pub(crate) mod tests {
 				HeaderId(self.source_state.best_self.0 + 1, self.source_state.best_self.1 + 1);
 			self.source_state.best_finalized_self = self.source_state.best_self;
 			if let Some(maybe_batch_tx) = maybe_batch_tx {
-				self.source_state.best_finalized_peer_at_best_self = Some(maybe_batch_tx.required_header_id());
+				self.source_state.best_finalized_peer_at_best_self =
+					Some(maybe_batch_tx.required_header_id());
 			}
 			self.submitted_messages_receiving_proofs.push(proof);
 			self.source_latest_confirmed_received_nonce = proof;
