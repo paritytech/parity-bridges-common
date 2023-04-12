@@ -483,36 +483,49 @@ where
 	) -> Option<SourceHeaderIdOf<P>> {
 		// we have already submitted something - let's wait until it is mined
 		if race_state.nonces_submitted().is_some() {
-			return None
+			return None;
 		}
 
-		let current_best = race_state.best_finalized_source_header_id_at_best_target()?;
-		let has_nonces_to_deliver = !self.strategy.is_empty();
-		let header_required_for_messages_delivery =
-			self.strategy.required_source_header_at_target(race_state).await;
-		let header_required_for_reward_confirmations_delivery = self
+		// if we can deliver something using current race state, go on
+		let selected_nonces = self.select_race_action(race_state.clone()).await;
+		if selected_nonces.is_some() {
+			return None;
+		}
+
+		// check if we may deliver some messages if we'll relay require source header
+		// to target first
+		let maybe_source_header_for_delivery = self
+			.strategy
+			.source_queue()
+			.back()
+			.map(|(id, _)| id.clone());
+		if let Some(source_header_for_delivery) = maybe_source_header_for_delivery {
+			let mut race_state = race_state.clone();
+			race_state.set_best_finalized_source_header_id_at_best_target(source_header_for_delivery.clone());
+
+			let selected_nonces = self.select_race_action(race_state.clone()).await;
+			if selected_nonces.is_some() {
+				return Some(source_header_for_delivery);
+			}
+		}
+
+		// ok, we can't delivery anything even if we relay some source blocks first. But maybe
+		// the lane is blocked and we need to submit unblock transaction?
+		let maybe_source_header_for_reward_confirmation = self
 			.latest_confirmed_nonces_at_source
 			.back()
-			.filter(|(id, nonce)| *nonce != 0 && id.0 > current_best.0)
 			.map(|(id, _)| id.clone());
-		match (
-			has_nonces_to_deliver,
-			header_required_for_messages_delivery,
-			header_required_for_reward_confirmations_delivery,
-		) {
-			// if we need to delver messages and proof-of-delivery-confirmations, then we need to
-			// select the most recent header to avoid extra roundtrips
-			(true, Some(id1), Some(id2)) => Some(if id1.0 > id2.0 { id1 } else { id2 }),
-			// if we only need to deliver messages - fine, let's require some source header
-			//
-			// if we need new header for proof-of-delivery-confirmations - let's also ask for that.
-			// Even though it may require additional header, we'll be sure that we won't block the
-			// lane (sometimes we can't deliver messages without proof-of-delivery-confirmations)
-			(true, a, b) => a.or(b),
-			// we never submit delivery transaction without messages, so if `has_nonces_to_deliver`
-			// if `false`, we don't need any source headers at target
-			(false, _, _) => None,
+		if let Some(source_header_for_reward_confirmation) = maybe_source_header_for_reward_confirmation {
+			let mut race_state = race_state.clone();
+			race_state.set_best_finalized_source_header_id_at_best_target(source_header_for_reward_confirmation.clone());
+
+			let selected_nonces = self.select_race_action(race_state.clone()).await;
+			if selected_nonces.is_some() {
+				return Some(source_header_for_reward_confirmation);
+			}
 		}
+
+		None
 	}
 
 	fn best_at_source(&self) -> Option<MessageNonce> {
@@ -1016,29 +1029,39 @@ mod tests {
 		assert_eq!(strategy.select_nonces_to_deliver(state.clone()).await, None);
 		assert_eq!(strategy.required_source_header_at_target(state.clone()).await, None);
 
-		// now let's generate two more nonces [24; 25] at the soruce;
-		strategy.source_nonces_updated(header_id(2), source_nonces(24..=25, 19, 0));
-		//
-		// - so now we'll need to relay source block#2 to be able to accept messages [24; 25].
-		assert_eq!(strategy.select_nonces_to_deliver(state.clone()).await, None);
-		assert_eq!(
-			strategy.required_source_header_at_target(state.clone()).await,
-			Some(header_id(2))
-		);
-
-		// let's relay source block#2
+		// block#2 is generated
 		state.best_finalized_source_header_id_at_source = Some(header_id(2));
 		state.best_finalized_source_header_id_at_best_target = Some(header_id(2));
 		state.best_target_header_id = Some(header_id(2));
 		state.best_finalized_target_header_id = Some(header_id(2));
+
+		// now let's generate two more nonces [24; 25] at the source;
+		strategy.source_nonces_updated(header_id(2), source_nonces(24..=25, 19, 0));
+		//
+		// we don't need to relay more headers to target, because messages [20; 23] have
+		// not confirmed to source yet
+		assert_eq!(strategy.select_nonces_to_deliver(state.clone()).await, None);
+		assert_eq!(strategy.required_source_header_at_target(state.clone()).await, None);
+
+		// let's relay source block#3
+		state.best_finalized_source_header_id_at_source = Some(header_id(3));
+		state.best_finalized_source_header_id_at_best_target = Some(header_id(3));
+		state.best_target_header_id = Some(header_id(3));
+		state.best_finalized_target_header_id = Some(header_id(3));
 
 		// and ask strategy again => still nothing to deliver, because parallel confirmations
 		// race need to be pushed further
 		assert_eq!(strategy.select_nonces_to_deliver(state.clone()).await, None);
 		assert_eq!(strategy.required_source_header_at_target(state.clone()).await, None);
 
+		// let's relay source block#3
+		state.best_finalized_source_header_id_at_source = Some(header_id(4));
+		state.best_finalized_source_header_id_at_best_target = Some(header_id(4));
+		state.best_target_header_id = Some(header_id(4));
+		state.best_finalized_target_header_id = Some(header_id(4));
+
 		// let's confirm messages [20; 23]
-		strategy.source_nonces_updated(header_id(2), source_nonces(24..=25, 23, 0));
+		strategy.source_nonces_updated(header_id(4), source_nonces(24..=25, 23, 0));
 
 		// and ask strategy again => now we have everything required to deliver remaining
 		// [24; 25] nonces and proof of [20; 23] confirmation

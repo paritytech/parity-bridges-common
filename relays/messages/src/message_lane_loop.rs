@@ -111,7 +111,7 @@ pub struct NoncesSubmitArtifacts<T> {
 
 /// Batch transaction that already submit some headers and needs to be extended with
 /// messages/delivery proof before sending.
-pub trait BatchTransaction<HeaderId>: Debug + Send {
+pub trait BatchTransaction<HeaderId>: Debug + Send + Sync {
 	/// Header that was required in the original call and which is bundled within this
 	/// batch transaction.
 	fn required_header_id(&self) -> HeaderId;
@@ -1204,7 +1204,6 @@ pub(crate) mod tests {
 
 	#[test]
 	fn message_lane_loop_works_with_batch_transactions() {
-		let _ = env_logger::try_init();
 		let (exit_sender, exit_receiver) = unbounded();
 		let original_data = Arc::new(Mutex::new(TestClientData {
 			source_state: ClientState {
