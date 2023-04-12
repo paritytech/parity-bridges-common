@@ -515,6 +515,18 @@ where
 			crate::priority_calculator::compute_priority_boost::<Priority>(bundled_messages);
 		valid_transaction = valid_transaction.priority(priority_boost);
 
+		log::trace!(
+			target: "runtime::bridge",
+			"{} from parachain {} via {:?} has boosted priority of message delivery transaction \
+			of relayer {:?}: {} messages -> {} priority",
+			Self::IDENTIFIER,
+			Para::Id::get(),
+			Msgs::Id::get(),
+			who,
+			bundled_messages,
+			priority_boost,
+		);
+
 		valid_transaction.build()
 	}
 
