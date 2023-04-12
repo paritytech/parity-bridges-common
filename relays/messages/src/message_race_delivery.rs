@@ -290,7 +290,156 @@ impl<P: MessageLane, SC, TC> std::fmt::Debug for MessageDeliveryStrategy<P, SC, 
 	}
 }
 
-impl<P: MessageLane, SC, TC> MessageDeliveryStrategy<P, SC, TC> {
+impl<P: MessageLane, SC, TC> MessageDeliveryStrategy<P, SC, TC> where
+	P: MessageLane,
+	SC: MessageLaneSourceClient<P>,
+	TC: MessageLaneTargetClient<P>,
+{
+	async fn select_race_action<RS: RaceState<SourceHeaderIdOf<P>, TargetHeaderIdOf<P>>>(
+		&self,
+		race_state: RS,
+	) -> Option<(RangeInclusive<MessageNonce>, MessageProofParameters)> {
+		let best_target_nonce = self.strategy.best_at_target()?;
+		let best_finalized_source_header_id_at_best_target =
+			race_state.best_finalized_source_header_id_at_best_target()?;
+		let latest_confirmed_nonce_at_source = self
+			.latest_confirmed_nonces_at_source
+			.iter()
+			.take_while(|(id, _)| id.0 <= best_finalized_source_header_id_at_best_target.0)
+			.last()
+			.map(|(_, nonce)| *nonce)
+			.unwrap_or(best_target_nonce);
+		let target_nonces = self.target_nonces.as_ref()?;
+
+		// There's additional condition in the message delivery race: target would reject messages
+		// if there are too much unconfirmed messages at the inbound lane.
+
+		// The receiving race is responsible to deliver confirmations back to the source chain. So
+		// if there's a lot of unconfirmed messages, let's wait until it'll be able to do its job.
+		let latest_received_nonce_at_target = target_nonces.latest_nonce;
+		let confirmations_missing =
+			latest_received_nonce_at_target.checked_sub(latest_confirmed_nonce_at_source);
+		match confirmations_missing {
+			Some(confirmations_missing)
+				if confirmations_missing >= self.max_unconfirmed_nonces_at_target =>
+			{
+				log::debug!(
+					target: "bridge",
+					"Cannot deliver any more messages from {} to {}. Too many unconfirmed nonces \
+					at target: target.latest_received={:?}, source.latest_confirmed={:?}, max={:?}",
+					MessageDeliveryRace::<P>::source_name(),
+					MessageDeliveryRace::<P>::target_name(),
+					latest_received_nonce_at_target,
+					latest_confirmed_nonce_at_source,
+					self.max_unconfirmed_nonces_at_target,
+				);
+
+				return None
+			},
+			_ => (),
+		}
+
+		// Ok - we may have new nonces to deliver. But target may still reject new messages, because
+		// we haven't notified it that (some) messages have been confirmed. So we may want to
+		// include updated `source.latest_confirmed` in the proof.
+		//
+		// Important note: we're including outbound state lane proof whenever there are unconfirmed
+		// nonces on the target chain. Other strategy is to include it only if it's absolutely
+		// necessary.
+		let latest_confirmed_nonce_at_target = target_nonces.nonces_data.confirmed_nonce;
+		let outbound_state_proof_required =
+			latest_confirmed_nonce_at_target < latest_confirmed_nonce_at_source;
+
+		// The target node would also reject messages if there are too many entries in the
+		// "unrewarded relayers" set. If we are unable to prove new rewards to the target node, then
+		// we should wait for confirmations race.
+		let unrewarded_limit_reached =
+			target_nonces.nonces_data.unrewarded_relayers.unrewarded_relayer_entries >=
+				self.max_unrewarded_relayer_entries_at_target ||
+				target_nonces.nonces_data.unrewarded_relayers.total_messages >=
+					self.max_unconfirmed_nonces_at_target;
+		if unrewarded_limit_reached {
+			// so there are already too many unrewarded relayer entries in the set
+			//
+			// => check if we can prove enough rewards. If not, we should wait for more rewards to
+			// be paid
+			let number_of_rewards_being_proved =
+				latest_confirmed_nonce_at_source.saturating_sub(latest_confirmed_nonce_at_target);
+			let enough_rewards_being_proved = number_of_rewards_being_proved >=
+				target_nonces.nonces_data.unrewarded_relayers.messages_in_oldest_entry;
+			if !enough_rewards_being_proved {
+				return None
+			}
+		}
+
+		// If we're here, then the confirmations race did its job && sending side now knows that
+		// messages have been delivered. Now let's select nonces that we want to deliver.
+		//
+		// We may deliver at most:
+		//
+		// max_unconfirmed_nonces_at_target - (latest_received_nonce_at_target -
+		// latest_confirmed_nonce_at_target)
+		//
+		// messages in the batch. But since we're including outbound state proof in the batch, then
+		// it may be increased to:
+		//
+		// max_unconfirmed_nonces_at_target - (latest_received_nonce_at_target -
+		// latest_confirmed_nonce_at_source)
+		let future_confirmed_nonce_at_target = if outbound_state_proof_required {
+			latest_confirmed_nonce_at_source
+		} else {
+			latest_confirmed_nonce_at_target
+		};
+		let max_nonces = latest_received_nonce_at_target
+			.checked_sub(future_confirmed_nonce_at_target)
+			.and_then(|diff| self.max_unconfirmed_nonces_at_target.checked_sub(diff))
+			.unwrap_or_default();
+		let max_nonces = std::cmp::min(max_nonces, self.max_messages_in_single_batch);
+		let max_messages_weight_in_single_batch = self.max_messages_weight_in_single_batch;
+		let max_messages_size_in_single_batch = self.max_messages_size_in_single_batch;
+		let lane_source_client = self.lane_source_client.clone();
+		let lane_target_client = self.lane_target_client.clone();
+
+		// select nonces from nonces, available for delivery
+		let selected_nonces = match self.strategy.available_source_queue_indices(race_state) {
+			Some(available_source_queue_indices) => {
+				let source_queue = self.strategy.source_queue();
+				let reference = RelayMessagesBatchReference {
+					max_messages_in_this_batch: max_nonces,
+					max_messages_weight_in_single_batch,
+					max_messages_size_in_single_batch,
+					lane_source_client: lane_source_client.clone(),
+					lane_target_client: lane_target_client.clone(),
+					best_target_nonce,
+					nonces_queue: source_queue.clone(),
+					nonces_queue_range: available_source_queue_indices,
+					metrics: self.metrics_msg.clone(),
+				};
+
+				MessageRaceLimits::decide(reference).await
+			},
+			None => {
+				// we still may need to submit delivery transaction with zero messages to
+				// unblock the lane. But it'll only be accepted if the lane is blocked
+				// (i.e. when `unrewarded_limit_reached` is `true`)
+				None
+			},
+		};
+
+		// check if we need unblocking transaction and we may submit it
+		let selected_nonces = match selected_nonces {
+			Some(selected_nonces) => selected_nonces,
+			None if unrewarded_limit_reached && outbound_state_proof_required => 1..=0,
+			_ => return None,
+		};
+
+		let dispatch_weight = self.dispatch_weight_for_range(&selected_nonces);
+		Some((
+			selected_nonces,
+			MessageProofParameters { outbound_state_proof_required, dispatch_weight },
+		))
+	}
+
 	/// Returns total weight of all undelivered messages.
 	fn dispatch_weight_for_range(&self, range: &RangeInclusive<MessageNonce>) -> Weight {
 		self.strategy
@@ -436,146 +585,7 @@ where
 		&self,
 		race_state: RS,
 	) -> Option<(RangeInclusive<MessageNonce>, Self::ProofParameters)> {
-		let best_target_nonce = self.strategy.best_at_target()?;
-		let best_finalized_source_header_id_at_best_target =
-			race_state.best_finalized_source_header_id_at_best_target()?;
-		let latest_confirmed_nonce_at_source = self
-			.latest_confirmed_nonces_at_source
-			.iter()
-			.take_while(|(id, _)| id.0 <= best_finalized_source_header_id_at_best_target.0)
-			.last()
-			.map(|(_, nonce)| *nonce)
-			.unwrap_or(best_target_nonce);
-		let target_nonces = self.target_nonces.as_ref()?;
-
-		// There's additional condition in the message delivery race: target would reject messages
-		// if there are too much unconfirmed messages at the inbound lane.
-
-		// The receiving race is responsible to deliver confirmations back to the source chain. So
-		// if there's a lot of unconfirmed messages, let's wait until it'll be able to do its job.
-		let latest_received_nonce_at_target = target_nonces.latest_nonce;
-		let confirmations_missing =
-			latest_received_nonce_at_target.checked_sub(latest_confirmed_nonce_at_source);
-		match confirmations_missing {
-			Some(confirmations_missing)
-				if confirmations_missing >= self.max_unconfirmed_nonces_at_target =>
-			{
-				log::debug!(
-					target: "bridge",
-					"Cannot deliver any more messages from {} to {}. Too many unconfirmed nonces \
-					at target: target.latest_received={:?}, source.latest_confirmed={:?}, max={:?}",
-					MessageDeliveryRace::<P>::source_name(),
-					MessageDeliveryRace::<P>::target_name(),
-					latest_received_nonce_at_target,
-					latest_confirmed_nonce_at_source,
-					self.max_unconfirmed_nonces_at_target,
-				);
-
-				return None
-			},
-			_ => (),
-		}
-
-		// Ok - we may have new nonces to deliver. But target may still reject new messages, because
-		// we haven't notified it that (some) messages have been confirmed. So we may want to
-		// include updated `source.latest_confirmed` in the proof.
-		//
-		// Important note: we're including outbound state lane proof whenever there are unconfirmed
-		// nonces on the target chain. Other strategy is to include it only if it's absolutely
-		// necessary.
-		let latest_confirmed_nonce_at_target = target_nonces.nonces_data.confirmed_nonce;
-		let outbound_state_proof_required =
-			latest_confirmed_nonce_at_target < latest_confirmed_nonce_at_source;
-
-		// The target node would also reject messages if there are too many entries in the
-		// "unrewarded relayers" set. If we are unable to prove new rewards to the target node, then
-		// we should wait for confirmations race.
-		let unrewarded_limit_reached =
-			target_nonces.nonces_data.unrewarded_relayers.unrewarded_relayer_entries >=
-				self.max_unrewarded_relayer_entries_at_target ||
-				target_nonces.nonces_data.unrewarded_relayers.total_messages >=
-					self.max_unconfirmed_nonces_at_target;
-		if unrewarded_limit_reached {
-			// so there are already too many unrewarded relayer entries in the set
-			//
-			// => check if we can prove enough rewards. If not, we should wait for more rewards to
-			// be paid
-			let number_of_rewards_being_proved =
-				latest_confirmed_nonce_at_source.saturating_sub(latest_confirmed_nonce_at_target);
-			let enough_rewards_being_proved = number_of_rewards_being_proved >=
-				target_nonces.nonces_data.unrewarded_relayers.messages_in_oldest_entry;
-			if !enough_rewards_being_proved {
-				println!("=== XXX.2");
-				return None
-			}
-		}
-
-		// If we're here, then the confirmations race did its job && sending side now knows that
-		// messages have been delivered. Now let's select nonces that we want to deliver.
-		//
-		// We may deliver at most:
-		//
-		// max_unconfirmed_nonces_at_target - (latest_received_nonce_at_target -
-		// latest_confirmed_nonce_at_target)
-		//
-		// messages in the batch. But since we're including outbound state proof in the batch, then
-		// it may be increased to:
-		//
-		// max_unconfirmed_nonces_at_target - (latest_received_nonce_at_target -
-		// latest_confirmed_nonce_at_source)
-		let future_confirmed_nonce_at_target = if outbound_state_proof_required {
-			latest_confirmed_nonce_at_source
-		} else {
-			latest_confirmed_nonce_at_target
-		};
-		let max_nonces = latest_received_nonce_at_target
-			.checked_sub(future_confirmed_nonce_at_target)
-			.and_then(|diff| self.max_unconfirmed_nonces_at_target.checked_sub(diff))
-			.unwrap_or_default();
-		let max_nonces = std::cmp::min(max_nonces, self.max_messages_in_single_batch);
-		let max_messages_weight_in_single_batch = self.max_messages_weight_in_single_batch;
-		let max_messages_size_in_single_batch = self.max_messages_size_in_single_batch;
-		let lane_source_client = self.lane_source_client.clone();
-		let lane_target_client = self.lane_target_client.clone();
-
-		// select nonces from nonces, available for delivery
-		let selected_nonces = match self.strategy.available_source_queue_indices(race_state) {
-			Some(available_source_queue_indices) => {
-				let source_queue = self.strategy.source_queue();
-				let reference = RelayMessagesBatchReference {
-					max_messages_in_this_batch: max_nonces,
-					max_messages_weight_in_single_batch,
-					max_messages_size_in_single_batch,
-					lane_source_client: lane_source_client.clone(),
-					lane_target_client: lane_target_client.clone(),
-					best_target_nonce,
-					nonces_queue: source_queue.clone(),
-					nonces_queue_range: available_source_queue_indices,
-					metrics: self.metrics_msg.clone(),
-				};
-
-				MessageRaceLimits::decide(reference).await
-			},
-			None => {
-				// we still may need to submit delivery transaction with zero messages to
-				// unblock the lane. But it'll only be accepted if the lane is blocked
-				// (i.e. when `unrewarded_limit_reached` is `true`)
-				None
-			},
-		};
-
-		// check if we need unblocking transaction and we may submit it
-		let selected_nonces = match selected_nonces {
-			Some(selected_nonces) => selected_nonces,
-			None if unrewarded_limit_reached && outbound_state_proof_required => 1..=0,
-			_ => return None,
-		};
-
-		let dispatch_weight = self.dispatch_weight_for_range(&selected_nonces);
-		Some((
-			selected_nonces,
-			MessageProofParameters { outbound_state_proof_required, dispatch_weight },
-		))
+		self.select_race_action(race_state).await
 	}
 }
 
