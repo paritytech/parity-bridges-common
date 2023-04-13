@@ -160,7 +160,7 @@ pub enum CallInfo {
 
 impl CallInfo {
 	/// Returns true if call is a message delivery call (with optional finality calls).
-	fn is_message_delivery_call(&self) -> bool {
+	fn is_receive_messages_proof_call(&self) -> bool {
 		match self.messages_call_info() {
 			MessagesCallInfo::ReceiveMessagesProof(_) => true,
 			MessagesCallInfo::ReceiveMessagesDeliveryProof(_) => false,
@@ -333,14 +333,14 @@ where
 		let reward_account_params = RewardsAccountParams::new(
 			Msgs::Id::get(),
 			Runtime::BridgedChainId::get(),
-			if call_info.is_message_delivery_call() {
+			if call_info.is_receive_messages_proof_call() {
 				RewardsAccountOwner::ThisChain
 			} else {
 				RewardsAccountOwner::BridgedChain
 			},
 		);
-		let is_message_delivery_call = call_info.is_message_delivery_call();
-		let slash_relayer_if_delivery_result = is_message_delivery_call
+		let is_receive_messages_proof_call = call_info.is_receive_messages_proof_call();
+		let slash_relayer_if_delivery_result = is_receive_messages_proof_call
 			.then(|| RelayerAccountAction::Slash(relayer.clone(), reward_account_params))
 			.unwrap_or(RelayerAccountAction::None);
 
@@ -490,7 +490,7 @@ where
 
 		// we only boost priority of message delivery transactions
 		let parsed_call = match parsed_call {
-			Some(parsed_call) if parsed_call.is_message_delivery_call() => parsed_call,
+			Some(parsed_call) if parsed_call.is_receive_messages_proof_call() => parsed_call,
 			_ => return Ok(Default::default()),
 		};
 
