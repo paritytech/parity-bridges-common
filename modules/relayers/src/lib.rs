@@ -261,7 +261,7 @@ pub mod pallet {
 				Ok(failed_to_slash) if failed_to_slash.is_zero() => {
 					log::trace!(
 						target: crate::LOG_TARGET,
-						"Relayer account {:?} has been slashed for {:?}. Funds were de;posited to {:?}",
+						"Relayer account {:?} has been slashed for {:?}. Funds were deposited to {:?}",
 						relayer,
 						registration.stake,
 						slash_destination,
