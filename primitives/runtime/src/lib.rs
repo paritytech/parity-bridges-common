@@ -523,7 +523,9 @@ impl<T> Debug for StrippableError<T> {
 	}
 }
 
+/// A trait defining helper methods for `RangeInclusive` (start..=end)
 pub trait RangeInclusiveExt<Idx> {
+	/// Computes the length of the `RangeInclusive`, checking for underflow and overflow.
 	fn checked_len(&self) -> Option<Idx>;
 }
 
