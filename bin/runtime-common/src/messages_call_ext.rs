@@ -44,6 +44,13 @@ pub struct BaseMessagesProofInfo {
 	pub best_stored_nonce: MessageNonce,
 }
 
+impl BaseMessagesProofInfo {
+	/// Returns true if `bundled_range` continues the `0..=best_stored_nonce` range.
+	fn appends_to_stored_nonce(&self) -> bool {
+		*self.bundled_range.start() == self.best_stored_nonce + 1
+	}
+}
+
 /// Occupation state of the unrewarded relayers vector.
 #[derive(PartialEq, RuntimeDebug)]
 #[cfg_attr(test, derive(Default))]
@@ -80,12 +87,12 @@ impl ReceiveMessagesProofInfo {
 				self.unrewarded_relayers.free_relayer_slots == 0 ||
 				// or if we can't accept new messages at all
 				self.unrewarded_relayers.free_message_slots == 0;
-			
-			return !empty_transactions_allowed;
+
+			return !empty_transactions_allowed
 		}
 
 		// otherwise we require bundled messages to continue stored range
-		*self.base.bundled_range.start() != self.base.best_stored_nonce + 1
+		!self.base.appends_to_stored_nonce()
 	}
 }
 
@@ -96,8 +103,7 @@ pub struct ReceiveMessagesDeliveryProofInfo(pub BaseMessagesProofInfo);
 impl ReceiveMessagesDeliveryProofInfo {
 	/// Returns true if outbound lane is ready to accept confirmations of bundled messages.
 	fn is_obsolete(&self) -> bool {
-		self.0.bundled_range.is_empty() ||
-			*self.0.bundled_range.start() != self.0.best_stored_nonce + 1
+		self.0.bundled_range.is_empty() || !self.0.appends_to_stored_nonce()
 	}
 }
 
