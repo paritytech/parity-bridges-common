@@ -330,16 +330,16 @@ where
 
 		// now we know that the relayer either needs to be rewarded, or slashed
 		// => let's prepare the correspondent account that pays reward/receives slashed amount
+		let is_receive_messages_proof_call = call_info.is_receive_messages_proof_call();
 		let reward_account_params = RewardsAccountParams::new(
 			Msgs::Id::get(),
 			Runtime::BridgedChainId::get(),
-			if call_info.is_receive_messages_proof_call() {
+			if is_receive_messages_proof_call {
 				RewardsAccountOwner::ThisChain
 			} else {
 				RewardsAccountOwner::BridgedChain
 			},
 		);
-		let is_receive_messages_proof_call = call_info.is_receive_messages_proof_call();
 		let slash_relayer_if_delivery_result = is_receive_messages_proof_call
 			.then(|| RelayerAccountAction::Slash(relayer.clone(), reward_account_params))
 			.unwrap_or(RelayerAccountAction::None);
