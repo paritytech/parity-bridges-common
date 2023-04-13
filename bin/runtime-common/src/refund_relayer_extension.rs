@@ -22,7 +22,7 @@
 use crate::messages_call_ext::{
 	CallHelper as MessagesCallHelper, CallInfo as MessagesCallInfo, MessagesCallSubType,
 };
-use bp_messages::LaneId;
+use bp_messages::{LaneId, MessageNonce};
 use bp_relayers::{RewardsAccountOwner, RewardsAccountParams};
 use bp_runtime::StaticStrProvider;
 use codec::{Decode, Encode};
@@ -30,7 +30,7 @@ use frame_support::{
 	dispatch::{CallableCallFor, DispatchInfo, Dispatchable, PostDispatchInfo},
 	traits::IsSubType,
 	weights::Weight,
-	CloneNoBound, DefaultNoBound, EqNoBound, PartialEqNoBound, RuntimeDebugNoBound,
+	CloneNoBound, DefaultNoBound, EqNoBound, PartialEqNoBound, RuntimeDebug, RuntimeDebugNoBound,
 };
 use pallet_bridge_grandpa::{
 	CallSubType as GrandpaCallSubType, SubmitFinalityProofHelper, SubmitFinalityProofInfo,
@@ -195,6 +195,7 @@ impl CallInfo {
 }
 
 /// The actions on relayer account that need to be performed because of his actions.
+#[derive(RuntimeDebug, PartialEq)]
 enum RelayerAccountAction<AccountId, Reward> {
 	/// Do nothing with relayer account.
 	None,
@@ -330,17 +331,31 @@ where
 
 		// now we know that the relayer either needs to be rewarded, or slashed
 		// => let's prepare the correspondent account that pays reward/receives slashed amount
-		let is_receive_messages_proof_call = call_info.is_receive_messages_proof_call();
 		let reward_account_params = RewardsAccountParams::new(
 			Msgs::Id::get(),
 			Runtime::BridgedChainId::get(),
-			if is_receive_messages_proof_call {
+			if call_info.is_receive_messages_proof_call() {
 				RewardsAccountOwner::ThisChain
 			} else {
 				RewardsAccountOwner::BridgedChain
 			},
 		);
-		let slash_relayer_if_delivery_result = is_receive_messages_proof_call
+
+		// prepare return value for the case if the call has failed or it has not caused
+		// expected side effects (e.g. not all messages have been accepted)
+		//
+		// we are not checking if relayer is registered here - it happens during the slash attempt
+		//
+		// there are couple of edge cases here:
+		//
+		// - when the relayer becames registered during message dispatch: this is unlikely + relayer
+		//   should be ready for slashing after registration;
+		//
+		// - when relayer is registered after `validate` is called and priority is not boosted:
+		//   relayer should be ready for slashing after registration.
+		let may_slash_relayer =
+			Self::bundled_messages_for_priority_boost(Some(&call_info)).is_some();
+		let slash_relayer_if_delivery_result = may_slash_relayer
 			.then(|| RelayerAccountAction::Slash(relayer.clone(), reward_account_params))
 			.unwrap_or(RelayerAccountAction::None);
 
@@ -440,6 +455,33 @@ where
 		// we can finally reward relayer
 		RelayerAccountAction::Reward(relayer, reward_account_params, refund)
 	}
+
+	/// Returns number of bundled messages `Some(_)`, if the given call info is a:
+	///
+	/// - message delivery transaction;
+	///
+	/// - with reasonable bundled messages that may be accepted by the messages pallet.
+	///
+	/// This function is used to check whether the transaction priority should be
+	/// virtually boosted. The relayer registration (we only boost priority for registered
+	/// relayer transactions) must be checked outside.
+	fn bundled_messages_for_priority_boost(call_info: Option<&CallInfo>) -> Option<MessageNonce> {
+		// we only boost priority of message delivery transactions
+		let parsed_call = match call_info {
+			Some(parsed_call) if parsed_call.is_receive_messages_proof_call() => parsed_call,
+			_ => return None,
+		};
+
+		// compute total number of messages in transaction
+		let bundled_messages = parsed_call.messages_call_info().bundled_messages();
+
+		// a quick check to avoid invalid high-priority transactions
+		if bundled_messages > Runtime::MaxUnconfirmedMessagesAtInboundLane::get() {
+			return None
+		}
+
+		Some(bundled_messages)
+	}
 }
 
 impl<Runtime, Para, Msgs, Refund, Priority, Id> SignedExtension
@@ -481,17 +523,18 @@ where
 	) -> TransactionValidity {
 		// this is the only relevant line of code for the `pre_dispatch`
 		//
-		// we're not calling `validato` from `pre_dispatch` directly because of performance
+		// we're not calling `validate` from `pre_dispatch` directly because of performance
 		// reasons, so if you're adding some code that may fail here, please check if it needs
 		// to be added to the `pre_dispatch` as well
 		let parsed_call = self.parse_and_check_for_obsolete_call(call)?;
 
 		// the following code just plays with transaction priority and never returns an error
 
-		// we only boost priority of message delivery transactions
-		let parsed_call = match parsed_call {
-			Some(parsed_call) if parsed_call.is_receive_messages_proof_call() => parsed_call,
-			_ => return Ok(Default::default()),
+		// we only boost priority of presumably correct message delivery transactions
+		let bundled_messages = match Self::bundled_messages_for_priority_boost(parsed_call.as_ref())
+		{
+			Some(bundled_messages) => bundled_messages,
+			None => return Ok(Default::default()),
 		};
 
 		// we only boost priority if relayer has staked required balance
@@ -500,20 +543,9 @@ where
 		}
 
 		// compute priority boost
-		let mut valid_transaction = ValidTransactionBuilder::default();
-
-		// compute total number of messages in transaction
-		let bundled_messages = parsed_call.messages_call_info().bundled_messages();
-
-		// a quick check to avoid invalid high-priority transactions
-		if bundled_messages > Runtime::MaxUnconfirmedMessagesAtInboundLane::get() {
-			return Ok(Default::default())
-		}
-
-		// finally - compute priority boost
 		let priority_boost =
 			crate::priority_calculator::compute_priority_boost::<Priority>(bundled_messages);
-		valid_transaction = valid_transaction.priority(priority_boost);
+		let valid_transaction = ValidTransactionBuilder::default().priority(priority_boost);
 
 		log::trace!(
 			target: "runtime::bridge",
@@ -953,6 +985,25 @@ mod tests {
 				}),
 			)),
 		}
+	}
+
+	fn set_bundled_range_end(
+		mut pre_dispatch_data: PreDispatchData<ThisChainAccountId>,
+		end: MessageNonce,
+	) -> PreDispatchData<ThisChainAccountId> {
+		let msg_info = match pre_dispatch_data.call_info {
+			CallInfo::AllFinalityAndMsgs(_, _, ref mut info) => info,
+			CallInfo::ParachainFinalityAndMsgs(_, ref mut info) => info,
+			CallInfo::Msgs(ref mut info) => info,
+		};
+
+		if let MessagesCallInfo::ReceiveMessagesProof(ReceiveMessagesProofInfo(ref mut msg_info)) =
+			msg_info
+		{
+			msg_info.bundled_range = *msg_info.bundled_range.start()..=end
+		}
+
+		pre_dispatch_data
 	}
 
 	fn run_validate(call: RuntimeCall) -> TransactionValidity {
@@ -1584,6 +1635,74 @@ mod tests {
 			assert_eq!(
 				confirmation_rewards_account_balance,
 				Balances::free_balance(confirmation_rewards_account())
+			);
+		});
+	}
+
+	fn run_analyze_call_result(
+		pre_dispatch_data: PreDispatchData<ThisChainAccountId>,
+		dispatch_result: DispatchResult,
+	) -> RelayerAccountAction<ThisChainAccountId, ThisChainBalance> {
+		TestExtension::analyze_call_result(
+			Some(Some(pre_dispatch_data)),
+			&dispatch_info(),
+			&post_dispatch_info(),
+			1024,
+			&dispatch_result,
+		)
+	}
+
+	#[test]
+	fn analyze_call_result_shall_not_slash_for_transactions_with_too_many_messages() {
+		run_test(|| {
+			initialize_environment(100, 100, 100);
+
+			// the `analyze_call_result` should return slash if number of bundled messages is
+			// within reasonable limits
+			assert_eq!(
+				run_analyze_call_result(all_finality_pre_dispatch_data(), Ok(())),
+				RelayerAccountAction::Slash(
+					relayer_account_at_this_chain(),
+					MsgProofsRewardsAccount::get()
+				),
+			);
+			assert_eq!(
+				run_analyze_call_result(parachain_finality_pre_dispatch_data(), Ok(())),
+				RelayerAccountAction::Slash(
+					relayer_account_at_this_chain(),
+					MsgProofsRewardsAccount::get()
+				),
+			);
+			assert_eq!(
+				run_analyze_call_result(delivery_pre_dispatch_data(), Ok(())),
+				RelayerAccountAction::Slash(
+					relayer_account_at_this_chain(),
+					MsgProofsRewardsAccount::get()
+				),
+			);
+
+			// the `analyze_call_result` should not return slash if number of bundled messages is
+			// larger than the
+			assert_eq!(
+				run_analyze_call_result(
+					set_bundled_range_end(all_finality_pre_dispatch_data(), 1_000_000),
+					Ok(())
+				),
+				RelayerAccountAction::None,
+			);
+			assert_eq!(
+				run_analyze_call_result(
+					set_bundled_range_end(parachain_finality_pre_dispatch_data(), 1_000_000),
+					Ok(())
+				),
+				RelayerAccountAction::None,
+			);
+			assert_eq!(
+				run_analyze_call_result(
+					set_bundled_range_end(delivery_pre_dispatch_data(), 1_000_000),
+					Ok(())
+				),
+				RelayerAccountAction::None,
 			);
 		});
 	}
