@@ -326,7 +326,7 @@ pub mod pallet {
 		}
 
 		/// Return required registration lease.
-		fn required_registration_lease() -> T::BlockNumber {
+		pub(crate) fn required_registration_lease() -> T::BlockNumber {
 			<T::StakeAndSlash as StakeAndSlash<
 				T::AccountId,
 				T::BlockNumber,
@@ -335,7 +335,7 @@ pub mod pallet {
 		}
 
 		/// Return required stake.
-		fn required_stake() -> T::Reward {
+		pub(crate) fn required_stake() -> T::Reward {
 			<T::StakeAndSlash as StakeAndSlash<
 				T::AccountId,
 				T::BlockNumber,
