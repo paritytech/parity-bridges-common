@@ -928,7 +928,6 @@ dependencies = [
 name = "bp-messages"
 version = "0.1.0"
 dependencies = [
- "bitvec",
  "bp-runtime",
  "frame-support",
  "hex",
@@ -6512,7 +6511,6 @@ dependencies = [
 name = "pallet-bridge-messages"
 version = "0.1.0"
 dependencies = [
- "bitvec",
  "bp-messages",
  "bp-runtime",
  "bp-test-utils",
