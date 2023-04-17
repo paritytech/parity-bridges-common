@@ -42,7 +42,10 @@
 #![allow(unused_imports)]
 #![allow(missing_docs)]
 
-use frame_support::{traits::Get, weights::{Weight, constants::RocksDbWeight}};
+use frame_support::{
+	traits::Get,
+	weights::{constants::RocksDbWeight, Weight},
+};
 use sp_std::marker::PhantomData;
 
 /// Weight functions needed for pallet_bridge_relayers.
@@ -59,16 +62,18 @@ pub struct BridgeWeight<T>(PhantomData<T>);
 impl<T: frame_system::Config> WeightInfo for BridgeWeight<T> {
 	/// Storage: BridgeRelayers RelayerRewards (r:1 w:1)
 	///
-	/// Proof: BridgeRelayers RelayerRewards (max_values: None, max_size: Some(65), added: 2540, mode: MaxEncodedLen)
+	/// Proof: BridgeRelayers RelayerRewards (max_values: None, max_size: Some(65), added: 2540,
+	/// mode: MaxEncodedLen)
 	///
 	/// Storage: Balances TotalIssuance (r:1 w:0)
 	///
-	/// Proof: Balances TotalIssuance (max_values: Some(1), max_size: Some(8), added: 503, mode: MaxEncodedLen)
+	/// Proof: Balances TotalIssuance (max_values: Some(1), max_size: Some(8), added: 503, mode:
+	/// MaxEncodedLen)
 	///
 	/// Storage: System Account (r:1 w:1)
 	///
-	/// Proof: System Account (max_values: None, max_size: Some(104), added: 2579, mode: MaxEncodedLen)
-	///
+	/// Proof: System Account (max_values: None, max_size: Some(104), added: 2579, mode:
+	/// MaxEncodedLen)
 	fn claim_rewards() -> Weight {
 		// Proof Size summary in bytes:
 		//  Measured:  `294`
@@ -80,12 +85,13 @@ impl<T: frame_system::Config> WeightInfo for BridgeWeight<T> {
 	}
 	/// Storage: BridgeRelayers RegisteredRelayers (r:1 w:1)
 	///
-	/// Proof: BridgeRelayers RegisteredRelayers (max_values: None, max_size: Some(64), added: 2539, mode: MaxEncodedLen)
+	/// Proof: BridgeRelayers RegisteredRelayers (max_values: None, max_size: Some(64), added: 2539,
+	/// mode: MaxEncodedLen)
 	///
 	/// Storage: Balances Reserves (r:1 w:1)
 	///
-	/// Proof: Balances Reserves (max_values: None, max_size: Some(849), added: 3324, mode: MaxEncodedLen)
-	///
+	/// Proof: Balances Reserves (max_values: None, max_size: Some(849), added: 3324, mode:
+	/// MaxEncodedLen)
 	fn register() -> Weight {
 		// Proof Size summary in bytes:
 		//  Measured:  `87`
@@ -97,12 +103,13 @@ impl<T: frame_system::Config> WeightInfo for BridgeWeight<T> {
 	}
 	/// Storage: BridgeRelayers RegisteredRelayers (r:1 w:1)
 	///
-	/// Proof: BridgeRelayers RegisteredRelayers (max_values: None, max_size: Some(64), added: 2539, mode: MaxEncodedLen)
+	/// Proof: BridgeRelayers RegisteredRelayers (max_values: None, max_size: Some(64), added: 2539,
+	/// mode: MaxEncodedLen)
 	///
 	/// Storage: Balances Reserves (r:1 w:1)
 	///
-	/// Proof: Balances Reserves (max_values: None, max_size: Some(849), added: 3324, mode: MaxEncodedLen)
-	///
+	/// Proof: Balances Reserves (max_values: None, max_size: Some(849), added: 3324, mode:
+	/// MaxEncodedLen)
 	fn deregister() -> Weight {
 		// Proof Size summary in bytes:
 		//  Measured:  `264`
@@ -118,16 +125,18 @@ impl<T: frame_system::Config> WeightInfo for BridgeWeight<T> {
 impl WeightInfo for () {
 	/// Storage: BridgeRelayers RelayerRewards (r:1 w:1)
 	///
-	/// Proof: BridgeRelayers RelayerRewards (max_values: None, max_size: Some(65), added: 2540, mode: MaxEncodedLen)
+	/// Proof: BridgeRelayers RelayerRewards (max_values: None, max_size: Some(65), added: 2540,
+	/// mode: MaxEncodedLen)
 	///
 	/// Storage: Balances TotalIssuance (r:1 w:0)
 	///
-	/// Proof: Balances TotalIssuance (max_values: Some(1), max_size: Some(8), added: 503, mode: MaxEncodedLen)
+	/// Proof: Balances TotalIssuance (max_values: Some(1), max_size: Some(8), added: 503, mode:
+	/// MaxEncodedLen)
 	///
 	/// Storage: System Account (r:1 w:1)
 	///
-	/// Proof: System Account (max_values: None, max_size: Some(104), added: 2579, mode: MaxEncodedLen)
-	///
+	/// Proof: System Account (max_values: None, max_size: Some(104), added: 2579, mode:
+	/// MaxEncodedLen)
 	fn claim_rewards() -> Weight {
 		// Proof Size summary in bytes:
 		//  Measured:  `294`
@@ -139,12 +148,13 @@ impl WeightInfo for () {
 	}
 	/// Storage: BridgeRelayers RegisteredRelayers (r:1 w:1)
 	///
-	/// Proof: BridgeRelayers RegisteredRelayers (max_values: None, max_size: Some(64), added: 2539, mode: MaxEncodedLen)
+	/// Proof: BridgeRelayers RegisteredRelayers (max_values: None, max_size: Some(64), added: 2539,
+	/// mode: MaxEncodedLen)
 	///
 	/// Storage: Balances Reserves (r:1 w:1)
 	///
-	/// Proof: Balances Reserves (max_values: None, max_size: Some(849), added: 3324, mode: MaxEncodedLen)
-	///
+	/// Proof: Balances Reserves (max_values: None, max_size: Some(849), added: 3324, mode:
+	/// MaxEncodedLen)
 	fn register() -> Weight {
 		// Proof Size summary in bytes:
 		//  Measured:  `87`
@@ -156,12 +166,13 @@ impl WeightInfo for () {
 	}
 	/// Storage: BridgeRelayers RegisteredRelayers (r:1 w:1)
 	///
-	/// Proof: BridgeRelayers RegisteredRelayers (max_values: None, max_size: Some(64), added: 2539, mode: MaxEncodedLen)
+	/// Proof: BridgeRelayers RegisteredRelayers (max_values: None, max_size: Some(64), added: 2539,
+	/// mode: MaxEncodedLen)
 	///
 	/// Storage: Balances Reserves (r:1 w:1)
 	///
-	/// Proof: Balances Reserves (max_values: None, max_size: Some(849), added: 3324, mode: MaxEncodedLen)
-	///
+	/// Proof: Balances Reserves (max_values: None, max_size: Some(849), added: 3324, mode:
+	/// MaxEncodedLen)
 	fn deregister() -> Weight {
 		// Proof Size summary in bytes:
 		//  Measured:  `264`

@@ -24,7 +24,7 @@ use crate::messages_call_ext::{
 };
 use bp_messages::{LaneId, MessageNonce};
 use bp_relayers::{RewardsAccountOwner, RewardsAccountParams};
-use bp_runtime::StaticStrProvider;
+use bp_runtime::{RangeInclusiveExt, StaticStrProvider};
 use codec::{Decode, Encode};
 use frame_support::{
 	dispatch::{CallableCallFor, DispatchInfo, Dispatchable, PostDispatchInfo},
@@ -473,7 +473,8 @@ where
 		};
 
 		// compute total number of messages in transaction
-		let bundled_messages = parsed_call.messages_call_info().bundled_messages();
+		let bundled_messages =
+			parsed_call.messages_call_info().bundled_messages().checked_len().unwrap_or(0);
 
 		// a quick check to avoid invalid high-priority transactions
 		if bundled_messages > Runtime::MaxUnconfirmedMessagesAtInboundLane::get() {
@@ -870,17 +871,17 @@ mod tests {
 					para_id: ParaId(TestParachain::get()),
 					para_head_hash: [200u8; 32].into(),
 				},
-				MessagesCallInfo::ReceiveMessagesProof(ReceiveMessagesProofInfo(
-					BaseMessagesProofInfo {
+				MessagesCallInfo::ReceiveMessagesProof(ReceiveMessagesProofInfo {
+					base: BaseMessagesProofInfo {
 						lane_id: TEST_LANE_ID,
 						bundled_range: 101..=200,
 						best_stored_nonce: 100,
-						unrewarded_relayers: Some(UnrewardedRelayerOccupation {
-							free_relayer_slots: MaxUnrewardedRelayerEntriesAtInboundLane::get(),
-							free_message_slots: MaxUnconfirmedMessagesAtInboundLane::get(),
-						}),
 					},
-				)),
+					unrewarded_relayers: UnrewardedRelayerOccupation {
+						free_relayer_slots: MaxUnrewardedRelayerEntriesAtInboundLane::get(),
+						free_message_slots: MaxUnconfirmedMessagesAtInboundLane::get(),
+					},
+				}),
 			),
 		}
 	}
@@ -904,7 +905,6 @@ mod tests {
 						lane_id: TEST_LANE_ID,
 						bundled_range: 101..=200,
 						best_stored_nonce: 100,
-						unrewarded_relayers: None,
 					},
 				)),
 			),
@@ -920,17 +920,17 @@ mod tests {
 					para_id: ParaId(TestParachain::get()),
 					para_head_hash: [200u8; 32].into(),
 				},
-				MessagesCallInfo::ReceiveMessagesProof(ReceiveMessagesProofInfo(
-					BaseMessagesProofInfo {
+				MessagesCallInfo::ReceiveMessagesProof(ReceiveMessagesProofInfo {
+					base: BaseMessagesProofInfo {
 						lane_id: TEST_LANE_ID,
 						bundled_range: 101..=200,
 						best_stored_nonce: 100,
-						unrewarded_relayers: Some(UnrewardedRelayerOccupation {
-							free_relayer_slots: MaxUnrewardedRelayerEntriesAtInboundLane::get(),
-							free_message_slots: MaxUnconfirmedMessagesAtInboundLane::get(),
-						}),
 					},
-				)),
+					unrewarded_relayers: UnrewardedRelayerOccupation {
+						free_relayer_slots: MaxUnrewardedRelayerEntriesAtInboundLane::get(),
+						free_message_slots: MaxUnconfirmedMessagesAtInboundLane::get(),
+					},
+				}),
 			),
 		}
 	}
@@ -949,7 +949,6 @@ mod tests {
 						lane_id: TEST_LANE_ID,
 						bundled_range: 101..=200,
 						best_stored_nonce: 100,
-						unrewarded_relayers: None,
 					},
 				)),
 			),
@@ -960,15 +959,17 @@ mod tests {
 		PreDispatchData {
 			relayer: relayer_account_at_this_chain(),
 			call_info: CallInfo::Msgs(MessagesCallInfo::ReceiveMessagesProof(
-				ReceiveMessagesProofInfo(BaseMessagesProofInfo {
-					lane_id: TEST_LANE_ID,
-					bundled_range: 101..=200,
-					best_stored_nonce: 100,
-					unrewarded_relayers: Some(UnrewardedRelayerOccupation {
+				ReceiveMessagesProofInfo {
+					base: BaseMessagesProofInfo {
+						lane_id: TEST_LANE_ID,
+						bundled_range: 101..=200,
+						best_stored_nonce: 100,
+					},
+					unrewarded_relayers: UnrewardedRelayerOccupation {
 						free_relayer_slots: MaxUnrewardedRelayerEntriesAtInboundLane::get(),
 						free_message_slots: MaxUnconfirmedMessagesAtInboundLane::get(),
-					}),
-				}),
+					},
+				},
 			)),
 		}
 	}
@@ -981,7 +982,6 @@ mod tests {
 					lane_id: TEST_LANE_ID,
 					bundled_range: 101..=200,
 					best_stored_nonce: 100,
-					unrewarded_relayers: None,
 				}),
 			)),
 		}
@@ -997,10 +997,8 @@ mod tests {
 			CallInfo::Msgs(ref mut info) => info,
 		};
 
-		if let MessagesCallInfo::ReceiveMessagesProof(ReceiveMessagesProofInfo(ref mut msg_info)) =
-			msg_info
-		{
-			msg_info.bundled_range = *msg_info.bundled_range.start()..=end
+		if let MessagesCallInfo::ReceiveMessagesProof(ref mut msg_info) = msg_info {
+			msg_info.base.bundled_range = *msg_info.base.bundled_range.start()..=end
 		}
 
 		pre_dispatch_data

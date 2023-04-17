@@ -21,7 +21,7 @@
 #![allow(clippy::too_many_arguments)]
 
 use bitvec::prelude::*;
-use bp_runtime::{BasicOperatingMode, OperatingMode};
+use bp_runtime::{BasicOperatingMode, OperatingMode, RangeInclusiveExt};
 use codec::{Decode, Encode, MaxEncodedLen};
 use frame_support::RuntimeDebug;
 use scale_info::TypeInfo;
@@ -245,7 +245,7 @@ impl<RelayerId> InboundLaneData<RelayerId> {
 }
 
 /// Outbound message details, returned by runtime APIs.
-#[derive(Clone, Encode, Decode, RuntimeDebug, PartialEq, Eq)]
+#[derive(Clone, Encode, Decode, RuntimeDebug, PartialEq, Eq, TypeInfo)]
 pub struct OutboundMessageDetails {
 	/// Nonce assigned to the message.
 	pub nonce: MessageNonce,
@@ -259,7 +259,7 @@ pub struct OutboundMessageDetails {
 }
 
 /// Inbound message details, returned by runtime APIs.
-#[derive(Clone, Encode, Decode, RuntimeDebug, PartialEq, Eq)]
+#[derive(Clone, Encode, Decode, RuntimeDebug, PartialEq, Eq, TypeInfo)]
 pub struct InboundMessageDetails {
 	/// Computed message dispatch weight.
 	///
@@ -347,11 +347,7 @@ impl DeliveredMessages {
 
 	/// Return total count of delivered messages.
 	pub fn total_messages(&self) -> MessageNonce {
-		if self.end >= self.begin {
-			self.end - self.begin + 1
-		} else {
-			0
-		}
+		(self.begin..=self.end).checked_len().unwrap_or(0)
 	}
 
 	/// Note new dispatched message.
