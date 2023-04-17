@@ -1129,7 +1129,6 @@ dependencies = [
 name = "bridge-runtime-common"
 version = "0.1.0"
 dependencies = [
- "bitvec",
  "bp-header-chain",
  "bp-messages",
  "bp-parachains",
