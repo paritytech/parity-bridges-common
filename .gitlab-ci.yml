@@ -271,7 +271,7 @@ build-nightly:
   script:
     # trim "-build-docker" from job name
     - export DOCKER_IMAGE_NAME="${CI_JOB_NAME::-13}"
-    - expoty BRIDGES_PROJECT="${CI_JOB_NAME::-13}"
+    - export BRIDGES_PROJECT="${CI_JOB_NAME::-13}"
     - export IMAGE_NAME=docker.io/paritytech/${DOCKER_IMAGE_NAME}
     - echo "Building ${IMAGE_NAME}"
     - cd ./artifacts
