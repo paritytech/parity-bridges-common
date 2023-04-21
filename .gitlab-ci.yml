@@ -219,10 +219,8 @@ partial-repo-pallets-build-test:
   # we may live with failing partial repo build, it is just a signal for us
   allow_failure:                   true
 
-#### stage:                        build
-
 build:
-  stage:                           build
+  stage:                           test
   rules:
     # won't run on the CI image update pipeline
     - if: $CI_PIPELINE_SOURCE == "pipeline"
@@ -273,14 +271,15 @@ build-nightly:
   variables:                       &build-image-variables
     GIT_STRATEGY:                  none
     DOCKERFILE:                    ci.Dockerfile
-    # trim "-build-docker" from job name
-    BRIDGES_PROJECT:               "${CI_JOB_NAME::-13}"
-    DOCKER_IMAGE_NAME:             "${CI_JOB_NAME::-13}"
-    IMAGE_NAME:                    docker.io/paritytech/$DOCKER_IMAGE_NAME
   needs:
     - job:                         build
       artifacts:                   true
   script:
+    # trim "-build-docker" from job name
+    - export DOCKER_IMAGE_NAME="${CI_JOB_NAME::-13}"
+    - expoty BRIDGES_PROJECT="${CI_JOB_NAME::-13}"
+    - export IMAGE_NAME=docker.io/paritytech/${DOCKER_IMAGE_NAME}
+    - echo "Building ${IMAGE_NAME}"
     - cd ./artifacts
     - $BUILDAH_COMMAND build
         --format=docker
