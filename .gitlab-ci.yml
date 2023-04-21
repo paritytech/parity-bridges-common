@@ -13,8 +13,9 @@ variables:
   CARGO_INCREMENTAL:               0
   ARCH:                            "x86_64"
   CI_IMAGE:                        "paritytech/bridges-ci:production"
-  BUILDAH_IMAGE:                   "quay.io/buildah/stable:v1.27"
   RUST_BACKTRACE:                  full
+  BUILDAH_IMAGE:                   "quay.io/buildah/stable:v1.29"
+  BUILDAH_COMMAND:                 "buildah --storage-driver overlay2"
 
 default:
   cache:                           {}
@@ -264,6 +265,57 @@ build-nightly:
 
 #### stage:                        publish
 
+# check that images can be built
+.build-image:                      &build-image
+  <<:                              *kubernetes-build
+  image:                           $BUILDAH_IMAGE
+  <<:                              *test-refs
+  variables:                       &build-image-variables
+    GIT_STRATEGY:                  none
+    DOCKERFILE:                    ci.Dockerfile
+    # trim "-build-docker" from job name
+    BRIDGES_PROJECT:               "${CI_JOB_NAME::-13}"
+    DOCKER_IMAGE_NAME:             "${CI_JOB_NAME::-13}"
+    IMAGE_NAME:                    docker.io/paritytech/$DOCKER_IMAGE_NAME
+  needs:
+    - job:                         build
+      artifacts:                   true
+  script:
+    - cd ./artifacts
+    - $BUILDAH_COMMAND build
+        --format=docker
+        --build-arg VCS_REF="${CI_COMMIT_SHORT_SHA}"
+        --build-arg BUILD_DATE="$(date +%d-%m-%Y)"
+        --build-arg PROJECT="${BRIDGES_PROJECT}"
+        --build-arg VERSION="${VERSION}"
+        --tag "${IMAGE_NAME}:latest"
+        --file "${DOCKERFILE}" .
+
+rialto-bridge-node-build-docker:
+  stage:                           publish
+  <<:                              *build-image
+
+rialto-parachain-collator-build-docker:
+  stage:                           publish
+  <<:                              *build-image
+
+millau-bridge-node-build-docker:
+  stage:                           publish
+  <<:                              *build-image
+
+substrate-relay-build-docker:
+  stage:                           publish
+  <<:                              *build-image
+
+bridges-common-relay-build-docker:
+  stage:                           publish
+  <<:                              *build-image
+  variables:
+    <<:                            *build-image-variables
+    BRIDGES_PROJECT:               substrate-relay
+    DOCKER_IMAGE_NAME:             bridges-common-relay
+
+# build and publish images
 .build-push-image:                 &build-push-image
   <<:                              *kubernetes-build
   image:                           $BUILDAH_IMAGE
@@ -297,7 +349,7 @@ build-nightly:
     - test "${Docker_Hub_User_Parity}" -a "${Docker_Hub_Pass_Parity}" ||
         ( echo "no docker credentials provided"; exit 1 )
     - cd ./artifacts
-    - buildah bud
+    - $BUILDAH_COMMAND build
         --format=docker
         --build-arg VCS_REF="${CI_COMMIT_SHORT_SHA}"
         --build-arg BUILD_DATE="$(date +%d-%m-%Y)"
@@ -310,10 +362,10 @@ build-nightly:
     # The job will success only on the protected branch
     - echo "${Docker_Hub_Pass_Parity}" |
         buildah login --username "${Docker_Hub_User_Parity}" --password-stdin docker.io
-    - buildah info
-    - buildah push --format=v2s2 "${IMAGE_NAME}:${VERSION}"
-    - buildah push --format=v2s2 "${IMAGE_NAME}:sha-${CI_COMMIT_SHORT_SHA}"
-    - buildah push --format=v2s2 "${IMAGE_NAME}:${FLOATING_TAG}"
+    - $BUILDAH_COMMAND info
+    - $BUILDAH_COMMAND push --format=v2s2 "${IMAGE_NAME}:${VERSION}"
+    - $BUILDAH_COMMAND push --format=v2s2 "${IMAGE_NAME}:sha-${CI_COMMIT_SHORT_SHA}"
+    - $BUILDAH_COMMAND push --format=v2s2 "${IMAGE_NAME}:${FLOATING_TAG}"
   after_script:
     - env REGISTRY_AUTH_FILE= buildah logout --all
 
@@ -343,7 +395,7 @@ bridges-common-relay:
 
 # Publish Docker images description to hub.docker.com
 
-.publish-docker-image-description: &publish-docker-image-description
+.publish-docker-image-description:
   stage:                           publish-docker-description
   image:                           paritytech/dockerhub-description
   variables:
