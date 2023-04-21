@@ -1,6 +1,4 @@
 stages:
-  - lint
-  - check
   - test
   - build
   - publish
@@ -89,10 +87,10 @@ default:
 
 
 
-#### stage:                        lint
+#### stage:                        test
 
 clippy-nightly:
-  stage:                           lint
+  stage:                           test
   <<:                              *docker-env
   <<:                              *test-refs
   variables:
@@ -102,23 +100,21 @@ clippy-nightly:
     - SKIP_WASM_BUILD=1 cargo +nightly clippy --all-targets -- -A clippy::redundant_closure -A clippy::derive-partial-eq-without-eq -A clippy::or_fun_call
 
 fmt:
-  stage:                           lint
+  stage:                           test
   <<:                              *docker-env
   <<:                              *test-refs
   script:
     - cargo +nightly fmt --all -- --check
 
 spellcheck:
-  stage:                           lint
+  stage:                           test
   <<:                              *docker-env
   <<:                              *test-refs
   script:
     - cargo spellcheck check --cfg=.config/spellcheck.toml --checkers hunspell -m 1 $(find . -type f -name '*.rs' ! -path "./target/*" ! -name 'codegen_runtime.rs' ! -name 'weights.rs')
 
-#### stage:                        check
-
 check:
-  stage:                           check
+  stage:                           test
   <<:                              *docker-env
   <<:                              *test-refs
   script:                          &check-script
@@ -129,14 +125,12 @@ check:
     - SKIP_WASM_BUILD=1 time cargo check -p millau-runtime --locked --features runtime-benchmarks --verbose
 
 check-nightly:
-  stage:                           check
+  stage:                           test
   <<:                              *docker-env
   <<:                              *nightly-test
   script:
     - rustup default nightly
     - *check-script
-
-#### stage:                        test
 
 test:
   stage:                           test
