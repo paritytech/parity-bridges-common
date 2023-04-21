@@ -296,6 +296,28 @@ where
 	SC: MessageLaneSourceClient<P>,
 	TC: MessageLaneTargetClient<P>,
 {
+	/// Returns true if some race action can be selected (with `select_race_action`) at given
+	/// `best_finalized_source_header_id_at_best_target` source header at target.
+	async fn can_submit_transaction_with<
+		RS: RaceState<SourceHeaderIdOf<P>, TargetHeaderIdOf<P>>,
+	>(
+		&self,
+		mut race_state: RS,
+		maybe_best_finalized_source_header_id_at_best_target: Option<SourceHeaderIdOf<P>>,
+	) -> bool {
+		if let Some(best_finalized_source_header_id_at_best_target) =
+			maybe_best_finalized_source_header_id_at_best_target
+		{
+			race_state.set_best_finalized_source_header_id_at_best_target(
+				best_finalized_source_header_id_at_best_target,
+			);
+
+			return self.select_race_action(race_state).await.is_some()
+		}
+
+		false
+	}
+
 	async fn select_race_action<RS: RaceState<SourceHeaderIdOf<P>, TargetHeaderIdOf<P>>>(
 		&self,
 		race_state: RS,
@@ -499,34 +521,28 @@ where
 		// to target first
 		let maybe_source_header_for_delivery =
 			self.strategy.source_queue().back().map(|(id, _)| id.clone());
-		if let Some(source_header_for_delivery) = maybe_source_header_for_delivery {
-			let mut race_state = race_state.clone();
-			race_state.set_best_finalized_source_header_id_at_best_target(
-				source_header_for_delivery.clone(),
-			);
-
-			let selected_nonces = self.select_race_action(race_state.clone()).await;
-			if selected_nonces.is_some() {
-				return Some(source_header_for_delivery)
-			}
+		if self
+			.can_submit_transaction_with(
+				race_state.clone(),
+				maybe_source_header_for_delivery.clone(),
+			)
+			.await
+		{
+			return maybe_source_header_for_delivery
 		}
 
 		// ok, we can't delivery anything even if we relay some source blocks first. But maybe
 		// the lane is blocked and we need to submit unblock transaction?
 		let maybe_source_header_for_reward_confirmation =
 			self.latest_confirmed_nonces_at_source.back().map(|(id, _)| id.clone());
-		if let Some(source_header_for_reward_confirmation) =
-			maybe_source_header_for_reward_confirmation
+		if self
+			.can_submit_transaction_with(
+				race_state.clone(),
+				maybe_source_header_for_reward_confirmation.clone(),
+			)
+			.await
 		{
-			let mut race_state = race_state.clone();
-			race_state.set_best_finalized_source_header_id_at_best_target(
-				source_header_for_reward_confirmation.clone(),
-			);
-
-			let selected_nonces = self.select_race_action(race_state.clone()).await;
-			if selected_nonces.is_some() {
-				return Some(source_header_for_reward_confirmation)
-			}
+			return maybe_source_header_for_reward_confirmation
 		}
 
 		None
