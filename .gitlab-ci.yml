@@ -271,7 +271,11 @@ build-nightly:
   script:
     # trim "-build-docker" from job name
     - export DOCKER_IMAGE_NAME="${CI_JOB_NAME::-13}"
-    - export BRIDGES_PROJECT="${CI_JOB_NAME::-13}"
+    - if [[ "${CI_JOB_NAME::-13}" == "bridges-common-relay" ]]; then
+        export BRIDGES_PROJECT="substrate-relay";
+      else
+        export BRIDGES_PROJECT="${CI_JOB_NAME::-13}";
+      fi
     - export IMAGE_NAME=docker.io/paritytech/${DOCKER_IMAGE_NAME}
     - echo "Building ${IMAGE_NAME}"
     - cd ./artifacts
