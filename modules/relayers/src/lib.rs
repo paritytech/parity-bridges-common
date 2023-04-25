@@ -401,7 +401,7 @@ pub mod pallet {
 		NoRewardForRelayer,
 		/// Reward payment procedure has failed.
 		FailedToPayReward,
-		/// The relayer has tried to register for past block of registration lease
+		/// The relayer has tried to register for past block or registration lease
 		/// is too short.
 		InvalidRegistrationLease,
 		/// New registration lease is less than the previous one.
