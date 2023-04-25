@@ -71,7 +71,7 @@ pub trait StakeAndSlash<AccountId, BlockNumber, Balance> {
 	type RequiredStake: Get<Balance>;
 	/// Required **remaining** registration lease to be able to get transaction priority boost.
 	///
-	/// If the difference between registration' `valid_till` and the current block number
+	/// If the difference between registration's `valid_till` and the current block number
 	/// is less than the `RequiredRegistrationLease`, it becomes inactive and relayer transaction
 	/// won't get priority boost. This period exists, because priority is calculated when
 	/// transaction is placed to the queue (and it is reevaluated periodically) and then some time
