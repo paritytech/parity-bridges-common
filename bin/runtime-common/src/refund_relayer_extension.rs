@@ -348,7 +348,7 @@ where
 		//
 		// there are couple of edge cases here:
 		//
-		// - when the relayer becames registered during message dispatch: this is unlikely + relayer
+		// - when the relayer becomes registered during message dispatch: this is unlikely + relayer
 		//   should be ready for slashing after registration;
 		//
 		// - when relayer is registered after `validate` is called and priority is not boosted:
