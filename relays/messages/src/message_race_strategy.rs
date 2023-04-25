@@ -276,7 +276,7 @@ impl<
 			.nonces_to_submit()
 			.map(|nonces| nonce >= *nonces.start())
 			.unwrap_or(false);
-		if need_to_select_new_nonces && race_state.nonces_to_submit().is_some() {
+		if need_to_select_new_nonces {
 			log::trace!(
 				target: "bridge",
 				"Latest nonce at target is {}. Clearing nonces to submit: {:?}",
@@ -293,7 +293,7 @@ impl<
 			.nonces_submitted()
 			.map(|nonces| nonce >= *nonces.start())
 			.unwrap_or(false);
-		if need_new_nonces_to_submit && race_state.nonces_submitted().is_some() {
+		if need_new_nonces_to_submit {
 			log::trace!(
 				target: "bridge",
 				"Latest nonce at target is {}. Clearing submitted nonces: {:?}",
