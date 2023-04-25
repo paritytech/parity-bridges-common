@@ -17,7 +17,7 @@
 //! Bridge relayers registration and slashing scheme.
 //!
 //! There is an option to add a refund-relayer signed extension that will compensate
-//! relayer costs of the message delivery and confirmation transactsions (as well as
+//! relayer costs of the message delivery and confirmation transactions (as well as
 //! required finality proofs). This extension boosts priority of message delivery
 //! transactions, based on the number of bundled messages. So transaction with more
 //! messages has larger priority than the transaction with less messages.
