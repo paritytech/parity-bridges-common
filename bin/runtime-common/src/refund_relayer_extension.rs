@@ -227,7 +227,7 @@ enum RelayerAccountAction<AccountId, Reward> {
 pub struct RefundBridgedParachainMessages<Runtime, Para, Msgs, Refund, Priority, Id>(
 	PhantomData<(
 		// runtime with `frame-utility`, `pallet-bridge-grandpa`, `pallet-bridge-parachains`,
-		// `pallet=-bridge-messages` and `pallet-bridge-relayers` pallets deployed
+		// `pallet-bridge-messages` and `pallet-bridge-relayers` pallets deployed
 		Runtime,
 		// implementation of `RefundableParachainId` trait, which specifies the instance of
 		// the used `pallet-bridge-parachains` pallet and the bridged parachain id
