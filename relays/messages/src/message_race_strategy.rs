@@ -254,6 +254,10 @@ impl<
 		)
 	}
 
+	fn reset_best_target_nonces(&mut self) {
+		self.best_target_nonce = None;
+	}
+
 	fn best_target_nonces_updated<
 		RS: RaceState<
 			HeaderId<SourceHeaderHash, SourceHeaderNumber>,

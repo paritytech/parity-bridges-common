@@ -561,6 +561,11 @@ where
 		self.strategy.source_nonces_updated(at_block, nonces)
 	}
 
+	fn reset_best_target_nonces(&mut self) {
+		self.target_nonces = None;
+		self.strategy.reset_best_target_nonces();
+	}
+
 	fn best_target_nonces_updated<RS: RaceState<SourceHeaderIdOf<P>, TargetHeaderIdOf<P>>>(
 		&mut self,
 		nonces: TargetClientNonces<DeliveryRaceTargetNoncesData>,
