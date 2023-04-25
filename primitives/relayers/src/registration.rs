@@ -84,10 +84,10 @@ pub trait StakeAndSlash<AccountId, BlockNumber, Balance> {
 	///
 	/// Returns amount that we have failed to `unreserve`.
 	fn unreserve(relayer: &AccountId, amount: Balance) -> Balance;
-	/// Slash all the previously reserved relayer balance and send funds to given beneficiary.
+	/// Slash up to `amount` from reserved balance of account `relayer` and send funds to given
+	/// `beneficiary`.
 	///
-	/// Returns `Ok(_)` with non-zero balance if we have failed to `unreserve` some portion of
-	/// stake.
+	/// Returns `Ok(_)` with non-zero balance if we have failed to repatriate some portion of stake.
 	fn repatriate_reserved(
 		relayer: &AccountId,
 		beneficiary: RewardsAccountParams,
