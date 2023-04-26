@@ -114,7 +114,7 @@ pub mod pallet {
 		///
 		/// Registration allows relayer to get priority boost for its message delivery transactions.
 		#[pallet::call_index(1)]
-		#[pallet::weight(Weight::zero())] // TODO: https://github.com/paritytech/parity-bridges-common/issues/2033
+		#[pallet::weight(T::WeightInfo::register())]
 		pub fn register(origin: OriginFor<T>, valid_till: T::BlockNumber) -> DispatchResult {
 			let relayer = ensure_signed(origin)?;
 
@@ -175,7 +175,7 @@ pub mod pallet {
 		/// After this call, message delivery transactions of the relayer won't get any priority
 		/// boost.
 		#[pallet::call_index(2)]
-		#[pallet::weight(Weight::zero())] // TODO: https://github.com/paritytech/parity-bridges-common/issues/2033
+		#[pallet::weight(T::WeightInfo::deregister())]
 		pub fn deregister(origin: OriginFor<T>) -> DispatchResult {
 			let relayer = ensure_signed(origin)?;
 
