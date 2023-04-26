@@ -13232,7 +13232,6 @@ dependencies = [
  "relay-utils",
  "relay-westend-client",
  "relay-wococo-client",
- "rialto-parachain-runtime",
  "rialto-runtime",
  "signal-hook",
  "signal-hook-async-std",
@@ -13244,7 +13243,6 @@ dependencies = [
  "substrate-relay-helper",
  "tempfile",
  "xcm",
- "xcm-executor",
 ]
 
 [[package]]
