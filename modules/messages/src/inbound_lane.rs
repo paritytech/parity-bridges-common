@@ -548,7 +548,7 @@ mod tests {
 	}
 
 	#[test]
-	fn no_off_by_one_when_first_message_of_single_relayer_is_confirmed() {
+	fn first_message_is_confirmed_correctly() {
 		run_test(|| {
 			let mut lane = inbound_lane::<TestRuntime, _>(TEST_LANE_ID);
 			receive_regular_message(&mut lane, 1);
