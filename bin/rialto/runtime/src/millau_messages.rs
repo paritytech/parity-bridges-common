@@ -58,7 +58,6 @@ pub type FromMillauMessagePayload = messages::target::FromBridgedChainMessagePay
 pub type FromMillauMessageDispatch =
 	bridge_runtime_common::messages_xcm_extension::XcmBlobMessageDispatch<
 		bp_rialto::Rialto,
-		bp_millau::Millau,
 		crate::xcm_config::OnRialtoBlobDispatcher,
 		(),
 	>;

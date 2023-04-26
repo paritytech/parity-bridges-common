@@ -65,7 +65,6 @@ pub type ToRialtoMessagesDeliveryProof =
 pub type FromRialtoMessageDispatch =
 	bridge_runtime_common::messages_xcm_extension::XcmBlobMessageDispatch<
 		bp_millau::Millau,
-		bp_rialto::Rialto,
 		crate::xcm_config::OnMillauBlobDispatcher,
 		(),
 	>;
