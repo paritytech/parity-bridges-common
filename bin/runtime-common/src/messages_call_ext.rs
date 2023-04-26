@@ -331,7 +331,6 @@ mod tests {
 			TestRuntime, ThisChainRuntimeCall,
 		},
 	};
-	use bitvec::prelude::*;
 	use bp_messages::{DeliveredMessages, UnrewardedRelayer, UnrewardedRelayersState};
 	use sp_std::ops::RangeInclusive;
 
@@ -341,11 +340,7 @@ mod tests {
 		for n in 0..MaxUnrewardedRelayerEntriesAtInboundLane::get() {
 			inbound_lane_state.relayers.push_back(UnrewardedRelayer {
 				relayer: Default::default(),
-				messages: DeliveredMessages {
-					begin: n + 1,
-					end: n + 1,
-					dispatch_results: bitvec![u8, Msb0; 1; 1],
-				},
+				messages: DeliveredMessages { begin: n + 1, end: n + 1 },
 			});
 		}
 		pallet_bridge_messages::InboundLanes::<TestRuntime>::insert(
@@ -362,7 +357,6 @@ mod tests {
 			messages: DeliveredMessages {
 				begin: 1,
 				end: MaxUnconfirmedMessagesAtInboundLane::get(),
-				dispatch_results: bitvec![u8, Msb0; 1; MaxUnconfirmedMessagesAtInboundLane::get() as _],
 			},
 		});
 		pallet_bridge_messages::InboundLanes::<TestRuntime>::insert(
