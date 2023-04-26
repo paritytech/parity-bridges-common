@@ -227,7 +227,7 @@ enum RelayerAccountAction<AccountId, Reward> {
 pub struct RefundBridgedParachainMessages<Runtime, Para, Msgs, Refund, Priority, Id>(
 	PhantomData<(
 		// runtime with `frame-utility`, `pallet-bridge-grandpa`, `pallet-bridge-parachains`,
-		// `pallet=-bridge-messages` and `pallet-bridge-relayers` pallets deployed
+		// `pallet-bridge-messages` and `pallet-bridge-relayers` pallets deployed
 		Runtime,
 		// implementation of `RefundableParachainId` trait, which specifies the instance of
 		// the used `pallet-bridge-parachains` pallet and the bridged parachain id
@@ -312,7 +312,7 @@ where
 	}
 
 	/// Given post-dispatch information, analyze the outcome of relayer call and return
-	/// actions that ened to be performed on relayer account.
+	/// actions that need to be performed on relayer account.
 	fn analyze_call_result(
 		pre: Option<Option<PreDispatchData<Runtime::AccountId>>>,
 		info: &DispatchInfo,
@@ -348,7 +348,7 @@ where
 		//
 		// there are couple of edge cases here:
 		//
-		// - when the relayer becames registered during message dispatch: this is unlikely + relayer
+		// - when the relayer becomes registered during message dispatch: this is unlikely + relayer
 		//   should be ready for slashing after registration;
 		//
 		// - when relayer is registered after `validate` is called and priority is not boosted:

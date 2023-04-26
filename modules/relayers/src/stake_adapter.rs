@@ -58,12 +58,12 @@ where
 		beneficiary: RewardsAccountParams,
 		amount: Currency::Balance,
 	) -> Result<Currency::Balance, DispatchError> {
-		let benificiary_account =
+		let beneficiary_account =
 			PayRewardFromAccount::<(), AccountId>::rewards_account(beneficiary);
 		Currency::repatriate_reserved_named(
 			&ReserveId::get(),
 			relayer,
-			&benificiary_account,
+			&beneficiary_account,
 			amount,
 			BalanceStatus::Free,
 		)
@@ -127,60 +127,60 @@ mod tests {
 	#[test]
 	fn repatriate_reserved_works() {
 		run_test(|| {
-			let benificiary = TEST_REWARDS_ACCOUNT_PARAMS;
-			let benificiary_account = TestPaymentProcedure::rewards_account(benificiary);
+			let beneficiary = TEST_REWARDS_ACCOUNT_PARAMS;
+			let beneficiary_account = TestPaymentProcedure::rewards_account(beneficiary);
 
 			let mut expected_balance = ExistentialDeposit::get();
-			Balances::mint_into(&benificiary_account, expected_balance).unwrap();
+			Balances::mint_into(&beneficiary_account, expected_balance).unwrap();
 
 			assert_eq!(
-				TestStakeAndSlash::repatriate_reserved(&1, benificiary, test_stake()),
+				TestStakeAndSlash::repatriate_reserved(&1, beneficiary, test_stake()),
 				Ok(test_stake())
 			);
 			assert_eq!(Balances::free_balance(1), 0);
 			assert_eq!(Balances::reserved_balance(1), 0);
-			assert_eq!(Balances::free_balance(benificiary_account), expected_balance);
-			assert_eq!(Balances::reserved_balance(benificiary_account), 0);
+			assert_eq!(Balances::free_balance(beneficiary_account), expected_balance);
+			assert_eq!(Balances::reserved_balance(beneficiary_account), 0);
 
 			expected_balance += test_stake() / 3;
 			Balances::mint_into(&2, test_stake() * 2).unwrap();
 			TestStakeAndSlash::reserve(&2, test_stake() / 3).unwrap();
 			assert_eq!(
-				TestStakeAndSlash::repatriate_reserved(&2, benificiary, test_stake()),
+				TestStakeAndSlash::repatriate_reserved(&2, beneficiary, test_stake()),
 				Ok(test_stake() - test_stake() / 3)
 			);
 			assert_eq!(Balances::free_balance(2), test_stake() * 2 - test_stake() / 3);
 			assert_eq!(Balances::reserved_balance(2), 0);
-			assert_eq!(Balances::free_balance(benificiary_account), expected_balance);
-			assert_eq!(Balances::reserved_balance(benificiary_account), 0);
+			assert_eq!(Balances::free_balance(beneficiary_account), expected_balance);
+			assert_eq!(Balances::reserved_balance(beneficiary_account), 0);
 
 			expected_balance += test_stake();
 			Balances::mint_into(&3, test_stake() * 2).unwrap();
 			TestStakeAndSlash::reserve(&3, test_stake()).unwrap();
 			assert_eq!(
-				TestStakeAndSlash::repatriate_reserved(&3, benificiary, test_stake()),
+				TestStakeAndSlash::repatriate_reserved(&3, beneficiary, test_stake()),
 				Ok(0)
 			);
 			assert_eq!(Balances::free_balance(3), test_stake());
 			assert_eq!(Balances::reserved_balance(3), 0);
-			assert_eq!(Balances::free_balance(benificiary_account), expected_balance);
-			assert_eq!(Balances::reserved_balance(benificiary_account), 0);
+			assert_eq!(Balances::free_balance(beneficiary_account), expected_balance);
+			assert_eq!(Balances::reserved_balance(beneficiary_account), 0);
 		})
 	}
 
 	#[test]
-	fn repatriate_reserved_doesnt_work_when_benificiary_account_is_missing() {
+	fn repatriate_reserved_doesnt_work_when_beneficiary_account_is_missing() {
 		run_test(|| {
-			let benificiary = TEST_REWARDS_ACCOUNT_PARAMS;
-			let benificiary_account = TestPaymentProcedure::rewards_account(benificiary);
+			let beneficiary = TEST_REWARDS_ACCOUNT_PARAMS;
+			let beneficiary_account = TestPaymentProcedure::rewards_account(beneficiary);
 
 			Balances::mint_into(&3, test_stake() * 2).unwrap();
 			TestStakeAndSlash::reserve(&3, test_stake()).unwrap();
-			assert!(TestStakeAndSlash::repatriate_reserved(&3, benificiary, test_stake()).is_err());
+			assert!(TestStakeAndSlash::repatriate_reserved(&3, beneficiary, test_stake()).is_err());
 			assert_eq!(Balances::free_balance(3), test_stake());
 			assert_eq!(Balances::reserved_balance(3), test_stake());
-			assert_eq!(Balances::free_balance(benificiary_account), 0);
-			assert_eq!(Balances::reserved_balance(benificiary_account), 0);
+			assert_eq!(Balances::free_balance(beneficiary_account), 0);
+			assert_eq!(Balances::reserved_balance(beneficiary_account), 0);
 		});
 	}
 }

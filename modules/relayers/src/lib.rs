@@ -285,8 +285,8 @@ pub mod pallet {
 					// account must exists before we'll deploy the bridge
 					log::debug!(
 						target: crate::LOG_TARGET,
-						"Failed to slash relayer account {:?}: {:?}. Maybe benificiary account doesn't exist? \
-						Benificiary: {:?}, amount: {:?}, failed to slash: {:?}",
+						"Failed to slash relayer account {:?}: {:?}. Maybe beneficiary account doesn't exist? \
+						Beneficiary: {:?}, amount: {:?}, failed to slash: {:?}",
 						relayer,
 						e,
 						slash_destination,
@@ -401,7 +401,7 @@ pub mod pallet {
 		NoRewardForRelayer,
 		/// Reward payment procedure has failed.
 		FailedToPayReward,
-		/// The relayer has tried to register for past block of registration lease
+		/// The relayer has tried to register for past block or registration lease
 		/// is too short.
 		InvalidRegistrationLease,
 		/// New registration lease is less than the previous one.

@@ -17,7 +17,7 @@
 //! Bridge relayers registration and slashing scheme.
 //!
 //! There is an option to add a refund-relayer signed extension that will compensate
-//! relayer costs of the message delivery and confirmation transactsions (as well as
+//! relayer costs of the message delivery and confirmation transactions (as well as
 //! required finality proofs). This extension boosts priority of message delivery
 //! transactions, based on the number of bundled messages. So transaction with more
 //! messages has larger priority than the transaction with less messages.
@@ -71,7 +71,7 @@ pub trait StakeAndSlash<AccountId, BlockNumber, Balance> {
 	type RequiredStake: Get<Balance>;
 	/// Required **remaining** registration lease to be able to get transaction priority boost.
 	///
-	/// If the difference between registration' `valid_till` and the current block number
+	/// If the difference between registration's `valid_till` and the current block number
 	/// is less than the `RequiredRegistrationLease`, it becomes inactive and relayer transaction
 	/// won't get priority boost. This period exists, because priority is calculated when
 	/// transaction is placed to the queue (and it is reevaluated periodically) and then some time
@@ -84,10 +84,10 @@ pub trait StakeAndSlash<AccountId, BlockNumber, Balance> {
 	///
 	/// Returns amount that we have failed to `unreserve`.
 	fn unreserve(relayer: &AccountId, amount: Balance) -> Balance;
-	/// Slash all the previously reserved relayer balance and send funds to given beneficiary.
+	/// Slash up to `amount` from reserved balance of account `relayer` and send funds to given
+	/// `beneficiary`.
 	///
-	/// Returns `Ok(_)` with non-zero balance if we have failed to `unreserve` some portion of
-	/// stake.
+	/// Returns `Ok(_)` with non-zero balance if we have failed to repatriate some portion of stake.
 	fn repatriate_reserved(
 		relayer: &AccountId,
 		beneficiary: RewardsAccountParams,
