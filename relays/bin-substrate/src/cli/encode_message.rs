@@ -15,9 +15,7 @@
 // along with Parity Bridges Common.  If not, see <http://www.gnu.org/licenses/>.
 
 use crate::cli::{ExplicitOrMaximal, HexBytes};
-use bp_runtime::{
-	ChainId, EncodedOrDecodedCall, MILLAU_CHAIN_ID, RIALTO_CHAIN_ID, RIALTO_PARACHAIN_CHAIN_ID,
-};
+use bp_runtime::{ChainId, EncodedOrDecodedCall};
 use bridge_runtime_common::CustomNetworkId;
 use codec::Encode;
 use frame_support::weights::Weight;
@@ -51,9 +49,9 @@ pub trait CliEncodeMessage: Chain {
 	fn dummy_universal_source() -> anyhow::Result<xcm::v3::Junctions> {
 		use xcm::v3::prelude::*;
 
-		let this_network = CustomNetworkId::try_from_chain_id(Self::ID)
+		let this_network = CustomNetworkId::try_from(Self::ID)
 			.map(|n| n.as_network_id())
-			.ok_or_else(|| anyhow::format_err!("Unsupported chain: {:?}", Self::ID))?;
+			.map_err(|_| anyhow::format_err!("Unsupported chain: {:?}", Self::ID))?;
 		let this_location: InteriorMultiLocation = this_network.into();
 
 		let origin = MultiLocation {
@@ -91,12 +89,9 @@ pub(crate) fn encode_message<Source: CliEncodeMessage, Target: Chain>(
 	Ok(match message {
 		Message::Raw { ref data } => data.0.clone(),
 		Message::Sized { ref size } => {
-			let destination = match Target::ID {
-				MILLAU_CHAIN_ID => CustomNetworkId::Millau.as_network_id(),
-				RIALTO_CHAIN_ID => CustomNetworkId::RialtoParachain.as_network_id(),
-				RIALTO_PARACHAIN_CHAIN_ID => CustomNetworkId::RialtoParachain.as_network_id(),
-				_ => return Err(anyhow::format_err!("Unsupported target chain: {:?}", Target::ID)),
-			};
+			let destination = CustomNetworkId::try_from(Target::ID)
+				.map(|n| n.as_network_id())
+				.map_err(|_| anyhow::format_err!("Unsupported target chain: {:?}", Target::ID))?;
 			let expected_size = match *size {
 				ExplicitOrMaximal::Explicit(size) => size,
 				ExplicitOrMaximal::Maximal => compute_maximal_message_size(

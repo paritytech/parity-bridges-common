@@ -159,17 +159,20 @@ pub enum CustomNetworkId {
 	RialtoParachain,
 }
 
-impl CustomNetworkId {
-	/// Tries to create self from bridges chain id.
-	pub const fn try_from_chain_id(chain: bp_runtime::ChainId) -> Option<Self> {
-		match chain {
-			bp_runtime::MILLAU_CHAIN_ID => Some(Self::Millau),
-			bp_runtime::RIALTO_CHAIN_ID => Some(Self::Rialto),
-			bp_runtime::RIALTO_PARACHAIN_CHAIN_ID => Some(Self::RialtoParachain),
-			_ => None,
-		}
-	}
+impl TryFrom<bp_runtime::ChainId> for CustomNetworkId {
+	type Error = ();
 
+	fn try_from(chain: bp_runtime::ChainId) -> Result<Self, Self::Error> {
+		Ok(match chain {
+			bp_runtime::MILLAU_CHAIN_ID => Self::Millau,
+			bp_runtime::RIALTO_CHAIN_ID => Self::Rialto,
+			bp_runtime::RIALTO_PARACHAIN_CHAIN_ID => Self::RialtoParachain,
+			_ => return Err(()),
+		})
+	}
+}
+
+impl CustomNetworkId {
 	/// Converts self to XCM' network id.
 	pub const fn as_network_id(&self) -> NetworkId {
 		match *self {
