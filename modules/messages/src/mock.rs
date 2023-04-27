@@ -26,7 +26,7 @@ use bp_messages::{
 		DeliveryPayments, DispatchMessage, DispatchMessageData, MessageDispatch,
 		ProvedLaneMessages, ProvedMessages, SourceHeaderChain,
 	},
-	total_unrewarded_messages, DeliveredMessages, InboundLaneData, LaneId, Message, MessageKey,
+	DeliveredMessages, InboundLaneData, LaneId, Message, MessageKey,
 	MessageNonce, MessagePayload, OutboundLaneData, UnrewardedRelayer, UnrewardedRelayersState,
 };
 use bp_runtime::{messages::MessageDispatchResult, Size};
