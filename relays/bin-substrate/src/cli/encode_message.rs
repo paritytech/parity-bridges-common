@@ -16,6 +16,7 @@
 
 use crate::cli::{ExplicitOrMaximal, HexBytes};
 use bp_runtime::EncodedOrDecodedCall;
+use bridge_runtime_common::CustomNetworkId;
 use codec::Encode;
 use frame_support::weights::Weight;
 use relay_substrate_client::Chain;
@@ -62,6 +63,9 @@ pub(crate) fn encode_message<Source: Chain, Target: Chain>(
 	Ok(match message {
 		Message::Raw { ref data } => data.0.clone(),
 		Message::Sized { ref size } => {
+			let destination = CustomNetworkId::try_from(Target::ID)
+				.map(|n| n.as_network_id())
+				.map_err(|_| anyhow::format_err!("Unsupported target chain: {:?}", Target::ID))?;
 			let expected_xcm_size = match *size {
 				ExplicitOrMaximal::Explicit(size) => size,
 				ExplicitOrMaximal::Maximal => compute_maximal_message_size(
@@ -73,8 +77,8 @@ pub(crate) fn encode_message<Source: Chain, Target: Chain>(
 			// there's no way to craft XCM of the given size - we'll be using `ExpectPallet`
 			// instruction, which has byte vector inside
 			let mut current_vec_size = expected_xcm_size;
-			let xcm = loop {
-				let xcm = xcm::VersionedXcm::<()>::V3(
+			let at_target_xcm = loop {
+				let xcm = xcm::v3::Xcm(
 					vec![xcm::v3::Instruction::ExpectPallet {
 						index: 0,
 						name: vec![42; current_vec_size as usize],
@@ -90,7 +94,16 @@ pub(crate) fn encode_message<Source: Chain, Target: Chain>(
 
 				current_vec_size -= 1;
 			};
-			xcm.encode()
+
+			xcm::VersionedXcm::<()>::V3(
+				vec![xcm::v3::Instruction::ExportMessage {
+					network: destination,
+					destination: destination.into(),
+					xcm: at_target_xcm,
+				}]
+				.into(),
+			)
+			.encode()
 		},
 	})
 }
@@ -108,11 +121,9 @@ pub(crate) fn compute_maximal_message_size(
 		bridge_runtime_common::messages::target::maximal_incoming_message_size(
 			maximal_target_extrinsic_size,
 		);
-	if maximal_message_size > maximal_source_extrinsic_size {
-		maximal_source_extrinsic_size
-	} else {
-		maximal_message_size
-	}
+
+	let xcm_exporter_overhead = 128;
+	std::cmp::min(maximal_message_size, maximal_source_extrinsic_size) - xcm_exporter_overhead
 }
 
 #[cfg(test)]
