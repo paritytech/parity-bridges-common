@@ -40,7 +40,9 @@ use pallet_bridge_parachains::{
 	BoundedBridgeGrandpaConfig, CallSubType as ParachainsCallSubType, Config as ParachainsConfig,
 	RelayBlockNumber, SubmitParachainHeadsHelper, SubmitParachainHeadsInfo,
 };
-use pallet_bridge_relayers::{Config as RelayersConfig, Pallet as RelayersPallet};
+use pallet_bridge_relayers::{
+	Config as RelayersConfig, Pallet as RelayersPallet, WeightInfoExt as _,
+};
 use pallet_transaction_payment::{Config as TransactionPaymentConfig, OnChargeTransaction};
 use pallet_utility::{Call as UtilityCall, Config as UtilityConfig, Pallet as UtilityPallet};
 use scale_info::TypeInfo;
@@ -445,11 +447,20 @@ where
 
 		// decrease post-dispatch weight/size using extra weight/size that we know now
 		let post_info_len = len.saturating_sub(extra_size as usize);
-		let mut post_info = *post_info;
-		post_info.actual_weight =
-			Some(post_info.actual_weight.unwrap_or(info.weight).saturating_sub(extra_weight));
+		let mut post_info_weight =
+			post_info.actual_weight.unwrap_or(info.weight).saturating_sub(extra_weight);
+
+		// let's also replace the weight of slashing relayer with the weight of rewarding relayer
+		if call_info.is_receive_messages_proof_call() {
+			// TODO: what if weights of messages pallet are not configured to include weight of reward/slashing?
+			post_info_weight = post_info_weight.saturating_sub(
+				<Runtime as RelayersConfig>::WeightInfo::extra_weight_of_successful_receive_messages_proof_call(),
+			);
+		}
 
 		// compute the relayer refund
+		let mut post_info = *post_info;
+		post_info.actual_weight = Some(post_info_weight);
 		let refund = Refund::compute_refund(info, &post_info, post_info_len, tip);
 
 		// we can finally reward relayer
@@ -1053,10 +1064,14 @@ mod tests {
 	}
 
 	fn expected_reward() -> ThisChainBalance {
+		let mut post_dispatch_info = post_dispatch_info();
+		let extra_weight = <TestRuntime as RelayersConfig>::WeightInfo::extra_weight_of_successful_receive_messages_proof_call();
+		post_dispatch_info.actual_weight =
+			Some(dispatch_info().weight.saturating_sub(extra_weight));
 		pallet_transaction_payment::Pallet::<TestRuntime>::compute_actual_fee(
 			1024,
 			&dispatch_info(),
-			&post_dispatch_info(),
+			&post_dispatch_info,
 			Zero::zero(),
 		)
 	}
