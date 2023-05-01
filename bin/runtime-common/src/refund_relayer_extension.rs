@@ -452,7 +452,6 @@ where
 
 		// let's also replace the weight of slashing relayer with the weight of rewarding relayer
 		if call_info.is_receive_messages_proof_call() {
-			// TODO: what if weights of messages pallet are not configured to include weight of reward/slashing?
 			post_info_weight = post_info_weight.saturating_sub(
 				<Runtime as RelayersConfig>::WeightInfo::extra_weight_of_successful_receive_messages_proof_call(),
 			);
@@ -1063,7 +1062,7 @@ mod tests {
 		assert_eq!(post_dispatch_result, Ok(()));
 	}
 
-	fn expected_reward() -> ThisChainBalance {
+	fn expected_delivery_reward() -> ThisChainBalance {
 		let mut post_dispatch_info = post_dispatch_info();
 		let extra_weight = <TestRuntime as RelayersConfig>::WeightInfo::extra_weight_of_successful_receive_messages_proof_call();
 		post_dispatch_info.actual_weight =
@@ -1072,6 +1071,15 @@ mod tests {
 			1024,
 			&dispatch_info(),
 			&post_dispatch_info,
+			Zero::zero(),
+		)
+	}
+
+	fn expected_confirmation_reward() -> ThisChainBalance {
+		pallet_transaction_payment::Pallet::<TestRuntime>::compute_actual_fee(
+			1024,
+			&dispatch_info(),
+			&post_dispatch_info(),
 			Zero::zero(),
 		)
 	}
@@ -1464,7 +1472,7 @@ mod tests {
 
 			// without any size/weight refund: we expect regular reward
 			let pre_dispatch_data = all_finality_pre_dispatch_data();
-			let regular_reward = expected_reward();
+			let regular_reward = expected_delivery_reward();
 			run_post_dispatch(Some(pre_dispatch_data), Ok(()));
 			assert_eq!(
 				RelayersPallet::<TestRuntime>::relayer_reward(
@@ -1511,7 +1519,7 @@ mod tests {
 					relayer_account_at_this_chain(),
 					MsgProofsRewardsAccount::get()
 				),
-				Some(expected_reward()),
+				Some(expected_delivery_reward()),
 			);
 
 			run_post_dispatch(Some(all_finality_confirmation_pre_dispatch_data()), Ok(()));
@@ -1520,7 +1528,7 @@ mod tests {
 					relayer_account_at_this_chain(),
 					MsgDeliveryProofsRewardsAccount::get()
 				),
-				Some(expected_reward()),
+				Some(expected_confirmation_reward()),
 			);
 		});
 	}
@@ -1536,7 +1544,7 @@ mod tests {
 					relayer_account_at_this_chain(),
 					MsgProofsRewardsAccount::get()
 				),
-				Some(expected_reward()),
+				Some(expected_delivery_reward()),
 			);
 
 			run_post_dispatch(Some(parachain_finality_confirmation_pre_dispatch_data()), Ok(()));
@@ -1545,7 +1553,7 @@ mod tests {
 					relayer_account_at_this_chain(),
 					MsgDeliveryProofsRewardsAccount::get()
 				),
-				Some(expected_reward()),
+				Some(expected_confirmation_reward()),
 			);
 		});
 	}
@@ -1561,7 +1569,7 @@ mod tests {
 					relayer_account_at_this_chain(),
 					MsgProofsRewardsAccount::get()
 				),
-				Some(expected_reward()),
+				Some(expected_delivery_reward()),
 			);
 
 			run_post_dispatch(Some(confirmation_pre_dispatch_data()), Ok(()));
@@ -1570,7 +1578,7 @@ mod tests {
 					relayer_account_at_this_chain(),
 					MsgDeliveryProofsRewardsAccount::get()
 				),
-				Some(expected_reward()),
+				Some(expected_confirmation_reward()),
 			);
 		});
 	}
