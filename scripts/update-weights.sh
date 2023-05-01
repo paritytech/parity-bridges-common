@@ -56,8 +56,8 @@ time cargo run --release -p millau-bridge-node --features=runtime-benchmarks -- 
 	--output=./modules/relayers/src/weights.rs \
 	--template=./.maintain/bridge-weight-template.hbs
 
-# weights for Millau runtime. We'll also copy the same weights to our other test runtimes to implement
-# `WeightInfoExt`. Otherwise weights will be refused by our integration tests
+# weights for Millau runtime. We want to provide runtime weight overhead for messages calls,
+# so we can't use "default" test weights directly - they'll be rejected by our integration tests.
 
 time cargo run --release -p millau-bridge-node --features=runtime-benchmarks -- benchmark pallet \
 	--chain=dev \
