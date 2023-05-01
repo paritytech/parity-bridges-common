@@ -27,7 +27,7 @@ mod wococo;
 
 #[cfg(test)]
 mod tests {
-	use crate::cli::encode_message;
+	use crate::cli::{encode_message, encode_message::XCM_EXPORTER_OVERHEAD};
 	use bp_messages::source_chain::TargetHeaderChain;
 	use bp_runtime::Chain as _;
 	use codec::Encode;
@@ -42,7 +42,7 @@ mod tests {
 		let maximal_message_size = encode_message::compute_maximal_message_size(
 			bp_rialto::Rialto::max_extrinsic_size(),
 			bp_millau::Millau::max_extrinsic_size(),
-		);
+		) + XCM_EXPORTER_OVERHEAD;
 
 		let message = vec![42; maximal_message_size as _];
 		assert_eq!(MillauAsTargetHeaderChain::verify_message(&message), Ok(()));

@@ -22,6 +22,8 @@ use frame_support::weights::Weight;
 use relay_substrate_client::Chain;
 use structopt::StructOpt;
 
+pub(crate) const XCM_EXPORTER_OVERHEAD: u32 = 128;
+
 /// All possible messages that may be delivered to generic Substrate chain.
 ///
 /// Note this enum may be used in the context of both Source (as part of `encode-call`)
@@ -119,8 +121,7 @@ pub(crate) fn compute_maximal_message_size(
 			maximal_target_extrinsic_size,
 		);
 
-	let xcm_exporter_overhead = 128;
-	std::cmp::min(maximal_message_size, maximal_source_extrinsic_size) - xcm_exporter_overhead
+	std::cmp::min(maximal_message_size, maximal_source_extrinsic_size) - XCM_EXPORTER_OVERHEAD
 }
 
 #[cfg(test)]
@@ -137,7 +138,11 @@ mod tests {
 			size: ExplicitOrMaximal::Explicit(100),
 		})
 		.unwrap();
-		assert_eq!(msg.len(), 100);
+		assert_eq!(
+			msg.len(),
+			// requested size + ExportMessage size
+			107
+		);
 		// check that it decodes to valid xcm
 		let _ = decode_xcm::<()>(msg).unwrap();
 	}
@@ -152,7 +157,11 @@ mod tests {
 		let msg =
 			encode_message::<Rialto, Millau>(&Message::Sized { size: ExplicitOrMaximal::Maximal })
 				.unwrap();
-		assert_eq!(msg.len(), maximal_size as usize);
+		assert_eq!(
+			msg.len(),
+			// maximal size + ExportMessage size
+			maximal_size as usize + 7
+		);
 		// check that it decodes to valid xcm
 		let _ = decode_xcm::<()>(msg).unwrap();
 	}
