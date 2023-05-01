@@ -154,7 +154,6 @@ mod tests {
 			bp_millau::EXTRA_STORAGE_PROOF_SIZE,
 			bp_rialto_parachain::MAX_UNREWARDED_RELAYERS_IN_CONFIRMATION_TX,
 			bp_rialto_parachain::MAX_UNCONFIRMED_MESSAGES_IN_CONFIRMATION_TX,
-			false,
 		);
 	}
 
