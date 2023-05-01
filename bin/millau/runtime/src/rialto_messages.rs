@@ -170,7 +170,7 @@ mod tests {
 			bp_rialto::EXTRA_STORAGE_PROOF_SIZE,
 			bp_millau::MAX_UNREWARDED_RELAYERS_IN_CONFIRMATION_TX,
 			bp_millau::MAX_UNCONFIRMED_MESSAGES_IN_CONFIRMATION_TX,
-			true,
+			false,
 		);
 	}
 
