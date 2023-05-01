@@ -78,16 +78,13 @@ pub(crate) fn encode_message<Source: Chain, Target: Chain>(
 			// instruction, which has byte vector inside
 			let mut current_vec_size = expected_xcm_size;
 			let at_target_xcm = loop {
-				let xcm = xcm::v3::Xcm(
-					vec![xcm::v3::Instruction::ExpectPallet {
-						index: 0,
-						name: vec![42; current_vec_size as usize],
-						module_name: vec![],
-						crate_major: 0,
-						min_crate_minor: 0,
-					}]
-					.into(),
-				);
+				let xcm = xcm::v3::Xcm(vec![xcm::v3::Instruction::ExpectPallet {
+					index: 0,
+					name: vec![42; current_vec_size as usize],
+					module_name: vec![],
+					crate_major: 0,
+					min_crate_minor: 0,
+				}]);
 				if xcm.encode().len() <= expected_xcm_size as usize {
 					break xcm
 				}
