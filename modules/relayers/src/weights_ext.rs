@@ -38,7 +38,7 @@ pub trait WeightInfoExt: WeightInfo {
 	/// Returns weight that we need to deduct from the message delivery call weight that has
 	/// completed successfully.
 	///
-	/// Ususally, the weight of `slash_and_deregister` is larger than the weight of the
+	/// Usually, the weight of `slash_and_deregister` is larger than the weight of the
 	/// `register_relayer_reward`. So if relayer has been rewarded, we want to deduct the difference
 	/// to get the actual post-dispatch weight.
 	fn extra_weight_of_successful_receive_messages_proof_call() -> Weight {
