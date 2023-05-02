@@ -332,9 +332,9 @@ pub fn check_message_lane_weights<
 	// check that extra weights of delivery/confirmation transactions include the weight
 	// of `RefundBridgedParachainMessages` operations. This signed extension assumes the worst case
 	// (i.e. slashing if delivery transaction was invalid) and refunds some weight if
-	// assumption was wrong (i.e. if we did refund instead of slashing). If pallet weights
-	// do not account weights of refund extension, the extension will do refund when it
-	// doesn't need to.
+	// assumption was wrong (i.e. if we did refund instead of slashing). This check
+	// ensures the extension will not refund weight when it doesn't need to (i.e. if pallet
+	// weights do not account weights of refund extension).
 	if runtime_includes_refund_extension {
 		assert_ne!(Weights::<T>::receive_messages_proof_overhead_from_runtime(), Weight::zero());
 		assert_ne!(
