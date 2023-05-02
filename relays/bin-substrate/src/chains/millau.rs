@@ -17,7 +17,7 @@
 //! Millau chain specification for CLI.
 
 use crate::cli::{encode_message::CliEncodeMessage, CliChain};
-use bp_runtime::{ChainId, EncodedOrDecodedCall, RIALTO_CHAIN_ID, RIALTO_PARACHAIN_CHAIN_ID};
+use bp_runtime::EncodedOrDecodedCall;
 use bridge_runtime_common::CustomNetworkId;
 use relay_millau_client::Millau;
 use relay_substrate_client::SimpleRuntimeVersion;
@@ -25,14 +25,17 @@ use xcm_executor::traits::ExportXcm;
 
 impl CliEncodeMessage for Millau {
 	fn encode_wire_message(
-		target: ChainId,
+		target: xcm::v3::NetworkId,
 		at_target_xcm: xcm::v3::Xcm<()>,
 	) -> anyhow::Result<Vec<u8>> {
-		let target = match target {
-			RIALTO_CHAIN_ID => CustomNetworkId::Rialto.as_network_id(),
-			RIALTO_PARACHAIN_CHAIN_ID => CustomNetworkId::RialtoParachain.as_network_id(),
-			_ => return Err(anyhow::format_err!("Unsupported target chain: {:?}", target)),
-		};
+		anyhow::ensure!(
+			[
+				CustomNetworkId::Rialto.as_network_id(),
+				CustomNetworkId::RialtoParachain.as_network_id()
+			]
+			.contains(&target),
+			anyhow::format_err!("Unsupported target chain: {:?}", target)
+		);
 
 		Ok(millau_runtime::xcm_config::ToRialtoOrRialtoParachainSwitchExporter::validate(
 			target,

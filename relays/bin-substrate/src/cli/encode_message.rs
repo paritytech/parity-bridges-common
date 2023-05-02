@@ -15,7 +15,7 @@
 // along with Parity Bridges Common.  If not, see <http://www.gnu.org/licenses/>.
 
 use crate::cli::{ExplicitOrMaximal, HexBytes};
-use bp_runtime::{ChainId, EncodedOrDecodedCall};
+use bp_runtime::EncodedOrDecodedCall;
 use bridge_runtime_common::CustomNetworkId;
 use codec::Encode;
 use frame_support::weights::Weight;
@@ -52,24 +52,15 @@ pub trait CliEncodeMessage: Chain {
 		let this_network = CustomNetworkId::try_from(Self::ID)
 			.map(|n| n.as_network_id())
 			.map_err(|_| anyhow::format_err!("Unsupported chain: {:?}", Self::ID))?;
-		let this_location: InteriorMultiLocation = this_network.into();
-
-		let origin = MultiLocation {
-			parents: 0,
-			interior: X1(AccountId32 { network: Some(this_network), id: [0u8; 32] }),
-		};
-		let universal_source = this_location
-			.within_global(origin)
-			.map_err(|e| anyhow::format_err!("Invalid location: {:?}", e))?;
-
-		Ok(universal_source)
+		Ok(X2(
+			GlobalConsensus(this_network),
+			AccountId32 { network: Some(this_network), id: [0u8; 32] },
+		))
 	}
+
 	/// Returns XCM blob that is passed to the `send_message` function of the messages pallet
 	/// and then is sent over the wire.
-	fn encode_wire_message(
-		target: ChainId,
-		at_target_xcm: xcm::v3::Xcm<()>,
-	) -> anyhow::Result<Vec<u8>>;
+	fn encode_wire_message(target: NetworkId, at_target_xcm: Xcm<()>) -> anyhow::Result<Vec<u8>>;
 	/// Encode an `execute` XCM call of the XCM pallet.
 	fn encode_execute_xcm(
 		message: xcm::VersionedXcm<Self::Call>,
@@ -100,14 +91,24 @@ pub(crate) fn encode_message<Source: CliEncodeMessage, Target: Chain>(
 				),
 			} as usize;
 
-			let at_target_xcm = vec![xcm::v3::Instruction::ClearOrigin; expected_size].into();
+			let at_target_xcm = vec![ExpectPallet {
+				index: 0,
+				name: vec![42; expected_size],
+				module_name: vec![],
+				crate_major: 0,
+				min_crate_minor: 0,
+			}]
+			.into();
 			let at_target_xcm_size =
-				Source::encode_wire_message(Target::ID, at_target_xcm)?.encoded_size();
+				Source::encode_wire_message(destination, at_target_xcm)?.encoded_size();
 			let at_target_xcm_overhead = at_target_xcm_size.saturating_sub(expected_size);
-			let at_target_xcm = vec![
-				xcm::v3::Instruction::ClearOrigin;
-				expected_size.saturating_sub(at_target_xcm_overhead)
-			]
+			let at_target_xcm = vec![ExpectPallet {
+				index: 0,
+				name: vec![42; expected_size.saturating_sub(at_target_xcm_overhead)],
+				module_name: vec![],
+				crate_major: 0,
+				min_crate_minor: 0,
+			}]
 			.into();
 
 			xcm::VersionedXcm::<()>::V3(
@@ -136,11 +137,7 @@ pub(crate) fn compute_maximal_message_size(
 		bridge_runtime_common::messages::target::maximal_incoming_message_size(
 			maximal_target_extrinsic_size,
 		);
-	if maximal_message_size > maximal_source_extrinsic_size {
-		maximal_source_extrinsic_size
-	} else {
-		maximal_message_size
-	}
+	std::cmp::min(maximal_message_size, maximal_source_extrinsic_size)
 }
 
 #[cfg(test)]
