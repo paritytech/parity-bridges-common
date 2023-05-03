@@ -166,18 +166,12 @@ impl Error {
 
 	/// Constructs `FailedToReadBestFinalizedHeaderHash` variant.
 	pub fn failed_to_read_best_finalized_header_hash<C: Chain>(e: Error) -> Self {
-		Error::FailedToReadBestFinalizedHeaderHash {
-			chain: C::NAME.into(),
-			error: e.boxed(),
-		}
+		Error::FailedToReadBestFinalizedHeaderHash { chain: C::NAME.into(), error: e.boxed() }
 	}
 
 	/// Constructs `FailedToReadBestHeader` variant.
 	pub fn failed_to_read_best_header<C: Chain>(e: Error) -> Self {
-		Error::FailedToReadBestHeader {
-			chain: C::NAME.into(),
-			error: e.boxed(),
-		}
+		Error::FailedToReadBestHeader { chain: C::NAME.into(), error: e.boxed() }
 	}
 }
 

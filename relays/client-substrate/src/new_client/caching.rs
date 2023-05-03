@@ -17,11 +17,7 @@
 //! Client implementation that is caching (whenever possible) results of its backend
 //! method calls.
 
-use crate::{
-	error::Result,
-	new_client::Client,
-	Chain, HashOf, HeaderOf, SignedBlockOf,
-};
+use crate::{error::Result, new_client::Client, Chain, HashOf, HeaderOf, SignedBlockOf};
 
 use async_std::sync::Arc;
 use async_trait::async_trait;
@@ -38,8 +34,12 @@ impl<C: Chain, B: Client<C>> CachingClient<C, B> {
 	pub fn new(backend: B) -> Self {
 		CachingClient {
 			backend,
-			header_by_hash_cache: Arc::new(Cache::new(crate::client::ANCIENT_BLOCK_THRESHOLD as usize)),
-			block_by_hash_cache: Arc::new(Cache::new(crate::client::ANCIENT_BLOCK_THRESHOLD as usize)),
+			header_by_hash_cache: Arc::new(Cache::new(
+				crate::client::ANCIENT_BLOCK_THRESHOLD as usize,
+			)),
+			block_by_hash_cache: Arc::new(Cache::new(
+				crate::client::ANCIENT_BLOCK_THRESHOLD as usize,
+			)),
 		}
 	}
 }
@@ -53,17 +53,15 @@ impl<C: Chain, B: Client<C>> Client<C> for CachingClient<C, B> {
 	}
 
 	async fn header_by_hash(&self, hash: HashOf<C>) -> Result<HeaderOf<C>> {
-		self.header_by_hash_cache.get_or_insert_async(
-			&hash,
-			self.backend.header_by_hash(hash),
-		).await
+		self.header_by_hash_cache
+			.get_or_insert_async(&hash, self.backend.header_by_hash(hash))
+			.await
 	}
 
 	async fn block_by_hash(&self, hash: HashOf<C>) -> Result<SignedBlockOf<C>> {
-		self.block_by_hash_cache.get_or_insert_async(
-			&hash,
-			self.backend.block_by_hash(hash),
-		).await
+		self.block_by_hash_cache
+			.get_or_insert_async(&hash, self.backend.block_by_hash(hash))
+			.await
 	}
 
 	async fn best_finalized_header_hash(&self) -> Result<HashOf<C>> {

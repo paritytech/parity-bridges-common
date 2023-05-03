@@ -46,9 +46,7 @@ use sp_core::{
 	storage::{StorageData, StorageKey},
 	Bytes, Hasher, Pair,
 };
-use sp_runtime::{
-	transaction_validity::{TransactionSource, TransactionValidity},
-};
+use sp_runtime::transaction_validity::{TransactionSource, TransactionValidity};
 use sp_trie::StorageProof;
 use sp_version::RuntimeVersion;
 use std::future::Future;

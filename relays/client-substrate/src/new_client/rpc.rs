@@ -106,7 +106,8 @@ impl<C: Chain> RpcClient<C> {
 	}
 
 	/// Execute jsonrpsee future in tokio context.
-	pub async fn jsonrpsee_execute<MF, F, T>(&self, make_jsonrpsee_future: MF) -> Result<T> // TODO: make me private
+	pub async fn jsonrpsee_execute<MF, F, T>(&self, make_jsonrpsee_future: MF) -> Result<T>
+	// TODO: make me private
 	where
 		MF: FnOnce(Arc<WsClient>) -> F + Send + 'static,
 		F: Future<Output = Result<T>> + Send + 'static,
