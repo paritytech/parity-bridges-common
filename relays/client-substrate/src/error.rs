@@ -84,6 +84,16 @@ pub enum Error {
 		/// Underlying error.
 		error: Box<Error>,
 	},
+	/// Failed to read block by hash from given chain.
+	#[error("Failed to read block {hash} of {chain}: {error:?}.")]
+	FailedToReadBlockByHash {
+		/// Name of the chain where the error has happened.
+		chain: String,
+		/// Hash of the header we've tried to read.
+		hash: String,
+		/// Underlying error.
+		error: Box<Error>,
+	},
 	/// Failed to execute runtime call at given chain.
 	#[error("Failed to execute runtime call {method} at {chain}: {error:?}.")]
 	ErrorExecutingRuntimeCall {
@@ -141,6 +151,31 @@ impl Error {
 		Error::FailedToReadHeaderByHash {
 			chain: C::NAME.into(),
 			hash: format!("{hash}"),
+			error: e.boxed(),
+		}
+	}
+
+	/// Constucts `FailedToReadBlockByHash` variant.
+	pub fn failed_to_read_block_by_hash<C: Chain>(hash: HashOf<C>, e: Error) -> Self {
+		Error::FailedToReadHeaderByHash {
+			chain: C::NAME.into(),
+			hash: format!("{hash}"),
+			error: e.boxed(),
+		}
+	}
+
+	/// Constructs `FailedToReadBestFinalizedHeaderHash` variant.
+	pub fn failed_to_read_best_finalized_header_hash<C: Chain>(e: Error) -> Self {
+		Error::FailedToReadBestFinalizedHeaderHash {
+			chain: C::NAME.into(),
+			error: e.boxed(),
+		}
+	}
+
+	/// Constructs `FailedToReadBestHeader` variant.
+	pub fn failed_to_read_best_header<C: Chain>(e: Error) -> Self {
+		Error::FailedToReadBestHeader {
+			chain: C::NAME.into(),
 			error: e.boxed(),
 		}
 	}

@@ -20,7 +20,7 @@
 use crate::{
 	error::Result,
 	new_client::Client,
-	Chain, HashOf, HeaderOf,
+	Chain, HashOf, HeaderOf, SignedBlockOf,
 };
 
 use async_std::sync::Arc;
@@ -31,6 +31,7 @@ use quick_cache::sync::Cache;
 pub struct CachingClient<C: Chain, B: Client<C>> {
 	backend: B,
 	header_by_hash_cache: Arc<Cache<HashOf<C>, HeaderOf<C>>>,
+	block_by_hash_cache: Arc<Cache<HashOf<C>, SignedBlockOf<C>>>,
 }
 
 impl<C: Chain, B: Client<C>> CachingClient<C, B> {
@@ -38,6 +39,7 @@ impl<C: Chain, B: Client<C>> CachingClient<C, B> {
 		CachingClient {
 			backend,
 			header_by_hash_cache: Arc::new(Cache::new(crate::client::ANCIENT_BLOCK_THRESHOLD as usize)),
+			block_by_hash_cache: Arc::new(Cache::new(crate::client::ANCIENT_BLOCK_THRESHOLD as usize)),
 		}
 	}
 }
@@ -55,5 +57,25 @@ impl<C: Chain, B: Client<C>> Client<C> for CachingClient<C, B> {
 			&hash,
 			self.backend.header_by_hash(hash),
 		).await
+	}
+
+	async fn block_by_hash(&self, hash: HashOf<C>) -> Result<SignedBlockOf<C>> {
+		self.block_by_hash_cache.get_or_insert_async(
+			&hash,
+			self.backend.block_by_hash(hash),
+		).await
+	}
+
+	async fn best_finalized_header_hash(&self) -> Result<HashOf<C>> {
+		// TODO: after https://github.com/paritytech/parity-bridges-common/issues/2074 we may
+		// use single-value-cache here, but for now let's just call the backend
+		self.backend.best_finalized_header_hash().await
+	}
+
+	async fn best_header(&self) -> Result<HeaderOf<C>> {
+		// TODO: if after https://github.com/paritytech/parity-bridges-common/issues/2074 we'll
+		// be using subscriptions to get best blocks, we may use single-value-cache here, but for
+		// now let's just call the backend
+		self.backend.best_header().await
 	}
 }

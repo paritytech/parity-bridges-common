@@ -47,7 +47,6 @@ use sp_core::{
 	Bytes, Hasher, Pair,
 };
 use sp_runtime::{
-	traits::Header as HeaderT,
 	transaction_validity::{TransactionSource, TransactionValidity},
 };
 use sp_trie::StorageProof;
@@ -280,51 +279,31 @@ impl<C: Chain> Client<C> {
 
 	/// Return hash of the best finalized block.
 	pub async fn best_finalized_header_hash(&self) -> Result<C::Hash> {
-		self.jsonrpsee_execute(|client| async move {
-			Ok(SubstrateChainClient::<C>::finalized_head(&*client).await?)
-		})
-		.await
-		.map_err(|e| Error::FailedToReadBestFinalizedHeaderHash {
-			chain: C::NAME.into(),
-			error: e.boxed(),
-		})
+		self.new.best_finalized_header_hash().await
 	}
 
 	/// Return number of the best finalized block.
 	pub async fn best_finalized_header_number(&self) -> Result<C::BlockNumber> {
-		Ok(*self.best_finalized_header().await?.number())
+		self.new.best_finalized_header_number().await
 	}
 
 	/// Return header of the best finalized block.
 	pub async fn best_finalized_header(&self) -> Result<C::Header> {
-		self.header_by_hash(self.best_finalized_header_hash().await?).await
+		self.new.best_finalized_header().await
 	}
 
 	/// Returns the best Substrate header.
-	pub async fn best_header(&self) -> Result<C::Header>
-	where
-		C::Header: DeserializeOwned,
-	{
-		self.jsonrpsee_execute(|client| async move {
-			Ok(SubstrateChainClient::<C>::header(&*client, None).await?)
-		})
-		.await
-		.map_err(|e| Error::FailedToReadBestHeader { chain: C::NAME.into(), error: e.boxed() })
+	pub async fn best_header(&self) -> Result<C::Header> {
+		self.new.best_header().await
 	}
 
 	/// Get a Substrate block from its hash.
-	pub async fn get_block(&self, block_hash: Option<C::Hash>) -> Result<C::SignedBlock> {
-		self.jsonrpsee_execute(move |client| async move {
-			Ok(SubstrateChainClient::<C>::block(&*client, block_hash).await?)
-		})
-		.await
+	pub async fn get_block(&self, block_hash: C::Hash) -> Result<C::SignedBlock> {
+		self.new.block_by_hash(block_hash).await
 	}
 
 	/// Get a Substrate header by its hash.
-	pub async fn header_by_hash(&self, block_hash: C::Hash) -> Result<C::Header>
-	where
-		C::Header: DeserializeOwned,
-	{
+	pub async fn header_by_hash(&self, block_hash: C::Hash) -> Result<C::Header> {
 		self.new.header_by_hash(block_hash).await
 	}
 

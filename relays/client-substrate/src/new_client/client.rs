@@ -16,15 +16,33 @@
 
 use crate::{
 	error::Result,
-	Chain, HashOf, HeaderOf,
+	BlockNumberOf, Chain, HashOf, HeaderOf, SignedBlockOf,
 };
 
 use async_trait::async_trait;
+use sp_runtime::traits::Header as _;
 
 #[async_trait]
-pub trait Client<C: Chain>: 'static + Send + Sync + Clone/*: relay_utils::relay_loop::Client*/ {
+pub trait Client<C: Chain>: 'static + Send + Sync + Clone {
 	/// Reconnects the client.
 	async fn reconnect(&self) -> Result<()>;
-	/// Get block header by hash.
+
+	/// Get header by hash.
 	async fn header_by_hash(&self, hash: HashOf<C>) -> Result<HeaderOf<C>>;
+	/// Get block by hash.
+	async fn block_by_hash(&self, hash: HashOf<C>) -> Result<SignedBlockOf<C>>;
+
+	/// Get best finalized header hash.
+	async fn best_finalized_header_hash(&self) -> Result<HashOf<C>>;
+	/// Get best finalized header number.
+	async fn best_finalized_header_number(&self) -> Result<BlockNumberOf<C>> {
+		Ok(*self.best_finalized_header().await?.number())
+	}
+	/// Get best finalized header.
+	async fn best_finalized_header(&self) -> Result<HeaderOf<C>> {
+		self.header_by_hash(self.best_finalized_header_hash().await?).await
+	}
+
+	/// Get best header.
+	async fn best_header(&self) -> Result<HeaderOf<C>>;
 }

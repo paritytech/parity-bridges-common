@@ -18,14 +18,13 @@ use crate::{
 	error::{Error, Result},
 	new_client::Client,
 	rpc::SubstrateChainClient,
-	Chain, ConnectionParams, HashOf, HeaderOf,
+	Chain, ConnectionParams, HashOf, HeaderOf, SignedBlockOf,
 };
 
 use async_std::sync::{Arc, RwLock};
 use async_trait::async_trait;
 use jsonrpsee::ws_client::{WsClient, WsClientBuilder};
 use relay_utils::relay_loop::RECONNECT_DELAY;
-use sp_runtime::DeserializeOwned;
 use std::{future::Future, marker::PhantomData};
 
 const MAX_SUBSCRIPTION_CAPACITY: usize = 4096;
@@ -145,14 +144,35 @@ impl<C: Chain> Client<C> for RpcClient<C> {
 		Ok(())
 	}
 
-	async fn header_by_hash(&self, block_hash: HashOf<C>) -> Result<HeaderOf<C>>
-	where
-		C::Header: DeserializeOwned,
-	{
+	async fn header_by_hash(&self, hash: HashOf<C>) -> Result<HeaderOf<C>> {
 		self.jsonrpsee_execute(move |client| async move {
-			Ok(SubstrateChainClient::<C>::header(&*client, Some(block_hash)).await?)
+			Ok(SubstrateChainClient::<C>::header(&*client, Some(hash)).await?)
 		})
 		.await
-		.map_err(|e| Error::failed_to_read_header_by_hash::<C>(block_hash, e))
+		.map_err(|e| Error::failed_to_read_header_by_hash::<C>(hash, e))
+	}
+
+	async fn block_by_hash(&self, hash: HashOf<C>) -> Result<SignedBlockOf<C>> {
+		self.jsonrpsee_execute(move |client| async move {
+			Ok(SubstrateChainClient::<C>::block(&*client, Some(hash)).await?)
+		})
+		.await
+		.map_err(|e| Error::failed_to_read_block_by_hash::<C>(hash, e))
+	}
+
+	async fn best_finalized_header_hash(&self) -> Result<HashOf<C>> {
+		self.jsonrpsee_execute(|client| async move {
+			Ok(SubstrateChainClient::<C>::finalized_head(&*client).await?)
+		})
+		.await
+		.map_err(|e| Error::failed_to_read_best_finalized_header_hash::<C>(e))
+	}
+
+	async fn best_header(&self) -> Result<HeaderOf<C>> {
+		self.jsonrpsee_execute(|client| async move {
+			Ok(SubstrateChainClient::<C>::header(&*client, None).await?)
+		})
+		.await
+		.map_err(|e| Error::failed_to_read_best_header::<C>(e))
 	}
 }
