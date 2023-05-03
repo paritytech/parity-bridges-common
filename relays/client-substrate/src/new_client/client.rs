@@ -24,6 +24,8 @@ pub trait Client<C: Chain>: 'static + Send + Sync + Clone {
 	/// Reconnects the client.
 	async fn reconnect(&self) -> Result<()>;
 
+	/// Get header hash by number.
+	async fn header_hash_by_number(&self, number: BlockNumberOf<C>) -> Result<HashOf<C>>;
 	/// Get header by hash.
 	async fn header_by_hash(&self, hash: HashOf<C>) -> Result<HeaderOf<C>>;
 	/// Get block by hash.

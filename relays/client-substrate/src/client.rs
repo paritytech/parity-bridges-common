@@ -307,10 +307,7 @@ impl<C: Chain> Client<C> {
 
 	/// Get a Substrate block hash by its number.
 	pub async fn block_hash_by_number(&self, number: C::BlockNumber) -> Result<C::Hash> {
-		self.jsonrpsee_execute(move |client| async move {
-			Ok(SubstrateChainClient::<C>::block_hash(&*client, Some(number)).await?)
-		})
-		.await
+		self.new.header_hash_by_number(number).await
 	}
 
 	/// Get a Substrate header by its number.

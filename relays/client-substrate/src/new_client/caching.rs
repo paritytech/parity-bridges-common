@@ -17,7 +17,9 @@
 //! Client implementation that is caching (whenever possible) results of its backend
 //! method calls.
 
-use crate::{error::Result, new_client::Client, Chain, HashOf, HeaderOf, SignedBlockOf};
+use crate::{
+	error::Result, new_client::Client, BlockNumberOf, Chain, HashOf, HeaderOf, SignedBlockOf,
+};
 
 use async_std::sync::Arc;
 use async_trait::async_trait;
@@ -26,20 +28,21 @@ use quick_cache::sync::Cache;
 #[derive(Clone)]
 pub struct CachingClient<C: Chain, B: Client<C>> {
 	backend: B,
+	header_hash_by_number_cache: Arc<Cache<BlockNumberOf<C>, HashOf<C>>>,
 	header_by_hash_cache: Arc<Cache<HashOf<C>, HeaderOf<C>>>,
 	block_by_hash_cache: Arc<Cache<HashOf<C>, SignedBlockOf<C>>>,
 }
 
 impl<C: Chain, B: Client<C>> CachingClient<C, B> {
 	pub fn new(backend: B) -> Self {
+		// most of relayer operations will never touch more than `ANCIENT_BLOCK_THRESHOLD`
+		// headers, so we'll use this as a cache capacity for all caches
+		let capacity = crate::client::ANCIENT_BLOCK_THRESHOLD as usize;
 		CachingClient {
 			backend,
-			header_by_hash_cache: Arc::new(Cache::new(
-				crate::client::ANCIENT_BLOCK_THRESHOLD as usize,
-			)),
-			block_by_hash_cache: Arc::new(Cache::new(
-				crate::client::ANCIENT_BLOCK_THRESHOLD as usize,
-			)),
+			header_hash_by_number_cache: Arc::new(Cache::new(capacity)),
+			header_by_hash_cache: Arc::new(Cache::new(capacity)),
+			block_by_hash_cache: Arc::new(Cache::new(capacity)),
 		}
 	}
 }
@@ -50,6 +53,12 @@ impl<C: Chain, B: Client<C>> Client<C> for CachingClient<C, B> {
 		// TODO: do we need to clear the cache here? IMO not, but think twice
 		self.backend.reconnect().await?;
 		Ok(())
+	}
+
+	async fn header_hash_by_number(&self, number: BlockNumberOf<C>) -> Result<HashOf<C>> {
+		self.header_hash_by_number_cache
+			.get_or_insert_async(&number, self.backend.header_hash_by_number(number))
+			.await
 	}
 
 	async fn header_by_hash(&self, hash: HashOf<C>) -> Result<HeaderOf<C>> {

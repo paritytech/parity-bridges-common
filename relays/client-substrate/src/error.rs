@@ -16,7 +16,7 @@
 
 //! Substrate node RPC errors.
 
-use crate::{Chain, HashOf};
+use crate::{BlockNumberOf, Chain, HashOf};
 
 use bp_polkadot_core::parachains::ParaId;
 use jsonrpsee::core::Error as RpcError;
@@ -71,6 +71,16 @@ pub enum Error {
 	FailedToReadBestHeader {
 		/// Name of the chain where the error has happened.
 		chain: String,
+		/// Underlying error.
+		error: Box<Error>,
+	},
+	/// Failed to read header hash by number from given chain.
+	#[error("Failed to read header hash by number {number} of {chain}: {error:?}.")]
+	FailedToReadHeaderHashByNumber {
+		/// Name of the chain where the error has happened.
+		chain: String,
+		/// Number of the header we've tried to read.
+		number: String,
 		/// Underlying error.
 		error: Box<Error>,
 	},
@@ -144,6 +154,18 @@ impl Error {
 	/// Box the error.
 	pub fn boxed(self) -> Box<Self> {
 		Box::new(self)
+	}
+
+	/// Constructs `FailedToReadHeaderHashByNumber` variant.
+	pub fn failed_to_read_header_hash_by_number<C: Chain>(
+		number: BlockNumberOf<C>,
+		e: Error,
+	) -> Self {
+		Error::FailedToReadHeaderHashByNumber {
+			chain: C::NAME.into(),
+			number: format!("{number}"),
+			error: e.boxed(),
+		}
 	}
 
 	/// Constucts `FailedToReadHeaderByHash` variant.

@@ -18,7 +18,7 @@ use crate::{
 	error::{Error, Result},
 	new_client::Client,
 	rpc::SubstrateChainClient,
-	Chain, ConnectionParams, HashOf, HeaderOf, SignedBlockOf,
+	BlockNumberOf, Chain, ConnectionParams, HashOf, HeaderOf, SignedBlockOf,
 };
 
 use async_std::sync::{Arc, RwLock};
@@ -143,6 +143,14 @@ impl<C: Chain> Client<C> for RpcClient<C> {
 		data.tokio = tokio;
 		data.client = client;
 		Ok(())
+	}
+
+	async fn header_hash_by_number(&self, number: BlockNumberOf<C>) -> Result<HashOf<C>> {
+		self.jsonrpsee_execute(move |client| async move {
+			Ok(SubstrateChainClient::<C>::block_hash(&*client, Some(number)).await?)
+		})
+		.await
+		.map_err(|e| Error::failed_to_read_header_hash_by_number::<C>(number, e))
 	}
 
 	async fn header_by_hash(&self, hash: HashOf<C>) -> Result<HeaderOf<C>> {
