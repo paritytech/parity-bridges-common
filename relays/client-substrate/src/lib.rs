@@ -30,6 +30,8 @@ pub mod guard;
 pub mod metrics;
 pub mod test_chain;
 
+mod new_client;
+
 use std::time::Duration;
 
 pub use crate::{

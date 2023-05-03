@@ -16,6 +16,8 @@
 
 //! Substrate node RPC errors.
 
+use crate::{Chain, HashOf};
+
 use bp_polkadot_core::parachains::ParaId;
 use jsonrpsee::core::Error as RpcError;
 use relay_utils::MaybeConnectionError;
@@ -132,6 +134,15 @@ impl Error {
 	/// Box the error.
 	pub fn boxed(self) -> Box<Self> {
 		Box::new(self)
+	}
+
+	/// Constucts `FailedToReadHeaderByHash` variant.
+	pub fn failed_to_read_header_by_hash<C: Chain>(hash: HashOf<C>, e: Error) -> Self {
+		Error::FailedToReadHeaderByHash {
+			chain: C::NAME.into(),
+			hash: format!("{hash}"),
+			error: e.boxed(),
+		}
 	}
 }
 

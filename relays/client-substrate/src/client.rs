@@ -18,6 +18,7 @@
 
 use crate::{
 	chain::{Chain, ChainWithBalances, ChainWithTransactions},
+	new_client::{Client as _, RpcWithCachingClient as NewRpcWithCachingClient},
 	rpc::{
 		SubstrateAuthorClient, SubstrateChainClient, SubstrateFinalityClient,
 		SubstrateFrameSystemClient, SubstrateStateClient, SubstrateSystemClient,
@@ -115,8 +116,10 @@ pub enum ChainRuntimeVersion {
 /// clones of the same client are guaranteed to use the same references.
 pub struct Client<C: Chain> {
 	// Lock order: `submit_signed_extrinsic_lock`, `data`
+	/// New client implementation.
+	new: NewRpcWithCachingClient<C>,
 	/// Client connection params.
-	params: Arc<ConnectionParams>,
+	params: ConnectionParams,
 	/// Saved chain runtime version.
 	chain_runtime_version: ChainRuntimeVersion,
 	/// If several tasks are submitting their transactions simultaneously using
@@ -143,6 +146,8 @@ impl<C: Chain> relay_utils::relay_loop::Client for Client<C> {
 	type Error = Error;
 
 	async fn reconnect(&mut self) -> Result<()> {
+		self.new.reconnect().await?;
+
 		let mut data = self.data.write().await;
 		let (tokio, client) = Self::build_client(&self.params).await?;
 		data.tokio = tokio;
@@ -154,6 +159,7 @@ impl<C: Chain> relay_utils::relay_loop::Client for Client<C> {
 impl<C: Chain> Clone for Client<C> {
 	fn clone(&self) -> Self {
 		Client {
+			new: self.new.clone(),
 			params: self.params.clone(),
 			chain_runtime_version: self.chain_runtime_version.clone(),
 			submit_signed_extrinsic_lock: self.submit_signed_extrinsic_lock.clone(),
@@ -175,7 +181,6 @@ impl<C: Chain> Client<C> {
 	/// This function will keep connecting to given Substrate node until connection is established
 	/// and is functional. If attempt fail, it will wait for `RECONNECT_DELAY` and retry again.
 	pub async fn new(params: ConnectionParams) -> Self {
-		let params = Arc::new(params);
 		loop {
 			match Self::try_connect(params.clone()).await {
 				Ok(client) => return client,
@@ -194,7 +199,7 @@ impl<C: Chain> Client<C> {
 
 	/// Try to connect to Substrate node over websocket. Returns Substrate RPC client if connection
 	/// has been established or error otherwise.
-	pub async fn try_connect(params: Arc<ConnectionParams>) -> Result<Self> {
+	pub async fn try_connect(params: ConnectionParams) -> Result<Self> {
 		let (tokio, client) = Self::build_client(&params).await?;
 
 		let number: C::BlockNumber = Zero::zero();
@@ -207,6 +212,7 @@ impl<C: Chain> Client<C> {
 
 		let chain_runtime_version = params.chain_runtime_version.clone();
 		Ok(Self {
+			new: crate::new_client::rpc_with_caching(params.clone()).await,
 			params,
 			chain_runtime_version,
 			submit_signed_extrinsic_lock: Arc::new(Mutex::new(())),
@@ -319,15 +325,7 @@ impl<C: Chain> Client<C> {
 	where
 		C::Header: DeserializeOwned,
 	{
-		self.jsonrpsee_execute(move |client| async move {
-			Ok(SubstrateChainClient::<C>::header(&*client, Some(block_hash)).await?)
-		})
-		.await
-		.map_err(|e| Error::FailedToReadHeaderByHash {
-			chain: C::NAME.into(),
-			hash: format!("{block_hash}"),
-			error: e.boxed(),
-		})
+		self.new.header_by_hash(block_hash).await
 	}
 
 	/// Get a Substrate block hash by its number.
