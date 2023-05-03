@@ -16,29 +16,27 @@
 
 //! Types used to connect to the BridgeHub-Wococo-Substrate parachain.
 
-pub mod codegen_runtime;
-
 use bp_bridge_hub_wococo::{BridgeHubSignedExtension, SignedExtension, AVERAGE_BLOCK_INTERVAL};
 use bp_messages::MessageNonce;
 use bp_runtime::ChainId;
 use codec::Encode;
 use relay_substrate_client::{
-	calls::UtilityCall as MockUtilityCall, Chain, ChainWithBalances, ChainWithMessages,
-	ChainWithTransactions, ChainWithUtilityPallet, Error as SubstrateError,
-	MockedRuntimeUtilityPallet, SignParam, UnderlyingChainProvider, UnsignedTransaction,
+	Chain, ChainWithBalances, ChainWithMessages, ChainWithTransactions, ChainWithUtilityPallet,
+	Error as SubstrateError, MockedRuntimeUtilityPallet, SignParam, UnderlyingChainProvider,
+	UnsignedTransaction,
 };
 use sp_core::{storage::StorageKey, Pair};
 use sp_runtime::{generic::SignedPayload, traits::IdentifyAccount};
 use std::time::Duration;
 
 pub use codegen_runtime::api::runtime_types;
+use relay_bridge_hub_rococo_client::codegen_runtime;
 
 pub type RuntimeCall = runtime_types::bridge_hub_rococo_runtime::RuntimeCall;
 pub type BridgeMessagesCall = runtime_types::pallet_bridge_messages::pallet::Call;
 pub type BridgeGrandpaCall = runtime_types::pallet_bridge_grandpa::pallet::Call;
 pub type BridgeParachainCall = runtime_types::pallet_bridge_parachains::pallet::Call;
 type UncheckedExtrinsic = bp_bridge_hub_wococo::UncheckedExtrinsic<RuntimeCall, SignedExtension>;
-type UtilityCall = runtime_types::pallet_utility::pallet::Call;
 
 /// Wococo chain definition
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -62,15 +60,6 @@ impl Chain for BridgeHubWococo {
 impl ChainWithBalances for BridgeHubWococo {
 	fn account_info_storage_key(account_id: &Self::AccountId) -> StorageKey {
 		bp_bridge_hub_wococo::AccountInfoStorageMapKeyProvider::final_key(account_id)
-	}
-}
-
-impl From<MockUtilityCall<RuntimeCall>> for RuntimeCall {
-	fn from(value: MockUtilityCall<RuntimeCall>) -> RuntimeCall {
-		match value {
-			MockUtilityCall::batch_all(calls) =>
-				RuntimeCall::Utility(UtilityCall::batch_all { calls }),
-		}
 	}
 }
 
@@ -152,12 +141,6 @@ mod tests {
 	use relay_substrate_client::TransactionEra;
 
 	type SystemCall = runtime_types::frame_system::pallet::Call;
-
-	impl PartialEq for RuntimeCall {
-		fn eq(&self, _other: &Self) -> bool {
-			matches!(self, _other)
-		}
-	}
 
 	#[test]
 	fn parse_transaction_works() {

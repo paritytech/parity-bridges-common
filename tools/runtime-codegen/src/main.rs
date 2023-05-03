@@ -119,6 +119,7 @@ fn main() -> color_eyre::Result<()> {
 			syn::parse_quote!(::codec::Decode),
 			syn::parse_quote!(Clone),
 			syn::parse_quote!(Debug),
+			syn::parse_quote!(PartialEq),
 		],
 		vec![],
 	);

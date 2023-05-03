@@ -9670,6 +9670,7 @@ dependencies = [
  "bp-runtime",
  "bridge-runtime-common",
  "parity-scale-codec",
+ "relay-bridge-hub-rococo-client",
  "relay-substrate-client",
  "scale-info",
  "sp-consensus-grandpa",

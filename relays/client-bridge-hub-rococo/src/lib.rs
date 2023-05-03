@@ -153,12 +153,6 @@ mod tests {
 
 	type SystemCall = runtime_types::frame_system::pallet::Call;
 
-	impl PartialEq for RuntimeCall {
-		fn eq(&self, _other: &Self) -> bool {
-			matches!(self, _other)
-		}
-	}
-
 	#[test]
 	fn parse_transaction_works() {
 		let unsigned = UnsignedTransaction {
