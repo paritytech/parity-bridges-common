@@ -16,8 +16,8 @@
 
 use crate::{
 	error::{Error, Result},
-	AccountKeyPairOf, BlockNumberOf, Chain, ChainWithTransactions, HashOf, HeaderIdOf, HeaderOf,
-	SignedBlockOf, UnsignedTransaction,
+	AccountIdOf, AccountKeyPairOf, BlockNumberOf, Chain, ChainWithTransactions, HashOf, HeaderIdOf,
+	HeaderOf, IndexOf, SignedBlockOf, TransactionTracker, UnsignedTransaction,
 };
 
 use async_trait::async_trait;
@@ -124,11 +124,24 @@ pub trait Client<C: Chain>: 'static + Send + Sync + Clone {
 	async fn submit_signed_extrinsic(
 		&self,
 		signer: &AccountKeyPairOf<C>,
-		prepare_extrinsic: impl FnOnce(HeaderIdOf<C>, C::Index) -> Result<UnsignedTransaction<C>>
+		prepare_extrinsic: impl FnOnce(HeaderIdOf<C>, IndexOf<C>) -> Result<UnsignedTransaction<C>>
 			+ Send
 			+ 'static,
 	) -> Result<HashOf<C>>
 	where
 		C: ChainWithTransactions,
-		C::AccountId: From<<C::AccountKeyPair as Pair>::Public>;
+		AccountIdOf<C>: From<<AccountKeyPairOf<C> as Pair>::Public>;
+
+	/// Does exactly the same as `submit_signed_extrinsic`, but keeps watching for extrinsic status
+	/// after submission.
+	async fn submit_and_watch_signed_extrinsic(
+		&self,
+		signer: &AccountKeyPairOf<C>,
+		prepare_extrinsic: impl FnOnce(HeaderIdOf<C>, IndexOf<C>) -> Result<UnsignedTransaction<C>>
+			+ Send
+			+ 'static,
+	) -> Result<TransactionTracker<C, Self>>
+	where
+		C: ChainWithTransactions,
+		AccountIdOf<C>: From<<AccountKeyPairOf<C> as Pair>::Public>;
 }

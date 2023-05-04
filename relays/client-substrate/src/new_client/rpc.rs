@@ -22,8 +22,9 @@ use crate::{
 		SubstrateAuthorClient, SubstrateChainClient, SubstrateFrameSystemClient,
 		SubstrateStateClient,
 	},
-	AccountIdOf, AccountKeyPairOf, BlockNumberOf, Chain, ChainWithTransactions, ConnectionParams,
-	HashOf, HeaderIdOf, HeaderOf, IndexOf, SignParam, SignedBlockOf, UnsignedTransaction,
+	transaction_stall_timeout, AccountIdOf, AccountKeyPairOf, BlockNumberOf, Chain,
+	ChainWithTransactions, ConnectionParams, HashOf, HeaderIdOf, HeaderOf, IndexOf, SignParam,
+	SignedBlockOf, Subscription, TransactionTracker, UnsignedTransaction,
 };
 
 use async_std::sync::{Arc, Mutex, RwLock};
@@ -32,10 +33,10 @@ use bp_runtime::HeaderIdProvider;
 use codec::Encode;
 use jsonrpsee::ws_client::{WsClient, WsClientBuilder};
 use num_traits::Zero;
-use relay_utils::relay_loop::RECONNECT_DELAY;
+use relay_utils::{relay_loop::RECONNECT_DELAY, STALL_TIMEOUT};
 use sp_core::{
 	storage::{StorageData, StorageKey},
-	Bytes, Pair,
+	Bytes, Hasher, Pair,
 };
 use sp_version::RuntimeVersion;
 use std::{future::Future, marker::PhantomData};
@@ -290,13 +291,13 @@ impl<C: Chain> Client<C> for RpcClient<C> {
 	async fn submit_signed_extrinsic(
 		&self,
 		signer: &AccountKeyPairOf<C>,
-		prepare_extrinsic: impl FnOnce(HeaderIdOf<C>, C::Index) -> Result<UnsignedTransaction<C>>
+		prepare_extrinsic: impl FnOnce(HeaderIdOf<C>, IndexOf<C>) -> Result<UnsignedTransaction<C>>
 			+ Send
 			+ 'static,
-	) -> Result<C::Hash>
+	) -> Result<HashOf<C>>
 	where
 		C: ChainWithTransactions,
-		C::AccountId: From<<C::AccountKeyPair as Pair>::Public>,
+		AccountIdOf<C>: From<<AccountKeyPairOf<C> as Pair>::Public>,
 	{
 		let _guard = self.submit_signed_extrinsic_lock.lock().await;
 		let transaction_nonce = self.next_account_index(signer.public().into()).await?;
@@ -325,5 +326,62 @@ impl<C: Chain> Client<C> for RpcClient<C> {
 		})
 		.await
 		.map_err(|e| Error::failed_to_submit_transaction::<C>(e.into()))
+	}
+
+	async fn submit_and_watch_signed_extrinsic(
+		&self,
+		signer: &AccountKeyPairOf<C>,
+		prepare_extrinsic: impl FnOnce(HeaderIdOf<C>, IndexOf<C>) -> Result<UnsignedTransaction<C>>
+			+ Send
+			+ 'static,
+	) -> Result<TransactionTracker<C, Self>>
+	where
+		C: ChainWithTransactions,
+		AccountIdOf<C>: From<<AccountKeyPairOf<C> as Pair>::Public>,
+	{
+		let self_clone = self.clone();
+		let signing_data = self.build_sign_params(signer.clone()).await?;
+		let _guard = self.submit_signed_extrinsic_lock.lock().await;
+		let transaction_nonce = self.next_account_index(signer.public().into()).await?;
+		let best_header = self.best_header().await?;
+		let best_header_id = best_header.id();
+		let (sender, receiver) = futures::channel::mpsc::channel(MAX_SUBSCRIPTION_CAPACITY);
+		let (tracker, subscription) = self
+			.jsonrpsee_execute(move |client| async move {
+				let extrinsic = prepare_extrinsic(best_header_id, transaction_nonce)?;
+				let stall_timeout = transaction_stall_timeout(
+					extrinsic.era.mortality_period(),
+					C::AVERAGE_BLOCK_INTERVAL,
+					STALL_TIMEOUT,
+				);
+				let signed_extrinsic = C::sign_transaction(signing_data, extrinsic)?.encode();
+				let tx_hash = C::Hasher::hash(&signed_extrinsic);
+				let subscription = SubstrateAuthorClient::<C>::submit_and_watch_extrinsic(
+					&*client,
+					Bytes(signed_extrinsic),
+				)
+				.await
+				.map_err(|e| {
+					log::error!(target: "bridge", "Failed to send transaction to {} node: {:?}", C::NAME, e);
+					e
+				})?;
+				log::trace!(target: "bridge", "Sent transaction to {} node: {:?}", C::NAME, tx_hash);
+				let tracker = TransactionTracker::new(
+					self_clone,
+					stall_timeout,
+					tx_hash,
+					Subscription(Mutex::new(receiver)),
+				);
+				Ok((tracker, subscription))
+			})
+			.await
+			.map_err(|e| Error::failed_to_submit_transaction::<C>(e.into()))?;
+		self.data.read().await.tokio.spawn(Subscription::background_worker(
+			C::NAME.into(),
+			"extrinsic".into(),
+			subscription,
+			sender,
+		));
+		Ok(tracker)
 	}
 }

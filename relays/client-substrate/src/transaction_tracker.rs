@@ -16,7 +16,7 @@
 
 //! Helper for tracking transaction invalidation events.
 
-use crate::{Chain, Client, Error, HashOf, HeaderIdOf, Subscription, TransactionStatusOf};
+use crate::{Chain, Error, HashOf, HeaderIdOf, Subscription, TransactionStatusOf};
 
 use async_trait::async_trait;
 use futures::{future::Either, Future, FutureExt, Stream, StreamExt};
@@ -31,8 +31,15 @@ pub trait Environment<C: Chain>: Send + Sync {
 	async fn header_id_by_hash(&self, hash: HashOf<C>) -> Result<HeaderIdOf<C>, Error>;
 }
 
-#[async_trait]
+/*#[async_trait]
 impl<C: Chain> Environment<C> for Client<C> {
+	async fn header_id_by_hash(&self, hash: HashOf<C>) -> Result<HeaderIdOf<C>, Error> {
+		self.header_by_hash(hash).await.map(|h| HeaderId(*h.number(), hash))
+	}
+}*/
+
+#[async_trait]
+impl<C: Chain, T: crate::new_client::Client<C>> Environment<C> for T {
 	async fn header_id_by_hash(&self, hash: HashOf<C>) -> Result<HeaderIdOf<C>, Error> {
 		self.header_by_hash(hash).await.map(|h| HeaderId(*h.number(), hash))
 	}
@@ -74,6 +81,20 @@ impl<C: Chain, E: Environment<C>> TransactionTracker<C, E> {
 		subscription: Subscription<TransactionStatusOf<C>>,
 	) -> Self {
 		Self { environment, stall_timeout, transaction_hash, subscription }
+	}
+
+	// TODO: remove me???
+	/// Converts self into tracker with different environment.
+	pub fn switch_environment<NewE: Environment<C>>(
+		self,
+		environment: NewE,
+	) -> TransactionTracker<C, NewE> {
+		TransactionTracker {
+			environment,
+			stall_timeout: self.stall_timeout,
+			transaction_hash: self.transaction_hash,
+			subscription: self.subscription,
+		}
 	}
 
 	/// Wait for final transaction status and return it along with last known internal invalidation

@@ -23,13 +23,13 @@ use crate::{
 		SubstrateAuthorClient, SubstrateChainClient, SubstrateFinalityClient,
 		SubstrateFrameSystemClient, SubstrateStateClient, SubstrateSystemClient,
 	},
-	transaction_stall_timeout, AccountKeyPairOf, ConnectionParams, Error, HashOf, HeaderIdOf,
-	Result, SignParam, TransactionTracker, UnsignedTransaction,
+	AccountKeyPairOf, ConnectionParams, Error, HashOf, HeaderIdOf, Result, TransactionTracker,
+	UnsignedTransaction,
 };
 
 use async_std::sync::{Arc, Mutex, RwLock};
 use async_trait::async_trait;
-use bp_runtime::{HeaderIdProvider, StorageDoubleMapKeyProvider, StorageMapKeyProvider};
+use bp_runtime::{StorageDoubleMapKeyProvider, StorageMapKeyProvider};
 use codec::{Decode, Encode};
 use frame_support::weights::Weight;
 use frame_system::AccountInfo;
@@ -41,10 +41,10 @@ use jsonrpsee::{
 use num_traits::{Saturating, Zero};
 use pallet_balances::AccountData;
 use pallet_transaction_payment::RuntimeDispatchInfo;
-use relay_utils::{relay_loop::RECONNECT_DELAY, STALL_TIMEOUT};
+use relay_utils::relay_loop::RECONNECT_DELAY;
 use sp_core::{
 	storage::{StorageData, StorageKey},
-	Bytes, Hasher, Pair,
+	Bytes, Pair,
 };
 use sp_runtime::{
 	traits::Header as _,
@@ -418,19 +418,6 @@ impl<C: Chain> Client<C> {
 		self.new.submit_unsigned_extrinsic(transaction).await
 	}
 
-	async fn build_sign_params(&self, signer: AccountKeyPairOf<C>) -> Result<SignParam<C>>
-	where
-		C: ChainWithTransactions,
-	{
-		let runtime_version = self.simple_runtime_version().await?;
-		Ok(SignParam::<C> {
-			spec_version: runtime_version.spec_version,
-			transaction_version: runtime_version.transaction_version,
-			genesis_hash: self.genesis_hash,
-			signer,
-		})
-	}
-
 	/// Submit an extrinsic signed by given account.
 	///
 	/// All calls of this method are synchronized, so there can't be more than one active
@@ -460,54 +447,12 @@ impl<C: Chain> Client<C> {
 		prepare_extrinsic: impl FnOnce(HeaderIdOf<C>, C::Index) -> Result<UnsignedTransaction<C>>
 			+ Send
 			+ 'static,
-	) -> Result<TransactionTracker<C, Self>>
+	) -> Result<TransactionTracker<C, NewRpcWithCachingClient<C>>>
 	where
 		C: ChainWithTransactions,
 		C::AccountId: From<<C::AccountKeyPair as Pair>::Public>,
 	{
-		let self_clone = self.clone();
-		let signing_data = self.build_sign_params(signer.clone()).await?;
-		let _guard = self.submit_signed_extrinsic_lock.lock().await;
-		let transaction_nonce = self.next_account_index(signer.public().into()).await?;
-		let best_header = self.best_header().await?;
-		let best_header_id = best_header.id();
-		let (sender, receiver) = futures::channel::mpsc::channel(MAX_SUBSCRIPTION_CAPACITY);
-		let (tracker, subscription) = self
-			.jsonrpsee_execute(move |client| async move {
-				let extrinsic = prepare_extrinsic(best_header_id, transaction_nonce)?;
-				let stall_timeout = transaction_stall_timeout(
-					extrinsic.era.mortality_period(),
-					C::AVERAGE_BLOCK_INTERVAL,
-					STALL_TIMEOUT,
-				);
-				let signed_extrinsic = C::sign_transaction(signing_data, extrinsic)?.encode();
-				let tx_hash = C::Hasher::hash(&signed_extrinsic);
-				let subscription = SubstrateAuthorClient::<C>::submit_and_watch_extrinsic(
-					&*client,
-					Bytes(signed_extrinsic),
-				)
-				.await
-				.map_err(|e| {
-					log::error!(target: "bridge", "Failed to send transaction to {} node: {:?}", C::NAME, e);
-					e
-				})?;
-				log::trace!(target: "bridge", "Sent transaction to {} node: {:?}", C::NAME, tx_hash);
-				let tracker = TransactionTracker::new(
-					self_clone,
-					stall_timeout,
-					tx_hash,
-					Subscription(Mutex::new(receiver)),
-				);
-				Ok((tracker, subscription))
-			})
-			.await?;
-		self.data.read().await.tokio.spawn(Subscription::background_worker(
-			C::NAME.into(),
-			"extrinsic".into(),
-			subscription,
-			sender,
-		));
-		Ok(tracker)
+		self.new.submit_and_watch_signed_extrinsic(signer, prepare_extrinsic).await
 	}
 
 	/// Returns pending extrinsics from transaction pool.
@@ -696,7 +641,8 @@ impl<T: DeserializeOwned> Subscription<T> {
 	}
 
 	/// Background worker that is executed in tokio context as `jsonrpsee` requires.
-	async fn background_worker(
+	pub async fn background_worker(
+		// TODO: remove pub
 		chain_name: String,
 		item_type: String,
 		mut subscription: jsonrpsee::core::client::Subscription<T>,

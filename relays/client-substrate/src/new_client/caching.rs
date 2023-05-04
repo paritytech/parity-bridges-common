@@ -18,8 +18,9 @@
 //! method calls.
 
 use crate::{
-	error::Result, new_client::Client, AccountKeyPairOf, BlockNumberOf, Chain,
-	ChainWithTransactions, HashOf, HeaderIdOf, HeaderOf, SignedBlockOf, UnsignedTransaction,
+	error::Result, new_client::Client, AccountIdOf, AccountKeyPairOf, BlockNumberOf, Chain,
+	ChainWithTransactions, HashOf, HeaderIdOf, HeaderOf, IndexOf, SignedBlockOf,
+	TransactionTracker, UnsignedTransaction,
 };
 
 use async_std::sync::Arc;
@@ -118,14 +119,33 @@ impl<C: Chain, B: Client<C>> Client<C> for CachingClient<C, B> {
 	async fn submit_signed_extrinsic(
 		&self,
 		signer: &AccountKeyPairOf<C>,
-		prepare_extrinsic: impl FnOnce(HeaderIdOf<C>, C::Index) -> Result<UnsignedTransaction<C>>
+		prepare_extrinsic: impl FnOnce(HeaderIdOf<C>, IndexOf<C>) -> Result<UnsignedTransaction<C>>
 			+ Send
 			+ 'static,
-	) -> Result<C::Hash>
+	) -> Result<HashOf<C>>
 	where
 		C: ChainWithTransactions,
-		C::AccountId: From<<C::AccountKeyPair as Pair>::Public>,
+		AccountIdOf<C>: From<<AccountKeyPairOf<C> as Pair>::Public>,
 	{
 		self.backend.submit_signed_extrinsic(signer, prepare_extrinsic).await
+	}
+
+	/// Does exactly the same as `submit_signed_extrinsic`, but keeps watching for extrinsic status
+	/// after submission.
+	async fn submit_and_watch_signed_extrinsic(
+		&self,
+		signer: &AccountKeyPairOf<C>,
+		prepare_extrinsic: impl FnOnce(HeaderIdOf<C>, IndexOf<C>) -> Result<UnsignedTransaction<C>>
+			+ Send
+			+ 'static,
+	) -> Result<TransactionTracker<C, Self>>
+	where
+		C: ChainWithTransactions,
+		AccountIdOf<C>: From<<AccountKeyPairOf<C> as Pair>::Public>,
+	{
+		self.backend
+			.submit_and_watch_signed_extrinsic(signer, prepare_extrinsic)
+			.await
+			.map(|t| t.switch_environment(self.clone()))
 	}
 }
