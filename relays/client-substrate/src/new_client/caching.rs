@@ -24,6 +24,7 @@ use crate::{
 use async_std::sync::Arc;
 use async_trait::async_trait;
 use quick_cache::sync::Cache;
+use sp_version::RuntimeVersion;
 
 #[derive(Clone)]
 pub struct CachingClient<C: Chain, B: Client<C>> {
@@ -84,5 +85,9 @@ impl<C: Chain, B: Client<C>> Client<C> for CachingClient<C, B> {
 		// be using subscriptions to get best blocks, we may use single-value-cache here, but for
 		// now let's just call the backend
 		self.backend.best_header().await
+	}
+
+	async fn runtime_version(&self) -> Result<RuntimeVersion> {
+		self.backend.runtime_version().await
 	}
 }

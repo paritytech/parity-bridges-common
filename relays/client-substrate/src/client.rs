@@ -311,21 +311,13 @@ impl<C: Chain> Client<C> {
 	}
 
 	/// Get a Substrate header by its number.
-	pub async fn header_by_number(&self, block_number: C::BlockNumber) -> Result<C::Header>
-	where
-		C::Header: DeserializeOwned,
-	{
-		let block_hash = Self::block_hash_by_number(self, block_number).await?;
-		let header_by_hash = Self::header_by_hash(self, block_hash).await?;
-		Ok(header_by_hash)
+	pub async fn header_by_number(&self, block_number: C::BlockNumber) -> Result<C::Header> {
+		self.new.header_by_number(block_number).await
 	}
 
 	/// Return runtime version.
 	pub async fn runtime_version(&self) -> Result<RuntimeVersion> {
-		self.jsonrpsee_execute(move |client| async move {
-			Ok(SubstrateStateClient::<C>::runtime_version(&*client).await?)
-		})
-		.await
+		self.new.runtime_version().await
 	}
 
 	/// Read value from runtime storage.

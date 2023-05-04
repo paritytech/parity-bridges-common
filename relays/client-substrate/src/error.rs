@@ -124,6 +124,14 @@ pub enum Error {
 		/// Underlying error.
 		error: Box<Error>,
 	},
+	/// Failed to read runtime version of given chain.
+	#[error("Failed to read runtime version of {chain}: {error:?}")]
+	FailedToReadRuntimeVersion {
+		/// Name of the chain where the error has happened.
+		chain: String,
+		/// Underlying error.
+		error: Box<Error>,
+	},
 	/// The bridge pallet is halted and all transactions will be rejected.
 	#[error("Bridge pallet is halted.")]
 	BridgePalletIsHalted,
@@ -154,6 +162,21 @@ impl Error {
 	/// Box the error.
 	pub fn boxed(self) -> Box<Self> {
 		Box::new(self)
+	}
+
+	/// Returns nested error reference.
+	pub fn nested(&self) -> Option<&Self> {
+		match *self {
+			Self::FailedToReadBestFinalizedHeaderHash { ref error, .. } => Some(&**error),
+			Self::FailedToReadBestHeader { ref error, .. } => Some(&**error),
+			Self::FailedToReadHeaderHashByNumber { ref error, .. } => Some(&**error),
+			Self::FailedToReadHeaderByHash { ref error, .. } => Some(&**error),
+			Self::FailedToReadBlockByHash { ref error, .. } => Some(&**error),
+			Self::ErrorExecutingRuntimeCall { ref error, .. } => Some(&**error),
+			Self::FailedToReadRuntimeStorageValue { ref error, .. } => Some(&**error),
+			Self::FailedToReadRuntimeVersion { ref error, .. } => Some(&**error),
+			_ => None,
+		}
 	}
 
 	/// Constructs `FailedToReadHeaderHashByNumber` variant.
@@ -195,6 +218,11 @@ impl Error {
 	pub fn failed_to_read_best_header<C: Chain>(e: Error) -> Self {
 		Error::FailedToReadBestHeader { chain: C::NAME.into(), error: e.boxed() }
 	}
+
+	/// Constructs `FailedToReadRuntimeVersion` variant.
+	pub fn failed_to_read_runtime_version<C: Chain>(e: Error) -> Self {
+		Error::FailedToReadRuntimeVersion { chain: C::NAME.into(), error: e.boxed() }
+	}
 }
 
 impl MaybeConnectionError for Error {
@@ -203,13 +231,7 @@ impl MaybeConnectionError for Error {
 			Error::RpcError(RpcError::Transport(_)) |
 			Error::RpcError(RpcError::RestartNeeded(_)) |
 			Error::ClientNotSynced(_) => true,
-			Error::FailedToReadBestFinalizedHeaderHash { ref error, .. } =>
-				error.is_connection_error(),
-			Error::FailedToReadBestHeader { ref error, .. } => error.is_connection_error(),
-			Error::FailedToReadHeaderByHash { ref error, .. } => error.is_connection_error(),
-			Error::ErrorExecutingRuntimeCall { ref error, .. } => error.is_connection_error(),
-			Error::FailedToReadRuntimeStorageValue { ref error, .. } => error.is_connection_error(),
-			_ => false,
+			_ => self.nested().map(|e| e.is_connection_error()).unwrap_or(false),
 		}
 	}
 }

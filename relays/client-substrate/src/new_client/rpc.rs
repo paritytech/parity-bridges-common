@@ -17,7 +17,7 @@
 use crate::{
 	error::{Error, Result},
 	new_client::Client,
-	rpc::SubstrateChainClient,
+	rpc::{SubstrateChainClient, SubstrateStateClient},
 	BlockNumberOf, Chain, ConnectionParams, HashOf, HeaderOf, SignedBlockOf,
 };
 
@@ -25,6 +25,7 @@ use async_std::sync::{Arc, RwLock};
 use async_trait::async_trait;
 use jsonrpsee::ws_client::{WsClient, WsClientBuilder};
 use relay_utils::relay_loop::RECONNECT_DELAY;
+use sp_version::RuntimeVersion;
 use std::{future::Future, marker::PhantomData};
 
 const MAX_SUBSCRIPTION_CAPACITY: usize = 4096;
@@ -183,5 +184,13 @@ impl<C: Chain> Client<C> for RpcClient<C> {
 		})
 		.await
 		.map_err(|e| Error::failed_to_read_best_header::<C>(e))
+	}
+
+	async fn runtime_version(&self) -> Result<RuntimeVersion> {
+		self.jsonrpsee_execute(move |client| async move {
+			Ok(SubstrateStateClient::<C>::runtime_version(&*client).await?)
+		})
+		.await
+		.map_err(|e| Error::failed_to_read_runtime_version::<C>(e))
 	}
 }

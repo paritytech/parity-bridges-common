@@ -18,6 +18,7 @@ use crate::{error::Result, BlockNumberOf, Chain, HashOf, HeaderOf, SignedBlockOf
 
 use async_trait::async_trait;
 use sp_runtime::traits::Header as _;
+use sp_version::RuntimeVersion;
 
 #[async_trait]
 pub trait Client<C: Chain>: 'static + Send + Sync + Clone {
@@ -28,6 +29,10 @@ pub trait Client<C: Chain>: 'static + Send + Sync + Clone {
 	async fn header_hash_by_number(&self, number: BlockNumberOf<C>) -> Result<HashOf<C>>;
 	/// Get header by hash.
 	async fn header_by_hash(&self, hash: HashOf<C>) -> Result<HeaderOf<C>>;
+	/// Get header by number.
+	async fn header_by_number(&self, number: BlockNumberOf<C>) -> Result<HeaderOf<C>> {
+		self.header_by_hash(self.header_hash_by_number(number).await?).await
+	}
 	/// Get block by hash.
 	async fn block_by_hash(&self, hash: HashOf<C>) -> Result<SignedBlockOf<C>>;
 
@@ -44,4 +49,7 @@ pub trait Client<C: Chain>: 'static + Send + Sync + Clone {
 
 	/// Get best header.
 	async fn best_header(&self) -> Result<HeaderOf<C>>;
+
+	/// Get runtime version of the connected chain.
+	async fn runtime_version(&self) -> Result<RuntimeVersion>;
 }
