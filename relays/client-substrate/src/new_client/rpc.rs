@@ -17,7 +17,7 @@
 use crate::{
 	error::{Error, Result},
 	new_client::Client,
-	rpc::{SubstrateChainClient, SubstrateStateClient},
+	rpc::{SubstrateAuthorClient, SubstrateChainClient, SubstrateStateClient},
 	BlockNumberOf, Chain, ConnectionParams, HashOf, HeaderOf, SignedBlockOf,
 };
 
@@ -25,7 +25,10 @@ use async_std::sync::{Arc, RwLock};
 use async_trait::async_trait;
 use jsonrpsee::ws_client::{WsClient, WsClientBuilder};
 use relay_utils::relay_loop::RECONNECT_DELAY;
-use sp_core::storage::{StorageData, StorageKey};
+use sp_core::{
+	storage::{StorageData, StorageKey},
+	Bytes,
+};
 use sp_version::RuntimeVersion;
 use std::{future::Future, marker::PhantomData};
 
@@ -206,5 +209,19 @@ impl<C: Chain> Client<C> for RpcClient<C> {
 		})
 		.await
 		.map_err(|e| Error::failed_to_read_storage_value::<C>(at, cloned_storage_key, e))
+	}
+
+	async fn submit_unsigned_extrinsic(&self, transaction: Bytes) -> Result<HashOf<C>> {
+		self.jsonrpsee_execute(move |client| async move {
+			let tx_hash = SubstrateAuthorClient::<C>::submit_extrinsic(&*client, transaction)
+				.await
+				.map_err(|e| {
+					log::error!(target: "bridge", "Failed to send transaction to {} node: {:?}", C::NAME, e);
+					Error::failed_to_submit_transaction::<C>(e.into())
+				})?;
+			log::trace!(target: "bridge", "Sent transaction to {} node: {:?}", C::NAME, tx_hash);
+			Ok(tx_hash)
+		})
+		.await
 	}
 }

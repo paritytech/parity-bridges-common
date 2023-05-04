@@ -134,6 +134,14 @@ pub enum Error {
 		/// Underlying error.
 		error: Box<Error>,
 	},
+	/// Failed to submit transaction.
+	#[error("Failed to submit {chain} transaction: {error:?}")]
+	FailedToSubmitTransaction {
+		/// Name of the chain where the error has happened.
+		chain: String,
+		/// Underlying error.
+		error: Box<Error>,
+	},
 	/// The bridge pallet is halted and all transactions will be rejected.
 	#[error("Bridge pallet is halted.")]
 	BridgePalletIsHalted,
@@ -177,6 +185,7 @@ impl Error {
 			Self::ErrorExecutingRuntimeCall { ref error, .. } => Some(&**error),
 			Self::FailedToReadStorageValue { ref error, .. } => Some(&**error),
 			Self::FailedToReadRuntimeVersion { ref error, .. } => Some(&**error),
+			Self::FailedToSubmitTransaction { ref error, .. } => Some(&**error),
 			_ => None,
 		}
 	}
@@ -238,6 +247,11 @@ impl Error {
 			key,
 			error: e.boxed(),
 		}
+	}
+
+	/// Constructs `` variant.
+	pub fn failed_to_submit_transaction<C: Chain>(e: Error) -> Self {
+		Error::FailedToSubmitTransaction { chain: C::NAME.into(), error: e.boxed() }
 	}
 }
 

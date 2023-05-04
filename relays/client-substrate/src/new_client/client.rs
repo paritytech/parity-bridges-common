@@ -14,12 +14,18 @@
 // You should have received a copy of the GNU General Public License
 // along with Parity Bridges Common.  If not, see <http://www.gnu.org/licenses/>.
 
-use crate::{error::{Error, Result}, BlockNumberOf, Chain, HashOf, HeaderOf, SignedBlockOf};
+use crate::{
+	error::{Error, Result},
+	BlockNumberOf, Chain, HashOf, HeaderOf, SignedBlockOf,
+};
 
 use async_trait::async_trait;
 use bp_runtime::{StorageDoubleMapKeyProvider, StorageMapKeyProvider};
 use codec::Decode;
-use sp_core::storage::{StorageData, StorageKey};
+use sp_core::{
+	storage::{StorageData, StorageKey},
+	Bytes,
+};
 use sp_runtime::traits::Header as _;
 use sp_version::RuntimeVersion;
 
@@ -71,8 +77,9 @@ pub trait Client<C: Chain>: 'static + Send + Sync + Clone {
 		self.raw_storage_value(at, storage_key.clone())
 			.await?
 			.map(|encoded_value| {
-				T::decode(&mut &encoded_value.0[..])
-					.map_err(|e| Error::failed_to_read_storage_value::<C>(at, storage_key, e.into()))
+				T::decode(&mut &encoded_value.0[..]).map_err(|e| {
+					Error::failed_to_read_storage_value::<C>(at, storage_key, e.into())
+				})
 			})
 			.transpose()
 	}
@@ -101,4 +108,9 @@ pub trait Client<C: Chain>: 'static + Send + Sync + Clone {
 	) -> Result<Option<T::Value>> {
 		self.storage_value(at, T::final_key(pallet_prefix, key1, key2)).await
 	}
+
+	/// Submit unsigned extrinsic for inclusion in a block.
+	///
+	/// Note: The given transaction needs to be SCALE encoded beforehand.
+	async fn submit_unsigned_extrinsic(&self, transaction: Bytes) -> Result<HashOf<C>>;
 }

@@ -24,7 +24,10 @@ use crate::{
 use async_std::sync::Arc;
 use async_trait::async_trait;
 use quick_cache::sync::Cache;
-use sp_core::storage::{StorageData, StorageKey};
+use sp_core::{
+	storage::{StorageData, StorageKey},
+	Bytes,
+};
 use sp_version::RuntimeVersion;
 
 #[derive(Clone)]
@@ -105,5 +108,9 @@ impl<C: Chain, B: Client<C>> Client<C> for CachingClient<C, B> {
 				self.backend.raw_storage_value(at, storage_key),
 			)
 			.await
+	}
+
+	async fn submit_unsigned_extrinsic(&self, transaction: Bytes) -> Result<HashOf<C>> {
+		self.backend.submit_unsigned_extrinsic(transaction).await
 	}
 }

@@ -46,7 +46,10 @@ use sp_core::{
 	storage::{StorageData, StorageKey},
 	Bytes, Hasher, Pair,
 };
-use sp_runtime::{traits::Header as _, transaction_validity::{TransactionSource, TransactionValidity}};
+use sp_runtime::{
+	traits::Header as _,
+	transaction_validity::{TransactionSource, TransactionValidity},
+};
 use sp_trie::StorageProof;
 use sp_version::RuntimeVersion;
 use std::future::Future;
@@ -360,7 +363,9 @@ impl<C: Chain> Client<C> {
 			Some(block_hash) => block_hash,
 			None => self.best_header().await?.hash(),
 		};
-		self.new.storage_double_map_value::<T>(block_hash, pallet_prefix, key1, key2).await
+		self.new
+			.storage_double_map_value::<T>(block_hash, pallet_prefix, key1, key2)
+			.await
 	}
 
 	/// Read raw value from runtime storage.
@@ -410,17 +415,7 @@ impl<C: Chain> Client<C> {
 	///
 	/// Note: The given transaction needs to be SCALE encoded beforehand.
 	pub async fn submit_unsigned_extrinsic(&self, transaction: Bytes) -> Result<C::Hash> {
-		self.jsonrpsee_execute(move |client| async move {
-			let tx_hash = SubstrateAuthorClient::<C>::submit_extrinsic(&*client, transaction)
-				.await
-				.map_err(|e| {
-					log::error!(target: "bridge", "Failed to send transaction to {} node: {:?}", C::NAME, e);
-					e
-				})?;
-			log::trace!(target: "bridge", "Sent transaction to {} node: {:?}", C::NAME, tx_hash);
-			Ok(tx_hash)
-		})
-		.await
+		self.new.submit_unsigned_extrinsic(transaction).await
 	}
 
 	async fn build_sign_params(&self, signer: AccountKeyPairOf<C>) -> Result<SignParam<C>>
