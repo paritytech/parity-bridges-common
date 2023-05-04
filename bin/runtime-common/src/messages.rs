@@ -233,28 +233,23 @@ pub mod source {
 	) -> Result<ParsedMessagesDeliveryProofFromBridgedChain<B>, VerificationError> {
 		let FromBridgedChainMessagesDeliveryProof { bridged_header_hash, storage_proof, lane } =
 			proof;
-		B::BridgedHeaderChain::parse_finalized_storage_proof(
-			bridged_header_hash,
-			storage_proof,
-			|mut storage| {
-				// Messages delivery proof is just proof of single storage key read => any error
-				// is fatal.
-				let storage_inbound_lane_data_key =
-					bp_messages::storage_keys::inbound_lane_data_key(
-						B::BRIDGED_MESSAGES_PALLET_NAME,
-						&lane,
-					);
-				let inbound_lane_data = storage
-					.read_and_decode_mandatory_value(storage_inbound_lane_data_key.0.as_ref())
-					.map_err(VerificationError::InboundLaneStorage)?;
+		let mut storage =
+			B::BridgedHeaderChain::storage_proof_checker(bridged_header_hash, storage_proof)
+				.map_err(VerificationError::HeaderChain)?;
+		// Messages delivery proof is just proof of single storage key read => any error
+		// is fatal.
+		let storage_inbound_lane_data_key = bp_messages::storage_keys::inbound_lane_data_key(
+			B::BRIDGED_MESSAGES_PALLET_NAME,
+			&lane,
+		);
+		let inbound_lane_data = storage
+			.read_and_decode_mandatory_value(storage_inbound_lane_data_key.0.as_ref())
+			.map_err(VerificationError::InboundLaneStorage)?;
 
-				// check that the storage proof doesn't have any untouched trie nodes
-				storage.ensure_no_unused_nodes().map_err(VerificationError::StorageProof)?;
+		// check that the storage proof doesn't have any untouched trie nodes
+		storage.ensure_no_unused_nodes().map_err(VerificationError::StorageProof)?;
 
-				Ok((lane, inbound_lane_data))
-			},
-		)
-		.map_err(VerificationError::HeaderChain)?
+		Ok((lane, inbound_lane_data))
 	}
 }
 
@@ -339,60 +334,52 @@ pub mod target {
 			nonces_start,
 			nonces_end,
 		} = proof;
+		let storage =
+			B::BridgedHeaderChain::storage_proof_checker(bridged_header_hash, storage_proof)
+				.map_err(VerificationError::HeaderChain)?;
+		let mut parser = StorageProofCheckerAdapter::<_, B> { storage, _dummy: Default::default() };
 		let nonces_range = nonces_start..=nonces_end;
 
-		B::BridgedHeaderChain::parse_finalized_storage_proof(
-			bridged_header_hash,
-			storage_proof,
-			|storage| {
-				let mut parser =
-					StorageProofCheckerAdapter::<_, B> { storage, _dummy: Default::default() };
+		// receiving proofs where end < begin is ok (if proof includes outbound lane state)
+		let messages_in_the_proof = nonces_range.checked_len().unwrap_or(0);
+		if messages_in_the_proof != MessageNonce::from(messages_count) {
+			return Err(VerificationError::MessagesCountMismatch)
+		}
 
-				// receiving proofs where end < begin is ok (if proof includes outbound lane state)
-				let messages_in_the_proof = nonces_range.checked_len().unwrap_or(0);
-				if messages_in_the_proof != MessageNonce::from(messages_count) {
-					return Err(VerificationError::MessagesCountMismatch)
-				}
+		// Read messages first. All messages that are claimed to be in the proof must
+		// be in the proof. So any error in `read_value`, or even missing value is fatal.
+		//
+		// Mind that we allow proofs with no messages if outbound lane state is proved.
+		let mut messages = Vec::with_capacity(messages_in_the_proof as _);
+		for nonce in nonces_range {
+			let message_key = MessageKey { lane_id: lane, nonce };
+			let message_payload = parser.read_and_decode_message_payload(&message_key)?;
+			messages.push(Message { key: message_key, payload: message_payload });
+		}
 
-				// Read messages first. All messages that are claimed to be in the proof must
-				// be in the proof. So any error in `read_value`, or even missing value is fatal.
-				//
-				// Mind that we allow proofs with no messages if outbound lane state is proved.
-				let mut messages = Vec::with_capacity(messages_in_the_proof as _);
-				for nonce in nonces_range {
-					let message_key = MessageKey { lane_id: lane, nonce };
-					let message_payload = parser.read_and_decode_message_payload(&message_key)?;
-					messages.push(Message { key: message_key, payload: message_payload });
-				}
+		// Now let's check if proof contains outbound lane state proof. It is optional, so
+		// we simply ignore `read_value` errors and missing value.
+		let proved_lane_messages = ProvedLaneMessages {
+			lane_state: parser.read_and_decode_outbound_lane_data(&lane)?,
+			messages,
+		};
 
-				// Now let's check if proof contains outbound lane state proof. It is optional, so
-				// we simply ignore `read_value` errors and missing value.
-				let proved_lane_messages = ProvedLaneMessages {
-					lane_state: parser.read_and_decode_outbound_lane_data(&lane)?,
-					messages,
-				};
+		// Now we may actually check if the proof is empty or not.
+		if proved_lane_messages.lane_state.is_none() && proved_lane_messages.messages.is_empty() {
+			return Err(VerificationError::EmptyMessageProof)
+		}
 
-				// Now we may actually check if the proof is empty or not.
-				if proved_lane_messages.lane_state.is_none() &&
-					proved_lane_messages.messages.is_empty()
-				{
-					return Err(VerificationError::EmptyMessageProof)
-				}
+		// check that the storage proof doesn't have any untouched trie nodes
+		parser
+			.storage
+			.ensure_no_unused_nodes()
+			.map_err(VerificationError::StorageProof)?;
 
-				// check that the storage proof doesn't have any untouched trie nodes
-				parser
-					.storage
-					.ensure_no_unused_nodes()
-					.map_err(VerificationError::StorageProof)?;
+		// We only support single lane messages in this generated_schema
+		let mut proved_messages = ProvedMessages::new();
+		proved_messages.insert(lane, proved_lane_messages);
 
-				// We only support single lane messages in this generated_schema
-				let mut proved_messages = ProvedMessages::new();
-				proved_messages.insert(lane, proved_lane_messages);
-
-				Ok(proved_messages)
-			},
-		)
-		.map_err(VerificationError::HeaderChain)?
+		Ok(proved_messages)
 	}
 
 	struct StorageProofCheckerAdapter<H: Hasher, B> {
