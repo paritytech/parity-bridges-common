@@ -16,7 +16,9 @@
 
 //! Primitives of messages module, that are used on the target chain.
 
-use crate::{LaneId, Message, MessageKey, MessageNonce, MessagePayload, OutboundLaneData};
+use crate::{
+	LaneId, Message, MessageKey, MessageNonce, MessagePayload, OutboundLaneData, VerificationError,
+};
 
 use bp_runtime::{messages::MessageDispatchResult, Size};
 use codec::{Decode, Encode, Error as CodecError};
@@ -58,9 +60,6 @@ pub struct DispatchMessage<DispatchPayload> {
 /// can't change. Wrong implementation may lead to invalid lane states (i.e. lane
 /// that's stuck) and/or processing messages without paying fees.
 pub trait SourceHeaderChain {
-	/// Error type.
-	type Error: Debug;
-
 	/// Proof that messages are sent from source chain. This may also include proof
 	/// of corresponding outbound lane states.
 	type MessagesProof: Parameter + Size;
@@ -79,7 +78,7 @@ pub trait SourceHeaderChain {
 	fn verify_messages_proof(
 		proof: Self::MessagesProof,
 		messages_count: u32,
-	) -> Result<ProvedMessages<Message>, Self::Error>;
+	) -> Result<ProvedMessages<Message>, VerificationError>;
 }
 
 /// Called when inbound message is received.
@@ -171,14 +170,13 @@ const ALL_INBOUND_MESSAGES_REJECTED: &str =
 impl<MessagesProof: Parameter + Size, DispatchPayload> SourceHeaderChain
 	for ForbidInboundMessages<MessagesProof, DispatchPayload>
 {
-	type Error = &'static str;
 	type MessagesProof = MessagesProof;
 
 	fn verify_messages_proof(
 		_proof: Self::MessagesProof,
 		_messages_count: u32,
-	) -> Result<ProvedMessages<Message>, Self::Error> {
-		Err(ALL_INBOUND_MESSAGES_REJECTED)
+	) -> Result<ProvedMessages<Message>, VerificationError> {
+		Err(VerificationError::Other(ALL_INBOUND_MESSAGES_REJECTED))
 	}
 }
 

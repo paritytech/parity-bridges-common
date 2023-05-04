@@ -928,6 +928,7 @@ dependencies = [
 name = "bp-messages"
 version = "0.1.0"
 dependencies = [
+ "bp-header-chain",
  "bp-runtime",
  "frame-support",
  "hex",
