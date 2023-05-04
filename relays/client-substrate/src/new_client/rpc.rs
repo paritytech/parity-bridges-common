@@ -25,6 +25,7 @@ use async_std::sync::{Arc, RwLock};
 use async_trait::async_trait;
 use jsonrpsee::ws_client::{WsClient, WsClientBuilder};
 use relay_utils::relay_loop::RECONNECT_DELAY;
+use sp_core::storage::{StorageData, StorageKey};
 use sp_version::RuntimeVersion;
 use std::{future::Future, marker::PhantomData};
 
@@ -192,5 +193,18 @@ impl<C: Chain> Client<C> for RpcClient<C> {
 		})
 		.await
 		.map_err(|e| Error::failed_to_read_runtime_version::<C>(e))
+	}
+
+	async fn raw_storage_value(
+		&self,
+		at: HashOf<C>,
+		storage_key: StorageKey,
+	) -> Result<Option<StorageData>> {
+		let cloned_storage_key = storage_key.clone();
+		self.jsonrpsee_execute(move |client| async move {
+			Ok(SubstrateStateClient::<C>::storage(&*client, storage_key.clone(), Some(at)).await?)
+		})
+		.await
+		.map_err(|e| Error::failed_to_read_storage_value::<C>(at, cloned_storage_key, e))
 	}
 }

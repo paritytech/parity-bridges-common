@@ -14,9 +14,12 @@
 // You should have received a copy of the GNU General Public License
 // along with Parity Bridges Common.  If not, see <http://www.gnu.org/licenses/>.
 
-use crate::{error::Result, BlockNumberOf, Chain, HashOf, HeaderOf, SignedBlockOf};
+use crate::{error::{Error, Result}, BlockNumberOf, Chain, HashOf, HeaderOf, SignedBlockOf};
 
 use async_trait::async_trait;
+use bp_runtime::{StorageDoubleMapKeyProvider, StorageMapKeyProvider};
+use codec::Decode;
+use sp_core::storage::{StorageData, StorageKey};
 use sp_runtime::traits::Header as _;
 use sp_version::RuntimeVersion;
 
@@ -52,4 +55,50 @@ pub trait Client<C: Chain>: 'static + Send + Sync + Clone {
 
 	/// Get runtime version of the connected chain.
 	async fn runtime_version(&self) -> Result<RuntimeVersion>;
+
+	/// Read raw value from runtime storage.
+	async fn raw_storage_value(
+		&self,
+		at: HashOf<C>,
+		storage_key: StorageKey,
+	) -> Result<Option<StorageData>>;
+	/// Read and decode value from runtime storage.
+	async fn storage_value<T: Decode + 'static>(
+		&self,
+		at: HashOf<C>,
+		storage_key: StorageKey,
+	) -> Result<Option<T>> {
+		self.raw_storage_value(at, storage_key.clone())
+			.await?
+			.map(|encoded_value| {
+				T::decode(&mut &encoded_value.0[..])
+					.map_err(|e| Error::failed_to_read_storage_value::<C>(at, storage_key, e.into()))
+			})
+			.transpose()
+	}
+	/// Read and decode value from runtime storage map.
+	///
+	/// `pallet_prefix` is the name of the pallet (used in `construct_runtime`), which
+	/// "contains" the storage map.
+	async fn storage_map_value<T: StorageMapKeyProvider>(
+		&self,
+		at: HashOf<C>,
+		pallet_prefix: &str,
+		storage_key: &T::Key,
+	) -> Result<Option<T::Value>> {
+		self.storage_value(at, T::final_key(pallet_prefix, storage_key)).await
+	}
+	/// Read and decode value from runtime storage double map.
+	///
+	/// `pallet_prefix` is the name of the pallet (used in `construct_runtime`), which
+	/// "contains" the storage double map.
+	async fn storage_double_map_value<T: StorageDoubleMapKeyProvider>(
+		&self,
+		at: HashOf<C>,
+		pallet_prefix: &str,
+		key1: &T::Key1,
+		key2: &T::Key2,
+	) -> Result<Option<T::Value>> {
+		self.storage_value(at, T::final_key(pallet_prefix, key1, key2)).await
+	}
 }

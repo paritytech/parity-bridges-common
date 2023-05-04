@@ -116,9 +116,11 @@ pub enum Error {
 	},
 	/// Failed to read sotrage value at given chain.
 	#[error("Failed to read storage value {key:?} at {chain}: {error:?}.")]
-	FailedToReadRuntimeStorageValue {
+	FailedToReadStorageValue {
 		/// Name of the chain where the error has happened.
 		chain: String,
+		/// Hash of the block we've tried to read value from.
+		hash: String,
 		/// Runtime storage key
 		key: StorageKey,
 		/// Underlying error.
@@ -173,7 +175,7 @@ impl Error {
 			Self::FailedToReadHeaderByHash { ref error, .. } => Some(&**error),
 			Self::FailedToReadBlockByHash { ref error, .. } => Some(&**error),
 			Self::ErrorExecutingRuntimeCall { ref error, .. } => Some(&**error),
-			Self::FailedToReadRuntimeStorageValue { ref error, .. } => Some(&**error),
+			Self::FailedToReadStorageValue { ref error, .. } => Some(&**error),
 			Self::FailedToReadRuntimeVersion { ref error, .. } => Some(&**error),
 			_ => None,
 		}
@@ -222,6 +224,20 @@ impl Error {
 	/// Constructs `FailedToReadRuntimeVersion` variant.
 	pub fn failed_to_read_runtime_version<C: Chain>(e: Error) -> Self {
 		Error::FailedToReadRuntimeVersion { chain: C::NAME.into(), error: e.boxed() }
+	}
+
+	/// Constructs `FailedToReadStorageValue` variant.
+	pub fn failed_to_read_storage_value<C: Chain>(
+		at: HashOf<C>,
+		key: StorageKey,
+		e: Error,
+	) -> Self {
+		Error::FailedToReadStorageValue {
+			chain: C::NAME.into(),
+			hash: format!("{at}"),
+			key,
+			error: e.boxed(),
+		}
 	}
 }
 

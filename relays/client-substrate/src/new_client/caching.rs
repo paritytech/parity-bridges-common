@@ -24,6 +24,7 @@ use crate::{
 use async_std::sync::Arc;
 use async_trait::async_trait;
 use quick_cache::sync::Cache;
+use sp_core::storage::{StorageData, StorageKey};
 use sp_version::RuntimeVersion;
 
 #[derive(Clone)]
@@ -32,18 +33,20 @@ pub struct CachingClient<C: Chain, B: Client<C>> {
 	header_hash_by_number_cache: Arc<Cache<BlockNumberOf<C>, HashOf<C>>>,
 	header_by_hash_cache: Arc<Cache<HashOf<C>, HeaderOf<C>>>,
 	block_by_hash_cache: Arc<Cache<HashOf<C>, SignedBlockOf<C>>>,
+	raw_storage_value_cache: Arc<Cache<(HashOf<C>, StorageKey), Option<StorageData>>>,
 }
 
 impl<C: Chain, B: Client<C>> CachingClient<C, B> {
 	pub fn new(backend: B) -> Self {
 		// most of relayer operations will never touch more than `ANCIENT_BLOCK_THRESHOLD`
-		// headers, so we'll use this as a cache capacity for all caches
+		// headers, so we'll use this as a cache capacity for all chain-related caches
 		let capacity = crate::client::ANCIENT_BLOCK_THRESHOLD as usize;
 		CachingClient {
 			backend,
 			header_hash_by_number_cache: Arc::new(Cache::new(capacity)),
 			header_by_hash_cache: Arc::new(Cache::new(capacity)),
 			block_by_hash_cache: Arc::new(Cache::new(capacity)),
+			raw_storage_value_cache: Arc::new(Cache::new(1_024)),
 		}
 	}
 }
@@ -89,5 +92,18 @@ impl<C: Chain, B: Client<C>> Client<C> for CachingClient<C, B> {
 
 	async fn runtime_version(&self) -> Result<RuntimeVersion> {
 		self.backend.runtime_version().await
+	}
+
+	async fn raw_storage_value(
+		&self,
+		at: HashOf<C>,
+		storage_key: StorageKey,
+	) -> Result<Option<StorageData>> {
+		self.raw_storage_value_cache
+			.get_or_insert_async(
+				&(at, storage_key.clone()),
+				self.backend.raw_storage_value(at, storage_key),
+			)
+			.await
 	}
 }

@@ -46,7 +46,7 @@ use sp_core::{
 	storage::{StorageData, StorageKey},
 	Bytes, Hasher, Pair,
 };
-use sp_runtime::transaction_validity::{TransactionSource, TransactionValidity};
+use sp_runtime::{traits::Header as _, transaction_validity::{TransactionSource, TransactionValidity}};
 use sp_trie::StorageProof;
 use sp_version::RuntimeVersion;
 use std::future::Future;
@@ -341,14 +341,11 @@ impl<C: Chain> Client<C> {
 		key: &T::Key,
 		block_hash: Option<C::Hash>,
 	) -> Result<Option<T::Value>> {
-		let storage_key = T::final_key(pallet_prefix, key);
-
-		self.raw_storage_value(storage_key, block_hash)
-			.await?
-			.map(|encoded_value| {
-				T::Value::decode(&mut &encoded_value.0[..]).map_err(Error::ResponseParseFailed)
-			})
-			.transpose()
+		let block_hash = match block_hash {
+			Some(block_hash) => block_hash,
+			None => self.best_header().await?.hash(),
+		};
+		self.new.storage_map_value::<T>(block_hash, pallet_prefix, key).await
 	}
 
 	/// Read `DoubleMapStorage` value from runtime storage.
@@ -359,14 +356,11 @@ impl<C: Chain> Client<C> {
 		key2: &T::Key2,
 		block_hash: Option<C::Hash>,
 	) -> Result<Option<T::Value>> {
-		let storage_key = T::final_key(pallet_prefix, key1, key2);
-
-		self.raw_storage_value(storage_key, block_hash)
-			.await?
-			.map(|encoded_value| {
-				T::Value::decode(&mut &encoded_value.0[..]).map_err(Error::ResponseParseFailed)
-			})
-			.transpose()
+		let block_hash = match block_hash {
+			Some(block_hash) => block_hash,
+			None => self.best_header().await?.hash(),
+		};
+		self.new.storage_double_map_value::<T>(block_hash, pallet_prefix, key1, key2).await
 	}
 
 	/// Read raw value from runtime storage.
@@ -375,17 +369,11 @@ impl<C: Chain> Client<C> {
 		storage_key: StorageKey,
 		block_hash: Option<C::Hash>,
 	) -> Result<Option<StorageData>> {
-		let cloned_storage_key = storage_key.clone();
-		self.jsonrpsee_execute(move |client| async move {
-			Ok(SubstrateStateClient::<C>::storage(&*client, storage_key.clone(), block_hash)
-				.await?)
-		})
-		.await
-		.map_err(|e| Error::FailedToReadRuntimeStorageValue {
-			chain: C::NAME.into(),
-			key: cloned_storage_key,
-			error: e.boxed(),
-		})
+		let block_hash = match block_hash {
+			Some(block_hash) => block_hash,
+			None => self.best_header().await?.hash(),
+		};
+		self.new.raw_storage_value(block_hash, storage_key).await
 	}
 
 	/// Return native tokens balance of the account.
