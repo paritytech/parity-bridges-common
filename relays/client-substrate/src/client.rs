@@ -449,32 +449,7 @@ impl<C: Chain> Client<C> {
 		C: ChainWithTransactions,
 		C::AccountId: From<<C::AccountKeyPair as Pair>::Public>,
 	{
-		let _guard = self.submit_signed_extrinsic_lock.lock().await;
-		let transaction_nonce = self.next_account_index(signer.public().into()).await?;
-		let best_header = self.best_header().await?;
-		let signing_data = self.build_sign_params(signer.clone()).await?;
-
-		// By using parent of best block here, we are protecing again best-block reorganizations.
-		// E.g. transaction may have been submitted when the best block was `A[num=100]`. Then it
-		// has been changed to `B[num=100]`. Hash of `A` has been included into transaction
-		// signature payload. So when signature will be checked, the check will fail and transaction
-		// will be dropped from the pool.
-		let best_header_id = best_header.parent_id().unwrap_or_else(|| best_header.id());
-
-		self.jsonrpsee_execute(move |client| async move {
-			let extrinsic = prepare_extrinsic(best_header_id, transaction_nonce)?;
-			let signed_extrinsic = C::sign_transaction(signing_data, extrinsic)?.encode();
-			let tx_hash =
-				SubstrateAuthorClient::<C>::submit_extrinsic(&*client, Bytes(signed_extrinsic))
-					.await
-					.map_err(|e| {
-						log::error!(target: "bridge", "Failed to send transaction to {} node: {:?}", C::NAME, e);
-						e
-					})?;
-			log::trace!(target: "bridge", "Sent transaction to {} node: {:?}", C::NAME, tx_hash);
-			Ok(tx_hash)
-		})
-		.await
+		self.new.submit_signed_extrinsic(signer, prepare_extrinsic).await
 	}
 
 	/// Does exactly the same as `submit_signed_extrinsic`, but keeps watching for extrinsic status

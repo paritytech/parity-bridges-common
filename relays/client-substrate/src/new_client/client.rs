@@ -16,7 +16,8 @@
 
 use crate::{
 	error::{Error, Result},
-	BlockNumberOf, Chain, HashOf, HeaderOf, SignedBlockOf,
+	AccountKeyPairOf, BlockNumberOf, Chain, ChainWithTransactions, HashOf, HeaderIdOf, HeaderOf,
+	SignedBlockOf, UnsignedTransaction,
 };
 
 use async_trait::async_trait;
@@ -24,7 +25,7 @@ use bp_runtime::{StorageDoubleMapKeyProvider, StorageMapKeyProvider};
 use codec::Decode;
 use sp_core::{
 	storage::{StorageData, StorageKey},
-	Bytes,
+	Bytes, Pair,
 };
 use sp_runtime::traits::Header as _;
 use sp_version::RuntimeVersion;
@@ -113,4 +114,21 @@ pub trait Client<C: Chain>: 'static + Send + Sync + Clone {
 	///
 	/// Note: The given transaction needs to be SCALE encoded beforehand.
 	async fn submit_unsigned_extrinsic(&self, transaction: Bytes) -> Result<HashOf<C>>;
+	/// Submit an extrinsic signed by given account.
+	///
+	/// All calls of this method are synchronized, so there can't be more than one active
+	/// `submit_signed_extrinsic()` call. This guarantees that no nonces collision may happen
+	/// if all client instances are clones of the same initial `Client`.
+	///
+	/// Note: The given transaction needs to be SCALE encoded beforehand.
+	async fn submit_signed_extrinsic(
+		&self,
+		signer: &AccountKeyPairOf<C>,
+		prepare_extrinsic: impl FnOnce(HeaderIdOf<C>, C::Index) -> Result<UnsignedTransaction<C>>
+			+ Send
+			+ 'static,
+	) -> Result<HashOf<C>>
+	where
+		C: ChainWithTransactions,
+		C::AccountId: From<<C::AccountKeyPair as Pair>::Public>;
 }

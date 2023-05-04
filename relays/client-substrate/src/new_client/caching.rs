@@ -18,7 +18,8 @@
 //! method calls.
 
 use crate::{
-	error::Result, new_client::Client, BlockNumberOf, Chain, HashOf, HeaderOf, SignedBlockOf,
+	error::Result, new_client::Client, AccountKeyPairOf, BlockNumberOf, Chain,
+	ChainWithTransactions, HashOf, HeaderIdOf, HeaderOf, SignedBlockOf, UnsignedTransaction,
 };
 
 use async_std::sync::Arc;
@@ -26,7 +27,7 @@ use async_trait::async_trait;
 use quick_cache::sync::Cache;
 use sp_core::{
 	storage::{StorageData, StorageKey},
-	Bytes,
+	Bytes, Pair,
 };
 use sp_version::RuntimeVersion;
 
@@ -112,5 +113,19 @@ impl<C: Chain, B: Client<C>> Client<C> for CachingClient<C, B> {
 
 	async fn submit_unsigned_extrinsic(&self, transaction: Bytes) -> Result<HashOf<C>> {
 		self.backend.submit_unsigned_extrinsic(transaction).await
+	}
+
+	async fn submit_signed_extrinsic(
+		&self,
+		signer: &AccountKeyPairOf<C>,
+		prepare_extrinsic: impl FnOnce(HeaderIdOf<C>, C::Index) -> Result<UnsignedTransaction<C>>
+			+ Send
+			+ 'static,
+	) -> Result<C::Hash>
+	where
+		C: ChainWithTransactions,
+		C::AccountId: From<<C::AccountKeyPair as Pair>::Public>,
+	{
+		self.backend.submit_signed_extrinsic(signer, prepare_extrinsic).await
 	}
 }

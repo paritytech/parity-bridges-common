@@ -15,28 +15,44 @@
 // along with Parity Bridges Common.  If not, see <http://www.gnu.org/licenses/>.
 
 use crate::{
+	client::{ChainRuntimeVersion, SimpleRuntimeVersion},
 	error::{Error, Result},
 	new_client::Client,
-	rpc::{SubstrateAuthorClient, SubstrateChainClient, SubstrateStateClient},
-	BlockNumberOf, Chain, ConnectionParams, HashOf, HeaderOf, SignedBlockOf,
+	rpc::{
+		SubstrateAuthorClient, SubstrateChainClient, SubstrateFrameSystemClient,
+		SubstrateStateClient,
+	},
+	AccountIdOf, AccountKeyPairOf, BlockNumberOf, Chain, ChainWithTransactions, ConnectionParams,
+	HashOf, HeaderIdOf, HeaderOf, IndexOf, SignParam, SignedBlockOf, UnsignedTransaction,
 };
 
-use async_std::sync::{Arc, RwLock};
+use async_std::sync::{Arc, Mutex, RwLock};
 use async_trait::async_trait;
+use bp_runtime::HeaderIdProvider;
+use codec::Encode;
 use jsonrpsee::ws_client::{WsClient, WsClientBuilder};
+use num_traits::Zero;
 use relay_utils::relay_loop::RECONNECT_DELAY;
 use sp_core::{
 	storage::{StorageData, StorageKey},
-	Bytes,
+	Bytes, Pair,
 };
 use sp_version::RuntimeVersion;
 use std::{future::Future, marker::PhantomData};
 
 const MAX_SUBSCRIPTION_CAPACITY: usize = 4096;
 
-pub struct RpcClient<C> {
+pub struct RpcClient<C: Chain> {
+	// Lock order: `submit_signed_extrinsic_lock`, `data`
 	/// Client connection params.
 	params: Arc<ConnectionParams>,
+	/// If several tasks are submitting their transactions simultaneously using
+	/// `submit_signed_extrinsic` method, they may get the same transaction nonce. So one of
+	/// transactions will be rejected from the pool. This lock is here to prevent situations like
+	/// that.
+	submit_signed_extrinsic_lock: Arc<Mutex<()>>,
+	/// Genesis block hash.
+	genesis_hash: HashOf<C>,
 	/// Shared dynamic data.
 	data: Arc<RwLock<ClientData>>,
 	/// Generic arguments dump.
@@ -78,8 +94,19 @@ impl<C: Chain> RpcClient<C> {
 	/// has been established or error otherwise.
 	async fn try_connect(params: Arc<ConnectionParams>) -> Result<Self> {
 		let (tokio, client) = Self::build_client(&params).await?;
+
+		let genesis_hash_client = client.clone();
+		let genesis_hash = tokio
+			.spawn(async move {
+				SubstrateChainClient::<C>::block_hash(&*genesis_hash_client, Some(Zero::zero()))
+					.await
+			})
+			.await??;
+
 		Ok(Self {
 			params,
+			submit_signed_extrinsic_lock: Arc::new(Mutex::new(())),
+			genesis_hash,
 			data: Arc::new(RwLock::new(ClientData { tokio, client })),
 			_phantom: PhantomData::default(),
 		})
@@ -122,12 +149,47 @@ impl<C: Chain> RpcClient<C> {
 		let client = data.client.clone();
 		data.tokio.spawn(make_jsonrpsee_future(client)).await?
 	}
+
+	/// Prepare parameters used to sign chain transactions.
+	async fn build_sign_params(&self, signer: AccountKeyPairOf<C>) -> Result<SignParam<C>>
+	where
+		C: ChainWithTransactions,
+	{
+		let runtime_version = self.simple_runtime_version().await?;
+		Ok(SignParam::<C> {
+			spec_version: runtime_version.spec_version,
+			transaction_version: runtime_version.transaction_version,
+			genesis_hash: self.genesis_hash,
+			signer,
+		})
+	}
+
+	/// Return runtime specification and transaction versions, to use when signing transactions.
+	pub async fn simple_runtime_version(&self) -> Result<SimpleRuntimeVersion> {
+		Ok(match self.params.chain_runtime_version {
+			ChainRuntimeVersion::Auto => {
+				let runtime_version = self.runtime_version().await?;
+				SimpleRuntimeVersion::from_runtime_version(&runtime_version)
+			},
+			ChainRuntimeVersion::Custom(ref version) => *version,
+		})
+	}
+
+	/// Get the nonce of the given Substrate account.
+	pub async fn next_account_index(&self, account: AccountIdOf<C>) -> Result<IndexOf<C>> {
+		self.jsonrpsee_execute(move |client| async move {
+			Ok(SubstrateFrameSystemClient::<C>::account_next_index(&*client, account).await?)
+		})
+		.await
+	}
 }
 
 impl<C: Chain> Clone for RpcClient<C> {
 	fn clone(&self) -> Self {
 		RpcClient {
 			params: self.params.clone(),
+			submit_signed_extrinsic_lock: self.submit_signed_extrinsic_lock.clone(),
+			genesis_hash: self.genesis_hash,
 			data: self.data.clone(),
 			_phantom: PhantomData::default(),
 		}
@@ -223,5 +285,45 @@ impl<C: Chain> Client<C> for RpcClient<C> {
 			Ok(tx_hash)
 		})
 		.await
+	}
+
+	async fn submit_signed_extrinsic(
+		&self,
+		signer: &AccountKeyPairOf<C>,
+		prepare_extrinsic: impl FnOnce(HeaderIdOf<C>, C::Index) -> Result<UnsignedTransaction<C>>
+			+ Send
+			+ 'static,
+	) -> Result<C::Hash>
+	where
+		C: ChainWithTransactions,
+		C::AccountId: From<<C::AccountKeyPair as Pair>::Public>,
+	{
+		let _guard = self.submit_signed_extrinsic_lock.lock().await;
+		let transaction_nonce = self.next_account_index(signer.public().into()).await?;
+		let best_header = self.best_header().await?;
+		let signing_data = self.build_sign_params(signer.clone()).await?;
+
+		// By using parent of best block here, we are protecting again best-block reorganizations.
+		// E.g. transaction may have been submitted when the best block was `A[num=100]`. Then it
+		// has been changed to `B[num=100]`. Hash of `A` has been included into transaction
+		// signature payload. So when signature will be checked, the check will fail and transaction
+		// will be dropped from the pool.
+		let best_header_id = best_header.parent_id().unwrap_or_else(|| best_header.id());
+
+		self.jsonrpsee_execute(move |client| async move {
+			let extrinsic = prepare_extrinsic(best_header_id, transaction_nonce)?;
+			let signed_extrinsic = C::sign_transaction(signing_data, extrinsic)?.encode();
+			let tx_hash =
+				SubstrateAuthorClient::<C>::submit_extrinsic(&*client, Bytes(signed_extrinsic))
+					.await
+					.map_err(|e| {
+						log::error!(target: "bridge", "Failed to send transaction to {} node: {:?}", C::NAME, e);
+						e
+					})?;
+			log::trace!(target: "bridge", "Sent transaction to {} node: {:?}", C::NAME, tx_hash);
+			Ok(tx_hash)
+		})
+		.await
+		.map_err(|e| Error::failed_to_submit_transaction::<C>(e.into()))
 	}
 }
