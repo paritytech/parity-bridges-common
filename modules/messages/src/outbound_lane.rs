@@ -53,7 +53,7 @@ pub type StoredMessagePayload<T, I> = BoundedVec<u8, <T as Config<I>>::MaximalOu
 /// Result of messages receival confirmation.
 #[derive(Encode, Decode, RuntimeDebug, PartialEq, Eq, PalletError, TypeInfo)]
 pub enum ReceivalConfirmationError {
-	/// Bridged chain is rying to confirm more messages than we have generated. May be a result
+	/// Bridged chain is trying to confirm more messages than we have generated. May be a result
 	/// of invalid bridged chain storage.
 	FailedToConfirmFutureMessages,
 	/// The unrewarded relayers vec contains an empty entry. May be a result of invalid bridged
