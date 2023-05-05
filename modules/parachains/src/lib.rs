@@ -91,7 +91,7 @@ pub mod pallet {
 		BoundedStorageValue<<T as Config<I>>::MaxParaHeadDataSize, ParaStoredHeaderData>;
 	/// Weight info of the given parachains pallet.
 	pub type WeightInfoOf<T, I> = <T as Config<I>>::WeightInfo;
-	type GrandpaPallet<T, I> =
+	type GrandpaPalletOf<T, I> =
 		pallet_bridge_grandpa::Pallet<T, <T as Config<I>>::BridgesGrandpaPalletInstance>;
 
 	#[pallet::event]
@@ -333,53 +333,53 @@ pub mod pallet {
 				parachains.len() as _,
 			);
 
-			let mut storage = GrandpaPallet::<T, I>::storage_proof_checker(
+			let mut storage = GrandpaPalletOf::<T, I>::storage_proof_checker(
 				relay_block_hash,
 				parachain_heads_proof.0,
 			)
 			.map_err(Error::<T, I>::HeaderChainStorageProof)?;
 
 			for (parachain, parachain_head_hash) in parachains {
-				let parachain_head =
-					match Pallet::<T, I>::read_parachain_head(&mut storage, parachain) {
-						Ok(Some(parachain_head)) => parachain_head,
-						Ok(None) => {
-							log::trace!(
-								target: LOG_TARGET,
-								"The head of parachain {:?} is None. {}",
-								parachain,
-								if ParasInfo::<T, I>::contains_key(parachain) {
-									"Looks like it is not yet registered at the source relay chain"
-								} else {
-									"Looks like it has been deregistered from the source relay chain"
-								},
-							);
-							Self::deposit_event(Event::MissingParachainHead { parachain });
-							continue
-						},
-						Err(e) => {
-							log::trace!(
-								target: LOG_TARGET,
-								"The read of head of parachain {:?} has failed: {:?}",
-								parachain,
-								e,
-							);
-							Self::deposit_event(Event::MissingParachainHead { parachain });
-							continue
-						},
-					};
+				let parachain_head = match Self::read_parachain_head(&mut storage, parachain) {
+					Ok(Some(parachain_head)) => parachain_head,
+					Ok(None) => {
+						log::trace!(
+							target: LOG_TARGET,
+							"The head of parachain {:?} is None. {}",
+							parachain,
+							if ParasInfo::<T, I>::contains_key(parachain) {
+								"Looks like it is not yet registered at the source relay chain"
+							} else {
+								"Looks like it has been deregistered from the source relay chain"
+							},
+						);
+						Self::deposit_event(Event::MissingParachainHead { parachain });
+						continue
+					},
+					Err(e) => {
+						log::trace!(
+							target: LOG_TARGET,
+							"The read of head of parachain {:?} has failed: {:?}",
+							parachain,
+							e,
+						);
+						Self::deposit_event(Event::MissingParachainHead { parachain });
+						continue
+					},
+				};
 
 				// if relayer has specified invalid parachain head hash, ignore the head
 				// (this isn't strictly necessary, but better safe than sorry)
 				let actual_parachain_head_hash = parachain_head.hash();
 				if parachain_head_hash != actual_parachain_head_hash {
 					log::trace!(
-								target: LOG_TARGET,
-								"The submitter has specified invalid parachain {:?} head hash: {:?} vs {:?}",
-								parachain,
-								parachain_head_hash,
-								actual_parachain_head_hash,
-							);
+						target: LOG_TARGET,
+						"The submitter has specified invalid parachain {:?} head hash: \
+								{:?} vs {:?}",
+						parachain,
+						parachain_head_hash,
+						actual_parachain_head_hash,
+					);
 					Self::deposit_event(Event::IncorrectParachainHeadHash {
 						parachain,
 						parachain_head_hash,

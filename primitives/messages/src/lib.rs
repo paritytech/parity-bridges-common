@@ -417,7 +417,7 @@ pub enum BridgeMessagesCall<AccountId, MessagesProof, MessagesDeliveryProof> {
 }
 
 /// Error that happens during message verification.
-#[derive(Encode, Decode, Debug, PartialEq, Eq, PalletError, TypeInfo)]
+#[derive(Encode, Decode, RuntimeDebug, PartialEq, Eq, PalletError, TypeInfo)]
 pub enum VerificationError {
 	/// The message proof is empty.
 	EmptyMessageProof,
