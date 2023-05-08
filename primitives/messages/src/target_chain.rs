@@ -163,7 +163,7 @@ pub struct ForbidInboundMessages<MessagesProof, DispatchPayload>(
 	PhantomData<(MessagesProof, DispatchPayload)>,
 );
 
-/// Error message that is used in `ForbidOutboundMessages` implementation.
+/// Error message that is used in `ForbidInboundMessages` implementation.
 const ALL_INBOUND_MESSAGES_REJECTED: &str =
 	"This chain is configured to reject all inbound messages";
 
