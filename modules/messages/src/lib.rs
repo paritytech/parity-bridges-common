@@ -554,12 +554,12 @@ pub mod pallet {
 		NotOperatingNormally,
 		/// The outbound lane is inactive.
 		InactiveOutboundLane,
-		/// The message is too large to be sent over the bridge.
-		MessageIsTooLarge,
 		/// Message has been treated as invalid by chain verifier.
 		MessageRejectedByChainVerifier(VerificationError),
 		/// Message has been treated as invalid by lane verifier.
 		MessageRejectedByLaneVerifier(VerificationError),
+		/// Message has been treated as invalid by the pallet logic.
+		MessageRejectedByPallet(VerificationError),
 		/// Submitter has failed to pay fee for delivering and dispatching messages.
 		FailedToWithdrawMessageFee,
 		/// The transaction brings too many messages.
@@ -753,11 +753,9 @@ fn send_message<T: Config<I>, I: 'static>(
 	// finally, save message in outbound storage and emit event
 	let encoded_payload = payload.encode();
 	let encoded_payload_len = encoded_payload.len();
-	ensure!(
-		encoded_payload_len <= T::MaximalOutboundPayloadSize::get() as usize,
-		Error::<T, I>::MessageIsTooLarge
-	);
-	let nonce = lane.send_message(encoded_payload);
+	let nonce = lane
+		.send_message(encoded_payload)
+		.map_err(Error::<T, I>::MessageRejectedByPallet)?;
 
 	log::trace!(
 		target: LOG_TARGET,
@@ -898,15 +896,17 @@ impl<T: Config<I>, I: 'static> OutboundLaneStorage for RuntimeOutboundLaneStorag
 			.map(Into::into)
 	}
 
-	fn save_message(&mut self, nonce: MessageNonce, message_payload: MessagePayload) {
+	fn save_message(
+		&mut self,
+		nonce: MessageNonce,
+		message_payload: MessagePayload,
+	) -> Result<(), VerificationError> {
 		OutboundMessages::<T, I>::insert(
 			MessageKey { lane_id: self.lane_id, nonce },
-			StoredMessagePayload::<T, I>::try_from(message_payload).expect(
-				"save_message is called after all checks in send_message; \
-					send_message checks message size; \
-					qed",
-			),
+			StoredMessagePayload::<T, I>::try_from(message_payload)
+				.map_err(|_| VerificationError::MessageTooLarge)?,
 		);
+		Ok(())
 	}
 
 	fn remove_message(&mut self, nonce: &MessageNonce) {
@@ -1151,7 +1151,9 @@ mod tests {
 					TEST_LANE_ID,
 					message_payload.clone(),
 				),
-				Error::<TestRuntime, ()>::MessageIsTooLarge,
+				Error::<TestRuntime, ()>::MessageRejectedByPallet(
+					VerificationError::MessageTooLarge
+				),
 			);
 
 			// let's check that we're able to send `MAX_OUTBOUND_PAYLOAD_SIZE` messages
