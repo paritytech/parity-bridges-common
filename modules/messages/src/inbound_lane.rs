@@ -117,7 +117,7 @@ impl<S: InboundLaneStorage> InboundLane<S> {
 		InboundLane { storage }
 	}
 
-	/// Returns mut storage reference.
+	/// Returns `mut` storage reference.
 	pub fn storage_mut(&mut self) -> &mut S {
 		&mut self.storage
 	}
