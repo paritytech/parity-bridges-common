@@ -483,21 +483,15 @@ impl<C: Chain> Client<C> {
 
 	/// Execute runtime call at given block, provided the input and output types.
 	/// It also performs the input encode and output decode.
-	pub async fn typed_state_call<Input: codec::Encode, Output: codec::Decode>(
+	pub async fn typed_state_call<Input: codec::Encode + Send + 'static, Output: codec::Decode>(
 		&self,
 		method_name: String,
 		input: Input,
 		at_block: Option<C::Hash>,
 	) -> Result<Output> {
-		let encoded_output = self
-			.state_call(method_name.clone(), Bytes(input.encode()), at_block)
+		self.new
+			.state_call(self.given_or_best(at_block).await?, method_name, input)
 			.await
-			.map_err(|e| Error::ErrorExecutingRuntimeCall {
-				chain: C::NAME.into(),
-				method: method_name,
-				error: e.boxed(),
-			})?;
-		Output::decode(&mut &encoded_output.0[..]).map_err(Error::ResponseParseFailed)
 	}
 
 	/// Execute runtime call at given block.
@@ -507,7 +501,7 @@ impl<C: Chain> Client<C> {
 		data: Bytes,
 		at_block: Option<C::Hash>,
 	) -> Result<Bytes> {
-		self.new.state_call(self.given_or_best(at_block).await?, method, data).await
+		self.new.raw_state_call(self.given_or_best(at_block).await?, method, data).await
 	}
 
 	/// Returns storage proof of given storage keys.

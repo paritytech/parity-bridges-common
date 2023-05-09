@@ -285,6 +285,7 @@ impl<C: Chain> Client<C> for RpcClient<C> {
 			Ok(SubstrateAuthorClient::<C>::pending_extrinsics(&*client).await?)
 		})
 		.await
+		.map_err(|e| Error::failed_to_get_pending_extrinsics::<C>(e))
 	}
 
 	async fn submit_unsigned_extrinsic(&self, transaction: Bytes) -> Result<HashOf<C>> {
@@ -293,12 +294,13 @@ impl<C: Chain> Client<C> for RpcClient<C> {
 				.await
 				.map_err(|e| {
 					log::error!(target: "bridge", "Failed to send transaction to {} node: {:?}", C::NAME, e);
-					Error::failed_to_submit_transaction::<C>(e.into())
+					e
 				})?;
 			log::trace!(target: "bridge", "Sent transaction to {} node: {:?}", C::NAME, tx_hash);
 			Ok(tx_hash)
 		})
 		.await
+		.map_err(|e| Error::failed_to_submit_transaction::<C>(e.into()))
 	}
 
 	async fn submit_signed_extrinsic(
@@ -403,6 +405,7 @@ impl<C: Chain> Client<C> for RpcClient<C> {
 		at: HashOf<C>,
 		transaction: SignedTransaction,
 	) -> Result<TransactionValidity> {
+		// TODO: replace with state_call
 		self.jsonrpsee_execute(move |client| async move {
 			let call = SUB_API_TXPOOL_VALIDATE_TRANSACTION.to_string();
 			let data = Bytes((TransactionSource::External, transaction, at).encode());
@@ -421,6 +424,7 @@ impl<C: Chain> Client<C> for RpcClient<C> {
 		&self,
 		transaction: SignedTransaction,
 	) -> Result<Weight> {
+		// TODO: replace with state_call
 		self.jsonrpsee_execute(move |client| async move {
 			let transaction_len = transaction.encoded_size() as u32;
 
@@ -438,12 +442,21 @@ impl<C: Chain> Client<C> for RpcClient<C> {
 		.await
 	}
 
-	async fn state_call(&self, at: HashOf<C>, method: String, data: Bytes) -> Result<Bytes> {
+	async fn raw_state_call<Args: Encode + Send + 'static>(
+		&self,
+		at: HashOf<C>,
+		method: String,
+		arguments: Args,
+	) -> Result<Bytes> {
+		let arguments = Bytes(arguments.encode());
+		let arguments_clone = arguments.clone();
+		let method_clone = method.clone();
 		self.jsonrpsee_execute(move |client| async move {
-			SubstrateStateClient::<C>::call(&*client, method, data, Some(at))
+			SubstrateStateClient::<C>::call(&*client, method, arguments, Some(at))
 				.await
 				.map_err(Into::into)
 		})
 		.await
+		.map_err(|e| Error::failed_state_call::<C>(at, method_clone, arguments_clone, e.into()))
 	}
 }

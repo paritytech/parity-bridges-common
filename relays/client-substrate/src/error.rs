@@ -22,7 +22,7 @@ use bp_polkadot_core::parachains::ParaId;
 use jsonrpsee::core::Error as RpcError;
 use relay_utils::MaybeConnectionError;
 use sc_rpc_api::system::Health;
-use sp_core::storage::StorageKey;
+use sp_core::{storage::StorageKey, Bytes};
 use sp_runtime::transaction_validity::TransactionValidityError;
 use thiserror::Error;
 
@@ -104,16 +104,6 @@ pub enum Error {
 		/// Underlying error.
 		error: Box<Error>,
 	},
-	/// Failed to execute runtime call at given chain.
-	#[error("Failed to execute runtime call {method} at {chain}: {error:?}.")]
-	ErrorExecutingRuntimeCall {
-		/// Name of the chain where the error has happened.
-		chain: String,
-		/// Runtime method name.
-		method: String,
-		/// Underlying error.
-		error: Box<Error>,
-	},
 	/// Failed to read sotrage value at given chain.
 	#[error("Failed to read storage value {key:?} at {chain}: {error:?}.")]
 	FailedToReadStorageValue {
@@ -127,18 +117,40 @@ pub enum Error {
 		error: Box<Error>,
 	},
 	/// Failed to read runtime version of given chain.
-	#[error("Failed to read runtime version of {chain}: {error:?}")]
+	#[error("Failed to read runtime version of {chain}: {error:?}.")]
 	FailedToReadRuntimeVersion {
 		/// Name of the chain where the error has happened.
 		chain: String,
 		/// Underlying error.
 		error: Box<Error>,
 	},
+	/// Failed to get pending extrinsics.
+	#[error("Failed to get pending extrinsics of {chain}: {error:?}.")]
+	FailedToGetPendingExtrinsics {
+		/// Name of the chain where the error has happened.
+		chain: String,
+		/// Underlying error.
+		error: Box<Error>,
+	},
 	/// Failed to submit transaction.
-	#[error("Failed to submit {chain} transaction: {error:?}")]
+	#[error("Failed to submit {chain} transaction: {error:?}.")]
 	FailedToSubmitTransaction {
 		/// Name of the chain where the error has happened.
 		chain: String,
+		/// Underlying error.
+		error: Box<Error>,
+	},
+	/// Runtime call has failed.
+	#[error("Runtime call {method} with arguments {arguments:?} of chain {chain} at {hash} has failed: {error:?}")]
+	FailedStateCall {
+		/// Name of the chain where the error has happened.
+		chain: String,
+		/// Hash of the block we've tried to call at.
+		hash: String,
+		/// Runtime API method.
+		method: String,
+		/// Encoded method arguments.
+		arguments: Bytes,
 		/// Underlying error.
 		error: Box<Error>,
 	},
@@ -182,10 +194,11 @@ impl Error {
 			Self::FailedToReadHeaderHashByNumber { ref error, .. } => Some(&**error),
 			Self::FailedToReadHeaderByHash { ref error, .. } => Some(&**error),
 			Self::FailedToReadBlockByHash { ref error, .. } => Some(&**error),
-			Self::ErrorExecutingRuntimeCall { ref error, .. } => Some(&**error),
 			Self::FailedToReadStorageValue { ref error, .. } => Some(&**error),
 			Self::FailedToReadRuntimeVersion { ref error, .. } => Some(&**error),
+			Self::FailedToGetPendingExtrinsics { ref error, .. } => Some(&**error),
 			Self::FailedToSubmitTransaction { ref error, .. } => Some(&**error),
+			Self::FailedStateCall { ref error, .. } => Some(&**error),
 			_ => None,
 		}
 	}
@@ -249,9 +262,30 @@ impl Error {
 		}
 	}
 
-	/// Constructs `` variant.
+	/// Constructs `FailedToGetPendingExtrinsics` variant.
+	pub fn failed_to_get_pending_extrinsics<C: Chain>(e: Error) -> Self {
+		Error::FailedToGetPendingExtrinsics { chain: C::NAME.into(), error: e.boxed() }
+	}
+
+	/// Constructs `FailedToSubmitTransaction` variant.
 	pub fn failed_to_submit_transaction<C: Chain>(e: Error) -> Self {
 		Error::FailedToSubmitTransaction { chain: C::NAME.into(), error: e.boxed() }
+	}
+
+	/// Constructs `FailedStateCall` variant.
+	pub fn failed_state_call<C: Chain>(
+		at: HashOf<C>,
+		method: String,
+		arguments: Bytes,
+		e: Error,
+	) -> Self {
+		Error::FailedStateCall {
+			chain: C::NAME.into(),
+			hash: format!("{at}"),
+			method,
+			arguments,
+			error: e.boxed(),
+		}
 	}
 }
 

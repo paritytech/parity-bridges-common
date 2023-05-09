@@ -159,5 +159,24 @@ pub trait Client<C: Chain>: 'static + Send + Sync + Clone {
 	) -> Result<Weight>;
 
 	/// Execute runtime call at given block.
-	async fn state_call(&self, at: HashOf<C>, method: String, data: Bytes) -> Result<Bytes>;
+	async fn raw_state_call<Args: Encode + Send + 'static>(
+		&self,
+		at: HashOf<C>,
+		method: String,
+		arguments: Args,
+	) -> Result<Bytes>;
+	/// Execute runtime call at given block, provided the input and output types.
+	/// It also performs the input encode and output decode.
+	async fn state_call<Args: Encode + Send + 'static, Ret: Decode>(
+		&self,
+		at: HashOf<C>,
+		method: String,
+		arguments: Args,
+	) -> Result<Ret> {
+		let encoded_arguments = arguments.encode();
+		let encoded_output = self.raw_state_call(at, method.clone(), arguments).await?;
+		Ret::decode(&mut &encoded_output.0[..]).map_err(|e| {
+			Error::failed_state_call::<C>(at, method, Bytes(encoded_arguments), e.into())
+		})
+	}
 }

@@ -171,11 +171,17 @@ impl<C: Chain, B: Client<C>> Client<C> for CachingClient<C, B> {
 		self.backend.estimate_extrinsic_weight(transaction).await
 	}
 
-	async fn state_call(&self, at: HashOf<C>, method: String, data: Bytes) -> Result<Bytes> {
+	async fn raw_state_call<Args: Encode + Send + 'static>(
+		&self,
+		at: HashOf<C>,
+		method: String,
+		arguments: Args,
+	) -> Result<Bytes> {
+		let encoded_arguments = Bytes(arguments.encode());
 		self.state_call_cache
 			.get_or_insert_async(
-				&(at, method.clone(), data.clone()),
-				self.backend.state_call(at, method, data),
+				&(at, method.clone(), encoded_arguments),
+				self.backend.raw_state_call(at, method, arguments),
 			)
 			.await
 	}
