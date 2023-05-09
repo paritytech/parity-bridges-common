@@ -785,11 +785,7 @@ fn ensure_normal_operating_mode<T: Config<I>, I: 'static>() -> Result<(), Error<
 fn inbound_lane<T: Config<I>, I: 'static>(
 	lane_id: LaneId,
 ) -> InboundLane<RuntimeInboundLaneStorage<T, I>> {
-	InboundLane::new(RuntimeInboundLaneStorage::<T, I> {
-		lane_id,
-		cached_data: None,
-		_phantom: Default::default(),
-	})
+	InboundLane::new(RuntimeInboundLaneStorage::from_lane_id(lane_id))
 }
 
 /// Creates new outbound lane object, backed by runtime storage.
@@ -804,6 +800,13 @@ struct RuntimeInboundLaneStorage<T: Config<I>, I: 'static = ()> {
 	lane_id: LaneId,
 	cached_data: Option<InboundLaneData<T::InboundRelayer>>,
 	_phantom: PhantomData<I>,
+}
+
+impl<T: Config<I>, I: 'static> RuntimeInboundLaneStorage<T, I> {
+	/// Creates new runtime inbound lane storage.
+	fn from_lane_id(lane_id: LaneId) -> RuntimeInboundLaneStorage<T, I> {
+		RuntimeInboundLaneStorage { lane_id, cached_data: None, _phantom: Default::default() }
+	}
 }
 
 impl<T: Config<I>, I: 'static> RuntimeInboundLaneStorage<T, I> {
