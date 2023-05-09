@@ -46,16 +46,12 @@ use sp_core::{
 	storage::{StorageData, StorageKey},
 	Bytes, Pair,
 };
-use sp_runtime::{
-	traits::Header as _,
-	transaction_validity::{TransactionSource, TransactionValidity},
-};
+use sp_runtime::{traits::Header as _, transaction_validity::TransactionValidity};
 use sp_trie::StorageProof;
 use sp_version::RuntimeVersion;
 use std::future::Future;
 
 const SUB_API_GRANDPA_AUTHORITIES: &str = "GrandpaApi_grandpa_authorities";
-const SUB_API_TXPOOL_VALIDATE_TRANSACTION: &str = "TaggedTransactionQueue_validate_transaction";
 const SUB_API_TX_PAYMENT_QUERY_INFO: &str = "TransactionPaymentApi_query_info";
 const MAX_SUBSCRIPTION_CAPACITY: usize = 4096;
 
@@ -466,18 +462,7 @@ impl<C: Chain> Client<C> {
 		at_block: C::Hash,
 		transaction: SignedTransaction,
 	) -> Result<TransactionValidity> {
-		self.jsonrpsee_execute(move |client| async move {
-			let call = SUB_API_TXPOOL_VALIDATE_TRANSACTION.to_string();
-			let data = Bytes((TransactionSource::External, transaction, at_block).encode());
-
-			let encoded_response =
-				SubstrateStateClient::<C>::call(&*client, call, data, Some(at_block)).await?;
-			let validity = TransactionValidity::decode(&mut &encoded_response.0[..])
-				.map_err(Error::ResponseParseFailed)?;
-
-			Ok(validity)
-		})
-		.await
+		self.new.validate_transaction(at_block, transaction).await
 	}
 
 	/// Returns weight of the given transaction.

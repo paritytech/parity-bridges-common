@@ -30,7 +30,7 @@ use crate::{
 use async_std::sync::{Arc, Mutex, RwLock};
 use async_trait::async_trait;
 use bp_runtime::HeaderIdProvider;
-use codec::Encode;
+use codec::{Decode, Encode};
 use jsonrpsee::ws_client::{WsClient, WsClientBuilder};
 use num_traits::Zero;
 use relay_utils::{relay_loop::RECONNECT_DELAY, STALL_TIMEOUT};
@@ -38,11 +38,13 @@ use sp_core::{
 	storage::{StorageData, StorageKey},
 	Bytes, Hasher, Pair,
 };
+use sp_runtime::transaction_validity::{TransactionSource, TransactionValidity};
 use sp_version::RuntimeVersion;
 use std::{future::Future, marker::PhantomData};
 
 const MAX_SUBSCRIPTION_CAPACITY: usize = 4096;
 
+const SUB_API_TXPOOL_VALIDATE_TRANSACTION: &str = "TaggedTransactionQueue_validate_transaction";
 pub struct RpcClient<C: Chain> {
 	// Lock order: `submit_signed_extrinsic_lock`, `data`
 	/// Client connection params.
@@ -390,5 +392,24 @@ impl<C: Chain> Client<C> for RpcClient<C> {
 			sender,
 		));
 		Ok(tracker)
+	}
+
+	async fn validate_transaction<SignedTransaction: Encode + Send + 'static>(
+		&self,
+		at_block: HashOf<C>,
+		transaction: SignedTransaction,
+	) -> Result<TransactionValidity> {
+		self.jsonrpsee_execute(move |client| async move {
+			let call = SUB_API_TXPOOL_VALIDATE_TRANSACTION.to_string();
+			let data = Bytes((TransactionSource::External, transaction, at_block).encode());
+
+			let encoded_response =
+				SubstrateStateClient::<C>::call(&*client, call, data, Some(at_block)).await?;
+			let validity = TransactionValidity::decode(&mut &encoded_response.0[..])
+				.map_err(Error::ResponseParseFailed)?;
+
+			Ok(validity)
+		})
+		.await
 	}
 }

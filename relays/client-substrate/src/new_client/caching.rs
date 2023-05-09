@@ -25,11 +25,13 @@ use crate::{
 
 use async_std::sync::Arc;
 use async_trait::async_trait;
+use codec::Encode;
 use quick_cache::sync::Cache;
 use sp_core::{
 	storage::{StorageData, StorageKey},
 	Bytes, Pair,
 };
+use sp_runtime::transaction_validity::TransactionValidity;
 use sp_version::RuntimeVersion;
 
 #[derive(Clone)]
@@ -151,5 +153,13 @@ impl<C: Chain, B: Client<C>> Client<C> for CachingClient<C, B> {
 			.submit_and_watch_signed_extrinsic(signer, prepare_extrinsic)
 			.await
 			.map(|t| t.switch_environment(self.clone()))
+	}
+
+	async fn validate_transaction<SignedTransaction: Encode + Send + 'static>(
+		&self,
+		at_block: HashOf<C>,
+		transaction: SignedTransaction,
+	) -> Result<TransactionValidity> {
+		self.backend.validate_transaction(at_block, transaction).await
 	}
 }

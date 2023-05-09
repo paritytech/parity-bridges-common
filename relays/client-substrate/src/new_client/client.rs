@@ -22,12 +22,12 @@ use crate::{
 
 use async_trait::async_trait;
 use bp_runtime::{StorageDoubleMapKeyProvider, StorageMapKeyProvider};
-use codec::Decode;
+use codec::{Decode, Encode};
 use sp_core::{
 	storage::{StorageData, StorageKey},
 	Bytes, Pair,
 };
-use sp_runtime::traits::Header as _;
+use sp_runtime::{traits::Header as _, transaction_validity::TransactionValidity};
 use sp_version::RuntimeVersion;
 
 #[async_trait]
@@ -146,4 +146,10 @@ pub trait Client<C: Chain>: 'static + Send + Sync + Clone {
 	where
 		C: ChainWithTransactions,
 		AccountIdOf<C>: From<<AccountKeyPairOf<C> as Pair>::Public>;
+	/// Validate transaction at given block.
+	async fn validate_transaction<SignedTransaction: Encode + Send + 'static>(
+		&self,
+		at_block: HashOf<C>,
+		transaction: SignedTransaction,
+	) -> Result<TransactionValidity>;
 }
