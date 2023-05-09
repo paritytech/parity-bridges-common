@@ -110,6 +110,8 @@ pub trait Client<C: Chain>: 'static + Send + Sync + Clone {
 		self.storage_value(at, T::final_key(pallet_prefix, key1, key2)).await
 	}
 
+	/// Returns pending extrinsics from transaction pool.
+	async fn pending_extrinsics(&self) -> Result<Vec<Bytes>>;
 	/// Submit unsigned extrinsic for inclusion in a block.
 	///
 	/// Note: The given transaction needs to be SCALE encoded beforehand.

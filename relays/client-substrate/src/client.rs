@@ -20,8 +20,8 @@ use crate::{
 	chain::{Chain, ChainWithBalances, ChainWithTransactions},
 	new_client::{Client as _, RpcWithCachingClient as NewRpcWithCachingClient},
 	rpc::{
-		SubstrateAuthorClient, SubstrateChainClient, SubstrateFinalityClient,
-		SubstrateFrameSystemClient, SubstrateStateClient, SubstrateSystemClient,
+		SubstrateChainClient, SubstrateFinalityClient, SubstrateFrameSystemClient,
+		SubstrateStateClient, SubstrateSystemClient,
 	},
 	AccountKeyPairOf, ConnectionParams, Error, HashOf, HeaderIdOf, Result, TransactionTracker,
 	UnsignedTransaction,
@@ -457,10 +457,7 @@ impl<C: Chain> Client<C> {
 
 	/// Returns pending extrinsics from transaction pool.
 	pub async fn pending_extrinsics(&self) -> Result<Vec<Bytes>> {
-		self.jsonrpsee_execute(move |client| async move {
-			Ok(SubstrateAuthorClient::<C>::pending_extrinsics(&*client).await?)
-		})
-		.await
+		self.new.pending_extrinsics().await
 	}
 
 	/// Validate transaction at given block state.

@@ -274,6 +274,13 @@ impl<C: Chain> Client<C> for RpcClient<C> {
 		.map_err(|e| Error::failed_to_read_storage_value::<C>(at, cloned_storage_key, e))
 	}
 
+	async fn pending_extrinsics(&self) -> Result<Vec<Bytes>> {
+		self.jsonrpsee_execute(move |client| async move {
+			Ok(SubstrateAuthorClient::<C>::pending_extrinsics(&*client).await?)
+		})
+		.await
+	}
+
 	async fn submit_unsigned_extrinsic(&self, transaction: Bytes) -> Result<HashOf<C>> {
 		self.jsonrpsee_execute(move |client| async move {
 			let tx_hash = SubstrateAuthorClient::<C>::submit_extrinsic(&*client, transaction)

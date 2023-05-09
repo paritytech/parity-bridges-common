@@ -112,6 +112,10 @@ impl<C: Chain, B: Client<C>> Client<C> for CachingClient<C, B> {
 			.await
 	}
 
+	async fn pending_extrinsics(&self) -> Result<Vec<Bytes>> {
+		self.backend.pending_extrinsics().await
+	}
+
 	async fn submit_unsigned_extrinsic(&self, transaction: Bytes) -> Result<HashOf<C>> {
 		self.backend.submit_unsigned_extrinsic(transaction).await
 	}
