@@ -323,12 +323,7 @@ impl<C: Chain> Client<C> {
 		storage_key: StorageKey,
 		block_hash: Option<C::Hash>,
 	) -> Result<Option<T>> {
-		self.raw_storage_value(storage_key, block_hash)
-			.await?
-			.map(|encoded_value| {
-				T::decode(&mut &encoded_value.0[..]).map_err(Error::ResponseParseFailed)
-			})
-			.transpose()
+		self.new.storage_value(self.given_or_best(block_hash).await?, storage_key).await
 	}
 
 	/// Read `MapStorage` value from runtime storage.
@@ -338,11 +333,9 @@ impl<C: Chain> Client<C> {
 		key: &T::Key,
 		block_hash: Option<C::Hash>,
 	) -> Result<Option<T::Value>> {
-		let block_hash = match block_hash {
-			Some(block_hash) => block_hash,
-			None => self.best_header().await?.hash(),
-		};
-		self.new.storage_map_value::<T>(block_hash, pallet_prefix, key).await
+		self.new
+			.storage_map_value::<T>(self.given_or_best(block_hash).await?, pallet_prefix, key)
+			.await
 	}
 
 	/// Read `DoubleMapStorage` value from runtime storage.
@@ -353,12 +346,13 @@ impl<C: Chain> Client<C> {
 		key2: &T::Key2,
 		block_hash: Option<C::Hash>,
 	) -> Result<Option<T::Value>> {
-		let block_hash = match block_hash {
-			Some(block_hash) => block_hash,
-			None => self.best_header().await?.hash(),
-		};
 		self.new
-			.storage_double_map_value::<T>(block_hash, pallet_prefix, key1, key2)
+			.storage_double_map_value::<T>(
+				self.given_or_best(block_hash).await?,
+				pallet_prefix,
+				key1,
+				key2,
+			)
 			.await
 	}
 
@@ -368,11 +362,9 @@ impl<C: Chain> Client<C> {
 		storage_key: StorageKey,
 		block_hash: Option<C::Hash>,
 	) -> Result<Option<StorageData>> {
-		let block_hash = match block_hash {
-			Some(block_hash) => block_hash,
-			None => self.best_header().await?.hash(),
-		};
-		self.new.raw_storage_value(block_hash, storage_key).await
+		self.new
+			.raw_storage_value(self.given_or_best(block_hash).await?, storage_key)
+			.await
 	}
 
 	/// Return native tokens balance of the account.
@@ -515,12 +507,7 @@ impl<C: Chain> Client<C> {
 		data: Bytes,
 		at_block: Option<C::Hash>,
 	) -> Result<Bytes> {
-		self.jsonrpsee_execute(move |client| async move {
-			SubstrateStateClient::<C>::call(&*client, method, data, at_block)
-				.await
-				.map_err(Into::into)
-		})
-		.await
+		self.new.state_call(self.given_or_best(at_block).await?, method, data).await
 	}
 
 	/// Returns storage proof of given storage keys.
@@ -587,6 +574,13 @@ impl<C: Chain> Client<C> {
 	/// said that we don't want to shutdown.
 	pub fn can_start_version_guard(&self) -> bool {
 		!matches!(self.chain_runtime_version, ChainRuntimeVersion::Auto)
+	}
+
+	async fn given_or_best(&self, at: Option<HashOf<C>>) -> Result<HashOf<C>> {
+		Ok(match at {
+			Some(at) => at,
+			None => self.best_header().await?.hash(),
+		})
 	}
 }
 

@@ -134,7 +134,6 @@ pub trait Client<C: Chain>: 'static + Send + Sync + Clone {
 	where
 		C: ChainWithTransactions,
 		AccountIdOf<C>: From<<AccountKeyPairOf<C> as Pair>::Public>;
-
 	/// Does exactly the same as `submit_signed_extrinsic`, but keeps watching for extrinsic status
 	/// after submission.
 	async fn submit_and_watch_signed_extrinsic(
@@ -150,7 +149,7 @@ pub trait Client<C: Chain>: 'static + Send + Sync + Clone {
 	/// Validate transaction at given block.
 	async fn validate_transaction<SignedTransaction: Encode + Send + 'static>(
 		&self,
-		at_block: HashOf<C>,
+		at: HashOf<C>,
 		transaction: SignedTransaction,
 	) -> Result<TransactionValidity>;
 	/// Returns weight of the given transaction.
@@ -158,4 +157,7 @@ pub trait Client<C: Chain>: 'static + Send + Sync + Clone {
 		&self,
 		transaction: SignedTransaction,
 	) -> Result<Weight>;
+
+	/// Execute runtime call at given block.
+	async fn state_call(&self, at: HashOf<C>, method: String, data: Bytes) -> Result<Bytes>;
 }

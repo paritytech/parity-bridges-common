@@ -42,6 +42,7 @@ pub struct CachingClient<C: Chain, B: Client<C>> {
 	header_by_hash_cache: Arc<Cache<HashOf<C>, HeaderOf<C>>>,
 	block_by_hash_cache: Arc<Cache<HashOf<C>, SignedBlockOf<C>>>,
 	raw_storage_value_cache: Arc<Cache<(HashOf<C>, StorageKey), Option<StorageData>>>,
+	state_call_cache: Arc<Cache<(HashOf<C>, String, Bytes), Bytes>>,
 }
 
 impl<C: Chain, B: Client<C>> CachingClient<C, B> {
@@ -55,6 +56,7 @@ impl<C: Chain, B: Client<C>> CachingClient<C, B> {
 			header_by_hash_cache: Arc::new(Cache::new(capacity)),
 			block_by_hash_cache: Arc::new(Cache::new(capacity)),
 			raw_storage_value_cache: Arc::new(Cache::new(1_024)),
+			state_call_cache: Arc::new(Cache::new(1_024)),
 		}
 	}
 }
@@ -137,8 +139,6 @@ impl<C: Chain, B: Client<C>> Client<C> for CachingClient<C, B> {
 		self.backend.submit_signed_extrinsic(signer, prepare_extrinsic).await
 	}
 
-	/// Does exactly the same as `submit_signed_extrinsic`, but keeps watching for extrinsic status
-	/// after submission.
 	async fn submit_and_watch_signed_extrinsic(
 		&self,
 		signer: &AccountKeyPairOf<C>,
@@ -158,10 +158,10 @@ impl<C: Chain, B: Client<C>> Client<C> for CachingClient<C, B> {
 
 	async fn validate_transaction<SignedTransaction: Encode + Send + 'static>(
 		&self,
-		at_block: HashOf<C>,
+		at: HashOf<C>,
 		transaction: SignedTransaction,
 	) -> Result<TransactionValidity> {
-		self.backend.validate_transaction(at_block, transaction).await
+		self.backend.validate_transaction(at, transaction).await
 	}
 
 	async fn estimate_extrinsic_weight<SignedTransaction: Encode + Send + 'static>(
@@ -169,5 +169,14 @@ impl<C: Chain, B: Client<C>> Client<C> for CachingClient<C, B> {
 		transaction: SignedTransaction,
 	) -> Result<Weight> {
 		self.backend.estimate_extrinsic_weight(transaction).await
+	}
+
+	async fn state_call(&self, at: HashOf<C>, method: String, data: Bytes) -> Result<Bytes> {
+		self.state_call_cache
+			.get_or_insert_async(
+				&(at, method.clone(), data.clone()),
+				self.backend.state_call(at, method, data),
+			)
+			.await
 	}
 }

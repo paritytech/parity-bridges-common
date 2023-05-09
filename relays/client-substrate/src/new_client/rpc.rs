@@ -400,15 +400,15 @@ impl<C: Chain> Client<C> for RpcClient<C> {
 
 	async fn validate_transaction<SignedTransaction: Encode + Send + 'static>(
 		&self,
-		at_block: HashOf<C>,
+		at: HashOf<C>,
 		transaction: SignedTransaction,
 	) -> Result<TransactionValidity> {
 		self.jsonrpsee_execute(move |client| async move {
 			let call = SUB_API_TXPOOL_VALIDATE_TRANSACTION.to_string();
-			let data = Bytes((TransactionSource::External, transaction, at_block).encode());
+			let data = Bytes((TransactionSource::External, transaction, at).encode());
 
 			let encoded_response =
-				SubstrateStateClient::<C>::call(&*client, call, data, Some(at_block)).await?;
+				SubstrateStateClient::<C>::call(&*client, call, data, Some(at)).await?;
 			let validity = TransactionValidity::decode(&mut &encoded_response.0[..])
 				.map_err(Error::ResponseParseFailed)?;
 
@@ -434,6 +434,15 @@ impl<C: Chain> Client<C> for RpcClient<C> {
 					.map_err(Error::ResponseParseFailed)?;
 
 			Ok(dispatch_info.weight)
+		})
+		.await
+	}
+
+	async fn state_call(&self, at: HashOf<C>, method: String, data: Bytes) -> Result<Bytes> {
+		self.jsonrpsee_execute(move |client| async move {
+			SubstrateStateClient::<C>::call(&*client, method, data, Some(at))
+				.await
+				.map_err(Into::into)
 		})
 		.await
 	}
