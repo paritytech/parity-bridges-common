@@ -332,9 +332,7 @@ pub struct UnrewardedRelayersState {
 impl UnrewardedRelayersState {
 	// Verify that the relayers state corresponds with the `InboundLaneData`.
 	pub fn is_valid<RelayerId>(&self, lane_data: &InboundLaneData<RelayerId>) -> bool {
-		self.total_messages == lane_data.total_unrewarded_messages() &&
-			self.unrewarded_relayer_entries == lane_data.relayers.len() as MessageNonce &&
-			self.last_delivered_nonce == lane_data.last_delivered_nonce()
+		self == &lane_data.into()
 	}
 }
 

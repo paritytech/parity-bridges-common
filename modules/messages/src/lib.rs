@@ -962,9 +962,9 @@ mod tests {
 			))),
 			UnrewardedRelayersState {
 				unrewarded_relayer_entries: 1,
+				messages_in_oldest_entry: 1,
 				total_messages: 1,
 				last_delivered_nonce: 1,
-				..Default::default()
 			},
 		));
 
@@ -1328,9 +1328,9 @@ mod tests {
 				single_message_delivery_proof,
 				UnrewardedRelayersState {
 					unrewarded_relayer_entries: 1,
+					messages_in_oldest_entry: 1,
 					total_messages: 1,
 					last_delivered_nonce: 1,
-					..Default::default()
 				},
 			);
 			assert_ok!(result);
@@ -1368,9 +1368,9 @@ mod tests {
 				two_messages_delivery_proof,
 				UnrewardedRelayersState {
 					unrewarded_relayer_entries: 2,
+					messages_in_oldest_entry: 1,
 					total_messages: 2,
 					last_delivered_nonce: 2,
-					..Default::default()
 				},
 			);
 			assert_ok!(result);
@@ -1733,9 +1733,9 @@ mod tests {
 				TestMessagesDeliveryProof(messages_1_and_2_proof),
 				UnrewardedRelayersState {
 					unrewarded_relayer_entries: 1,
+					messages_in_oldest_entry: 2,
 					total_messages: 2,
 					last_delivered_nonce: 2,
-					..Default::default()
 				},
 			));
 			// second tx with message 3
@@ -1744,9 +1744,9 @@ mod tests {
 				TestMessagesDeliveryProof(messages_3_proof),
 				UnrewardedRelayersState {
 					unrewarded_relayer_entries: 1,
+					messages_in_oldest_entry: 1,
 					total_messages: 1,
 					last_delivered_nonce: 3,
-					..Default::default()
 				},
 			));
 		});
