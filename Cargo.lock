@@ -1159,7 +1159,6 @@ dependencies = [
  "static_assertions",
  "xcm",
  "xcm-builder",
- "xcm-executor",
 ]
 
 [[package]]
