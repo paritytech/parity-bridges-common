@@ -29,6 +29,7 @@ use sp_core::{
 	Bytes, Pair,
 };
 use sp_runtime::{traits::Header as _, transaction_validity::TransactionValidity};
+use sp_trie::StorageProof;
 use sp_version::RuntimeVersion;
 
 #[async_trait]
@@ -179,4 +180,7 @@ pub trait Client<C: Chain>: 'static + Send + Sync + Clone {
 			Error::failed_state_call::<C>(at, method, Bytes(encoded_arguments), e.into())
 		})
 	}
+
+	/// Returns storage proof of given storage keys.
+	async fn prove_storage(&self, at: HashOf<C>, keys: Vec<StorageKey>) -> Result<StorageProof>;
 }

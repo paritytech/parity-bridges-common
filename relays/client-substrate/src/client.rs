@@ -510,15 +510,7 @@ impl<C: Chain> Client<C> {
 		keys: Vec<StorageKey>,
 		at_block: C::Hash,
 	) -> Result<StorageProof> {
-		self.jsonrpsee_execute(move |client| async move {
-			SubstrateStateClient::<C>::prove_storage(&*client, keys, Some(at_block))
-				.await
-				.map(|proof| {
-					StorageProof::new(proof.proof.into_iter().map(|b| b.0).collect::<Vec<_>>())
-				})
-				.map_err(Into::into)
-		})
-		.await
+		self.new.prove_storage(at_block, keys).await
 	}
 
 	/// Return `tokenDecimals` property from the set of chain properties.

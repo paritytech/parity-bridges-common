@@ -33,6 +33,7 @@ use sp_core::{
 	Bytes, Pair,
 };
 use sp_runtime::transaction_validity::TransactionValidity;
+use sp_trie::StorageProof;
 use sp_version::RuntimeVersion;
 
 #[derive(Clone)]
@@ -184,5 +185,9 @@ impl<C: Chain, B: Client<C>> Client<C> for CachingClient<C, B> {
 				self.backend.raw_state_call(at, method, arguments),
 			)
 			.await
+	}
+
+	async fn prove_storage(&self, at: HashOf<C>, keys: Vec<StorageKey>) -> Result<StorageProof> {
+		self.backend.prove_storage(at, keys).await
 	}
 }

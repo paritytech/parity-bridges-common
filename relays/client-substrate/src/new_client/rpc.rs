@@ -41,6 +41,7 @@ use sp_core::{
 	Bytes, Hasher, Pair,
 };
 use sp_runtime::transaction_validity::{TransactionSource, TransactionValidity};
+use sp_trie::StorageProof;
 use sp_version::RuntimeVersion;
 use std::{future::Future, marker::PhantomData};
 
@@ -458,5 +459,19 @@ impl<C: Chain> Client<C> for RpcClient<C> {
 		})
 		.await
 		.map_err(|e| Error::failed_state_call::<C>(at, method_clone, arguments_clone, e.into()))
+	}
+
+	async fn prove_storage(&self, at: HashOf<C>, keys: Vec<StorageKey>) -> Result<StorageProof> {
+		let keys_clone = keys.clone();
+		self.jsonrpsee_execute(move |client| async move {
+			SubstrateStateClient::<C>::prove_storage(&*client, keys, Some(at))
+				.await
+				.map(|proof| {
+					StorageProof::new(proof.proof.into_iter().map(|b| b.0).collect::<Vec<_>>())
+				})
+				.map_err(Into::into)
+		})
+		.await
+		.map_err(|e| Error::failed_to_prove_storage::<C>(at, keys_clone, e.into()))
 	}
 }

@@ -154,6 +154,18 @@ pub enum Error {
 		/// Underlying error.
 		error: Box<Error>,
 	},
+	/// Failed to prove storage keys.
+	#[error("Failed to prove storage keys {storage_keys:?} of {chain} at {hash}: {error:?}")]
+	FailedToProveStorage {
+		/// Name of the chain where the error has happened.
+		chain: String,
+		/// Hash of the block we've tried to prove keys at.
+		hash: String,
+		/// Storage keys we have tried to prove.
+		storage_keys: Vec<StorageKey>,
+		/// Underlying error.
+		error: Box<Error>,
+	},
 	/// The bridge pallet is halted and all transactions will be rejected.
 	#[error("Bridge pallet is halted.")]
 	BridgePalletIsHalted,
@@ -199,6 +211,7 @@ impl Error {
 			Self::FailedToGetPendingExtrinsics { ref error, .. } => Some(&**error),
 			Self::FailedToSubmitTransaction { ref error, .. } => Some(&**error),
 			Self::FailedStateCall { ref error, .. } => Some(&**error),
+			Self::FailedToProveStorage { ref error, .. } => Some(&**error),
 			_ => None,
 		}
 	}
@@ -284,6 +297,20 @@ impl Error {
 			hash: format!("{at}"),
 			method,
 			arguments,
+			error: e.boxed(),
+		}
+	}
+
+	/// Constructs `FailedToProveStorage` variant.
+	pub fn failed_to_prove_storage<C: Chain>(
+		at: HashOf<C>,
+		storage_keys: Vec<StorageKey>,
+		e: Error,
+	) -> Self {
+		Error::FailedToProveStorage {
+			chain: C::NAME.into(),
+			hash: format!("{at}"),
+			storage_keys,
 			error: e.boxed(),
 		}
 	}
