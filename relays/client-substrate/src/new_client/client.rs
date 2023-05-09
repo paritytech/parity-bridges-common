@@ -23,6 +23,7 @@ use crate::{
 use async_trait::async_trait;
 use bp_runtime::{StorageDoubleMapKeyProvider, StorageMapKeyProvider};
 use codec::{Decode, Encode};
+use frame_support::weights::Weight;
 use sp_core::{
 	storage::{StorageData, StorageKey},
 	Bytes, Pair,
@@ -152,4 +153,9 @@ pub trait Client<C: Chain>: 'static + Send + Sync + Clone {
 		at_block: HashOf<C>,
 		transaction: SignedTransaction,
 	) -> Result<TransactionValidity>;
+	/// Returns weight of the given transaction.
+	async fn estimate_extrinsic_weight<SignedTransaction: Encode + Send + 'static>(
+		&self,
+		transaction: SignedTransaction,
+	) -> Result<Weight>;
 }

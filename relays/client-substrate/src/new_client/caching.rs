@@ -26,6 +26,7 @@ use crate::{
 use async_std::sync::Arc;
 use async_trait::async_trait;
 use codec::Encode;
+use frame_support::weights::Weight;
 use quick_cache::sync::Cache;
 use sp_core::{
 	storage::{StorageData, StorageKey},
@@ -161,5 +162,12 @@ impl<C: Chain, B: Client<C>> Client<C> for CachingClient<C, B> {
 		transaction: SignedTransaction,
 	) -> Result<TransactionValidity> {
 		self.backend.validate_transaction(at_block, transaction).await
+	}
+
+	async fn estimate_extrinsic_weight<SignedTransaction: Encode + Send + 'static>(
+		&self,
+		transaction: SignedTransaction,
+	) -> Result<Weight> {
+		self.backend.estimate_extrinsic_weight(transaction).await
 	}
 }

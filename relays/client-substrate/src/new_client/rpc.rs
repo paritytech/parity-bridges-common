@@ -31,8 +31,10 @@ use async_std::sync::{Arc, Mutex, RwLock};
 use async_trait::async_trait;
 use bp_runtime::HeaderIdProvider;
 use codec::{Decode, Encode};
+use frame_support::weights::Weight;
 use jsonrpsee::ws_client::{WsClient, WsClientBuilder};
 use num_traits::Zero;
+use pallet_transaction_payment::RuntimeDispatchInfo;
 use relay_utils::{relay_loop::RECONNECT_DELAY, STALL_TIMEOUT};
 use sp_core::{
 	storage::{StorageData, StorageKey},
@@ -45,6 +47,8 @@ use std::{future::Future, marker::PhantomData};
 const MAX_SUBSCRIPTION_CAPACITY: usize = 4096;
 
 const SUB_API_TXPOOL_VALIDATE_TRANSACTION: &str = "TaggedTransactionQueue_validate_transaction";
+const SUB_API_TX_PAYMENT_QUERY_INFO: &str = "TransactionPaymentApi_query_info";
+
 pub struct RpcClient<C: Chain> {
 	// Lock order: `submit_signed_extrinsic_lock`, `data`
 	/// Client connection params.
@@ -409,6 +413,27 @@ impl<C: Chain> Client<C> for RpcClient<C> {
 				.map_err(Error::ResponseParseFailed)?;
 
 			Ok(validity)
+		})
+		.await
+	}
+
+	async fn estimate_extrinsic_weight<SignedTransaction: Encode + Send + 'static>(
+		&self,
+		transaction: SignedTransaction,
+	) -> Result<Weight> {
+		self.jsonrpsee_execute(move |client| async move {
+			let transaction_len = transaction.encoded_size() as u32;
+
+			let call = SUB_API_TX_PAYMENT_QUERY_INFO.to_string();
+			let data = Bytes((transaction, transaction_len).encode());
+
+			let encoded_response =
+				SubstrateStateClient::<C>::call(&*client, call, data, None).await?;
+			let dispatch_info =
+				RuntimeDispatchInfo::<C::Balance>::decode(&mut &encoded_response.0[..])
+					.map_err(Error::ResponseParseFailed)?;
+
+			Ok(dispatch_info.weight)
 		})
 		.await
 	}

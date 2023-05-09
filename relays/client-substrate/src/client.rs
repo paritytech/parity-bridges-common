@@ -40,7 +40,6 @@ use jsonrpsee::{
 };
 use num_traits::{Saturating, Zero};
 use pallet_balances::AccountData;
-use pallet_transaction_payment::RuntimeDispatchInfo;
 use relay_utils::relay_loop::RECONNECT_DELAY;
 use sp_core::{
 	storage::{StorageData, StorageKey},
@@ -52,7 +51,6 @@ use sp_version::RuntimeVersion;
 use std::future::Future;
 
 const SUB_API_GRANDPA_AUTHORITIES: &str = "GrandpaApi_grandpa_authorities";
-const SUB_API_TX_PAYMENT_QUERY_INFO: &str = "TransactionPaymentApi_query_info";
 const MAX_SUBSCRIPTION_CAPACITY: usize = 4096;
 
 /// The difference between best block number and number of its ancestor, that is enough
@@ -470,21 +468,7 @@ impl<C: Chain> Client<C> {
 		&self,
 		transaction: SignedTransaction,
 	) -> Result<Weight> {
-		self.jsonrpsee_execute(move |client| async move {
-			let transaction_len = transaction.encoded_size() as u32;
-
-			let call = SUB_API_TX_PAYMENT_QUERY_INFO.to_string();
-			let data = Bytes((transaction, transaction_len).encode());
-
-			let encoded_response =
-				SubstrateStateClient::<C>::call(&*client, call, data, None).await?;
-			let dispatch_info =
-				RuntimeDispatchInfo::<C::Balance>::decode(&mut &encoded_response.0[..])
-					.map_err(Error::ResponseParseFailed)?;
-
-			Ok(dispatch_info.weight)
-		})
-		.await
+		self.new.estimate_extrinsic_weight(transaction).await
 	}
 
 	/// Get the GRANDPA authority set at given block.
