@@ -20,7 +20,7 @@ use bp_runtime::HeaderIdProvider;
 use codec::{Decode, Encode};
 use num_traits::{One, Zero};
 use relay_substrate_client::{
-	AccountKeyPairOf, BlockWithJustification, Chain, ChainWithTransactions, Client,
+	AccountKeyPairOf, BlockWithJustification, Chain, ChainWithTransactions, Client, ClientT,
 	Error as SubstrateError, HeaderIdOf, HeaderOf, SignParam,
 };
 use relay_utils::FailedClient;
@@ -324,7 +324,7 @@ async fn read_previous_block_best_priority<C: ChainWithTransactions>(
 	client: &Client<C>,
 	context: &Context<C>,
 ) -> Result<Option<TransactionPriority>, SubstrateError> {
-	let best_block = client.get_block(Some(context.best_header.hash())).await?;
+	let best_block = client.block_by_hash(context.best_header.hash()).await?;
 	let best_transaction = best_block
 		.extrinsics()
 		.iter()
@@ -426,7 +426,7 @@ async fn update_transaction_tip<C: ChainWithTransactions>(
 					SignParam {
 						spec_version: runtime_version.spec_version,
 						transaction_version: runtime_version.transaction_version,
-						genesis_hash: *client.genesis_hash(),
+						genesis_hash: client.genesis_hash(),
 						signer: transaction_params.signer.clone(),
 					},
 					unsigned_tx.clone(),
@@ -450,7 +450,7 @@ async fn update_transaction_tip<C: ChainWithTransactions>(
 			SignParam {
 				spec_version: runtime_version.spec_version,
 				transaction_version: runtime_version.transaction_version,
-				genesis_hash: *client.genesis_hash(),
+				genesis_hash: client.genesis_hash(),
 				signer: transaction_params.signer.clone(),
 			},
 			unsigned_tx.era(relay_substrate_client::TransactionEra::new(

@@ -178,17 +178,6 @@ impl<C: Chain> RpcClient<C> {
 		})
 	}
 
-	/// Return runtime specification and transaction versions, to use when signing transactions.
-	pub async fn simple_runtime_version(&self) -> Result<SimpleRuntimeVersion> {
-		Ok(match self.params.chain_runtime_version {
-			ChainRuntimeVersion::Auto => {
-				let runtime_version = self.runtime_version().await?;
-				SimpleRuntimeVersion::from_runtime_version(&runtime_version)
-			},
-			ChainRuntimeVersion::Custom(ref version) => *version,
-		})
-	}
-
 	/// Get the nonce of the given Substrate account.
 	pub async fn next_account_index(&self, account: AccountIdOf<C>) -> Result<IndexOf<C>> {
 		self.jsonrpsee_execute(move |client| async move {
@@ -234,6 +223,10 @@ impl<C: Chain> Client<C> for RpcClient<C> {
 		data.tokio = tokio;
 		data.client = client;
 		Ok(())
+	}
+
+	fn genesis_hash(&self) -> HashOf<C> {
+		self.genesis_hash
 	}
 
 	async fn header_hash_by_number(&self, number: BlockNumberOf<C>) -> Result<HashOf<C>> {
@@ -309,6 +302,20 @@ impl<C: Chain> Client<C> for RpcClient<C> {
 		})
 		.await
 		.map_err(|e| Error::failed_to_read_runtime_version::<C>(e))
+	}
+
+	async fn simple_runtime_version(&self) -> Result<SimpleRuntimeVersion> {
+		Ok(match self.params.chain_runtime_version {
+			ChainRuntimeVersion::Auto => {
+				let runtime_version = self.runtime_version().await?;
+				SimpleRuntimeVersion::from_runtime_version(&runtime_version)
+			},
+			ChainRuntimeVersion::Custom(ref version) => *version,
+		})
+	}
+
+	fn can_start_version_guard(&self) -> bool {
+		!matches!(self.params.chain_runtime_version, ChainRuntimeVersion::Auto)
 	}
 
 	async fn raw_storage_value(

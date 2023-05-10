@@ -17,8 +17,8 @@
 use crate::{
 	error::{Error, Result},
 	AccountIdOf, AccountKeyPairOf, BlockNumberOf, Chain, ChainWithTransactions, HashOf, HeaderIdOf,
-	HeaderOf, IndexOf, SignedBlockOf, Subscription, SubstrateFinalityClient, TransactionTracker,
-	UnsignedTransaction,
+	HeaderOf, IndexOf, SignedBlockOf, SimpleRuntimeVersion, Subscription, SubstrateFinalityClient,
+	TransactionTracker, UnsignedTransaction,
 };
 
 use async_trait::async_trait;
@@ -42,6 +42,8 @@ pub trait Client<C: Chain>: 'static + Send + Sync + Clone + Debug {
 	/// Reconnects the client.
 	async fn reconnect(&self) -> Result<()>;
 
+	/// Return hash of the genesis block.
+	fn genesis_hash(&self) -> HashOf<C>;
 	/// Get header hash by number.
 	async fn header_hash_by_number(&self, number: BlockNumberOf<C>) -> Result<HashOf<C>>;
 	/// Get header by hash.
@@ -80,6 +82,14 @@ pub trait Client<C: Chain>: 'static + Send + Sync + Clone + Debug {
 	async fn token_decimals(&self) -> Result<Option<u64>>;
 	/// Get runtime version of the connected chain.
 	async fn runtime_version(&self) -> Result<RuntimeVersion>;
+	/// Get partial runtime version, to use when signing transactions.
+	async fn simple_runtime_version(&self) -> Result<SimpleRuntimeVersion>;
+	/// Returns `true` if version guard can be started.
+	///
+	/// There's no reason to run version guard when version mode is set to `Auto`. It can
+	/// lead to relay shutdown when chain is upgraded, even though we have explicitly
+	/// said that we don't want to shutdown.
+	fn can_start_version_guard(&self) -> bool;
 
 	/// Read raw value from runtime storage.
 	async fn raw_storage_value(

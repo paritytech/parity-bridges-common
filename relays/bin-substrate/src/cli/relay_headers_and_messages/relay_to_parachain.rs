@@ -28,7 +28,7 @@ use crate::cli::{
 use bp_polkadot_core::parachains::ParaHash;
 use pallet_bridge_parachains::{RelayBlockHash, RelayBlockHasher, RelayBlockNumber};
 use relay_substrate_client::{
-	AccountIdOf, AccountKeyPairOf, Chain, ChainWithTransactions, Client, Parachain,
+	AccountIdOf, AccountKeyPairOf, Chain, ChainWithTransactions, Client, ClientT, Parachain,
 };
 use sp_core::Pair;
 use substrate_relay_helper::{

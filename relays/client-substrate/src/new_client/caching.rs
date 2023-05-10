@@ -18,9 +18,11 @@
 //! method calls.
 
 use crate::{
-	error::Result, new_client::Client, AccountIdOf, AccountKeyPairOf, BlockNumberOf, Chain,
-	ChainWithTransactions, HashOf, HeaderIdOf, HeaderOf, IndexOf, SignedBlockOf, Subscription,
-	SubstrateFinalityClient, TransactionTracker, UnsignedTransaction,
+	error::{Error, Result},
+	new_client::Client,
+	AccountIdOf, AccountKeyPairOf, BlockNumberOf, Chain, ChainWithTransactions, HashOf, HeaderIdOf,
+	HeaderOf, IndexOf, SignedBlockOf, SimpleRuntimeVersion, Subscription, SubstrateFinalityClient,
+	TransactionTracker, UnsignedTransaction,
 };
 
 use async_std::sync::Arc;
@@ -70,6 +72,16 @@ impl<C: Chain, B: Client<C>> std::fmt::Debug for CachingClient<C, B> {
 	}
 }
 
+// TODO: this must be implemented for T: Client<C>
+#[async_trait]
+impl<C: Chain, B: Client<C>> relay_utils::relay_loop::Client for CachingClient<C, B> {
+	type Error = Error;
+
+	async fn reconnect(&mut self) -> Result<()> {
+		<Self as Client<C>>::reconnect(self).await
+	}
+}
+
 #[async_trait]
 impl<C: Chain, B: Client<C>> Client<C> for CachingClient<C, B> {
 	async fn ensure_synced(&self) -> Result<()> {
@@ -80,6 +92,10 @@ impl<C: Chain, B: Client<C>> Client<C> for CachingClient<C, B> {
 		// TODO: do we need to clear the cache here? IMO not, but think twice
 		self.backend.reconnect().await?;
 		Ok(())
+	}
+
+	fn genesis_hash(&self) -> HashOf<C> {
+		self.backend.genesis_hash()
 	}
 
 	async fn header_hash_by_number(&self, number: BlockNumberOf<C>) -> Result<HashOf<C>> {
@@ -128,6 +144,14 @@ impl<C: Chain, B: Client<C>> Client<C> for CachingClient<C, B> {
 
 	async fn runtime_version(&self) -> Result<RuntimeVersion> {
 		self.backend.runtime_version().await
+	}
+
+	async fn simple_runtime_version(&self) -> Result<SimpleRuntimeVersion> {
+		self.backend.simple_runtime_version().await
+	}
+
+	fn can_start_version_guard(&self) -> bool {
+		self.backend.can_start_version_guard()
 	}
 
 	async fn raw_storage_value(

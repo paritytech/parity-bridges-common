@@ -46,7 +46,7 @@ pub use crate::{
 		Subscription, ANCIENT_BLOCK_THRESHOLD,
 	},
 	error::{Error, Result},
-	new_client::{Client as ClientT, RpcWithCachingClient as Client},
+	new_client::{rpc_with_caching as new, Client as ClientT, RpcWithCachingClient as Client},
 	rpc::{SubstrateBeefyFinalityClient, SubstrateFinalityClient, SubstrateGrandpaFinalityClient},
 	sync_header::SyncHeader,
 	transaction_tracker::TransactionTracker,

@@ -131,7 +131,7 @@ struct ClientData {
 	/// Substrate RPC client.
 	client: Arc<RpcClient>,
 }
-
+/*
 #[async_trait]
 impl<C: Chain> relay_utils::relay_loop::Client for Client<C> {
 	type Error = Error;
@@ -146,7 +146,7 @@ impl<C: Chain> relay_utils::relay_loop::Client for Client<C> {
 		Ok(())
 	}
 }
-
+*/
 impl<C: Chain> Clone for Client<C> {
 	fn clone(&self) -> Self {
 		Client {
