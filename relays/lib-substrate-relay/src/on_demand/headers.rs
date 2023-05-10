@@ -28,8 +28,8 @@ use sp_runtime::traits::Header;
 
 use finality_relay::{FinalitySyncParams, TargetClient as FinalityTargetClient};
 use relay_substrate_client::{
-	AccountIdOf, AccountKeyPairOf, BlockNumberOf, CallOf, Chain, Client, Error as SubstrateError,
-	HeaderIdOf,
+	AccountIdOf, AccountKeyPairOf, BlockNumberOf, CallOf, Chain, Client, ClientT,
+	Error as SubstrateError, HeaderIdOf,
 };
 use relay_utils::{
 	metrics::MetricsParams, relay_loop::Client as RelayClient, FailedClient, MaybeConnectionError,

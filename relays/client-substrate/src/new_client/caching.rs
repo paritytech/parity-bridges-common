@@ -42,6 +42,7 @@ pub struct CachingClient<C: Chain, B: Client<C>> {
 	header_hash_by_number_cache: Arc<Cache<BlockNumberOf<C>, HashOf<C>>>,
 	header_by_hash_cache: Arc<Cache<HashOf<C>, HeaderOf<C>>>,
 	block_by_hash_cache: Arc<Cache<HashOf<C>, SignedBlockOf<C>>>,
+	token_decimals_cache: Arc<Cache<(), Option<u64>>>,
 	raw_storage_value_cache: Arc<Cache<(HashOf<C>, StorageKey), Option<StorageData>>>,
 	state_call_cache: Arc<Cache<(HashOf<C>, String, Bytes), Bytes>>,
 }
@@ -56,9 +57,16 @@ impl<C: Chain, B: Client<C>> CachingClient<C, B> {
 			header_hash_by_number_cache: Arc::new(Cache::new(capacity)),
 			header_by_hash_cache: Arc::new(Cache::new(capacity)),
 			block_by_hash_cache: Arc::new(Cache::new(capacity)),
+			token_decimals_cache: Arc::new(Cache::new(1)),
 			raw_storage_value_cache: Arc::new(Cache::new(1_024)),
 			state_call_cache: Arc::new(Cache::new(1_024)),
 		}
+	}
+}
+
+impl<C: Chain, B: Client<C>> std::fmt::Debug for CachingClient<C, B> {
+	fn fmt(&self, fmt: &mut std::fmt::Formatter) -> std::fmt::Result {
+		fmt.write_fmt(format_args!("CachingClient<{:?}>", self.backend))
 	}
 }
 
@@ -110,6 +118,12 @@ impl<C: Chain, B: Client<C>> Client<C> for CachingClient<C, B> {
 	) -> Result<Subscription<Bytes>> {
 		// TODO: share subscription
 		self.backend.subscribe_finality_justifications::<FC>().await
+	}
+
+	async fn token_decimals(&self) -> Result<Option<u64>> {
+		self.token_decimals_cache
+			.get_or_insert_async(&(), self.backend.token_decimals())
+			.await
 	}
 
 	async fn runtime_version(&self) -> Result<RuntimeVersion> {
@@ -184,7 +198,7 @@ impl<C: Chain, B: Client<C>> Client<C> for CachingClient<C, B> {
 		self.backend.estimate_extrinsic_weight(at, transaction).await
 	}
 
-	async fn raw_state_call<Args: Encode + Send + 'static>(
+	async fn raw_state_call<Args: Encode + Send>(
 		&self,
 		at: HashOf<C>,
 		method: String,

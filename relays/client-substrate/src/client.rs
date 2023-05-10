@@ -414,7 +414,7 @@ impl<C: Chain> Client<C> {
 	}
 
 	/// Returns weight of the given transaction.
-	pub async fn extimate_extrinsic_weight<SignedTransaction: Encode + Send + 'static>(
+	pub async fn estimate_extrinsic_weight<SignedTransaction: Encode + Send + 'static>(
 		&self,
 		transaction: SignedTransaction,
 	) -> Result<Weight> {

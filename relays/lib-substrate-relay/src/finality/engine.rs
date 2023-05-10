@@ -27,8 +27,8 @@ use codec::{Decode, Encode};
 use finality_grandpa::voter_set::VoterSet;
 use num_traits::{One, Zero};
 use relay_substrate_client::{
-	BlockNumberOf, Chain, ChainWithGrandpa, Client, Error as SubstrateError, HashOf, HeaderOf,
-	Subscription, SubstrateFinalityClient, SubstrateGrandpaFinalityClient,
+	BlockNumberOf, Chain, ChainWithGrandpa, Client, ClientT, Error as SubstrateError, HashOf,
+	HeaderOf, Subscription, SubstrateFinalityClient, SubstrateGrandpaFinalityClient,
 };
 use sp_consensus_grandpa::{AuthorityList as GrandpaAuthoritiesSet, GRANDPA_ENGINE_ID};
 use sp_core::{storage::StorageKey, Bytes};
@@ -62,7 +62,7 @@ pub trait Engine<C: Chain>: Send {
 		target_client: &Client<TargetChain>,
 	) -> Result<bool, SubstrateError> {
 		Ok(target_client
-			.raw_storage_value(Self::is_initialized_key(), None)
+			.raw_storage_value(target_client.best_header_hash().await?, Self::is_initialized_key())
 			.await?
 			.is_some())
 	}
@@ -76,7 +76,10 @@ pub trait Engine<C: Chain>: Send {
 		target_client: &Client<TargetChain>,
 	) -> Result<bool, SubstrateError> {
 		Ok(target_client
-			.storage_value::<Self::OperatingMode>(Self::pallet_operating_mode_key(), None)
+			.storage_value::<Self::OperatingMode>(
+				target_client.best_header_hash().await?,
+				Self::pallet_operating_mode_key(),
+			)
 			.await?
 			.map(|operating_mode| operating_mode.is_halted())
 			.unwrap_or(false))
@@ -158,7 +161,7 @@ impl<C: ChainWithGrandpa> Engine<C> for Grandpa<C> {
 			sp_consensus_grandpa::AuthorityList,
 			sp_consensus_grandpa::SetId,
 		) = target_client
-			.storage_value(current_authority_set_key, None)
+			.storage_value(target_client.best_header_hash().await?, current_authority_set_key)
 			.await?
 			.map(Ok)
 			.unwrap_or(Err(SubstrateError::Custom(format!(

@@ -26,14 +26,13 @@ use crate::{
 use async_trait::async_trait;
 use bp_polkadot_core::parachains::{ParaHash, ParaHeadsProof, ParaId};
 use bp_runtime::HeaderIdProvider;
-use codec::Decode;
 use parachains_relay::parachains_loop::TargetClient;
 use relay_substrate_client::{
-	AccountIdOf, AccountKeyPairOf, Chain, Client, Error as SubstrateError, HeaderIdOf,
+	AccountIdOf, AccountKeyPairOf, Chain, Client, ClientT, Error as SubstrateError, HeaderIdOf,
 	ParachainBase, TransactionEra, TransactionTracker, UnsignedTransaction,
 };
 use relay_utils::relay_loop::Client as RelayClient;
-use sp_core::{Bytes, Pair};
+use sp_core::Pair;
 
 /// Substrate client as parachain heads source.
 pub struct ParachainsTarget<P: SubstrateParachainsPipeline> {
@@ -94,10 +93,10 @@ where
 		at_block: &HeaderIdOf<P::TargetChain>,
 	) -> Result<HeaderIdOf<P::SourceRelayChain>, Self::Error> {
 		self.client
-			.typed_state_call::<_, Option<HeaderIdOf<P::SourceRelayChain>>>(
+			.state_call::<_, Option<HeaderIdOf<P::SourceRelayChain>>>(
+				at_block.hash(),
 				P::SourceRelayChain::BEST_FINALIZED_HEADER_ID_METHOD.into(),
 				(),
-				Some(at_block.1),
 			)
 			.await?
 			.map(Ok)
@@ -108,19 +107,13 @@ where
 		&self,
 		at_block: HeaderIdOf<P::TargetChain>,
 	) -> Result<Option<HeaderIdOf<P::SourceParachain>>, Self::Error> {
-		let encoded_best_finalized_source_para_block = self
-			.client
+		self.client
 			.state_call(
+				at_block.hash(),
 				P::SourceParachain::BEST_FINALIZED_HEADER_ID_METHOD.into(),
-				Bytes(Vec::new()),
-				Some(at_block.1),
+				(),
 			)
-			.await?;
-
-		Ok(Option::<HeaderIdOf<P::SourceParachain>>::decode(
-			&mut &encoded_best_finalized_source_para_block.0[..],
-		)
-		.map_err(SubstrateError::ResponseParseFailed)?)
+			.await
 	}
 
 	async fn submit_parachain_head_proof(

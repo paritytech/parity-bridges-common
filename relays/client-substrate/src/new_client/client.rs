@@ -32,9 +32,10 @@ use sp_core::{
 use sp_runtime::{traits::Header as _, transaction_validity::TransactionValidity};
 use sp_trie::StorageProof;
 use sp_version::RuntimeVersion;
+use std::fmt::Debug;
 
 #[async_trait]
-pub trait Client<C: Chain>: 'static + Send + Sync + Clone {
+pub trait Client<C: Chain>: 'static + Send + Sync + Clone + Debug {
 	/// Returns error if client has no connected peers or it believes it is far
 	/// behind the chain tip.
 	async fn ensure_synced(&self) -> Result<()>;
@@ -65,12 +66,18 @@ pub trait Client<C: Chain>: 'static + Send + Sync + Clone {
 
 	/// Get best header.
 	async fn best_header(&self) -> Result<HeaderOf<C>>;
+	/// Get best header hash.
+	async fn best_header_hash(&self) -> Result<HashOf<C>> {
+		Ok(self.best_header().await?.hash())
+	}
 
 	/// Subscribe to finality justifications.
 	async fn subscribe_finality_justifications<FC: SubstrateFinalityClient<C>>(
 		&self,
 	) -> Result<Subscription<Bytes>>;
 
+	/// Return `tokenDecimals` property from the set of chain properties.
+	async fn token_decimals(&self) -> Result<Option<u64>>;
 	/// Get runtime version of the connected chain.
 	async fn runtime_version(&self) -> Result<RuntimeVersion>;
 
@@ -170,7 +177,7 @@ pub trait Client<C: Chain>: 'static + Send + Sync + Clone {
 	) -> Result<Weight>;
 
 	/// Execute runtime call at given block.
-	async fn raw_state_call<Args: Encode + Send + 'static>(
+	async fn raw_state_call<Args: Encode + Send>(
 		&self,
 		at: HashOf<C>,
 		method: String,
@@ -178,7 +185,7 @@ pub trait Client<C: Chain>: 'static + Send + Sync + Clone {
 	) -> Result<Bytes>;
 	/// Execute runtime call at given block, provided the input and output types.
 	/// It also performs the input encode and output decode.
-	async fn state_call<Args: Encode + Send + 'static, Ret: Decode>(
+	async fn state_call<Args: Encode + Send, Ret: Decode>(
 		&self,
 		at: HashOf<C>,
 		method: String,
@@ -193,4 +200,16 @@ pub trait Client<C: Chain>: 'static + Send + Sync + Clone {
 
 	/// Returns storage proof of given storage keys.
 	async fn prove_storage(&self, at: HashOf<C>, keys: Vec<StorageKey>) -> Result<StorageProof>;
+
+	// TODO: following methods are too specific and must be moved to where they're used?
+
+	/// Get the GRANDPA authority set at given block.
+	async fn grandpa_authorities_set(
+		&self,
+		at: HashOf<C>,
+	) -> Result<crate::OpaqueGrandpaAuthoritiesSet> {
+		const SUB_API_GRANDPA_AUTHORITIES: &str = "GrandpaApi_grandpa_authorities";
+
+		self.state_call(at, SUB_API_GRANDPA_AUTHORITIES.to_string(), ()).await
+	}
 }

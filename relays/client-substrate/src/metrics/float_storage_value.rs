@@ -14,7 +14,7 @@
 // You should have received a copy of the GNU General Public License
 // along with Parity Bridges Common.  If not, see <http://www.gnu.org/licenses/>.
 
-use crate::{chain::Chain, client::Client, Error as SubstrateError};
+use crate::{Chain, Client, ClientT, Error as SubstrateError};
 
 use async_std::sync::{Arc, RwLock};
 use async_trait::async_trait;
@@ -114,9 +114,10 @@ impl<C: Chain, V: FloatStorageValue> StandaloneMetric for FloatStorageValueMetri
 	}
 
 	async fn update(&self) {
+		let best_header_hash = self.client.best_header_hash().await.unwrap_or_default(); // TODO: fix me
 		let value = self
 			.client
-			.raw_storage_value(self.storage_key.clone(), None)
+			.raw_storage_value(best_header_hash, self.storage_key.clone())
 			.await
 			.and_then(|maybe_storage_value| {
 				self.value_converter.decode(maybe_storage_value).map(|maybe_fixed_point_value| {

@@ -75,6 +75,12 @@ struct ClientData {
 	client: Arc<WsClient>,
 }
 
+impl<C: Chain> std::fmt::Debug for RpcClient<C> {
+	fn fmt(&self, fmt: &mut std::fmt::Formatter) -> std::fmt::Result {
+		fmt.write_fmt(format_args!("RpcClient<{}>", C::NAME))
+	}
+}
+
 impl<C: Chain> RpcClient<C> {
 	/// Returns client that is able to call RPCs on Substrate node over websocket connection.
 	///
@@ -204,12 +210,6 @@ impl<C: Chain> Clone for RpcClient<C> {
 	}
 }
 
-impl<C: Chain> std::fmt::Debug for RpcClient<C> {
-	fn fmt(&self, fmt: &mut std::fmt::Formatter) -> std::fmt::Result {
-		fmt.write_fmt(format_args!("Client<{}>", C::NAME))
-	}
-}
-
 #[async_trait]
 impl<C: Chain> Client<C> for RpcClient<C> {
 	async fn ensure_synced(&self) -> Result<()> {
@@ -293,6 +293,14 @@ impl<C: Chain> Client<C> for RpcClient<C> {
 			sender,
 		));
 		Ok(Subscription(Mutex::new(receiver)))
+	}
+
+	async fn token_decimals(&self) -> Result<Option<u64>> {
+		self.jsonrpsee_execute(move |client| async move {
+			let system_properties = SubstrateSystemClient::<C>::properties(&*client).await?;
+			Ok(system_properties.get("tokenDecimals").and_then(|v| v.as_u64()))
+		})
+		.await
 	}
 
 	async fn runtime_version(&self) -> Result<RuntimeVersion> {
@@ -462,7 +470,7 @@ impl<C: Chain> Client<C> for RpcClient<C> {
 		Ok(dispatch_info.weight)
 	}
 
-	async fn raw_state_call<Args: Encode + Send + 'static>(
+	async fn raw_state_call<Args: Encode + Send>(
 		&self,
 		at: HashOf<C>,
 		method: String,
