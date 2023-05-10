@@ -34,6 +34,9 @@ use sp_version::RuntimeVersion;
 
 #[async_trait]
 pub trait Client<C: Chain>: 'static + Send + Sync + Clone {
+	/// Returns error if client has no connected peers or it believes it is far
+	/// behind the chain tip.
+	async fn ensure_synced(&self) -> Result<()>;
 	/// Reconnects the client.
 	async fn reconnect(&self) -> Result<()>;
 

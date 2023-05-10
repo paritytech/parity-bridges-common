@@ -64,6 +64,10 @@ impl<C: Chain, B: Client<C>> CachingClient<C, B> {
 
 #[async_trait]
 impl<C: Chain, B: Client<C>> Client<C> for CachingClient<C, B> {
+	async fn ensure_synced(&self) -> Result<()> {
+		self.backend.ensure_synced().await
+	}
+
 	async fn reconnect(&self) -> Result<()> {
 		// TODO: do we need to clear the cache here? IMO not, but think twice
 		self.backend.reconnect().await?;

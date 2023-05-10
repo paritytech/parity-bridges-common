@@ -20,7 +20,7 @@ use crate::{
 	new_client::Client,
 	rpc::{
 		SubstrateAuthorClient, SubstrateChainClient, SubstrateFrameSystemClient,
-		SubstrateStateClient,
+		SubstrateStateClient, SubstrateSystemClient,
 	},
 	transaction_stall_timeout, AccountIdOf, AccountKeyPairOf, BlockNumberOf, Chain,
 	ChainWithTransactions, ConnectionParams, HashOf, HeaderIdOf, HeaderOf, IndexOf, SignParam,
@@ -212,6 +212,22 @@ impl<C: Chain> std::fmt::Debug for RpcClient<C> {
 
 #[async_trait]
 impl<C: Chain> Client<C> for RpcClient<C> {
+	async fn ensure_synced(&self) -> Result<()> {
+		let health = self
+			.jsonrpsee_execute(|client| async move {
+				Ok(SubstrateSystemClient::<C>::health(&*client).await?)
+			})
+			.await
+			.map_err(|e| Error::failed_to_get_system_health::<C>(e.into()))?;
+
+		let is_synced = !health.is_syncing && (!health.should_have_peers || health.peers > 0);
+		if is_synced {
+			Ok(())
+		} else {
+			Err(Error::ClientNotSynced(health))
+		}
+	}
+
 	async fn reconnect(&self) -> Result<()> {
 		let mut data = self.data.write().await;
 		let (tokio, client) = Self::build_client(&self.params).await?;

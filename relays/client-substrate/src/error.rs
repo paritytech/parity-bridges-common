@@ -58,6 +58,14 @@ pub enum Error {
 	/// The client we're connected to is not synced, so we can't rely on its state.
 	#[error("Substrate client is not synced {0}.")]
 	ClientNotSynced(Health),
+	/// Failed to get system health.
+	#[error("Failed to get system health of {chain} node: {error:?}.")]
+	FailedToGetSystemHealth {
+		/// Name of the chain where the error has happened.
+		chain: String,
+		/// Underlying error.
+		error: Box<Error>,
+	},
 	/// Failed to read best finalized header hash from given chain.
 	#[error("Failed to read best finalized header hash of {chain}: {error:?}.")]
 	FailedToReadBestFinalizedHeaderHash {
@@ -212,6 +220,7 @@ impl Error {
 			Self::FailedToSubmitTransaction { ref error, .. } => Some(&**error),
 			Self::FailedStateCall { ref error, .. } => Some(&**error),
 			Self::FailedToProveStorage { ref error, .. } => Some(&**error),
+			Self::FailedToGetSystemHealth { ref error, .. } => Some(&**error),
 			_ => None,
 		}
 	}
@@ -313,6 +322,11 @@ impl Error {
 			storage_keys,
 			error: e.boxed(),
 		}
+	}
+
+	/// Constructs `FailedToGetSystemHealth` variant.
+	pub fn failed_to_get_system_health<C: Chain>(e: Error) -> Self {
+		Error::FailedToGetSystemHealth { chain: C::NAME.into(), error: e.boxed() }
 	}
 }
 

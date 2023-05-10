@@ -253,16 +253,7 @@ impl<C: Chain> Client<C> {
 
 	/// Returns true if client is connected to at least one peer and is in synced state.
 	pub async fn ensure_synced(&self) -> Result<()> {
-		self.jsonrpsee_execute(|client| async move {
-			let health = SubstrateSystemClient::<C>::health(&*client).await?;
-			let is_synced = !health.is_syncing && (!health.should_have_peers || health.peers > 0);
-			if is_synced {
-				Ok(())
-			} else {
-				Err(Error::ClientNotSynced(health))
-			}
-		})
-		.await
+		self.new.ensure_synced().await
 	}
 
 	/// Return hash of the genesis block.
