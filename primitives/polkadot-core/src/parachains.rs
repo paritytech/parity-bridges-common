@@ -16,6 +16,7 @@
 
 //! Primitives of polkadot-like chains, that are related to parachains functionality.
 //!
+//! TODO:check-parameter - fix comment or can we import `ParaId` from polkadot now? does it make sense?
 //! Even though this (bridges) repository references polkadot repository, we can't
 //! reference polkadot crates from pallets. That's because bridges repository is
 //! included in the polkadot repository and included pallets are used by polkadot
