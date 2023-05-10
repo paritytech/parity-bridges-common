@@ -418,7 +418,7 @@ impl<C: Chain> Client<C> {
 		&self,
 		transaction: SignedTransaction,
 	) -> Result<Weight> {
-		self.new.estimate_extrinsic_weight(transaction).await
+		self.new.estimate_extrinsic_weight(self.given_or_best(None).await?, transaction).await
 	}
 
 	/// Get the GRANDPA authority set at given block.

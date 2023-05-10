@@ -167,6 +167,7 @@ pub trait Client<C: Chain>: 'static + Send + Sync + Clone {
 	/// Returns weight of the given transaction.
 	async fn estimate_extrinsic_weight<SignedTransaction: Encode + Send + 'static>(
 		&self,
+		at: HashOf<C>,
 		transaction: SignedTransaction,
 	) -> Result<Weight>;
 

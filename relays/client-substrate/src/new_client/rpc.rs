@@ -23,7 +23,7 @@ use crate::{
 		SubstrateFrameSystemClient, SubstrateGrandpaClient, SubstrateStateClient,
 		SubstrateSystemClient,
 	},
-	transaction_stall_timeout, AccountIdOf, AccountKeyPairOf, BlockNumberOf, Chain,
+	transaction_stall_timeout, AccountIdOf, AccountKeyPairOf, BalanceOf, BlockNumberOf, Chain,
 	ChainWithGrandpa, ChainWithTransactions, ConnectionParams, HashOf, HeaderIdOf, HeaderOf,
 	IndexOf, SignParam, SignedBlockOf, Subscription, TransactionTracker, UnsignedTransaction,
 };
@@ -31,7 +31,7 @@ use crate::{
 use async_std::sync::{Arc, Mutex, RwLock};
 use async_trait::async_trait;
 use bp_runtime::HeaderIdProvider;
-use codec::{Decode, Encode};
+use codec::Encode;
 use frame_support::weights::Weight;
 use jsonrpsee::ws_client::{WsClient, WsClientBuilder};
 use num_traits::Zero;
@@ -460,41 +460,26 @@ impl<C: Chain> Client<C> for RpcClient<C> {
 		at: HashOf<C>,
 		transaction: SignedTransaction,
 	) -> Result<TransactionValidity> {
-		// TODO: replace with state_call
-		self.jsonrpsee_execute(move |client| async move {
-			let call = SUB_API_TXPOOL_VALIDATE_TRANSACTION.to_string();
-			let data = Bytes((TransactionSource::External, transaction, at).encode());
-
-			let encoded_response =
-				SubstrateStateClient::<C>::call(&*client, call, data, Some(at)).await?;
-			let validity = TransactionValidity::decode(&mut &encoded_response.0[..])
-				.map_err(Error::ResponseParseFailed)?;
-
-			Ok(validity)
-		})
-		.await
+		self.state_call(
+			at,
+			SUB_API_TXPOOL_VALIDATE_TRANSACTION.into(),
+			(TransactionSource::External, transaction, at),
+		).await
 	}
 
 	async fn estimate_extrinsic_weight<SignedTransaction: Encode + Send + 'static>(
 		&self,
+		at: HashOf<C>,
 		transaction: SignedTransaction,
 	) -> Result<Weight> {
-		// TODO: replace with state_call
-		self.jsonrpsee_execute(move |client| async move {
-			let transaction_len = transaction.encoded_size() as u32;
+		let transaction_len = transaction.encoded_size() as u32;
+		let dispatch_info: RuntimeDispatchInfo::<BalanceOf<C>> = self.state_call(
+			at,
+			SUB_API_TX_PAYMENT_QUERY_INFO.into(),
+			(transaction, transaction_len),
+		).await?;
 
-			let call = SUB_API_TX_PAYMENT_QUERY_INFO.to_string();
-			let data = Bytes((transaction, transaction_len).encode());
-
-			let encoded_response =
-				SubstrateStateClient::<C>::call(&*client, call, data, None).await?;
-			let dispatch_info =
-				RuntimeDispatchInfo::<C::Balance>::decode(&mut &encoded_response.0[..])
-					.map_err(Error::ResponseParseFailed)?;
-
-			Ok(dispatch_info.weight)
-		})
-		.await
+		Ok(dispatch_info.weight)
 	}
 
 	async fn raw_state_call<Args: Encode + Send + 'static>(

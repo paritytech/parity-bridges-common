@@ -184,9 +184,10 @@ impl<C: Chain, B: Client<C>> Client<C> for CachingClient<C, B> {
 
 	async fn estimate_extrinsic_weight<SignedTransaction: Encode + Send + 'static>(
 		&self,
+		at: HashOf<C>,
 		transaction: SignedTransaction,
 	) -> Result<Weight> {
-		self.backend.estimate_extrinsic_weight(transaction).await
+		self.backend.estimate_extrinsic_weight(at, transaction).await
 	}
 
 	async fn raw_state_call<Args: Encode + Send + 'static>(
