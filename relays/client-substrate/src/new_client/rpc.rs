@@ -67,7 +67,7 @@ pub struct RpcClient<C: Chain> {
 	_phantom: PhantomData<C>,
 }
 
-/// Client data, shared by all `Client` clones.
+/// Client data, shared by all `RpcClient` clones.
 struct ClientData {
 	/// Tokio runtime handle.
 	tokio: Arc<tokio::runtime::Runtime>,

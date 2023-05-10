@@ -41,12 +41,16 @@ use sp_version::RuntimeVersion;
 #[derive(Clone)]
 pub struct CachingClient<C: Chain, B: Client<C>> {
 	backend: B,
-	header_hash_by_number_cache: Arc<Cache<BlockNumberOf<C>, HashOf<C>>>,
-	header_by_hash_cache: Arc<Cache<HashOf<C>, HeaderOf<C>>>,
-	block_by_hash_cache: Arc<Cache<HashOf<C>, SignedBlockOf<C>>>,
-	token_decimals_cache: Arc<Cache<(), Option<u64>>>,
-	raw_storage_value_cache: Arc<Cache<(HashOf<C>, StorageKey), Option<StorageData>>>,
-	state_call_cache: Arc<Cache<(HashOf<C>, String, Bytes), Bytes>>,
+	data: Arc<ClientData<C>>,
+}
+
+/// Client data, shared by all `CachingClient` clones.
+struct ClientData<C: Chain> {
+	header_hash_by_number_cache: Cache<BlockNumberOf<C>, HashOf<C>>,
+	header_by_hash_cache: Cache<HashOf<C>, HeaderOf<C>>,
+	block_by_hash_cache: Cache<HashOf<C>, SignedBlockOf<C>>,
+	raw_storage_value_cache: Cache<(HashOf<C>, StorageKey), Option<StorageData>>,
+	state_call_cache: Cache<(HashOf<C>, String, Bytes), Bytes>,
 }
 
 impl<C: Chain, B: Client<C>> CachingClient<C, B> {
@@ -56,12 +60,13 @@ impl<C: Chain, B: Client<C>> CachingClient<C, B> {
 		let capacity = crate::client::ANCIENT_BLOCK_THRESHOLD as usize;
 		CachingClient {
 			backend,
-			header_hash_by_number_cache: Arc::new(Cache::new(capacity)),
-			header_by_hash_cache: Arc::new(Cache::new(capacity)),
-			block_by_hash_cache: Arc::new(Cache::new(capacity)),
-			token_decimals_cache: Arc::new(Cache::new(1)),
-			raw_storage_value_cache: Arc::new(Cache::new(1_024)),
-			state_call_cache: Arc::new(Cache::new(1_024)),
+			data: Arc::new(ClientData {
+				header_hash_by_number_cache: Cache::new(capacity),
+				header_by_hash_cache: Cache::new(capacity),
+				block_by_hash_cache: Cache::new(capacity),
+				raw_storage_value_cache: Cache::new(1_024),
+				state_call_cache: Cache::new(1_024),
+			}),
 		}
 	}
 }
@@ -99,19 +104,22 @@ impl<C: Chain, B: Client<C>> Client<C> for CachingClient<C, B> {
 	}
 
 	async fn header_hash_by_number(&self, number: BlockNumberOf<C>) -> Result<HashOf<C>> {
-		self.header_hash_by_number_cache
+		self.data
+			.header_hash_by_number_cache
 			.get_or_insert_async(&number, self.backend.header_hash_by_number(number))
 			.await
 	}
 
 	async fn header_by_hash(&self, hash: HashOf<C>) -> Result<HeaderOf<C>> {
-		self.header_by_hash_cache
+		self.data
+			.header_by_hash_cache
 			.get_or_insert_async(&hash, self.backend.header_by_hash(hash))
 			.await
 	}
 
 	async fn block_by_hash(&self, hash: HashOf<C>) -> Result<SignedBlockOf<C>> {
-		self.block_by_hash_cache
+		self.data
+			.block_by_hash_cache
 			.get_or_insert_async(&hash, self.backend.block_by_hash(hash))
 			.await
 	}
@@ -137,9 +145,7 @@ impl<C: Chain, B: Client<C>> Client<C> for CachingClient<C, B> {
 	}
 
 	async fn token_decimals(&self) -> Result<Option<u64>> {
-		self.token_decimals_cache
-			.get_or_insert_async(&(), self.backend.token_decimals())
-			.await
+		self.backend.token_decimals().await
 	}
 
 	async fn runtime_version(&self) -> Result<RuntimeVersion> {
@@ -159,7 +165,8 @@ impl<C: Chain, B: Client<C>> Client<C> for CachingClient<C, B> {
 		at: HashOf<C>,
 		storage_key: StorageKey,
 	) -> Result<Option<StorageData>> {
-		self.raw_storage_value_cache
+		self.data
+			.raw_storage_value_cache
 			.get_or_insert_async(
 				&(at, storage_key.clone()),
 				self.backend.raw_storage_value(at, storage_key),
@@ -229,7 +236,8 @@ impl<C: Chain, B: Client<C>> Client<C> for CachingClient<C, B> {
 		arguments: Args,
 	) -> Result<Bytes> {
 		let encoded_arguments = Bytes(arguments.encode());
-		self.state_call_cache
+		self.data
+			.state_call_cache
 			.get_or_insert_async(
 				&(at, method.clone(), encoded_arguments),
 				self.backend.raw_state_call(at, method, arguments),
