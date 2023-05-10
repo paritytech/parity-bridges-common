@@ -19,13 +19,12 @@ use crate::{
 	error::{Error, Result},
 	new_client::Client,
 	rpc::{
-		SubstrateAuthorClient, SubstrateBeefyClient, SubstrateChainClient,
-		SubstrateFrameSystemClient, SubstrateGrandpaClient, SubstrateStateClient,
-		SubstrateSystemClient,
+		SubstrateAuthorClient, SubstrateChainClient, SubstrateFinalityClient,
+		SubstrateFrameSystemClient, SubstrateStateClient, SubstrateSystemClient,
 	},
 	transaction_stall_timeout, AccountIdOf, AccountKeyPairOf, BalanceOf, BlockNumberOf, Chain,
-	ChainWithGrandpa, ChainWithTransactions, ConnectionParams, HashOf, HeaderIdOf, HeaderOf,
-	IndexOf, SignParam, SignedBlockOf, Subscription, TransactionTracker, UnsignedTransaction,
+	ChainWithTransactions, ConnectionParams, HashOf, HeaderIdOf, HeaderOf, IndexOf, SignParam,
+	SignedBlockOf, Subscription, TransactionTracker, UnsignedTransaction,
 };
 
 use async_std::sync::{Arc, Mutex, RwLock};
@@ -277,37 +276,19 @@ impl<C: Chain> Client<C> for RpcClient<C> {
 		.map_err(|e| Error::failed_to_read_best_header::<C>(e))
 	}
 
-	async fn subscribe_grandpa_justifications(&self) -> Result<Subscription<Bytes>>
-	where
-		C: ChainWithGrandpa,
-	{
+	async fn subscribe_finality_justifications<FC: SubstrateFinalityClient<C>>(
+		&self,
+	) -> Result<Subscription<Bytes>> {
 		let subscription = self
 			.jsonrpsee_execute(move |client| async move {
-				Ok(SubstrateGrandpaClient::<C>::subscribe_justifications(&*client).await?)
+				Ok(FC::subscribe_justifications(&*client).await?)
 			})
 			.await
-			.map_err(|e| Error::failed_to_subscribe_grandpa_justification::<C>(e))?;
+			.map_err(|e| Error::failed_to_subscribe_justification::<C>(e))?;
 		let (sender, receiver) = futures::channel::mpsc::channel(MAX_SUBSCRIPTION_CAPACITY);
 		self.data.read().await.tokio.spawn(Subscription::background_worker(
 			C::NAME.into(),
-			"grandpa_justification".into(),
-			subscription,
-			sender,
-		));
-		Ok(Subscription(Mutex::new(receiver)))
-	}
-
-	async fn subscribe_beefy_justifications(&self) -> Result<Subscription<Bytes>> {
-		let subscription = self
-			.jsonrpsee_execute(move |client| async move {
-				Ok(SubstrateBeefyClient::<C>::subscribe_justifications(&*client).await?)
-			})
-			.await
-			.map_err(|e| Error::failed_to_subscribe_beefy_justification::<C>(e))?;
-		let (sender, receiver) = futures::channel::mpsc::channel(MAX_SUBSCRIPTION_CAPACITY);
-		self.data.read().await.tokio.spawn(Subscription::background_worker(
-			C::NAME.into(),
-			"beefy_justification".into(),
+			"justification".into(),
 			subscription,
 			sender,
 		));
@@ -464,7 +445,8 @@ impl<C: Chain> Client<C> for RpcClient<C> {
 			at,
 			SUB_API_TXPOOL_VALIDATE_TRANSACTION.into(),
 			(TransactionSource::External, transaction, at),
-		).await
+		)
+		.await
 	}
 
 	async fn estimate_extrinsic_weight<SignedTransaction: Encode + Send + 'static>(
@@ -473,11 +455,9 @@ impl<C: Chain> Client<C> for RpcClient<C> {
 		transaction: SignedTransaction,
 	) -> Result<Weight> {
 		let transaction_len = transaction.encoded_size() as u32;
-		let dispatch_info: RuntimeDispatchInfo::<BalanceOf<C>> = self.state_call(
-			at,
-			SUB_API_TX_PAYMENT_QUERY_INFO.into(),
-			(transaction, transaction_len),
-		).await?;
+		let dispatch_info: RuntimeDispatchInfo<BalanceOf<C>> = self
+			.state_call(at, SUB_API_TX_PAYMENT_QUERY_INFO.into(), (transaction, transaction_len))
+			.await?;
 
 		Ok(dispatch_info.weight)
 	}

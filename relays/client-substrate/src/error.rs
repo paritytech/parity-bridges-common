@@ -175,16 +175,8 @@ pub enum Error {
 		error: Box<Error>,
 	},
 	/// Failed to subscribe to GRANDPA justifications stream.
-	#[error("Failed to subscribe to {chain} GRANDPA justifications: {error:?}.")]
-	FailedToSubscribeGrandpaJustifications {
-		/// Name of the chain where the error has happened.
-		chain: String,
-		/// Underlying error.
-		error: Box<Error>,
-	},
-	/// Failed to subscribe to BEEEFY justifications stream.
-	#[error("Failed to subscribe to {chain} BEEFY justifications: {error:?}.")]
-	FailedToSubscribeBeefyJustifications {
+	#[error("Failed to subscribe to {chain} justifications: {error:?}.")]
+	FailedToSubscribeJustifications {
 		/// Name of the chain where the error has happened.
 		chain: String,
 		/// Underlying error.
@@ -237,8 +229,7 @@ impl Error {
 			Self::FailedStateCall { ref error, .. } => Some(&**error),
 			Self::FailedToProveStorage { ref error, .. } => Some(&**error),
 			Self::FailedToGetSystemHealth { ref error, .. } => Some(&**error),
-			Self::FailedToSubscribeGrandpaJustifications { ref error, .. } => Some(&**error),
-			Self::FailedToSubscribeBeefyJustifications { ref error, .. } => Some(&**error),
+			Self::FailedToSubscribeJustifications { ref error, .. } => Some(&**error),
 			_ => None,
 		}
 	}
@@ -347,14 +338,9 @@ impl Error {
 		Error::FailedToGetSystemHealth { chain: C::NAME.into(), error: e.boxed() }
 	}
 
-	/// Constructs `FailedToSubscribeGrandpaJustifications` variant.
-	pub fn failed_to_subscribe_grandpa_justification<C: Chain>(e: Error) -> Self {
-		Error::FailedToSubscribeGrandpaJustifications { chain: C::NAME.into(), error: e.boxed() }
-	}
-
-	/// Constructs `FailedToSubscribeBeefyJustifications` variant.
-	pub fn failed_to_subscribe_beefy_justification<C: Chain>(e: Error) -> Self {
-		Error::FailedToSubscribeBeefyJustifications { chain: C::NAME.into(), error: e.boxed() }
+	/// Constructs `FailedToSubscribeJustifications` variant.
+	pub fn failed_to_subscribe_justification<C: Chain>(e: Error) -> Self {
+		Error::FailedToSubscribeJustifications { chain: C::NAME.into(), error: e.boxed() }
 	}
 }
 

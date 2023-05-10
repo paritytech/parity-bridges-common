@@ -418,7 +418,9 @@ impl<C: Chain> Client<C> {
 		&self,
 		transaction: SignedTransaction,
 	) -> Result<Weight> {
-		self.new.estimate_extrinsic_weight(self.given_or_best(None).await?, transaction).await
+		self.new
+			.estimate_extrinsic_weight(self.given_or_best(None).await?, transaction)
+			.await
 	}
 
 	/// Get the GRANDPA authority set at given block.
@@ -484,7 +486,7 @@ impl<C: Chain> Client<C> {
 	pub async fn subscribe_finality_justifications<FC: SubstrateFinalityClient<C>>(
 		&self,
 	) -> Result<Subscription<Bytes>> {
-		FC::subscribe_justifications(&self.new).await
+		self.new.subscribe_finality_justifications::<FC>().await
 	}
 
 	/// Execute jsonrpsee future in tokio context.

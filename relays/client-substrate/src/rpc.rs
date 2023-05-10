@@ -18,12 +18,13 @@
 
 use async_trait::async_trait;
 
-use crate::{
-	new_client::{Client as _, RpcWithCachingClient as NewRpcWithCachingClient},
-	Chain, ChainWithGrandpa, TransactionStatusOf,
-};
+use crate::{Chain, ChainWithGrandpa, TransactionStatusOf};
 
-use jsonrpsee::{core::RpcResult, proc_macros::rpc};
+use jsonrpsee::{
+	core::{client::Subscription, RpcResult},
+	proc_macros::rpc,
+	ws_client::WsClient,
+};
 use pallet_transaction_payment_rpc_runtime_api::FeeDetails;
 use sc_rpc_api::{state::ReadProof, system::Health};
 use sp_core::{
@@ -108,11 +109,8 @@ pub(crate) trait SubstrateState<C> {
 /// RPC methods that we are using for a certain finality gadget.
 #[async_trait]
 pub trait SubstrateFinalityClient<C: Chain> {
-	// TODO: use me properly or remove
 	/// Subscribe to finality justifications.
-	async fn subscribe_justifications(
-		client: &NewRpcWithCachingClient<C>,
-	) -> crate::Result<crate::Subscription<Bytes>>;
+	async fn subscribe_justifications(client: &WsClient) -> RpcResult<Subscription<Bytes>>;
 }
 
 /// RPC methods of Substrate `grandpa` namespace, that we are using.
@@ -127,10 +125,8 @@ pub(crate) trait SubstrateGrandpa<C> {
 pub struct SubstrateGrandpaFinalityClient;
 #[async_trait]
 impl<C: ChainWithGrandpa> SubstrateFinalityClient<C> for SubstrateGrandpaFinalityClient {
-	async fn subscribe_justifications(
-		client: &NewRpcWithCachingClient<C>,
-	) -> crate::Result<crate::Subscription<Bytes>> {
-		client.subscribe_grandpa_justifications().await
+	async fn subscribe_justifications(client: &WsClient) -> RpcResult<Subscription<Bytes>> {
+		SubstrateGrandpaClient::<C>::subscribe_justifications(client).await
 	}
 }
 
@@ -148,10 +144,8 @@ pub struct SubstrateBeefyFinalityClient;
 // TODO: Use `ChainWithBeefy` instead of `Chain` after #1606 is merged
 #[async_trait]
 impl<C: Chain> SubstrateFinalityClient<C> for SubstrateBeefyFinalityClient {
-	async fn subscribe_justifications(
-		client: &NewRpcWithCachingClient<C>,
-	) -> crate::Result<crate::Subscription<Bytes>> {
-		client.subscribe_beefy_justifications().await
+	async fn subscribe_justifications(client: &WsClient) -> RpcResult<Subscription<Bytes>> {
+		SubstrateBeefyClient::<C>::subscribe_justifications(client).await
 	}
 }
 

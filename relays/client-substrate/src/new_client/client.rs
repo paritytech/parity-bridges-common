@@ -16,8 +16,8 @@
 
 use crate::{
 	error::{Error, Result},
-	AccountIdOf, AccountKeyPairOf, BlockNumberOf, Chain, ChainWithGrandpa, ChainWithTransactions,
-	HashOf, HeaderIdOf, HeaderOf, IndexOf, SignedBlockOf, Subscription, TransactionTracker,
+	AccountIdOf, AccountKeyPairOf, BlockNumberOf, Chain, ChainWithTransactions, HashOf, HeaderIdOf,
+	HeaderOf, IndexOf, SignedBlockOf, Subscription, SubstrateFinalityClient, TransactionTracker,
 	UnsignedTransaction,
 };
 
@@ -66,12 +66,10 @@ pub trait Client<C: Chain>: 'static + Send + Sync + Clone {
 	/// Get best header.
 	async fn best_header(&self) -> Result<HeaderOf<C>>;
 
-	/// Subscribe to GRANDPA finality justifications.
-	async fn subscribe_grandpa_justifications(&self) -> Result<Subscription<Bytes>>
-	where
-		C: ChainWithGrandpa;
-	/// Subscribe to BEEFY finality justifications.
-	async fn subscribe_beefy_justifications(&self) -> Result<Subscription<Bytes>>;
+	/// Subscribe to finality justifications.
+	async fn subscribe_finality_justifications<FC: SubstrateFinalityClient<C>>(
+		&self,
+	) -> Result<Subscription<Bytes>>;
 
 	/// Get runtime version of the connected chain.
 	async fn runtime_version(&self) -> Result<RuntimeVersion>;

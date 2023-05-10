@@ -19,8 +19,8 @@
 
 use crate::{
 	error::Result, new_client::Client, AccountIdOf, AccountKeyPairOf, BlockNumberOf, Chain,
-	ChainWithGrandpa, ChainWithTransactions, HashOf, HeaderIdOf, HeaderOf, IndexOf, SignedBlockOf,
-	Subscription, TransactionTracker, UnsignedTransaction,
+	ChainWithTransactions, HashOf, HeaderIdOf, HeaderOf, IndexOf, SignedBlockOf, Subscription,
+	SubstrateFinalityClient, TransactionTracker, UnsignedTransaction,
 };
 
 use async_std::sync::Arc;
@@ -105,17 +105,11 @@ impl<C: Chain, B: Client<C>> Client<C> for CachingClient<C, B> {
 		self.backend.best_header().await
 	}
 
-	async fn subscribe_grandpa_justifications(&self) -> Result<Subscription<Bytes>>
-	where
-		C: ChainWithGrandpa,
-	{
+	async fn subscribe_finality_justifications<FC: SubstrateFinalityClient<C>>(
+		&self,
+	) -> Result<Subscription<Bytes>> {
 		// TODO: share subscription
-		self.backend.subscribe_grandpa_justifications().await
-	}
-
-	async fn subscribe_beefy_justifications(&self) -> Result<Subscription<Bytes>> {
-		// TODO: share subscription
-		self.backend.subscribe_beefy_justifications().await
+		self.backend.subscribe_finality_justifications::<FC>().await
 	}
 
 	async fn runtime_version(&self) -> Result<RuntimeVersion> {
