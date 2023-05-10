@@ -149,7 +149,7 @@ pub enum Error {
 		error: Box<Error>,
 	},
 	/// Runtime call has failed.
-	#[error("Runtime call {method} with arguments {arguments:?} of chain {chain} at {hash} has failed: {error:?}")]
+	#[error("Runtime call {method} with arguments {arguments:?} of chain {chain} at {hash} has failed: {error:?}.")]
 	FailedStateCall {
 		/// Name of the chain where the error has happened.
 		chain: String,
@@ -163,7 +163,7 @@ pub enum Error {
 		error: Box<Error>,
 	},
 	/// Failed to prove storage keys.
-	#[error("Failed to prove storage keys {storage_keys:?} of {chain} at {hash}: {error:?}")]
+	#[error("Failed to prove storage keys {storage_keys:?} of {chain} at {hash}: {error:?}.")]
 	FailedToProveStorage {
 		/// Name of the chain where the error has happened.
 		chain: String,
@@ -171,6 +171,22 @@ pub enum Error {
 		hash: String,
 		/// Storage keys we have tried to prove.
 		storage_keys: Vec<StorageKey>,
+		/// Underlying error.
+		error: Box<Error>,
+	},
+	/// Failed to subscribe to GRANDPA justifications stream.
+	#[error("Failed to subscribe to {chain} GRANDPA justifications: {error:?}.")]
+	FailedToSubscribeGrandpaJustifications {
+		/// Name of the chain where the error has happened.
+		chain: String,
+		/// Underlying error.
+		error: Box<Error>,
+	},
+	/// Failed to subscribe to BEEEFY justifications stream.
+	#[error("Failed to subscribe to {chain} BEEFY justifications: {error:?}.")]
+	FailedToSubscribeBeefyJustifications {
+		/// Name of the chain where the error has happened.
+		chain: String,
 		/// Underlying error.
 		error: Box<Error>,
 	},
@@ -221,6 +237,8 @@ impl Error {
 			Self::FailedStateCall { ref error, .. } => Some(&**error),
 			Self::FailedToProveStorage { ref error, .. } => Some(&**error),
 			Self::FailedToGetSystemHealth { ref error, .. } => Some(&**error),
+			Self::FailedToSubscribeGrandpaJustifications { ref error, .. } => Some(&**error),
+			Self::FailedToSubscribeBeefyJustifications { ref error, .. } => Some(&**error),
 			_ => None,
 		}
 	}
@@ -327,6 +345,16 @@ impl Error {
 	/// Constructs `FailedToGetSystemHealth` variant.
 	pub fn failed_to_get_system_health<C: Chain>(e: Error) -> Self {
 		Error::FailedToGetSystemHealth { chain: C::NAME.into(), error: e.boxed() }
+	}
+
+	/// Constructs `FailedToSubscribeGrandpaJustifications` variant.
+	pub fn failed_to_subscribe_grandpa_justification<C: Chain>(e: Error) -> Self {
+		Error::FailedToSubscribeGrandpaJustifications { chain: C::NAME.into(), error: e.boxed() }
+	}
+
+	/// Constructs `FailedToSubscribeBeefyJustifications` variant.
+	pub fn failed_to_subscribe_beefy_justification<C: Chain>(e: Error) -> Self {
+		Error::FailedToSubscribeBeefyJustifications { chain: C::NAME.into(), error: e.boxed() }
 	}
 }
 

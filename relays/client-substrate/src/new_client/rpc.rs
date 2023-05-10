@@ -19,12 +19,13 @@ use crate::{
 	error::{Error, Result},
 	new_client::Client,
 	rpc::{
-		SubstrateAuthorClient, SubstrateChainClient, SubstrateFrameSystemClient,
-		SubstrateStateClient, SubstrateSystemClient,
+		SubstrateAuthorClient, SubstrateBeefyClient, SubstrateChainClient,
+		SubstrateFrameSystemClient, SubstrateGrandpaClient, SubstrateStateClient,
+		SubstrateSystemClient,
 	},
 	transaction_stall_timeout, AccountIdOf, AccountKeyPairOf, BlockNumberOf, Chain,
-	ChainWithTransactions, ConnectionParams, HashOf, HeaderIdOf, HeaderOf, IndexOf, SignParam,
-	SignedBlockOf, Subscription, TransactionTracker, UnsignedTransaction,
+	ChainWithGrandpa, ChainWithTransactions, ConnectionParams, HashOf, HeaderIdOf, HeaderOf,
+	IndexOf, SignParam, SignedBlockOf, Subscription, TransactionTracker, UnsignedTransaction,
 };
 
 use async_std::sync::{Arc, Mutex, RwLock};
@@ -274,6 +275,43 @@ impl<C: Chain> Client<C> for RpcClient<C> {
 		})
 		.await
 		.map_err(|e| Error::failed_to_read_best_header::<C>(e))
+	}
+
+	async fn subscribe_grandpa_justifications(&self) -> Result<Subscription<Bytes>>
+	where
+		C: ChainWithGrandpa,
+	{
+		let subscription = self
+			.jsonrpsee_execute(move |client| async move {
+				Ok(SubstrateGrandpaClient::<C>::subscribe_justifications(&*client).await?)
+			})
+			.await
+			.map_err(|e| Error::failed_to_subscribe_grandpa_justification::<C>(e))?;
+		let (sender, receiver) = futures::channel::mpsc::channel(MAX_SUBSCRIPTION_CAPACITY);
+		self.data.read().await.tokio.spawn(Subscription::background_worker(
+			C::NAME.into(),
+			"grandpa_justification".into(),
+			subscription,
+			sender,
+		));
+		Ok(Subscription(Mutex::new(receiver)))
+	}
+
+	async fn subscribe_beefy_justifications(&self) -> Result<Subscription<Bytes>> {
+		let subscription = self
+			.jsonrpsee_execute(move |client| async move {
+				Ok(SubstrateBeefyClient::<C>::subscribe_justifications(&*client).await?)
+			})
+			.await
+			.map_err(|e| Error::failed_to_subscribe_beefy_justification::<C>(e))?;
+		let (sender, receiver) = futures::channel::mpsc::channel(MAX_SUBSCRIPTION_CAPACITY);
+		self.data.read().await.tokio.spawn(Subscription::background_worker(
+			C::NAME.into(),
+			"beefy_justification".into(),
+			subscription,
+			sender,
+		));
+		Ok(Subscription(Mutex::new(receiver)))
 	}
 
 	async fn runtime_version(&self) -> Result<RuntimeVersion> {

@@ -19,8 +19,8 @@
 
 use crate::{
 	error::Result, new_client::Client, AccountIdOf, AccountKeyPairOf, BlockNumberOf, Chain,
-	ChainWithTransactions, HashOf, HeaderIdOf, HeaderOf, IndexOf, SignedBlockOf,
-	TransactionTracker, UnsignedTransaction,
+	ChainWithGrandpa, ChainWithTransactions, HashOf, HeaderIdOf, HeaderOf, IndexOf, SignedBlockOf,
+	Subscription, TransactionTracker, UnsignedTransaction,
 };
 
 use async_std::sync::Arc;
@@ -103,6 +103,19 @@ impl<C: Chain, B: Client<C>> Client<C> for CachingClient<C, B> {
 		// be using subscriptions to get best blocks, we may use single-value-cache here, but for
 		// now let's just call the backend
 		self.backend.best_header().await
+	}
+
+	async fn subscribe_grandpa_justifications(&self) -> Result<Subscription<Bytes>>
+	where
+		C: ChainWithGrandpa,
+	{
+		// TODO: share subscription
+		self.backend.subscribe_grandpa_justifications().await
+	}
+
+	async fn subscribe_beefy_justifications(&self) -> Result<Subscription<Bytes>> {
+		// TODO: share subscription
+		self.backend.subscribe_beefy_justifications().await
 	}
 
 	async fn runtime_version(&self) -> Result<RuntimeVersion> {

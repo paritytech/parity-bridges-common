@@ -20,8 +20,7 @@ use crate::{
 	chain::{Chain, ChainWithTransactions},
 	new_client::{Client as _, RpcWithCachingClient as NewRpcWithCachingClient},
 	rpc::{
-		SubstrateChainClient, SubstrateFinalityClient, SubstrateFrameSystemClient,
-		SubstrateStateClient, SubstrateSystemClient,
+		SubstrateChainClient, SubstrateFinalityClient, SubstrateStateClient, SubstrateSystemClient,
 	},
 	AccountKeyPairOf, ConnectionParams, Error, HashOf, HeaderIdOf, Result, TransactionTracker,
 	UnsignedTransaction,
@@ -356,16 +355,6 @@ impl<C: Chain> Client<C> {
 			.await
 	}
 
-	/// Get the nonce of the given Substrate account.
-	///
-	/// Note: It's the caller's responsibility to make sure `account` is a valid SS58 address.
-	pub async fn next_account_index(&self, account: C::AccountId) -> Result<C::Index> {
-		self.jsonrpsee_execute(move |client| async move {
-			Ok(SubstrateFrameSystemClient::<C>::account_next_index(&*client, account).await?)
-		})
-		.await
-	}
-
 	/// Submit unsigned extrinsic for inclusion in a block.
 	///
 	/// Note: The given transaction needs to be SCALE encoded beforehand.
@@ -495,19 +484,7 @@ impl<C: Chain> Client<C> {
 	pub async fn subscribe_finality_justifications<FC: SubstrateFinalityClient<C>>(
 		&self,
 	) -> Result<Subscription<Bytes>> {
-		let subscription = self
-			.jsonrpsee_execute(move |client| async move {
-				Ok(FC::subscribe_justifications(&client).await?)
-			})
-			.await?;
-		let (sender, receiver) = futures::channel::mpsc::channel(MAX_SUBSCRIPTION_CAPACITY);
-		self.data.read().await.tokio.spawn(Subscription::background_worker(
-			C::NAME.into(),
-			"justification".into(),
-			subscription,
-			sender,
-		));
-		Ok(Subscription(Mutex::new(receiver)))
+		FC::subscribe_justifications(&self.new).await
 	}
 
 	/// Execute jsonrpsee future in tokio context.
