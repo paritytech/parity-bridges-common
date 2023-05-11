@@ -17,8 +17,8 @@
 use crate::{
 	error::{Error, Result},
 	AccountIdOf, AccountKeyPairOf, BlockNumberOf, Chain, ChainWithTransactions, HashOf, HeaderIdOf,
-	HeaderOf, IndexOf, SignedBlockOf, SimpleRuntimeVersion, Subscription, SubstrateFinalityClient,
-	TransactionTracker, UnsignedTransaction,
+	HeaderOf, IndexOf, SignedBlockOf, SimpleRuntimeVersion, Subscription, TransactionTracker,
+	UnsignedTransaction,
 };
 
 use async_trait::async_trait;
@@ -34,6 +34,8 @@ use sp_trie::StorageProof;
 use sp_version::RuntimeVersion;
 use std::fmt::Debug;
 
+/// Relay uses the `Client` to communicate with the node, connected to Substrate
+/// chain `C`.
 #[async_trait]
 pub trait Client<C: Chain>: 'static + Send + Sync + Clone + Debug {
 	/// Returns error if client has no connected peers or it believes it is far

@@ -19,7 +19,6 @@
 #![warn(missing_docs)]
 
 mod chain;
-mod client;
 mod error;
 mod rpc;
 mod sync_header;
@@ -41,15 +40,12 @@ pub use crate::{
 		FullRuntimeUtilityPallet, MockedRuntimeUtilityPallet, Parachain, RelayChain, SignParam,
 		SignedBlockOf, TransactionStatusOf, UnsignedTransaction, UtilityPallet,
 	},
-	client::{
-		is_ancient_block, ChainRuntimeVersion, OpaqueGrandpaAuthoritiesSet, SimpleRuntimeVersion,
-		ANCIENT_BLOCK_THRESHOLD,
-	},
 	error::{Error, Result},
 	new_client::{
-		rpc_with_caching as new, Client as ClientT, RpcWithCachingClient as Client, Subscription,
+		is_ancient_block, rpc_with_caching as new, ChainRuntimeVersion, Client as ClientT,
+		OpaqueGrandpaAuthoritiesSet, RpcWithCachingClient as Client, SimpleRuntimeVersion,
+		Subscription, ANCIENT_BLOCK_THRESHOLD,
 	},
-	rpc::{SubstrateBeefyFinalityClient, SubstrateFinalityClient, SubstrateGrandpaFinalityClient},
 	sync_header::SyncHeader,
 	transaction_tracker::TransactionTracker,
 };

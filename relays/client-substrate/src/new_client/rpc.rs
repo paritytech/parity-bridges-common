@@ -15,17 +15,17 @@
 // along with Parity Bridges Common.  If not, see <http://www.gnu.org/licenses/>.
 
 use crate::{
-	client::{ChainRuntimeVersion, SimpleRuntimeVersion},
 	error::{Error, Result},
 	new_client::Client,
 	rpc::{
-		SubstrateAuthorClient, SubstrateBeefyClient, SubstrateChainClient, SubstrateFinalityClient,
+		SubstrateAuthorClient, SubstrateBeefyClient, SubstrateChainClient,
 		SubstrateFrameSystemClient, SubstrateGrandpaClient, SubstrateStateClient,
 		SubstrateSystemClient,
 	},
 	transaction_stall_timeout, AccountIdOf, AccountKeyPairOf, BalanceOf, BlockNumberOf, Chain,
-	ChainWithTransactions, ConnectionParams, HashOf, HeaderIdOf, HeaderOf, IndexOf, SignParam,
-	SignedBlockOf, Subscription, TransactionTracker, UnsignedTransaction,
+	ChainRuntimeVersion, ChainWithTransactions, ConnectionParams, HashOf, HeaderIdOf, HeaderOf,
+	IndexOf, SignParam, SignedBlockOf, SimpleRuntimeVersion, Subscription, TransactionTracker,
+	UnsignedTransaction,
 };
 
 use async_std::sync::{Arc, Mutex, RwLock};

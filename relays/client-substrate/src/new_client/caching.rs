@@ -20,22 +20,15 @@
 use crate::{
 	error::{Error, Result},
 	new_client::{Client, SharedSubscriptionFactory},
-	rpc::{SubstrateBeefyFinalityClient, SubstrateGrandpaFinalityClient},
 	AccountIdOf, AccountKeyPairOf, BlockNumberOf, Chain, ChainWithTransactions, HashOf, HeaderIdOf,
-	HeaderOf, IndexOf, SignedBlockOf, SimpleRuntimeVersion, Subscription, SubstrateFinalityClient,
-	TransactionTracker, UnsignedTransaction,
+	HeaderOf, IndexOf, SignedBlockOf, SimpleRuntimeVersion, Subscription, TransactionTracker,
+	UnsignedTransaction, ANCIENT_BLOCK_THRESHOLD,
 };
 
 use async_std::sync::{Arc, Mutex};
 use async_trait::async_trait;
 use codec::Encode;
 use frame_support::weights::Weight;
-use futures::{
-	channel::mpsc::{channel, Receiver, Sender},
-	future::FutureExt,
-	stream::StreamExt,
-	SinkExt,
-};
 use quick_cache::sync::Cache;
 use sp_core::{
 	storage::{StorageData, StorageKey},
@@ -50,8 +43,6 @@ pub struct CachingClient<C: Chain, B: Client<C>> {
 	backend: B,
 	data: Arc<ClientData<C>>,
 }
-
-const CHANNEL_CAPACITY: usize = 128;
 
 /// Client data, shared by all `CachingClient` clones.
 struct ClientData<C: Chain> {
@@ -68,15 +59,15 @@ impl<C: Chain, B: Client<C>> CachingClient<C, B> {
 	pub fn new(backend: B) -> Self {
 		// most of relayer operations will never touch more than `ANCIENT_BLOCK_THRESHOLD`
 		// headers, so we'll use this as a cache capacity for all chain-related caches
-		let capacity = crate::client::ANCIENT_BLOCK_THRESHOLD as usize;
+		let chain_state_capacity = ANCIENT_BLOCK_THRESHOLD as usize;
 		CachingClient {
 			backend,
 			data: Arc::new(ClientData {
 				grandpa_justifications: Arc::new(Mutex::new(None)),
 				beefy_justifications: Arc::new(Mutex::new(None)),
-				header_hash_by_number_cache: Cache::new(capacity),
-				header_by_hash_cache: Cache::new(capacity),
-				block_by_hash_cache: Cache::new(capacity),
+				header_hash_by_number_cache: Cache::new(chain_state_capacity),
+				header_by_hash_cache: Cache::new(chain_state_capacity),
+				block_by_hash_cache: Cache::new(chain_state_capacity),
 				raw_storage_value_cache: Cache::new(1_024),
 				state_call_cache: Cache::new(1_024),
 			}),
