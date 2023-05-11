@@ -73,10 +73,10 @@ pub trait Client<C: Chain>: 'static + Send + Sync + Clone + Debug {
 		Ok(self.best_header().await?.hash())
 	}
 
-	/// Subscribe to finality justifications.
-	async fn subscribe_finality_justifications<FC: SubstrateFinalityClient<C>>(
-		&self,
-	) -> Result<Subscription<Bytes>>;
+	/// Subscribe to GRANDPA finality justifications.
+	async fn subscribe_grandpa_finality_justifications(&self) -> Result<Subscription<Bytes>>;
+	/// Subscribe to BEEFY finality justifications.
+	async fn subscribe_beefy_finality_justifications(&self) -> Result<Subscription<Bytes>>;
 
 	/// Return `tokenDecimals` property from the set of chain properties.
 	async fn token_decimals(&self) -> Result<Option<u64>>;

@@ -19,16 +19,23 @@
 
 use crate::{
 	error::{Error, Result},
-	new_client::Client,
+	new_client::{Client, SharedSubscriptionFactory},
+	rpc::{SubstrateBeefyFinalityClient, SubstrateGrandpaFinalityClient},
 	AccountIdOf, AccountKeyPairOf, BlockNumberOf, Chain, ChainWithTransactions, HashOf, HeaderIdOf,
 	HeaderOf, IndexOf, SignedBlockOf, SimpleRuntimeVersion, Subscription, SubstrateFinalityClient,
 	TransactionTracker, UnsignedTransaction,
 };
 
-use async_std::sync::Arc;
+use async_std::sync::{Arc, Mutex};
 use async_trait::async_trait;
 use codec::Encode;
 use frame_support::weights::Weight;
+use futures::{
+	channel::mpsc::{channel, Receiver, Sender},
+	future::FutureExt,
+	stream::StreamExt,
+	SinkExt,
+};
 use quick_cache::sync::Cache;
 use sp_core::{
 	storage::{StorageData, StorageKey},
@@ -44,8 +51,12 @@ pub struct CachingClient<C: Chain, B: Client<C>> {
 	data: Arc<ClientData<C>>,
 }
 
+const CHANNEL_CAPACITY: usize = 128;
+
 /// Client data, shared by all `CachingClient` clones.
 struct ClientData<C: Chain> {
+	grandpa_justifications: Arc<Mutex<Option<SharedSubscriptionFactory<Bytes>>>>,
+	beefy_justifications: Arc<Mutex<Option<SharedSubscriptionFactory<Bytes>>>>,
 	header_hash_by_number_cache: Cache<BlockNumberOf<C>, HashOf<C>>,
 	header_by_hash_cache: Cache<HashOf<C>, HeaderOf<C>>,
 	block_by_hash_cache: Cache<HashOf<C>, SignedBlockOf<C>>,
@@ -61,6 +72,8 @@ impl<C: Chain, B: Client<C>> CachingClient<C, B> {
 		CachingClient {
 			backend,
 			data: Arc::new(ClientData {
+				grandpa_justifications: Arc::new(Mutex::new(None)),
+				beefy_justifications: Arc::new(Mutex::new(None)),
 				header_hash_by_number_cache: Cache::new(capacity),
 				header_by_hash_cache: Cache::new(capacity),
 				block_by_hash_cache: Cache::new(capacity),
@@ -137,11 +150,26 @@ impl<C: Chain, B: Client<C>> Client<C> for CachingClient<C, B> {
 		self.backend.best_header().await
 	}
 
-	async fn subscribe_finality_justifications<FC: SubstrateFinalityClient<C>>(
-		&self,
-	) -> Result<Subscription<Bytes>> {
-		// TODO: share subscription
-		self.backend.subscribe_finality_justifications::<FC>().await
+	async fn subscribe_grandpa_finality_justifications(&self) -> Result<Subscription<Bytes>> {
+		let mut grandpa_justifications = self.data.grandpa_justifications.lock().await;
+		if let Some(ref grandpa_justifications) = *grandpa_justifications {
+			grandpa_justifications.subscribe().await
+		} else {
+			let subscription = self.backend.subscribe_grandpa_finality_justifications().await?;
+			*grandpa_justifications = Some(subscription.factory());
+			Ok(subscription)
+		}
+	}
+
+	async fn subscribe_beefy_finality_justifications(&self) -> Result<Subscription<Bytes>> {
+		let mut beefy_justifications = self.data.beefy_justifications.lock().await;
+		if let Some(ref beefy_justifications) = *beefy_justifications {
+			beefy_justifications.subscribe().await
+		} else {
+			let subscription = self.backend.subscribe_grandpa_finality_justifications().await?;
+			*beefy_justifications = Some(subscription.factory());
+			Ok(subscription)
+		}
 	}
 
 	async fn token_decimals(&self) -> Result<Option<u64>> {

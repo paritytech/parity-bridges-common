@@ -18,6 +18,7 @@
 
 use crate::{BlockNumberOf, Chain, HashOf};
 
+use async_std::sync::Arc;
 use bp_polkadot_core::parachains::ParaId;
 use jsonrpsee::core::Error as RpcError;
 use relay_utils::MaybeConnectionError;
@@ -31,18 +32,21 @@ pub type Result<T> = std::result::Result<T, Error>;
 
 /// Errors that can occur only when interacting with
 /// a Substrate node through RPC.
-#[derive(Error, Debug)]
+#[derive(Clone, Error, Debug)]
 pub enum Error {
 	/// IO error.
 	#[error("IO error: {0}")]
-	Io(#[from] std::io::Error),
+	Io(Arc<std::io::Error>),
 	/// An error that can occur when making a request to
 	/// an JSON-RPC server.
 	#[error("RPC error: {0}")]
-	RpcError(#[from] RpcError),
+	RpcError(Arc<RpcError>),
 	/// The response from the server could not be SCALE decoded.
 	#[error("Response parse failed: {0}")]
 	ResponseParseFailed(#[from] codec::Error),
+	/// Internal channel error - communication channel is either closed, or full.
+	#[error("Internal channel error: {0:?}.")]
+	ChannelError(String),
 	/// Account does not exist on the chain.
 	#[error("Account does not exist on the chain.")]
 	AccountDoesNotExist,
@@ -57,7 +61,7 @@ pub enum Error {
 	FinalityProofNotFound(u64),
 	/// The client we're connected to is not synced, so we can't rely on its state.
 	#[error("Substrate client is not synced {0}.")]
-	ClientNotSynced(Health),
+	ClientNotSynced(Arc<Health>),
 	/// Failed to get system health.
 	#[error("Failed to get system health of {chain} node: {error:?}.")]
 	FailedToGetSystemHealth {
@@ -202,9 +206,33 @@ pub enum Error {
 	Custom(String),
 }
 
+impl From<std::io::Error> for Error {
+	fn from(error: std::io::Error) -> Self {
+		Error::Io(Arc::new(error))
+	}
+}
+
+impl From<RpcError> for Error {
+	fn from(error: RpcError) -> Self {
+		Error::RpcError(Arc::new(error))
+	}
+}
+
 impl From<tokio::task::JoinError> for Error {
 	fn from(error: tokio::task::JoinError) -> Self {
 		Error::Custom(format!("Failed to wait tokio task: {error}"))
+	}
+}
+
+impl<T> From<async_std::channel::TrySendError<T>> for Error {
+	fn from(error: async_std::channel::TrySendError<T>) -> Self {
+		Error::ChannelError(format!("{error:?}"))
+	}
+}
+
+impl From<async_std::channel::RecvError> for Error {
+	fn from(error: async_std::channel::RecvError) -> Self {
+		Error::ChannelError(format!("{error:?}"))
 	}
 }
 
@@ -347,8 +375,9 @@ impl Error {
 impl MaybeConnectionError for Error {
 	fn is_connection_error(&self) -> bool {
 		match *self {
-			Error::RpcError(RpcError::Transport(_)) |
-			Error::RpcError(RpcError::RestartNeeded(_)) |
+			Error::ChannelError(_) => true,
+			Error::RpcError(ref e) =>
+				matches!(**e, RpcError::Transport(_) | RpcError::RestartNeeded(_),),
 			Error::ClientNotSynced(_) => true,
 			_ => self.nested().map(|e| e.is_connection_error()).unwrap_or(false),
 		}

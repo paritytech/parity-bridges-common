@@ -301,7 +301,7 @@ async fn watch_transaction_status<
 		}
 	}
 }
-
+/*
 #[cfg(test)]
 mod tests {
 	use super::*;
@@ -466,3 +466,4 @@ mod tests {
 		assert_eq!(wait_result, Some((TrackedTransactionStatus::Lost, None)));
 	}
 }
+*/

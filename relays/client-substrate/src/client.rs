@@ -482,13 +482,6 @@ impl<C: Chain> Client<C> {
 		.await
 	}
 
-	/// Return new finality justifications stream.
-	pub async fn subscribe_finality_justifications<FC: SubstrateFinalityClient<C>>(
-		&self,
-	) -> Result<Subscription<Bytes>> {
-		self.new.subscribe_finality_justifications::<FC>().await
-	}
-
 	/// Execute jsonrpsee future in tokio context.
 	async fn jsonrpsee_execute<MF, F, T>(&self, make_jsonrpsee_future: MF) -> Result<T>
 	where

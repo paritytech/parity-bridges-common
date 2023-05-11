@@ -24,8 +24,10 @@ use rpc::RpcClient;
 pub mod caching;
 pub mod client;
 pub mod rpc;
+pub mod subscription;
 
 pub use client::Client;
+pub use subscription::{SharedSubscriptionFactory, Subscription};
 
 /// Type of RPC client with caching support.
 pub type RpcWithCachingClient<C> = CachingClient<C, RpcClient<C>>;

@@ -19,8 +19,9 @@ use crate::{
 	error::{Error, Result},
 	new_client::Client,
 	rpc::{
-		SubstrateAuthorClient, SubstrateChainClient, SubstrateFinalityClient,
-		SubstrateFrameSystemClient, SubstrateStateClient, SubstrateSystemClient,
+		SubstrateAuthorClient, SubstrateBeefyClient, SubstrateChainClient, SubstrateFinalityClient,
+		SubstrateFrameSystemClient, SubstrateGrandpaClient, SubstrateStateClient,
+		SubstrateSystemClient,
 	},
 	transaction_stall_timeout, AccountIdOf, AccountKeyPairOf, BalanceOf, BlockNumberOf, Chain,
 	ChainWithTransactions, ConnectionParams, HashOf, HeaderIdOf, HeaderOf, IndexOf, SignParam,
@@ -32,6 +33,7 @@ use async_trait::async_trait;
 use bp_runtime::HeaderIdProvider;
 use codec::Encode;
 use frame_support::weights::Weight;
+use futures::TryFutureExt;
 use jsonrpsee::ws_client::{WsClient, WsClientBuilder};
 use num_traits::Zero;
 use pallet_transaction_payment::RuntimeDispatchInfo;
@@ -213,7 +215,7 @@ impl<C: Chain> Client<C> for RpcClient<C> {
 		if is_synced {
 			Ok(())
 		} else {
-			Err(Error::ClientNotSynced(health))
+			Err(Error::ClientNotSynced(Arc::new(health)))
 		}
 	}
 
@@ -269,23 +271,30 @@ impl<C: Chain> Client<C> for RpcClient<C> {
 		.map_err(|e| Error::failed_to_read_best_header::<C>(e))
 	}
 
-	async fn subscribe_finality_justifications<FC: SubstrateFinalityClient<C>>(
-		&self,
-	) -> Result<Subscription<Bytes>> {
-		let subscription = self
-			.jsonrpsee_execute(move |client| async move {
-				Ok(FC::subscribe_justifications(&*client).await?)
-			})
-			.await
-			.map_err(|e| Error::failed_to_subscribe_justification::<C>(e))?;
-		let (sender, receiver) = futures::channel::mpsc::channel(MAX_SUBSCRIPTION_CAPACITY);
-		self.data.read().await.tokio.spawn(Subscription::background_worker(
+	async fn subscribe_grandpa_finality_justifications(&self) -> Result<Subscription<Bytes>> {
+		Subscription::new(
 			C::NAME.into(),
-			"justification".into(),
-			subscription,
-			sender,
-		));
-		Ok(Subscription(Mutex::new(receiver)))
+			"GRANDPA justifications".into(),
+			self.jsonrpsee_execute(move |client| async move {
+				Ok(SubstrateGrandpaClient::<C>::subscribe_justifications(&*client).await?)
+			})
+			.map_err(|e| Error::failed_to_subscribe_justification::<C>(e))
+			.await?,
+		)
+		.await
+	}
+
+	async fn subscribe_beefy_finality_justifications(&self) -> Result<Subscription<Bytes>> {
+		Subscription::new(
+			C::NAME.into(),
+			"BEEFY justifications".into(),
+			self.jsonrpsee_execute(move |client| async move {
+				Ok(SubstrateBeefyClient::<C>::subscribe_justifications(&*client).await?)
+			})
+			.map_err(|e| Error::failed_to_subscribe_justification::<C>(e))
+			.await?,
+		)
+		.await
 	}
 
 	async fn token_decimals(&self) -> Result<Option<u64>> {
@@ -411,44 +420,35 @@ impl<C: Chain> Client<C> for RpcClient<C> {
 		let transaction_nonce = self.next_account_index(signer.public().into()).await?;
 		let best_header = self.best_header().await?;
 		let best_header_id = best_header.id();
-		let (sender, receiver) = futures::channel::mpsc::channel(MAX_SUBSCRIPTION_CAPACITY);
-		let (tracker, subscription) = self
-			.jsonrpsee_execute(move |client| async move {
-				let extrinsic = prepare_extrinsic(best_header_id, transaction_nonce)?;
-				let stall_timeout = transaction_stall_timeout(
-					extrinsic.era.mortality_period(),
-					C::AVERAGE_BLOCK_INTERVAL,
-					STALL_TIMEOUT,
-				);
-				let signed_extrinsic = C::sign_transaction(signing_data, extrinsic)?.encode();
-				let tx_hash = C::Hasher::hash(&signed_extrinsic);
-				let subscription = SubstrateAuthorClient::<C>::submit_and_watch_extrinsic(
-					&*client,
-					Bytes(signed_extrinsic),
-				)
-				.await
-				.map_err(|e| {
-					log::error!(target: "bridge", "Failed to send transaction to {} node: {:?}", C::NAME, e);
-					e
-				})?;
-				log::trace!(target: "bridge", "Sent transaction to {} node: {:?}", C::NAME, tx_hash);
-				let tracker = TransactionTracker::new(
-					self_clone,
-					stall_timeout,
-					tx_hash,
-					Subscription(Mutex::new(receiver)),
-				);
-				Ok((tracker, subscription))
-			})
+		self.jsonrpsee_execute(move |client| async move {
+			let extrinsic = prepare_extrinsic(best_header_id, transaction_nonce)?;
+			let stall_timeout = transaction_stall_timeout(
+				extrinsic.era.mortality_period(),
+				C::AVERAGE_BLOCK_INTERVAL,
+				STALL_TIMEOUT,
+			);
+			let signed_extrinsic = C::sign_transaction(signing_data, extrinsic)?.encode();
+			let tx_hash = C::Hasher::hash(&signed_extrinsic);
+			let subscription = SubstrateAuthorClient::<C>::submit_and_watch_extrinsic(
+				&*client,
+				Bytes(signed_extrinsic),
+			)
 			.await
-			.map_err(|e| Error::failed_to_submit_transaction::<C>(e.into()))?;
-		self.data.read().await.tokio.spawn(Subscription::background_worker(
-			C::NAME.into(),
-			"extrinsic".into(),
-			subscription,
-			sender,
-		));
-		Ok(tracker)
+			.map_err(|e| {
+				log::error!(target: "bridge", "Failed to send transaction to {} node: {:?}", C::NAME, e);
+				e
+			})?;
+			log::trace!(target: "bridge", "Sent transaction to {} node: {:?}", C::NAME, tx_hash);
+			Ok(TransactionTracker::new(
+				self_clone,
+				stall_timeout,
+				tx_hash,
+				Subscription::new(C::NAME.into(), "transaction events".into(), subscription)
+					.await?,
+			))
+		})
+		.await
+		.map_err(|e| Error::failed_to_submit_transaction::<C>(e.into()))
 	}
 
 	async fn validate_transaction<SignedTransaction: Encode + Send + 'static>(

@@ -43,10 +43,12 @@ pub use crate::{
 	},
 	client::{
 		is_ancient_block, ChainRuntimeVersion, OpaqueGrandpaAuthoritiesSet, SimpleRuntimeVersion,
-		Subscription, ANCIENT_BLOCK_THRESHOLD,
+		ANCIENT_BLOCK_THRESHOLD,
 	},
 	error::{Error, Result},
-	new_client::{rpc_with_caching as new, Client as ClientT, RpcWithCachingClient as Client},
+	new_client::{
+		rpc_with_caching as new, Client as ClientT, RpcWithCachingClient as Client, Subscription,
+	},
 	rpc::{SubstrateBeefyFinalityClient, SubstrateFinalityClient, SubstrateGrandpaFinalityClient},
 	sync_header::SyncHeader,
 	transaction_tracker::TransactionTracker,

@@ -86,9 +86,7 @@ pub trait Engine<C: Chain>: Send {
 	}
 
 	/// A method to subscribe to encoded finality proofs, given source client.
-	async fn finality_proofs(client: &Client<C>) -> Result<Subscription<Bytes>, SubstrateError> {
-		client.subscribe_finality_justifications::<Self::FinalityClient>().await
-	}
+	async fn finality_proofs(client: &Client<C>) -> Result<Subscription<Bytes>, SubstrateError>;
 
 	/// Optimize finality proof before sending it to the target node.
 	async fn optimize_proof<TargetChain: Chain>(
@@ -147,6 +145,10 @@ impl<C: ChainWithGrandpa> Engine<C> for Grandpa<C> {
 
 	fn pallet_operating_mode_key() -> StorageKey {
 		bp_header_chain::storage_keys::pallet_operating_mode_key(C::WITH_CHAIN_GRANDPA_PALLET_NAME)
+	}
+
+	async fn finality_proofs(client: &Client<C>) -> Result<Subscription<Bytes>, SubstrateError> {
+		client.subscribe_grandpa_finality_justifications().await
 	}
 
 	async fn optimize_proof<TargetChain: Chain>(

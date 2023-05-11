@@ -114,7 +114,8 @@ pub trait SubstrateFinalityClient<C: Chain> {
 }
 
 /// RPC methods of Substrate `grandpa` namespace, that we are using.
-#[rpc(client, client_bounds(C: ChainWithGrandpa), namespace = "grandpa")]
+// TODO: replaced `ChainWithGrandpa` with `Chain`. Is it possible to revert?
+#[rpc(client, client_bounds(C: Chain), namespace = "grandpa")]
 pub(crate) trait SubstrateGrandpa<C> {
 	/// Subscribe to GRANDPA justifications.
 	#[subscription(name = "subscribeJustifications", unsubscribe = "unsubscribeJustifications", item = Bytes)]
@@ -123,8 +124,9 @@ pub(crate) trait SubstrateGrandpa<C> {
 
 /// RPC finality methods of Substrate `grandpa` namespace, that we are using.
 pub struct SubstrateGrandpaFinalityClient;
+// TODO: replaced `ChainWithGrandpa` with `Chain`. Is it possible to revert?
 #[async_trait]
-impl<C: ChainWithGrandpa> SubstrateFinalityClient<C> for SubstrateGrandpaFinalityClient {
+impl<C: Chain> SubstrateFinalityClient<C> for SubstrateGrandpaFinalityClient {
 	async fn subscribe_justifications(client: &WsClient) -> RpcResult<Subscription<Bytes>> {
 		SubstrateGrandpaClient::<C>::subscribe_justifications(client).await
 	}
