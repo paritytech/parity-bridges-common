@@ -19,7 +19,7 @@
 
 use crate::{
 	error::{Error, Result},
-	new_client::{Client, SharedSubscriptionFactory},
+	client::{Client, SharedSubscriptionFactory},
 	AccountIdOf, AccountKeyPairOf, BlockNumberOf, Chain, ChainWithTransactions, HashOf, HeaderIdOf,
 	HeaderOf, IndexOf, SignedBlockOf, SimpleRuntimeVersion, Subscription, TransactionTracker,
 	UnsignedTransaction, ANCIENT_BLOCK_THRESHOLD,

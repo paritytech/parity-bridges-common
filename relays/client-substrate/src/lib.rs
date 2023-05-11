@@ -19,6 +19,7 @@
 #![warn(missing_docs)]
 
 mod chain;
+mod client;
 mod error;
 mod rpc;
 mod sync_header;
@@ -29,8 +30,6 @@ pub mod guard;
 pub mod metrics;
 pub mod test_chain;
 
-mod new_client;
-
 use std::time::Duration;
 
 pub use crate::{
@@ -40,12 +39,12 @@ pub use crate::{
 		FullRuntimeUtilityPallet, MockedRuntimeUtilityPallet, Parachain, RelayChain, SignParam,
 		SignedBlockOf, TransactionStatusOf, UnsignedTransaction, UtilityPallet,
 	},
-	error::{Error, Result},
-	new_client::{
+	client::{
 		is_ancient_block, rpc_with_caching as new, ChainRuntimeVersion, Client as ClientT,
 		OpaqueGrandpaAuthoritiesSet, RpcWithCachingClient as Client, SimpleRuntimeVersion,
 		Subscription, ANCIENT_BLOCK_THRESHOLD,
 	},
+	error::{Error, Result},
 	sync_header::SyncHeader,
 	transaction_tracker::TransactionTracker,
 };

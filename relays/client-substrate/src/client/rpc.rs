@@ -16,7 +16,7 @@
 
 use crate::{
 	error::{Error, Result},
-	new_client::Client,
+	client::Client,
 	rpc::{
 		SubstrateAuthorClient, SubstrateBeefyClient, SubstrateChainClient,
 		SubstrateFrameSystemClient, SubstrateGrandpaClient, SubstrateStateClient,

@@ -39,7 +39,7 @@ impl<C: Chain> Environment<C> for Client<C> {
 }*/
 
 #[async_trait]
-impl<C: Chain, T: crate::new_client::Client<C>> Environment<C> for T {
+impl<C: Chain, T: crate::client::Client<C>> Environment<C> for T {
 	async fn header_id_by_hash(&self, hash: HashOf<C>) -> Result<HeaderIdOf<C>, Error> {
 		self.header_by_hash(hash).await.map(|h| HeaderId(*h.number(), hash))
 	}
