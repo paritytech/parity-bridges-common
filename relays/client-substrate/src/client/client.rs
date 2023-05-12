@@ -212,16 +212,4 @@ pub trait Client<C: Chain>: 'static + Send + Sync + Clone + Debug {
 
 	/// Returns storage proof of given storage keys.
 	async fn prove_storage(&self, at: HashOf<C>, keys: Vec<StorageKey>) -> Result<StorageProof>;
-
-	// TODO: following methods are too specific and must be moved to where they're used?
-
-	/// Get the GRANDPA authority set at given block.
-	async fn grandpa_authorities_set(
-		&self,
-		at: HashOf<C>,
-	) -> Result<crate::OpaqueGrandpaAuthoritiesSet> {
-		const SUB_API_GRANDPA_AUTHORITIES: &str = "GrandpaApi_grandpa_authorities";
-
-		self.state_call(at, SUB_API_GRANDPA_AUTHORITIES.to_string(), ()).await
-	}
 }

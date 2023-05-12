@@ -104,6 +104,10 @@ impl<T: 'static + Clone + DeserializeOwned + Send> Subscription<T> {
 }
 
 /// Background worker that is executed in tokio context as `jsonrpsee` requires.
+///
+/// This task may exit under some circumstances. It'll send the correspondent
+/// message (`Err` or `None`) to all known listeners. Also, when it stops, all
+/// subsequent reads and new subscribers will get the connection error (`ChannelError`).
 async fn background_worker<T: 'static + Clone + DeserializeOwned + Send>(
 	chain_name: String,
 	item_type: String,
@@ -167,17 +171,23 @@ async fn background_worker<T: 'static + Clone + DeserializeOwned + Send>(
 	// wait for first subscriber until actually starting subscription
 	let subscriber = match subscribers_receiver.next().await {
 		Some(subscriber) => subscriber,
-		None => return log_task_exit(&chain_name, &item_type, "client has stopped"),
+		None => {
+			// it means that the last subscriber/factory has been dropped, so we need to
+			// exit too
+			return log_task_exit(&chain_name, &item_type, "client has stopped")
+		},
 	};
 
 	// actually subscribe
 	let mut subscribers = vec![subscriber];
-	let mut subscription = match subscribe.await {
-		Ok(subscription) => subscription,
+	let mut jsonrpsee_subscription = match subscribe.await {
+		Ok(jsonrpsee_subscription) => jsonrpsee_subscription,
 		Err(e) => {
 			let reason = format!("failed to subscribe: {:?}", e);
 			notify_subscribers(&chain_name, &item_type, &mut subscribers, Some(Err(e))).await;
-			return log_task_exit(&chain_name, &item_type, &reason) // TODO: really exit here???
+
+			// we cant't do anything without underlying subscription, so let's exit
+			return log_task_exit(&chain_name, &item_type, &reason)
 		},
 	};
 
@@ -187,11 +197,23 @@ async fn background_worker<T: 'static + Clone + DeserializeOwned + Send>(
 			subscriber = subscribers_receiver.next().fuse() => {
 				match subscriber {
 					Some(subscriber) => subscribers.push(subscriber),
-					None => return log_task_exit(&chain_name, &item_type, "client has stopped"),
+					None => {
+						// it means that the last subscriber/factory has been dropped, so we need to
+						// exit too
+						return log_task_exit(&chain_name, &item_type, "client has stopped")
+					},
 				}
 			},
-			item = subscription.next().fuse() => {
-				notify_subscribers(&chain_name, &item_type, &mut subscribers, item.map(|r| r.map_err(Into::into))).await;
+			item = jsonrpsee_subscription.next().fuse() => {
+				let is_stream_finished = item.is_none();
+				let item = item.map(|r| r.map_err(Into::into));
+				notify_subscribers(&chain_name, &item_type, &mut subscribers, item).await;
+
+				// it means that the underlying client has dropped, so we can't do anything here
+				// and need to stop the task
+				if is_stream_finished {
+					return log_task_exit(&chain_name, &item_type, "stream has finished");
+				}
 			},
 		}
 	}

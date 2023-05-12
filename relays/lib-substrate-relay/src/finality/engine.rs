@@ -119,12 +119,12 @@ impl<C: ChainWithGrandpa> Grandpa<C> {
 		source_client: &Client<C>,
 		header_hash: C::Hash,
 	) -> Result<GrandpaAuthoritiesSet, Error<HashOf<C>, BlockNumberOf<C>>> {
-		let raw_authorities_set = source_client
-			.grandpa_authorities_set(header_hash)
+		const SUB_API_GRANDPA_AUTHORITIES: &str = "GrandpaApi_grandpa_authorities";
+
+		source_client
+			.state_call(header_hash, SUB_API_GRANDPA_AUTHORITIES.to_string(), ())
 			.await
-			.map_err(|err| Error::RetrieveAuthorities(C::NAME, header_hash, err))?;
-		GrandpaAuthoritiesSet::decode(&mut &raw_authorities_set[..])
-			.map_err(|err| Error::DecodeAuthorities(C::NAME, header_hash, err))
+			.map_err(|err| Error::RetrieveAuthorities(C::NAME, header_hash, err))
 	}
 }
 

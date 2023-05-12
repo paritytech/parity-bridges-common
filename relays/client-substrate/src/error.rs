@@ -18,7 +18,6 @@
 
 use crate::{BlockNumberOf, Chain, HashOf};
 
-use async_std::sync::Arc;
 use bp_polkadot_core::parachains::ParaId;
 use jsonrpsee::core::Error as RpcError;
 use relay_utils::MaybeConnectionError;
@@ -32,27 +31,22 @@ pub type Result<T> = std::result::Result<T, Error>;
 
 /// Errors that can occur only when interacting with
 /// a Substrate node through RPC.
-#[derive(Clone, Error, Debug)]
+#[derive(Error, Debug)]
 pub enum Error {
 	/// IO error.
 	#[error("IO error: {0}")]
-	Io(Arc<std::io::Error>),
+	Io(#[from] std::io::Error),
 	/// An error that can occur when making a request to
 	/// an JSON-RPC server.
 	#[error("RPC error: {0}")]
-	RpcError(Arc<RpcError>),
+	RpcError(#[from] RpcError),
 	/// The response from the server could not be SCALE decoded.
 	#[error("Response parse failed: {0}")]
 	ResponseParseFailed(#[from] codec::Error),
 	/// Internal channel error - communication channel is either closed, or full.
-	#[error("Internal channel error: {0:?}.")]
+	/// It can be solved with reconnect.
+	#[error("Internal communication channel error: {0:?}.")]
 	ChannelError(String),
-	/// Account does not exist on the chain.
-	#[error("Account does not exist on the chain.")]
-	AccountDoesNotExist,
-	/// Runtime storage is missing some mandatory value.
-	#[error("Mandatory storage value is missing from the runtime storage.")]
-	MissingMandatoryStorageValue,
 	/// Required parachain head is not present at the relay chain.
 	#[error("Parachain {0:?} head {1} is missing from the relay chain storage.")]
 	MissingRequiredParachainHead(ParaId, u64),
@@ -61,7 +55,7 @@ pub enum Error {
 	FinalityProofNotFound(u64),
 	/// The client we're connected to is not synced, so we can't rely on its state.
 	#[error("Substrate client is not synced {0}.")]
-	ClientNotSynced(Arc<Health>),
+	ClientNotSynced(Health),
 	/// Failed to get system health.
 	#[error("Failed to get system health of {chain} node: {error:?}.")]
 	FailedToGetSystemHealth {
@@ -192,9 +186,6 @@ pub enum Error {
 	/// The bridge pallet is not yet initialized and all transactions will be rejected.
 	#[error("Bridge pallet is not initialized.")]
 	BridgePalletIsNotInitialized,
-	/// There's no best head of the parachain at the `pallet-bridge-parachains` at the target side.
-	#[error("No head of the ParaId({0}) at the bridge parachains pallet at {1}.")]
-	NoParachainHeadAtTarget(u32, String),
 	/// An error has happened when we have tried to parse storage proof.
 	#[error("Error when parsing storage proof: {0:?}.")]
 	StorageProofError(bp_runtime::StorageProofError),
@@ -206,33 +197,21 @@ pub enum Error {
 	Custom(String),
 }
 
-impl From<std::io::Error> for Error {
-	fn from(error: std::io::Error) -> Self {
-		Error::Io(Arc::new(error))
-	}
-}
-
-impl From<RpcError> for Error {
-	fn from(error: RpcError) -> Self {
-		Error::RpcError(Arc::new(error))
-	}
-}
-
 impl From<tokio::task::JoinError> for Error {
 	fn from(error: tokio::task::JoinError) -> Self {
-		Error::Custom(format!("Failed to wait tokio task: {error}"))
+		Error::ChannelError(format!("failed to wait tokio task: {error}"))
 	}
 }
 
 impl<T> From<async_std::channel::TrySendError<T>> for Error {
 	fn from(error: async_std::channel::TrySendError<T>) -> Self {
-		Error::ChannelError(format!("{error:?}"))
+		Error::ChannelError(format!("`try_send` has failed: {error:?}"))
 	}
 }
 
 impl From<async_std::channel::RecvError> for Error {
 	fn from(error: async_std::channel::RecvError) -> Self {
-		Error::ChannelError(format!("{error:?}"))
+		Error::ChannelError(format!("`recv` has failed: {error:?}"))
 	}
 }
 
@@ -377,7 +356,7 @@ impl MaybeConnectionError for Error {
 		match *self {
 			Error::ChannelError(_) => true,
 			Error::RpcError(ref e) =>
-				matches!(**e, RpcError::Transport(_) | RpcError::RestartNeeded(_),),
+				matches!(*e, RpcError::Transport(_) | RpcError::RestartNeeded(_),),
 			Error::ClientNotSynced(_) => true,
 			_ => self.nested().map(|e| e.is_connection_error()).unwrap_or(false),
 		}

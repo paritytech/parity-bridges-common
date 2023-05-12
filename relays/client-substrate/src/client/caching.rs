@@ -18,8 +18,8 @@
 //! method calls.
 
 use crate::{
-	error::{Error, Result},
 	client::{Client, SharedSubscriptionFactory},
+	error::{Error, Result},
 	AccountIdOf, AccountKeyPairOf, BlockNumberOf, Chain, ChainWithTransactions, HashOf, HeaderIdOf,
 	HeaderOf, IndexOf, SignedBlockOf, SimpleRuntimeVersion, Subscription, TransactionTracker,
 	UnsignedTransaction, ANCIENT_BLOCK_THRESHOLD,
@@ -98,8 +98,10 @@ impl<C: Chain, B: Client<C>> Client<C> for CachingClient<C, B> {
 	}
 
 	async fn reconnect(&self) -> Result<()> {
-		// TODO: do we need to clear the cache here? IMO not, but think twice
 		self.backend.reconnect().await?;
+		// since we have new underlying client, we need to restart subscriptions too
+		*self.data.grandpa_justifications.lock().await = None;
+		*self.data.beefy_justifications.lock().await = None;
 		Ok(())
 	}
 

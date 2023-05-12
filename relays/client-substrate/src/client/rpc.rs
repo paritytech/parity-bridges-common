@@ -15,8 +15,8 @@
 // along with Parity Bridges Common.  If not, see <http://www.gnu.org/licenses/>.
 
 use crate::{
-	error::{Error, Result},
 	client::Client,
+	error::{Error, Result},
 	rpc::{
 		SubstrateAuthorClient, SubstrateBeefyClient, SubstrateChainClient,
 		SubstrateFrameSystemClient, SubstrateGrandpaClient, SubstrateStateClient,
@@ -215,7 +215,7 @@ impl<C: Chain> Client<C> for RpcClient<C> {
 		if is_synced {
 			Ok(())
 		} else {
-			Err(Error::ClientNotSynced(Arc::new(health)))
+			Err(Error::ClientNotSynced(health))
 		}
 	}
 
