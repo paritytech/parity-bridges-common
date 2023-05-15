@@ -179,8 +179,6 @@ async fn background_worker<T: 'static + Clone + DeserializeOwned + Send>(
 		},
 	};
 
-	log::debug!(target: "bridge", "=== NewSubscriber");
-
 	// actually subscribe
 	let mut subscribers = vec![subscriber];
 	let mut jsonrpsee_subscription = match subscribe.await {
@@ -197,28 +195,27 @@ async fn background_worker<T: 'static + Clone + DeserializeOwned + Send>(
 	// start listening for new items and receivers
 	loop {
 		futures::select! {
-					subscriber = subscribers_receiver.next().fuse() => {
-						match subscriber {
-							Some(subscriber) => subscribers.push(subscriber),
-							None => {
-								// it means that the last subscriber/factory has been dropped, so we need to
-								// exit too
-								return log_task_exit(&chain_name, &item_type, "client has stopped")
-							},
-						}
-					},
-					item = jsonrpsee_subscription.next().fuse() => {
-		log::debug!(target: "bridge", "=== NewItem");
-						let is_stream_finished = item.is_none();
-						let item = item.map(|r| r.map_err(Into::into));
-						notify_subscribers(&chain_name, &item_type, &mut subscribers, item).await;
-
-						// it means that the underlying client has dropped, so we can't do anything here
-						// and need to stop the task
-						if is_stream_finished {
-							return log_task_exit(&chain_name, &item_type, "stream has finished");
-						}
+			subscriber = subscribers_receiver.next().fuse() => {
+				match subscriber {
+					Some(subscriber) => subscribers.push(subscriber),
+					None => {
+						// it means that the last subscriber/factory has been dropped, so we need to
+						// exit too
+						return log_task_exit(&chain_name, &item_type, "client has stopped")
 					},
 				}
+			},
+			item = jsonrpsee_subscription.next().fuse() => {
+				let is_stream_finished = item.is_none();
+				let item = item.map(|r| r.map_err(Into::into));
+				notify_subscribers(&chain_name, &item_type, &mut subscribers, item).await;
+
+				// it means that the underlying client has dropped, so we can't do anything here
+				// and need to stop the task
+				if is_stream_finished {
+					return log_task_exit(&chain_name, &item_type, "stream has finished");
+				}
+			},
+		}
 	}
 }
