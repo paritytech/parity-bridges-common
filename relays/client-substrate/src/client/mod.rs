@@ -24,11 +24,13 @@ use rpc::RpcClient;
 use sp_version::RuntimeVersion;
 
 pub mod caching;
-pub mod client;
 pub mod rpc;
-pub mod subscription;
 
+// don't want to move all the trait code (200+ lines) here and there's no better name
+#[allow(clippy::module_inception)]
+mod client;
 mod rpc_api;
+mod subscription;
 
 pub use client::Client;
 pub use subscription::{SharedSubscriptionFactory, Subscription};

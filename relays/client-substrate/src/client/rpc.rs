@@ -57,7 +57,7 @@ const MAX_SUBSCRIPTION_CAPACITY: usize = 4096;
 const SUB_API_TXPOOL_VALIDATE_TRANSACTION: &str = "TaggedTransactionQueue_validate_transaction";
 const SUB_API_TX_PAYMENT_QUERY_INFO: &str = "TransactionPaymentApi_query_info";
 
-/// Client implementation that connects to the Substrate node over ws/wss connection
+/// Client implementation that connects to the Substrate node over `ws`/`wss` connection
 /// and is using RPC methods to get required data and submit transactions.
 pub struct RpcClient<C: Chain> {
 	// Lock order: `submit_signed_extrinsic_lock`, `data`
