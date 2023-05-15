@@ -38,6 +38,10 @@ use sp_runtime::transaction_validity::TransactionValidity;
 use sp_trie::StorageProof;
 use sp_version::RuntimeVersion;
 
+/// Client implementation that is caching (whenever possible) results of its backend
+/// method calls. Apart from caching call results, it also supports some (atm: justifications)
+/// subscription sharing, meaning that the single server subscription may be shared by
+/// multiple subscribers at the client side.
 #[derive(Clone)]
 pub struct CachingClient<C: Chain, B: Client<C>> {
 	backend: B,
@@ -81,7 +85,7 @@ impl<C: Chain, B: Client<C>> std::fmt::Debug for CachingClient<C, B> {
 	}
 }
 
-// TODO: this must be implemented for T: Client<C>
+// TODO (https://github.com/paritytech/parity-bridges-common/issues/2133): this must be implemented for T: Client<C>
 #[async_trait]
 impl<C: Chain, B: Client<C>> relay_utils::relay_loop::Client for CachingClient<C, B> {
 	type Error = Error;
