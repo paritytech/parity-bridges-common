@@ -28,9 +28,9 @@ use crate::{
 	},
 	error::{Error, Result},
 	transaction_stall_timeout, AccountIdOf, AccountKeyPairOf, BalanceOf, BlockNumberOf, Chain,
-	ChainRuntimeVersion, ChainWithTransactions, ConnectionParams, HashOf, HeaderIdOf, HeaderOf,
-	IndexOf, SignParam, SignedBlockOf, SimpleRuntimeVersion, Subscription, TransactionTracker,
-	UnsignedTransaction,
+	ChainRuntimeVersion, ChainWithGrandpa, ChainWithTransactions, ConnectionParams, HashOf,
+	HeaderIdOf, HeaderOf, IndexOf, SignParam, SignedBlockOf, SimpleRuntimeVersion, Subscription,
+	TransactionTracker, UnsignedTransaction,
 };
 
 use async_std::sync::{Arc, Mutex, RwLock};
@@ -277,7 +277,10 @@ impl<C: Chain> Client<C> for RpcClient<C> {
 		.map_err(|e| Error::failed_to_read_best_header::<C>(e))
 	}
 
-	async fn subscribe_grandpa_finality_justifications(&self) -> Result<Subscription<Bytes>> {
+	async fn subscribe_grandpa_finality_justifications(&self) -> Result<Subscription<Bytes>>
+	where
+		C: ChainWithGrandpa,
+	{
 		Subscription::new(
 			C::NAME.into(),
 			"GRANDPA justifications".into(),

@@ -16,7 +16,7 @@
 
 //! The most generic Substrate node RPC interface.
 
-use crate::{Chain, TransactionStatusOf};
+use crate::{Chain, ChainWithGrandpa, TransactionStatusOf};
 
 use jsonrpsee::{core::RpcResult, proc_macros::rpc};
 use pallet_transaction_payment_rpc_runtime_api::FeeDetails;
@@ -101,8 +101,7 @@ pub(crate) trait SubstrateState<C> {
 }
 
 /// RPC methods of Substrate `grandpa` namespace, that we are using.
-// TODO: replaced `ChainWithGrandpa` with `Chain`. Is it possible to revert?
-#[rpc(client, client_bounds(C: Chain), namespace = "grandpa")]
+#[rpc(client, client_bounds(C: ChainWithGrandpa), namespace = "grandpa")]
 pub(crate) trait SubstrateGrandpa<C> {
 	/// Subscribe to GRANDPA justifications.
 	#[subscription(name = "subscribeJustifications", unsubscribe = "unsubscribeJustifications", item = Bytes)]

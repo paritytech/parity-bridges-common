@@ -20,9 +20,9 @@
 use crate::{
 	client::{Client, SharedSubscriptionFactory},
 	error::{Error, Result},
-	AccountIdOf, AccountKeyPairOf, BlockNumberOf, Chain, ChainWithTransactions, HashOf, HeaderIdOf,
-	HeaderOf, IndexOf, SignedBlockOf, SimpleRuntimeVersion, Subscription, TransactionTracker,
-	UnsignedTransaction, ANCIENT_BLOCK_THRESHOLD,
+	AccountIdOf, AccountKeyPairOf, BlockNumberOf, Chain, ChainWithGrandpa, ChainWithTransactions,
+	HashOf, HeaderIdOf, HeaderOf, IndexOf, SignedBlockOf, SimpleRuntimeVersion, Subscription,
+	TransactionTracker, UnsignedTransaction, ANCIENT_BLOCK_THRESHOLD,
 };
 
 use async_std::sync::{Arc, Mutex};
@@ -147,7 +147,10 @@ impl<C: Chain, B: Client<C>> Client<C> for CachingClient<C, B> {
 		self.backend.best_header().await
 	}
 
-	async fn subscribe_grandpa_finality_justifications(&self) -> Result<Subscription<Bytes>> {
+	async fn subscribe_grandpa_finality_justifications(&self) -> Result<Subscription<Bytes>>
+	where
+		C: ChainWithGrandpa,
+	{
 		let mut grandpa_justifications = self.data.grandpa_justifications.lock().await;
 		if let Some(ref grandpa_justifications) = *grandpa_justifications {
 			grandpa_justifications.subscribe().await
@@ -163,7 +166,7 @@ impl<C: Chain, B: Client<C>> Client<C> for CachingClient<C, B> {
 		if let Some(ref beefy_justifications) = *beefy_justifications {
 			beefy_justifications.subscribe().await
 		} else {
-			let subscription = self.backend.subscribe_grandpa_finality_justifications().await?;
+			let subscription = self.backend.subscribe_beefy_finality_justifications().await?;
 			*beefy_justifications = Some(subscription.factory());
 			Ok(subscription)
 		}
