@@ -24,7 +24,7 @@ use futures::future::FutureExt;
 use sp_runtime::DeserializeOwned;
 use std::future::Future;
 
-/// Once channel reaches this capacity, we
+/// Once channel reaches this capacity, the subscription breaks.
 const CHANNEL_CAPACITY: usize = 128;
 
 /// Subscription factory that produces subscriptions, sharing the same background thread.

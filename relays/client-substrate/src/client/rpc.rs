@@ -14,6 +14,9 @@
 // You should have received a copy of the GNU General Public License
 // along with Parity Bridges Common.  If not, see <http://www.gnu.org/licenses/>.
 
+//! Client implementation that connects to the Substrate node over ws/wss connection
+//! and is using RPC methods to get required data and submit transactions.
+
 use crate::{
 	client::Client,
 	error::{Error, Result},
@@ -52,6 +55,8 @@ const MAX_SUBSCRIPTION_CAPACITY: usize = 4096;
 const SUB_API_TXPOOL_VALIDATE_TRANSACTION: &str = "TaggedTransactionQueue_validate_transaction";
 const SUB_API_TX_PAYMENT_QUERY_INFO: &str = "TransactionPaymentApi_query_info";
 
+/// Client implementation that connects to the Substrate node over ws/wss connection
+/// and is using RPC methods to get required data and submit transactions.
 pub struct RpcClient<C: Chain> {
 	// Lock order: `submit_signed_extrinsic_lock`, `data`
 	/// Client connection params.
@@ -154,8 +159,7 @@ impl<C: Chain> RpcClient<C> {
 	}
 
 	/// Execute jsonrpsee future in tokio context.
-	pub async fn jsonrpsee_execute<MF, F, T>(&self, make_jsonrpsee_future: MF) -> Result<T>
-	// TODO: make me private
+	async fn jsonrpsee_execute<MF, F, T>(&self, make_jsonrpsee_future: MF) -> Result<T>
 	where
 		MF: FnOnce(Arc<WsClient>) -> F + Send + 'static,
 		F: Future<Output = Result<T>> + Send + 'static,
