@@ -253,7 +253,7 @@ impl Error {
 		}
 	}
 
-	/// Constucts `FailedToReadHeaderByHash` variant.
+	/// Constructs `FailedToReadHeaderByHash` variant.
 	pub fn failed_to_read_header_by_hash<C: Chain>(hash: HashOf<C>, e: Error) -> Self {
 		Error::FailedToReadHeaderByHash {
 			chain: C::NAME.into(),
@@ -262,7 +262,7 @@ impl Error {
 		}
 	}
 
-	/// Constucts `FailedToReadBlockByHash` variant.
+	/// Constructs `FailedToReadBlockByHash` variant.
 	pub fn failed_to_read_block_by_hash<C: Chain>(hash: HashOf<C>, e: Error) -> Self {
 		Error::FailedToReadHeaderByHash {
 			chain: C::NAME.into(),

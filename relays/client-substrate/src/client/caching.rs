@@ -39,9 +39,9 @@ use sp_trie::StorageProof;
 use sp_version::RuntimeVersion;
 
 /// Client implementation that is caching (whenever possible) results of its backend
-/// method calls. Apart from caching call results, it also supports some (atm: justifications)
-/// subscription sharing, meaning that the single server subscription may be shared by
-/// multiple subscribers at the client side.
+/// method calls. Apart from caching call results, it also supports some (at the
+/// moment: justifications) subscription sharing, meaning that the single server
+/// subscription may be shared by multiple subscribers at the client side.
 #[derive(Clone)]
 pub struct CachingClient<C: Chain, B: Client<C>> {
 	backend: B,

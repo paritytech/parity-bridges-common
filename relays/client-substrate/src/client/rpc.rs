@@ -14,7 +14,7 @@
 // You should have received a copy of the GNU General Public License
 // along with Parity Bridges Common.  If not, see <http://www.gnu.org/licenses/>.
 
-//! Client implementation that connects to the Substrate node over ws/wss connection
+//! Client implementation that connects to the Substrate node over `ws`/`wss` connection
 //! and is using RPC methods to get required data and submit transactions.
 
 use crate::{
@@ -131,7 +131,7 @@ impl<C: Chain> RpcClient<C> {
 			submit_signed_extrinsic_lock: Arc::new(Mutex::new(())),
 			genesis_hash,
 			data: Arc::new(RwLock::new(ClientData { tokio, client })),
-			_phantom: PhantomData::default(),
+			_phantom: PhantomData,
 		})
 	}
 
@@ -202,7 +202,7 @@ impl<C: Chain> Clone for RpcClient<C> {
 			submit_signed_extrinsic_lock: self.submit_signed_extrinsic_lock.clone(),
 			genesis_hash: self.genesis_hash,
 			data: self.data.clone(),
-			_phantom: PhantomData::default(),
+			_phantom: PhantomData,
 		}
 	}
 }
@@ -215,7 +215,7 @@ impl<C: Chain> Client<C> for RpcClient<C> {
 				Ok(SubstrateSystemClient::<C>::health(&*client).await?)
 			})
 			.await
-			.map_err(|e| Error::failed_to_get_system_health::<C>(e.into()))?;
+			.map_err(|e| Error::failed_to_get_system_health::<C>(e))?;
 
 		let is_synced = !health.is_syncing && (!health.should_have_peers || health.peers > 0);
 		if is_synced {
@@ -377,7 +377,7 @@ impl<C: Chain> Client<C> for RpcClient<C> {
 			Ok(tx_hash)
 		})
 		.await
-		.map_err(|e| Error::failed_to_submit_transaction::<C>(e.into()))
+		.map_err(|e| Error::failed_to_submit_transaction::<C>(e))
 	}
 
 	async fn submit_signed_extrinsic(
@@ -417,7 +417,7 @@ impl<C: Chain> Client<C> for RpcClient<C> {
 			Ok(tx_hash)
 		})
 		.await
-		.map_err(|e| Error::failed_to_submit_transaction::<C>(e.into()))
+		.map_err(|e| Error::failed_to_submit_transaction::<C>(e))
 	}
 
 	async fn submit_and_watch_signed_extrinsic(
@@ -469,7 +469,7 @@ impl<C: Chain> Client<C> for RpcClient<C> {
 			))
 		})
 		.await
-		.map_err(|e| Error::failed_to_submit_transaction::<C>(e.into()))
+		.map_err(|e| Error::failed_to_submit_transaction::<C>(e))
 	}
 
 	async fn validate_transaction<SignedTransaction: Encode + Send + 'static>(
@@ -513,7 +513,7 @@ impl<C: Chain> Client<C> for RpcClient<C> {
 				.map_err(Into::into)
 		})
 		.await
-		.map_err(|e| Error::failed_state_call::<C>(at, method_clone, arguments_clone, e.into()))
+		.map_err(|e| Error::failed_state_call::<C>(at, method_clone, arguments_clone, e))
 	}
 
 	async fn prove_storage(&self, at: HashOf<C>, keys: Vec<StorageKey>) -> Result<StorageProof> {
@@ -527,6 +527,6 @@ impl<C: Chain> Client<C> for RpcClient<C> {
 				.map_err(Into::into)
 		})
 		.await
-		.map_err(|e| Error::failed_to_prove_storage::<C>(at, keys_clone, e.into()))
+		.map_err(|e| Error::failed_to_prove_storage::<C>(at, keys_clone, e))
 	}
 }

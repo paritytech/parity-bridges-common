@@ -39,8 +39,7 @@ pub type RpcWithCachingClient<C> = CachingClient<C, RpcClient<C>>;
 /// Creates new RPC client with caching support.
 pub async fn rpc_with_caching<C: Chain>(params: ConnectionParams) -> RpcWithCachingClient<C> {
 	let rpc = rpc::RpcClient::<C>::new(params).await;
-	let caching = caching::CachingClient::new(rpc);
-	caching
+	caching::CachingClient::new(rpc)
 }
 
 /// The difference between best block number and number of its ancestor, that is enough
