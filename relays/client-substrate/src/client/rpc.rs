@@ -18,13 +18,15 @@
 //! and is using RPC methods to get required data and submit transactions.
 
 use crate::{
-	client::Client,
-	error::{Error, Result},
-	rpc::{
-		SubstrateAuthorClient, SubstrateBeefyClient, SubstrateChainClient,
-		SubstrateFrameSystemClient, SubstrateGrandpaClient, SubstrateStateClient,
-		SubstrateSystemClient,
+	client::{
+		rpc_api::{
+			SubstrateAuthorClient, SubstrateBeefyClient, SubstrateChainClient,
+			SubstrateFrameSystemClient, SubstrateGrandpaClient, SubstrateStateClient,
+			SubstrateSystemClient,
+		},
+		Client,
 	},
+	error::{Error, Result},
 	transaction_stall_timeout, AccountIdOf, AccountKeyPairOf, BalanceOf, BlockNumberOf, Chain,
 	ChainRuntimeVersion, ChainWithTransactions, ConnectionParams, HashOf, HeaderIdOf, HeaderOf,
 	IndexOf, SignParam, SignedBlockOf, SimpleRuntimeVersion, Subscription, TransactionTracker,

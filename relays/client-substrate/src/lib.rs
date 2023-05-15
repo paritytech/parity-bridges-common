@@ -21,7 +21,6 @@
 mod chain;
 mod client;
 mod error;
-mod rpc;
 mod sync_header;
 mod transaction_tracker;
 

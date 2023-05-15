@@ -28,6 +28,8 @@ pub mod client;
 pub mod rpc;
 pub mod subscription;
 
+mod rpc_api;
+
 pub use client::Client;
 pub use subscription::{SharedSubscriptionFactory, Subscription};
 
