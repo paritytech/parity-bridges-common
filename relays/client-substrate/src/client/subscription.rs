@@ -20,12 +20,15 @@ use async_std::{
 	channel::{bounded, Receiver, Sender},
 	stream::StreamExt,
 };
-use futures::future::FutureExt;
+use futures::{future::FutureExt, Stream};
 use sp_runtime::DeserializeOwned;
 use std::future::Future;
 
 /// Once channel reaches this capacity, the subscription breaks.
 const CHANNEL_CAPACITY: usize = 128;
+
+/// Underlying subscription type.
+pub type UnderlyingSubscription<T> = Box<dyn Stream<Item = Result<T>> + Unpin + Send>;
 
 /// Subscription factory that produces subscriptions, sharing the same background thread.
 #[derive(Clone)]
@@ -38,9 +41,7 @@ impl<T: 'static + Clone + DeserializeOwned + Send> SharedSubscriptionFactory<T> 
 	pub async fn new(
 		chain_name: String,
 		item_type: String,
-		subscribe: impl Future<Output = Result<jsonrpsee::core::client::Subscription<T>>>
-			+ Send
-			+ 'static,
+		subscribe: impl Future<Output = Result<UnderlyingSubscription<T>>> + Send + 'static,
 	) -> Self {
 		let (subscribers_sender, subscribers_receiver) = bounded(CHANNEL_CAPACITY);
 		async_std::task::spawn(background_worker(
@@ -72,7 +73,7 @@ impl<T: 'static + Clone + DeserializeOwned + Send> Subscription<T> {
 	pub async fn new(
 		chain_name: String,
 		item_type: String,
-		subscription: jsonrpsee::core::client::Subscription<T>,
+		subscription: UnderlyingSubscription<T>,
 	) -> Result<Self> {
 		SharedSubscriptionFactory::<T>::new(
 			chain_name,
@@ -111,7 +112,7 @@ impl<T: 'static + Clone + DeserializeOwned + Send> Subscription<T> {
 async fn background_worker<T: 'static + Clone + DeserializeOwned + Send>(
 	chain_name: String,
 	item_type: String,
-	subscribe: impl Future<Output = Result<jsonrpsee::core::client::Subscription<T>>> + Send + 'static,
+	subscribe: impl Future<Output = Result<UnderlyingSubscription<T>>> + Send + 'static,
 	mut subscribers_receiver: Receiver<Sender<Option<T>>>,
 ) {
 	fn log_task_exit(chain_name: &str, item_type: &str, reason: &str) {
@@ -178,6 +179,8 @@ async fn background_worker<T: 'static + Clone + DeserializeOwned + Send>(
 		},
 	};
 
+	log::debug!(target: "bridge", "=== NewSubscriber");
+
 	// actually subscribe
 	let mut subscribers = vec![subscriber];
 	let mut jsonrpsee_subscription = match subscribe.await {
@@ -194,27 +197,28 @@ async fn background_worker<T: 'static + Clone + DeserializeOwned + Send>(
 	// start listening for new items and receivers
 	loop {
 		futures::select! {
-			subscriber = subscribers_receiver.next().fuse() => {
-				match subscriber {
-					Some(subscriber) => subscribers.push(subscriber),
-					None => {
-						// it means that the last subscriber/factory has been dropped, so we need to
-						// exit too
-						return log_task_exit(&chain_name, &item_type, "client has stopped")
+					subscriber = subscribers_receiver.next().fuse() => {
+						match subscriber {
+							Some(subscriber) => subscribers.push(subscriber),
+							None => {
+								// it means that the last subscriber/factory has been dropped, so we need to
+								// exit too
+								return log_task_exit(&chain_name, &item_type, "client has stopped")
+							},
+						}
+					},
+					item = jsonrpsee_subscription.next().fuse() => {
+		log::debug!(target: "bridge", "=== NewItem");
+						let is_stream_finished = item.is_none();
+						let item = item.map(|r| r.map_err(Into::into));
+						notify_subscribers(&chain_name, &item_type, &mut subscribers, item).await;
+
+						// it means that the underlying client has dropped, so we can't do anything here
+						// and need to stop the task
+						if is_stream_finished {
+							return log_task_exit(&chain_name, &item_type, "stream has finished");
+						}
 					},
 				}
-			},
-			item = jsonrpsee_subscription.next().fuse() => {
-				let is_stream_finished = item.is_none();
-				let item = item.map(|r| r.map_err(Into::into));
-				notify_subscribers(&chain_name, &item_type, &mut subscribers, item).await;
-
-				// it means that the underlying client has dropped, so we can't do anything here
-				// and need to stop the task
-				if is_stream_finished {
-					return log_task_exit(&chain_name, &item_type, "stream has finished");
-				}
-			},
-		}
 	}
 }

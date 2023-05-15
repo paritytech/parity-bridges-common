@@ -31,13 +31,8 @@ pub trait Environment<C: Chain>: Send + Sync {
 	async fn header_id_by_hash(&self, hash: HashOf<C>) -> Result<HeaderIdOf<C>, Error>;
 }
 
-/*#[async_trait]
-impl<C: Chain> Environment<C> for Client<C> {
-	async fn header_id_by_hash(&self, hash: HashOf<C>) -> Result<HeaderIdOf<C>, Error> {
-		self.header_by_hash(hash).await.map(|h| HeaderId(*h.number(), hash))
-	}
-}*/
-
+// TODO (https://github.com/paritytech/parity-bridges-common/issues/2133): remove `Environment` trait
+// after test client is implemented
 #[async_trait]
 impl<C: Chain, T: crate::client::Client<C>> Environment<C> for T {
 	async fn header_id_by_hash(&self, hash: HashOf<C>) -> Result<HeaderIdOf<C>, Error> {
@@ -83,7 +78,8 @@ impl<C: Chain, E: Environment<C>> TransactionTracker<C, E> {
 		Self { environment, stall_timeout, transaction_hash, subscription }
 	}
 
-	// TODO: remove me???
+	// TODO (https://github.com/paritytech/parity-bridges-common/issues/2133): remove me after
+	// test client is implemented
 	/// Converts self into tracker with different environment.
 	pub fn switch_environment<NewE: Environment<C>>(
 		self,
@@ -301,7 +297,7 @@ async fn watch_transaction_status<
 		}
 	}
 }
-/*
+
 #[cfg(test)]
 mod tests {
 	use super::*;
@@ -332,16 +328,21 @@ mod tests {
 			TestEnvironment(Ok(HeaderId(0, Default::default()))),
 			Duration::from_secs(0),
 			Default::default(),
-			Subscription(async_std::sync::Mutex::new(receiver)),
+			Subscription::new("test".into(), "test".into(), Box::new(receiver))
+				.await
+				.unwrap(),
 		);
 
-		let wait_for_stall_timeout = futures::future::pending();
+		// we can't do `.now_or_never()` on `do_wait()` call, because `Subscription` has its own
+		// background thread, which may cause additional async task switches => let's leave some
+		// relatively small timeout here
+		let wait_for_stall_timeout = async_std::task::sleep(std::time::Duration::from_millis(100));
 		let wait_for_stall_timeout_rest = futures::future::ready(());
-		sender.send(Some(status)).await.unwrap();
-		tx_tracker
-			.do_wait(wait_for_stall_timeout, wait_for_stall_timeout_rest)
-			.now_or_never()
-			.map(|(ts, is)| (ts, is.unwrap()))
+		sender.send(Ok(status)).await.unwrap();
+
+		let (ts, is) =
+			tx_tracker.do_wait(wait_for_stall_timeout, wait_for_stall_timeout_rest).await;
+		is.map(|is| (ts, is))
 	}
 
 	#[async_std::test]
@@ -454,7 +455,9 @@ mod tests {
 			TestEnvironment(Ok(HeaderId(0, Default::default()))),
 			Duration::from_secs(0),
 			Default::default(),
-			Subscription(async_std::sync::Mutex::new(receiver)),
+			Subscription::new("test".into(), "test".into(), Box::new(receiver))
+				.await
+				.unwrap(),
 		);
 
 		let wait_for_stall_timeout = futures::future::ready(()).shared();
@@ -466,4 +469,3 @@ mod tests {
 		assert_eq!(wait_result, Some((TrackedTransactionStatus::Lost, None)));
 	}
 }
-*/
