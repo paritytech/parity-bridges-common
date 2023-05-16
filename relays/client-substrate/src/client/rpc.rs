@@ -351,10 +351,10 @@ impl<C: Chain> Client<C> for RpcClient<C> {
 	) -> Result<Option<StorageData>> {
 		let cloned_storage_key = storage_key.clone();
 		self.jsonrpsee_execute(move |client| async move {
-			Ok(SubstrateStateClient::<C>::storage(&*client, storage_key.clone(), Some(at)).await?)
+			Ok(SubstrateStateClient::<C>::storage(&*client, cloned_storage_key, Some(at)).await?)
 		})
 		.await
-		.map_err(|e| Error::failed_to_read_storage_value::<C>(at, cloned_storage_key, e))
+		.map_err(|e| Error::failed_to_read_storage_value::<C>(at, storage_key, e))
 	}
 
 	async fn pending_extrinsics(&self) -> Result<Vec<Bytes>> {
@@ -403,21 +403,9 @@ impl<C: Chain> Client<C> for RpcClient<C> {
 		// will be dropped from the pool.
 		let best_header_id = best_header.parent_id().unwrap_or_else(|| best_header.id());
 
-		self.jsonrpsee_execute(move |client| async move {
-			let extrinsic = prepare_extrinsic(best_header_id, transaction_nonce)?;
-			let signed_extrinsic = C::sign_transaction(signing_data, extrinsic)?.encode();
-			let tx_hash =
-				SubstrateAuthorClient::<C>::submit_extrinsic(&*client, Bytes(signed_extrinsic))
-					.await
-					.map_err(|e| {
-						log::error!(target: "bridge", "Failed to send transaction to {} node: {:?}", C::NAME, e);
-						e
-					})?;
-			log::trace!(target: "bridge", "Sent transaction to {} node: {:?}", C::NAME, tx_hash);
-			Ok(tx_hash)
-		})
-		.await
-		.map_err(|e| Error::failed_to_submit_transaction::<C>(e))
+		let extrinsic = prepare_extrinsic(best_header_id, transaction_nonce)?;
+		let signed_extrinsic = C::sign_transaction(signing_data, extrinsic)?.encode();
+		self.submit_unsigned_extrinsic(Bytes(signed_extrinsic)).await
 	}
 
 	async fn submit_and_watch_signed_extrinsic(
@@ -521,9 +509,7 @@ impl<C: Chain> Client<C> for RpcClient<C> {
 		self.jsonrpsee_execute(move |client| async move {
 			SubstrateStateClient::<C>::prove_storage(&*client, keys, Some(at))
 				.await
-				.map(|proof| {
-					StorageProof::new(proof.proof.into_iter().map(|b| b.0).collect::<Vec<_>>())
-				})
+				.map(|proof| StorageProof::new(proof.proof.into_iter().map(|b| b.0)))
 				.map_err(Into::into)
 		})
 		.await
