@@ -9983,7 +9983,7 @@ dependencies = [
  "frame-benchmarking-cli",
  "frame-support",
  "node-inspect",
- "polkadot-node-core-pvf",
+ "polkadot-node-core-pvf-worker",
  "polkadot-primitives",
  "polkadot-runtime-parachains",
  "polkadot-service",
