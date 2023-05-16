@@ -5745,6 +5745,7 @@ dependencies = [
  "sc-consensus-grandpa-rpc",
  "sc-executor",
  "sc-keystore",
+ "sc-network",
  "sc-network-common",
  "sc-rpc",
  "sc-service",
