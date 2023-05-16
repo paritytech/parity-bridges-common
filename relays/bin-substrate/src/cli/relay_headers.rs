@@ -36,7 +36,7 @@ use crate::bridges::{
 	},
 	westend_millau::westend_headers_to_millau::WestendToMillauCliBridge,
 };
-use relay_substrate_client::ClientT;
+use relay_substrate_client::Client;
 use relay_utils::metrics::{GlobalMetrics, StandaloneMetric};
 use substrate_relay_helper::finality::SubstrateFinalitySyncPipeline;
 
