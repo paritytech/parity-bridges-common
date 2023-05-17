@@ -12,15 +12,13 @@ services:
       --collator
       --force-authoring
       --parachain-id 2000
-      --rpc-port 9933
-      --ws-port 9944
+      --rpc-port 9944
       --rpc-cors=all
       --unsafe-rpc-external
       --
       --execution wasm
       --chain /rialto-share/rialto-relaychain-spec-raw.json
-      --rpc-port 9934
-      --ws-port 9945
+      --rpc-port 9945
     volumes:
       - rialto-share:/rialto-share:z
     environment:
@@ -28,7 +26,6 @@ services:
     depends_on:
       - rialto-chainspec-exporter
     ports:
-      - "20433:9933"
       - "20444:9944"
 
   rialto-parachain-collator-bob:
@@ -39,17 +36,14 @@ services:
       --collator
       --force-authoring
       --parachain-id 2000
-      --rpc-port 9933
-      --ws-port 9944
+      --rpc-port 9944
       --rpc-cors=all
       --unsafe-rpc-external
       --
       --execution wasm
       --chain /rialto-share/rialto-relaychain-spec-raw.json
-      --rpc-port 9934
-      --ws-port 9945
+      --rpc-port 9945
     ports:
-      - "20533:9933"
       - "20544:9944"
 
   rialto-parachain-collator-charlie:
@@ -60,17 +54,14 @@ services:
       --collator
       --force-authoring
       --parachain-id 2000
-      --rpc-port 9933
-      --ws-port 9944
+      --rpc-port 9944
       --rpc-cors=all
       --unsafe-rpc-external
       --
       --execution wasm
       --chain /rialto-share/rialto-relaychain-spec-raw.json
-      --rpc-port 9934
-      --ws-port 9945
+      --rpc-port 9945
     ports:
-      - "20633:9933"
       - "20644:9944"
 
   rialto-parachain-registrar:
