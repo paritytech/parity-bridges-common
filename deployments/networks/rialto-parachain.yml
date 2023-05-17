@@ -9,20 +9,25 @@ services:
     entrypoint: >
       /home/user/rialto-parachain-collator
       --alice
+      --node-key=80cf382988364291a7968ae7825c01f68c50d679796a8983237d07fe0ccf363b
       --collator
       --force-authoring
       --parachain-id 2000
       --rpc-port 9944
       --rpc-cors=all
       --unsafe-rpc-external
+      --bootnodes
+      /dns/rialto-parachain-collator-bob/tcp/30333/p2p/12D3KooWEEkzPUdahNXAtzJpkmornEZXHhyyPbTvDkJK383LFvdR
       --
       --execution wasm
       --chain /rialto-share/rialto-relaychain-spec-raw.json
       --rpc-port 9945
+      --bootnodes
+      /dns/rialto-node-alice/tcp/30333/p2p/12D3KooWMF6JvV319a7kJn5pqkKbhR3fcM2cvK5vCbYZHeQhYzFE
     volumes:
       - rialto-share:/rialto-share:z
     environment:
-      RUST_LOG: runtime=trace,rpc=trace,txpool=trace,parachain=trace,parity_ws=trace,sc_basic_authorship=trace,xcm=trace
+      RUST_LOG: runtime=trace,rpc=trace,txpool=trace,parachain=trace,parity_ws=trace,sc_basic_authorship=trace,xcm=trace,trace
     depends_on:
       - rialto-chainspec-exporter
     ports:
@@ -33,16 +38,21 @@ services:
     entrypoint: >
       /home/user/rialto-parachain-collator
       --bob
+      --node-key=90cf382988364291a7968ae7825c01f68c50d679796a8983237d07fe0ccf363b
       --collator
       --force-authoring
       --parachain-id 2000
       --rpc-port 9944
       --rpc-cors=all
       --unsafe-rpc-external
+      --bootnodes
+      /dns/rialto-parachain-collator-alice/tcp/30333/p2p/12D3KooWPoJr9Z2PyrFvTYCtto4iorLH11GKBwebJAyqAaFQxow5
       --
       --execution wasm
       --chain /rialto-share/rialto-relaychain-spec-raw.json
       --rpc-port 9945
+      --bootnodes
+      /dns/rialto-node-alice/tcp/30333/p2p/12D3KooWMF6JvV319a7kJn5pqkKbhR3fcM2cvK5vCbYZHeQhYzFE
     ports:
       - "20544:9944"
 
@@ -51,16 +61,21 @@ services:
     entrypoint: >
       /home/user/rialto-parachain-collator
       --charlie
+      --node-key=42cf382988364291a7968ae7825c01f68c50d679796a8983237d07fe0ccf363b
       --collator
       --force-authoring
       --parachain-id 2000
       --rpc-port 9944
       --rpc-cors=all
       --unsafe-rpc-external
+      --bootnodes
+      /dns/rialto-parachain-collator-alice/tcp/30333/p2p/12D3KooWPoJr9Z2PyrFvTYCtto4iorLH11GKBwebJAyqAaFQxow5
       --
       --execution wasm
       --chain /rialto-share/rialto-relaychain-spec-raw.json
       --rpc-port 9945
+      --bootnodes
+      /dns/rialto-node-alice/tcp/30333/p2p/12D3KooWMF6JvV319a7kJn5pqkKbhR3fcM2cvK5vCbYZHeQhYzFE
     ports:
       - "20644:9944"
 
