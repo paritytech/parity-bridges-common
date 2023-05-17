@@ -18,7 +18,6 @@ services:
       - --rpc-cors=all
       - --enable-offchain-indexing=true
       - --unsafe-rpc-external
-      - --unsafe-ws-external
       - --prometheus-external
     environment:
       RUST_LOG: runtime=trace,rpc=debug,txpool=trace,runtime::bridge=trace,sc_basic_authorship=trace,beefy=trace,xcm=trace
@@ -38,7 +37,6 @@ services:
       - --rpc-cors=all
       - --enable-offchain-indexing=true
       - --unsafe-rpc-external
-      - --unsafe-ws-external
       - --prometheus-external
     ports:
       - "20033:9933"
@@ -55,7 +53,6 @@ services:
       - --rpc-cors=all
       - --enable-offchain-indexing=true
       - --unsafe-rpc-external
-      - --unsafe-ws-external
       - --prometheus-external
     ports:
       - "20133:9933"
@@ -72,7 +69,6 @@ services:
       - --rpc-cors=all
       - --enable-offchain-indexing=true
       - --unsafe-rpc-external
-      - --unsafe-ws-external
       - --prometheus-external
     ports:
       - "20233:9933"
@@ -89,7 +85,6 @@ services:
       - --rpc-cors=all
       - --enable-offchain-indexing=true
       - --unsafe-rpc-external
-      - --unsafe-ws-external
       - --prometheus-external
     ports:
       - "20333:9933"

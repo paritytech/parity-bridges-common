@@ -16,7 +16,6 @@ services:
       --ws-port 9944
       --rpc-cors=all
       --unsafe-rpc-external
-      --unsafe-ws-external
       --
       --execution wasm
       --chain /rialto-share/rialto-relaychain-spec-raw.json
@@ -44,7 +43,6 @@ services:
       --ws-port 9944
       --rpc-cors=all
       --unsafe-rpc-external
-      --unsafe-ws-external
       --
       --execution wasm
       --chain /rialto-share/rialto-relaychain-spec-raw.json
@@ -66,7 +64,6 @@ services:
       --ws-port 9944
       --rpc-cors=all
       --unsafe-rpc-external
-      --unsafe-ws-external
       --
       --execution wasm
       --chain /rialto-share/rialto-relaychain-spec-raw.json
