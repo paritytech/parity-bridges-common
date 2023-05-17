@@ -10,5 +10,5 @@ WESTEND_PORT="${WESTEND_PORT:-9944}"
 
 RUST_LOG=runtime=trace,runtime::bridge=trace \
 ./target/debug/polkadot --chain=westend-dev --alice --tmp \
-    --rpc-cors=all --unsafe-rpc-external --unsafe-ws-external \
+    --rpc-cors=all --unsafe-rpc-external \
     --port 33033 --rpc-port 9933 --ws-port $WESTEND_PORT \
