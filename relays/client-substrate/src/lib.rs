@@ -30,7 +30,7 @@ pub mod metrics;
 pub mod test_chain;
 
 use std::time::Duration;
-   
+
 pub use crate::{
 	chain::{
 		AccountKeyPairOf, BlockWithJustification, CallOf, Chain, ChainWithBalances,
