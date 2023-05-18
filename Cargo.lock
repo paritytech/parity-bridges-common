@@ -1110,13 +1110,18 @@ name = "bp-test-utils"
 version = "0.1.0"
 dependencies = [
  "bp-header-chain",
+ "bp-parachains",
+ "bp-polkadot-core",
+ "bp-runtime",
  "ed25519-dalek",
  "finality-grandpa",
  "parity-scale-codec",
  "sp-application-crypto",
  "sp-consensus-grandpa",
+ "sp-core",
  "sp-runtime",
  "sp-std 5.0.0",
+ "sp-trie",
 ]
 
 [[package]]
