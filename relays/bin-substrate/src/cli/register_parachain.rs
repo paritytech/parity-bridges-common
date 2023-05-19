@@ -26,7 +26,7 @@ use polkadot_runtime_common::{
 	paras_registrar::Call as ParaRegistrarCall, slots::Call as ParaSlotsCall,
 };
 use polkadot_runtime_parachains::paras::ParaLifecycle;
-use relay_substrate_client::{AccountIdOf, CallOf, Chain, Client, UnsignedTransaction};
+use relay_substrate_client::{AccountIdOf, CallOf, Chain, Client, ClientT, UnsignedTransaction};
 use relay_utils::{TrackedTransactionStatus, TransactionTracker};
 use rialto_runtime::SudoCall;
 use sp_core::{
@@ -96,12 +96,13 @@ impl RegisterParachain {
 
 			// hopefully we're the only actor that is registering parachain right now
 			// => read next parachain id
+			let best_relay_header_hash = relay_client.best_header_hash().await?;
 			let para_id_key = bp_runtime::storage_value_final_key(
 				PARAS_REGISTRAR_PALLET_NAME.as_bytes(),
 				NEXT_FREE_PARA_ID_STORAGE_NAME.as_bytes(),
 			);
 			let para_id: ParaId = relay_client
-				.storage_value(StorageKey(para_id_key.to_vec()), None)
+				.storage_value(best_relay_header_hash, StorageKey(para_id_key.to_vec()))
 				.await?
 				.unwrap_or(polkadot_primitives::v4::LOWEST_PUBLIC_ID)
 				.max(polkadot_primitives::v4::LOWEST_PUBLIC_ID);
@@ -131,7 +132,7 @@ impl RegisterParachain {
 			// step 2: register parathread
 			let para_genesis_header = para_client.header_by_number(Zero::zero()).await?;
 			let para_code = para_client
-				.raw_storage_value(StorageKey(CODE.to_vec()), Some(para_genesis_header.hash()))
+				.raw_storage_value(para_genesis_header.hash(), StorageKey(CODE.to_vec()))
 				.await?
 				.ok_or_else(|| {
 					anyhow::format_err!("Cannot fetch validation code of {}", Parachain::NAME)
@@ -235,8 +236,9 @@ async fn wait_para_state<Relaychain: Chain>(
 	to_state: ParaLifecycle,
 ) -> anyhow::Result<()> {
 	loop {
+		let best_relay_header_hash = relay_client.best_header_hash().await?;
 		let para_state: ParaLifecycle = relay_client
-			.storage_value(StorageKey(para_state_key.to_vec()), None)
+			.storage_value(best_relay_header_hash, StorageKey(para_state_key.to_vec()))
 			.await?
 			.ok_or_else(|| {
 				anyhow::format_err!(

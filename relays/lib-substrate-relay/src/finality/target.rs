@@ -27,8 +27,8 @@ use crate::{
 use async_trait::async_trait;
 use finality_relay::TargetClient;
 use relay_substrate_client::{
-	AccountIdOf, AccountKeyPairOf, Client, Error, HeaderIdOf, HeaderOf, SyncHeader, TransactionEra,
-	TransactionTracker, UnsignedTransaction,
+	AccountIdOf, AccountKeyPairOf, Client, ClientT, Error, HeaderIdOf, HeaderOf, SyncHeader,
+	TransactionEra, TransactionTracker, UnsignedTransaction,
 };
 use relay_utils::relay_loop::Client as RelayClient;
 use sp_core::Pair;

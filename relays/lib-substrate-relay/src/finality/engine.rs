@@ -27,8 +27,8 @@ use codec::{Decode, Encode};
 use finality_grandpa::voter_set::VoterSet;
 use num_traits::{One, Zero};
 use relay_substrate_client::{
-	BlockNumberOf, Chain, ChainWithGrandpa, Client, Error as SubstrateError, HashOf, HeaderOf,
-	Subscription, SubstrateFinalityClient, SubstrateGrandpaFinalityClient,
+	BlockNumberOf, Chain, ChainWithGrandpa, Client, ClientT, Error as SubstrateError, HashOf,
+	HeaderOf, Subscription,
 };
 use sp_consensus_grandpa::{AuthorityList as GrandpaAuthoritiesSet, GRANDPA_ENGINE_ID};
 use sp_core::{storage::StorageKey, Bytes};
@@ -42,8 +42,6 @@ pub trait Engine<C: Chain>: Send {
 	const ID: ConsensusEngineId;
 	/// A reader that can extract the consensus log from the header digest and interpret it.
 	type ConsensusLogReader: ConsensusLogReader;
-	/// Type of Finality RPC client used by this engine.
-	type FinalityClient: SubstrateFinalityClient<C>;
 	/// Type of finality proofs, used by consensus engine.
 	type FinalityProof: FinalityProof<BlockNumberOf<C>> + Decode + Encode;
 	/// Type of bridge pallet initialization data.
@@ -62,7 +60,7 @@ pub trait Engine<C: Chain>: Send {
 		target_client: &Client<TargetChain>,
 	) -> Result<bool, SubstrateError> {
 		Ok(target_client
-			.raw_storage_value(Self::is_initialized_key(), None)
+			.raw_storage_value(target_client.best_header_hash().await?, Self::is_initialized_key())
 			.await?
 			.is_some())
 	}
@@ -76,16 +74,17 @@ pub trait Engine<C: Chain>: Send {
 		target_client: &Client<TargetChain>,
 	) -> Result<bool, SubstrateError> {
 		Ok(target_client
-			.storage_value::<Self::OperatingMode>(Self::pallet_operating_mode_key(), None)
+			.storage_value::<Self::OperatingMode>(
+				target_client.best_header_hash().await?,
+				Self::pallet_operating_mode_key(),
+			)
 			.await?
 			.map(|operating_mode| operating_mode.is_halted())
 			.unwrap_or(false))
 	}
 
 	/// A method to subscribe to encoded finality proofs, given source client.
-	async fn finality_proofs(client: &Client<C>) -> Result<Subscription<Bytes>, SubstrateError> {
-		client.subscribe_finality_justifications::<Self::FinalityClient>().await
-	}
+	async fn finality_proofs(client: &Client<C>) -> Result<Subscription<Bytes>, SubstrateError>;
 
 	/// Optimize finality proof before sending it to the target node.
 	async fn optimize_proof<TargetChain: Chain>(
@@ -120,12 +119,12 @@ impl<C: ChainWithGrandpa> Grandpa<C> {
 		source_client: &Client<C>,
 		header_hash: C::Hash,
 	) -> Result<GrandpaAuthoritiesSet, Error<HashOf<C>, BlockNumberOf<C>>> {
-		let raw_authorities_set = source_client
-			.grandpa_authorities_set(header_hash)
+		const SUB_API_GRANDPA_AUTHORITIES: &str = "GrandpaApi_grandpa_authorities";
+
+		source_client
+			.state_call(header_hash, SUB_API_GRANDPA_AUTHORITIES.to_string(), ())
 			.await
-			.map_err(|err| Error::RetrieveAuthorities(C::NAME, header_hash, err))?;
-		GrandpaAuthoritiesSet::decode(&mut &raw_authorities_set[..])
-			.map_err(|err| Error::DecodeAuthorities(C::NAME, header_hash, err))
+			.map_err(|err| Error::RetrieveAuthorities(C::NAME, header_hash, err))
 	}
 }
 
@@ -133,7 +132,6 @@ impl<C: ChainWithGrandpa> Grandpa<C> {
 impl<C: ChainWithGrandpa> Engine<C> for Grandpa<C> {
 	const ID: ConsensusEngineId = GRANDPA_ENGINE_ID;
 	type ConsensusLogReader = GrandpaConsensusLogReader<<C::Header as Header>::Number>;
-	type FinalityClient = SubstrateGrandpaFinalityClient;
 	type FinalityProof = GrandpaJustification<HeaderOf<C>>;
 	type InitializationData = bp_header_chain::InitializationData<C::Header>;
 	type OperatingMode = BasicOperatingMode;
@@ -144,6 +142,10 @@ impl<C: ChainWithGrandpa> Engine<C> for Grandpa<C> {
 
 	fn pallet_operating_mode_key() -> StorageKey {
 		bp_header_chain::storage_keys::pallet_operating_mode_key(C::WITH_CHAIN_GRANDPA_PALLET_NAME)
+	}
+
+	async fn finality_proofs(client: &Client<C>) -> Result<Subscription<Bytes>, SubstrateError> {
+		client.subscribe_grandpa_finality_justifications().await
 	}
 
 	async fn optimize_proof<TargetChain: Chain>(
@@ -158,7 +160,7 @@ impl<C: ChainWithGrandpa> Engine<C> for Grandpa<C> {
 			sp_consensus_grandpa::AuthorityList,
 			sp_consensus_grandpa::SetId,
 		) = target_client
-			.storage_value(current_authority_set_key, None)
+			.storage_value(target_client.best_header_hash().await?, current_authority_set_key)
 			.await?
 			.map(Ok)
 			.unwrap_or(Err(SubstrateError::Custom(format!(

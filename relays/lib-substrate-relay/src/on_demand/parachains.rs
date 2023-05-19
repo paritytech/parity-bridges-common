@@ -38,7 +38,7 @@ use num_traits::Zero;
 use pallet_bridge_parachains::{RelayBlockHash, RelayBlockHasher, RelayBlockNumber};
 use parachains_relay::parachains_loop::{AvailableHeader, SourceClient, TargetClient};
 use relay_substrate_client::{
-	is_ancient_block, AccountIdOf, AccountKeyPairOf, BlockNumberOf, CallOf, Chain, Client,
+	is_ancient_block, AccountIdOf, AccountKeyPairOf, BlockNumberOf, CallOf, Chain, Client, ClientT,
 	Error as SubstrateError, HashOf, HeaderIdOf, ParachainBase,
 };
 use relay_utils::{

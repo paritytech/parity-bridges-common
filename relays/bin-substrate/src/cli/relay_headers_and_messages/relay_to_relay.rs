@@ -22,7 +22,7 @@ use crate::cli::{
 	relay_headers_and_messages::{Full2WayBridgeBase, Full2WayBridgeCommonParams},
 	CliChain,
 };
-use relay_substrate_client::{AccountIdOf, AccountKeyPairOf, ChainWithTransactions};
+use relay_substrate_client::{AccountIdOf, AccountKeyPairOf, ChainWithTransactions, ClientT};
 use sp_core::Pair;
 use substrate_relay_helper::{
 	finality::SubstrateFinalitySyncPipeline,

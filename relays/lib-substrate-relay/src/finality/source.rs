@@ -29,7 +29,7 @@ use futures::{
 };
 use num_traits::One;
 use relay_substrate_client::{
-	BlockNumberOf, BlockWithJustification, Chain, Client, Error, HeaderOf,
+	BlockNumberOf, BlockWithJustification, Chain, Client, ClientT, Error, HeaderOf,
 };
 use relay_utils::{relay_loop::Client as RelayClient, UniqueSaturatedInto};
 use std::pin::Pin;
@@ -283,8 +283,8 @@ async fn header_and_finality_proof<P: SubstrateFinalitySyncPipeline>(
 	),
 	Error,
 > {
-	let header_hash = client.block_hash_by_number(number).await?;
-	let signed_block = client.get_block(Some(header_hash)).await?;
+	let header_hash = client.header_hash_by_number(number).await?;
+	let signed_block = client.block_by_hash(header_hash).await?;
 
 	let justification = signed_block
 		.justification(P::FinalityEngine::ID)

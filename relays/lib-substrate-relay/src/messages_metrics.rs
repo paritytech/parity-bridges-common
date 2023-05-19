@@ -26,7 +26,7 @@ use frame_system::AccountInfo;
 use pallet_balances::AccountData;
 use relay_substrate_client::{
 	metrics::{FloatStorageValue, FloatStorageValueMetric},
-	AccountIdOf, BalanceOf, Chain, ChainWithBalances, ChainWithMessages, Client,
+	AccountIdOf, BalanceOf, Chain, ChainWithBalances, ChainWithMessages, Client, ClientT,
 	Error as SubstrateError, IndexOf,
 };
 use relay_utils::metrics::{MetricsParams, StandaloneMetric};
