@@ -478,7 +478,7 @@ where
 					peer_client.header_by_number(peer_on_self_best_finalized_id.number()).await?;
 				Some(actual_peer_on_self_best_finalized.id())
 			},
-			_ => client_state.best_finalized_peer_at_best_self.clone(),
+			_ => client_state.best_finalized_peer_at_best_self,
 		};
 	Ok(client_state)
 }
