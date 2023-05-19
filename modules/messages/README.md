@@ -227,10 +227,12 @@ account, named 'module owner', is like a module-level sudo account - he's able t
 resume all module operations without requiring runtime upgrade. Calls that are related to this
 account are:
 - `fn set_owner()`: current module owner may call it to transfer "ownership" to another account;
+TODO: not up-to-date
 - `fn halt_operations()`: the module owner (or sudo account) may call this function to stop all
   module operations. After this call, all message-related transactions will be rejected until
   further `resume_operations` call'. This call may be used when something extraordinary happens with
   the bridge;
+TODO: not up-to-date
 - `fn resume_operations()`: module owner may call this function to resume bridge operations. The
   module will resume its regular operations after this call.
 
