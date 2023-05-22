@@ -26,8 +26,8 @@ use bp_runtime::HeaderIdProvider;
 use codec::Decode;
 use parachains_relay::parachains_loop::{AvailableHeader, SourceClient};
 use relay_substrate_client::{
-	is_ancient_block, Chain, Client, ClientT, Error as SubstrateError, HeaderIdOf, HeaderOf,
-	ParachainBase, RelayChain,
+	is_ancient_block, Chain, Client, Error as SubstrateError, HeaderIdOf, HeaderOf, ParachainBase,
+	RelayChain,
 };
 use relay_utils::relay_loop::Client as RelayClient;
 
@@ -37,22 +37,24 @@ pub type RequiredHeaderIdRef<C> = Arc<Mutex<AvailableHeader<HeaderIdOf<C>>>>;
 
 /// Substrate client as parachain heads source.
 #[derive(Clone)]
-pub struct ParachainsSource<P: SubstrateParachainsPipeline> {
-	client: Client<P::SourceRelayChain>,
+pub struct ParachainsSource<P: SubstrateParachainsPipeline, SourceRelayClnt> {
+	client: SourceRelayClnt,
 	max_head_id: RequiredHeaderIdRef<P::SourceParachain>,
 }
 
-impl<P: SubstrateParachainsPipeline> ParachainsSource<P> {
+impl<P: SubstrateParachainsPipeline, SourceRelayClnt: Client<P::SourceRelayChain>>
+	ParachainsSource<P, SourceRelayClnt>
+{
 	/// Creates new parachains source client.
 	pub fn new(
-		client: Client<P::SourceRelayChain>,
+		client: SourceRelayClnt,
 		max_head_id: RequiredHeaderIdRef<P::SourceParachain>,
 	) -> Self {
 		ParachainsSource { client, max_head_id }
 	}
 
 	/// Returns reference to the underlying RPC client.
-	pub fn client(&self) -> &Client<P::SourceRelayChain> {
+	pub fn client(&self) -> &SourceRelayClnt {
 		&self.client
 	}
 
@@ -76,7 +78,9 @@ impl<P: SubstrateParachainsPipeline> ParachainsSource<P> {
 }
 
 #[async_trait]
-impl<P: SubstrateParachainsPipeline> RelayClient for ParachainsSource<P> {
+impl<P: SubstrateParachainsPipeline, SourceRelayClnt: Client<P::SourceRelayChain>> RelayClient
+	for ParachainsSource<P, SourceRelayClnt>
+{
 	type Error = SubstrateError;
 
 	async fn reconnect(&mut self) -> Result<(), SubstrateError> {
@@ -85,8 +89,8 @@ impl<P: SubstrateParachainsPipeline> RelayClient for ParachainsSource<P> {
 }
 
 #[async_trait]
-impl<P: SubstrateParachainsPipeline> SourceClient<ParachainsPipelineAdapter<P>>
-	for ParachainsSource<P>
+impl<P: SubstrateParachainsPipeline, SourceRelayClnt: Client<P::SourceRelayChain>>
+	SourceClient<ParachainsPipelineAdapter<P>> for ParachainsSource<P, SourceRelayClnt>
 where
 	P::SourceParachain: Chain<Hash = ParaHash>,
 {

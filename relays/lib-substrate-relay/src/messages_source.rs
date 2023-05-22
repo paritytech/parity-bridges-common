@@ -47,7 +47,7 @@ use messages_relay::{
 };
 use num_traits::Zero;
 use relay_substrate_client::{
-	AccountIdOf, AccountKeyPairOf, BalanceOf, Chain, ChainWithMessages, Client, ClientT,
+	AccountIdOf, AccountKeyPairOf, BalanceOf, Chain, ChainWithMessages, Client,
 	Error as SubstrateError, HashOf, HeaderIdOf, TransactionEra, TransactionTracker,
 	UnsignedTransaction,
 };
@@ -62,19 +62,21 @@ pub type SubstrateMessagesProof<C> = (Weight, FromBridgedChainMessagesProof<Hash
 type MessagesToRefine<'a> = Vec<(MessagePayload, &'a mut OutboundMessageDetails)>;
 
 /// Substrate client as Substrate messages source.
-pub struct SubstrateMessagesSource<P: SubstrateMessageLane> {
-	source_client: Client<P::SourceChain>,
-	target_client: Client<P::TargetChain>,
+pub struct SubstrateMessagesSource<P: SubstrateMessageLane, SourceClnt, TargetClnt> {
+	source_client: SourceClnt,
+	target_client: TargetClnt,
 	lane_id: LaneId,
 	transaction_params: TransactionParams<AccountKeyPairOf<P::SourceChain>>,
 	target_to_source_headers_relay: Option<Arc<dyn OnDemandRelay<P::TargetChain, P::SourceChain>>>,
 }
 
-impl<P: SubstrateMessageLane> SubstrateMessagesSource<P> {
+impl<P: SubstrateMessageLane, SourceClnt: Client<P::SourceChain>, TargetClnt>
+	SubstrateMessagesSource<P, SourceClnt, TargetClnt>
+{
 	/// Create new Substrate headers source.
 	pub fn new(
-		source_client: Client<P::SourceChain>,
-		target_client: Client<P::TargetChain>,
+		source_client: SourceClnt,
+		target_client: TargetClnt,
 		lane_id: LaneId,
 		transaction_params: TransactionParams<AccountKeyPairOf<P::SourceChain>>,
 		target_to_source_headers_relay: Option<
@@ -108,11 +110,14 @@ impl<P: SubstrateMessageLane> SubstrateMessagesSource<P> {
 
 	/// Ensure that the messages pallet at source chain is active.
 	async fn ensure_pallet_active(&self) -> Result<(), SubstrateError> {
-		ensure_messages_pallet_active::<P::SourceChain, P::TargetChain>(&self.source_client).await
+		ensure_messages_pallet_active::<P::SourceChain, P::TargetChain, _>(&self.source_client)
+			.await
 	}
 }
 
-impl<P: SubstrateMessageLane> Clone for SubstrateMessagesSource<P> {
+impl<P: SubstrateMessageLane, SourceClnt: Clone, TargetClnt: Clone> Clone
+	for SubstrateMessagesSource<P, SourceClnt, TargetClnt>
+{
 	fn clone(&self) -> Self {
 		Self {
 			source_client: self.source_client.clone(),
@@ -125,7 +130,12 @@ impl<P: SubstrateMessageLane> Clone for SubstrateMessagesSource<P> {
 }
 
 #[async_trait]
-impl<P: SubstrateMessageLane> RelayClient for SubstrateMessagesSource<P> {
+impl<
+		P: SubstrateMessageLane,
+		SourceClnt: Client<P::SourceChain>,
+		TargetClnt: Client<P::TargetChain>,
+	> RelayClient for SubstrateMessagesSource<P, SourceClnt, TargetClnt>
+{
 	type Error = SubstrateError;
 
 	async fn reconnect(&mut self) -> Result<(), SubstrateError> {
@@ -149,13 +159,17 @@ impl<P: SubstrateMessageLane> RelayClient for SubstrateMessagesSource<P> {
 }
 
 #[async_trait]
-impl<P: SubstrateMessageLane> SourceClient<MessageLaneAdapter<P>> for SubstrateMessagesSource<P>
+impl<
+		P: SubstrateMessageLane,
+		SourceClnt: Client<P::SourceChain>,
+		TargetClnt: Client<P::TargetChain>,
+	> SourceClient<MessageLaneAdapter<P>> for SubstrateMessagesSource<P, SourceClnt, TargetClnt>
 where
 	AccountIdOf<P::SourceChain>: From<<AccountKeyPairOf<P::SourceChain> as Pair>::Public>,
 {
 	type BatchTransaction =
 		BatchProofTransaction<P::SourceChain, P::TargetChain, P::SourceBatchCallBuilder>;
-	type TransactionTracker = TransactionTracker<P::SourceChain, Client<P::SourceChain>>;
+	type TransactionTracker = TransactionTracker<P::SourceChain, SourceClnt>;
 
 	async fn state(&self) -> Result<SourceClientState<MessageLaneAdapter<P>>, SubstrateError> {
 		// we can't continue to deliver confirmations if source node is out of sync, because
@@ -168,7 +182,7 @@ where
 		// we can't relay confirmations if messages pallet at source chain is halted
 		self.ensure_pallet_active().await?;
 
-		read_client_state(&self.source_client, Some(&self.target_client)).await
+		read_client_state_from_both_chains(&self.source_client, &self.target_client).await
 	}
 
 	async fn latest_generated_nonce(
@@ -387,12 +401,13 @@ where
 }
 
 /// Ensure that the messages pallet at source chain is active.
-pub(crate) async fn ensure_messages_pallet_active<AtChain, WithChain>(
-	client: &Client<AtChain>,
+pub(crate) async fn ensure_messages_pallet_active<AtChain, WithChain, AtChainClient>(
+	client: &AtChainClient,
 ) -> Result<(), SubstrateError>
 where
 	AtChain: ChainWithMessages,
 	WithChain: ChainWithMessages,
+	AtChainClient: Client<AtChain>,
 {
 	let operating_mode = client
 		.storage_value(
@@ -415,11 +430,10 @@ where
 /// bridge GRANDPA pallet deployed and it provides `best_finalized_header_id_method_name`
 /// runtime API to read the best finalized Bridged chain header.
 ///
-/// If `peer_client` is `None`, the value of `actual_best_finalized_peer_at_best_self` will
-/// always match the `best_finalized_peer_at_best_self`.
+/// The value of `actual_best_finalized_peer_at_best_self` will always match
+/// the `best_finalized_peer_at_best_self`.
 pub async fn read_client_state<SelfChain, PeerChain>(
-	self_client: &Client<SelfChain>,
-	peer_client: Option<&Client<PeerChain>>,
+	self_client: &impl Client<SelfChain>,
 ) -> Result<ClientState<HeaderIdOf<SelfChain>, HeaderIdOf<PeerChain>>, SubstrateError>
 where
 	SelfChain: Chain,
@@ -438,30 +452,42 @@ where
 		)
 		.await?;
 
-	// read actual header, matching the `peer_on_self_best_finalized_id` from the peer chain
-	let actual_peer_on_self_best_finalized_id =
-		match (peer_client, peer_on_self_best_finalized_id.as_ref()) {
-			(Some(peer_client), Some(peer_on_self_best_finalized_id)) => {
-				let actual_peer_on_self_best_finalized =
-					peer_client.header_by_number(peer_on_self_best_finalized_id.number()).await?;
-				Some(actual_peer_on_self_best_finalized.id())
-			},
-			_ => peer_on_self_best_finalized_id,
-		};
-
 	Ok(ClientState {
 		best_self: self_best_id,
 		best_finalized_self: self_best_finalized_id,
 		best_finalized_peer_at_best_self: peer_on_self_best_finalized_id,
-		actual_best_finalized_peer_at_best_self: actual_peer_on_self_best_finalized_id,
+		actual_best_finalized_peer_at_best_self: peer_on_self_best_finalized_id,
 	})
+}
+
+/// Does the same stuff as `read_client_state`, but properly fills the
+/// `actual_best_finalized_peer_at_best_self` field of the result.
+pub async fn read_client_state_from_both_chains<SelfChain, PeerChain>(
+	self_client: &impl Client<SelfChain>,
+	peer_client: &impl Client<PeerChain>,
+) -> Result<ClientState<HeaderIdOf<SelfChain>, HeaderIdOf<PeerChain>>, SubstrateError>
+where
+	SelfChain: Chain,
+	PeerChain: Chain,
+{
+	let mut client_state = read_client_state::<SelfChain, PeerChain>(self_client).await?;
+	client_state.actual_best_finalized_peer_at_best_self =
+		match client_state.best_finalized_peer_at_best_self.as_ref() {
+			Some(peer_on_self_best_finalized_id) => {
+				let actual_peer_on_self_best_finalized =
+					peer_client.header_by_number(peer_on_self_best_finalized_id.number()).await?;
+				Some(actual_peer_on_self_best_finalized.id())
+			},
+			_ => client_state.best_finalized_peer_at_best_self,
+		};
+	Ok(client_state)
 }
 
 /// Reads best `PeerChain` header known to the `SelfChain` using provided runtime API method.
 ///
 /// Method is supposed to be the `<PeerChain>FinalityApi::best_finalized()` method.
 pub async fn best_finalized_peer_header_at_self<SelfChain, PeerChain>(
-	self_client: &Client<SelfChain>,
+	self_client: &impl Client<SelfChain>,
 	at_self_hash: HashOf<SelfChain>,
 ) -> Result<Option<HeaderIdOf<PeerChain>>, SubstrateError>
 where
