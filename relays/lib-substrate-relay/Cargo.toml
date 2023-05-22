@@ -56,4 +56,5 @@ pallet-transaction-payment = { git = "https://github.com/paritytech/substrate", 
 relay-rialto-client = { path = "../client-rialto" }
 relay-rococo-client = { path = "../client-rococo" }
 relay-wococo-client = { path = "../client-wococo" }
+relay-substrate-client = { path = "../client-substrate", features = ["test-helpers"] }
 rialto-runtime = { path = "../../bin/rialto/runtime" }

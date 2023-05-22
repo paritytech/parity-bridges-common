@@ -301,30 +301,30 @@ async fn watch_transaction_status<
 #[cfg(test)]
 mod tests {
 	use super::*;
-	use crate::test_chain::TestChain;
+	use crate::test_chain::TestChainA;
 	use futures::{FutureExt, SinkExt};
 	use sc_transaction_pool_api::TransactionStatus;
 
-	struct TestEnvironment(Result<HeaderIdOf<TestChain>, Error>);
+	struct TestEnvironment(Result<HeaderIdOf<TestChainA>, Error>);
 
 	#[async_trait]
-	impl Environment<TestChain> for TestEnvironment {
+	impl Environment<TestChainA> for TestEnvironment {
 		async fn header_id_by_hash(
 			&self,
-			_hash: HashOf<TestChain>,
-		) -> Result<HeaderIdOf<TestChain>, Error> {
+			_hash: HashOf<TestChainA>,
+		) -> Result<HeaderIdOf<TestChainA>, Error> {
 			self.0.as_ref().map_err(|_| Error::BridgePalletIsNotInitialized).cloned()
 		}
 	}
 
 	async fn on_transaction_status(
-		status: TransactionStatus<HashOf<TestChain>, HashOf<TestChain>>,
+		status: TransactionStatus<HashOf<TestChainA>, HashOf<TestChainA>>,
 	) -> Option<(
-		TrackedTransactionStatus<HeaderIdOf<TestChain>>,
-		InvalidationStatus<HeaderIdOf<TestChain>>,
+		TrackedTransactionStatus<HeaderIdOf<TestChainA>>,
+		InvalidationStatus<HeaderIdOf<TestChainA>>,
 	)> {
 		let (mut sender, receiver) = futures::channel::mpsc::channel(1);
-		let tx_tracker = TransactionTracker::<TestChain, TestEnvironment>::new(
+		let tx_tracker = TransactionTracker::<TestChainA, TestEnvironment>::new(
 			TestEnvironment(Ok(HeaderId(0, Default::default()))),
 			Duration::from_secs(0),
 			Default::default(),
@@ -359,7 +359,7 @@ mod tests {
 	#[async_std::test]
 	async fn returns_lost_on_finalized_and_environment_error() {
 		assert_eq!(
-			watch_transaction_status::<_, TestChain, _>(
+			watch_transaction_status::<_, TestChainA, _>(
 				TestEnvironment(Err(Error::BridgePalletIsNotInitialized)),
 				Default::default(),
 				futures::stream::iter([TransactionStatus::Finalized(Default::default())])
@@ -438,7 +438,7 @@ mod tests {
 	#[async_std::test]
 	async fn lost_on_subscription_error() {
 		assert_eq!(
-			watch_transaction_status::<_, TestChain, _>(
+			watch_transaction_status::<_, TestChainA, _>(
 				TestEnvironment(Ok(HeaderId(0, Default::default()))),
 				Default::default(),
 				futures::stream::iter([])
@@ -451,7 +451,7 @@ mod tests {
 	#[async_std::test]
 	async fn lost_on_timeout_when_waiting_for_invalidation_status() {
 		let (_sender, receiver) = futures::channel::mpsc::channel(1);
-		let tx_tracker = TransactionTracker::<TestChain, TestEnvironment>::new(
+		let tx_tracker = TransactionTracker::<TestChainA, TestEnvironment>::new(
 			TestEnvironment(Ok(HeaderId(0, Default::default()))),
 			Duration::from_secs(0),
 			Default::default(),

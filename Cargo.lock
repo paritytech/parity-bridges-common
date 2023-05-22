@@ -9895,6 +9895,7 @@ dependencies = [
  "pallet-transaction-payment-rpc-runtime-api",
  "pallet-utility",
  "parity-scale-codec",
+ "parking_lot 0.12.1",
  "quick_cache",
  "rand 0.8.5",
  "relay-utils",

@@ -21,22 +21,26 @@
 
 #![cfg(any(feature = "test-helpers", test))]
 
-use crate::{Chain, ChainWithBalances};
+use crate::{
+	Chain, ChainWithBalances, ChainWithTransactions, HeaderOf, SignParam, UnsignedTransaction,
+};
 use bp_runtime::ChainId;
+use codec::{Decode, Encode};
 use frame_support::weights::Weight;
+use sp_runtime::AccountId32;
 use std::time::Duration;
 
-/// Chain that may be used in tests.
+/// One of chains that may be used in tests.
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub struct TestChain;
+pub struct TestChainA;
 
-impl bp_runtime::Chain for TestChain {
+impl bp_runtime::Chain for TestChainA {
 	type BlockNumber = u32;
 	type Hash = sp_core::H256;
 	type Hasher = sp_runtime::traits::BlakeTwo256;
 	type Header = sp_runtime::generic::Header<u32, sp_runtime::traits::BlakeTwo256>;
 
-	type AccountId = u32;
+	type AccountId = AccountId32;
 	type Balance = u32;
 	type Index = u32;
 	type Signature = sp_runtime::testing::TestSignature;
@@ -50,11 +54,11 @@ impl bp_runtime::Chain for TestChain {
 	}
 }
 
-impl Chain for TestChain {
-	const ID: ChainId = *b"test";
-	const NAME: &'static str = "Test";
-	const BEST_FINALIZED_HEADER_ID_METHOD: &'static str = "TestMethod";
-	const AVERAGE_BLOCK_INTERVAL: Duration = Duration::from_millis(0);
+impl Chain for TestChainA {
+	const ID: ChainId = *b"TCHA";
+	const NAME: &'static str = "ChainA";
+	const BEST_FINALIZED_HEADER_ID_METHOD: &'static str = "BestFinalizedOfTestChainA";
+	const AVERAGE_BLOCK_INTERVAL: Duration = Duration::from_millis(1);
 
 	type SignedBlock = sp_runtime::generic::SignedBlock<
 		sp_runtime::generic::Block<Self::Header, sp_runtime::OpaqueExtrinsic>,
@@ -62,10 +66,111 @@ impl Chain for TestChain {
 	type Call = ();
 }
 
-impl ChainWithBalances for TestChain {
-	fn account_info_storage_key(_account_id: &u32) -> sp_core::storage::StorageKey {
+impl ChainWithBalances for TestChainA {
+	fn account_info_storage_key(_account_id: &AccountId32) -> sp_core::storage::StorageKey {
 		unreachable!()
 	}
+}
+
+impl ChainWithTransactions for TestChainA {
+	type AccountKeyPair = sp_core::sr25519::Pair;
+	type SignedTransaction = Vec<u8>;
+
+	fn sign_transaction(
+		_param: SignParam<Self>,
+		_unsigned: UnsignedTransaction<Self>,
+	) -> Result<Self::SignedTransaction, crate::Error>
+	where
+		Self: Sized,
+	{
+		unimplemented!()
+	}
+
+	fn is_signed(_tx: &Self::SignedTransaction) -> bool {
+		true
+	}
+
+	fn is_signed_by(_signer: &Self::AccountKeyPair, _tx: &Self::SignedTransaction) -> bool {
+		unimplemented!()
+	}
+
+	fn parse_transaction(_tx: Self::SignedTransaction) -> Option<UnsignedTransaction<Self>> {
+		unimplemented!()
+	}
+}
+
+/// One of chains that may be used in tests.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct TestChainB;
+
+impl bp_runtime::Chain for TestChainB {
+	type BlockNumber = u32;
+	type Hash = sp_core::H256;
+	type Hasher = sp_runtime::traits::BlakeTwo256;
+	type Header = sp_runtime::generic::Header<u32, sp_runtime::traits::BlakeTwo256>;
+
+	type AccountId = AccountId32;
+	type Balance = u32;
+	type Index = u32;
+	type Signature = sp_runtime::testing::TestSignature;
+
+	fn max_extrinsic_size() -> u32 {
+		unreachable!()
+	}
+
+	fn max_extrinsic_weight() -> Weight {
+		unreachable!()
+	}
+}
+
+impl Chain for TestChainB {
+	const ID: ChainId = *b"TCHB";
+	const NAME: &'static str = "ChainB";
+	const BEST_FINALIZED_HEADER_ID_METHOD: &'static str = "BestFinalizedOfTestChainB";
+	const AVERAGE_BLOCK_INTERVAL: Duration = Duration::from_millis(1);
+
+	type SignedBlock = sp_runtime::generic::SignedBlock<
+		sp_runtime::generic::Block<Self::Header, sp_runtime::OpaqueExtrinsic>,
+	>;
+	type Call = TestChainBCall;
+}
+
+impl ChainWithBalances for TestChainB {
+	fn account_info_storage_key(_account_id: &AccountId32) -> sp_core::storage::StorageKey {
+		unreachable!()
+	}
+}
+
+impl ChainWithTransactions for TestChainB {
+	type AccountKeyPair = sp_core::sr25519::Pair;
+	type SignedTransaction = Vec<u8>;
+
+	fn sign_transaction(
+		_param: SignParam<Self>,
+		_unsigned: UnsignedTransaction<Self>,
+	) -> Result<Self::SignedTransaction, crate::Error>
+	where
+		Self: Sized,
+	{
+		unimplemented!()
+	}
+
+	fn is_signed(_tx: &Self::SignedTransaction) -> bool {
+		true
+	}
+
+	fn is_signed_by(_signer: &Self::AccountKeyPair, _tx: &Self::SignedTransaction) -> bool {
+		unimplemented!()
+	}
+
+	fn parse_transaction(_tx: Self::SignedTransaction) -> Option<UnsignedTransaction<Self>> {
+		unimplemented!()
+	}
+}
+
+#[derive(Clone, Debug, Decode, Encode)]
+pub enum TestChainBCall {
+	ChainAHeader(HeaderOf<TestChainA>),
 }
 
 /// Primitives-level parachain that may be used in tests.

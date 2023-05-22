@@ -25,6 +25,7 @@ use sp_version::RuntimeVersion;
 
 pub mod caching;
 pub mod rpc;
+pub mod testing;
 
 // don't want to move all the trait code (200+ lines) here and there's no better name
 #[allow(clippy::module_inception)]

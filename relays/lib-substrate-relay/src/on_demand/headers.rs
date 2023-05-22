@@ -513,9 +513,9 @@ fn on_demand_headers_relay_name<SourceChain: Chain, TargetChain: Chain>() -> Str
 
 #[cfg(test)]
 mod tests {
+	use relay_substrate_client::{TestClient, UnsignedTransaction, test_chain::{TestChainA, TestChainB, TestChainBCall}};
+	use sp_core::Pair;
 	use super::*;
-
-	type TestChain = relay_rococo_client::Rococo;
 
 	const AT_SOURCE: Option<bp_rococo::BlockNumber> = Some(10);
 	const AT_TARGET: Option<bp_rococo::BlockNumber> = Some(1);
@@ -523,7 +523,7 @@ mod tests {
 	#[async_std::test]
 	async fn mandatory_headers_scan_range_selects_range_if_some_headers_are_missing() {
 		assert_eq!(
-			mandatory_headers_scan_range::<TestChain>(AT_SOURCE, AT_TARGET, 0,).await,
+			mandatory_headers_scan_range::<TestChainA>(AT_SOURCE, AT_TARGET, 0,).await,
 			Some((AT_TARGET.unwrap() + 1, AT_SOURCE.unwrap())),
 		);
 	}
@@ -531,9 +531,75 @@ mod tests {
 	#[async_std::test]
 	async fn mandatory_headers_scan_range_selects_nothing_if_already_queued() {
 		assert_eq!(
-			mandatory_headers_scan_range::<TestChain>(AT_SOURCE, AT_TARGET, AT_SOURCE.unwrap(),)
+			mandatory_headers_scan_range::<TestChainA>(AT_SOURCE, AT_TARGET, AT_SOURCE.unwrap(),)
 				.await,
 			None,
 		);
+	}
+
+	fn test_target_transaction_params() -> TransactionParams<AccountKeyPairOf<TestChainB>> {
+		TransactionParams {
+			signer: AccountKeyPairOf::<TestChainB>::from_string("//XXX", None).unwrap(),
+			mortality: None,
+		}
+	}
+
+	#[async_std::test]
+	async fn mandatory_headers_relayed() {
+		let source_client = TestClient::<TestChainA>::builder().block(800).finalize().build().build();
+		let source_best_finalized = source_client.best_finalized_header().await.unwrap();
+		
+		let target_transaction_params = test_target_transaction_params();
+		let target_client = TestClient::<TestChainB>::builder().build();
+			.block(100)
+			.push_transaction(TestChainBCall::ChainAHeader(source_best_finalized.clone()))
+			.finalize()
+			.build()
+			.build();
+		target_client.submit_signed_extrinsic(
+			&target_transaction_params.signer,
+			|_, _| Ok(UnsignedTransaction {
+				call: .into(),
+				nonce: 0,
+				tip: 0,
+				era: relay_substrate_client::TransactionEra::Immortal,
+			})
+		).await.unwrap();
+		let target_client = target_client.amend()
+
+
+		let on_demand_relay = OnDemandHeadersRelay::new(
+			source_client.clone(),
+			target_client.clone(),
+			test_target_transaction_params(),
+			true,
+			None,
+		);
+
+		// add and finalize regular source header
+		source_client
+			.amend()
+			.block(1000)
+			.change_authorities()
+			.finalize()
+			.build()
+			.build();
+
+		// no pending transactions at target client
+		async_std::task::sleep(std::time::Duration::from_millis(100));
+		assert!(target_client.pending_transactions().is_empty());
+
+		// add and finalize mandatory source header
+		source_client
+			.amend()
+			.block(1000)
+			.change_authorities()
+			.finalize()
+			.build()
+			.build();
+
+		// wait until new transaction appears at the targe client
+		async_std::task::sleep(std::time::Duration::from_millis(100));
+		assert!(!target_client.pending_transactions().is_empty());
 	}
 }

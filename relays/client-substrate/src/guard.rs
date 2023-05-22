@@ -109,7 +109,7 @@ impl<C: ChainWithBalances, Clnt: Client<C>> Environment<C> for Clnt {
 #[cfg(test)]
 mod tests {
 	use super::*;
-	use crate::test_chain::TestChain;
+	use crate::test_chain::TestChainA;
 	use futures::{
 		channel::mpsc::{unbounded, UnboundedReceiver, UnboundedSender},
 		future::FutureExt,
@@ -124,7 +124,7 @@ mod tests {
 	}
 
 	#[async_trait]
-	impl Environment<TestChain> for TestEnvironment {
+	impl Environment<TestChainA> for TestEnvironment {
 		type Error = Error;
 
 		async fn runtime_version(&mut self) -> Result<RuntimeVersion, Self::Error> {

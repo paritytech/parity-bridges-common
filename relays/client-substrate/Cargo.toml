@@ -13,6 +13,7 @@ futures = "0.3.28"
 jsonrpsee = { version = "0.17", features = ["macros", "ws-client"] }
 log = "0.4.17"
 num-traits = "0.2"
+parking_lot = "0.12.1"
 quick_cache = "0.3"
 rand = "0.8"
 scale-info = { version = "2.6.0", features = ["derive"] }

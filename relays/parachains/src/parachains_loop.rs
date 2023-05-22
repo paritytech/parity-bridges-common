@@ -529,7 +529,7 @@ mod tests {
 	use async_std::sync::{Arc, Mutex};
 	use codec::Encode;
 	use futures::{SinkExt, StreamExt};
-	use relay_substrate_client::test_chain::{TestChain, TestParachain};
+	use relay_substrate_client::test_chain::{TestChainA, TestParachain};
 	use relay_utils::{HeaderId, MaybeConnectionError};
 	use sp_core::H256;
 
@@ -551,9 +551,9 @@ mod tests {
 	struct TestParachainsPipeline;
 
 	impl ParachainsPipeline for TestParachainsPipeline {
-		type SourceRelayChain = TestChain;
+		type SourceRelayChain = TestChainA;
 		type SourceParachain = TestParachain;
-		type TargetChain = TestChain;
+		type TargetChain = TestChainA;
 	}
 
 	#[derive(Clone, Debug)]
@@ -562,13 +562,13 @@ mod tests {
 	}
 
 	#[derive(Clone, Debug)]
-	struct TestTransactionTracker(Option<TrackedTransactionStatus<HeaderIdOf<TestChain>>>);
+	struct TestTransactionTracker(Option<TrackedTransactionStatus<HeaderIdOf<TestChainA>>>);
 
 	#[async_trait]
 	impl TransactionTracker for TestTransactionTracker {
-		type HeaderId = HeaderIdOf<TestChain>;
+		type HeaderId = HeaderIdOf<TestChainA>;
 
-		async fn wait(self) -> TrackedTransactionStatus<HeaderIdOf<TestChain>> {
+		async fn wait(self) -> TrackedTransactionStatus<HeaderIdOf<TestChainA>> {
 			match self.0 {
 				Some(status) => status,
 				None => futures::future::pending().await,
@@ -582,8 +582,8 @@ mod tests {
 		source_head: Result<AvailableHeader<HeaderIdOf<TestParachain>>, TestError>,
 		source_proof: Result<(), TestError>,
 
-		target_best_block: Result<HeaderIdOf<TestChain>, TestError>,
-		target_best_finalized_source_block: Result<HeaderIdOf<TestChain>, TestError>,
+		target_best_block: Result<HeaderIdOf<TestChainA>, TestError>,
+		target_best_finalized_source_block: Result<HeaderIdOf<TestChainA>, TestError>,
 		target_head: Result<Option<HeaderIdOf<TestParachain>>, TestError>,
 		target_submit_result: Result<(), TestError>,
 
@@ -638,14 +638,14 @@ mod tests {
 
 		async fn parachain_head(
 			&self,
-			_at_block: HeaderIdOf<TestChain>,
+			_at_block: HeaderIdOf<TestChainA>,
 		) -> Result<AvailableHeader<HeaderIdOf<TestParachain>>, TestError> {
 			self.data.lock().await.source_head.clone()
 		}
 
 		async fn prove_parachain_head(
 			&self,
-			_at_block: HeaderIdOf<TestChain>,
+			_at_block: HeaderIdOf<TestChainA>,
 		) -> Result<(ParaHeadsProof, ParaHash), TestError> {
 			let head = *self.data.lock().await.source_head.clone()?.as_available().unwrap();
 			let proof = (ParaHeadsProof(vec![head.hash().encode()]), head.hash());
@@ -657,27 +657,27 @@ mod tests {
 	impl TargetClient<TestParachainsPipeline> for TestClient {
 		type TransactionTracker = TestTransactionTracker;
 
-		async fn best_block(&self) -> Result<HeaderIdOf<TestChain>, TestError> {
+		async fn best_block(&self) -> Result<HeaderIdOf<TestChainA>, TestError> {
 			self.data.lock().await.target_best_block.clone()
 		}
 
 		async fn best_finalized_source_relay_chain_block(
 			&self,
-			_at_block: &HeaderIdOf<TestChain>,
-		) -> Result<HeaderIdOf<TestChain>, TestError> {
+			_at_block: &HeaderIdOf<TestChainA>,
+		) -> Result<HeaderIdOf<TestChainA>, TestError> {
 			self.data.lock().await.target_best_finalized_source_block.clone()
 		}
 
 		async fn parachain_head(
 			&self,
-			_at_block: HeaderIdOf<TestChain>,
+			_at_block: HeaderIdOf<TestChainA>,
 		) -> Result<Option<HeaderIdOf<TestParachain>>, TestError> {
 			self.data.lock().await.target_head.clone()
 		}
 
 		async fn submit_parachain_head_proof(
 			&self,
-			_at_source_block: HeaderIdOf<TestChain>,
+			_at_source_block: HeaderIdOf<TestChainA>,
 			_updated_parachain_head: ParaHash,
 			_proof: ParaHeadsProof,
 		) -> Result<TestTransactionTracker, Self::Error> {
