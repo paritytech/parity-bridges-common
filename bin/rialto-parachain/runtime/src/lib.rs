@@ -45,7 +45,7 @@ use sp_version::NativeVersion;
 use sp_version::RuntimeVersion;
 
 // A few exports that help ease life for downstream crates.
-use bp_runtime::HeaderId;
+use bp_runtime::{Chain, HeaderId};
 pub use frame_support::{
 	construct_runtime,
 	dispatch::DispatchClass,
@@ -172,7 +172,6 @@ impl_opaque_keys! {
 }
 
 /// This runtime version.
-#[sp_version::runtime_version]
 pub const VERSION: RuntimeVersion = RuntimeVersion {
 	spec_name: create_runtime_str!("template-parachain"),
 	impl_name: create_runtime_str!("template-parachain"),
@@ -181,7 +180,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
 	impl_version: 0,
 	apis: RUNTIME_API_VERSIONS,
 	transaction_version: 1,
-	state_version: 0,
+	state_version: bp_rialto_parachain::RialtoParachain::STATE_VERSION as u8,
 };
 
 /// This determines the average expected block time that we are targeting.

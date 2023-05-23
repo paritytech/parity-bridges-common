@@ -32,7 +32,7 @@ pub mod millau_messages;
 pub mod parachains;
 pub mod xcm_config;
 
-use bp_runtime::HeaderId;
+use bp_runtime::{Chain, HeaderId};
 use pallet_grandpa::{
 	fg_primitives, AuthorityId as GrandpaId, AuthorityList as GrandpaAuthorityList,
 };
@@ -140,7 +140,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
 	impl_version: 1,
 	apis: RUNTIME_API_VERSIONS,
 	transaction_version: 1,
-	state_version: 1,
+	state_version: bp_rialto::Rialto::STATE_VERSION as u8,
 };
 
 /// The version information used to identify this runtime when compiled natively.
