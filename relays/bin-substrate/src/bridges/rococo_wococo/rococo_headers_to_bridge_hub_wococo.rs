@@ -19,7 +19,7 @@
 use crate::cli::bridge::{CliBridgeBase, RelayToRelayHeadersCliBridge};
 
 use async_trait::async_trait;
-use relay_substrate_client::{AccountKeyPairOf, Client, ClientT};
+use relay_substrate_client::{AccountKeyPairOf, Client};
 use substrate_relay_helper::{
 	finality::{engine::Grandpa as GrandpaFinalityEngine, SubstrateFinalitySyncPipeline},
 	TransactionParams,

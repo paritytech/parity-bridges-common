@@ -115,7 +115,7 @@ macro_rules! declare_chain_connection_params_cli_schema {
 					let chain_runtime_version = self
 						.[<$chain_prefix _runtime_version>]
 						.into_runtime_version(Chain::RUNTIME_VERSION)?;
-					Ok(relay_substrate_client::new(relay_substrate_client::ConnectionParams {
+					Ok(relay_substrate_client::Client::new(relay_substrate_client::ConnectionParams {
 						host: self.[<$chain_prefix _host>],
 						port: self.[<$chain_prefix _port>],
 						secure: self.[<$chain_prefix _secure>],

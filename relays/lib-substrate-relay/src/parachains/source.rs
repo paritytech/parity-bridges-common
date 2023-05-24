@@ -26,8 +26,8 @@ use bp_runtime::HeaderIdProvider;
 use codec::Decode;
 use parachains_relay::parachains_loop::{AvailableHeader, SourceClient};
 use relay_substrate_client::{
-	is_ancient_block, Chain, Client, ClientT, Error as SubstrateError, HeaderIdOf, HeaderOf,
-	ParachainBase, RelayChain,
+	is_ancient_block, Chain, Client, Error as SubstrateError, HeaderIdOf, HeaderOf, ParachainBase,
+	RelayChain,
 };
 use relay_utils::relay_loop::Client as RelayClient;
 
@@ -64,8 +64,8 @@ impl<P: SubstrateParachainsPipeline> ParachainsSource<P> {
 		let para_id = ParaId(P::SourceParachain::PARACHAIN_ID);
 		let storage_key =
 			parachain_head_storage_key_at_source(P::SourceRelayChain::PARAS_PALLET_NAME, para_id);
-		let para_head: Option<ParaHead> =
-			self.client.storage_value(at_block.hash(), storage_key).await?;
+		let para_head = self.client.raw_storage_value(storage_key, Some(at_block.1)).await?;
+		let para_head = para_head.map(|h| ParaHead::decode(&mut &h.0[..])).transpose()?;
 		let para_head = match para_head {
 			Some(para_head) => para_head,
 			None => return Ok(None),
@@ -139,7 +139,7 @@ where
 			parachain_head_storage_key_at_source(P::SourceRelayChain::PARAS_PALLET_NAME, parachain);
 		let parachain_heads_proof = self
 			.client
-			.prove_storage(at_block.hash(), vec![storage_key.clone()])
+			.prove_storage(vec![storage_key.clone()], at_block.1)
 			.await?
 			.into_iter_nodes()
 			.collect();
@@ -153,8 +153,10 @@ where
 		// rereading actual value here
 		let parachain_head = self
 			.client
-			.storage_value::<ParaHead>(at_block.hash(), storage_key)
+			.raw_storage_value(storage_key, Some(at_block.1))
 			.await?
+			.map(|h| ParaHead::decode(&mut &h.0[..]))
+			.transpose()?
 			.ok_or_else(|| {
 				SubstrateError::Custom(format!(
 					"Failed to read expected parachain {parachain:?} head at {at_block:?}"

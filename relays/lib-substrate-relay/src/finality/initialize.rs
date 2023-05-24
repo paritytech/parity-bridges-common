@@ -26,7 +26,7 @@ use sp_core::Pair;
 
 use bp_runtime::HeaderIdOf;
 use relay_substrate_client::{
-	AccountKeyPairOf, Chain, ChainWithTransactions, Client, ClientT, Error as SubstrateError,
+	AccountKeyPairOf, Chain, ChainWithTransactions, Client, Error as SubstrateError,
 	UnsignedTransaction,
 };
 use relay_utils::{TrackedTransactionStatus, TransactionTracker};

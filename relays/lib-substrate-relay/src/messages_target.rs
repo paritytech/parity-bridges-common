@@ -40,7 +40,7 @@ use messages_relay::{
 	message_lane_loop::{NoncesSubmitArtifacts, TargetClient, TargetClientState},
 };
 use relay_substrate_client::{
-	AccountIdOf, AccountKeyPairOf, BalanceOf, CallOf, ChainWithMessages, Client, ClientT,
+	AccountIdOf, AccountKeyPairOf, BalanceOf, CallOf, ChainWithMessages, Client,
 	Error as SubstrateError, HashOf, TransactionEra, TransactionTracker, UnsignedTransaction,
 };
 use relay_utils::relay_loop::Client as RelayClient;
@@ -90,11 +90,11 @@ impl<P: SubstrateMessageLane> SubstrateMessagesTarget<P> {
 	) -> Result<Option<InboundLaneData<AccountIdOf<P::SourceChain>>>, SubstrateError> {
 		self.target_client
 			.storage_value(
-				id.hash(),
 				inbound_lane_data_key(
 					P::SourceChain::WITH_CHAIN_MESSAGES_PALLET_NAME,
 					&self.lane_id,
 				),
+				Some(id.1),
 			)
 			.await
 	}
@@ -219,7 +219,7 @@ where
 		);
 		let proof = self
 			.target_client
-			.prove_storage(id.hash(), vec![inbound_data_key])
+			.prove_storage(vec![inbound_data_key], id.1)
 			.await?
 			.into_iter_nodes()
 			.collect();

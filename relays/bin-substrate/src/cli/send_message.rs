@@ -35,8 +35,7 @@ use crate::{
 use async_trait::async_trait;
 use codec::{Decode, Encode};
 use relay_substrate_client::{
-	AccountIdOf, AccountKeyPairOf, Chain, ChainBase, ChainWithTransactions, ClientT,
-	UnsignedTransaction,
+	AccountIdOf, AccountKeyPairOf, Chain, ChainBase, ChainWithTransactions, UnsignedTransaction,
 };
 use sp_core::Pair;
 use sp_runtime::AccountId32;

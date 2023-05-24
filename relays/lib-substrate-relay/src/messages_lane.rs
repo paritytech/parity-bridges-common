@@ -37,8 +37,8 @@ use messages_relay::{message_lane::MessageLane, message_lane_loop::BatchTransact
 use pallet_bridge_messages::{Call as BridgeMessagesCall, Config as BridgeMessagesConfig};
 use relay_substrate_client::{
 	transaction_stall_timeout, AccountKeyPairOf, BalanceOf, BlockNumberOf, CallOf, Chain,
-	ChainWithMessages, ChainWithTransactions, Client, ClientT, Error as SubstrateError, HashOf,
-	SignParam, UnsignedTransaction,
+	ChainWithMessages, ChainWithTransactions, Client, Error as SubstrateError, HashOf, SignParam,
+	UnsignedTransaction,
 };
 use relay_utils::{
 	metrics::{GlobalMetrics, MetricsParams, StandaloneMetric},
@@ -474,11 +474,10 @@ where
 	let weight_for_messages_dispatch = max_extrinsic_weight - weight_for_delivery_tx;
 
 	// weight of empty message delivery with outbound lane state
-	let best_target_block_hash = params.target_client.best_header_hash().await?;
 	let delivery_tx_with_zero_messages = dummy_messages_delivery_transaction::<P>(params, 0)?;
 	let delivery_tx_with_zero_messages_weight = params
 		.target_client
-		.estimate_extrinsic_weight(best_target_block_hash, delivery_tx_with_zero_messages)
+		.extimate_extrinsic_weight(delivery_tx_with_zero_messages)
 		.await
 		.map_err(|e| {
 			anyhow::format_err!("Failed to estimate delivery extrinsic weight: {:?}", e)
@@ -488,7 +487,7 @@ where
 	let delivery_tx_with_one_message = dummy_messages_delivery_transaction::<P>(params, 1)?;
 	let delivery_tx_with_one_message_weight = params
 		.target_client
-		.estimate_extrinsic_weight(best_target_block_hash, delivery_tx_with_one_message)
+		.extimate_extrinsic_weight(delivery_tx_with_one_message)
 		.await
 		.map_err(|e| {
 			anyhow::format_err!("Failed to estimate delivery extrinsic weight: {:?}", e)

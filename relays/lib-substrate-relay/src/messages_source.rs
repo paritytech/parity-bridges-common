@@ -47,7 +47,7 @@ use messages_relay::{
 };
 use num_traits::Zero;
 use relay_substrate_client::{
-	AccountIdOf, AccountKeyPairOf, BalanceOf, Chain, ChainWithMessages, Client, ClientT,
+	AccountIdOf, AccountKeyPairOf, BalanceOf, Chain, ChainWithMessages, Client,
 	Error as SubstrateError, HashOf, HeaderIdOf, TransactionEra, TransactionTracker,
 	UnsignedTransaction,
 };
@@ -97,11 +97,11 @@ impl<P: SubstrateMessageLane> SubstrateMessagesSource<P> {
 	) -> Result<Option<OutboundLaneData>, SubstrateError> {
 		self.source_client
 			.storage_value(
-				id.hash(),
 				outbound_lane_data_key(
 					P::TargetChain::WITH_CHAIN_MESSAGES_PALLET_NAME,
 					&self.lane_id,
 				),
+				Some(id.1),
 			)
 			.await
 	}
@@ -202,12 +202,12 @@ where
 		id: SourceHeaderIdOf<MessageLaneAdapter<P>>,
 		nonces: RangeInclusive<MessageNonce>,
 	) -> Result<MessageDetailsMap<BalanceOf<P::SourceChain>>, SubstrateError> {
-		let mut out_msgs_details: Vec<_> = self
+		let mut out_msgs_details = self
 			.source_client
-			.state_call::<_, Vec<_>>(
-				id.hash(),
+			.typed_state_call::<_, Vec<_>>(
 				P::TargetChain::TO_CHAIN_MESSAGE_DETAILS_METHOD.into(),
 				(self.lane_id, *nonces.start(), *nonces.end()),
+				Some(id.1),
 			)
 			.await?;
 		validate_out_msgs_details::<P::SourceChain>(&out_msgs_details, nonces)?;
@@ -225,7 +225,7 @@ where
 				out_msg_details.nonce,
 			);
 			let msg_payload: MessagePayload =
-				self.source_client.storage_value(id.hash(), msg_key).await?.ok_or_else(|| {
+				self.source_client.storage_value(msg_key, Some(id.1)).await?.ok_or_else(|| {
 					SubstrateError::Custom(format!(
 						"Message to {} {:?}/{} is missing from runtime the storage of {} at {:?}",
 						P::TargetChain::NAME,
@@ -239,16 +239,15 @@ where
 			msgs_to_refine.push((msg_payload, out_msg_details));
 		}
 
-		let best_target_header_hash = self.target_client.best_header_hash().await?;
 		for mut msgs_to_refine_batch in
 			split_msgs_to_refine::<P::SourceChain, P::TargetChain>(self.lane_id, msgs_to_refine)?
 		{
 			let in_msgs_details = self
 				.target_client
-				.state_call::<_, Vec<InboundMessageDetails>>(
-					best_target_header_hash,
+				.typed_state_call::<_, Vec<InboundMessageDetails>>(
 					P::SourceChain::FROM_CHAIN_MESSAGE_DETAILS_METHOD.into(),
 					(self.lane_id, &msgs_to_refine_batch),
+					None,
 				)
 				.await?;
 			if in_msgs_details.len() != msgs_to_refine_batch.len() {
@@ -326,7 +325,7 @@ where
 
 		let proof = self
 			.source_client
-			.prove_storage(id.hash(), storage_keys)
+			.prove_storage(storage_keys, id.1)
 			.await?
 			.into_iter_nodes()
 			.collect();
@@ -395,10 +394,7 @@ where
 	WithChain: ChainWithMessages,
 {
 	let operating_mode = client
-		.storage_value(
-			client.best_header_hash().await?,
-			operating_mode_key(WithChain::WITH_CHAIN_MESSAGES_PALLET_NAME),
-		)
+		.storage_value(operating_mode_key(WithChain::WITH_CHAIN_MESSAGES_PALLET_NAME), None)
 		.await?;
 	let is_halted =
 		operating_mode == Some(MessagesOperatingMode::Basic(BasicOperatingMode::Halted));
@@ -470,10 +466,10 @@ where
 {
 	// now let's read id of best finalized peer header at our best finalized block
 	self_client
-		.state_call::<_, Option<_>>(
-			at_self_hash,
+		.typed_state_call::<_, Option<_>>(
 			PeerChain::BEST_FINALIZED_HEADER_ID_METHOD.into(),
 			(),
+			Some(at_self_hash),
 		)
 		.await
 }
