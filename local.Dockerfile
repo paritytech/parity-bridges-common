@@ -25,8 +25,8 @@ RUN set -eux; \
 	apt-get install -y --no-install-recommends \
         curl ca-certificates libssl-dev && \
     update-ca-certificates && \
-	groupadd -g 1000 user && \
-	useradd -u 1000 -g user -s /bin/sh -m user && \
+	groupadd -g 1001 user && \
+	useradd -u 1001 -g user -s /bin/sh -m user && \
 	# apt clean up
 	apt-get autoremove -y && \
 	apt-get clean && \
