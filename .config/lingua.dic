@@ -222,7 +222,7 @@ tokio
 timestamp
 trie/MS
 trustless/Y
-tuple
+tuple/S
 u32
 ubuntu/M
 undeliverable
