@@ -27,8 +27,8 @@ use codec::{Decode, Encode};
 use finality_grandpa::voter_set::VoterSet;
 use num_traits::{One, Zero};
 use relay_substrate_client::{
-	BlockNumberOf, Chain, ChainWithGrandpa, Client, Error as SubstrateError, HashOf, HeaderOf,
-	Subscription,
+	BlockNumberOf, Chain, ChainWithGrandpa, Client, Error as SubstrateError, GrandpaFinalityCall,
+	HashOf, HeaderOf, Subscription, SyncHeader,
 };
 use sp_consensus_grandpa::{AuthorityList as GrandpaAuthoritiesSet, GRANDPA_ENGINE_ID};
 use sp_core::{storage::StorageKey, Bytes};
@@ -44,6 +44,8 @@ pub trait Engine<C: Chain>: Send {
 	type ConsensusLogReader: ConsensusLogReader;
 	/// Type of finality proofs, used by consensus engine.
 	type FinalityProof: FinalityProof<BlockNumberOf<C>> + Decode + Encode;
+	/// Generic runtime call for submitting finality proof.
+	type RuntimeCall: Clone + std::fmt::Debug + Send;
 	/// Type of bridge pallet initialization data.
 	type InitializationData: std::fmt::Debug + Send + Sync + 'static;
 	/// Type of bridge pallet operating mode.
@@ -95,6 +97,12 @@ pub trait Engine<C: Chain>: Send {
 		proof: Self::FinalityProof,
 	) -> Result<Self::FinalityProof, SubstrateError>;
 
+	/// Prepare generic runtime call
+	fn prepare_runtime_call(
+		header: SyncHeader<HeaderOf<C>>,
+		proof: Self::FinalityProof,
+	) -> Self::RuntimeCall;
+
 	/// Prepare initialization data for the finality bridge pallet.
 	async fn prepare_initialization_data(
 		client: impl Client<C>,
@@ -135,6 +143,7 @@ impl<C: ChainWithGrandpa> Engine<C> for Grandpa<C> {
 	const ID: ConsensusEngineId = GRANDPA_ENGINE_ID;
 	type ConsensusLogReader = GrandpaConsensusLogReader<<C::Header as Header>::Number>;
 	type FinalityProof = GrandpaJustification<HeaderOf<C>>;
+	type RuntimeCall = GrandpaFinalityCall<C>;
 	type InitializationData = bp_header_chain::InitializationData<C::Header>;
 	type OperatingMode = BasicOperatingMode;
 
@@ -192,6 +201,13 @@ impl<C: ChainWithGrandpa> Engine<C> for Grandpa<C> {
 				e,
 			))
 		})
+	}
+
+	fn prepare_runtime_call(
+		header: SyncHeader<HeaderOf<C>>,
+		proof: Self::FinalityProof,
+	) -> Self::RuntimeCall {
+		GrandpaFinalityCall::<C> { header, justification: proof }
 	}
 
 	/// Prepare initialization data for the GRANDPA verifier pallet.

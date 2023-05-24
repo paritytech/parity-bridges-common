@@ -146,6 +146,14 @@ pub enum Error {
 		/// Underlying error.
 		error: Box<Error>,
 	},
+	/// The call within transaction is not supported by the chain.
+	#[error("Failed to submit {chain} transaction: unsupported call: {call}.")]
+	UnsupportedRuntimeCall {
+		/// Name of the chain where the error has happened.
+		chain: String,
+		/// Requested runtime Call.
+		call: String,
+	},
 	/// Runtime call has failed.
 	#[error("Runtime call {method} with arguments {arguments:?} of chain {chain} at {hash} has failed: {error:?}.")]
 	FailedStateCall {
@@ -308,6 +316,11 @@ impl Error {
 	/// Constructs `FailedToSubmitTransaction` variant.
 	pub fn failed_to_submit_transaction<C: Chain>(e: Error) -> Self {
 		Error::FailedToSubmitTransaction { chain: C::NAME.into(), error: e.boxed() }
+	}
+
+	/// Constructs `UnsupportedRuntimeCall` variant.
+	pub fn unsupported_runtime_call<C: Chain>(call: impl std::fmt::Debug) -> Self {
+		Error::UnsupportedRuntimeCall { chain: C::NAME.into(), call: format!("{:?}", call) }
 	}
 
 	/// Constructs `FailedStateCall` variant.

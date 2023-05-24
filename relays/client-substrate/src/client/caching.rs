@@ -20,9 +20,10 @@
 use crate::{
 	client::{Client, SharedSubscriptionFactory},
 	error::{Error, Result},
-	AccountIdOf, AccountKeyPairOf, BlockNumberOf, Chain, ChainWithGrandpa, ChainWithTransactions,
-	HashOf, HeaderIdOf, HeaderOf, IndexOf, SignedBlockOf, SimpleRuntimeVersion, Subscription,
-	TransactionTracker, UnsignedTransaction, ANCIENT_BLOCK_THRESHOLD,
+	AccountIdOf, AccountKeyPairOf, BlockNumberOf, CallOf, Chain, ChainWithGrandpa,
+	ChainWithTransactions, HashOf, HeaderIdOf, HeaderOf, IndexOf, SignedBlockOf,
+	SimpleRuntimeVersion, Subscription, TransactionParams, TransactionTracker, UnsignedTransaction,
+	ANCIENT_BLOCK_THRESHOLD,
 };
 
 use async_std::sync::{Arc, Mutex, RwLock};
@@ -34,9 +35,10 @@ use sp_core::{
 	storage::{StorageData, StorageKey},
 	Bytes, Pair,
 };
-use sp_runtime::transaction_validity::TransactionValidity;
+use sp_runtime::{traits::TryMorph, transaction_validity::TransactionValidity};
 use sp_trie::StorageProof;
 use sp_version::RuntimeVersion;
+use std::fmt::Debug;
 
 /// `quick_cache::unsync::Cache` wrapped in async-aware synchronization primitives.
 type SyncCache<K, V> = Arc<RwLock<Cache<K, V>>>;
@@ -276,6 +278,23 @@ impl<C: Chain, B: Client<C>> Client<C> for CachingClient<C, B> {
 	{
 		self.backend
 			.submit_and_watch_signed_extrinsic(signer, prepare_extrinsic)
+			.await
+			.map(|t| t.switch_environment(self.clone()))
+	}
+
+	async fn sign_submit_and_watch_runtime_call<T, Cnv>(
+		&self,
+		transaction_params: TransactionParams<AccountKeyPairOf<C>>,
+		call: T,
+	) -> Result<TransactionTracker<C, Self>>
+	where
+		C: ChainWithTransactions,
+		AccountIdOf<C>: From<<AccountKeyPairOf<C> as Pair>::Public>,
+		T: Clone + Debug + Send,
+		Cnv: TryMorph<T, Outcome = CallOf<C>> + Send,
+	{
+		self.backend
+			.sign_submit_and_watch_runtime_call::<_, Cnv>(transaction_params, call)
 			.await
 			.map(|t| t.switch_environment(self.clone()))
 	}

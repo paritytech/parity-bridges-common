@@ -19,7 +19,7 @@
 use crate::{
 	finality::{
 		engine::Engine, source::SubstrateFinalityProof, FinalitySyncPipelineAdapter,
-		SubmitFinalityProofCallBuilder, SubstrateFinalitySyncPipeline,
+		SubstrateFinalitySyncPipeline,
 	},
 	TransactionParams,
 };
@@ -27,8 +27,8 @@ use crate::{
 use async_trait::async_trait;
 use finality_relay::TargetClient;
 use relay_substrate_client::{
-	AccountIdOf, AccountKeyPairOf, Client, Error, HeaderIdOf, HeaderOf, SyncHeader, TransactionEra,
-	TransactionTracker, UnsignedTransaction,
+	AccountIdOf, AccountKeyPairOf, Client, Error, HeaderIdOf, HeaderOf, SyncHeader,
+	TransactionTracker,
 };
 use relay_utils::relay_loop::Client as RelayClient;
 use sp_core::Pair;
@@ -119,17 +119,10 @@ where
 		// runtime module at target chain may require optimized finality proof
 		let proof = P::FinalityEngine::optimize_proof(&self.client, &header, proof).await?;
 
-		// now we may submit optimized finality proof
-		let transaction_params = self.transaction_params.clone();
-		let call =
-			P::SubmitFinalityProofCallBuilder::build_submit_finality_proof_call(header, proof);
 		self.client
-			.submit_and_watch_signed_extrinsic(
-				&self.transaction_params.signer,
-				move |best_block_id, transaction_nonce| {
-					Ok(UnsignedTransaction::new(call.into(), transaction_nonce)
-						.era(TransactionEra::new(best_block_id, transaction_params.mortality)))
-				},
+			.sign_submit_and_watch_runtime_call::<_, P::SubmitFinalityProofCallBuilder>(
+				self.transaction_params.clone(),
+				P::FinalityEngine::prepare_runtime_call(header, proof),
 			)
 			.await
 	}

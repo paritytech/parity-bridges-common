@@ -16,9 +16,9 @@
 
 use crate::{
 	error::{Error, Result},
-	AccountIdOf, AccountKeyPairOf, BlockNumberOf, Chain, ChainWithGrandpa, ChainWithTransactions,
-	HashOf, HeaderIdOf, HeaderOf, IndexOf, SignedBlockOf, SimpleRuntimeVersion, Subscription,
-	TransactionTracker, UnsignedTransaction,
+	AccountIdOf, AccountKeyPairOf, BlockNumberOf, CallOf, Chain, ChainWithGrandpa,
+	ChainWithTransactions, HashOf, HeaderIdOf, HeaderOf, IndexOf, SignedBlockOf,
+	SimpleRuntimeVersion, Subscription, TransactionParams, TransactionTracker, UnsignedTransaction,
 };
 
 use async_trait::async_trait;
@@ -29,7 +29,10 @@ use sp_core::{
 	storage::{StorageData, StorageKey},
 	Bytes, Pair,
 };
-use sp_runtime::{traits::Header as _, transaction_validity::TransactionValidity};
+use sp_runtime::{
+	traits::{Header as _, TryMorph},
+	transaction_validity::TransactionValidity,
+};
 use sp_trie::StorageProof;
 use sp_version::RuntimeVersion;
 use std::fmt::Debug;
@@ -177,6 +180,19 @@ pub trait Client<C: Chain>: 'static + Send + Sync + Clone + Debug {
 	where
 		C: ChainWithTransactions,
 		AccountIdOf<C>: From<<AccountKeyPairOf<C> as Pair>::Public>;
+	// TODO: do we need `TryMorph` here???
+	/// Does exactly the same as `submit_and_watch_signed_extrinsic`, but creates transaction
+	/// inside the function from given runtime call.
+	async fn sign_submit_and_watch_runtime_call<T, Cnv>(
+		&self,
+		transaction_params: TransactionParams<AccountKeyPairOf<C>>,
+		call: T,
+	) -> Result<TransactionTracker<C, Self>>
+	where
+		C: ChainWithTransactions,
+		AccountIdOf<C>: From<<AccountKeyPairOf<C> as Pair>::Public>,
+		T: Clone + Debug + Send,
+		Cnv: TryMorph<T, Outcome = CallOf<C>> + Send;
 	/// Validate transaction at given block.
 	async fn validate_transaction<SignedTransaction: Encode + Send + 'static>(
 		&self,

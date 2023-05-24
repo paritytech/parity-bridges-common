@@ -40,8 +40,8 @@ pub use crate::{
 	},
 	client::{
 		is_ancient_block, rpc_with_caching as new, ChainRuntimeVersion, Client,
-		OpaqueGrandpaAuthoritiesSet, RpcWithCachingClient, SimpleRuntimeVersion, Subscription,
-		ANCIENT_BLOCK_THRESHOLD,
+		GrandpaFinalityCall, OpaqueGrandpaAuthoritiesSet, RpcWithCachingClient,
+		SimpleRuntimeVersion, Subscription, TransactionParams, ANCIENT_BLOCK_THRESHOLD,
 	},
 	error::{Error, Result},
 	sync_header::SyncHeader,

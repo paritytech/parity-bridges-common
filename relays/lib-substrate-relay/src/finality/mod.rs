@@ -32,10 +32,11 @@ use finality_relay::FinalitySyncPipeline;
 use pallet_bridge_grandpa::{Call as BridgeGrandpaCall, Config as BridgeGrandpaConfig};
 use relay_substrate_client::{
 	transaction_stall_timeout, AccountIdOf, AccountKeyPairOf, BlockNumberOf, CallOf, Chain,
-	ChainWithTransactions, Client, HashOf, HeaderOf, SyncHeader,
+	ChainWithTransactions, Client, GrandpaFinalityCall, HashOf, HeaderOf, SyncHeader,
 };
 use relay_utils::metrics::MetricsParams;
 use sp_core::Pair;
+use sp_runtime::traits::TryMorph;
 use std::{fmt::Debug, marker::PhantomData};
 
 pub mod engine;
@@ -90,7 +91,12 @@ impl<P: SubstrateFinalitySyncPipeline> FinalitySyncPipeline for FinalitySyncPipe
 }
 
 /// Different ways of building `submit_finality_proof` calls.
-pub trait SubmitFinalityProofCallBuilder<P: SubstrateFinalitySyncPipeline> {
+pub trait SubmitFinalityProofCallBuilder<P: SubstrateFinalitySyncPipeline>:
+	TryMorph<
+		<P::FinalityEngine as Engine<P::SourceChain>>::RuntimeCall,
+		Outcome = CallOf<P::TargetChain>,
+	> + Send
+{
 	/// Given source chain header and its finality proofs, build call of `submit_finality_proof`
 	/// function of bridge GRANDPA module at the target chain.
 	fn build_submit_finality_proof_call(
@@ -105,7 +111,7 @@ pub struct DirectSubmitGrandpaFinalityProofCallBuilder<P, R, I> {
 	_phantom: PhantomData<(P, R, I)>,
 }
 
-impl<P, R, I> SubmitFinalityProofCallBuilder<P>
+impl<P, R, I> TryMorph<GrandpaFinalityCall<P::SourceChain>>
 	for DirectSubmitGrandpaFinalityProofCallBuilder<P, R, I>
 where
 	P: SubstrateFinalitySyncPipeline,
@@ -113,8 +119,36 @@ where
 	I: 'static,
 	R::BridgedChain: bp_runtime::Chain<Header = HeaderOf<P::SourceChain>>,
 	CallOf<P::TargetChain>: From<BridgeGrandpaCall<R, I>>,
-	P::FinalityEngine:
-		Engine<P::SourceChain, FinalityProof = GrandpaJustification<HeaderOf<P::SourceChain>>>,
+	P::FinalityEngine: Engine<
+		P::SourceChain,
+		RuntimeCall = GrandpaFinalityCall<P::SourceChain>,
+		FinalityProof = GrandpaJustification<HeaderOf<P::SourceChain>>,
+	>,
+{
+	type Outcome = CallOf<P::TargetChain>;
+
+	fn try_morph(value: GrandpaFinalityCall<P::SourceChain>) -> Result<Self::Outcome, ()> {
+		Ok(BridgeGrandpaCall::<R, I>::submit_finality_proof {
+			finality_target: Box::new(value.header.into_inner()),
+			justification: value.justification,
+		}
+		.into())
+	}
+}
+
+impl<P, R, I> SubmitFinalityProofCallBuilder<P>
+	for DirectSubmitGrandpaFinalityProofCallBuilder<P, R, I>
+where
+	P: SubstrateFinalitySyncPipeline,
+	R: BridgeGrandpaConfig<I> + Send,
+	I: 'static + Send,
+	R::BridgedChain: bp_runtime::Chain<Header = HeaderOf<P::SourceChain>>,
+	CallOf<P::TargetChain>: From<BridgeGrandpaCall<R, I>>,
+	P::FinalityEngine: Engine<
+		P::SourceChain,
+		RuntimeCall = GrandpaFinalityCall<P::SourceChain>,
+		FinalityProof = GrandpaJustification<HeaderOf<P::SourceChain>>,
+	>,
 {
 	fn build_submit_finality_proof_call(
 		header: SyncHeader<HeaderOf<P::SourceChain>>,
@@ -137,6 +171,27 @@ where
 macro_rules! generate_submit_finality_proof_call_builder {
 	($pipeline:ident, $mocked_builder:ident, $bridge_grandpa:path, $submit_finality_proof:path) => {
 		pub struct $mocked_builder;
+
+		impl sp_runtime::traits::TryMorph<
+			relay_substrate_client::GrandpaFinalityCall<
+				<$pipeline as $crate::finality::SubstrateFinalitySyncPipeline>::SourceChain
+			>> for $mocked_builder
+		{
+			type Outcome = relay_substrate_client::CallOf<
+				<$pipeline as $crate::finality::SubstrateFinalitySyncPipeline>::TargetChain
+			>;
+
+			fn try_morph(value: relay_substrate_client::GrandpaFinalityCall<
+				<$pipeline as $crate::finality::SubstrateFinalitySyncPipeline>::SourceChain
+			>) -> Result<Self::Outcome, ()> {
+				bp_runtime::paste::item! {
+					Ok($bridge_grandpa($submit_finality_proof {
+						finality_target: Box::new(value.header.into_inner()),
+						justification: value.justification,
+					}))
+				}
+			}
+		}
 
 		impl $crate::finality::SubmitFinalityProofCallBuilder<$pipeline>
 			for $mocked_builder

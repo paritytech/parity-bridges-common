@@ -27,10 +27,10 @@ use crate::{
 		Client,
 	},
 	error::{Error, Result},
-	transaction_stall_timeout, AccountIdOf, AccountKeyPairOf, BalanceOf, BlockNumberOf, Chain,
-	ChainRuntimeVersion, ChainWithGrandpa, ChainWithTransactions, ConnectionParams, HashOf,
+	transaction_stall_timeout, AccountIdOf, AccountKeyPairOf, BalanceOf, BlockNumberOf, CallOf,
+	Chain, ChainRuntimeVersion, ChainWithGrandpa, ChainWithTransactions, ConnectionParams, HashOf,
 	HeaderIdOf, HeaderOf, IndexOf, SignParam, SignedBlockOf, SimpleRuntimeVersion, Subscription,
-	TransactionTracker, UnsignedTransaction,
+	TransactionParams, TransactionTracker, UnsignedTransaction,
 };
 
 use async_std::sync::{Arc, Mutex, RwLock};
@@ -47,10 +47,13 @@ use sp_core::{
 	storage::{StorageData, StorageKey},
 	Bytes, Hasher, Pair,
 };
-use sp_runtime::transaction_validity::{TransactionSource, TransactionValidity};
+use sp_runtime::{
+	traits::TryMorph,
+	transaction_validity::{TransactionSource, TransactionValidity},
+};
 use sp_trie::StorageProof;
 use sp_version::RuntimeVersion;
-use std::{future::Future, marker::PhantomData};
+use std::{fmt::Debug, future::Future, marker::PhantomData};
 
 const MAX_SUBSCRIPTION_CAPACITY: usize = 4096;
 
@@ -458,6 +461,30 @@ impl<C: Chain> Client<C> for RpcClient<C> {
 		})
 		.await
 		.map_err(|e| Error::failed_to_submit_transaction::<C>(e))
+	}
+
+	async fn sign_submit_and_watch_runtime_call<T, Cnv>(
+		&self,
+		transaction_params: TransactionParams<AccountKeyPairOf<C>>,
+		call: T,
+	) -> Result<TransactionTracker<C, Self>>
+	where
+		C: ChainWithTransactions,
+		AccountIdOf<C>: From<<AccountKeyPairOf<C> as Pair>::Public>,
+		T: Clone + Debug + Send,
+		Cnv: TryMorph<T, Outcome = CallOf<C>> + Send,
+	{
+		let call =
+			Cnv::try_morph(call.clone()).map_err(|_| Error::unsupported_runtime_call::<C>(call))?;
+
+		self.submit_and_watch_signed_extrinsic(
+			&transaction_params.signer,
+			move |best_block_id, transaction_nonce| {
+				Ok(UnsignedTransaction::new(call.into(), transaction_nonce)
+					.era(crate::TransactionEra::new(best_block_id, transaction_params.mortality)))
+			},
+		)
+		.await
 	}
 
 	async fn validate_transaction<SignedTransaction: Encode + Send + 'static>(

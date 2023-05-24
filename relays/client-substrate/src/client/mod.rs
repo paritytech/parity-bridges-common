@@ -30,9 +30,11 @@ pub mod rpc;
 #[allow(clippy::module_inception)]
 mod client;
 mod rpc_api;
+mod runtime_call;
 mod subscription;
 
 pub use client::Client;
+pub use runtime_call::GrandpaFinalityCall;
 pub use subscription::{SharedSubscriptionFactory, Subscription};
 
 /// Type of RPC client with caching support.
@@ -90,4 +92,13 @@ pub enum ChainRuntimeVersion {
 	Auto,
 	/// Custom runtime version, defined by user.
 	Custom(SimpleRuntimeVersion),
+}
+
+/// Transaction creation parameters.
+#[derive(Clone, Debug)]
+pub struct TransactionParams<TS> {
+	/// Transactions author.
+	pub signer: TS,
+	/// Transactions mortality.
+	pub mortality: Option<u32>,
 }

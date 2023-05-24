@@ -31,14 +31,7 @@ pub mod messages_target;
 pub mod on_demand;
 pub mod parachains;
 
-/// Transaction creation parameters.
-#[derive(Clone, Debug)]
-pub struct TransactionParams<TS> {
-	/// Transactions author.
-	pub signer: TS,
-	/// Transactions mortality.
-	pub mortality: Option<u32>,
-}
+pub use relay_substrate_client::TransactionParams;
 
 /// Tagged relay account, which balance may be exposed as metrics by the relay.
 #[derive(Clone, Debug)]
