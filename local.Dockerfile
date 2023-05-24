@@ -4,9 +4,11 @@
 # built can be specified with the `PROJECT` build-arg. For example, to build the `substrate-relay`
 # you would do the following:
 #
-# `docker build ./target -f local.Dockerfile -t local/substrate-relay --build-arg=PROJECT=substrate-relay`
+# `docker build . -f local.Dockerfile -t local/substrate-relay --build-arg=PROJECT=substrate-relay`
 #
 # See the `deployments/README.md` for all the available `PROJECT` values.
+#
+# You may use `scripts/build-containers.sh` to build all binaries and images at once.
 
 FROM docker.io/library/ubuntu:20.04 as runtime
 
