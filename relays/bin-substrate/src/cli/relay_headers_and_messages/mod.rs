@@ -64,7 +64,7 @@ use crate::{
 		},
 		chain_schema::*,
 		relay_headers_and_messages::parachain_to_parachain::ParachainToParachainBridge,
-		CliChain, DefaultClient, HexLaneId, PrometheusParams,
+		CliChain, HexLaneId, PrometheusParams,
 	},
 	declare_chain_cli_schema,
 };
@@ -72,7 +72,7 @@ use bp_messages::LaneId;
 use bp_runtime::BalanceOf;
 use relay_substrate_client::{
 	AccountIdOf, AccountKeyPairOf, Chain, ChainWithBalances, ChainWithMessages,
-	ChainWithTransactions, Parachain,
+	ChainWithTransactions, Client, Parachain,
 };
 use relay_utils::metrics::MetricsParams;
 use sp_core::Pair;
@@ -130,7 +130,7 @@ impl<Left: ChainWithTransactions + CliChain, Right: ChainWithTransactions + CliC
 /// Parameters that are associated with one side of the bridge.
 pub struct BridgeEndCommonParams<Chain: ChainWithTransactions + CliChain> {
 	/// Chain client.
-	pub client: DefaultClient<Chain>,
+	pub client: Client<Chain>,
 	/// Transactions signer.
 	pub sign: AccountKeyPairOf<Chain>,
 	/// Transactions mortality.
@@ -178,7 +178,7 @@ where
 		source_to_target_headers_relay: Arc<dyn OnDemandRelay<Source, Target>>,
 		target_to_source_headers_relay: Arc<dyn OnDemandRelay<Target, Source>>,
 		lane_id: LaneId,
-	) -> MessagesRelayParams<Bridge::MessagesLane, DefaultClient<Source>, DefaultClient<Target>> {
+	) -> MessagesRelayParams<Bridge::MessagesLane> {
 		MessagesRelayParams {
 			source_client: self.source.client.clone(),
 			source_transaction_params: TransactionParams {
@@ -374,8 +374,6 @@ where
 		for lane in lanes {
 			let left_to_right_messages = substrate_relay_helper::messages_lane::run::<
 				<Self::L2R as MessagesCliBridge>::MessagesLane,
-				_,
-				_,
 			>(self.left_to_right().messages_relay_params(
 				left_to_right_on_demand_headers.clone(),
 				right_to_left_on_demand_headers.clone(),
@@ -387,8 +385,6 @@ where
 
 			let right_to_left_messages = substrate_relay_helper::messages_lane::run::<
 				<Self::R2L as MessagesCliBridge>::MessagesLane,
-				_,
-				_,
 			>(self.right_to_left().messages_relay_params(
 				right_to_left_on_demand_headers.clone(),
 				left_to_right_on_demand_headers.clone(),

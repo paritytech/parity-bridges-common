@@ -21,6 +21,7 @@
 mod chain;
 mod client;
 mod error;
+mod rpc;
 mod sync_header;
 mod transaction_tracker;
 
@@ -36,14 +37,14 @@ pub use crate::{
 		AccountKeyPairOf, BlockWithJustification, CallOf, Chain, ChainWithBalances,
 		ChainWithGrandpa, ChainWithMessages, ChainWithTransactions, ChainWithUtilityPallet,
 		FullRuntimeUtilityPallet, MockedRuntimeUtilityPallet, Parachain, RelayChain, SignParam,
-		SignedBlockOf, TransactionStatusOf, UnsignedTransaction, UtilityPallet,
+		TransactionStatusOf, UnsignedTransaction, UtilityPallet,
 	},
 	client::{
-		is_ancient_block, rpc_with_caching as new, ChainRuntimeVersion, Client,
-		OpaqueGrandpaAuthoritiesSet, RpcWithCachingClient, SimpleRuntimeVersion, Subscription,
-		ANCIENT_BLOCK_THRESHOLD,
+		is_ancient_block, ChainRuntimeVersion, Client, OpaqueGrandpaAuthoritiesSet,
+		SimpleRuntimeVersion, Subscription, ANCIENT_BLOCK_THRESHOLD,
 	},
 	error::{Error, Result},
+	rpc::{SubstrateBeefyFinalityClient, SubstrateFinalityClient, SubstrateGrandpaFinalityClient},
 	sync_header::SyncHeader,
 	transaction_tracker::TransactionTracker,
 };

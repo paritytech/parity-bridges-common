@@ -45,7 +45,7 @@ impl SubstrateFinalitySyncPipeline for PolkadotFinalityToBridgeHubKusama {
 	type SubmitFinalityProofCallBuilder = PolkadotFinalityToBridgeHubKusamaCallBuilder;
 
 	async fn start_relay_guards(
-		target_client: &impl Client<Self::TargetChain>,
+		target_client: &Client<Self::TargetChain>,
 		_transaction_params: &TransactionParams<AccountKeyPairOf<Self::TargetChain>>,
 		enable_version_guard: bool,
 	) -> relay_substrate_client::Result<()> {

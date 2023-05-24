@@ -46,11 +46,6 @@ mod resubmit_transactions;
 /// The target that will be used when publishing logs related to this pallet.
 pub const LOG_TARGET: &str = "bridge";
 
-/// Default Substrate client type that we are using. We'll use it all over the glue CLI code
-/// to avoid multiple level generic arguments and constraints. We still allow usage of other
-/// clients in the **core logic code**.
-pub type DefaultClient<C> = relay_substrate_client::RpcWithCachingClient<C>;
-
 /// Parse relay CLI args.
 pub fn parse_args() -> Command {
 	Command::from_args()

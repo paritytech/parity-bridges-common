@@ -22,7 +22,7 @@ use crate::cli::{
 	relay_headers_and_messages::{Full2WayBridgeBase, Full2WayBridgeCommonParams},
 	CliChain,
 };
-use relay_substrate_client::{AccountIdOf, AccountKeyPairOf, ChainWithTransactions, Client};
+use relay_substrate_client::{AccountIdOf, AccountKeyPairOf, ChainWithTransactions};
 use sp_core::Pair;
 use substrate_relay_helper::{
 	finality::SubstrateFinalitySyncPipeline,
@@ -168,7 +168,7 @@ where
 		.await?;
 
 		let left_to_right_on_demand_headers =
-			OnDemandHeadersRelay::<<L2R as RelayToRelayHeadersCliBridge>::Finality, _, _>::new(
+			OnDemandHeadersRelay::<<L2R as RelayToRelayHeadersCliBridge>::Finality>::new(
 				self.common.left.client.clone(),
 				self.common.right.client.clone(),
 				self.left_to_right_transaction_params.clone(),
@@ -176,7 +176,7 @@ where
 				None,
 			);
 		let right_to_left_on_demand_headers =
-			OnDemandHeadersRelay::<<R2L as RelayToRelayHeadersCliBridge>::Finality, _, _>::new(
+			OnDemandHeadersRelay::<<R2L as RelayToRelayHeadersCliBridge>::Finality>::new(
 				self.common.right.client.clone(),
 				self.common.left.client.clone(),
 				self.right_to_left_transaction_params.clone(),

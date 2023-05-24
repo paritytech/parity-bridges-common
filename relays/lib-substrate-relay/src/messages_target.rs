@@ -23,9 +23,7 @@ use crate::{
 		BatchProofTransaction, MessageLaneAdapter, ReceiveMessagesProofCallBuilder,
 		SubstrateMessageLane,
 	},
-	messages_source::{
-		ensure_messages_pallet_active, read_client_state_from_both_chains, SubstrateMessagesProof,
-	},
+	messages_source::{ensure_messages_pallet_active, read_client_state, SubstrateMessagesProof},
 	on_demand::OnDemandRelay,
 	TransactionParams,
 };
@@ -54,24 +52,20 @@ pub type SubstrateMessagesDeliveryProof<C> =
 	(UnrewardedRelayersState, FromBridgedChainMessagesDeliveryProof<HashOf<C>>);
 
 /// Substrate client as Substrate messages target.
-pub struct SubstrateMessagesTarget<P: SubstrateMessageLane, SourceClnt, TargetClnt> {
-	target_client: TargetClnt,
-	source_client: SourceClnt,
+pub struct SubstrateMessagesTarget<P: SubstrateMessageLane> {
+	target_client: Client<P::TargetChain>,
+	source_client: Client<P::SourceChain>,
 	lane_id: LaneId,
 	relayer_id_at_source: AccountIdOf<P::SourceChain>,
 	transaction_params: TransactionParams<AccountKeyPairOf<P::TargetChain>>,
 	source_to_target_headers_relay: Option<Arc<dyn OnDemandRelay<P::SourceChain, P::TargetChain>>>,
 }
 
-impl<P, SourceClnt, TargetClnt> SubstrateMessagesTarget<P, SourceClnt, TargetClnt>
-where
-	P: SubstrateMessageLane,
-	TargetClnt: Client<P::TargetChain>,
-{
+impl<P: SubstrateMessageLane> SubstrateMessagesTarget<P> {
 	/// Create new Substrate headers target.
 	pub fn new(
-		target_client: TargetClnt,
-		source_client: SourceClnt,
+		target_client: Client<P::TargetChain>,
+		source_client: Client<P::SourceChain>,
 		lane_id: LaneId,
 		relayer_id_at_source: AccountIdOf<P::SourceChain>,
 		transaction_params: TransactionParams<AccountKeyPairOf<P::TargetChain>>,
@@ -96,25 +90,22 @@ where
 	) -> Result<Option<InboundLaneData<AccountIdOf<P::SourceChain>>>, SubstrateError> {
 		self.target_client
 			.storage_value(
-				id.hash(),
 				inbound_lane_data_key(
 					P::SourceChain::WITH_CHAIN_MESSAGES_PALLET_NAME,
 					&self.lane_id,
 				),
+				Some(id.1),
 			)
 			.await
 	}
 
 	/// Ensure that the messages pallet at target chain is active.
 	async fn ensure_pallet_active(&self) -> Result<(), SubstrateError> {
-		ensure_messages_pallet_active::<P::TargetChain, P::SourceChain, _>(&self.target_client)
-			.await
+		ensure_messages_pallet_active::<P::TargetChain, P::SourceChain>(&self.target_client).await
 	}
 }
 
-impl<P: SubstrateMessageLane, SourceClnt: Clone, TargetClnt: Clone> Clone
-	for SubstrateMessagesTarget<P, SourceClnt, TargetClnt>
-{
+impl<P: SubstrateMessageLane> Clone for SubstrateMessagesTarget<P> {
 	fn clone(&self) -> Self {
 		Self {
 			target_client: self.target_client.clone(),
@@ -128,12 +119,7 @@ impl<P: SubstrateMessageLane, SourceClnt: Clone, TargetClnt: Clone> Clone
 }
 
 #[async_trait]
-impl<
-		P: SubstrateMessageLane,
-		SourceClnt: Client<P::SourceChain>,
-		TargetClnt: Client<P::TargetChain>,
-	> RelayClient for SubstrateMessagesTarget<P, SourceClnt, TargetClnt>
-{
+impl<P: SubstrateMessageLane> RelayClient for SubstrateMessagesTarget<P> {
 	type Error = SubstrateError;
 
 	async fn reconnect(&mut self) -> Result<(), SubstrateError> {
@@ -157,18 +143,14 @@ impl<
 }
 
 #[async_trait]
-impl<
-		P: SubstrateMessageLane,
-		SourceClnt: Client<P::SourceChain>,
-		TargetClnt: Client<P::TargetChain>,
-	> TargetClient<MessageLaneAdapter<P>> for SubstrateMessagesTarget<P, SourceClnt, TargetClnt>
+impl<P: SubstrateMessageLane> TargetClient<MessageLaneAdapter<P>> for SubstrateMessagesTarget<P>
 where
 	AccountIdOf<P::TargetChain>: From<<AccountKeyPairOf<P::TargetChain> as Pair>::Public>,
 	BalanceOf<P::SourceChain>: TryFrom<BalanceOf<P::TargetChain>>,
 {
 	type BatchTransaction =
 		BatchProofTransaction<P::TargetChain, P::SourceChain, P::TargetBatchCallBuilder>;
-	type TransactionTracker = TransactionTracker<P::TargetChain, TargetClnt>;
+	type TransactionTracker = TransactionTracker<P::TargetChain, Client<P::TargetChain>>;
 
 	async fn state(&self) -> Result<TargetClientState<MessageLaneAdapter<P>>, SubstrateError> {
 		// we can't continue to deliver confirmations if source node is out of sync, because
@@ -181,7 +163,7 @@ where
 		// we can't relay messages if messages pallet at target chain is halted
 		self.ensure_pallet_active().await?;
 
-		read_client_state_from_both_chains(&self.target_client, &self.source_client).await
+		read_client_state(&self.target_client, Some(&self.source_client)).await
 	}
 
 	async fn latest_received_nonce(
@@ -237,7 +219,7 @@ where
 		);
 		let proof = self
 			.target_client
-			.prove_storage(id.hash(), vec![inbound_data_key])
+			.prove_storage(vec![inbound_data_key], id.1)
 			.await?
 			.into_iter_nodes()
 			.collect();

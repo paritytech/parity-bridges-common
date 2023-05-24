@@ -302,9 +302,9 @@ pub trait StorageMapKeyProvider {
 	/// The same as `StorageMap::Hasher1`.
 	type Hasher: StorageHasher;
 	/// The same as `StorageMap::Key1`.
-	type Key: FullCodec + Send + Sync;
+	type Key: FullCodec;
 	/// The same as `StorageMap::Value`.
-	type Value: 'static + FullCodec;
+	type Value: FullCodec;
 
 	/// This is a copy of the
 	/// `frame_support::storage::generator::StorageMap::storage_map_final_key`.
@@ -324,13 +324,13 @@ pub trait StorageDoubleMapKeyProvider {
 	/// The same as `StorageDoubleMap::Hasher1`.
 	type Hasher1: StorageHasher;
 	/// The same as `StorageDoubleMap::Key1`.
-	type Key1: FullCodec + Send + Sync;
+	type Key1: FullCodec;
 	/// The same as `StorageDoubleMap::Hasher2`.
 	type Hasher2: StorageHasher;
 	/// The same as `StorageDoubleMap::Key2`.
-	type Key2: FullCodec + Send + Sync;
+	type Key2: FullCodec;
 	/// The same as `StorageDoubleMap::Value`.
-	type Value: 'static + FullCodec;
+	type Value: FullCodec;
 
 	/// This is a copy of the
 	/// `frame_support::storage::generator::StorageDoubleMap::storage_double_map_final_key`.

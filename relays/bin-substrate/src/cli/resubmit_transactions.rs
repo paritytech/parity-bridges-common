@@ -141,7 +141,7 @@ impl PrioritySelectionStrategy {
 	/// Select target priority.
 	async fn select_target_priority<C: ChainWithTransactions>(
 		&self,
-		client: &impl Client<C>,
+		client: &Client<C>,
 		context: &Context<C>,
 	) -> Result<Option<TransactionPriority>, SubstrateError> {
 		match *self {
@@ -202,7 +202,7 @@ impl<C: Chain> Context<C> {
 
 /// Run resubmit transactions loop.
 async fn run_until_connection_lost<C: ChainWithTransactions>(
-	client: impl Client<C>,
+	client: Client<C>,
 	transaction_params: TransactionParams<AccountKeyPairOf<C>>,
 	mut context: Context<C>,
 ) -> Result<(), FailedClient> {
@@ -227,7 +227,7 @@ async fn run_until_connection_lost<C: ChainWithTransactions>(
 
 /// Run single loop iteration.
 async fn run_loop_iteration<C: ChainWithTransactions>(
-	client: impl Client<C>,
+	client: Client<C>,
 	transaction_params: TransactionParams<AccountKeyPairOf<C>>,
 	mut context: Context<C>,
 ) -> Result<Context<C>, SubstrateError> {
@@ -302,7 +302,7 @@ async fn run_loop_iteration<C: ChainWithTransactions>(
 
 /// Search transaction pool for transaction, signed by given key pair.
 async fn lookup_signer_transaction<C: ChainWithTransactions>(
-	client: &impl Client<C>,
+	client: &Client<C>,
 	key_pair: &AccountKeyPairOf<C>,
 ) -> Result<Option<C::SignedTransaction>, SubstrateError> {
 	let pending_transactions = client.pending_extrinsics().await?;
@@ -321,10 +321,10 @@ async fn lookup_signer_transaction<C: ChainWithTransactions>(
 
 /// Read priority of best signed transaction of previous block.
 async fn read_previous_block_best_priority<C: ChainWithTransactions>(
-	client: &impl Client<C>,
+	client: &Client<C>,
 	context: &Context<C>,
 ) -> Result<Option<TransactionPriority>, SubstrateError> {
-	let best_block = client.block_by_hash(context.best_header.hash()).await?;
+	let best_block = client.get_block(Some(context.best_header.hash())).await?;
 	let best_transaction = best_block
 		.extrinsics()
 		.iter()
@@ -343,7 +343,7 @@ async fn read_previous_block_best_priority<C: ChainWithTransactions>(
 
 /// Select priority of some queued transaction.
 async fn select_priority_from_queue<C: ChainWithTransactions>(
-	client: &impl Client<C>,
+	client: &Client<C>,
 	context: &Context<C>,
 ) -> Result<Option<TransactionPriority>, SubstrateError> {
 	// select transaction from the queue
@@ -387,7 +387,7 @@ fn select_transaction_from_queue<C: Chain>(
 
 /// Try to find appropriate tip for transaction so that its priority is larger than given.
 async fn update_transaction_tip<C: ChainWithTransactions>(
-	client: &impl Client<C>,
+	client: &Client<C>,
 	transaction_params: &TransactionParams<AccountKeyPairOf<C>>,
 	at_block: HeaderIdOf<C>,
 	tx: C::SignedTransaction,
@@ -426,7 +426,7 @@ async fn update_transaction_tip<C: ChainWithTransactions>(
 					SignParam {
 						spec_version: runtime_version.spec_version,
 						transaction_version: runtime_version.transaction_version,
-						genesis_hash: client.genesis_hash(),
+						genesis_hash: *client.genesis_hash(),
 						signer: transaction_params.signer.clone(),
 					},
 					unsigned_tx.clone(),
@@ -450,7 +450,7 @@ async fn update_transaction_tip<C: ChainWithTransactions>(
 			SignParam {
 				spec_version: runtime_version.spec_version,
 				transaction_version: runtime_version.transaction_version,
-				genesis_hash: client.genesis_hash(),
+				genesis_hash: *client.genesis_hash(),
 				signer: transaction_params.signer.clone(),
 			},
 			unsigned_tx.era(relay_substrate_client::TransactionEra::new(
