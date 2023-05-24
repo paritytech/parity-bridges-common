@@ -27,8 +27,8 @@ use codec::{Decode, Encode};
 use finality_grandpa::voter_set::VoterSet;
 use num_traits::{One, Zero};
 use relay_substrate_client::{
-	BlockNumberOf, Chain, ChainWithGrandpa, Client, Error as SubstrateError, HashOf, HeaderOf,
-	Subscription,
+	BlockNumberOf, Chain, ChainWithGrandpa, Client, ClientT, Error as SubstrateError, HashOf,
+	HeaderOf, Subscription,
 };
 use sp_consensus_grandpa::{AuthorityList as GrandpaAuthoritiesSet, GRANDPA_ENGINE_ID};
 use sp_core::{storage::StorageKey, Bytes};
@@ -57,7 +57,7 @@ pub trait Engine<C: Chain>: Send {
 
 	/// Returns `Ok(true)` if finality pallet at the bridged chain has already been initialized.
 	async fn is_initialized<TargetChain: Chain>(
-		target_client: &impl Client<TargetChain>,
+		target_client: &Client<TargetChain>,
 	) -> Result<bool, SubstrateError> {
 		Ok(target_client
 			.raw_storage_value(target_client.best_header_hash().await?, Self::is_initialized_key())
@@ -71,7 +71,7 @@ pub trait Engine<C: Chain>: Send {
 
 	/// Returns `Ok(true)` if finality pallet at the bridged chain is halted.
 	async fn is_halted<TargetChain: Chain>(
-		target_client: &impl Client<TargetChain>,
+		target_client: &Client<TargetChain>,
 	) -> Result<bool, SubstrateError> {
 		Ok(target_client
 			.storage_value::<Self::OperatingMode>(
@@ -84,20 +84,18 @@ pub trait Engine<C: Chain>: Send {
 	}
 
 	/// A method to subscribe to encoded finality proofs, given source client.
-	async fn finality_proofs(
-		client: &impl Client<C>,
-	) -> Result<Subscription<Bytes>, SubstrateError>;
+	async fn finality_proofs(client: &Client<C>) -> Result<Subscription<Bytes>, SubstrateError>;
 
 	/// Optimize finality proof before sending it to the target node.
 	async fn optimize_proof<TargetChain: Chain>(
-		target_client: &impl Client<TargetChain>,
+		target_client: &Client<TargetChain>,
 		header: &C::Header,
 		proof: Self::FinalityProof,
 	) -> Result<Self::FinalityProof, SubstrateError>;
 
 	/// Prepare initialization data for the finality bridge pallet.
 	async fn prepare_initialization_data(
-		client: impl Client<C>,
+		client: Client<C>,
 	) -> Result<Self::InitializationData, Error<HashOf<C>, BlockNumberOf<C>>>;
 }
 
@@ -107,7 +105,7 @@ pub struct Grandpa<C>(PhantomData<C>);
 impl<C: ChainWithGrandpa> Grandpa<C> {
 	/// Read header by hash from the source client.
 	async fn source_header(
-		source_client: &impl Client<C>,
+		source_client: &Client<C>,
 		header_hash: C::Hash,
 	) -> Result<C::Header, Error<HashOf<C>, BlockNumberOf<C>>> {
 		source_client
@@ -118,7 +116,7 @@ impl<C: ChainWithGrandpa> Grandpa<C> {
 
 	/// Read GRANDPA authorities set at given header.
 	async fn source_authorities_set(
-		source_client: &impl Client<C>,
+		source_client: &Client<C>,
 		header_hash: C::Hash,
 	) -> Result<GrandpaAuthoritiesSet, Error<HashOf<C>, BlockNumberOf<C>>> {
 		const SUB_API_GRANDPA_AUTHORITIES: &str = "GrandpaApi_grandpa_authorities";
@@ -146,14 +144,12 @@ impl<C: ChainWithGrandpa> Engine<C> for Grandpa<C> {
 		bp_header_chain::storage_keys::pallet_operating_mode_key(C::WITH_CHAIN_GRANDPA_PALLET_NAME)
 	}
 
-	async fn finality_proofs(
-		client: &impl Client<C>,
-	) -> Result<Subscription<Bytes>, SubstrateError> {
+	async fn finality_proofs(client: &Client<C>) -> Result<Subscription<Bytes>, SubstrateError> {
 		client.subscribe_grandpa_finality_justifications().await
 	}
 
 	async fn optimize_proof<TargetChain: Chain>(
-		target_client: &impl Client<TargetChain>,
+		target_client: &Client<TargetChain>,
 		header: &C::Header,
 		proof: Self::FinalityProof,
 	) -> Result<Self::FinalityProof, SubstrateError> {
@@ -196,7 +192,7 @@ impl<C: ChainWithGrandpa> Engine<C> for Grandpa<C> {
 
 	/// Prepare initialization data for the GRANDPA verifier pallet.
 	async fn prepare_initialization_data(
-		source_client: impl Client<C>,
+		source_client: Client<C>,
 	) -> Result<Self::InitializationData, Error<HashOf<C>, BlockNumberOf<C>>> {
 		// In ideal world we just need to get best finalized header and then to read GRANDPA
 		// authorities set (`pallet_grandpa::CurrentSetId` + `GrandpaApi::grandpa_authorities()`) at

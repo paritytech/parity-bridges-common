@@ -26,7 +26,7 @@ use frame_system::AccountInfo;
 use pallet_balances::AccountData;
 use relay_substrate_client::{
 	metrics::{FloatStorageValue, FloatStorageValueMetric},
-	AccountIdOf, BalanceOf, Chain, ChainWithBalances, ChainWithMessages, Client,
+	AccountIdOf, BalanceOf, Chain, ChainWithBalances, ChainWithMessages, Client, ClientT,
 	Error as SubstrateError, IndexOf,
 };
 use relay_utils::metrics::{MetricsParams, StandaloneMetric};
@@ -36,7 +36,7 @@ use std::{convert::TryFrom, fmt::Debug, marker::PhantomData};
 
 /// Add relay accounts balance metrics.
 pub async fn add_relay_balances_metrics<C: ChainWithBalances, BC: ChainWithMessages>(
-	client: impl Client<C>,
+	client: Client<C>,
 	metrics: &mut MetricsParams,
 	relay_accounts: &Vec<TaggedAccount<AccountIdOf<C>>>,
 	lanes: &[LaneId],

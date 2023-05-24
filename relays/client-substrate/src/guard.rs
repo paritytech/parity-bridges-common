@@ -98,7 +98,7 @@ fn conditions_check_delay<C: Chain>() -> Duration {
 }
 
 #[async_trait]
-impl<C: ChainWithBalances, Clnt: Client<C>> Environment<C> for Clnt {
+impl<C: ChainWithBalances> Environment<C> for Client<C> {
 	type Error = Error;
 
 	async fn runtime_version(&mut self) -> Result<RuntimeVersion, Self::Error> {

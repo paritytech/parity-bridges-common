@@ -26,7 +26,7 @@ use sp_core::Pair;
 
 use bp_runtime::HeaderIdOf;
 use relay_substrate_client::{
-	AccountKeyPairOf, Chain, ChainWithTransactions, Client, Error as SubstrateError,
+	AccountKeyPairOf, Chain, ChainWithTransactions, Client, ClientT, Error as SubstrateError,
 	UnsignedTransaction,
 };
 use relay_utils::{TrackedTransactionStatus, TransactionTracker};
@@ -39,8 +39,8 @@ pub async fn initialize<
 	TargetChain: ChainWithTransactions,
 	F,
 >(
-	source_client: impl Client<SourceChain>,
-	target_client: impl Client<TargetChain>,
+	source_client: Client<SourceChain>,
+	target_client: Client<TargetChain>,
 	target_signer: AccountKeyPairOf<TargetChain>,
 	prepare_initialize_transaction: F,
 	dry_run: bool,
@@ -101,8 +101,8 @@ async fn do_initialize<
 	TargetChain: ChainWithTransactions,
 	F,
 >(
-	source_client: impl Client<SourceChain>,
-	target_client: impl Client<TargetChain>,
+	source_client: Client<SourceChain>,
+	target_client: Client<TargetChain>,
 	target_signer: AccountKeyPairOf<TargetChain>,
 	prepare_initialize_transaction: F,
 	dry_run: bool,

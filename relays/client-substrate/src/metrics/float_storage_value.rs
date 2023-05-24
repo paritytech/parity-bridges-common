@@ -14,7 +14,7 @@
 // You should have received a copy of the GNU General Public License
 // along with Parity Bridges Common.  If not, see <http://www.gnu.org/licenses/>.
 
-use crate::{Chain, Client, Error as SubstrateError};
+use crate::{Chain, Client, ClientT, Error as SubstrateError};
 
 use async_std::sync::{Arc, RwLock};
 use async_trait::async_trait;
@@ -66,20 +66,20 @@ impl FloatStorageValue for FixedU128OrOne {
 
 /// Metric that represents fixed-point runtime storage value as float gauge.
 #[derive(Clone, Debug)]
-pub struct FloatStorageValueMetric<C, Clnt, V> {
+pub struct FloatStorageValueMetric<C: Chain, V: FloatStorageValue> {
 	value_converter: V,
-	client: Clnt,
+	client: Client<C>,
 	storage_key: StorageKey,
 	metric: Gauge<F64>,
 	shared_value_ref: F64SharedRef,
-	_phantom: PhantomData<(C, V)>,
+	_phantom: PhantomData<V>,
 }
 
-impl<C, Clnt, V> FloatStorageValueMetric<C, Clnt, V> {
+impl<C: Chain, V: FloatStorageValue> FloatStorageValueMetric<C, V> {
 	/// Create new metric.
 	pub fn new(
 		value_converter: V,
-		client: Clnt,
+		client: Client<C>,
 		storage_key: StorageKey,
 		name: String,
 		help: String,
@@ -101,18 +101,14 @@ impl<C, Clnt, V> FloatStorageValueMetric<C, Clnt, V> {
 	}
 }
 
-impl<C: Chain, Clnt: Client<C>, V: FloatStorageValue> Metric
-	for FloatStorageValueMetric<C, Clnt, V>
-{
+impl<C: Chain, V: FloatStorageValue> Metric for FloatStorageValueMetric<C, V> {
 	fn register(&self, registry: &Registry) -> Result<(), PrometheusError> {
 		register(self.metric.clone(), registry).map(drop)
 	}
 }
 
 #[async_trait]
-impl<C: Chain, Clnt: Client<C>, V: FloatStorageValue> StandaloneMetric
-	for FloatStorageValueMetric<C, Clnt, V>
-{
+impl<C: Chain, V: FloatStorageValue> StandaloneMetric for FloatStorageValueMetric<C, V> {
 	fn update_interval(&self) -> Duration {
 		C::AVERAGE_BLOCK_INTERVAL * UPDATE_INTERVAL_IN_BLOCKS
 	}

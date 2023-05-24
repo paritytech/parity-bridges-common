@@ -23,12 +23,12 @@ use crate::cli::{
 		RelayToRelayHeadersCliBridge,
 	},
 	relay_headers_and_messages::{Full2WayBridgeBase, Full2WayBridgeCommonParams},
-	CliChain, DefaultClient,
+	CliChain,
 };
 use bp_polkadot_core::parachains::ParaHash;
 use pallet_bridge_parachains::{RelayBlockHash, RelayBlockHasher, RelayBlockNumber};
 use relay_substrate_client::{
-	AccountIdOf, AccountKeyPairOf, Chain, ChainWithTransactions, Client, Parachain,
+	AccountIdOf, AccountKeyPairOf, Chain, ChainWithTransactions, Client, ClientT, Parachain,
 };
 use sp_core::Pair;
 use substrate_relay_helper::{
@@ -53,7 +53,7 @@ pub struct RelayToParachainBridge<
 	pub common:
 		Full2WayBridgeCommonParams<<R2L as CliBridgeBase>::Target, <L2R as CliBridgeBase>::Target>,
 	/// Client of the right relay chain.
-	pub right_relay: DefaultClient<<R2L as ParachainToRelayHeadersCliBridge>::SourceRelay>,
+	pub right_relay: Client<<R2L as ParachainToRelayHeadersCliBridge>::SourceRelay>,
 
 	/// Override for right_relay->left headers signer.
 	pub right_headers_to_left_transaction_params:
@@ -216,28 +216,23 @@ where
 		.await?;
 
 		let left_to_right_on_demand_headers =
-			OnDemandHeadersRelay::<<L2R as RelayToRelayHeadersCliBridge>::Finality, _, _>::new(
+			OnDemandHeadersRelay::<<L2R as RelayToRelayHeadersCliBridge>::Finality>::new(
 				self.common.left.client.clone(),
 				self.common.right.client.clone(),
 				self.left_headers_to_right_transaction_params.clone(),
 				self.common.shared.only_mandatory_headers,
 				None,
 			);
-		let right_relay_to_left_on_demand_headers = OnDemandHeadersRelay::<
-			<R2L as ParachainToRelayHeadersCliBridge>::RelayFinality,
-			_,
-			_,
-		>::new(
-			self.right_relay.clone(),
-			self.common.left.client.clone(),
-			self.right_headers_to_left_transaction_params.clone(),
-			self.common.shared.only_mandatory_headers,
-			Some(self.common.metrics_params.clone()),
-		);
+		let right_relay_to_left_on_demand_headers =
+			OnDemandHeadersRelay::<<R2L as ParachainToRelayHeadersCliBridge>::RelayFinality>::new(
+				self.right_relay.clone(),
+				self.common.left.client.clone(),
+				self.right_headers_to_left_transaction_params.clone(),
+				self.common.shared.only_mandatory_headers,
+				Some(self.common.metrics_params.clone()),
+			);
 		let right_to_left_on_demand_parachains = OnDemandParachainsRelay::<
 			<R2L as ParachainToRelayHeadersCliBridge>::ParachainFinality,
-			_,
-			_,
 		>::new(
 			self.right_relay.clone(),
 			self.common.left.client.clone(),

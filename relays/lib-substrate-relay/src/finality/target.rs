@@ -27,24 +27,22 @@ use crate::{
 use async_trait::async_trait;
 use finality_relay::TargetClient;
 use relay_substrate_client::{
-	AccountIdOf, AccountKeyPairOf, Client, Error, HeaderIdOf, HeaderOf, SyncHeader, TransactionEra,
-	TransactionTracker, UnsignedTransaction,
+	AccountIdOf, AccountKeyPairOf, Client, ClientT, Error, HeaderIdOf, HeaderOf, SyncHeader,
+	TransactionEra, TransactionTracker, UnsignedTransaction,
 };
 use relay_utils::relay_loop::Client as RelayClient;
 use sp_core::Pair;
 
 /// Substrate client as Substrate finality target.
-pub struct SubstrateFinalityTarget<P: SubstrateFinalitySyncPipeline, TargetClnt> {
-	client: TargetClnt,
+pub struct SubstrateFinalityTarget<P: SubstrateFinalitySyncPipeline> {
+	client: Client<P::TargetChain>,
 	transaction_params: TransactionParams<AccountKeyPairOf<P::TargetChain>>,
 }
 
-impl<P: SubstrateFinalitySyncPipeline, TargetClnt: Client<P::TargetChain>>
-	SubstrateFinalityTarget<P, TargetClnt>
-{
+impl<P: SubstrateFinalitySyncPipeline> SubstrateFinalityTarget<P> {
 	/// Create new Substrate headers target.
 	pub fn new(
-		client: TargetClnt,
+		client: Client<P::TargetChain>,
 		transaction_params: TransactionParams<AccountKeyPairOf<P::TargetChain>>,
 	) -> Self {
 		SubstrateFinalityTarget { client, transaction_params }
@@ -66,9 +64,7 @@ impl<P: SubstrateFinalitySyncPipeline, TargetClnt: Client<P::TargetChain>>
 	}
 }
 
-impl<P: SubstrateFinalitySyncPipeline, TargetClnt: Clone> Clone
-	for SubstrateFinalityTarget<P, TargetClnt>
-{
+impl<P: SubstrateFinalitySyncPipeline> Clone for SubstrateFinalityTarget<P> {
 	fn clone(&self) -> Self {
 		SubstrateFinalityTarget {
 			client: self.client.clone(),
@@ -78,9 +74,7 @@ impl<P: SubstrateFinalitySyncPipeline, TargetClnt: Clone> Clone
 }
 
 #[async_trait]
-impl<P: SubstrateFinalitySyncPipeline, TargetClnt: Client<P::TargetChain>> RelayClient
-	for SubstrateFinalityTarget<P, TargetClnt>
-{
+impl<P: SubstrateFinalitySyncPipeline> RelayClient for SubstrateFinalityTarget<P> {
 	type Error = Error;
 
 	async fn reconnect(&mut self) -> Result<(), Error> {
@@ -89,12 +83,12 @@ impl<P: SubstrateFinalitySyncPipeline, TargetClnt: Client<P::TargetChain>> Relay
 }
 
 #[async_trait]
-impl<P: SubstrateFinalitySyncPipeline, TargetClnt: Client<P::TargetChain>>
-	TargetClient<FinalitySyncPipelineAdapter<P>> for SubstrateFinalityTarget<P, TargetClnt>
+impl<P: SubstrateFinalitySyncPipeline> TargetClient<FinalitySyncPipelineAdapter<P>>
+	for SubstrateFinalityTarget<P>
 where
 	AccountIdOf<P::TargetChain>: From<<AccountKeyPairOf<P::TargetChain> as Pair>::Public>,
 {
-	type TransactionTracker = TransactionTracker<P::TargetChain, TargetClnt>;
+	type TransactionTracker = TransactionTracker<P::TargetChain, Client<P::TargetChain>>;
 
 	async fn best_finalized_source_block_id(&self) -> Result<HeaderIdOf<P::SourceChain>, Error> {
 		// we can't continue to relay finality if target node is out of sync, because
@@ -105,6 +99,7 @@ where
 
 		Ok(crate::messages_source::read_client_state::<P::TargetChain, P::SourceChain>(
 			&self.client,
+			None,
 		)
 		.await?
 		.best_finalized_peer_at_best_self

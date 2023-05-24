@@ -26,7 +26,7 @@ use polkadot_runtime_common::{
 	paras_registrar::Call as ParaRegistrarCall, slots::Call as ParaSlotsCall,
 };
 use polkadot_runtime_parachains::paras::ParaLifecycle;
-use relay_substrate_client::{AccountIdOf, CallOf, Chain, Client, UnsignedTransaction};
+use relay_substrate_client::{AccountIdOf, CallOf, Chain, Client, ClientT, UnsignedTransaction};
 use relay_utils::{TrackedTransactionStatus, TransactionTracker};
 use rialto_runtime::SudoCall;
 use sp_core::{
@@ -230,7 +230,7 @@ impl RegisterParachain {
 
 /// Wait until parachain state is changed.
 async fn wait_para_state<Relaychain: Chain>(
-	relay_client: &impl Client<Relaychain>,
+	relay_client: &Client<Relaychain>,
 	para_state_key: &[u8],
 	from_states: &[ParaLifecycle],
 	to_state: ParaLifecycle,

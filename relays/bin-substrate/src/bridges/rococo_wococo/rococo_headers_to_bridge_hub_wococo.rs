@@ -19,7 +19,7 @@
 use crate::cli::bridge::{CliBridgeBase, RelayToRelayHeadersCliBridge};
 
 use async_trait::async_trait;
-use relay_substrate_client::{AccountKeyPairOf, Client};
+use relay_substrate_client::{AccountKeyPairOf, Client, ClientT};
 use substrate_relay_helper::{
 	finality::{engine::Grandpa as GrandpaFinalityEngine, SubstrateFinalitySyncPipeline},
 	TransactionParams,
@@ -45,7 +45,7 @@ impl SubstrateFinalitySyncPipeline for RococoFinalityToBridgeHubWococo {
 	type SubmitFinalityProofCallBuilder = RococoFinalityToBridgeHubWococoCallBuilder;
 
 	async fn start_relay_guards(
-		target_client: &impl Client<Self::TargetChain>,
+		target_client: &Client<Self::TargetChain>,
 		_transaction_params: &TransactionParams<AccountKeyPairOf<Self::TargetChain>>,
 		enable_version_guard: bool,
 	) -> relay_substrate_client::Result<()> {
