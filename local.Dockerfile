@@ -10,6 +10,7 @@
 #
 # You may use `scripts/build-containers.sh` to build all binaries and images at once.
 
+# This image needs to be binary compatible with the host machine (where images are built).
 FROM docker.io/library/ubuntu:20.04 as runtime
 
 USER root
@@ -39,7 +40,6 @@ WORKDIR /home/user
 ARG PROFILE=release
 ARG PROJECT=substrate-relay
 
-# assume that the host machine is binary compatible with Ubuntu
 COPY --chown=user:user ./target/${PROFILE}/${PROJECT} ./
 
 # check if executable works in this container
