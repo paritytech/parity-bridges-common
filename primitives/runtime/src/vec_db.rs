@@ -21,6 +21,7 @@ pub type RawStorageKey = Vec<u8>;
 pub enum VecDbError {
 	UnableToGenerateTrieProof,
 	InvalidProof,
+	UnsortedEntries,
 	UnavailableKey,
 	EmptyVal,
 	DecodeError,
@@ -77,9 +78,19 @@ impl UntrustedVecDb {
 		}
 		.map_err(|_| VecDbError::InvalidProof)?;
 
-		Ok(TrustedVecDb {
-			db: self.db.drain(..).map(|(key, val)| (TrackedStorageKey::new(key), val)).collect(),
-		})
+		// Fill the `TrustedVecDb`
+		let mut trusted_db = Vec::with_capacity(self.db.len());
+		let mut iter = self.db.drain(..).peekable();
+		while let Some((key, val)) = iter.next() {
+			// Let's also make sure that the db is actually sorted.
+			if let Some((next_key, _)) = iter.peek() {
+				if next_key <= &key {
+					return Err(VecDbError::UnsortedEntries)
+				}
+			}
+			trusted_db.push((TrackedStorageKey::new(key), val))
+		}
+		Ok(TrustedVecDb { db: trusted_db })
 	}
 }
 
