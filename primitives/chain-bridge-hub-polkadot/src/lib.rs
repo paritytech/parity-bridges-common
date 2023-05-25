@@ -24,7 +24,7 @@ use bp_messages::*;
 use bp_runtime::{
 	decl_bridge_finality_runtime_apis, decl_bridge_messages_runtime_apis, Chain, Parachain,
 };
-use frame_support::{dispatch::DispatchClass, RuntimeDebug};
+use frame_support::{dispatch::DispatchClass, RuntimeDebug, StateVersion};
 use sp_std::prelude::*;
 
 /// BridgeHubPolkadot parachain.
@@ -41,6 +41,8 @@ impl Chain for BridgeHubPolkadot {
 	type Balance = Balance;
 	type Index = Index;
 	type Signature = Signature;
+
+	const STATE_VERSION: StateVersion = StateVersion::V1;
 
 	fn max_extrinsic_size() -> u32 {
 		*BlockLength::get().max.get(DispatchClass::Normal)

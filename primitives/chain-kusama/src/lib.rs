@@ -19,6 +19,7 @@
 #![allow(clippy::too_many_arguments)]
 
 pub use bp_polkadot_core::*;
+use frame_support::StateVersion;
 
 use bp_header_chain::ChainWithGrandpa;
 use bp_runtime::{decl_bridge_finality_runtime_apis, Chain};
@@ -37,6 +38,8 @@ impl Chain for Kusama {
 	type Balance = <PolkadotLike as Chain>::Balance;
 	type Index = <PolkadotLike as Chain>::Index;
 	type Signature = <PolkadotLike as Chain>::Signature;
+
+	const STATE_VERSION: StateVersion = StateVersion::V0;
 
 	fn max_extrinsic_size() -> u32 {
 		PolkadotLike::max_extrinsic_size()

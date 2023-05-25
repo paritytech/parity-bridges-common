@@ -1,3 +1,21 @@
+// Copyright 2019-2023 Parity Technologies (UK) Ltd.
+// This file is part of Parity Bridges Common.
+
+// Parity Bridges Common is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+
+// Parity Bridges Common is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+
+// You should have received a copy of the GNU General Public License
+// along with Parity Bridges Common.  If not, see <http://www.gnu.org/licenses/>.
+
+//! Logic for working with more efficient storage proofs.
+
 use frame_support::{PalletError, StateVersion};
 use sp_core::{storage::TrackedStorageKey, RuntimeDebug};
 use sp_runtime::SaturatedConversion;
@@ -19,12 +37,19 @@ pub type RawStorageKey = Vec<u8>;
 /// Errors that can occur when interacting with `UntrustedVecDb` and `TrustedVecDb`.
 #[derive(Clone, Encode, Decode, RuntimeDebug, PartialEq, Eq, PalletError, TypeInfo)]
 pub enum VecDbError {
+	/// Call to `generate_trie_proof()` failed.
 	UnableToGenerateTrieProof,
+	/// Call to `verify_trie_proof()` failed.
 	InvalidProof,
+	/// The `Vec` entries weren't sorted as expected.
 	UnsortedEntries,
+	/// The provided key wasn't found.
 	UnavailableKey,
+	/// The value associated to the provided key is `None`.
 	EmptyVal,
+	/// Error decoding value associated to a provided key.
 	DecodeError,
+	/// At least one key in the `VecDb` wasn't read.
 	UnusedKey,
 }
 
@@ -45,6 +70,9 @@ impl UntrustedVecDb {
 		root: TrieHash<LayoutV1<H>>,
 		mut keys: Vec<impl AsRef<[u8]> + Ord>,
 	) -> Result<Self, VecDbError> {
+		// It's ok to use `LayoutV1` in this function, no matter the actual underlying layout,
+		// because we only perform read operations. When reading `LayoutV0` and `LayoutV1` lead to
+		// the same result.
 		let mem_db = read_proof.into_memory_db();
 		let trie_db = TrieDBBuilder::<LayoutV1<H>>::new(&mem_db, &root).build();
 
@@ -69,7 +97,7 @@ impl UntrustedVecDb {
 		state_root: &TrieHash<LayoutV1<H>>,
 	) -> Result<TrustedVecDb, VecDbError> {
 		// First we verify the proof for the `UntrustedVecDb`.
-		// Note that `verify_trie_proof()` also checks for duplicate keys.
+		// Note that `verify_trie_proof()` also checks for duplicate keys and unused nodes.
 		match state_version {
 			StateVersion::V0 =>
 				verify_trie_proof::<LayoutV0<H>, _, _, _>(state_root, &self.proof, &self.db),
@@ -196,6 +224,21 @@ mod tests {
 	}
 
 	#[test]
+	fn verify_fails_when_proof_contains_unneeded_nodes() {
+		let (root, maybe_db) = generate_untrusted_vec_db(vec![
+			(b"key1".to_vec(), Some(b"val1".to_vec().encode())),
+			(b"key2".to_vec(), Some(b"val2".to_vec().encode())),
+		]);
+		let mut db = maybe_db.unwrap();
+		assert!(db.db.pop().is_some());
+
+		assert!(matches!(
+			db.verify::<Hasher>(StateVersion::V1, &root),
+			Err(VecDbError::InvalidProof)
+		));
+	}
+
+	#[test]
 	fn verify_fails_when_db_contains_duplicate_nodes() {
 		let (root, maybe_db) = generate_untrusted_vec_db(vec![(b"key".to_vec(), None)]);
 		let mut db = maybe_db.unwrap();
@@ -204,6 +247,21 @@ mod tests {
 		assert!(matches!(
 			db.verify::<Hasher>(StateVersion::V1, &root),
 			Err(VecDbError::InvalidProof)
+		));
+	}
+
+	#[test]
+	fn verify_fails_when_entries_are_not_sorted() {
+		let (root, maybe_db) = generate_untrusted_vec_db(vec![
+			(b"key1".to_vec(), Some(b"val1".to_vec().encode())),
+			(b"key2".to_vec(), Some(b"val2".to_vec().encode())),
+		]);
+		let mut db = maybe_db.unwrap();
+		db.db.reverse();
+
+		assert!(matches!(
+			db.verify::<Hasher>(StateVersion::V1, &root),
+			Err(VecDbError::UnsortedEntries)
 		));
 	}
 
