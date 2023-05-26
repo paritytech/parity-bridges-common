@@ -42,8 +42,8 @@ impl<T: frame_system::Config> pallet_bridge_messages::WeightInfo for WeightInfo<
 		// Proof Size summary in bytes:
 		//  Measured:  `428`
 		//  Estimated: `52645`
-		// Minimum execution time: 36_094_000 picoseconds.
-		Weight::from_parts(42_030_000, 0)
+		// Minimum execution time: 35_150_000 picoseconds.
+		Weight::from_parts(36_665_000, 0)
 			.saturating_add(Weight::from_parts(0, 52645))
 			.saturating_add(T::DbWeight::get().reads(3))
 			.saturating_add(T::DbWeight::get().writes(1))
@@ -58,8 +58,8 @@ impl<T: frame_system::Config> pallet_bridge_messages::WeightInfo for WeightInfo<
 		// Proof Size summary in bytes:
 		//  Measured:  `428`
 		//  Estimated: `52645`
-		// Minimum execution time: 47_220_000 picoseconds.
-		Weight::from_parts(54_156_000, 0)
+		// Minimum execution time: 44_082_000 picoseconds.
+		Weight::from_parts(47_509_000, 0)
 			.saturating_add(Weight::from_parts(0, 52645))
 			.saturating_add(T::DbWeight::get().reads(3))
 			.saturating_add(T::DbWeight::get().writes(1))
@@ -74,8 +74,8 @@ impl<T: frame_system::Config> pallet_bridge_messages::WeightInfo for WeightInfo<
 		// Proof Size summary in bytes:
 		//  Measured:  `428`
 		//  Estimated: `52645`
-		// Minimum execution time: 41_790_000 picoseconds.
-		Weight::from_parts(46_463_000, 0)
+		// Minimum execution time: 40_102_000 picoseconds.
+		Weight::from_parts(43_872_000, 0)
 			.saturating_add(Weight::from_parts(0, 52645))
 			.saturating_add(T::DbWeight::get().reads(3))
 			.saturating_add(T::DbWeight::get().writes(1))
@@ -90,8 +90,8 @@ impl<T: frame_system::Config> pallet_bridge_messages::WeightInfo for WeightInfo<
 		// Proof Size summary in bytes:
 		//  Measured:  `428`
 		//  Estimated: `52645`
-		// Minimum execution time: 37_342_000 picoseconds.
-		Weight::from_parts(41_221_000, 0)
+		// Minimum execution time: 35_144_000 picoseconds.
+		Weight::from_parts(36_876_000, 0)
 			.saturating_add(Weight::from_parts(0, 52645))
 			.saturating_add(T::DbWeight::get().reads(3))
 			.saturating_add(T::DbWeight::get().writes(1))
@@ -106,8 +106,8 @@ impl<T: frame_system::Config> pallet_bridge_messages::WeightInfo for WeightInfo<
 		// Proof Size summary in bytes:
 		//  Measured:  `428`
 		//  Estimated: `52645`
-		// Minimum execution time: 57_928_000 picoseconds.
-		Weight::from_parts(61_386_000, 0)
+		// Minimum execution time: 54_479_000 picoseconds.
+		Weight::from_parts(56_344_000, 0)
 			.saturating_add(Weight::from_parts(0, 52645))
 			.saturating_add(T::DbWeight::get().reads(3))
 			.saturating_add(T::DbWeight::get().writes(1))
@@ -124,8 +124,8 @@ impl<T: frame_system::Config> pallet_bridge_messages::WeightInfo for WeightInfo<
 		// Proof Size summary in bytes:
 		//  Measured:  `453`
 		//  Estimated: `3530`
-		// Minimum execution time: 32_493_000 picoseconds.
-		Weight::from_parts(34_228_000, 0)
+		// Minimum execution time: 33_503_000 picoseconds.
+		Weight::from_parts(35_653_000, 0)
 			.saturating_add(Weight::from_parts(0, 3530))
 			.saturating_add(T::DbWeight::get().reads(4))
 			.saturating_add(T::DbWeight::get().writes(2))
@@ -142,8 +142,8 @@ impl<T: frame_system::Config> pallet_bridge_messages::WeightInfo for WeightInfo<
 		// Proof Size summary in bytes:
 		//  Measured:  `470`
 		//  Estimated: `3530`
-		// Minimum execution time: 31_936_000 picoseconds.
-		Weight::from_parts(32_814_000, 0)
+		// Minimum execution time: 32_651_000 picoseconds.
+		Weight::from_parts(34_135_000, 0)
 			.saturating_add(Weight::from_parts(0, 3530))
 			.saturating_add(T::DbWeight::get().reads(4))
 			.saturating_add(T::DbWeight::get().writes(2))
@@ -160,8 +160,8 @@ impl<T: frame_system::Config> pallet_bridge_messages::WeightInfo for WeightInfo<
 		// Proof Size summary in bytes:
 		//  Measured:  `470`
 		//  Estimated: `6070`
-		// Minimum execution time: 34_257_000 picoseconds.
-		Weight::from_parts(35_282_000, 0)
+		// Minimum execution time: 34_746_000 picoseconds.
+		Weight::from_parts(36_357_000, 0)
 			.saturating_add(Weight::from_parts(0, 6070))
 			.saturating_add(T::DbWeight::get().reads(5))
 			.saturating_add(T::DbWeight::get().writes(3))
@@ -178,11 +178,11 @@ impl<T: frame_system::Config> pallet_bridge_messages::WeightInfo for WeightInfo<
 		// Proof Size summary in bytes:
 		//  Measured:  `428`
 		//  Estimated: `52645`
-		// Minimum execution time: 80_961_000 picoseconds.
-		Weight::from_parts(76_931_057, 0)
+		// Minimum execution time: 77_643_000 picoseconds.
+		Weight::from_parts(69_015_529, 0)
 			.saturating_add(Weight::from_parts(0, 52645))
-			// Standard Error: 1_410
-			.saturating_add(Weight::from_parts(303_224, 0).saturating_mul(i.into()))
+			// Standard Error: 1_450
+			.saturating_add(Weight::from_parts(304_163, 0).saturating_mul(i.into()))
 			.saturating_add(T::DbWeight::get().reads(3))
 			.saturating_add(T::DbWeight::get().writes(1))
 	}
