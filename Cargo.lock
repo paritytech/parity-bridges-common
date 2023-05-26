@@ -189,6 +189,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "aleph-bft-crypto"
+version = "0.5.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "fcc63efe80dacbfe53bc008aab6a24e864142198355b1a9a4f31543246e3d63f"
+dependencies = [
+ "async-trait",
+ "bit-vec",
+ "derive_more",
+ "log",
+ "parity-scale-codec",
+]
+
+[[package]]
 name = "always-assert"
 version = "0.1.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -678,6 +691,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "bit-vec"
+version = "0.6.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "349f9b6a179ed607305526ca489b34ad0a41aed5f7980fa90eb03160b69598fb"
+
+[[package]]
 name = "bitflags"
 version = "1.3.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -829,6 +848,26 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "68534a48cbf63a4b1323c433cf21238c9ec23711e0df13b08c33e5c2082663ce"
 dependencies = [
  "thiserror",
+]
+
+[[package]]
+name = "bp-aleph-header-chain"
+version = "0.1.0"
+dependencies = [
+ "aleph-bft-crypto",
+ "bp-header-chain",
+ "bp-runtime",
+ "bp-test-utils",
+ "frame-support",
+ "hex",
+ "hex-literal",
+ "parity-scale-codec",
+ "scale-info",
+ "serde",
+ "sp-application-crypto",
+ "sp-core",
+ "sp-runtime",
+ "sp-std 5.0.0",
 ]
 
 [[package]]
@@ -1109,6 +1148,7 @@ dependencies = [
 name = "bp-test-utils"
 version = "0.1.0"
 dependencies = [
+ "bp-aleph-header-chain",
  "bp-header-chain",
  "bp-parachains",
  "bp-polkadot-core",
@@ -6592,6 +6632,27 @@ dependencies = [
  "sp-io",
  "sp-runtime",
  "sp-std 5.0.0",
+]
+
+[[package]]
+name = "pallet-bridge-aleph"
+version = "0.1.0"
+dependencies = [
+ "bp-aleph-header-chain",
+ "bp-header-chain",
+ "bp-runtime",
+ "bp-test-utils",
+ "frame-benchmarking",
+ "frame-support",
+ "frame-system",
+ "log",
+ "parity-scale-codec",
+ "scale-info",
+ "sp-core",
+ "sp-io",
+ "sp-runtime",
+ "sp-std 5.0.0",
+ "sp-trie",
 ]
 
 [[package]]
