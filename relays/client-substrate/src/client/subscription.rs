@@ -157,7 +157,7 @@ async fn background_worker<T: 'static + Clone + DeserializeOwned + Send>(
 		let mut i = 0;
 		while i < subscribers.len() {
 			let result_to_send = result_to_send.clone();
-			let send_result = subscribers[i].send(result_to_send).await;
+			let send_result = subscribers[i].try_send(result_to_send);
 			match send_result {
 				Ok(_) => {
 					i += 1;
