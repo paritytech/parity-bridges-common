@@ -48,22 +48,24 @@ pub type SubstrateFinalityProof<P> =
 	>>::FinalityProof;
 
 /// Substrate node as finality source.
-pub struct SubstrateFinalitySource<P: SubstrateFinalitySyncPipeline> {
-	client: Client<P::SourceChain>,
+pub struct SubstrateFinalitySource<P: SubstrateFinalitySyncPipeline, SourceClnt> {
+	client: SourceClnt,
 	maximal_header_number: Option<RequiredHeaderNumberRef<P::SourceChain>>,
 }
 
-impl<P: SubstrateFinalitySyncPipeline> SubstrateFinalitySource<P> {
+impl<P: SubstrateFinalitySyncPipeline, SourceClnt: Client<P::SourceChain>>
+	SubstrateFinalitySource<P, SourceClnt>
+{
 	/// Create new headers source using given client.
 	pub fn new(
-		client: Client<P::SourceChain>,
+		client: SourceClnt,
 		maximal_header_number: Option<RequiredHeaderNumberRef<P::SourceChain>>,
 	) -> Self {
 		SubstrateFinalitySource { client, maximal_header_number }
 	}
 
 	/// Returns reference to the underlying RPC client.
-	pub fn client(&self) -> &Client<P::SourceChain> {
+	pub fn client(&self) -> &SourceClnt {
 		&self.client
 	}
 
@@ -182,7 +184,9 @@ impl<P: SubstrateFinalitySyncPipeline> SubstrateFinalitySource<P> {
 	}
 }
 
-impl<P: SubstrateFinalitySyncPipeline> Clone for SubstrateFinalitySource<P> {
+impl<P: SubstrateFinalitySyncPipeline, SourceClnt: Clone> Clone
+	for SubstrateFinalitySource<P, SourceClnt>
+{
 	fn clone(&self) -> Self {
 		SubstrateFinalitySource {
 			client: self.client.clone(),
@@ -192,7 +196,9 @@ impl<P: SubstrateFinalitySyncPipeline> Clone for SubstrateFinalitySource<P> {
 }
 
 #[async_trait]
-impl<P: SubstrateFinalitySyncPipeline> RelayClient for SubstrateFinalitySource<P> {
+impl<P: SubstrateFinalitySyncPipeline, SourceClnt: Client<P::SourceChain>> RelayClient
+	for SubstrateFinalitySource<P, SourceClnt>
+{
 	type Error = Error;
 
 	async fn reconnect(&mut self) -> Result<(), Error> {
@@ -201,8 +207,8 @@ impl<P: SubstrateFinalitySyncPipeline> RelayClient for SubstrateFinalitySource<P
 }
 
 #[async_trait]
-impl<P: SubstrateFinalitySyncPipeline> SourceClient<FinalitySyncPipelineAdapter<P>>
-	for SubstrateFinalitySource<P>
+impl<P: SubstrateFinalitySyncPipeline, SourceClnt: Client<P::SourceChain>>
+	SourceClient<FinalitySyncPipelineAdapter<P>> for SubstrateFinalitySource<P, SourceClnt>
 {
 	type FinalityProofsStream = SubstrateFinalityProofsStream<P>;
 
@@ -274,7 +280,7 @@ impl<P: SubstrateFinalitySyncPipeline> SourceClient<FinalitySyncPipelineAdapter<
 }
 
 async fn header_and_finality_proof<P: SubstrateFinalitySyncPipeline>(
-	client: &Client<P::SourceChain>,
+	client: &impl Client<P::SourceChain>,
 	number: BlockNumberOf<P::SourceChain>,
 ) -> Result<
 	(
@@ -283,8 +289,8 @@ async fn header_and_finality_proof<P: SubstrateFinalitySyncPipeline>(
 	),
 	Error,
 > {
-	let header_hash = client.block_hash_by_number(number).await?;
-	let signed_block = client.get_block(Some(header_hash)).await?;
+	let header_hash = client.header_hash_by_number(number).await?;
+	let signed_block = client.block_by_hash(header_hash).await?;
 
 	let justification = signed_block
 		.justification(P::FinalityEngine::ID)

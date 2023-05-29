@@ -26,37 +26,36 @@ use crate::{
 use async_trait::async_trait;
 use bp_polkadot_core::parachains::{ParaHash, ParaHeadsProof, ParaId};
 use bp_runtime::HeaderIdProvider;
-use codec::Decode;
 use parachains_relay::parachains_loop::TargetClient;
 use relay_substrate_client::{
 	AccountIdOf, AccountKeyPairOf, Chain, Client, Error as SubstrateError, HeaderIdOf,
 	ParachainBase, TransactionEra, TransactionTracker, UnsignedTransaction,
 };
 use relay_utils::relay_loop::Client as RelayClient;
-use sp_core::{Bytes, Pair};
+use sp_core::Pair;
 
 /// Substrate client as parachain heads source.
-pub struct ParachainsTarget<P: SubstrateParachainsPipeline> {
-	client: Client<P::TargetChain>,
+pub struct ParachainsTarget<P: SubstrateParachainsPipeline, TargetClnt> {
+	client: TargetClnt,
 	transaction_params: TransactionParams<AccountKeyPairOf<P::TargetChain>>,
 }
 
-impl<P: SubstrateParachainsPipeline> ParachainsTarget<P> {
+impl<P: SubstrateParachainsPipeline, TargetClnt> ParachainsTarget<P, TargetClnt> {
 	/// Creates new parachains target client.
 	pub fn new(
-		client: Client<P::TargetChain>,
+		client: TargetClnt,
 		transaction_params: TransactionParams<AccountKeyPairOf<P::TargetChain>>,
 	) -> Self {
 		ParachainsTarget { client, transaction_params }
 	}
 
 	/// Returns reference to the underlying RPC client.
-	pub fn client(&self) -> &Client<P::TargetChain> {
+	pub fn client(&self) -> &TargetClnt {
 		&self.client
 	}
 }
 
-impl<P: SubstrateParachainsPipeline> Clone for ParachainsTarget<P> {
+impl<P: SubstrateParachainsPipeline, TargetClnt: Clone> Clone for ParachainsTarget<P, TargetClnt> {
 	fn clone(&self) -> Self {
 		ParachainsTarget {
 			client: self.client.clone(),
@@ -66,7 +65,9 @@ impl<P: SubstrateParachainsPipeline> Clone for ParachainsTarget<P> {
 }
 
 #[async_trait]
-impl<P: SubstrateParachainsPipeline> RelayClient for ParachainsTarget<P> {
+impl<P: SubstrateParachainsPipeline, TargetClnt: Client<P::TargetChain>> RelayClient
+	for ParachainsTarget<P, TargetClnt>
+{
 	type Error = SubstrateError;
 
 	async fn reconnect(&mut self) -> Result<(), SubstrateError> {
@@ -75,12 +76,13 @@ impl<P: SubstrateParachainsPipeline> RelayClient for ParachainsTarget<P> {
 }
 
 #[async_trait]
-impl<P> TargetClient<ParachainsPipelineAdapter<P>> for ParachainsTarget<P>
+impl<P, TargetClnt> TargetClient<ParachainsPipelineAdapter<P>> for ParachainsTarget<P, TargetClnt>
 where
 	P: SubstrateParachainsPipeline,
+	TargetClnt: Client<P::TargetChain>,
 	AccountIdOf<P::TargetChain>: From<<AccountKeyPairOf<P::TargetChain> as Pair>::Public>,
 {
-	type TransactionTracker = TransactionTracker<P::TargetChain, Client<P::TargetChain>>;
+	type TransactionTracker = TransactionTracker<P::TargetChain, TargetClnt>;
 
 	async fn best_block(&self) -> Result<HeaderIdOf<P::TargetChain>, Self::Error> {
 		let best_header = self.client.best_header().await?;
@@ -94,10 +96,10 @@ where
 		at_block: &HeaderIdOf<P::TargetChain>,
 	) -> Result<HeaderIdOf<P::SourceRelayChain>, Self::Error> {
 		self.client
-			.typed_state_call::<_, Option<HeaderIdOf<P::SourceRelayChain>>>(
+			.state_call::<_, Option<HeaderIdOf<P::SourceRelayChain>>>(
+				at_block.hash(),
 				P::SourceRelayChain::BEST_FINALIZED_HEADER_ID_METHOD.into(),
 				(),
-				Some(at_block.1),
 			)
 			.await?
 			.map(Ok)
@@ -108,19 +110,13 @@ where
 		&self,
 		at_block: HeaderIdOf<P::TargetChain>,
 	) -> Result<Option<HeaderIdOf<P::SourceParachain>>, Self::Error> {
-		let encoded_best_finalized_source_para_block = self
-			.client
+		self.client
 			.state_call(
+				at_block.hash(),
 				P::SourceParachain::BEST_FINALIZED_HEADER_ID_METHOD.into(),
-				Bytes(Vec::new()),
-				Some(at_block.1),
+				(),
 			)
-			.await?;
-
-		Ok(Option::<HeaderIdOf<P::SourceParachain>>::decode(
-			&mut &encoded_best_finalized_source_para_block.0[..],
-		)
-		.map_err(SubstrateError::ResponseParseFailed)?)
+			.await
 	}
 
 	async fn submit_parachain_head_proof(

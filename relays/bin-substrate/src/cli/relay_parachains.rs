@@ -42,7 +42,7 @@ use substrate_relay_helper::{
 use crate::cli::{
 	bridge::{CliBridgeBase, ParachainToRelayHeadersCliBridge},
 	chain_schema::*,
-	PrometheusParams,
+	DefaultClient, PrometheusParams,
 };
 
 /// Start parachain heads relayer process.
@@ -76,15 +76,15 @@ pub enum RelayParachainsBridge {
 #[async_trait]
 trait ParachainsRelayer: ParachainToRelayHeadersCliBridge
 where
-	ParachainsSource<Self::ParachainFinality>:
+	ParachainsSource<Self::ParachainFinality, DefaultClient<Self::SourceRelay>>:
 		SourceClient<ParachainsPipelineAdapter<Self::ParachainFinality>>,
-	ParachainsTarget<Self::ParachainFinality>:
+	ParachainsTarget<Self::ParachainFinality, DefaultClient<Self::Target>>:
 		TargetClient<ParachainsPipelineAdapter<Self::ParachainFinality>>,
 	<Self as CliBridgeBase>::Source: Parachain,
 {
 	async fn relay_parachains(data: RelayParachains) -> anyhow::Result<()> {
 		let source_client = data.source.into_client::<Self::SourceRelay>().await?;
-		let source_client = ParachainsSource::<Self::ParachainFinality>::new(
+		let source_client = ParachainsSource::<Self::ParachainFinality, _>::new(
 			source_client,
 			Arc::new(Mutex::new(AvailableHeader::Missing)),
 		);
@@ -94,7 +94,7 @@ where
 			mortality: data.target_sign.target_transactions_mortality,
 		};
 		let target_client = data.target.into_client::<Self::Target>().await?;
-		let target_client = ParachainsTarget::<Self::ParachainFinality>::new(
+		let target_client = ParachainsTarget::<Self::ParachainFinality, _>::new(
 			target_client.clone(),
 			target_transaction_params,
 		);
