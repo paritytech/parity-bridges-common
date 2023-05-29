@@ -52,6 +52,8 @@ pub struct CachingClient<C: Chain, B: Client<C>> {
 struct ClientData<C: Chain> {
 	grandpa_justifications: Arc<Mutex<Option<SharedSubscriptionFactory<Bytes>>>>,
 	beefy_justifications: Arc<Mutex<Option<SharedSubscriptionFactory<Bytes>>>>,
+	// `Cache` using locks internally, so make sure you don't use other caches during
+	// the `get_or_insert_async` calls
 	header_hash_by_number_cache: Cache<BlockNumberOf<C>, HashOf<C>>,
 	header_by_hash_cache: Cache<HashOf<C>, HeaderOf<C>>,
 	block_by_hash_cache: Cache<HashOf<C>, SignedBlockOf<C>>,
