@@ -25,11 +25,11 @@ use crate::{
 	TransactionTracker, UnsignedTransaction, ANCIENT_BLOCK_THRESHOLD,
 };
 
-use async_std::sync::{Arc, Mutex};
+use async_std::sync::{Arc, Mutex, RwLock};
 use async_trait::async_trait;
 use codec::Encode;
 use frame_support::weights::Weight;
-use quick_cache::sync::Cache;
+use quick_cache::unsync::Cache;
 use sp_core::{
 	storage::{StorageData, StorageKey},
 	Bytes, Pair,
@@ -52,16 +52,19 @@ pub struct CachingClient<C: Chain, B: Client<C>> {
 struct ClientData<C: Chain> {
 	grandpa_justifications: Arc<Mutex<Option<SharedSubscriptionFactory<Bytes>>>>,
 	beefy_justifications: Arc<Mutex<Option<SharedSubscriptionFactory<Bytes>>>>,
-	// `Cache` using locks internally, so make sure you don't use other caches during
-	// the `get_or_insert_async` calls
-	header_hash_by_number_cache: Cache<BlockNumberOf<C>, HashOf<C>>,
-	header_by_hash_cache: Cache<HashOf<C>, HeaderOf<C>>,
-	block_by_hash_cache: Cache<HashOf<C>, SignedBlockOf<C>>,
-	raw_storage_value_cache: Cache<(HashOf<C>, StorageKey), Option<StorageData>>,
-	state_call_cache: Cache<(HashOf<C>, String, Bytes), Bytes>,
+	// `quick_cache::sync::Cache` has the `get_or_insert_async` method, which fits our needs,
+	// but it uses synchronization primitives that are not aware of async execution. They
+	// can block the executor threads and cause deadlocks => let's use primitives from
+	// `async_std` crate around `quick_cache::unsync::Cache`
+	header_hash_by_number_cache: Arc<RwLock<Cache<BlockNumberOf<C>, HashOf<C>>>>,
+	header_by_hash_cache: Arc<RwLock<Cache<HashOf<C>, HeaderOf<C>>>>,
+	block_by_hash_cache: Arc<RwLock<Cache<HashOf<C>, SignedBlockOf<C>>>>,
+	raw_storage_value_cache: Arc<RwLock<Cache<(HashOf<C>, StorageKey), Option<StorageData>>>>,
+	state_call_cache: Arc<RwLock<Cache<(HashOf<C>, String, Bytes), Bytes>>>,
 }
 
 impl<C: Chain, B: Client<C>> CachingClient<C, B> {
+	/// Creates new `CachingClient` on top of given `backend`.
 	pub fn new(backend: B) -> Self {
 		// most of relayer operations will never touch more than `ANCIENT_BLOCK_THRESHOLD`
 		// headers, so we'll use this as a cache capacity for all chain-related caches
@@ -71,13 +74,39 @@ impl<C: Chain, B: Client<C>> CachingClient<C, B> {
 			data: Arc::new(ClientData {
 				grandpa_justifications: Arc::new(Mutex::new(None)),
 				beefy_justifications: Arc::new(Mutex::new(None)),
-				header_hash_by_number_cache: Cache::new(chain_state_capacity),
-				header_by_hash_cache: Cache::new(chain_state_capacity),
-				block_by_hash_cache: Cache::new(chain_state_capacity),
-				raw_storage_value_cache: Cache::new(1_024),
-				state_call_cache: Cache::new(1_024),
+				header_hash_by_number_cache: Arc::new(RwLock::new(Cache::new(
+					chain_state_capacity,
+				))),
+				header_by_hash_cache: Arc::new(RwLock::new(Cache::new(chain_state_capacity))),
+				block_by_hash_cache: Arc::new(RwLock::new(Cache::new(chain_state_capacity))),
+				raw_storage_value_cache: Arc::new(RwLock::new(Cache::new(1_024))),
+				state_call_cache: Arc::new(RwLock::new(Cache::new(1_024))),
 			}),
 		}
+	}
+
+	/// Try to get value from the cache, or compute and insert it using given future.
+	async fn get_or_insert_async<K: Clone + std::fmt::Debug + Eq + std::hash::Hash, V: Clone>(
+		&self,
+		cache: &Arc<RwLock<Cache<K, V>>>,
+		key: &K,
+		with: impl std::future::Future<Output = Result<V>>,
+	) -> Result<V> {
+		// try to get cached value first using read lock
+		{
+			let cache = cache.read().await;
+			if let Some(value) = cache.get(key) {
+				return Ok(value.clone())
+			}
+		}
+
+		// let's compute the value without holding any locks - it may cause additional misses and
+		// double insertions, but that's better than holding a lock for a while
+		let value = with.await?;
+
+		// insert/update the value in the cache
+		cache.write().await.insert(key.clone(), value.clone());
+		Ok(value)
 	}
 }
 
@@ -116,24 +145,30 @@ impl<C: Chain, B: Client<C>> Client<C> for CachingClient<C, B> {
 	}
 
 	async fn header_hash_by_number(&self, number: BlockNumberOf<C>) -> Result<HashOf<C>> {
-		self.data
-			.header_hash_by_number_cache
-			.get_or_insert_async(&number, self.backend.header_hash_by_number(number))
-			.await
+		self.get_or_insert_async(
+			&self.data.header_hash_by_number_cache,
+			&number,
+			self.backend.header_hash_by_number(number),
+		)
+		.await
 	}
 
 	async fn header_by_hash(&self, hash: HashOf<C>) -> Result<HeaderOf<C>> {
-		self.data
-			.header_by_hash_cache
-			.get_or_insert_async(&hash, self.backend.header_by_hash(hash))
-			.await
+		self.get_or_insert_async(
+			&self.data.header_by_hash_cache,
+			&hash,
+			self.backend.header_by_hash(hash),
+		)
+		.await
 	}
 
 	async fn block_by_hash(&self, hash: HashOf<C>) -> Result<SignedBlockOf<C>> {
-		self.data
-			.block_by_hash_cache
-			.get_or_insert_async(&hash, self.backend.block_by_hash(hash))
-			.await
+		self.get_or_insert_async(
+			&self.data.block_by_hash_cache,
+			&hash,
+			self.backend.block_by_hash(hash),
+		)
+		.await
 	}
 
 	async fn best_finalized_header_hash(&self) -> Result<HashOf<C>> {
@@ -195,13 +230,12 @@ impl<C: Chain, B: Client<C>> Client<C> for CachingClient<C, B> {
 		at: HashOf<C>,
 		storage_key: StorageKey,
 	) -> Result<Option<StorageData>> {
-		self.data
-			.raw_storage_value_cache
-			.get_or_insert_async(
-				&(at, storage_key.clone()),
-				self.backend.raw_storage_value(at, storage_key),
-			)
-			.await
+		self.get_or_insert_async(
+			&self.data.raw_storage_value_cache,
+			&(at, storage_key.clone()),
+			self.backend.raw_storage_value(at, storage_key),
+		)
+		.await
 	}
 
 	async fn pending_extrinsics(&self) -> Result<Vec<Bytes>> {
@@ -266,13 +300,12 @@ impl<C: Chain, B: Client<C>> Client<C> for CachingClient<C, B> {
 		arguments: Args,
 	) -> Result<Bytes> {
 		let encoded_arguments = Bytes(arguments.encode());
-		self.data
-			.state_call_cache
-			.get_or_insert_async(
-				&(at, method.clone(), encoded_arguments),
-				self.backend.raw_state_call(at, method, arguments),
-			)
-			.await
+		self.get_or_insert_async(
+			&self.data.state_call_cache,
+			&(at, method.clone(), encoded_arguments),
+			self.backend.raw_state_call(at, method, arguments),
+		)
+		.await
 	}
 
 	async fn prove_storage(&self, at: HashOf<C>, keys: Vec<StorageKey>) -> Result<StorageProof> {
