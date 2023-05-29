@@ -38,6 +38,9 @@ use sp_runtime::transaction_validity::TransactionValidity;
 use sp_trie::StorageProof;
 use sp_version::RuntimeVersion;
 
+/// `quick_cache::unsync::Cache` wrapped in async-aware synchronization primitives.
+type SyncCache<K, V> = Arc<RwLock<Cache<K, V>>>;
+
 /// Client implementation that is caching (whenever possible) results of its backend
 /// method calls. Apart from caching call results, it also supports some (at the
 /// moment: justifications) subscription sharing, meaning that the single server
@@ -56,11 +59,11 @@ struct ClientData<C: Chain> {
 	// but it uses synchronization primitives that are not aware of async execution. They
 	// can block the executor threads and cause deadlocks => let's use primitives from
 	// `async_std` crate around `quick_cache::unsync::Cache`
-	header_hash_by_number_cache: Arc<RwLock<Cache<BlockNumberOf<C>, HashOf<C>>>>,
-	header_by_hash_cache: Arc<RwLock<Cache<HashOf<C>, HeaderOf<C>>>>,
-	block_by_hash_cache: Arc<RwLock<Cache<HashOf<C>, SignedBlockOf<C>>>>,
-	raw_storage_value_cache: Arc<RwLock<Cache<(HashOf<C>, StorageKey), Option<StorageData>>>>,
-	state_call_cache: Arc<RwLock<Cache<(HashOf<C>, String, Bytes), Bytes>>>,
+	header_hash_by_number_cache: SyncCache<BlockNumberOf<C>, HashOf<C>>,
+	header_by_hash_cache: SyncCache<HashOf<C>, HeaderOf<C>>,
+	block_by_hash_cache: SyncCache<HashOf<C>, SignedBlockOf<C>>,
+	raw_storage_value_cache: SyncCache<(HashOf<C>, StorageKey), Option<StorageData>>,
+	state_call_cache: SyncCache<(HashOf<C>, String, Bytes), Bytes>,
 }
 
 impl<C: Chain, B: Client<C>> CachingClient<C, B> {
