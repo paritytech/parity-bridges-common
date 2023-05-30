@@ -266,16 +266,13 @@ where
 			Some(batch_tx) => batch_tx.append_call_and_build(messages_proof_call),
 			None => messages_proof_call,
 		};
-
-		let transaction_params = self.transaction_params.clone();
-		let tx_tracker = self
-			.target_client
-			.submit_and_watch_signed_extrinsic(
-				&self.transaction_params.signer,
-				move |best_block_id, transaction_nonce| {
-					Ok(UnsignedTransaction::new(final_call.into(), transaction_nonce)
-						.era(TransactionEra::new(best_block_id, transaction_params.mortality)))
-				},
+		let tx_tracker = self.client
+			.sign_submit_and_watch_runtime_call::<_, P::ReceiveMessagesProofCallBuilder>(
+				self.transaction_params.clone(),
+				MessagesDeliveryCall {
+					relayer_id_at_source: self.relayer_id_at_source.clone(),
+					proof,
+				}
 			)
 			.await?;
 		Ok(NoncesSubmitArtifacts { nonces, tx_tracker })

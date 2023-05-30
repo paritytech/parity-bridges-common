@@ -28,7 +28,7 @@ use finality_grandpa::voter_set::VoterSet;
 use num_traits::{One, Zero};
 use relay_substrate_client::{
 	BlockNumberOf, Chain, ChainWithGrandpa, Client, Error as SubstrateError, GrandpaFinalityCall,
-	HashOf, HeaderOf, Subscription, SyncHeader,
+	HashOf, HeaderOf, MessagesDeliveryCall, Subscription, SyncHeader,
 };
 use sp_consensus_grandpa::{AuthorityList as GrandpaAuthoritiesSet, GRANDPA_ENGINE_ID};
 use sp_core::{storage::StorageKey, Bytes};

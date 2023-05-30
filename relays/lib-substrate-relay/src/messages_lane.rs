@@ -269,7 +269,7 @@ where
 }
 
 /// Different ways of building `receive_messages_proof` calls.
-pub trait ReceiveMessagesProofCallBuilder<P: SubstrateMessageLane> {
+pub trait ReceiveMessagesProofCallBuilder<P: SubstrateMessageLane>: TryMorph<MessagesDeliveryCall<P::SourceChain>, Outcome = CallOf<P::TargetChain>> {
 	/// Given messages proof, build call of `receive_messages_proof` function of bridge
 	/// messages module at the target chain.
 	fn build_receive_messages_proof_call(
@@ -285,6 +285,29 @@ pub trait ReceiveMessagesProofCallBuilder<P: SubstrateMessageLane> {
 /// chain runtime.
 pub struct DirectReceiveMessagesProofCallBuilder<P, R, I> {
 	_phantom: PhantomData<(P, R, I)>,
+}
+
+impl<P, R, I> TryMorph<MessagesDeliveryCall<P::SourceChain>, Outcome = CallOf<P::TargetChain>> for DirectReceiveMessagesProofCallBuilder<P, R, I>
+where
+	P: SubstrateMessageLane,
+	R: BridgeMessagesConfig<I, InboundRelayer = AccountIdOf<P::SourceChain>>,
+	I: 'static,
+	R::SourceHeaderChain: bp_messages::target_chain::SourceHeaderChain<
+		MessagesProof = FromBridgedChainMessagesProof<HashOf<P::SourceChain>>,
+	>,
+	CallOf<P::TargetChain>: From<BridgeMessagesCall<R, I>> + GetDispatchInfo,
+{
+	type Outcome = CallOf<P::TargetChain>;
+
+	fn try_morph(value: MessagesDeliveryCall<P::SourceChain>) -> Result<Self::Outcome, ()> {
+		Ok(BridgeMessagesCall::<R, I>::receive_messages_proof {
+			relayer_id_at_bridged_chain: value.relayer_id_at_source,
+			proof: value.proof.1,
+			messages_count: value.proof.1.nonces_start..=value.proof.1.nonces_start.checked_len().unwrap_or(0),
+			dispatch_weight: value.proof.0,
+		}
+		.into())
+	}
 }
 
 impl<P, R, I> ReceiveMessagesProofCallBuilder<P> for DirectReceiveMessagesProofCallBuilder<P, R, I>
@@ -338,6 +361,29 @@ where
 macro_rules! generate_receive_message_proof_call_builder {
 	($pipeline:ident, $mocked_builder:ident, $bridge_messages:path, $receive_messages_proof:path) => {
 		pub struct $mocked_builder;
+
+		impl sp_runtime::traits::TryMorph<
+			relay_substrate_client::MessagesDeliveryCall<
+				<$pipeline as $crate::messages_lane::SubstrateMessageLane>::SourceChain
+			>> for $mocked_builder
+		{
+			type Outcome = relay_substrate_client::CallOf<
+				<$pipeline as $crate::messages_lane::SubstrateMessageLane>::TargetChain
+			>;
+
+			fn try_morph(value: relay_substrate_client::MessagesDeliveryCall<
+				<$pipeline as $crate::messages_lane::SubstrateMessageLane>::SourceChain
+			>) -> Result<Self::Outcome, ()> {
+				bp_runtime::paste::item! {
+					$bridge_messages($receive_messages_proof {
+						relayer_id_at_bridged_chain: value.relayer_id_at_source,
+						proof: value.proof.1,
+						messages_count: value.proof.1.nonces_start..=value.proof.1.nonces_start.checked_len().unwrap_or(0),
+						dispatch_weight: value.proof.0,
+					})
+				}
+			}
+		}
 
 		impl $crate::messages_lane::ReceiveMessagesProofCallBuilder<$pipeline>
 			for $mocked_builder

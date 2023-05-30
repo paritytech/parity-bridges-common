@@ -34,7 +34,7 @@ mod runtime_call;
 mod subscription;
 
 pub use client::Client;
-pub use runtime_call::GrandpaFinalityCall;
+pub use runtime_call::{GrandpaFinalityCall, MessagesDeliveryCall};
 pub use subscription::{SharedSubscriptionFactory, Subscription};
 
 /// Type of RPC client with caching support.

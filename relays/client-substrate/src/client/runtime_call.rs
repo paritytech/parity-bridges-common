@@ -38,3 +38,12 @@ pub struct GrandpaFinalityCall<BridgedChain: Chain> {
 	/// Finality proof of the bridged chain header.
 	pub justification: GrandpaJustification<HeaderOf<BridgedChain>>,
 }
+
+/// Runtime call that brings new messages from the bridged chain.
+#[derive(Clone, DebugNoBound)]
+pub struct MessagesDeliveryCall<BridgedChain: Chain> {
+	/// Relayer account at the bridged chain.
+	pub relayer_id_at_source: AccountIdOf<BridgedChain>,
+	/// Bundled messages proof.
+	pub proof: SubstrateMessagesProof<BridgedChain>,
+}
