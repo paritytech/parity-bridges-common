@@ -27,7 +27,7 @@ use bp_runtime::{
 use frame_support::{
 	dispatch::DispatchClass,
 	sp_runtime::{MultiAddress, MultiSigner},
-	RuntimeDebug,
+	RuntimeDebug, StateVersion,
 };
 use sp_std::prelude::*;
 
@@ -45,6 +45,8 @@ impl Chain for BridgeHubRococo {
 	type Balance = Balance;
 	type Index = Index;
 	type Signature = Signature;
+
+	const STATE_VERSION: StateVersion = StateVersion::V1;
 
 	fn max_extrinsic_size() -> u32 {
 		*BlockLength::get().max.get(DispatchClass::Normal)

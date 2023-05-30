@@ -23,7 +23,7 @@
 
 use crate::{Chain, ChainWithBalances};
 use bp_runtime::ChainId;
-use frame_support::weights::Weight;
+use frame_support::{weights::Weight, StateVersion};
 use std::time::Duration;
 
 /// Chain that may be used in tests.
@@ -40,6 +40,8 @@ impl bp_runtime::Chain for TestChain {
 	type Balance = u32;
 	type Index = u32;
 	type Signature = sp_runtime::testing::TestSignature;
+
+	const STATE_VERSION: StateVersion = StateVersion::V1;
 
 	fn max_extrinsic_size() -> u32 {
 		unreachable!()
@@ -82,6 +84,8 @@ impl bp_runtime::Chain for TestParachainBase {
 	type Balance = u32;
 	type Index = u32;
 	type Signature = sp_runtime::testing::TestSignature;
+
+	const STATE_VERSION: StateVersion = StateVersion::V1;
 
 	fn max_extrinsic_size() -> u32 {
 		unreachable!()

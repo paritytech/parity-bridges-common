@@ -23,7 +23,7 @@
 use bp_header_chain::HeaderChainError;
 use bp_runtime::{
 	messages::MessageDispatchResult, BasicOperatingMode, OperatingMode, RangeInclusiveExt,
-	StorageProofError,
+	StorageProofError, VecDbError,
 };
 use codec::{Decode, Encode, MaxEncodedLen};
 use frame_support::{PalletError, RuntimeDebug};
@@ -429,14 +429,16 @@ pub enum VerificationError {
 	InvalidMessageWeight,
 	/// Declared messages count doesn't match actual value.
 	MessagesCountMismatch,
-	/// Error returned while reading/decoding message data from the storage proof.
-	MessageStorage(StorageProofError),
+	/// Error returned while reading/decoding message data from the `VecDb`.
+	MessageStorage(VecDbError),
 	/// The message is too large.
 	MessageTooLarge,
-	/// Error returned while reading/decoding outbound lane data from the storage proof.
-	OutboundLaneStorage(StorageProofError),
+	/// Error returned while reading/decoding outbound lane data from the `VecDb`.
+	OutboundLaneStorage(VecDbError),
 	/// Storage proof related error.
 	StorageProof(StorageProofError),
+	/// `VecDb` related error.
+	VecDb(VecDbError),
 	/// Custom error
 	Other(#[codec(skip)] &'static str),
 }

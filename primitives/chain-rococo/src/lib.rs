@@ -22,7 +22,7 @@ pub use bp_polkadot_core::*;
 
 use bp_header_chain::ChainWithGrandpa;
 use bp_runtime::{decl_bridge_finality_runtime_apis, Chain};
-use frame_support::{parameter_types, weights::Weight};
+use frame_support::{parameter_types, weights::Weight, StateVersion};
 
 /// Rococo Chain
 pub struct Rococo;
@@ -37,6 +37,8 @@ impl Chain for Rococo {
 	type Balance = <PolkadotLike as Chain>::Balance;
 	type Index = <PolkadotLike as Chain>::Index;
 	type Signature = <PolkadotLike as Chain>::Signature;
+
+	const STATE_VERSION: StateVersion = StateVersion::V1;
 
 	fn max_extrinsic_size() -> u32 {
 		PolkadotLike::max_extrinsic_size()
