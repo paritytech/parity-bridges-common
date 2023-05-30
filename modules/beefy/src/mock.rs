@@ -24,7 +24,9 @@ use crate::{
 use bp_beefy::{BeefyValidatorSignatureOf, ChainWithBeefy, Commitment, MmrDataOrHash};
 use bp_runtime::{BasicOperatingMode, Chain};
 use codec::Encode;
-use frame_support::{construct_runtime, parameter_types, traits::ConstU64, weights::Weight};
+use frame_support::{
+	construct_runtime, parameter_types, traits::ConstU64, weights::Weight, StateVersion,
+};
 use sp_core::{sr25519::Signature, Pair};
 use sp_runtime::{
 	testing::{Header, H256},
@@ -123,6 +125,8 @@ impl Chain for TestBridgedChain {
 	type Balance = u64;
 	type Index = u64;
 	type Signature = Signature;
+
+	const STATE_VERSION: StateVersion = StateVersion::V1;
 
 	fn max_extrinsic_size() -> u32 {
 		unreachable!()

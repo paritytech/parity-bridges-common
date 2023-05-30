@@ -25,7 +25,7 @@ use bp_runtime::{decl_bridge_runtime_apis, Chain, Parachain};
 use frame_support::{
 	dispatch::DispatchClass,
 	weights::{constants::WEIGHT_REF_TIME_PER_SECOND, IdentityFee, Weight},
-	RuntimeDebug,
+	RuntimeDebug, StateVersion,
 };
 use frame_system::limits;
 use sp_core::Hasher as HasherT;
@@ -116,6 +116,8 @@ impl Chain for RialtoParachain {
 	type Balance = Balance;
 	type Index = Index;
 	type Signature = Signature;
+
+	const STATE_VERSION: StateVersion = StateVersion::V0;
 
 	fn max_extrinsic_size() -> u32 {
 		*BlockLength::get().max.get(DispatchClass::Normal)

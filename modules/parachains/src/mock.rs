@@ -17,7 +17,9 @@
 use bp_header_chain::ChainWithGrandpa;
 use bp_polkadot_core::parachains::ParaId;
 use bp_runtime::{Chain, Parachain};
-use frame_support::{construct_runtime, parameter_types, traits::ConstU32, weights::Weight};
+use frame_support::{
+	construct_runtime, parameter_types, traits::ConstU32, weights::Weight, StateVersion,
+};
 use sp_runtime::{
 	testing::{Header, H256},
 	traits::{BlakeTwo256, Header as HeaderT, IdentityLookup},
@@ -58,6 +60,8 @@ impl Chain for Parachain1 {
 	type Index = u64;
 	type Signature = MultiSignature;
 
+	const STATE_VERSION: StateVersion = StateVersion::V1;
+
 	fn max_extrinsic_size() -> u32 {
 		0
 	}
@@ -81,6 +85,8 @@ impl Chain for Parachain2 {
 	type Balance = u64;
 	type Index = u64;
 	type Signature = MultiSignature;
+
+	const STATE_VERSION: StateVersion = StateVersion::V1;
 
 	fn max_extrinsic_size() -> u32 {
 		0
@@ -106,6 +112,8 @@ impl Chain for Parachain3 {
 	type Index = u64;
 	type Signature = MultiSignature;
 
+	const STATE_VERSION: StateVersion = StateVersion::V1;
+
 	fn max_extrinsic_size() -> u32 {
 		0
 	}
@@ -130,6 +138,8 @@ impl Chain for BigParachain {
 	type Balance = u64;
 	type Index = u64;
 	type Signature = MultiSignature;
+
+	const STATE_VERSION: StateVersion = StateVersion::V1;
 
 	fn max_extrinsic_size() -> u32 {
 		0
@@ -273,6 +283,8 @@ impl Chain for TestBridgedChain {
 	type Index = u32;
 	type Signature = sp_runtime::testing::TestSignature;
 
+	const STATE_VERSION: StateVersion = StateVersion::V1;
+
 	fn max_extrinsic_size() -> u32 {
 		unreachable!()
 	}
@@ -303,6 +315,8 @@ impl Chain for OtherBridgedChain {
 	type Balance = u32;
 	type Index = u32;
 	type Signature = sp_runtime::testing::TestSignature;
+
+	const STATE_VERSION: StateVersion = StateVersion::V1;
 
 	fn max_extrinsic_size() -> u32 {
 		unreachable!()
