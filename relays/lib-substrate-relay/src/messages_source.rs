@@ -327,7 +327,7 @@ where
 		let storage_proof =
 			self.source_client.prove_storage(storage_keys.clone(), id.hash()).await?;
 		let storage =
-			UntrustedVecDb::new::<HasherOf<P::SourceChain>>(storage_proof, root, storage_keys)
+			UntrustedVecDb::try_new::<HasherOf<P::SourceChain>>(storage_proof, root, storage_keys)
 				.map_err(|e| {
 					SubstrateError::Custom(format!("Error generating messages storage: {:?}", e))
 				})?;

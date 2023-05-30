@@ -166,7 +166,7 @@ where
 	let read_proof = record_all_trie_keys::<L, _>(&mdb, &root)
 		.map_err(|_| "record_all_trie_keys has failed")
 		.expect("record_all_trie_keys should not fail in benchmarks");
-	let storage = UntrustedVecDb::new::<HasherOf<BridgedChain<B>>>(
+	let storage = UntrustedVecDb::try_new::<HasherOf<BridgedChain<B>>>(
 		StorageProof::new(read_proof),
 		root,
 		storage_keys,

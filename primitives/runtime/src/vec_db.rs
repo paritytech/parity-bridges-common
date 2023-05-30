@@ -65,7 +65,7 @@ pub struct UntrustedVecDb {
 
 impl UntrustedVecDb {
 	/// Creates a new instance of `UntrustedVecDb`.
-	pub fn new<H: Hasher>(
+	pub fn try_new<H: Hasher>(
 		read_proof: StorageProof,
 		root: TrieHash<LayoutV1<H>>,
 		mut keys: Vec<impl AsRef<[u8]> + Ord>,
@@ -79,7 +79,7 @@ impl UntrustedVecDb {
 		let trie_proof = generate_trie_proof::<LayoutV1<H>, _, _, _>(&mem_db, root, &keys)
 			.map_err(|_| VecDbError::UnableToGenerateTrieProof)?;
 
-		let mut entries = vec![];
+		let mut entries = Vec::with_capacity(keys.len());
 		keys.sort();
 		for key in keys {
 			let val = trie_db.get(key.as_ref()).map_err(|_| VecDbError::UnavailableKey)?;
@@ -209,7 +209,7 @@ mod tests {
 		let root = *backend.root();
 		let read_proof = prove_read(backend, &keys).unwrap();
 
-		(root, UntrustedVecDb::new::<Hasher>(read_proof, root, keys))
+		(root, UntrustedVecDb::try_new::<Hasher>(read_proof, root, keys))
 	}
 
 	#[test]
