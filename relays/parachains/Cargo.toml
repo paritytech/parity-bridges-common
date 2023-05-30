@@ -9,7 +9,7 @@ license = "GPL-3.0-or-later WITH Classpath-exception-2.0"
 async-std = "1.6.5"
 async-trait = "0.1.68"
 futures = "0.3.28"
-log = "0.4.17"
+log = "0.4.18"
 relay-utils = { path = "../utils" }
 
 # Bridge dependencies
