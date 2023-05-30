@@ -41,6 +41,7 @@ use codec::{Decode, Encode};
 use frame_support::{
 	parameter_types,
 	weights::{ConstantMultiplier, IdentityFee, RuntimeDbWeight, Weight},
+	StateVersion,
 };
 use pallet_transaction_payment::Multiplier;
 use sp_runtime::{
@@ -327,6 +328,8 @@ impl Chain for ThisUnderlyingChain {
 	type Index = u32;
 	type Signature = sp_runtime::MultiSignature;
 
+	const STATE_VERSION: StateVersion = StateVersion::V1;
+
 	fn max_extrinsic_size() -> u32 {
 		BRIDGED_CHAIN_MAX_EXTRINSIC_SIZE
 	}
@@ -367,6 +370,8 @@ impl Chain for BridgedUnderlyingChain {
 	type Index = u32;
 	type Signature = sp_runtime::MultiSignature;
 
+	const STATE_VERSION: StateVersion = StateVersion::V1;
+
 	fn max_extrinsic_size() -> u32 {
 		BRIDGED_CHAIN_MAX_EXTRINSIC_SIZE
 	}
@@ -392,6 +397,8 @@ impl Chain for BridgedUnderlyingParachain {
 	type Balance = BridgedChainBalance;
 	type Index = u32;
 	type Signature = sp_runtime::MultiSignature;
+
+	const STATE_VERSION: StateVersion = StateVersion::V1;
 
 	fn max_extrinsic_size() -> u32 {
 		BRIDGED_CHAIN_MAX_EXTRINSIC_SIZE

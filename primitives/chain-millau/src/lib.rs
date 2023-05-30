@@ -166,6 +166,8 @@ impl Chain for Millau {
 	type Index = Index;
 	type Signature = Signature;
 
+	const STATE_VERSION: StateVersion = StateVersion::V0;
+
 	fn max_extrinsic_size() -> u32 {
 		*BlockLength::get().max.get(DispatchClass::Normal)
 	}

@@ -25,7 +25,7 @@ use frame_support::{
 		constants::{BlockExecutionWeight, WEIGHT_REF_TIME_PER_SECOND},
 		Weight,
 	},
-	Blake2_128Concat, RuntimeDebug,
+	Blake2_128Concat, RuntimeDebug, StateVersion,
 };
 use frame_system::limits;
 use sp_core::{storage::StorageKey, Hasher as HasherT};
@@ -238,6 +238,8 @@ impl Chain for PolkadotLike {
 	type Balance = Balance;
 	type Index = Index;
 	type Signature = Signature;
+
+	const STATE_VERSION: StateVersion = StateVersion::V0;
 
 	fn max_extrinsic_size() -> u32 {
 		*BlockLength::get().max.get(DispatchClass::Normal)

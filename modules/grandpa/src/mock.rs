@@ -23,6 +23,7 @@ use frame_support::{
 	construct_runtime, parameter_types,
 	traits::{ConstU32, ConstU64, Hooks},
 	weights::Weight,
+	StateVersion,
 };
 use sp_core::sr25519::Signature;
 use sp_runtime::{
@@ -114,6 +115,8 @@ impl Chain for TestBridgedChain {
 	type Balance = u64;
 	type Index = u64;
 	type Signature = Signature;
+
+	const STATE_VERSION: StateVersion = StateVersion::V1;
 
 	fn max_extrinsic_size() -> u32 {
 		unreachable!()

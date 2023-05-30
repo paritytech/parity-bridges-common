@@ -36,7 +36,7 @@ pub mod xcm_config;
 use bp_parachains::SingleParaStoredHeaderDataBuilder;
 #[cfg(feature = "runtime-benchmarks")]
 use bp_relayers::{RewardsAccountOwner, RewardsAccountParams};
-use bp_runtime::HeaderId;
+use bp_runtime::{Chain, HeaderId};
 use pallet_grandpa::{
 	fg_primitives, AuthorityId as GrandpaId, AuthorityList as GrandpaAuthorityList,
 };
@@ -154,7 +154,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
 	impl_version: 1,
 	apis: RUNTIME_API_VERSIONS,
 	transaction_version: 1,
-	state_version: 0,
+	state_version: bp_millau::Millau::STATE_VERSION as u8,
 };
 
 /// The version information used to identify this runtime when compiled natively.
@@ -599,7 +599,7 @@ generate_bridge_reject_obsolete_headers_and_messages! {
 
 bp_runtime::generate_static_str_provider!(BridgeRefundRialtoPara2000Lane0Msgs);
 /// Signed extension that refunds relayers that are delivering messages from the Rialto parachain.
-pub type PriorityBoostPerMessage = ConstU64<324_316_715>;
+pub type PriorityBoostPerMessage = ConstU64<348_340_176>;
 pub type BridgeRefundRialtoParachainMessages = RefundBridgedParachainMessages<
 	Runtime,
 	RefundableParachain<WithRialtoParachainsInstance, bp_rialto_parachain::RialtoParachain>,

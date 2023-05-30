@@ -16,7 +16,7 @@
 
 use crate::HeaderIdProvider;
 use codec::{Decode, Encode, MaxEncodedLen};
-use frame_support::{weights::Weight, Parameter};
+use frame_support::{weights::Weight, Parameter, StateVersion};
 use num_traits::{AsPrimitive, Bounded, CheckedSub, Saturating, SaturatingAdd, Zero};
 use sp_runtime::{
 	traits::{
@@ -184,6 +184,10 @@ pub trait Chain: Send + Sync + 'static {
 	/// Signature type, used on this chain.
 	type Signature: Parameter + Verify;
 
+	/// Version of the state implementation used by this chain. This is directly related with the
+	/// `TrieLayout` configuration used by the storage.
+	const STATE_VERSION: StateVersion;
+
 	/// Get the maximum size (in bytes) of a Normal extrinsic at this chain.
 	fn max_extrinsic_size() -> u32;
 	/// Get the maximum weight (compute time) that a Normal extrinsic at this chain can use.
@@ -208,6 +212,8 @@ where
 	type Balance = <T::Chain as Chain>::Balance;
 	type Index = <T::Chain as Chain>::Index;
 	type Signature = <T::Chain as Chain>::Signature;
+
+	const STATE_VERSION: StateVersion = <T::Chain as Chain>::STATE_VERSION;
 
 	fn max_extrinsic_size() -> u32 {
 		<T::Chain as Chain>::max_extrinsic_size()
