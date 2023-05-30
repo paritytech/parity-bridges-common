@@ -55,7 +55,7 @@ pub(crate) trait SubstrateChain<C> {
 	#[method(name = "getBlock")]
 	async fn block(&self, block_hash: Option<C::Hash>) -> RpcResult<C::SignedBlock>;
 }
-
+  
 /// RPC methods of Substrate `author` namespace, that we are using.
 #[rpc(client, client_bounds(C: Chain), namespace = "author")]
 pub(crate) trait SubstrateAuthor<C> {
