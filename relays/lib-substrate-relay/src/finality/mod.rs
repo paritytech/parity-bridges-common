@@ -64,7 +64,7 @@ pub trait SubstrateFinalitySyncPipeline: 'static + Clone + Debug + Send + Sync {
 
 	/// Add relay guards if required.
 	async fn start_relay_guards(
-		_target_client: &Client<Self::TargetChain>,
+		_target_client: &impl Client<Self::TargetChain>,
 		_transaction_params: &TransactionParams<AccountKeyPairOf<Self::TargetChain>>,
 		_enable_version_guard: bool,
 	) -> relay_substrate_client::Result<()> {
@@ -168,8 +168,8 @@ macro_rules! generate_submit_finality_proof_call_builder {
 
 /// Run Substrate-to-Substrate finality sync loop.
 pub async fn run<P: SubstrateFinalitySyncPipeline>(
-	source_client: Client<P::SourceChain>,
-	target_client: Client<P::TargetChain>,
+	source_client: impl Client<P::SourceChain>,
+	target_client: impl Client<P::TargetChain>,
 	only_mandatory_headers: bool,
 	transaction_params: TransactionParams<AccountKeyPairOf<P::TargetChain>>,
 	metrics_params: MetricsParams,
@@ -185,8 +185,8 @@ where
 	);
 
 	finality_relay::run(
-		SubstrateFinalitySource::<P>::new(source_client, None),
-		SubstrateFinalityTarget::<P>::new(target_client, transaction_params.clone()),
+		SubstrateFinalitySource::<P, _>::new(source_client, None),
+		SubstrateFinalityTarget::<P, _>::new(target_client, transaction_params.clone()),
 		finality_relay::FinalitySyncParams {
 			tick: std::cmp::max(
 				P::SourceChain::AVERAGE_BLOCK_INTERVAL,
