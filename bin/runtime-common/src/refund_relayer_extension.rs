@@ -647,16 +647,17 @@ where
 mod tests {
 	use super::*;
 	use crate::{
-		messages::{
-			source::FromBridgedChainMessagesDeliveryProof, target::FromBridgedChainMessagesProof,
-		},
+		messages::target::FromBridgedChainMessagesProof,
 		messages_call_ext::{
 			BaseMessagesProofInfo, ReceiveMessagesDeliveryProofInfo, ReceiveMessagesProofInfo,
 			UnrewardedRelayerOccupation,
 		},
 		mock::*,
 	};
-	use bp_messages::{InboundLaneData, MessageNonce, OutboundLaneData, UnrewardedRelayersState};
+	use bp_messages::{
+		source_chain::FromBridgedChainMessagesDeliveryProof, InboundLaneData, MessageNonce,
+		OutboundLaneData, UnrewardedRelayersState,
+	};
 	use bp_parachains::{BestParaHeadHash, ParaInfo};
 	use bp_polkadot_core::parachains::{ParaHeadsProof, ParaId};
 	use bp_runtime::HeaderId;
