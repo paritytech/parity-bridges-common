@@ -39,7 +39,7 @@ pub use crate::{
 		SignedBlockOf, TransactionStatusOf, UnsignedTransaction, UtilityPallet,
 	},
 	client::{
-		is_ancient_block, rpc_with_caching as new, testing::TestClient, ChainRuntimeVersion,
+		is_ancient_block, rpc_with_caching as new, testing::{TestChain, TestBlock, TestClient, TestClientData}, ChainRuntimeVersion,
 		Client, OpaqueGrandpaAuthoritiesSet, RpcWithCachingClient, SimpleRuntimeVersion,
 		Subscription, ANCIENT_BLOCK_THRESHOLD,
 	},

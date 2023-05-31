@@ -20,30 +20,42 @@
 use crate::{
 	client::Client,
 	error::{Error, Result},
-	AccountIdOf, AccountKeyPairOf, BlockNumberOf, Chain, ChainWithGrandpa, ChainWithTransactions,
+	AccountIdOf, AccountKeyPairOf, BlockNumberOf, CallOf, Chain, ChainWithGrandpa, ChainWithTransactions,
 	HashOf, HeaderIdOf, HeaderOf, IndexOf, SignedBlockOf, SimpleRuntimeVersion, Subscription,
 	TransactionTracker, UnsignedTransaction,
 };
 
 use async_trait::async_trait;
+use bp_runtime::{ChainId, EncodedOrDecodedCall, HeaderIdProvider};
 use codec::Encode;
 use frame_support::weights::Weight;
 use parking_lot::Mutex;
+use sc_rpc_api::system::Health;
+use sp_consensus_grandpa::AuthorityList;
 use sp_core::{
 	storage::{StorageData, StorageKey},
 	Bytes, Pair,
 };
-use sp_runtime::{traits::Header as HeaderT, transaction_validity::TransactionValidity};
+use sp_runtime::{traits::{Header as HeaderT, Zero}, transaction_validity::TransactionValidity};
 use sp_trie::StorageProof;
 use sp_version::RuntimeVersion;
 use std::{collections::HashMap, sync::Arc};
 
-/// Test client builder.
-pub struct TestClientBuilder<C: Chain> {
-	data: Arc<Mutex<ClientData<C>>>,
+/// Chain that may be used in tests.
+pub trait TestChain: Chain {
+	/// Apply runtime call to the client state.
+	fn apply_runtime_call(
+		call: CallOf<Self>,
+		block: &mut TestBlock<Self>,
+	);
 }
 
-impl<C: Chain> TestClientBuilder<C> {
+/// Test client builder.
+pub struct TestClientBuilder<C: TestChain> {
+	data: Arc<Mutex<TestClientData<C>>>,
+}
+
+impl<C: TestChain> TestClientBuilder<C> {
 	/// Build client.
 	pub fn build(self) -> TestClient<C> {
 		TestClient { data: self.data }
@@ -52,37 +64,45 @@ impl<C: Chain> TestClientBuilder<C> {
 	/// Start building block.
 	pub fn block(self, number: BlockNumberOf<C>) -> TestBlockBuilder<C> {
 		TestBlockBuilder {
-			header: HeaderOf::<C>::new(
-				number,
-				Default::default(),
-				Default::default(),
-				Default::default(),
-				Default::default(),
-			),
-			is_finalized: false,
+			block: TestBlock {
+				header: HeaderOf::<C>::new(
+					number,
+					Default::default(),
+					Default::default(),
+					Default::default(),
+					Default::default(),
+				),
+				is_finalized: false,
+				new_grandpa_authorities: None,
+				new_bridged_chain_headers: HashMap::new(),
+			},
 			data: self.data,
 		}
 	}
 }
 
 /// Test block builder.
-pub struct TestBlockBuilder<C: Chain> {
-	header: HeaderOf<C>,
-	transactions: Vec<CallOf<C>>,
-	is_finalized: bool,
-	data: Arc<Mutex<ClientData<C>>>,
+pub struct TestBlockBuilder<C: TestChain> {
+	block: TestBlock<C>,
+	data: Arc<Mutex<TestClientData<C>>>,
 }
 
-impl<C: Chain> TestBlockBuilder<C> {
+impl<C: TestChain> TestBlockBuilder<C> {
+	/// Change GRANDPA authorities.
+	pub fn change_grandpa_authorities(mut self, new_authorities: AuthorityList) -> Self {
+		self.block.new_grandpa_authorities = Some(new_authorities);
+		self
+	}
+
 	/// Push new transaction to the block.
 	pub fn push_transaction(mut self, call: CallOf<C>) -> Self {
-		self.transactions.push(call);
+		C::apply_runtime_call(call.into(), &mut self.block);
 		self
 	}
 
 	/// Finalize block.
 	pub fn finalize(mut self) -> Self {
-		self.is_finalized = true;
+		self.block.is_finalized = true;
 		self
 	}
 
@@ -93,22 +113,23 @@ impl<C: Chain> TestBlockBuilder<C> {
 			if data
 				.best_header
 				.as_ref()
-				.map(|bh| bh.number() <= self.header.number())
+				.map(|bh| bh.number() <= self.block.header.number())
 				.unwrap_or(true)
 			{
-				data.best_header = Some(self.header.clone());
+				data.best_header = Some(self.block.header.clone());
 			}
-			if self.is_finalized {
+
+			if self.block.is_finalized {
 				if data
 					.best_finalized_header
 					.as_ref()
-					.map(|bh| bh.number() <= self.header.number())
+					.map(|bh| bh.number() <= self.block.header.number())
 					.unwrap_or(true)
 				{
-					data.best_finalized_header = Some(self.header.clone());
+					data.best_finalized_header = Some(self.block.header.clone());
 				}
 			}
-			data.headers.insert(self.header.hash(), self.header);
+			data.blocks.insert(self.block.header.hash(), self.block);
 		}
 
 		TestClientBuilder { data: self.data }
@@ -118,45 +139,70 @@ impl<C: Chain> TestBlockBuilder<C> {
 /// Client implementation that returns some mock data without actually connecting
 /// to any node.
 #[derive(Clone, Default)]
-pub struct TestClient<C: Chain> {
-	data: Arc<Mutex<ClientData<C>>>,
+pub struct TestClient<C: TestChain> {
+	data: Arc<Mutex<TestClientData<C>>>,
+}
+
+/// Test block.
+pub struct TestBlock<C: TestChain> {
+	pub header: HeaderOf<C>,
+	pub is_finalized: bool,
+	pub new_grandpa_authorities: Option<AuthorityList>,
+	pub new_bridged_chain_headers: HashMap<ChainId, Vec<u8>>,
 }
 
 /// Client data, shared by all `CachingClient` clones.
-struct ClientData<C: Chain> {
+pub struct TestClientData<C: TestChain> {
+	is_synced: bool,
 	best_header: Option<HeaderOf<C>>,
 	best_finalized_header: Option<HeaderOf<C>>,
-	headers: HashMap<HashOf<C>, HeaderOf<C>>,
+	blocks: HashMap<HashOf<C>, TestBlock<C>>,
+	transaction_pool: Vec<EncodedOrDecodedCall<CallOf<C>>>,
 }
 
-impl<C: Chain> Default for ClientData<C> {
+impl<C: TestChain> Default for TestClientData<C> {
 	fn default() -> Self {
-		ClientData { best_header: None, best_finalized_header: None, headers: HashMap::new() }
+		TestClientData {
+			is_synced: true,
+			best_header: None,
+			best_finalized_header: None,
+			blocks: HashMap::new(),
+			transaction_pool: Vec::new(),
+		}
 	}
 }
 
-impl<C: Chain> TestClient<C> {
+impl<C: TestChain> TestClient<C> {
 	/// Start building client.
 	pub fn builder() -> TestClientBuilder<C> {
-		TestClientBuilder { data: Arc::new(Mutex::new(ClientData::default())) }
+		TestClientBuilder { data: Arc::new(Mutex::new(TestClientData::default())) }
 	}
 
 	/// Start amending the client.
 	pub fn amend(&self) -> TestClientBuilder<C> {
 		TestClientBuilder { data: self.data.clone() }
 	}
+
+	/// Returns transaction pool reference.
+	pub fn transaction_pool(&self) -> Vec<EncodedOrDecodedCall<CallOf<C>>> {
+		self.data.lock().transaction_pool.clone()
+	}
 }
 
-impl<C: Chain> std::fmt::Debug for TestClient<C> {
+impl<C: TestChain> std::fmt::Debug for TestClient<C> {
 	fn fmt(&self, fmt: &mut std::fmt::Formatter) -> std::fmt::Result {
 		fmt.write_fmt(format_args!("TestClient<{:?}>", C::NAME))
 	}
 }
 
 #[async_trait]
-impl<C: Chain> Client<C> for TestClient<C> {
+impl<C: TestChain> Client<C> for TestClient<C> {
 	async fn ensure_synced(&self) -> Result<()> {
-		unimplemented!("TODO")
+		self.data.lock().is_synced.then(|| Ok(())).unwrap_or(Err(Error::ClientNotSynced(Health {
+			peers: 0,
+			is_syncing: true,
+			should_have_peers: true,
+		})))
 	}
 
 	async fn reconnect(&self) -> Result<()> {
@@ -172,7 +218,7 @@ impl<C: Chain> Client<C> for TestClient<C> {
 	}
 
 	async fn header_by_hash(&self, hash: HashOf<C>) -> Result<HeaderOf<C>> {
-		self.data.lock().headers.get(&hash).cloned().map(Ok).unwrap_or_else(|| {
+		self.data.lock().blocks.get(&hash).map(|b| b.header.clone()).map(Ok).unwrap_or_else(|| {
 			Err(Error::Custom(format!("TestClient::header_by_hash({:?}): not found", hash)))
 		})
 	}
@@ -247,7 +293,7 @@ impl<C: Chain> Client<C> for TestClient<C> {
 	async fn submit_signed_extrinsic(
 		&self,
 		_signer: &AccountKeyPairOf<C>,
-		_prepare_extrinsic: impl FnOnce(HeaderIdOf<C>, IndexOf<C>) -> Result<UnsignedTransaction<C>>
+		prepare_extrinsic: impl FnOnce(HeaderIdOf<C>, IndexOf<C>) -> Result<UnsignedTransaction<C>>
 			+ Send
 			+ 'static,
 	) -> Result<HashOf<C>>
@@ -255,7 +301,12 @@ impl<C: Chain> Client<C> for TestClient<C> {
 		C: ChainWithTransactions,
 		AccountIdOf<C>: From<<AccountKeyPairOf<C> as Pair>::Public>,
 	{
-		unimplemented!("TODO")
+		let best_header = self.best_header().await?;
+		let transaction_nonce = Zero::zero();
+		let unsigned = prepare_extrinsic(best_header.id(), transaction_nonce)?;
+
+		self.data.lock().transaction_pool.push(unsigned.call);
+		Ok(Default::default())
 	}
 
 	async fn submit_and_watch_signed_extrinsic(

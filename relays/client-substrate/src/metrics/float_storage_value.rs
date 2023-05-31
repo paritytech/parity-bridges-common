@@ -138,33 +138,3 @@ impl<C: Chain, Clnt: Client<C>, V: FloatStorageValue> StandaloneMetric
 		*self.shared_value_ref.write().await = value.ok().and_then(|x| x);
 	}
 }
-
-#[cfg(test)]
-mod tests {
-	use super::*;
-
-	#[async_std::test]
-	fn float_storage_value_metric_is_updated() {
-		// build client with best header #100 and non-empty metric value
-		let storage_key = StorageKey(vec![42]);
-		let client = TestClient::<TestChainA>::builder()
-			.header(100)
-			.storage_value(storage_key.clone(), StorageValue(FixedU128::from_u32(42).encode()))
-			.build()
-			.build();
-
-		// spawn metric and wait a bit until value is read and updated in registry
-		let registry = Registry::new();
-		let metric = FloatStorageValueMetric::new(
-			FixedU128OrOne,
-			client,
-			storage_key,
-			"test".into(),
-			"test".into(),
-		);
-		metric.register(&registry).unwrap();
-		async_std::task::sleep(std::time::Duration::from_millis(100));
-
-		// check that the metric value is updated
-	}
-}

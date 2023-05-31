@@ -513,7 +513,7 @@ fn on_demand_headers_relay_name<SourceChain: Chain, TargetChain: Chain>() -> Str
 
 #[cfg(test)]
 mod tests {
-	use relay_substrate_client::{TestClient, UnsignedTransaction, test_chain::{TestChainA, TestChainB, TestChainBCall}};
+	use relay_substrate_client::{HeaderOf, TestClient, UnsignedTransaction, test_chain::{TestChainA, TestChainB, TestChainBCall}};
 	use sp_core::Pair;
 	use super::*;
 
@@ -544,13 +544,47 @@ mod tests {
 		}
 	}
 
+
+	/// Description of TestChainA -> TestChainB finalized headers bridge.
+	#[derive(Clone, Debug)]
+	pub struct TestChainAFinalityToTestChainB;
+/*
+	substrate_relay_helper::generate_submit_finality_proof_call_builder!(
+		PolkadotFinalityToBridgeHubKusama,
+		PolkadotFinalityToBridgeHubKusamaCallBuilder,
+		relay_bridge_hub_kusama_client::runtime::Call::BridgePolkadotGrandpa,
+		relay_bridge_hub_kusama_client::runtime::BridgePolkadotGrandpaCall::submit_finality_proof
+	);
+*/
+
+	#[derive(Clone, Debug)]
+	pub struct TestChainBCallBuilder;
+
+	impl SubmitFinalityProofCallBuilder<TestChainAFinalityToTestChainB> for TestChainBCallBuilder {
+		fn build_submit_finality_proof_call(
+			header: relay_substrate_client::SyncHeader<HeaderOf<TestChainA>>,
+			_proof: crate::finality::source::SubstrateFinalityProof<TestChainAFinalityToTestChainB>,
+		) -> TestChainBCall {
+			TestChainBCall::ChainAHeader(header.into_inner())
+		}
+	}
+
+	#[async_trait]
+	impl SubstrateFinalitySyncPipeline for TestChainAFinalityToTestChainB {
+		type SourceChain = TestChainA;
+		type TargetChain = TestChainB;
+
+		type FinalityEngine = crate::finality::engine::Grandpa<TestChainA>;
+		type SubmitFinalityProofCallBuilder = TestChainBCallBuilder;
+	}
+
 	#[async_std::test]
 	async fn mandatory_headers_relayed() {
 		let source_client = TestClient::<TestChainA>::builder().block(800).finalize().build().build();
 		let source_best_finalized = source_client.best_finalized_header().await.unwrap();
 		
 		let target_transaction_params = test_target_transaction_params();
-		let target_client = TestClient::<TestChainB>::builder().build();
+		let target_client = TestClient::<TestChainB>::builder()
 			.block(100)
 			.push_transaction(TestChainBCall::ChainAHeader(source_best_finalized.clone()))
 			.finalize()
@@ -559,16 +593,14 @@ mod tests {
 		target_client.submit_signed_extrinsic(
 			&target_transaction_params.signer,
 			|_, _| Ok(UnsignedTransaction {
-				call: .into(),
+				call: TestChainBCall::ChainAHeader(source_best_finalized).into(),
 				nonce: 0,
 				tip: 0,
 				era: relay_substrate_client::TransactionEra::Immortal,
 			})
 		).await.unwrap();
-		let target_client = target_client.amend()
 
-
-		let on_demand_relay = OnDemandHeadersRelay::new(
+		let on_demand_relay = OnDemandHeadersRelay::<TestChainAFinalityToTestChainB, _, _>::new(
 			source_client.clone(),
 			target_client.clone(),
 			test_target_transaction_params(),
@@ -580,26 +612,26 @@ mod tests {
 		source_client
 			.amend()
 			.block(1000)
-			.change_authorities()
+			.change_grandpa_authorities(bp_test_utils::authority_list())
 			.finalize()
 			.build()
 			.build();
 
 		// no pending transactions at target client
-		async_std::task::sleep(std::time::Duration::from_millis(100));
-		assert!(target_client.pending_transactions().is_empty());
+		async_std::task::sleep(std::time::Duration::from_millis(100)).await;
+		assert!(target_client.transaction_pool().is_empty());
 
 		// add and finalize mandatory source header
 		source_client
 			.amend()
 			.block(1000)
-			.change_authorities()
+			.change_grandpa_authorities(bp_test_utils::authority_list())
 			.finalize()
 			.build()
 			.build();
 
 		// wait until new transaction appears at the targe client
-		async_std::task::sleep(std::time::Duration::from_millis(100));
-		assert!(!target_client.pending_transactions().is_empty());
+		async_std::task::sleep(std::time::Duration::from_millis(100)).await;
+		assert!(!target_client.transaction_pool().is_empty());
 	}
 }

@@ -22,9 +22,9 @@
 #![cfg(any(feature = "test-helpers", test))]
 
 use crate::{
-	Chain, ChainWithBalances, ChainWithTransactions, HeaderOf, SignParam, UnsignedTransaction,
+	CallOf, Chain, ChainWithBalances, ChainWithGrandpa, ChainWithTransactions, HeaderOf, SignParam, TestChain, TestBlock, TestClientData, UnsignedTransaction,
 };
-use bp_runtime::ChainId;
+use bp_runtime::{ChainId, EncodedOrDecodedCall};
 use codec::{Decode, Encode};
 use frame_support::weights::Weight;
 use sp_runtime::AccountId32;
@@ -66,6 +66,10 @@ impl Chain for TestChainA {
 	type Call = ();
 }
 
+impl ChainWithGrandpa for TestChainA {
+	const WITH_CHAIN_GRANDPA_PALLET_NAME: &'static str = "WithTestChainABridgeGrandpa";
+}
+
 impl ChainWithBalances for TestChainA {
 	fn account_info_storage_key(_account_id: &AccountId32) -> sp_core::storage::StorageKey {
 		unreachable!()
@@ -97,6 +101,13 @@ impl ChainWithTransactions for TestChainA {
 	fn parse_transaction(_tx: Self::SignedTransaction) -> Option<UnsignedTransaction<Self>> {
 		unimplemented!()
 	}
+}
+
+impl TestChain for TestChainA {
+	fn apply_runtime_call(
+		_call: CallOf<Self>,
+		_block: &mut TestBlock<Self>,
+	) { unimplemented!("TODO") }
 }
 
 /// One of chains that may be used in tests.
@@ -135,6 +146,10 @@ impl Chain for TestChainB {
 	type Call = TestChainBCall;
 }
 
+impl ChainWithGrandpa for TestChainB {
+	const WITH_CHAIN_GRANDPA_PALLET_NAME: &'static str = "WithTestChainBBridgeGrandpa";
+}
+
 impl ChainWithBalances for TestChainB {
 	fn account_info_storage_key(_account_id: &AccountId32) -> sp_core::storage::StorageKey {
 		unreachable!()
@@ -165,6 +180,22 @@ impl ChainWithTransactions for TestChainB {
 
 	fn parse_transaction(_tx: Self::SignedTransaction) -> Option<UnsignedTransaction<Self>> {
 		unimplemented!()
+	}
+}
+
+impl TestChain for TestChainB {
+	fn apply_runtime_call(
+		call: CallOf<Self>,
+		block: &mut TestBlock<Self>,
+	) {
+		match call {
+			TestChainBCall::ChainAHeader(new_header) => {
+				block.new_bridged_chain_headers.insert(
+					TestChainA::ID,
+					new_header.encode(),
+				);
+			},
+		}
 	}
 }
 

@@ -22,6 +22,7 @@ bp-header-chain = { path = "../../primitives/header-chain" }
 bp-parachains = { path = "../../primitives/parachains" }
 bp-polkadot-core = { path = "../../primitives/polkadot-core" }
 bp-relayers = { path = "../../primitives/relayers" }
+bp-test-utils = { path = "../../primitives/test-utils" }
 bridge-runtime-common = { path = "../../bin/runtime-common" }
 
 finality-grandpa = { version = "0.16.2" }
