@@ -30,7 +30,7 @@ use sp_std::{
 
 /// Messages delivery proof from the bridged chain.
 ///
-/// It conbtains everything required to prove that our (this chain) messages have been
+/// It contains everything required to prove that our (this chain) messages have been
 /// delivered to the bridged (target) chain:
 ///
 /// - hash of finalized header;
