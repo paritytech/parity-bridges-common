@@ -83,6 +83,7 @@ impl<S: OutboundLaneStorage> OutboundLane<S> {
 	}
 
 	/// Get this lane data.
+	#[cfg(test)]
 	pub fn data(&self) -> OutboundLaneData {
 		self.storage.data()
 	}
