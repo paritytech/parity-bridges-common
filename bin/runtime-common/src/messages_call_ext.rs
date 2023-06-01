@@ -14,9 +14,8 @@
 // You should have received a copy of the GNU General Public License
 // along with Parity Bridges Common.  If not, see <http://www.gnu.org/licenses/>.
 
-use crate::messages::target::FromBridgedChainMessagesProof;
 use bp_messages::{
-	source_chain::FromBridgedChainMessagesDeliveryProof, InboundLaneData, LaneId, MessageNonce,
+	source_chain::FromBridgedChainMessagesDeliveryProof, target_chain::FromBridgedChainMessagesProof, InboundLaneData, LaneId, MessageNonce,
 };
 use frame_support::{
 	dispatch::CallableCallFor,
@@ -322,7 +321,6 @@ fn unrewarded_relayers_occupation<T: Config<I>, I: 'static>(
 mod tests {
 	use super::*;
 	use crate::{
-		messages::target::FromBridgedChainMessagesProof,
 		messages_call_ext::MessagesCallSubType,
 		mock::{
 			MaxUnconfirmedMessagesAtInboundLane, MaxUnrewardedRelayerEntriesAtInboundLane,
@@ -330,7 +328,7 @@ mod tests {
 		},
 	};
 	use bp_messages::{
-		source_chain::FromBridgedChainMessagesDeliveryProof, DeliveredMessages, UnrewardedRelayer,
+		source_chain::FromBridgedChainMessagesDeliveryProof, target_chain::FromBridgedChainMessagesProof, DeliveredMessages, UnrewardedRelayer,
 		UnrewardedRelayersState,
 	};
 	use sp_std::ops::RangeInclusive;

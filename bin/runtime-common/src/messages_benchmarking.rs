@@ -21,7 +21,7 @@
 
 use crate::{
 	messages::{
-		target::FromBridgedChainMessagesProof, AccountIdOf, BridgedChain, HashOf, HasherOf,
+		AccountIdOf, BridgedChain, HashOf, HasherOf,
 		MessageBridge, ThisChain,
 	},
 	messages_generation::{
@@ -29,7 +29,7 @@ use crate::{
 	},
 };
 
-use bp_messages::{source_chain::FromBridgedChainMessagesDeliveryProof, storage_keys};
+use bp_messages::{source_chain::FromBridgedChainMessagesDeliveryProof, target_chain::FromBridgedChainMessagesProof, storage_keys};
 use bp_polkadot_core::parachains::ParaHash;
 use bp_runtime::{
 	record_all_trie_keys, Chain, Parachain, RawStorageProof, StorageProofSize, UnderlyingChainOf,
