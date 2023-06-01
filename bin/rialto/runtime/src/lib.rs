@@ -32,7 +32,7 @@ pub mod millau_messages;
 pub mod parachains;
 pub mod xcm_config;
 
-use bp_runtime::{Chain, HeaderId};
+use bp_runtime::HeaderId;
 use pallet_grandpa::{
 	fg_primitives, AuthorityId as GrandpaId, AuthorityList as GrandpaAuthorityList,
 };
@@ -132,6 +132,7 @@ impl_opaque_keys! {
 }
 
 /// This runtime version.
+#[sp_version::runtime_version]
 pub const VERSION: RuntimeVersion = RuntimeVersion {
 	spec_name: create_runtime_str!("rialto-runtime"),
 	impl_name: create_runtime_str!("rialto-runtime"),
@@ -140,7 +141,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
 	impl_version: 1,
 	apis: RUNTIME_API_VERSIONS,
 	transaction_version: 1,
-	state_version: bp_rialto::Rialto::STATE_VERSION as u8,
+	state_version: 1,
 };
 
 /// The version information used to identify this runtime when compiled natively.
@@ -262,7 +263,6 @@ impl pallet_grandpa::Config for Runtime {
 impl pallet_mmr::Config for Runtime {
 	const INDEXING_PREFIX: &'static [u8] = b"mmr";
 	type Hashing = Keccak256;
-	type Hash = <Keccak256 as sp_runtime::traits::Hash>::Output;
 	type LeafData = pallet_beefy_mmr::Pallet<Runtime>;
 	type OnNewRoot = pallet_beefy_mmr::DepositBeefyDigest<Runtime>;
 	type WeightInfo = ();
@@ -330,7 +330,7 @@ impl pallet_balances::Config for Runtime {
 	type MaxLocks = ConstU32<50>;
 	type MaxReserves = ConstU32<50>;
 	type ReserveIdentifier = [u8; 8];
-	type HoldIdentifier = ();
+	type RuntimeHoldReason = RuntimeHoldReason;
 	type FreezeIdentifier = ();
 	type MaxHolds = ConstU32<0>;
 	type MaxFreezes = ConstU32<0>;
@@ -497,12 +497,12 @@ construct_runtime!(
 		Paras: polkadot_runtime_parachains::paras::{Pallet, Call, Storage, Event, Config, ValidateUnsigned},
 		Initializer: polkadot_runtime_parachains::initializer::{Pallet, Call, Storage},
 		Dmp: polkadot_runtime_parachains::dmp::{Pallet, Storage},
-		Ump: polkadot_runtime_parachains::ump::{Pallet, Call, Storage, Event},
 		Hrmp: polkadot_runtime_parachains::hrmp::{Pallet, Call, Storage, Event<T>, Config},
 		SessionInfo: polkadot_runtime_parachains::session_info::{Pallet, Storage},
 		ParaSessionInfo: polkadot_runtime_parachains::session_info::{Pallet, Storage},
 		ParasDisputes: polkadot_runtime_parachains::disputes::{Pallet, Call, Storage, Event<T>},
 		ParasSlashing: polkadot_runtime_parachains::disputes::slashing::{Pallet, Call, Storage, ValidateUnsigned},
+		MessageQueue: pallet_message_queue::{Pallet, Call, Storage, Event<T>},
 
 		// Parachain Onboarding Pallets
 		Registrar: polkadot_runtime_common::paras_registrar::{Pallet, Call, Storage, Event<T>},
@@ -557,8 +557,8 @@ mod mmr {
 	pub use pallet_mmr::primitives::*;
 
 	pub type Leaf = <<Runtime as pallet_mmr::Config>::LeafData as LeafDataProvider>::LeafData;
-	pub type Hash = <Runtime as pallet_mmr::Config>::Hash;
 	pub type Hashing = <Runtime as pallet_mmr::Config>::Hashing;
+	pub type Hash = <Hashing as sp_runtime::traits::Hash>::Output;
 }
 
 impl_runtime_apis! {
@@ -966,6 +966,12 @@ impl_runtime_apis! {
 #[cfg(test)]
 mod tests {
 	use super::*;
+	use bp_runtime::Chain;
+
+	#[test]
+	fn runtime_version() {
+		assert_eq!(VERSION.state_version, bp_rialto::Rialto::STATE_VERSION as u8);
+	}
 
 	#[test]
 	fn call_size() {

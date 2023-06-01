@@ -36,7 +36,7 @@ pub mod xcm_config;
 use bp_parachains::SingleParaStoredHeaderDataBuilder;
 #[cfg(feature = "runtime-benchmarks")]
 use bp_relayers::{RewardsAccountOwner, RewardsAccountParams};
-use bp_runtime::{Chain, HeaderId};
+use bp_runtime::HeaderId;
 use pallet_grandpa::{
 	fg_primitives, AuthorityId as GrandpaId, AuthorityList as GrandpaAuthorityList,
 };
@@ -146,6 +146,7 @@ impl_opaque_keys! {
 }
 
 /// This runtime version.
+#[sp_version::runtime_version]
 pub const VERSION: RuntimeVersion = RuntimeVersion {
 	spec_name: create_runtime_str!("millau-runtime"),
 	impl_name: create_runtime_str!("millau-runtime"),
@@ -154,7 +155,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
 	impl_version: 1,
 	apis: RUNTIME_API_VERSIONS,
 	transaction_version: 1,
-	state_version: bp_millau::Millau::STATE_VERSION as u8,
+	state_version: 0,
 };
 
 /// The version information used to identify this runtime when compiled natively.
@@ -254,17 +255,15 @@ impl pallet_grandpa::Config for Runtime {
 mod mmr {
 	use super::Runtime;
 	pub use pallet_mmr::primitives::*;
-	use sp_runtime::traits::Keccak256;
 
 	pub type Leaf = <<Runtime as pallet_mmr::Config>::LeafData as LeafDataProvider>::LeafData;
-	pub type Hash = <Keccak256 as sp_runtime::traits::Hash>::Output;
 	pub type Hashing = <Runtime as pallet_mmr::Config>::Hashing;
+	pub type Hash = <Hashing as sp_runtime::traits::Hash>::Output;
 }
 
 impl pallet_mmr::Config for Runtime {
 	const INDEXING_PREFIX: &'static [u8] = b"mmr";
 	type Hashing = Keccak256;
-	type Hash = mmr::Hash;
 	type OnNewRoot = pallet_beefy_mmr::DepositBeefyDigest<Runtime>;
 	type WeightInfo = ();
 	type LeafData = pallet_beefy_mmr::Pallet<Runtime>;
@@ -332,7 +331,7 @@ impl pallet_balances::Config for Runtime {
 	type MaxLocks = ConstU32<50>;
 	type MaxReserves = ConstU32<50>;
 	type ReserveIdentifier = [u8; 8];
-	type HoldIdentifier = ();
+	type RuntimeHoldReason = RuntimeHoldReason;
 	type FreezeIdentifier = ();
 	type MaxHolds = ConstU32<0>;
 	type MaxFreezes = ConstU32<0>;
@@ -1143,6 +1142,12 @@ impl_runtime_apis! {
 #[cfg(test)]
 mod tests {
 	use super::*;
+	use bp_runtime::Chain;
+
+	#[test]
+	fn runtime_version() {
+		assert_eq!(VERSION.state_version, bp_millau::Millau::STATE_VERSION as u8);
+	}
 
 	#[test]
 	fn call_size() {
