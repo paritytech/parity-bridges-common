@@ -26,7 +26,7 @@ use crate::{
 use async_std::sync::Arc;
 use bp_messages::{
 	source_chain::FromBridgedChainMessagesDeliveryProof,
-	target_chain::FromBridgedChainMessagesProof, LaneId, MessageNonce,
+	target_chain::FromBridgedChainMessagesProof, ChainWithMessages as _, LaneId, MessageNonce,
 };
 use bp_runtime::{
 	AccountIdOf, Chain as _, EncodedOrDecodedCall, HeaderIdOf, TransactionEra, WeightExtraOps,

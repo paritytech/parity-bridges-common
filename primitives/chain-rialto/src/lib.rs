@@ -20,7 +20,8 @@
 
 use bp_header_chain::ChainWithGrandpa;
 use bp_messages::{
-	InboundMessageDetails, LaneId, MessageNonce, MessagePayload, OutboundMessageDetails,
+	ChainWithMessages, InboundMessageDetails, LaneId, MessageNonce, MessagePayload,
+	OutboundMessageDetails,
 };
 use bp_runtime::{decl_bridge_runtime_apis, Chain};
 use frame_support::{
@@ -191,6 +192,14 @@ impl ChainWithGrandpa for Rialto {
 		REASONABLE_HEADERS_IN_JUSTIFICATON_ANCESTRY;
 	const MAX_HEADER_SIZE: u32 = MAX_HEADER_SIZE;
 	const AVERAGE_HEADER_SIZE_IN_JUSTIFICATION: u32 = AVERAGE_HEADER_SIZE_IN_JUSTIFICATION;
+}
+
+impl ChainWithMessages for Rialto {
+	const WITH_CHAIN_MESSAGES_PALLET_NAME: &'static str = WITH_RIALTO_MESSAGES_PALLET_NAME;
+	const MAX_UNREWARDED_RELAYERS_IN_CONFIRMATION_TX: MessageNonce =
+		MAX_UNREWARDED_RELAYERS_IN_CONFIRMATION_TX;
+	const MAX_UNCONFIRMED_MESSAGES_IN_CONFIRMATION_TX: MessageNonce =
+		MAX_UNCONFIRMED_MESSAGES_IN_CONFIRMATION_TX;
 }
 
 frame_support::parameter_types! {
