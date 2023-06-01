@@ -17,7 +17,6 @@
 //! Types used to connect to the BridgeHub-Westend-Substrate parachain.
 
 use bp_bridge_hub_westend::AVERAGE_BLOCK_INTERVAL;
-use bp_messages::MessageNonce;
 use bp_polkadot_core::SuffixedCommonSignedExtensionExt;
 use bp_runtime::ChainId;
 use codec::Encode;
@@ -116,8 +115,6 @@ impl ChainWithTransactions for BridgeHubWestend {
 }
 
 impl ChainWithMessages for BridgeHubWestend {
-	const WITH_CHAIN_MESSAGES_PALLET_NAME: &'static str =
-		bp_bridge_hub_westend::WITH_BRIDGE_HUB_WESTEND_MESSAGES_PALLET_NAME;
 	const WITH_CHAIN_RELAYERS_PALLET_NAME: Option<&'static str> =
 		Some(bp_bridge_hub_westend::WITH_BRIDGE_HUB_WESTEND_RELAYERS_PALLET_NAME);
 
@@ -125,11 +122,6 @@ impl ChainWithMessages for BridgeHubWestend {
 		bp_bridge_hub_westend::TO_BRIDGE_HUB_WESTEND_MESSAGE_DETAILS_METHOD;
 	const FROM_CHAIN_MESSAGE_DETAILS_METHOD: &'static str =
 		bp_bridge_hub_westend::FROM_BRIDGE_HUB_WESTEND_MESSAGE_DETAILS_METHOD;
-
-	const MAX_UNREWARDED_RELAYERS_IN_CONFIRMATION_TX: MessageNonce =
-		bp_bridge_hub_westend::MAX_UNREWARDED_RELAYERS_IN_CONFIRMATION_TX;
-	const MAX_UNCONFIRMED_MESSAGES_IN_CONFIRMATION_TX: MessageNonce =
-		bp_bridge_hub_westend::MAX_UNCONFIRMED_MESSAGES_IN_CONFIRMATION_TX;
 }
 
 #[cfg(test)]

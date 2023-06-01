@@ -169,6 +169,16 @@ impl bp_runtime::Parachain for BaseBridgeHubRococoAsBridgeHubPolkadot {
 	const PARACHAIN_ID: u32 = bp_bridge_hub_rococo::BridgeHubRococo::PARACHAIN_ID;
 }
 
+impl bp_messages::ChainWithMessages for BaseBridgeHubRococoAsBridgeHubPolkadot {
+	const WITH_CHAIN_MESSAGES_PALLET_NAME: &'static str =
+		relay_bridge_hub_polkadot_client::BridgeHubPolkadot::WITH_CHAIN_MESSAGES_PALLET_NAME;
+
+	const MAX_UNREWARDED_RELAYERS_IN_CONFIRMATION_TX: MessageNonce =
+		relay_bridge_hub_rococo_client::BridgeHubRococo::MAX_UNREWARDED_RELAYERS_IN_CONFIRMATION_TX;
+	const MAX_UNCONFIRMED_MESSAGES_IN_CONFIRMATION_TX: MessageNonce =
+		relay_bridge_hub_rococo_client::BridgeHubRococo::MAX_UNCONFIRMED_MESSAGES_IN_CONFIRMATION_TX;
+}
+
 /// Relay `Chain` implementation of Rococo Bridge Hub, pretending to be a Polkadot Bridge Hub.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct BridgeHubRococoAsBridgeHubPolkadot;
@@ -236,8 +246,6 @@ impl relay_substrate_client::ChainWithTransactions for BridgeHubRococoAsBridgeHu
 }
 
 impl relay_substrate_client::ChainWithMessages for BridgeHubRococoAsBridgeHubPolkadot {
-	const WITH_CHAIN_MESSAGES_PALLET_NAME: &'static str =
-		relay_bridge_hub_polkadot_client::BridgeHubPolkadot::WITH_CHAIN_MESSAGES_PALLET_NAME;
 	const WITH_CHAIN_RELAYERS_PALLET_NAME: Option<&'static str> =
 		relay_bridge_hub_polkadot_client::BridgeHubPolkadot::WITH_CHAIN_RELAYERS_PALLET_NAME;
 
@@ -245,11 +253,6 @@ impl relay_substrate_client::ChainWithMessages for BridgeHubRococoAsBridgeHubPol
 		relay_bridge_hub_polkadot_client::BridgeHubPolkadot::TO_CHAIN_MESSAGE_DETAILS_METHOD;
 	const FROM_CHAIN_MESSAGE_DETAILS_METHOD: &'static str =
 		relay_bridge_hub_polkadot_client::BridgeHubPolkadot::FROM_CHAIN_MESSAGE_DETAILS_METHOD;
-
-	const MAX_UNREWARDED_RELAYERS_IN_CONFIRMATION_TX: MessageNonce =
-		relay_bridge_hub_rococo_client::BridgeHubRococo::MAX_UNREWARDED_RELAYERS_IN_CONFIRMATION_TX;
-	const MAX_UNCONFIRMED_MESSAGES_IN_CONFIRMATION_TX: MessageNonce =
-		relay_bridge_hub_rococo_client::BridgeHubRococo::MAX_UNCONFIRMED_MESSAGES_IN_CONFIRMATION_TX;
 }
 
 impl CliChain for BridgeHubRococoAsBridgeHubPolkadot {

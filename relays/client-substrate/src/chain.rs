@@ -17,7 +17,7 @@
 use crate::calls::UtilityCall;
 
 use bp_header_chain::ChainWithGrandpa as ChainWithGrandpaBase;
-use bp_messages::MessageNonce;
+use bp_messages::ChainWithMessages as ChainWithMessagesBase;
 use bp_runtime::{
 	Chain as ChainBase, ChainId, EncodedOrDecodedCall, HashOf, Parachain as ParachainBase,
 	TransactionEra, TransactionEraOf, UnderlyingChainProvider,
@@ -91,14 +91,7 @@ pub trait Parachain: Chain + ParachainBase {}
 impl<T> Parachain for T where T: UnderlyingChainProvider + Chain + ParachainBase {}
 
 /// Substrate-based chain with messaging support from minimal relay-client point of view.
-pub trait ChainWithMessages: Chain {
-	/// Name of the bridge messages pallet (used in `construct_runtime` macro call) that is deployed
-	/// at some other chain to bridge with this `ChainWithMessages`.
-	///
-	/// We assume that all chains that are bridging with this `ChainWithMessages` are using
-	/// the same name.
-	const WITH_CHAIN_MESSAGES_PALLET_NAME: &'static str;
-
+pub trait ChainWithMessages: Chain + ChainWithMessagesBase {
 	// TODO (https://github.com/paritytech/parity-bridges-common/issues/1692): check all the names
 	// after the issue is fixed - all names must be changed
 
@@ -116,13 +109,6 @@ pub trait ChainWithMessages: Chain {
 	/// Name of the `From<ChainWithMessages>InboundLaneApi::message_details` runtime API method.
 	/// The method is provided by the runtime that is bridged with this `ChainWithMessages`.
 	const FROM_CHAIN_MESSAGE_DETAILS_METHOD: &'static str;
-
-	/// Maximal number of unrewarded relayers in a single confirmation transaction at this
-	/// `ChainWithMessages`.
-	const MAX_UNREWARDED_RELAYERS_IN_CONFIRMATION_TX: MessageNonce;
-	/// Maximal number of unconfirmed messages in a single confirmation transaction at this
-	/// `ChainWithMessages`.
-	const MAX_UNCONFIRMED_MESSAGES_IN_CONFIRMATION_TX: MessageNonce;
 }
 
 /// Call type used by the chain.

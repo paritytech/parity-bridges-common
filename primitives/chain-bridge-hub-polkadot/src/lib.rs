@@ -58,6 +58,16 @@ impl Parachain for BridgeHubPolkadot {
 	const PARACHAIN_ID: u32 = BRIDGE_HUB_POLKADOT_PARACHAIN_ID;
 }
 
+impl ChainWithMessages for BridgeHubPolkadot {
+	const WITH_CHAIN_MESSAGES_PALLET_NAME: &'static str =
+		WITH_BRIDGE_HUB_POLKADOT_MESSAGES_PALLET_NAME;
+
+	const MAX_UNREWARDED_RELAYERS_IN_CONFIRMATION_TX: MessageNonce =
+		MAX_UNREWARDED_RELAYERS_IN_CONFIRMATION_TX;
+	const MAX_UNCONFIRMED_MESSAGES_IN_CONFIRMATION_TX: MessageNonce =
+		MAX_UNCONFIRMED_MESSAGES_IN_CONFIRMATION_TX;
+}
+
 /// Identifier of BridgeHubPolkadot in the Polkadot relay chain.
 pub const BRIDGE_HUB_POLKADOT_PARACHAIN_ID: u32 = 1002;
 

@@ -22,8 +22,8 @@
 
 use bp_header_chain::HeaderChainError;
 use bp_runtime::{
-	messages::MessageDispatchResult, BasicOperatingMode, OperatingMode, RangeInclusiveExt,
-	StorageProofError,
+	messages::MessageDispatchResult, BasicOperatingMode, Chain, OperatingMode, RangeInclusiveExt,
+	StorageProofError, UnderlyingChainOf, UnderlyingChainProvider,
 };
 use codec::{Decode, Encode, MaxEncodedLen};
 use frame_support::PalletError;
@@ -38,6 +38,36 @@ use sp_std::{collections::vec_deque::VecDeque, ops::RangeInclusive, prelude::*};
 pub mod source_chain;
 pub mod storage_keys;
 pub mod target_chain;
+
+/// Substrate-based chain with messaging support.
+pub trait ChainWithMessages: Chain {
+	/// Name of the bridge messages pallet (used in `construct_runtime` macro call) that is
+	/// deployed at some other chain to bridge with this `ChainWithMessages`.
+	///
+	/// We assume that all chains that are bridging with this `ChainWithMessages` are using
+	/// the same name.
+	const WITH_CHAIN_MESSAGES_PALLET_NAME: &'static str;
+
+	/// Maximal number of unrewarded relayers in a single confirmation transaction at this
+	/// `ChainWithMessages`.
+	const MAX_UNREWARDED_RELAYERS_IN_CONFIRMATION_TX: MessageNonce;
+	/// Maximal number of unconfirmed messages in a single confirmation transaction at this
+	/// `ChainWithMessages`.
+	const MAX_UNCONFIRMED_MESSAGES_IN_CONFIRMATION_TX: MessageNonce;
+}
+
+impl<T> ChainWithMessages for T
+where
+	T: Chain + UnderlyingChainProvider,
+	UnderlyingChainOf<T>: ChainWithMessages,
+{
+	const WITH_CHAIN_MESSAGES_PALLET_NAME: &'static str =
+		UnderlyingChainOf::<T>::WITH_CHAIN_MESSAGES_PALLET_NAME;
+	const MAX_UNREWARDED_RELAYERS_IN_CONFIRMATION_TX: MessageNonce =
+		UnderlyingChainOf::<T>::MAX_UNREWARDED_RELAYERS_IN_CONFIRMATION_TX;
+	const MAX_UNCONFIRMED_MESSAGES_IN_CONFIRMATION_TX: MessageNonce =
+		UnderlyingChainOf::<T>::MAX_UNCONFIRMED_MESSAGES_IN_CONFIRMATION_TX;
+}
 
 /// Messages pallet operating mode.
 #[derive(

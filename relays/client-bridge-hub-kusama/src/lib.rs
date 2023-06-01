@@ -17,7 +17,6 @@
 //! Types used to connect to the BridgeHub-Kusama-Substrate parachain.
 
 use bp_bridge_hub_kusama::AVERAGE_BLOCK_INTERVAL;
-use bp_messages::MessageNonce;
 use bp_polkadot::SuffixedCommonSignedExtensionExt;
 use bp_runtime::ChainId;
 use codec::Encode;
@@ -116,8 +115,6 @@ impl ChainWithTransactions for BridgeHubKusama {
 }
 
 impl ChainWithMessages for BridgeHubKusama {
-	const WITH_CHAIN_MESSAGES_PALLET_NAME: &'static str =
-		bp_bridge_hub_kusama::WITH_BRIDGE_HUB_KUSAMA_MESSAGES_PALLET_NAME;
 	const WITH_CHAIN_RELAYERS_PALLET_NAME: Option<&'static str> =
 		Some(bp_bridge_hub_kusama::WITH_BRIDGE_HUB_KUSAMA_RELAYERS_PALLET_NAME);
 
@@ -125,11 +122,6 @@ impl ChainWithMessages for BridgeHubKusama {
 		bp_bridge_hub_kusama::TO_BRIDGE_HUB_KUSAMA_MESSAGE_DETAILS_METHOD;
 	const FROM_CHAIN_MESSAGE_DETAILS_METHOD: &'static str =
 		bp_bridge_hub_kusama::FROM_BRIDGE_HUB_KUSAMA_MESSAGE_DETAILS_METHOD;
-
-	const MAX_UNREWARDED_RELAYERS_IN_CONFIRMATION_TX: MessageNonce =
-		bp_bridge_hub_kusama::MAX_UNREWARDED_RELAYERS_IN_CONFIRMATION_TX;
-	const MAX_UNCONFIRMED_MESSAGES_IN_CONFIRMATION_TX: MessageNonce =
-		bp_bridge_hub_kusama::MAX_UNCONFIRMED_MESSAGES_IN_CONFIRMATION_TX;
 }
 
 #[cfg(test)]
