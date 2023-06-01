@@ -15,7 +15,8 @@
 // along with Parity Bridges Common.  If not, see <http://www.gnu.org/licenses/>.
 
 use bp_messages::{
-	source_chain::FromBridgedChainMessagesDeliveryProof, target_chain::FromBridgedChainMessagesProof, InboundLaneData, LaneId, MessageNonce,
+	source_chain::FromBridgedChainMessagesDeliveryProof,
+	target_chain::FromBridgedChainMessagesProof, InboundLaneData, LaneId, MessageNonce,
 };
 use frame_support::{
 	dispatch::CallableCallFor,
@@ -328,7 +329,8 @@ mod tests {
 		},
 	};
 	use bp_messages::{
-		source_chain::FromBridgedChainMessagesDeliveryProof, target_chain::FromBridgedChainMessagesProof, DeliveredMessages, UnrewardedRelayer,
+		source_chain::FromBridgedChainMessagesDeliveryProof,
+		target_chain::FromBridgedChainMessagesProof, DeliveredMessages, UnrewardedRelayer,
 		UnrewardedRelayersState,
 	};
 	use sp_std::ops::RangeInclusive;

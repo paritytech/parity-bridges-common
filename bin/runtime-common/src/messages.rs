@@ -23,7 +23,9 @@
 use bp_header_chain::HeaderChain;
 use bp_messages::{
 	source_chain::{FromBridgedChainMessagesDeliveryProof, TargetHeaderChain},
-	target_chain::{FromBridgedChainMessagesProof, ProvedLaneMessages, ProvedMessages, SourceHeaderChain},
+	target_chain::{
+		FromBridgedChainMessagesProof, ProvedLaneMessages, ProvedMessages, SourceHeaderChain,
+	},
 	InboundLaneData, LaneId, Message, MessageKey, MessageNonce, MessagePayload, OutboundLaneData,
 	VerificationError,
 };

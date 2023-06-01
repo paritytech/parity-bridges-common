@@ -654,8 +654,9 @@ mod tests {
 		mock::*,
 	};
 	use bp_messages::{
-		source_chain::FromBridgedChainMessagesDeliveryProof, target_chain::FromBridgedChainMessagesProof,
-		InboundLaneData, MessageNonce, OutboundLaneData, UnrewardedRelayersState,
+		source_chain::FromBridgedChainMessagesDeliveryProof,
+		target_chain::FromBridgedChainMessagesProof, InboundLaneData, MessageNonce,
+		OutboundLaneData, UnrewardedRelayersState,
 	};
 	use bp_parachains::{BestParaHeadHash, ParaInfo};
 	use bp_polkadot_core::parachains::{ParaHeadsProof, ParaId};
