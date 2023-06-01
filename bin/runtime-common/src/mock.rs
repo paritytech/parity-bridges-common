@@ -28,7 +28,7 @@ use crate::messages::{
 		FromThisChainMaximalOutboundPayloadSize, FromThisChainMessagePayload,
 		TargetHeaderChainAdapter,
 	},
-	target::{FromBridgedChainMessagePayload, SourceHeaderChainAdapter},
+	target::SourceHeaderChainAdapter,
 	BridgedChainWithMessages, HashOf, MessageBridge, ThisChainWithMessages,
 };
 
@@ -241,7 +241,7 @@ impl pallet_bridge_messages::Config for TestRuntime {
 	type MaximalOutboundPayloadSize = FromThisChainMaximalOutboundPayloadSize<OnThisChainBridge>;
 	type OutboundPayload = FromThisChainMessagePayload;
 
-	type InboundPayload = FromBridgedChainMessagePayload;
+	type InboundPayload = Vec<u8>;
 	type InboundRelayer = BridgedChainAccountId;
 	type DeliveryPayments = ();
 
@@ -253,7 +253,7 @@ impl pallet_bridge_messages::Config for TestRuntime {
 	>;
 
 	type SourceHeaderChain = SourceHeaderChainAdapter<OnThisChainBridge>;
-	type MessageDispatch = ForbidInboundMessages<(), FromBridgedChainMessagePayload>;
+	type MessageDispatch = ForbidInboundMessages<(), Vec<u8>>;
 	type BridgedChainId = BridgedChainId;
 }
 

@@ -647,7 +647,6 @@ where
 mod tests {
 	use super::*;
 	use crate::{
-		messages::target::FromBridgedChainMessagesProof,
 		messages_call_ext::{
 			BaseMessagesProofInfo, ReceiveMessagesDeliveryProofInfo, ReceiveMessagesProofInfo,
 			UnrewardedRelayerOccupation,
@@ -655,7 +654,8 @@ mod tests {
 		mock::*,
 	};
 	use bp_messages::{
-		source_chain::FromBridgedChainMessagesDeliveryProof, InboundLaneData, MessageNonce,
+		source_chain::FromBridgedChainMessagesDeliveryProof,
+		target_chain::FromBridgedChainMessagesProof, InboundLaneData, MessageNonce,
 		OutboundLaneData, UnrewardedRelayersState,
 	};
 	use bp_parachains::{BestParaHeadHash, ParaInfo};

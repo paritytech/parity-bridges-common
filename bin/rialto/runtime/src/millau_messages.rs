@@ -56,9 +56,6 @@ pub type FromMillauMessageDispatch =
 		(),
 	>;
 
-/// Messages proof for Millau -> Rialto messages.
-pub type FromMillauMessagesProof = messages::target::FromBridgedChainMessagesProof<bp_millau::Hash>;
-
 /// Maximal outbound payload size of Rialto -> Millau messages.
 pub type ToMillauMaximalOutboundPayloadSize =
 	messages::source::FromThisChainMaximalOutboundPayloadSize<WithMillauMessageBridge>;

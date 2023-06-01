@@ -20,16 +20,16 @@
 #![cfg(feature = "runtime-benchmarks")]
 
 use crate::{
-	messages::{
-		target::FromBridgedChainMessagesProof, AccountIdOf, BridgedChain, HashOf, HasherOf,
-		MessageBridge, ThisChain,
-	},
+	messages::{AccountIdOf, BridgedChain, HashOf, HasherOf, MessageBridge, ThisChain},
 	messages_generation::{
 		encode_all_messages, encode_lane_data, grow_trie_leaf_value, prepare_messages_storage_proof,
 	},
 };
 
-use bp_messages::{source_chain::FromBridgedChainMessagesDeliveryProof, storage_keys};
+use bp_messages::{
+	source_chain::FromBridgedChainMessagesDeliveryProof, storage_keys,
+	target_chain::FromBridgedChainMessagesProof,
+};
 use bp_polkadot_core::parachains::ParaHash;
 use bp_runtime::{
 	record_all_trie_keys, Chain, Parachain, RawStorageProof, StorageProofSize, UnderlyingChainOf,
