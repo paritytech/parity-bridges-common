@@ -144,7 +144,7 @@ fn main() -> color_eyre::Result<()> {
 				"bridge_runtime_common::messages::target::FromBridgedChainMessagesProof",
 			),
 			TypeSubstitute::simple(
-				"bridge_runtime_common::messages::source::FromBridgedChainMessagesDeliveryProof",
+				"bp_messages::source_chain::FromBridgedChainMessagesDeliveryProof",
 			),
 			TypeSubstitute::simple("bp_messages::UnrewardedRelayersState"),
 			TypeSubstitute::custom("bp_millau::millau_hash::MillauHash", "::bp_millau::MillauHash"),
