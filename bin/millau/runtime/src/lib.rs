@@ -996,7 +996,10 @@ impl_runtime_apis! {
 				hex_literal::hex!("26aa394eea5630e07c48ae0c9558cef7b99d880ec681799c0cf30e8886371da946c154ffd9992e395af90b5b13cc6f295c77033fce8a9045824a6690bbf99c6db269502f0a8d1d2a008542d5690a0749").to_vec().into(),
 			];
 
-			use bp_messages::source_chain::FromBridgedChainMessagesDeliveryProof;
+			use bp_messages::{
+				source_chain::FromBridgedChainMessagesDeliveryProof,
+				target_chain::FromBridgedChainMessagesProof,
+			};
 			use bridge_runtime_common::messages_benchmarking::{
 				prepare_message_delivery_proof_from_grandpa_chain,
 				prepare_message_delivery_proof_from_parachain,
@@ -1023,7 +1026,7 @@ impl_runtime_apis! {
 			impl MessagesConfig<WithRialtoParachainMessagesInstance> for Runtime {
 				fn prepare_message_proof(
 					params: MessageProofParams,
-				) -> (rialto_messages::FromRialtoMessagesProof, Weight) {
+				) -> (FromBridgedChainMessagesProof<bp_rialto_parachain::Hash>, Weight) {
 					prepare_message_proof_from_parachain::<
 						Runtime,
 						WithRialtoParachainsInstance,
@@ -1054,7 +1057,7 @@ impl_runtime_apis! {
 			impl MessagesConfig<WithRialtoMessagesInstance> for Runtime {
 				fn prepare_message_proof(
 					params: MessageProofParams,
-				) -> (rialto_messages::FromRialtoMessagesProof, Weight) {
+				) -> (FromBridgedChainMessagesProof<bp_rialto::Hash>, Weight) {
 					prepare_message_proof_from_grandpa_chain::<
 						Runtime,
 						RialtoGrandpaInstance,
