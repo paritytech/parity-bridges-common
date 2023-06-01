@@ -183,7 +183,8 @@ parameter_types! {
 	///
 	/// # WARNING
 	///
-	/// This is not a good value for para-chains since the `Scheduler` already uses up to 80% block weight.
+	/// This is not a good value for para-chains since the `Scheduler`
+	/// already uses up to 80 percent block weight.
 	pub MessageQueueServiceWeight: Weight = crate::Perbill::from_percent(20) * bp_rialto::BlockWeights::get().max_block;
 	pub const MessageQueueHeapSize: u32 = 32 * 1024;
 	pub const MessageQueueMaxStale: u32 = 96;

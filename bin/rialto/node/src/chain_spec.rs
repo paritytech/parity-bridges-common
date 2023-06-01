@@ -14,7 +14,6 @@
 // You should have received a copy of the GNU General Public License
 // along with Parity Bridges Common.  If not, see <http://www.gnu.org/licenses/>.
 
-use frame_support::weights::Weight;
 use polkadot_primitives::v4::{AssignmentId, ValidatorId};
 use rialto_runtime::{
 	AccountId, BabeConfig, BalancesConfig, BeefyConfig, BridgeMillauMessagesConfig,

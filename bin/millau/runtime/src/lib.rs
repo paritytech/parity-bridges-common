@@ -146,6 +146,7 @@ impl_opaque_keys! {
 }
 
 /// This runtime version.
+#[sp_version::runtime_version]
 pub const VERSION: RuntimeVersion = RuntimeVersion {
 	spec_name: create_runtime_str!("millau-runtime"),
 	impl_name: create_runtime_str!("millau-runtime"),
