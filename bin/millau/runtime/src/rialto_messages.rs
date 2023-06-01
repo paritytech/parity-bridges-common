@@ -53,10 +53,6 @@ pub type FromRialtoMessagePayload = messages::target::FromBridgedChainMessagePay
 /// Messages proof for Rialto -> Millau messages.
 pub type FromRialtoMessagesProof = messages::target::FromBridgedChainMessagesProof<bp_rialto::Hash>;
 
-/// Messages delivery proof for Millau -> Rialto messages.
-pub type ToRialtoMessagesDeliveryProof =
-	messages::source::FromBridgedChainMessagesDeliveryProof<bp_rialto::Hash>;
-
 /// Call-dispatch based message dispatch for Rialto -> Millau messages.
 pub type FromRialtoMessageDispatch =
 	bridge_runtime_common::messages_xcm_extension::XcmBlobMessageDispatch<
