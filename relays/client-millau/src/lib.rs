@@ -16,7 +16,6 @@
 
 //! Types used to connect to the Millau-Substrate chain.
 
-use bp_messages::MessageNonce;
 use bp_runtime::ChainId;
 use codec::{Compact, Decode, Encode};
 use relay_substrate_client::{
@@ -40,18 +39,12 @@ impl UnderlyingChainProvider for Millau {
 }
 
 impl ChainWithMessages for Millau {
-	const WITH_CHAIN_MESSAGES_PALLET_NAME: &'static str =
-		bp_millau::WITH_MILLAU_MESSAGES_PALLET_NAME;
 	// TODO (https://github.com/paritytech/parity-bridges-common/issues/1692): change the name
 	const WITH_CHAIN_RELAYERS_PALLET_NAME: Option<&'static str> = Some("BridgeRelayers");
 	const TO_CHAIN_MESSAGE_DETAILS_METHOD: &'static str =
 		bp_millau::TO_MILLAU_MESSAGE_DETAILS_METHOD;
 	const FROM_CHAIN_MESSAGE_DETAILS_METHOD: &'static str =
 		bp_millau::FROM_MILLAU_MESSAGE_DETAILS_METHOD;
-	const MAX_UNREWARDED_RELAYERS_IN_CONFIRMATION_TX: MessageNonce =
-		bp_millau::MAX_UNREWARDED_RELAYERS_IN_CONFIRMATION_TX;
-	const MAX_UNCONFIRMED_MESSAGES_IN_CONFIRMATION_TX: MessageNonce =
-		bp_millau::MAX_UNCONFIRMED_MESSAGES_IN_CONFIRMATION_TX;
 }
 
 impl Chain for Millau {

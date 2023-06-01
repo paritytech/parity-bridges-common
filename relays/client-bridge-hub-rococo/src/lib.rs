@@ -19,7 +19,6 @@
 pub mod codegen_runtime;
 
 use bp_bridge_hub_rococo::{BridgeHubSignedExtension, SignedExtension, AVERAGE_BLOCK_INTERVAL};
-use bp_messages::MessageNonce;
 use bp_runtime::ChainId;
 use codec::Encode;
 use relay_substrate_client::{
@@ -130,8 +129,6 @@ impl ChainWithTransactions for BridgeHubRococo {
 }
 
 impl ChainWithMessages for BridgeHubRococo {
-	const WITH_CHAIN_MESSAGES_PALLET_NAME: &'static str =
-		bp_bridge_hub_rococo::WITH_BRIDGE_HUB_ROCOCO_MESSAGES_PALLET_NAME;
 	const WITH_CHAIN_RELAYERS_PALLET_NAME: Option<&'static str> =
 		Some(bp_bridge_hub_rococo::WITH_BRIDGE_HUB_ROCOCO_RELAYERS_PALLET_NAME);
 
@@ -139,11 +136,6 @@ impl ChainWithMessages for BridgeHubRococo {
 		bp_bridge_hub_rococo::TO_BRIDGE_HUB_ROCOCO_MESSAGE_DETAILS_METHOD;
 	const FROM_CHAIN_MESSAGE_DETAILS_METHOD: &'static str =
 		bp_bridge_hub_rococo::FROM_BRIDGE_HUB_ROCOCO_MESSAGE_DETAILS_METHOD;
-
-	const MAX_UNREWARDED_RELAYERS_IN_CONFIRMATION_TX: MessageNonce =
-		bp_bridge_hub_rococo::MAX_UNREWARDED_RELAYERS_IN_CONFIRMATION_TX;
-	const MAX_UNCONFIRMED_MESSAGES_IN_CONFIRMATION_TX: MessageNonce =
-		bp_bridge_hub_rococo::MAX_UNCONFIRMED_MESSAGES_IN_CONFIRMATION_TX;
 }
 
 #[cfg(test)]

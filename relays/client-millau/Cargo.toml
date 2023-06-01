@@ -12,7 +12,6 @@ relay-utils = { path = "../utils" }
 
 # Supported Chains
 
-bp-messages = { path = "../../primitives/messages" }
 bp-millau = { path = "../../primitives/chain-millau" }
 bp-runtime = { path = "../../primitives/runtime" }
 millau-runtime = { path = "../../bin/millau/runtime" }

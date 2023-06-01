@@ -16,7 +16,6 @@
 
 //! Types used to connect to the Rialto-Substrate chain.
 
-use bp_messages::MessageNonce;
 use bp_runtime::ChainId;
 use codec::{Compact, Decode, Encode};
 use relay_substrate_client::{
@@ -57,18 +56,12 @@ impl RelayChain for Rialto {
 }
 
 impl ChainWithMessages for Rialto {
-	const WITH_CHAIN_MESSAGES_PALLET_NAME: &'static str =
-		bp_rialto::WITH_RIALTO_MESSAGES_PALLET_NAME;
 	// TODO (https://github.com/paritytech/parity-bridges-common/issues/1692): change the name
 	const WITH_CHAIN_RELAYERS_PALLET_NAME: Option<&'static str> = Some("BridgeRelayers");
 	const TO_CHAIN_MESSAGE_DETAILS_METHOD: &'static str =
 		bp_rialto::TO_RIALTO_MESSAGE_DETAILS_METHOD;
 	const FROM_CHAIN_MESSAGE_DETAILS_METHOD: &'static str =
 		bp_rialto::FROM_RIALTO_MESSAGE_DETAILS_METHOD;
-	const MAX_UNREWARDED_RELAYERS_IN_CONFIRMATION_TX: MessageNonce =
-		bp_rialto::MAX_UNREWARDED_RELAYERS_IN_CONFIRMATION_TX;
-	const MAX_UNCONFIRMED_MESSAGES_IN_CONFIRMATION_TX: MessageNonce =
-		bp_rialto::MAX_UNCONFIRMED_MESSAGES_IN_CONFIRMATION_TX;
 }
 
 impl ChainWithBalances for Rialto {

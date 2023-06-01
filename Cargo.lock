@@ -9703,7 +9703,6 @@ dependencies = [
  "bp-bridge-hub-kusama",
  "bp-bridge-hub-polkadot",
  "bp-header-chain",
- "bp-messages",
  "bp-parachains",
  "bp-polkadot",
  "bp-runtime",
@@ -9723,7 +9722,6 @@ dependencies = [
  "bp-bridge-hub-polkadot",
  "bp-header-chain",
  "bp-kusama",
- "bp-messages",
  "bp-parachains",
  "bp-polkadot-core",
  "bp-runtime",
@@ -9765,7 +9763,6 @@ dependencies = [
  "bp-bridge-hub-rococo",
  "bp-bridge-hub-wococo",
  "bp-header-chain",
- "bp-messages",
  "bp-parachains",
  "bp-polkadot-core",
  "bp-rococo",
@@ -9797,7 +9794,6 @@ dependencies = [
 name = "relay-millau-client"
 version = "0.1.0"
 dependencies = [
- "bp-messages",
  "bp-millau",
  "bp-runtime",
  "frame-support",
@@ -9826,7 +9822,6 @@ dependencies = [
 name = "relay-rialto-client"
 version = "0.1.0"
 dependencies = [
- "bp-messages",
  "bp-rialto",
  "bp-runtime",
  "frame-support",

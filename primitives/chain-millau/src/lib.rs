@@ -23,7 +23,8 @@ mod millau_hash;
 use bp_beefy::ChainWithBeefy;
 use bp_header_chain::ChainWithGrandpa;
 use bp_messages::{
-	InboundMessageDetails, LaneId, MessageNonce, MessagePayload, OutboundMessageDetails,
+	ChainWithMessages, InboundMessageDetails, LaneId, MessageNonce, MessagePayload,
+	OutboundMessageDetails,
 };
 use bp_runtime::{decl_bridge_runtime_apis, Chain};
 use frame_support::{
@@ -196,6 +197,15 @@ impl ChainWithBeefy for Millau {
 	type BeefyMmrLeafExtra = ();
 	type AuthorityId = bp_beefy::EcdsaValidatorId;
 	type AuthorityIdToMerkleLeaf = bp_beefy::BeefyEcdsaToEthereum;
+}
+
+impl ChainWithMessages for Millau {
+	const WITH_CHAIN_MESSAGES_PALLET_NAME: &'static str = WITH_MILLAU_MESSAGES_PALLET_NAME;
+
+	const MAX_UNREWARDED_RELAYERS_IN_CONFIRMATION_TX: MessageNonce =
+		MAX_UNREWARDED_RELAYERS_IN_CONFIRMATION_TX;
+	const MAX_UNCONFIRMED_MESSAGES_IN_CONFIRMATION_TX: MessageNonce =
+		MAX_UNCONFIRMED_MESSAGES_IN_CONFIRMATION_TX;
 }
 
 /// Millau Hasher (Blake2-256 ++ Keccak-256) implementation.
