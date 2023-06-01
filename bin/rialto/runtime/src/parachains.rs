@@ -16,23 +16,28 @@
 
 //! Parachains support in Rialto runtime.
 
-use crate::{AccountId, Babe, Balance, Balances, BlockNumber, Registrar, Runtime, RuntimeCall, RuntimeEvent, RuntimeOrigin, ShiftSessionManager, Slots, UncheckedExtrinsic, xcm_config};
+use crate::{
+	xcm_config, AccountId, Babe, Balance, Balances, BlockNumber, Registrar, Runtime, RuntimeCall,
+	RuntimeEvent, RuntimeOrigin, ShiftSessionManager, Slots, UncheckedExtrinsic,
+};
 
-use frame_support::{parameter_types, traits::KeyOwnerProofSystem, weights::Weight};
-use frame_support::traits::{ProcessMessage, ProcessMessageError};
-use frame_support::weights::WeightMeter;
+use frame_support::{
+	parameter_types,
+	traits::{KeyOwnerProofSystem, ProcessMessage, ProcessMessageError},
+	weights::{Weight, WeightMeter},
+};
 use frame_system::EnsureRoot;
 use polkadot_primitives::v4::{ValidatorId, ValidatorIndex};
 use polkadot_runtime_common::{paras_registrar, paras_sudo_wrapper, slots};
 use polkadot_runtime_parachains::{
 	configuration as parachains_configuration, disputes as parachains_disputes,
-	disputes::slashing as parachains_slashing, dmp as parachains_dmp, hrmp as parachains_hrmp,
-	inclusion as parachains_inclusion, initializer as parachains_initializer,
-	origin as parachains_origin, paras as parachains_paras,
+	disputes::slashing as parachains_slashing,
+	dmp as parachains_dmp, hrmp as parachains_hrmp, inclusion as parachains_inclusion,
+	inclusion::{AggregateMessageOrigin, UmpQueueId},
+	initializer as parachains_initializer, origin as parachains_origin, paras as parachains_paras,
 	paras_inherent as parachains_paras_inherent, scheduler as parachains_scheduler,
 	session_info as parachains_session_info, shared as parachains_shared,
 };
-use polkadot_runtime_parachains::inclusion::{AggregateMessageOrigin, UmpQueueId};
 use sp_core::crypto::KeyTypeId;
 use sp_runtime::transaction_validity::TransactionPriority;
 use xcm::latest::Junction;
@@ -216,7 +221,7 @@ impl pallet_message_queue::Config for Runtime {
 	type MessageProcessor = MessageProcessor;
 	#[cfg(feature = "runtime-benchmarks")]
 	type MessageProcessor =
-	pallet_message_queue::mock_helpers::NoopMessageProcessor<AggregateMessageOrigin>;
+		pallet_message_queue::mock_helpers::NoopMessageProcessor<AggregateMessageOrigin>;
 	type QueueChangeHandler = crate::Inclusion;
 	type WeightInfo = ();
 }
