@@ -34,15 +34,15 @@ use async_std::sync::Arc;
 use async_trait::async_trait;
 use bp_messages::{
 	source_chain::FromBridgedChainMessagesDeliveryProof, storage_keys::inbound_lane_data_key,
-	InboundLaneData, LaneId, MessageNonce, UnrewardedRelayersState,
+	ChainWithMessages as _, InboundLaneData, LaneId, MessageNonce, UnrewardedRelayersState,
 };
 use messages_relay::{
 	message_lane::{MessageLane, SourceHeaderIdOf, TargetHeaderIdOf},
 	message_lane_loop::{NoncesSubmitArtifacts, TargetClient, TargetClientState},
 };
 use relay_substrate_client::{
-	AccountIdOf, AccountKeyPairOf, BalanceOf, CallOf, ChainWithMessages, Client,
-	Error as SubstrateError, HashOf, TransactionEra, TransactionTracker, UnsignedTransaction,
+	AccountIdOf, AccountKeyPairOf, BalanceOf, CallOf, Client, Error as SubstrateError, HashOf,
+	TransactionEra, TransactionTracker, UnsignedTransaction,
 };
 use relay_utils::relay_loop::Client as RelayClient;
 use sp_core::Pair;
