@@ -45,7 +45,7 @@ use sp_version::NativeVersion;
 use sp_version::RuntimeVersion;
 
 // A few exports that help ease life for downstream crates.
-use bp_runtime::{Chain, HeaderId};
+use bp_runtime::HeaderId;
 pub use frame_support::{
 	construct_runtime,
 	dispatch::DispatchClass,
@@ -172,6 +172,7 @@ impl_opaque_keys! {
 }
 
 /// This runtime version.
+#[sp_version::runtime_version]
 pub const VERSION: RuntimeVersion = RuntimeVersion {
 	spec_name: create_runtime_str!("template-parachain"),
 	impl_name: create_runtime_str!("template-parachain"),
@@ -180,7 +181,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
 	impl_version: 0,
 	apis: RUNTIME_API_VERSIONS,
 	transaction_version: 1,
-	state_version: bp_rialto_parachain::RialtoParachain::STATE_VERSION as u8,
+	state_version: 0,
 };
 
 /// This determines the average expected block time that we are targeting.
@@ -854,6 +855,7 @@ mod tests {
 		target_chain::{DispatchMessage, DispatchMessageData, MessageDispatch},
 		LaneId, MessageKey,
 	};
+	use bp_runtime::Chain;
 	use bridge_runtime_common::{
 		integrity::check_additional_signed, messages_xcm_extension::XcmBlobMessageDispatchResult,
 	};
@@ -875,6 +877,14 @@ mod tests {
 			xcm: vec![Instruction::Trap(42)].into(),
 		}]
 		.into()
+	}
+
+	#[test]
+	fn runtime_version() {
+		assert_eq!(
+			VERSION.state_version,
+			bp_rialto_parachain::RialtoParachain::STATE_VERSION as u8
+		);
 	}
 
 	#[test]

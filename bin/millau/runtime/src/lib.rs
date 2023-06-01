@@ -36,7 +36,7 @@ pub mod xcm_config;
 use bp_parachains::SingleParaStoredHeaderDataBuilder;
 #[cfg(feature = "runtime-benchmarks")]
 use bp_relayers::{RewardsAccountOwner, RewardsAccountParams};
-use bp_runtime::{Chain, HeaderId};
+use bp_runtime::HeaderId;
 use pallet_grandpa::{
 	fg_primitives, AuthorityId as GrandpaId, AuthorityList as GrandpaAuthorityList,
 };
@@ -155,7 +155,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
 	impl_version: 1,
 	apis: RUNTIME_API_VERSIONS,
 	transaction_version: 1,
-	state_version: bp_millau::Millau::STATE_VERSION as u8,
+	state_version: 0,
 };
 
 /// The version information used to identify this runtime when compiled natively.
@@ -1142,6 +1142,12 @@ impl_runtime_apis! {
 #[cfg(test)]
 mod tests {
 	use super::*;
+	use bp_runtime::Chain;
+
+	#[test]
+	fn runtime_version() {
+		assert_eq!(VERSION.state_version, bp_millau::Millau::STATE_VERSION as u8);
+	}
 
 	#[test]
 	fn call_size() {
