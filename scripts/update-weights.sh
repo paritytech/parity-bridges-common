@@ -3,6 +3,8 @@
 # Runtime benchmarks for the `pallet-bridge-messages` and `pallet-bridge-grandpa` pallets.
 #
 # Run this script from root of the repo.
+# Redirecting the output to a file gives much more consistent results
+# e.g. `./scripts/update-weights.sh > /tmp/benchmarks 2>&1`
 
 set -eux
 
