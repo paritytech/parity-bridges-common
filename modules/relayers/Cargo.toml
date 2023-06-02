@@ -45,6 +45,7 @@ std = [
 	"frame-support/std",
 	"frame-system/std",
 	"log/std",
+	"pallet-bridge-messages/std",
 	"scale-info/std",
 	"sp-arithmetic/std",
 	"sp-runtime/std",
