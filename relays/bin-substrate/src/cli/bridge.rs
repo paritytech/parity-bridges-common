@@ -19,7 +19,7 @@ use pallet_bridge_parachains::{RelayBlockHash, RelayBlockHasher, RelayBlockNumbe
 use relay_substrate_client::{Chain, ChainWithTransactions, Parachain, RelayChain};
 use strum::{EnumString, EnumVariantNames};
 use substrate_relay_helper::{
-	finality::SubstrateFinalitySyncPipeline, messages_lane::SubstrateMessageLane,
+	finality::SubstrateFinalitySyncPipeline, messages::SubstrateMessageLane,
 	parachains::SubstrateParachainsPipeline,
 };
 

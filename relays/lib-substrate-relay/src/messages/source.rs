@@ -19,7 +19,7 @@
 //! `<BridgedName>` chain.
 
 use crate::{
-	messages_lane::{
+	messages::{
 		BatchProofTransaction, MessageLaneAdapter, ReceiveMessagesDeliveryProofCallBuilder,
 		SubstrateMessageLane,
 	},

@@ -38,7 +38,7 @@ use crate::bridges::{
 	},
 };
 use relay_substrate_client::{AccountIdOf, AccountKeyPairOf, BalanceOf, ChainWithTransactions};
-use substrate_relay_helper::{messages_lane::MessagesRelayParams, TransactionParams};
+use substrate_relay_helper::{messages::MessagesRelayParams, TransactionParams};
 
 use crate::cli::{bridge::*, chain_schema::*, CliChain, HexLaneId, PrometheusParams};
 
@@ -79,7 +79,7 @@ where
 		let target_sign = data.target_sign.to_keypair::<Self::Target>()?;
 		let target_transactions_mortality = data.target_sign.transactions_mortality()?;
 
-		substrate_relay_helper::messages_lane::run::<Self::MessagesLane, _, _>(
+		substrate_relay_helper::messages::run::<Self::MessagesLane, _, _>(
 			MessagesRelayParams {
 				source_client,
 				source_transaction_params: TransactionParams {
