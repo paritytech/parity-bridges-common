@@ -103,7 +103,7 @@ where
 		// we can't relay finality if bridge pallet at target chain is halted
 		self.ensure_pallet_active().await?;
 
-		Ok(crate::messages_source::read_client_state::<P::TargetChain, P::SourceChain>(
+		Ok(crate::messages::source::read_client_state::<P::TargetChain, P::SourceChain>(
 			&self.client,
 		)
 		.await?

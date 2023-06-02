@@ -19,7 +19,7 @@
 use relay_millau_client::Millau;
 use relay_rialto_parachain_client::RialtoParachain;
 use substrate_relay_helper::{
-	messages_lane::{DirectReceiveMessagesDeliveryProofCallBuilder, SubstrateMessageLane},
+	messages::{DirectReceiveMessagesDeliveryProofCallBuilder, SubstrateMessageLane},
 	UtilityPalletBatchCallBuilder,
 };
 

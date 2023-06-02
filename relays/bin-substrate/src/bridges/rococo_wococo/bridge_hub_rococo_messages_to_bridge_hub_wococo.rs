@@ -19,7 +19,7 @@
 use crate::cli::bridge::{CliBridgeBase, MessagesCliBridge};
 use relay_bridge_hub_rococo_client::BridgeHubRococo;
 use relay_bridge_hub_wococo_client::BridgeHubWococo;
-use substrate_relay_helper::{messages_lane::SubstrateMessageLane, UtilityPalletBatchCallBuilder};
+use substrate_relay_helper::{messages::SubstrateMessageLane, UtilityPalletBatchCallBuilder};
 
 pub struct BridgeHubRococoToBridgeHubWococoMessagesCliBridge {}
 
