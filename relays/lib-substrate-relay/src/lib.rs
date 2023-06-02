@@ -24,10 +24,7 @@ use std::marker::PhantomData;
 
 pub mod error;
 pub mod finality;
-pub mod messages_lane;
-pub mod messages_metrics;
-pub mod messages_source;
-pub mod messages_target;
+pub mod messages;
 pub mod on_demand;
 pub mod parachains;
 

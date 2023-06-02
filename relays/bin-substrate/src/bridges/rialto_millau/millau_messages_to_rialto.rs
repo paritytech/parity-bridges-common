@@ -18,7 +18,7 @@
 
 use relay_millau_client::Millau;
 use relay_rialto_client::Rialto;
-use substrate_relay_helper::messages_lane::{
+use substrate_relay_helper::messages::{
 	DirectReceiveMessagesDeliveryProofCallBuilder, DirectReceiveMessagesProofCallBuilder,
 	SubstrateMessageLane,
 };

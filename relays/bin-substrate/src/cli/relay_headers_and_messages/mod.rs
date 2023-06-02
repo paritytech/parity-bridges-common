@@ -77,7 +77,7 @@ use relay_substrate_client::{
 use relay_utils::metrics::MetricsParams;
 use sp_core::Pair;
 use substrate_relay_helper::{
-	messages_lane::MessagesRelayParams, on_demand::OnDemandRelay, TaggedAccount, TransactionParams,
+	messages::MessagesRelayParams, on_demand::OnDemandRelay, TaggedAccount, TransactionParams,
 };
 
 /// Parameters that have the same names across all bridges.
@@ -353,14 +353,14 @@ where
 			.collect::<Vec<_>>();
 		{
 			let common = self.mut_base().mut_common();
-			substrate_relay_helper::messages_metrics::add_relay_balances_metrics::<_, Self::Right>(
+			substrate_relay_helper::messages::metrics::add_relay_balances_metrics::<_, Self::Right>(
 				common.left.client.clone(),
 				&mut common.metrics_params,
 				&common.left.accounts,
 				&lanes,
 			)
 			.await?;
-			substrate_relay_helper::messages_metrics::add_relay_balances_metrics::<_, Self::Left>(
+			substrate_relay_helper::messages::metrics::add_relay_balances_metrics::<_, Self::Left>(
 				common.right.client.clone(),
 				&mut common.metrics_params,
 				&common.right.accounts,
@@ -372,7 +372,7 @@ where
 		// Need 2x capacity since we consider both directions for each lane
 		let mut message_relays = Vec::with_capacity(lanes.len() * 2);
 		for lane in lanes {
-			let left_to_right_messages = substrate_relay_helper::messages_lane::run::<
+			let left_to_right_messages = substrate_relay_helper::messages::run::<
 				<Self::L2R as MessagesCliBridge>::MessagesLane,
 				_,
 				_,
@@ -385,7 +385,7 @@ where
 			.boxed();
 			message_relays.push(left_to_right_messages);
 
-			let right_to_left_messages = substrate_relay_helper::messages_lane::run::<
+			let right_to_left_messages = substrate_relay_helper::messages::run::<
 				<Self::R2L as MessagesCliBridge>::MessagesLane,
 				_,
 				_,
