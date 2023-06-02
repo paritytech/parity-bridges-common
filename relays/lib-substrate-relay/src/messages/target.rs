@@ -21,7 +21,8 @@
 use crate::{
 	messages::{
 		source::{
-			ensure_messages_pallet_active, read_client_state_from_both_chains, SubstrateMessagesProof,
+			ensure_messages_pallet_active, read_client_state_from_both_chains,
+			SubstrateMessagesProof,
 		},
 		BatchProofTransaction, MessageLaneAdapter, ReceiveMessagesProofCallBuilder,
 		SubstrateMessageLane,

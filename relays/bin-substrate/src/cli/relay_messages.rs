@@ -79,24 +79,22 @@ where
 		let target_sign = data.target_sign.to_keypair::<Self::Target>()?;
 		let target_transactions_mortality = data.target_sign.transactions_mortality()?;
 
-		substrate_relay_helper::messages::run::<Self::MessagesLane, _, _>(
-			MessagesRelayParams {
-				source_client,
-				source_transaction_params: TransactionParams {
-					signer: source_sign,
-					mortality: source_transactions_mortality,
-				},
-				target_client,
-				target_transaction_params: TransactionParams {
-					signer: target_sign,
-					mortality: target_transactions_mortality,
-				},
-				source_to_target_headers_relay: None,
-				target_to_source_headers_relay: None,
-				lane_id: data.lane.into(),
-				metrics_params: data.prometheus_params.into_metrics_params()?,
+		substrate_relay_helper::messages::run::<Self::MessagesLane, _, _>(MessagesRelayParams {
+			source_client,
+			source_transaction_params: TransactionParams {
+				signer: source_sign,
+				mortality: source_transactions_mortality,
 			},
-		)
+			target_client,
+			target_transaction_params: TransactionParams {
+				signer: target_sign,
+				mortality: target_transactions_mortality,
+			},
+			source_to_target_headers_relay: None,
+			target_to_source_headers_relay: None,
+			lane_id: data.lane.into(),
+			metrics_params: data.prometheus_params.into_metrics_params()?,
+		})
 		.await
 		.map_err(|e| anyhow::format_err!("{}", e))
 	}
