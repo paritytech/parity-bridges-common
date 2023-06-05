@@ -298,6 +298,7 @@ where
 	P: SubstrateMessageLane,
 	R: BridgeMessagesConfig<I, InboundRelayer = AccountIdOf<P::SourceChain>>,
 	I: 'static,
+	R::BridgedChain: bp_runtime::Chain<Hash = HashOf<P::SourceChain>>,
 	R::SourceHeaderChain: bp_messages::target_chain::SourceHeaderChain<
 		MessagesProof = FromBridgedChainMessagesProof<HashOf<P::SourceChain>>,
 	>,

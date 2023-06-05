@@ -220,7 +220,7 @@ where
 		R::MaxUnconfirmedMessagesAtInboundLane::get(),
 		params.max_unconfirmed_messages_in_bridged_confirmation_tx,
 	);
-	assert_eq!(R::BridgedChainId::get(), params.bridged_chain_id);
+	assert_eq!(R::BridgedChain::ID, params.bridged_chain_id);
 }
 
 /// Parameters for asserting bridge pallet names.

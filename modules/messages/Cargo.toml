@@ -14,6 +14,7 @@ scale-info = { version = "2.7.0", default-features = false, features = ["derive"
 
 # Bridge dependencies
 
+bp-header-chain = { path = "../../primitives/header-chain", default-features = false }
 bp-messages = { path = "../../primitives/messages", default-features = false }
 bp-runtime = { path = "../../primitives/runtime", default-features = false }
 
@@ -30,12 +31,14 @@ sp-trie = { git = "https://github.com/paritytech/substrate", branch = "master", 
 [dev-dependencies]
 bp-test-utils = { path = "../../primitives/test-utils" }
 pallet-balances = { git = "https://github.com/paritytech/substrate", branch = "master" }
+pallet-bridge-grandpa = { path = "../grandpa" }
 sp-io = { git = "https://github.com/paritytech/substrate", branch = "master" }
 sp-trie = { git = "https://github.com/paritytech/substrate", branch = "master" }
 
 [features]
 default = ["std"]
 std = [
+	"bp-header-chain/std",
 	"bp-messages/std",
 	"bp-runtime/std",
 	"codec/std",

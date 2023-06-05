@@ -17,24 +17,32 @@
 // From construct_runtime macro
 #![allow(clippy::from_over_into)]
 
-use crate::Config;
+use crate::{
+	tests::messages_generation::{
+		encode_all_messages, encode_lane_data, prepare_messages_storage_proof,
+	},
+	Config,
+};
 
+use bp_header_chain::{ChainWithGrandpa, StoredHeaderData};
 use bp_messages::{
 	calc_relayers_rewards,
 	source_chain::{DeliveryConfirmationPayments, TargetHeaderChain},
 	target_chain::{
-		DeliveryPayments, DispatchMessage, DispatchMessageData, MessageDispatch,
-		ProvedLaneMessages, ProvedMessages, SourceHeaderChain,
+		DeliveryPayments, DispatchMessage, DispatchMessageData, FromBridgedChainMessagesProof,
+		MessageDispatch,
 	},
-	DeliveredMessages, InboundLaneData, LaneId, Message, MessageKey, MessageNonce, MessagePayload,
-	UnrewardedRelayer, UnrewardedRelayersState, VerificationError,
+	ChainWithMessages, DeliveredMessages, InboundLaneData, LaneId, Message, MessageKey,
+	MessageNonce, MessagePayload, OutboundLaneData, UnrewardedRelayer, UnrewardedRelayersState,
+	VerificationError,
 };
-use bp_runtime::{messages::MessageDispatchResult, Size};
+use bp_runtime::{messages::MessageDispatchResult, Chain, ChainId, Size, StorageProofSize};
 use codec::{Decode, Encode};
 use frame_support::{
 	parameter_types,
 	traits::ConstU64,
 	weights::{constants::RocksDbWeight, Weight},
+	StateVersion,
 };
 use scale_info::TypeInfo;
 use sp_core::H256;
@@ -43,10 +51,7 @@ use sp_runtime::{
 	traits::{BlakeTwo256, ConstU32, IdentityLookup},
 	Perbill,
 };
-use std::{
-	collections::{BTreeMap, VecDeque},
-	ops::RangeInclusive,
-};
+use std::{collections::VecDeque, ops::RangeInclusive};
 
 pub type AccountId = u64;
 pub type Balance = u64;
@@ -68,6 +73,77 @@ pub type TestMessageFee = u64;
 pub type TestRelayer = u64;
 pub type TestDispatchLevelResult = ();
 
+pub struct ThisChain;
+
+impl Chain for ThisChain {
+	const ID: ChainId = *b"ttch";
+
+	type BlockNumber = u64;
+	type Hash = H256;
+	type Hasher = BlakeTwo256;
+	type Header = SubstrateHeader;
+	type AccountId = AccountId;
+	type Balance = Balance;
+	type Index = u64;
+	type Signature = sp_runtime::MultiSignature;
+	const STATE_VERSION: StateVersion = StateVersion::V1;
+
+	fn max_extrinsic_size() -> u32 {
+		u32::MAX
+	}
+
+	fn max_extrinsic_weight() -> Weight {
+		Weight::MAX
+	}
+}
+
+impl ChainWithMessages for ThisChain {
+	const WITH_CHAIN_MESSAGES_PALLET_NAME: &'static str = "WithThisChainBridgeMessages";
+	const MAX_UNREWARDED_RELAYERS_IN_CONFIRMATION_TX: MessageNonce = 16;
+	const MAX_UNCONFIRMED_MESSAGES_IN_CONFIRMATION_TX: MessageNonce = 128;
+}
+
+pub struct BridgedChain;
+
+pub type BridgedHeaderHash = H256;
+pub type BridgedChainHeader = SubstrateHeader;
+
+impl Chain for BridgedChain {
+	const ID: ChainId = *b"tbch";
+
+	type BlockNumber = u64;
+	type Hash = BridgedHeaderHash;
+	type Hasher = BlakeTwo256;
+	type Header = BridgedChainHeader;
+	type AccountId = AccountId;
+	type Balance = Balance;
+	type Index = u64;
+	type Signature = sp_runtime::MultiSignature;
+	const STATE_VERSION: StateVersion = StateVersion::V1;
+
+	fn max_extrinsic_size() -> u32 {
+		u32::MAX
+	}
+
+	fn max_extrinsic_weight() -> Weight {
+		Weight::MAX
+	}
+}
+
+impl ChainWithGrandpa for BridgedChain {
+	const WITH_CHAIN_GRANDPA_PALLET_NAME: &'static str = "WithBridgedChainBridgeGrandpa";
+	const MAX_AUTHORITIES_COUNT: u32 = 16;
+	const REASONABLE_HEADERS_IN_JUSTIFICATON_ANCESTRY: u32 = 4;
+	const MAX_HEADER_SIZE: u32 = 4096;
+	const AVERAGE_HEADER_SIZE_IN_JUSTIFICATION: u32 = 4096;
+}
+
+impl ChainWithMessages for BridgedChain {
+	const WITH_CHAIN_MESSAGES_PALLET_NAME: &'static str = "WithBridgedChainBridgeMessages";
+	const MAX_UNREWARDED_RELAYERS_IN_CONFIRMATION_TX: MessageNonce = 16;
+	const MAX_UNCONFIRMED_MESSAGES_IN_CONFIRMATION_TX: MessageNonce = 128;
+}
+
 type Block = frame_system::mocking::MockBlock<TestRuntime>;
 type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<TestRuntime>;
 pub type TestEvent = RuntimeEvent;
@@ -82,6 +158,7 @@ frame_support::construct_runtime! {
 	{
 		System: frame_system::{Pallet, Call, Config, Storage, Event<T>},
 		Balances: pallet_balances::{Pallet, Call, Event<T>},
+		BridgedChainGrandpa: pallet_bridge_grandpa::{Pallet, Call, Event<T>},
 		Messages: pallet_bridge_messages::{Pallet, Call, Event<T>},
 	}
 }
@@ -138,6 +215,14 @@ impl pallet_balances::Config for TestRuntime {
 	type MaxFreezes = ConstU32<0>;
 }
 
+impl pallet_bridge_grandpa::Config for TestRuntime {
+	type RuntimeEvent = RuntimeEvent;
+	type BridgedChain = BridgedChain;
+	type MaxFreeMandatoryHeadersPerBlock = ConstU32<4>;
+	type HeadersToKeep = ConstU32<8>;
+	type WeightInfo = pallet_bridge_grandpa::weights::BridgeWeight<TestRuntime>;
+}
+
 parameter_types! {
 	pub const MaxMessagesToPruneAtOnce: u64 = 10;
 	pub const MaxUnrewardedRelayerEntriesAtInboundLane: u64 = 16;
@@ -152,6 +237,11 @@ pub type TestWeightInfo = ();
 impl Config for TestRuntime {
 	type RuntimeEvent = RuntimeEvent;
 	type WeightInfo = TestWeightInfo;
+
+	type ThisChain = ThisChain;
+	type BridgedChain = BridgedChain;
+	type BridgedHeaderChain = BridgedChainGrandpa;
+
 	type ActiveOutboundLanes = ActiveOutboundLanes;
 	type MaxUnrewardedRelayerEntriesAtInboundLane = MaxUnrewardedRelayerEntriesAtInboundLane;
 	type MaxUnconfirmedMessagesAtInboundLane = MaxUnconfirmedMessagesAtInboundLane;
@@ -168,7 +258,6 @@ impl Config for TestRuntime {
 
 	type SourceHeaderChain = TestSourceHeaderChain;
 	type MessageDispatch = TestMessageDispatch;
-	type BridgedChainId = TestBridgedChainId;
 }
 
 #[cfg(feature = "runtime-benchmarks")]
@@ -247,36 +336,6 @@ pub const REGULAR_PAYLOAD: TestPayload = message_payload(0, 50);
 
 /// Payload that is rejected by `TestTargetHeaderChain`.
 pub const PAYLOAD_REJECTED_BY_TARGET_CHAIN: TestPayload = message_payload(1, 50);
-
-/// Vec of proved messages, grouped by lane.
-pub type MessagesByLaneVec = Vec<(LaneId, ProvedLaneMessages<Message>)>;
-
-/// Test messages proof.
-#[derive(Debug, Encode, Decode, Clone, PartialEq, Eq, TypeInfo)]
-pub struct TestMessagesProof {
-	pub result: Result<MessagesByLaneVec, ()>,
-}
-
-impl Size for TestMessagesProof {
-	fn size(&self) -> u32 {
-		0
-	}
-}
-
-impl From<Result<Vec<Message>, ()>> for TestMessagesProof {
-	fn from(result: Result<Vec<Message>, ()>) -> Self {
-		Self {
-			result: result.map(|messages| {
-				let mut messages_by_lane: BTreeMap<LaneId, ProvedLaneMessages<Message>> =
-					BTreeMap::new();
-				for message in messages {
-					messages_by_lane.entry(message.key.lane_id).or_default().messages.push(message);
-				}
-				messages_by_lane.into_iter().collect()
-			}),
-		}
-	}
-}
 
 /// Messages delivery proof used in tests.
 #[derive(Debug, Encode, Decode, Eq, Clone, PartialEq, TypeInfo)]
@@ -374,17 +433,14 @@ impl DeliveryConfirmationPayments<AccountId> for TestDeliveryConfirmationPayment
 #[derive(Debug)]
 pub struct TestSourceHeaderChain;
 
-impl SourceHeaderChain for TestSourceHeaderChain {
-	type MessagesProof = TestMessagesProof;
+impl bp_messages::target_chain::SourceHeaderChain for TestSourceHeaderChain {
+	type MessagesProof = FromBridgedChainMessagesProof<H256>;
 
 	fn verify_messages_proof(
 		proof: Self::MessagesProof,
 		_messages_count: u32,
-	) -> Result<ProvedMessages<Message>, VerificationError> {
-		proof
-			.result
-			.map(|proof| proof.into_iter().collect())
-			.map_err(|_| VerificationError::Other(TEST_ERROR))
+	) -> Result<bp_messages::target_chain::ProvedMessages<Message>, VerificationError> {
+		unimplemented!("TODO: remove me")
 	}
 }
 
@@ -475,4 +531,45 @@ pub fn new_test_ext() -> sp_io::TestExternalities {
 /// Run pallet test.
 pub fn run_test<T>(test: impl FnOnce() -> T) -> T {
 	new_test_ext().execute_with(test)
+}
+
+/// Prepare valid storage proof for given messages and insert appropriate header to the
+/// bridged header chain.
+///
+/// Since this function changes the runtime storage, you can't "inline" it in the
+/// `asset_noop` macro calls.
+pub fn prepare_messages_proof(
+	messages: Vec<Message>,
+	outbound_lane_data: Option<OutboundLaneData>,
+) -> FromBridgedChainMessagesProof<BridgedHeaderHash> {
+	// first - let's generate storage proof
+	let lane = messages.first().unwrap().key.lane_id;
+	let nonces_start = messages.first().unwrap().key.nonce;
+	let nonces_end = messages.last().unwrap().key.nonce;
+	let (storage_root, storage) = prepare_messages_storage_proof::<BridgedChain, ThisChain>(
+		TEST_LANE_ID,
+		nonces_start..=nonces_end,
+		outbound_lane_data,
+		StorageProofSize::Minimal(0),
+		|nonce| messages[(nonce - nonces_start) as usize].payload.clone(),
+		encode_all_messages,
+		encode_lane_data,
+		false,
+		false,
+	);
+
+	// let's now insert bridged chain header into the storage
+	let bridged_header_hash = Default::default();
+	pallet_bridge_grandpa::ImportedHeaders::<TestRuntime>::insert(
+		bridged_header_hash,
+		StoredHeaderData { number: 0, state_root: storage_root },
+	);
+
+	FromBridgedChainMessagesProof::<BridgedHeaderHash> {
+		bridged_header_hash,
+		storage,
+		lane,
+		nonces_start,
+		nonces_end,
+	}
 }

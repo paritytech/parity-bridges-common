@@ -412,7 +412,6 @@ parameter_types! {
 	pub const MaxUnconfirmedMessagesAtInboundLane: bp_messages::MessageNonce =
 		bp_millau::MAX_UNCONFIRMED_MESSAGES_IN_CONFIRMATION_TX;
 	pub const RootAccountForPayments: Option<AccountId> = None;
-	pub const BridgedChainId: bp_runtime::ChainId = bp_millau::Millau::ID;
 	pub ActiveOutboundLanes: &'static [bp_messages::LaneId] = &[millau_messages::XCM_LANE];
 }
 
@@ -422,6 +421,11 @@ pub type WithMillauMessagesInstance = ();
 impl pallet_bridge_messages::Config<WithMillauMessagesInstance> for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 	type WeightInfo = pallet_bridge_messages::weights::BridgeWeight<Runtime>;
+
+	type ThisChain = bp_rialto::Rialto;
+	type BridgedChain = bp_millau::Millau;
+	type BridgedHeaderChain = BridgeMillauGrandpa;
+
 	type ActiveOutboundLanes = ActiveOutboundLanes;
 	type MaxUnrewardedRelayerEntriesAtInboundLane = MaxUnrewardedRelayerEntriesAtInboundLane;
 	type MaxUnconfirmedMessagesAtInboundLane = MaxUnconfirmedMessagesAtInboundLane;
@@ -442,7 +446,6 @@ impl pallet_bridge_messages::Config<WithMillauMessagesInstance> for Runtime {
 
 	type SourceHeaderChain = crate::millau_messages::MillauAsSourceHeaderChain;
 	type MessageDispatch = crate::millau_messages::FromMillauMessageDispatch;
-	type BridgedChainId = BridgedChainId;
 }
 
 pub type MillauBeefyInstance = ();

@@ -51,23 +51,25 @@ use crate::{
 	outbound_lane::{OutboundLane, OutboundLaneStorage, ReceivalConfirmationError},
 };
 
+use bp_header_chain::HeaderChain;
 use bp_messages::{
 	source_chain::{DeliveryConfirmationPayments, SendMessageArtifacts, TargetHeaderChain},
 	target_chain::{
-		DeliveryPayments, DispatchMessage, MessageDispatch, ProvedLaneMessages, ProvedMessages,
-		SourceHeaderChain,
+		DeliveryPayments, DispatchMessage, FromBridgedChainMessagesProof, MessageDispatch,
+		ProvedLaneMessages, ProvedMessages, SourceHeaderChain,
 	},
-	DeliveredMessages, InboundLaneData, InboundMessageDetails, LaneId, MessageKey, MessageNonce,
-	MessagePayload, MessagesOperatingMode, OutboundLaneData, OutboundMessageDetails,
-	UnrewardedRelayersState, VerificationError,
+	ChainWithMessages, DeliveredMessages, InboundLaneData, InboundMessageDetails, LaneId,
+	MessageKey, MessageNonce, MessagePayload, MessagesOperatingMode, OutboundLaneData,
+	OutboundMessageDetails, UnrewardedRelayersState, VerificationError,
 };
-use bp_runtime::{BasicOperatingMode, ChainId, OwnedBridgeModule, PreComputedSize, Size};
+use bp_runtime::{BasicOperatingMode, HashOf, OwnedBridgeModule, PreComputedSize, Size};
 use codec::{Decode, Encode, MaxEncodedLen};
 use frame_support::{dispatch::PostDispatchInfo, ensure, fail, traits::Get, DefaultNoBound};
 use sp_runtime::traits::UniqueSaturatedFrom;
 use sp_std::{marker::PhantomData, prelude::*};
 
 mod inbound_lane;
+mod messages_proof;
 mod outbound_lane;
 mod tests;
 mod weights_ext;
@@ -102,9 +104,12 @@ pub mod pallet {
 		/// Benchmarks results from runtime we're plugged into.
 		type WeightInfo: WeightInfoExt;
 
-		/// Gets the chain id value from the instance.
-		#[pallet::constant]
-		type BridgedChainId: Get<ChainId>;
+		/// This chain type.
+		type ThisChain: ChainWithMessages;
+		/// Bridged chain type.
+		type BridgedChain: ChainWithMessages;
+		/// Bridged chain headers provider.
+		type BridgedHeaderChain: HeaderChain<Self::BridgedChain>;
 
 		/// Get all active outbound lanes that the message pallet is serving.
 		type ActiveOutboundLanes: Get<&'static [LaneId]>;
@@ -156,14 +161,14 @@ pub mod pallet {
 		// Types that are used by inbound_lane (on target chain).
 
 		/// Source header chain, as it is represented on target chain.
-		type SourceHeaderChain: SourceHeaderChain;
+		type SourceHeaderChain: SourceHeaderChain; // TODO: remove me
 		/// Message dispatch.
 		type MessageDispatch: MessageDispatch<DispatchPayload = Self::InboundPayload>;
 	}
 
-	/// Shortcut to messages proof type for Config.
-	pub type MessagesProofOf<T, I> =
-		<<T as Config<I>>::SourceHeaderChain as SourceHeaderChain>::MessagesProof;
+	/// Shortcut to bridged chain type for Config.
+	pub type BridgedChainOf<T, I> = <T as Config<I>>::BridgedChain;
+	pub type BridgedHeaderChainOf<T, I> = <T as Config<I>>::BridgedHeaderChain;
 	/// Shortcut to messages delivery proof type for Config.
 	pub type MessagesDeliveryProofOf<T, I> =
 		<<T as Config<I>>::TargetHeaderChain as TargetHeaderChain<
@@ -264,7 +269,7 @@ pub mod pallet {
 		pub fn receive_messages_proof(
 			origin: OriginFor<T>,
 			relayer_id_at_bridged_chain: T::InboundRelayer,
-			proof: MessagesProofOf<T, I>,
+			proof: FromBridgedChainMessagesProof<HashOf<BridgedChainOf<T, I>>>,
 			messages_count: u32,
 			dispatch_weight: Weight,
 		) -> DispatchResultWithPostInfo {
@@ -295,15 +300,14 @@ pub mod pallet {
 			let mut actual_weight = declared_weight;
 
 			// verify messages proof && convert proof into messages
-			let messages = verify_and_decode_messages_proof::<
-				T::SourceHeaderChain,
-				T::InboundPayload,
-			>(proof, messages_count)
-			.map_err(|err| {
-				log::trace!(target: LOG_TARGET, "Rejecting invalid messages proof: {:?}", err,);
+			let messages = verify_and_decode_messages_proof::<T, I>(proof, messages_count)
+				.map_err(|err| {
+					log::trace!(target: LOG_TARGET, "Rejecting invalid messages proof: {:?}", err,);
 
-				Error::<T, I>::InvalidMessagesProof
-			})?;
+					// TODO: can we now add all verification errors to pallet::error enum?
+
+					Error::<T, I>::InvalidMessagesProof
+				})?;
 
 			// dispatch messages and (optionally) update lane(s) state(s)
 			let mut total_messages = 0;
@@ -835,14 +839,14 @@ impl<T: Config<I>, I: 'static> OutboundLaneStorage for RuntimeOutboundLaneStorag
 }
 
 /// Verify messages proof and return proved messages with decoded payload.
-fn verify_and_decode_messages_proof<Chain: SourceHeaderChain, DispatchPayload: Decode>(
-	proof: Chain::MessagesProof,
+fn verify_and_decode_messages_proof<T: Config<I>, I: 'static>(
+	proof: FromBridgedChainMessagesProof<HashOf<BridgedChainOf<T, I>>>,
 	messages_count: u32,
-) -> Result<ProvedMessages<DispatchMessage<DispatchPayload>>, VerificationError> {
+) -> Result<ProvedMessages<DispatchMessage<T::InboundPayload>>, VerificationError> {
 	// `receive_messages_proof` weight formula and `MaxUnconfirmedMessagesAtInboundLane` check
 	// guarantees that the `message_count` is sane and Vec<Message> may be allocated.
 	// (tx with too many messages will either be rejected from the pool, or will fail earlier)
-	Chain::verify_messages_proof(proof, messages_count).map(|messages_by_lane| {
+	messages_proof::verify_messages_proof::<T, I>(proof, messages_count).map(|messages_by_lane| {
 		messages_by_lane
 			.into_iter()
 			.map(|(lane, lane_data)| {

@@ -132,7 +132,6 @@ crate::generate_bridge_reject_obsolete_headers_and_messages! {
 
 parameter_types! {
 	pub const ActiveOutboundLanes: &'static [LaneId] = &[TEST_LANE_ID];
-	pub const BridgedChainId: ChainId = TEST_BRIDGED_CHAIN_ID;
 	pub const BridgedParasPalletName: &'static str = "Paras";
 	pub const ExistentialDeposit: ThisChainBalance = 500;
 	pub const DbWeight: RuntimeDbWeight = RuntimeDbWeight { read: 1, write: 2 };
@@ -254,7 +253,9 @@ impl pallet_bridge_messages::Config for TestRuntime {
 
 	type SourceHeaderChain = SourceHeaderChainAdapter<OnThisChainBridge>;
 	type MessageDispatch = ForbidInboundMessages<(), Vec<u8>>;
-	type BridgedChainId = BridgedChainId;
+	type ThisChain = ThisUnderlyingChain;
+	type BridgedChain = BridgedUnderlyingChain;
+	type BridgedHeaderChain = BridgeGrandpa;
 }
 
 impl pallet_bridge_relayers::Config for TestRuntime {
@@ -369,7 +370,7 @@ pub struct BridgedUnderlyingParachain;
 pub struct BridgedChainCall;
 
 impl Chain for BridgedUnderlyingChain {
-	const ID: ChainId = *b"buch";
+	const ID: ChainId = TEST_BRIDGED_CHAIN_ID;
 
 	type BlockNumber = BridgedChainBlockNumber;
 	type Hash = BridgedChainHash;
@@ -396,6 +397,12 @@ impl ChainWithGrandpa for BridgedUnderlyingChain {
 	const REASONABLE_HEADERS_IN_JUSTIFICATON_ANCESTRY: u32 = 8;
 	const MAX_HEADER_SIZE: u32 = 256;
 	const AVERAGE_HEADER_SIZE_IN_JUSTIFICATION: u32 = 64;
+}
+
+impl ChainWithMessages for BridgedUnderlyingChain {
+	const WITH_CHAIN_MESSAGES_PALLET_NAME: &'static str = "";
+	const MAX_UNREWARDED_RELAYERS_IN_CONFIRMATION_TX: MessageNonce = 16;
+	const MAX_UNCONFIRMED_MESSAGES_IN_CONFIRMATION_TX: MessageNonce = 1000;
 }
 
 impl Chain for BridgedUnderlyingParachain {
