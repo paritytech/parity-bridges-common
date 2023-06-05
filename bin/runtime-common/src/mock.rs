@@ -33,7 +33,7 @@ use crate::messages::{
 };
 
 use bp_header_chain::{ChainWithGrandpa, HeaderChain};
-use bp_messages::{target_chain::ForbidInboundMessages, LaneId, MessageNonce};
+use bp_messages::{target_chain::ForbidInboundMessages, ChainWithMessages, LaneId, MessageNonce};
 use bp_parachains::SingleParaStoredHeaderDataBuilder;
 use bp_relayers::PayRewardFromAccount;
 use bp_runtime::{Chain, ChainId, Parachain, UnderlyingChainProvider};
@@ -347,6 +347,13 @@ impl UnderlyingChainProvider for ThisChain {
 
 impl ThisChainWithMessages for ThisChain {
 	type RuntimeOrigin = ThisChainCallOrigin;
+}
+
+impl ChainWithMessages for ThisUnderlyingChain {
+	const WITH_CHAIN_MESSAGES_PALLET_NAME: &'static str = "";
+
+	const MAX_UNREWARDED_RELAYERS_IN_CONFIRMATION_TX: MessageNonce = 16;
+	const MAX_UNCONFIRMED_MESSAGES_IN_CONFIRMATION_TX: MessageNonce = 1000;
 }
 
 impl BridgedChainWithMessages for ThisChain {}

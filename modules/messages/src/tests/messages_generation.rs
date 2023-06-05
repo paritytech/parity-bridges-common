@@ -16,14 +16,16 @@
 
 //! Helpers for generating message storage proofs, that are used by tests and by benchmarks.
 
-use crate::messages::{BridgedChain, HashOf, HasherOf, MessageBridge};
+// TODO: remove me in https://github.com/paritytech/parity-bridges-common/issues/1666
+#![allow(dead_code)]
 
 use bp_messages::{
-	storage_keys, LaneId, MessageKey, MessageNonce, MessagePayload, OutboundLaneData,
+	storage_keys, ChainWithMessages, LaneId, MessageKey, MessageNonce, MessagePayload,
+	OutboundLaneData,
 };
 use bp_runtime::{
-	record_all_trie_keys, Chain, RangeInclusiveExt, StorageProofSize, UnderlyingChainOf,
-	UntrustedVecDb,
+	grow_trie_leaf_value, record_all_trie_keys, Chain, HashOf, HasherOf, RangeInclusiveExt,
+	StorageProofSize, UntrustedVecDb,
 };
 use codec::Encode;
 use frame_support::StateVersion;
@@ -43,7 +45,7 @@ pub fn encode_lane_data(d: &OutboundLaneData) -> Vec<u8> {
 }
 
 #[allow(clippy::too_many_arguments)]
-pub fn prepare_messages_storage_proof<B>(
+pub fn prepare_messages_storage_proof<BridgedChain: Chain, ThisChain: ChainWithMessages>(
 	lane: LaneId,
 	message_nonces: RangeInclusive<MessageNonce>,
 	outbound_lane_data: Option<OutboundLaneData>,
@@ -53,36 +55,41 @@ pub fn prepare_messages_storage_proof<B>(
 	encode_outbound_lane_data: impl Fn(&OutboundLaneData) -> Vec<u8>,
 	add_duplicate_key: bool,
 	add_unused_key: bool,
-) -> (HashOf<BridgedChain<B>>, UntrustedVecDb)
+) -> (HashOf<BridgedChain>, UntrustedVecDb)
 where
-	B: MessageBridge,
-	HashOf<BridgedChain<B>>: Copy + Default,
+	HashOf<BridgedChain>: Copy + Default,
 {
-	match <UnderlyingChainOf<BridgedChain<B>>>::STATE_VERSION {
-		StateVersion::V0 =>
-			do_prepare_messages_storage_proof::<B, LayoutV0<HasherOf<BridgedChain<B>>>>(
-				lane,
-				message_nonces,
-				outbound_lane_data,
-				size,
-				message_payload,
-				encode_message,
-				encode_outbound_lane_data,
-				add_duplicate_key,
-				add_unused_key,
-			),
-		StateVersion::V1 =>
-			do_prepare_messages_storage_proof::<B, LayoutV1<HasherOf<BridgedChain<B>>>>(
-				lane,
-				message_nonces,
-				outbound_lane_data,
-				size,
-				message_payload,
-				encode_message,
-				encode_outbound_lane_data,
-				add_duplicate_key,
-				add_unused_key,
-			),
+	match BridgedChain::STATE_VERSION {
+		StateVersion::V0 => do_prepare_messages_storage_proof::<
+			BridgedChain,
+			ThisChain,
+			LayoutV0<HasherOf<BridgedChain>>,
+		>(
+			lane,
+			message_nonces,
+			outbound_lane_data,
+			size,
+			message_payload,
+			encode_message,
+			encode_outbound_lane_data,
+			add_duplicate_key,
+			add_unused_key,
+		),
+		StateVersion::V1 => do_prepare_messages_storage_proof::<
+			BridgedChain,
+			ThisChain,
+			LayoutV1<HasherOf<BridgedChain>>,
+		>(
+			lane,
+			message_nonces,
+			outbound_lane_data,
+			size,
+			message_payload,
+			encode_message,
+			encode_outbound_lane_data,
+			add_duplicate_key,
+			add_unused_key,
+		),
 	}
 }
 
@@ -90,7 +97,7 @@ where
 ///
 /// Returns state trie root and nodes with prepared messages.
 #[allow(clippy::too_many_arguments)]
-pub fn do_prepare_messages_storage_proof<B, L>(
+fn do_prepare_messages_storage_proof<BridgedChain: Chain, ThisChain: ChainWithMessages, L>(
 	lane: LaneId,
 	message_nonces: RangeInclusive<MessageNonce>,
 	outbound_lane_data: Option<OutboundLaneData>,
@@ -100,11 +107,10 @@ pub fn do_prepare_messages_storage_proof<B, L>(
 	encode_outbound_lane_data: impl Fn(&OutboundLaneData) -> Vec<u8>,
 	add_duplicate_key: bool,
 	add_unused_key: bool,
-) -> (HashOf<BridgedChain<B>>, UntrustedVecDb)
+) -> (HashOf<BridgedChain>, UntrustedVecDb)
 where
-	B: MessageBridge,
-	L: TrieConfiguration<Hash = HasherOf<BridgedChain<B>>>,
-	HashOf<BridgedChain<B>>: Copy + Default,
+	L: TrieConfiguration<Hash = HasherOf<BridgedChain>>,
+	HashOf<BridgedChain>: Copy + Default,
 {
 	// prepare Bridged chain storage with messages and (optionally) outbound lane state
 	let message_count = message_nonces.saturating_len();
@@ -127,7 +133,7 @@ where
 				None => continue,
 			};
 			let storage_key = storage_keys::message_key(
-				B::BRIDGED_MESSAGES_PALLET_NAME,
+				ThisChain::WITH_CHAIN_MESSAGES_PALLET_NAME,
 				&message_key.lane_id,
 				message_key.nonce,
 			)
@@ -141,8 +147,11 @@ where
 		// insert outbound lane state
 		if let Some(outbound_lane_data) = outbound_lane_data.as_ref().map(encode_outbound_lane_data)
 		{
-			let storage_key =
-				storage_keys::outbound_lane_data_key(B::BRIDGED_MESSAGES_PALLET_NAME, &lane).0;
+			let storage_key = storage_keys::outbound_lane_data_key(
+				ThisChain::WITH_CHAIN_MESSAGES_PALLET_NAME,
+				&lane,
+			)
+			.0;
 			trie.insert(&storage_key, &outbound_lane_data)
 				.map_err(|_| "TrieMut::insert has failed")
 				.expect("TrieMut::insert should not fail in benchmarks");
@@ -167,23 +176,11 @@ where
 	let read_proof = record_all_trie_keys::<L, _>(&mdb, &root)
 		.map_err(|_| "record_all_trie_keys has failed")
 		.expect("record_all_trie_keys should not fail in benchmarks");
-	let storage = UntrustedVecDb::try_new::<HasherOf<BridgedChain<B>>>(
+	let storage = UntrustedVecDb::try_new::<HasherOf<BridgedChain>>(
 		StorageProof::new(read_proof),
 		root,
 		storage_keys,
 	)
 	.unwrap();
 	(root, storage)
-}
-
-/// Add extra data to the trie leaf value so that it'll be of given size.
-pub fn grow_trie_leaf_value(mut value: Vec<u8>, size: StorageProofSize) -> Vec<u8> {
-	match size {
-		StorageProofSize::Minimal(_) => (),
-		StorageProofSize::HasLargeLeaf(size) if size as usize > value.len() => {
-			value.extend(sp_std::iter::repeat(42u8).take(size as usize - value.len()));
-		},
-		StorageProofSize::HasLargeLeaf(_) => (),
-	}
-	value
 }
