@@ -61,36 +61,6 @@ pub use sp_runtime::paste;
 /// Use this when something must be shared among all instances.
 pub const NO_INSTANCE_ID: ChainId = [0, 0, 0, 0];
 
-/// Polkadot chain id.
-pub const POLKADOT_CHAIN_ID: ChainId = *b"pdot";
-
-/// Polkadot Bulletin chain id.
-pub const POLKADOT_BULLETIN_CHAIN_ID: ChainId = *b"pdbc";
-
-/// Kusama chain id.
-pub const KUSAMA_CHAIN_ID: ChainId = *b"ksma";
-
-/// Westend chain id.
-pub const WESTEND_CHAIN_ID: ChainId = *b"wend";
-
-/// `AssetHubWestmint` chain id.
-pub const ASSET_HUB_WESTEND_CHAIN_ID: ChainId = *b"ahwe";
-
-/// Rococo chain id.
-pub const ROCOCO_CHAIN_ID: ChainId = *b"roco";
-
-/// BridgeHubRococo chain id.
-pub const BRIDGE_HUB_ROCOCO_CHAIN_ID: ChainId = *b"bhro";
-
-/// BridgeHubWestend chain id.
-pub const BRIDGE_HUB_WESTEND_CHAIN_ID: ChainId = *b"bhwd";
-
-/// BridgeHubKusama chain id.
-pub const BRIDGE_HUB_KUSAMA_CHAIN_ID: ChainId = *b"bhks";
-
-/// BridgeHubPolkadot chain id.
-pub const BRIDGE_HUB_POLKADOT_CHAIN_ID: ChainId = *b"bhpd";
-
 /// Generic header Id.
 #[derive(
 	RuntimeDebug,

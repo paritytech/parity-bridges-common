@@ -19,7 +19,6 @@
 mod codegen_runtime;
 
 use bp_polkadot_bulletin::POLKADOT_BULLETIN_SYNCED_HEADERS_GRANDPA_INFO_METHOD;
-use bp_runtime::ChainId;
 use codec::Encode;
 use relay_substrate_client::{
 	Chain, ChainWithBalances, ChainWithGrandpa, ChainWithMessages, ChainWithTransactions,
@@ -64,8 +63,6 @@ impl UnderlyingChainProvider for PolkadotBulletin {
 }
 
 impl Chain for PolkadotBulletin {
-	const ID: ChainId = *b"pbch";
-
 	const NAME: &'static str = "PolkadotBulletin";
 	const BEST_FINALIZED_HEADER_ID_METHOD: &'static str =
 		bp_polkadot_bulletin::BEST_FINALIZED_POLKADOT_BULLETIN_HEADER_METHOD;

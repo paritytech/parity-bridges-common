@@ -315,6 +315,8 @@ impl From<BridgedChainOrigin>
 pub struct ThisUnderlyingChain;
 
 impl Chain for ThisUnderlyingChain {
+	const ID: ChainId = *b"tuch";
+
 	type BlockNumber = ThisChainBlockNumber;
 	type Hash = ThisChainHash;
 	type Hasher = ThisChainHasher;
@@ -355,6 +357,8 @@ pub struct BridgedUnderlyingParachain;
 pub struct BridgedChainCall;
 
 impl Chain for BridgedUnderlyingChain {
+	const ID: ChainId = *b"buch";
+
 	type BlockNumber = BridgedChainBlockNumber;
 	type Hash = BridgedChainHash;
 	type Hasher = BridgedChainHasher;
@@ -381,6 +385,8 @@ impl ChainWithGrandpa for BridgedUnderlyingChain {
 }
 
 impl Chain for BridgedUnderlyingParachain {
+	const ID: ChainId = *b"bupc";
+
 	type BlockNumber = BridgedChainBlockNumber;
 	type Hash = BridgedChainHash;
 	type Hasher = BridgedChainHasher;

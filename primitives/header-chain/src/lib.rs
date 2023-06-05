@@ -325,12 +325,15 @@ pub fn max_expected_submit_finality_proof_arguments_size<C: ChainWithGrandpa>(
 #[cfg(test)]
 mod tests {
 	use super::*;
+	use bp_runtime::ChainId;
 	use frame_support::weights::Weight;
 	use sp_runtime::{testing::H256, traits::BlakeTwo256, MultiSignature};
 
 	struct TestChain;
 
 	impl Chain for TestChain {
+		const ID: ChainId = *b"test";
+
 		type BlockNumber = u32;
 		type Hash = H256;
 		type Hasher = BlakeTwo256;

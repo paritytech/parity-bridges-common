@@ -21,7 +21,6 @@ bp-header-chain = { path = "../../primitives/header-chain" }
 bp-parachains = { path = "../../primitives/parachains" }
 bp-polkadot-core = { path = "../../primitives/polkadot-core" }
 bp-rococo = { path = "../../primitives/chain-rococo" }
-bp-runtime = { path = "../../primitives/runtime" }
 
 bridge-runtime-common = { path = "../../bin/runtime-common" }
 relay-substrate-client = { path = "../client-substrate" }
@@ -33,4 +32,5 @@ sp-runtime = { git = "https://github.com/paritytech/polkadot-sdk", branch = "mas
 sp-weights = { git = "https://github.com/paritytech/polkadot-sdk", branch = "master" }
 
 [dev-dependencies]
+bp-runtime = { path = "../../primitives/runtime" }
 sp-consensus-grandpa = { git = "https://github.com/paritytech/polkadot-sdk", branch = "master" }

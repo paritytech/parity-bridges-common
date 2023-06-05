@@ -21,29 +21,31 @@
 pub use bp_polkadot_core::*;
 
 use bp_header_chain::ChainWithGrandpa;
-use bp_runtime::{decl_bridge_finality_runtime_apis, Chain};
+use bp_runtime::{decl_bridge_finality_runtime_apis, Chain, ChainId};
 use frame_support::weights::Weight;
 
 /// Kusama Chain
 pub struct Kusama;
 
 impl Chain for Kusama {
-	type BlockNumber = <PolkadotLike as Chain>::BlockNumber;
-	type Hash = <PolkadotLike as Chain>::Hash;
-	type Hasher = <PolkadotLike as Chain>::Hasher;
-	type Header = <PolkadotLike as Chain>::Header;
+	const ID: ChainId = *b"ksma";
 
-	type AccountId = <PolkadotLike as Chain>::AccountId;
-	type Balance = <PolkadotLike as Chain>::Balance;
-	type Nonce = <PolkadotLike as Chain>::Nonce;
-	type Signature = <PolkadotLike as Chain>::Signature;
+	type BlockNumber = BlockNumber;
+	type Hash = Hash;
+	type Hasher = Hasher;
+	type Header = Header;
+
+	type AccountId = AccountId;
+	type Balance = Balance;
+	type Nonce = Nonce;
+	type Signature = Signature;
 
 	fn max_extrinsic_size() -> u32 {
-		PolkadotLike::max_extrinsic_size()
+		max_extrinsic_size()
 	}
 
 	fn max_extrinsic_weight() -> Weight {
-		PolkadotLike::max_extrinsic_weight()
+		max_extrinsic_weight()
 	}
 }
 

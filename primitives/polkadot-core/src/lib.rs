@@ -24,7 +24,7 @@ use bp_runtime::{
 		CheckSpecVersion, CheckTxVersion, CheckWeight, GenericSignedExtension,
 		SignedExtensionSchema,
 	},
-	Chain, EncodedOrDecodedCall, StorageMapKeyProvider, TransactionEra,
+	EncodedOrDecodedCall, StorageMapKeyProvider, TransactionEra,
 };
 use frame_support::{
 	dispatch::DispatchClass,
@@ -40,7 +40,7 @@ use sp_core::{storage::StorageKey, Hasher as HasherT};
 use sp_runtime::{
 	generic,
 	traits::{BlakeTwo256, IdentifyAccount, Verify},
-	MultiAddress, MultiSignature, OpaqueExtrinsic, RuntimeDebug,
+	MultiAddress, MultiSignature, OpaqueExtrinsic,
 };
 use sp_std::prelude::Vec;
 
@@ -227,31 +227,17 @@ pub type UncheckedExtrinsic<Call, SignedExt> =
 /// Account address, used by the Polkadot-like chain.
 pub type Address = MultiAddress<AccountId, ()>;
 
-/// Polkadot-like chain.
-#[derive(RuntimeDebug)]
-pub struct PolkadotLike;
+/// Returns maximal extrinsic size on all Polkadot-like chains.
+pub fn max_extrinsic_size() -> u32 {
+	*BlockLength::get().max.get(DispatchClass::Normal)
+}
 
-impl Chain for PolkadotLike {
-	type BlockNumber = BlockNumber;
-	type Hash = Hash;
-	type Hasher = Hasher;
-	type Header = Header;
-
-	type AccountId = AccountId;
-	type Balance = Balance;
-	type Nonce = Nonce;
-	type Signature = Signature;
-
-	fn max_extrinsic_size() -> u32 {
-		*BlockLength::get().max.get(DispatchClass::Normal)
-	}
-
-	fn max_extrinsic_weight() -> Weight {
-		BlockWeights::get()
-			.get(DispatchClass::Normal)
-			.max_extrinsic
-			.unwrap_or(Weight::MAX)
-	}
+/// Returns maximal extrinsic weight on all Polkadot-like chains.
+pub fn max_extrinsic_weight() -> Weight {
+	BlockWeights::get()
+		.get(DispatchClass::Normal)
+		.max_extrinsic
+		.unwrap_or(Weight::MAX)
 }
 
 /// Provides a storage key for account data.

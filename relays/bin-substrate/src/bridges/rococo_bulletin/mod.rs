@@ -40,6 +40,8 @@ pub mod rococo_parachains_to_rococo_bulletin;
 pub struct RococoBaseAsPolkadot;
 
 impl bp_runtime::Chain for RococoBaseAsPolkadot {
+	const ID: ChainId = relay_rococo_client::Rococo::ID;
+
 	type BlockNumber = BlockNumberOf<bp_rococo::Rococo>;
 	type Hash = HashOf<bp_rococo::Rococo>;
 	type Hasher = HasherOf<bp_rococo::Rococo>;
@@ -78,7 +80,6 @@ impl bp_runtime::UnderlyingChainProvider for RococoAsPolkadot {
 }
 
 impl relay_substrate_client::Chain for RococoAsPolkadot {
-	const ID: ChainId = relay_rococo_client::Rococo::ID;
 	const NAME: &'static str = relay_rococo_client::Rococo::NAME;
 	const BEST_FINALIZED_HEADER_ID_METHOD: &'static str =
 		relay_polkadot_client::Polkadot::BEST_FINALIZED_HEADER_ID_METHOD;
@@ -146,6 +147,8 @@ impl CliChain for RococoAsPolkadot {
 pub struct BaseBridgeHubRococoAsBridgeHubPolkadot;
 
 impl bp_runtime::Chain for BaseBridgeHubRococoAsBridgeHubPolkadot {
+	const ID: ChainId = relay_bridge_hub_rococo_client::BridgeHubRococo::ID;
+
 	type BlockNumber = BlockNumberOf<bp_bridge_hub_rococo::BridgeHubRococo>;
 	type Hash = HashOf<bp_bridge_hub_rococo::BridgeHubRococo>;
 	type Hasher = HasherOf<bp_bridge_hub_rococo::BridgeHubRococo>;
@@ -188,7 +191,6 @@ impl bp_runtime::UnderlyingChainProvider for BridgeHubRococoAsBridgeHubPolkadot 
 }
 
 impl relay_substrate_client::Chain for BridgeHubRococoAsBridgeHubPolkadot {
-	const ID: ChainId = relay_bridge_hub_rococo_client::BridgeHubRococo::ID;
 	const NAME: &'static str = relay_bridge_hub_rococo_client::BridgeHubRococo::NAME;
 	const BEST_FINALIZED_HEADER_ID_METHOD: &'static str =
 		relay_bridge_hub_polkadot_client::BridgeHubPolkadot::BEST_FINALIZED_HEADER_ID_METHOD;

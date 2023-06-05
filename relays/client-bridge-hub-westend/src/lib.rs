@@ -18,7 +18,6 @@
 
 use bp_bridge_hub_westend::AVERAGE_BLOCK_INTERVAL;
 use bp_polkadot_core::SuffixedCommonSignedExtensionExt;
-use bp_runtime::ChainId;
 use codec::Encode;
 use relay_substrate_client::{
 	Chain, ChainWithBalances, ChainWithMessages, ChainWithTransactions, ChainWithUtilityPallet,
@@ -42,7 +41,6 @@ impl UnderlyingChainProvider for BridgeHubWestend {
 }
 
 impl Chain for BridgeHubWestend {
-	const ID: ChainId = bp_runtime::BRIDGE_HUB_WESTEND_CHAIN_ID;
 	const NAME: &'static str = "BridgeHubWestend";
 	const BEST_FINALIZED_HEADER_ID_METHOD: &'static str =
 		bp_bridge_hub_westend::BEST_FINALIZED_BRIDGE_HUB_WESTEND_HEADER_METHOD;
