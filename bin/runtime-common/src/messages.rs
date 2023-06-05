@@ -197,25 +197,6 @@ pub mod target {
 	pub fn maximal_incoming_message_size(maximal_extrinsic_size: u32) -> u32 {
 		maximal_extrinsic_size / 3 * 2
 	}
-
-	/// `SourceHeaderChain` implementation that is using default types and perform default checks.
-	pub struct SourceHeaderChainAdapter<B>(PhantomData<B>);
-
-	impl<B: MessageBridge> bp_messages::target_chain::SourceHeaderChain
-		for SourceHeaderChainAdapter<B>
-	{
-		type MessagesProof = FromBridgedChainMessagesProof<HashOf<BridgedChain<B>>>;
-
-		fn verify_messages_proof(
-			_proof: Self::MessagesProof,
-			_messages_count: u32,
-		) -> Result<
-			bp_messages::target_chain::ProvedMessages<bp_messages::Message>,
-			VerificationError,
-		> {
-			unimplemented!("TODO: remove me")
-		}
-	}
 }
 
 /// The `BridgeMessagesCall` used by a chain.
@@ -229,14 +210,6 @@ pub type BridgeMessagesCallOf<C> = bp_messages::BridgeMessagesCall<
 mod tests {
 	use super::*;
 	use crate::mock::*;
-	use bp_header_chain::{HeaderChainError, StoredHeaderDataBuilder};
-	use bp_runtime::{HeaderId, VecDbError};
-	use codec::Encode;
-	use pallet_bridge_messages::messages_generation::{
-		encode_all_messages, encode_lane_data, prepare_messages_storage_proof,
-	};
-	use sp_core::H256;
-	use sp_runtime::traits::Header as _;
 
 	#[test]
 	fn verify_chain_message_rejects_message_with_too_large_declared_weight() {

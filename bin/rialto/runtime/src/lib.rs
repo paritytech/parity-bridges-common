@@ -32,7 +32,7 @@ pub mod millau_messages;
 pub mod parachains;
 pub mod xcm_config;
 
-use bp_runtime::{Chain, HeaderId};
+use bp_runtime::HeaderId;
 use pallet_grandpa::{
 	fg_primitives, AuthorityId as GrandpaId, AuthorityList as GrandpaAuthorityList,
 };
@@ -444,7 +444,6 @@ impl pallet_bridge_messages::Config<WithMillauMessagesInstance> for Runtime {
 		frame_support::traits::ConstU128<100_000>,
 	>;
 
-	type SourceHeaderChain = crate::millau_messages::MillauAsSourceHeaderChain;
 	type MessageDispatch = crate::millau_messages::FromMillauMessageDispatch;
 }
 

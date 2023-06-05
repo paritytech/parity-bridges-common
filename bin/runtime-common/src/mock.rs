@@ -28,7 +28,6 @@ use crate::messages::{
 		FromThisChainMaximalOutboundPayloadSize, FromThisChainMessagePayload,
 		TargetHeaderChainAdapter,
 	},
-	target::SourceHeaderChainAdapter,
 	BridgedChainWithMessages, HashOf, MessageBridge, ThisChainWithMessages,
 };
 
@@ -251,7 +250,6 @@ impl pallet_bridge_messages::Config for TestRuntime {
 		ConstU64<100_000>,
 	>;
 
-	type SourceHeaderChain = SourceHeaderChainAdapter<OnThisChainBridge>;
 	type MessageDispatch = ForbidInboundMessages<(), Vec<u8>>;
 	type ThisChain = ThisUnderlyingChain;
 	type BridgedChain = BridgedUnderlyingChain;

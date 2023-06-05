@@ -56,7 +56,7 @@ use bp_messages::{
 	source_chain::{DeliveryConfirmationPayments, SendMessageArtifacts, TargetHeaderChain},
 	target_chain::{
 		DeliveryPayments, DispatchMessage, FromBridgedChainMessagesProof, MessageDispatch,
-		ProvedLaneMessages, ProvedMessages, SourceHeaderChain,
+		ProvedLaneMessages, ProvedMessages,
 	},
 	ChainWithMessages, DeliveredMessages, InboundLaneData, InboundMessageDetails, LaneId,
 	MessageKey, MessageNonce, MessagePayload, MessagesOperatingMode, OutboundLaneData,
@@ -160,8 +160,6 @@ pub mod pallet {
 
 		// Types that are used by inbound_lane (on target chain).
 
-		/// Source header chain, as it is represented on target chain.
-		type SourceHeaderChain: SourceHeaderChain; // TODO: remove me
 		/// Message dispatch.
 		type MessageDispatch: MessageDispatch<DispatchPayload = Self::InboundPayload>;
 	}

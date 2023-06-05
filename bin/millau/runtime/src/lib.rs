@@ -36,7 +36,7 @@ pub mod xcm_config;
 use bp_parachains::SingleParaStoredHeaderDataBuilder;
 #[cfg(feature = "runtime-benchmarks")]
 use bp_relayers::{RewardsAccountOwner, RewardsAccountParams};
-use bp_runtime::{Chain, HeaderId};
+use bp_runtime::HeaderId;
 use pallet_grandpa::{
 	fg_primitives, AuthorityId as GrandpaId, AuthorityList as GrandpaAuthorityList,
 };
@@ -465,7 +465,6 @@ impl pallet_bridge_messages::Config<WithRialtoMessagesInstance> for Runtime {
 		frame_support::traits::ConstU64<100_000>,
 	>;
 
-	type SourceHeaderChain = crate::rialto_messages::RialtoAsSourceHeaderChain;
 	type MessageDispatch = crate::rialto_messages::FromRialtoMessageDispatch;
 }
 
@@ -503,7 +502,6 @@ impl pallet_bridge_messages::Config<WithRialtoParachainMessagesInstance> for Run
 		frame_support::traits::ConstU64<100_000>,
 	>;
 
-	type SourceHeaderChain = crate::rialto_parachain_messages::RialtoParachainAsSourceHeaderChain;
 	type MessageDispatch = crate::rialto_parachain_messages::FromRialtoParachainMessageDispatch;
 }
 

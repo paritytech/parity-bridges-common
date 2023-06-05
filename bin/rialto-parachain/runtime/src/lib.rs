@@ -26,7 +26,6 @@
 #[cfg(feature = "std")]
 include!(concat!(env!("OUT_DIR"), "/wasm_binary.rs"));
 
-use bp_runtime::Chain;
 use bridge_runtime_common::generate_bridge_reject_obsolete_headers_and_messages;
 use codec::{Decode, Encode};
 use cumulus_pallet_parachain_system::AnyRelayNumber;
@@ -589,7 +588,6 @@ impl pallet_bridge_messages::Config<WithMillauMessagesInstance> for Runtime {
 		frame_support::traits::ConstU128<100_000>,
 	>;
 
-	type SourceHeaderChain = crate::millau_messages::MillauAsSourceHeaderChain;
 	type MessageDispatch = crate::millau_messages::FromMillauMessageDispatch;
 }
 

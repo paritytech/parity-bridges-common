@@ -256,7 +256,6 @@ impl Config for TestRuntime {
 	type TargetHeaderChain = TestTargetHeaderChain;
 	type DeliveryConfirmationPayments = TestDeliveryConfirmationPayments;
 
-	type SourceHeaderChain = TestSourceHeaderChain;
 	type MessageDispatch = TestMessageDispatch;
 }
 
@@ -426,21 +425,6 @@ impl DeliveryConfirmationPayments<AccountId> for TestDeliveryConfirmationPayment
 		}
 
 		rewarded_relayers as _
-	}
-}
-
-/// Source header chain that is used in tests.
-#[derive(Debug)]
-pub struct TestSourceHeaderChain;
-
-impl bp_messages::target_chain::SourceHeaderChain for TestSourceHeaderChain {
-	type MessagesProof = FromBridgedChainMessagesProof<H256>;
-
-	fn verify_messages_proof(
-		proof: Self::MessagesProof,
-		_messages_count: u32,
-	) -> Result<bp_messages::target_chain::ProvedMessages<Message>, VerificationError> {
-		unimplemented!("TODO: remove me")
 	}
 }
 

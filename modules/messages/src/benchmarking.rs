@@ -24,9 +24,8 @@ use crate::{
 };
 
 use bp_messages::{
-	source_chain::TargetHeaderChain, target_chain::SourceHeaderChain, DeliveredMessages,
-	InboundLaneData, LaneId, MessageNonce, OutboundLaneData, UnrewardedRelayer,
-	UnrewardedRelayersState,
+	source_chain::TargetHeaderChain, DeliveredMessages, InboundLaneData, LaneId, MessageNonce,
+	OutboundLaneData, UnrewardedRelayer, UnrewardedRelayersState,
 };
 use bp_runtime::StorageProofSize;
 use codec::Decode;
@@ -96,7 +95,7 @@ pub trait Config<I: 'static>: crate::Config<I> {
 	/// Prepare messages proof to receive by the module.
 	fn prepare_message_proof(
 		params: MessageProofParams,
-	) -> (<Self::SourceHeaderChain as SourceHeaderChain>::MessagesProof, Weight);
+	) -> (FromBridgedChainMessagesProof<HashOf<BridgedChainOf<Self, I>>>, Weight);
 	/// Prepare messages delivery proof to receive by the module.
 	fn prepare_message_delivery_proof(
 		params: MessageDeliveryProofParams<Self::AccountId>,

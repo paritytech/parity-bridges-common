@@ -20,9 +20,7 @@ use crate::{RialtoGrandpaInstance, Runtime, RuntimeOrigin, WithRialtoMessagesIns
 
 use bp_messages::LaneId;
 use bridge_runtime_common::{
-	messages::{
-		self, source::TargetHeaderChainAdapter, target::SourceHeaderChainAdapter, MessageBridge,
-	},
+	messages::{self, source::TargetHeaderChainAdapter, MessageBridge},
 	messages_xcm_extension::{XcmBlobHauler, XcmBlobHaulerAdapter},
 };
 use frame_support::{parameter_types, weights::Weight, RuntimeDebug};
@@ -89,8 +87,6 @@ impl messages::ThisChainWithMessages for Millau {
 /// Rialto chain from message lane point of view.
 #[derive(RuntimeDebug, Clone, Copy)]
 pub struct Rialto;
-/// Rialto as source header chain.
-pub type RialtoAsSourceHeaderChain = SourceHeaderChainAdapter<WithRialtoMessageBridge>;
 /// Rialto as target header chain.
 pub type RialtoAsTargetHeaderChain = TargetHeaderChainAdapter<WithRialtoMessageBridge>;
 
