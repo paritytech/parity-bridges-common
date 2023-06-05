@@ -17,7 +17,7 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
 use bp_messages::MessageNonce;
-use bp_runtime::{Chain, EncodedOrDecodedCall, StorageMapKeyProvider};
+use bp_runtime::{EncodedOrDecodedCall, StorageMapKeyProvider};
 use frame_support::{
 	dispatch::DispatchClass,
 	parameter_types,
@@ -25,7 +25,7 @@ use frame_support::{
 		constants::{BlockExecutionWeight, WEIGHT_REF_TIME_PER_SECOND},
 		Weight,
 	},
-	Blake2_128Concat, RuntimeDebug, StateVersion,
+	Blake2_128Concat,
 };
 use frame_system::limits;
 use sp_core::{storage::StorageKey, Hasher as HasherT};
@@ -224,33 +224,17 @@ pub type UncheckedExtrinsic<Call, SignedExt> =
 /// Account address, used by the Polkadot-like chain.
 pub type Address = MultiAddress<AccountId, ()>;
 
-/// Polkadot-like chain.
-#[derive(RuntimeDebug)]
-pub struct PolkadotLike;
+/// Returns maximal extrinsic size on all Polkadot-like chains.
+pub fn max_extrinsic_size() -> u32 {
+	*BlockLength::get().max.get(DispatchClass::Normal)
+}
 
-impl Chain for PolkadotLike {
-	type BlockNumber = BlockNumber;
-	type Hash = Hash;
-	type Hasher = Hasher;
-	type Header = Header;
-
-	type AccountId = AccountId;
-	type Balance = Balance;
-	type Index = Index;
-	type Signature = Signature;
-
-	const STATE_VERSION: StateVersion = StateVersion::V0;
-
-	fn max_extrinsic_size() -> u32 {
-		*BlockLength::get().max.get(DispatchClass::Normal)
-	}
-
-	fn max_extrinsic_weight() -> Weight {
-		BlockWeights::get()
-			.get(DispatchClass::Normal)
-			.max_extrinsic
-			.unwrap_or(Weight::MAX)
-	}
+/// Returns maximal extrinsic weight on all Polkadot-like chains.
+pub fn max_extrinsic_weight() -> Weight {
+	BlockWeights::get()
+		.get(DispatchClass::Normal)
+		.max_extrinsic
+		.unwrap_or(Weight::MAX)
 }
 
 /// Provides a storage key for account data.

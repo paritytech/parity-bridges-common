@@ -16,7 +16,6 @@
 
 //! Types used to connect to the Rococo-Substrate chain.
 
-use bp_runtime::ChainId;
 use relay_substrate_client::{Chain, ChainWithBalances, RelayChain, UnderlyingChainProvider};
 use sp_core::storage::StorageKey;
 use std::time::Duration;
@@ -36,7 +35,6 @@ impl UnderlyingChainProvider for Rococo {
 }
 
 impl Chain for Rococo {
-	const ID: ChainId = bp_runtime::ROCOCO_CHAIN_ID;
 	const NAME: &'static str = "Rococo";
 	const BEST_FINALIZED_HEADER_ID_METHOD: &'static str =
 		bp_rococo::BEST_FINALIZED_ROCOCO_HEADER_METHOD;

@@ -162,12 +162,17 @@ impl TryFrom<bp_runtime::ChainId> for CustomNetworkId {
 	type Error = ();
 
 	fn try_from(chain: bp_runtime::ChainId) -> Result<Self, Self::Error> {
-		Ok(match chain {
-			bp_runtime::MILLAU_CHAIN_ID => Self::Millau,
-			bp_runtime::RIALTO_CHAIN_ID => Self::Rialto,
-			bp_runtime::RIALTO_PARACHAIN_CHAIN_ID => Self::RialtoParachain,
-			_ => return Err(()),
-		})
+		// TODO: this code needs to be removed or fixed (use constants) in the
+		// https://github.com/paritytech/parity-bridges-common/issues/2068
+		if chain == *b"mlau" {
+			Ok(Self::Millau)
+		} else if chain == *b"rlto" {
+			Ok(Self::Rialto)
+		} else if chain == *b"rlpa" {
+			Ok(Self::RialtoParachain)
+		} else {
+			Err(())
+		}
 	}
 }
 

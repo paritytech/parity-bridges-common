@@ -23,7 +23,7 @@ use bp_messages::{
 	ChainWithMessages, InboundMessageDetails, LaneId, MessageNonce, MessagePayload,
 	OutboundMessageDetails,
 };
-use bp_runtime::{decl_bridge_runtime_apis, Chain};
+use bp_runtime::{decl_bridge_runtime_apis, Chain, ChainId};
 use frame_support::{
 	dispatch::DispatchClass,
 	weights::{constants::WEIGHT_REF_TIME_PER_SECOND, IdentityFee, Weight},
@@ -161,6 +161,8 @@ pub type WeightToFee = IdentityFee<Balance>;
 pub struct Rialto;
 
 impl Chain for Rialto {
+	const ID: ChainId = *b"rlto";
+
 	type BlockNumber = BlockNumber;
 	type Hash = Hash;
 	type Hasher = Hasher;

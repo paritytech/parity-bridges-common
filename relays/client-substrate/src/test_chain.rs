@@ -31,6 +31,8 @@ use std::time::Duration;
 pub struct TestChain;
 
 impl bp_runtime::Chain for TestChain {
+	const ID: ChainId = *b"test";
+
 	type BlockNumber = u32;
 	type Hash = sp_core::H256;
 	type Hasher = sp_runtime::traits::BlakeTwo256;
@@ -53,7 +55,6 @@ impl bp_runtime::Chain for TestChain {
 }
 
 impl Chain for TestChain {
-	const ID: ChainId = *b"test";
 	const NAME: &'static str = "Test";
 	const BEST_FINALIZED_HEADER_ID_METHOD: &'static str = "TestMethod";
 	const AVERAGE_BLOCK_INTERVAL: Duration = Duration::from_millis(0);
@@ -75,6 +76,8 @@ impl ChainWithBalances for TestChain {
 pub struct TestParachainBase;
 
 impl bp_runtime::Chain for TestParachainBase {
+	const ID: ChainId = *b"tstp";
+
 	type BlockNumber = u32;
 	type Hash = sp_core::H256;
 	type Hasher = sp_runtime::traits::BlakeTwo256;
@@ -109,7 +112,6 @@ impl bp_runtime::UnderlyingChainProvider for TestParachain {
 }
 
 impl Chain for TestParachain {
-	const ID: ChainId = *b"test";
 	const NAME: &'static str = "TestParachain";
 	const BEST_FINALIZED_HEADER_ID_METHOD: &'static str = "TestParachainMethod";
 	const AVERAGE_BLOCK_INTERVAL: Duration = Duration::from_millis(0);

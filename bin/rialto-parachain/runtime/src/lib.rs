@@ -26,6 +26,7 @@
 #[cfg(feature = "std")]
 include!(concat!(env!("OUT_DIR"), "/wasm_binary.rs"));
 
+use bp_runtime::Chain;
 use bridge_runtime_common::generate_bridge_reject_obsolete_headers_and_messages;
 use codec::{Decode, Encode};
 use cumulus_pallet_parachain_system::AnyRelayNumber;
@@ -556,7 +557,7 @@ parameter_types! {
 	pub const MaxUnconfirmedMessagesAtInboundLane: bp_messages::MessageNonce =
 		bp_millau::MAX_UNCONFIRMED_MESSAGES_IN_CONFIRMATION_TX;
 	pub const RootAccountForPayments: Option<AccountId> = None;
-	pub const BridgedChainId: bp_runtime::ChainId = bp_runtime::MILLAU_CHAIN_ID;
+	pub const BridgedChainId: bp_runtime::ChainId = bp_millau::Millau::ID;
 	pub ActiveOutboundLanes: &'static [bp_messages::LaneId] = &[millau_messages::XCM_LANE];
 }
 

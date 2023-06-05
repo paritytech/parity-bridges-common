@@ -16,7 +16,6 @@
 
 //! Types used to connect to the Millau-Substrate chain.
 
-use bp_runtime::ChainId;
 use codec::{Compact, Decode, Encode};
 use relay_substrate_client::{
 	BalanceOf, Chain, ChainWithBalances, ChainWithMessages, ChainWithTransactions,
@@ -48,7 +47,6 @@ impl ChainWithMessages for Millau {
 }
 
 impl Chain for Millau {
-	const ID: ChainId = bp_runtime::MILLAU_CHAIN_ID;
 	const NAME: &'static str = "Millau";
 	const BEST_FINALIZED_HEADER_ID_METHOD: &'static str =
 		bp_millau::BEST_FINALIZED_MILLAU_HEADER_METHOD;

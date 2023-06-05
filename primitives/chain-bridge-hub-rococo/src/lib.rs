@@ -22,7 +22,7 @@
 pub use bp_bridge_hub_cumulus::*;
 use bp_messages::*;
 use bp_runtime::{
-	decl_bridge_finality_runtime_apis, decl_bridge_messages_runtime_apis, Chain, Parachain,
+	decl_bridge_finality_runtime_apis, decl_bridge_messages_runtime_apis, Chain, ChainId, Parachain,
 };
 use frame_support::{
 	dispatch::DispatchClass,
@@ -36,6 +36,8 @@ use sp_std::prelude::*;
 pub struct BridgeHubRococo;
 
 impl Chain for BridgeHubRococo {
+	const ID: ChainId = *b"bhro";
+
 	type BlockNumber = BlockNumber;
 	type Hash = Hash;
 	type Hasher = Hasher;

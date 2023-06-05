@@ -16,7 +16,6 @@
 
 //! Types used to connect to the Westend chain.
 
-use bp_runtime::ChainId;
 use relay_substrate_client::{Chain, ChainWithBalances, RelayChain, UnderlyingChainProvider};
 use sp_core::storage::StorageKey;
 use std::time::Duration;
@@ -36,7 +35,6 @@ impl UnderlyingChainProvider for Westend {
 }
 
 impl Chain for Westend {
-	const ID: ChainId = bp_runtime::WESTEND_CHAIN_ID;
 	const NAME: &'static str = "Westend";
 	const BEST_FINALIZED_HEADER_ID_METHOD: &'static str =
 		bp_westend::BEST_FINALIZED_WESTEND_HEADER_METHOD;
@@ -69,7 +67,6 @@ impl UnderlyingChainProvider for Westmint {
 // Westmint seems to use the same configuration as all Polkadot-like chains, so we'll use Westend
 // primitives here.
 impl Chain for Westmint {
-	const ID: ChainId = bp_runtime::WESTMINT_CHAIN_ID;
 	const NAME: &'static str = "Westmint";
 	const BEST_FINALIZED_HEADER_ID_METHOD: &'static str =
 		bp_westend::BEST_FINALIZED_WESTMINT_HEADER_METHOD;

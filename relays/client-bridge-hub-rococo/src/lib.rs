@@ -19,7 +19,6 @@
 pub mod codegen_runtime;
 
 use bp_bridge_hub_rococo::{BridgeHubSignedExtension, SignedExtension, AVERAGE_BLOCK_INTERVAL};
-use bp_runtime::ChainId;
 use codec::Encode;
 use relay_substrate_client::{
 	calls::UtilityCall as MockUtilityCall, Chain, ChainWithBalances, ChainWithMessages,
@@ -48,7 +47,6 @@ impl UnderlyingChainProvider for BridgeHubRococo {
 }
 
 impl Chain for BridgeHubRococo {
-	const ID: ChainId = bp_runtime::BRIDGE_HUB_ROCOCO_CHAIN_ID;
 	const NAME: &'static str = "BridgeHubRococo";
 	const BEST_FINALIZED_HEADER_ID_METHOD: &'static str =
 		bp_bridge_hub_rococo::BEST_FINALIZED_BRIDGE_HUB_ROCOCO_HEADER_METHOD;

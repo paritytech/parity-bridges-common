@@ -9826,7 +9826,6 @@ dependencies = [
  "bp-header-chain",
  "bp-parachains",
  "bp-polkadot",
- "bp-runtime",
  "bridge-runtime-common",
  "parity-scale-codec",
  "relay-substrate-client",
@@ -9865,7 +9864,6 @@ dependencies = [
  "bp-messages",
  "bp-parachains",
  "bp-polkadot-core",
- "bp-runtime",
  "bp-wococo",
  "bridge-runtime-common",
  "parity-scale-codec",
@@ -9887,7 +9885,6 @@ dependencies = [
  "bp-parachains",
  "bp-polkadot-core",
  "bp-rococo",
- "bp-runtime",
  "bridge-runtime-common",
  "parity-scale-codec",
  "relay-bridge-hub-rococo-client",
@@ -9905,7 +9902,6 @@ name = "relay-kusama-client"
 version = "0.1.0"
 dependencies = [
  "bp-kusama",
- "bp-runtime",
  "relay-substrate-client",
  "relay-utils",
  "sp-core",
@@ -9916,7 +9912,6 @@ name = "relay-millau-client"
 version = "0.1.0"
 dependencies = [
  "bp-millau",
- "bp-runtime",
  "frame-support",
  "frame-system",
  "millau-runtime",
@@ -9933,7 +9928,6 @@ name = "relay-polkadot-client"
 version = "0.1.0"
 dependencies = [
  "bp-polkadot",
- "bp-runtime",
  "relay-substrate-client",
  "relay-utils",
  "sp-core",
@@ -9944,7 +9938,6 @@ name = "relay-rialto-client"
 version = "0.1.0"
 dependencies = [
  "bp-rialto",
- "bp-runtime",
  "frame-support",
  "frame-system",
  "pallet-transaction-payment",
@@ -9966,7 +9959,6 @@ dependencies = [
  "bp-millau",
  "bp-polkadot-core",
  "bp-rialto-parachain",
- "bp-runtime",
  "bridge-runtime-common",
  "parity-scale-codec",
  "relay-substrate-client",
@@ -9982,7 +9974,6 @@ name = "relay-rococo-client"
 version = "0.1.0"
 dependencies = [
  "bp-rococo",
- "bp-runtime",
  "relay-substrate-client",
  "relay-utils",
  "sp-core",
@@ -10058,7 +10049,6 @@ dependencies = [
 name = "relay-westend-client"
 version = "0.1.0"
 dependencies = [
- "bp-runtime",
  "bp-westend",
  "relay-substrate-client",
  "relay-utils",
@@ -10069,7 +10059,6 @@ dependencies = [
 name = "relay-wococo-client"
 version = "0.1.0"
 dependencies = [
- "bp-runtime",
  "bp-wococo",
  "relay-substrate-client",
  "relay-utils",
