@@ -1466,9 +1466,9 @@ dependencies = [
 
 [[package]]
 name = "clap"
-version = "4.3.0"
+version = "4.3.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "93aae7a4192245f70fe75dd9157fc7b4a5bf53e88d30bd4396f7d8f9284d5acc"
+checksum = "b4ed2379f8603fa2b7509891660e802b88c70a79a6427a70abb5968054de2c28"
 dependencies = [
  "clap_builder",
  "clap_derive",
@@ -1477,9 +1477,9 @@ dependencies = [
 
 [[package]]
 name = "clap_builder"
-version = "4.3.0"
+version = "4.3.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4f423e341edefb78c9caba2d9c7f7687d0e72e89df3ce3394554754393ac3990"
+checksum = "72394f3339a76daf211e57d4bcb374410f3965dcc606dd0e03738c7888766980"
 dependencies = [
  "anstream",
  "anstyle",
@@ -1490,9 +1490,9 @@ dependencies = [
 
 [[package]]
 name = "clap_derive"
-version = "4.3.0"
+version = "4.3.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "191d9573962933b4027f932c600cd252ce27a8ad5979418fe78e43c07996f27b"
+checksum = "59e9ef9a08ee1c0e1f2e162121665ac45ac3783b0f897db7244ae75ad9a8f65b"
 dependencies = [
  "heck 0.4.1",
  "proc-macro2 1.0.59",
@@ -1903,7 +1903,7 @@ name = "cumulus-client-cli"
 version = "0.1.0"
 source = "git+https://github.com/paritytech/cumulus?branch=master#5dd73ad67d8a170c5d3ca9edc0c3adb5de745bea"
 dependencies = [
- "clap 4.3.0",
+ "clap 4.3.1",
  "parity-scale-codec",
  "sc-chain-spec",
  "sc-cli",
@@ -3362,7 +3362,7 @@ dependencies = [
  "Inflector",
  "array-bytes 4.2.0",
  "chrono",
- "clap 4.3.0",
+ "clap 4.3.1",
  "comfy-table",
  "frame-benchmarking",
  "frame-support",
@@ -5770,7 +5770,7 @@ dependencies = [
 name = "millau-bridge-node"
 version = "0.1.0"
 dependencies = [
- "clap 4.3.0",
+ "clap 4.3.1",
  "frame-benchmarking",
  "frame-benchmarking-cli",
  "jsonrpsee 0.16.2",
@@ -6190,7 +6190,7 @@ name = "node-inspect"
 version = "0.9.0-dev"
 source = "git+https://github.com/paritytech/substrate?branch=master#5aa46775c0600fe722510abff30fc3eff313acbc"
 dependencies = [
- "clap 4.3.0",
+ "clap 4.3.1",
  "parity-scale-codec",
  "sc-cli",
  "sc-client-api",
@@ -7997,7 +7997,7 @@ name = "polkadot-cli"
 version = "0.9.41"
 source = "git+https://github.com/paritytech/polkadot?branch=master#478c6596f2f9137f2d66709665d96d01d5c189e1"
 dependencies = [
- "clap 4.3.0",
+ "clap 4.3.1",
  "frame-benchmarking-cli",
  "futures",
  "log",
@@ -10075,7 +10075,7 @@ dependencies = [
 name = "rialto-bridge-node"
 version = "0.1.0"
 dependencies = [
- "clap 4.3.0",
+ "clap 4.3.1",
  "frame-benchmarking",
  "frame-benchmarking-cli",
  "frame-support",
@@ -10102,7 +10102,7 @@ dependencies = [
 name = "rialto-parachain-collator"
 version = "0.1.0"
 dependencies = [
- "clap 4.3.0",
+ "clap 4.3.1",
  "cumulus-client-cli",
  "cumulus-client-consensus-aura",
  "cumulus-client-consensus-common",
@@ -10754,7 +10754,7 @@ source = "git+https://github.com/paritytech/substrate?branch=master#5aa46775c060
 dependencies = [
  "array-bytes 4.2.0",
  "chrono",
- "clap 4.3.0",
+ "clap 4.3.1",
  "fdlimit",
  "futures",
  "libp2p-identity",
@@ -11583,7 +11583,7 @@ name = "sc-storage-monitor"
 version = "0.1.0"
 source = "git+https://github.com/paritytech/substrate?branch=master#5aa46775c0600fe722510abff30fc3eff313acbc"
 dependencies = [
- "clap 4.3.0",
+ "clap 4.3.1",
  "fs4",
  "futures",
  "log",
@@ -14262,7 +14262,7 @@ version = "0.10.0-dev"
 source = "git+https://github.com/paritytech/substrate?branch=master#5aa46775c0600fe722510abff30fc3eff313acbc"
 dependencies = [
  "async-trait",
- "clap 4.3.0",
+ "clap 4.3.1",
  "frame-remote-externalities",
  "hex",
  "log",
