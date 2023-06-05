@@ -517,5 +517,9 @@ mod benchmarks {
 		assert!(T::is_message_successfully_dispatched(setup.last_nonce()));
 	}
 
-	impl_benchmark_test_suite!(Pallet, crate::mock::new_test_ext(), crate::mock::TestRuntime);
+	impl_benchmark_test_suite!(
+		Pallet,
+		crate::tests::mock::new_test_ext(),
+		crate::tests::mock::TestRuntime
+	);
 }
