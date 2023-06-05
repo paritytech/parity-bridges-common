@@ -17,7 +17,6 @@
 //! Types used to connect to the BridgeHub-Kusama-Substrate parachain.
 
 use bp_bridge_hub_kusama::{BridgeHubSignedExtension, AVERAGE_BLOCK_INTERVAL};
-use bp_runtime::ChainId;
 use codec::Encode;
 use relay_substrate_client::{
 	Chain, ChainWithBalances, ChainWithMessages, ChainWithTransactions, ChainWithUtilityPallet,
@@ -41,7 +40,6 @@ impl UnderlyingChainProvider for BridgeHubKusama {
 }
 
 impl Chain for BridgeHubKusama {
-	const ID: ChainId = bp_runtime::BRIDGE_HUB_KUSAMA_CHAIN_ID;
 	const NAME: &'static str = "BridgeHubKusama";
 	const BEST_FINALIZED_HEADER_ID_METHOD: &'static str =
 		bp_bridge_hub_kusama::BEST_FINALIZED_BRIDGE_HUB_KUSAMA_HEADER_METHOD;

@@ -17,7 +17,6 @@
 //! Types used to connect to the Kusama chain.
 
 use bp_kusama::AccountInfoStorageMapKeyProvider;
-use bp_runtime::ChainId;
 use relay_substrate_client::{Chain, ChainWithBalances, RelayChain, UnderlyingChainProvider};
 use sp_core::storage::StorageKey;
 use std::time::Duration;
@@ -37,7 +36,6 @@ impl UnderlyingChainProvider for Kusama {
 }
 
 impl Chain for Kusama {
-	const ID: ChainId = bp_runtime::KUSAMA_CHAIN_ID;
 	const NAME: &'static str = "Kusama";
 	const BEST_FINALIZED_HEADER_ID_METHOD: &'static str =
 		bp_kusama::BEST_FINALIZED_KUSAMA_HEADER_METHOD;
