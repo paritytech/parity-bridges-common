@@ -166,6 +166,7 @@ pub mod pallet {
 
 	/// Shortcut to bridged chain type for Config.
 	pub type BridgedChainOf<T, I> = <T as Config<I>>::BridgedChain;
+	/// Shortcut to bridged header chain type for Config.
 	pub type BridgedHeaderChainOf<T, I> = <T as Config<I>>::BridgedHeaderChain;
 	/// Shortcut to messages delivery proof type for Config.
 	pub type MessagesDeliveryProofOf<T, I> =
@@ -301,8 +302,6 @@ pub mod pallet {
 			let messages = verify_and_decode_messages_proof::<T, I>(proof, messages_count)
 				.map_err(|err| {
 					log::trace!(target: LOG_TARGET, "Rejecting invalid messages proof: {:?}", err,);
-
-					// TODO: can we now add all verification errors to pallet::error enum?
 
 					Error::<T, I>::InvalidMessagesProof
 				})?;
