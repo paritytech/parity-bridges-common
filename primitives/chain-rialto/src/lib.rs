@@ -161,7 +161,7 @@ pub type WeightToFee = IdentityFee<Balance>;
 pub struct Rialto;
 
 impl Chain for Rialto {
-	const ID: ChainId = bp_runtime::RIALTO_CHAIN_ID;
+	const ID: ChainId = *b"rlto";
 
 	type BlockNumber = BlockNumber;
 	type Hash = Hash;

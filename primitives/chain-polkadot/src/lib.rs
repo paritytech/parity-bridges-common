@@ -29,7 +29,7 @@ use frame_support::weights::Weight;
 pub struct Polkadot;
 
 impl Chain for Polkadot {
-	const ID: ChainId = bp_runtime::POLKADOT_CHAIN_ID;
+	const ID: ChainId = *b"pdot";
 
 	type BlockNumber = BlockNumber;
 	type Hash = Hash;

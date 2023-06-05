@@ -36,7 +36,7 @@ pub mod xcm_config;
 use bp_parachains::SingleParaStoredHeaderDataBuilder;
 #[cfg(feature = "runtime-benchmarks")]
 use bp_relayers::{RewardsAccountOwner, RewardsAccountParams};
-use bp_runtime::HeaderId;
+use bp_runtime::{Chain, HeaderId};
 use pallet_grandpa::{
 	fg_primitives, AuthorityId as GrandpaId, AuthorityList as GrandpaAuthorityList,
 };
@@ -432,8 +432,8 @@ parameter_types! {
 	pub const MaxUnconfirmedMessagesAtInboundLane: bp_messages::MessageNonce =
 		bp_rialto::MAX_UNCONFIRMED_MESSAGES_IN_CONFIRMATION_TX;
 	pub const RootAccountForPayments: Option<AccountId> = None;
-	pub const RialtoChainId: bp_runtime::ChainId = bp_runtime::RIALTO_CHAIN_ID;
-	pub const RialtoParachainChainId: bp_runtime::ChainId = bp_runtime::RIALTO_PARACHAIN_CHAIN_ID;
+	pub const RialtoChainId: bp_runtime::ChainId = bp_rialto::Rialto::ID;
+	pub const RialtoParachainChainId: bp_runtime::ChainId = bp_rialto_parachain::RialtoParachain::ID;
 	pub RialtoActiveOutboundLanes: &'static [bp_messages::LaneId] = &[rialto_messages::XCM_LANE];
 	pub RialtoParachainActiveOutboundLanes: &'static [bp_messages::LaneId] = &[rialto_parachain_messages::XCM_LANE];
 }
@@ -1045,7 +1045,7 @@ impl_runtime_apis! {
 
 				fn is_relayer_rewarded(relayer: &Self::AccountId) -> bool {
 					let lane = <Self as MessagesConfig<WithRialtoParachainMessagesInstance>>::bench_lane_id();
-					let bridged_chain_id = bp_runtime::RIALTO_PARACHAIN_CHAIN_ID;
+					let bridged_chain_id = bp_rialto_parachain::RialtoParachain::ID;
 					pallet_bridge_relayers::Pallet::<Runtime>::relayer_reward(
 						relayer,
 						RewardsAccountParams::new(lane, bridged_chain_id, RewardsAccountOwner::BridgedChain)
@@ -1076,7 +1076,7 @@ impl_runtime_apis! {
 
 				fn is_relayer_rewarded(relayer: &Self::AccountId) -> bool {
 					let lane = <Self as MessagesConfig<WithRialtoMessagesInstance>>::bench_lane_id();
-					let bridged_chain_id = bp_runtime::RIALTO_CHAIN_ID;
+					let bridged_chain_id = bp_rialto::Rialto::ID;
 					pallet_bridge_relayers::Pallet::<Runtime>::relayer_reward(
 						relayer,
 						RewardsAccountParams::new(lane, bridged_chain_id, RewardsAccountOwner::BridgedChain)

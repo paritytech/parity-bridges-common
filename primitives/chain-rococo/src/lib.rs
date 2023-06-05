@@ -28,7 +28,7 @@ use frame_support::{parameter_types, weights::Weight, StateVersion};
 pub struct Rococo;
 
 impl Chain for Rococo {
-	const ID: ChainId = bp_runtime::ROCOCO_CHAIN_ID;
+	const ID: ChainId = *b"roco";
 
 	type BlockNumber = BlockNumber;
 	type Hash = Hash;

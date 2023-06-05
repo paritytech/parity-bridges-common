@@ -29,7 +29,7 @@ use frame_support::weights::Weight;
 pub struct Kusama;
 
 impl Chain for Kusama {
-	const ID: ChainId = bp_runtime::KUSAMA_CHAIN_ID;
+	const ID: ChainId = *b"ksma";
 
 	type BlockNumber = BlockNumber;
 	type Hash = Hash;

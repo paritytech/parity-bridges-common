@@ -157,7 +157,7 @@ pub type WeightToFee = IdentityFee<Balance>;
 pub struct Millau;
 
 impl Chain for Millau {
-	const ID: ChainId = bp_runtime::MILLAU_CHAIN_ID;
+	const ID: ChainId = *b"mlau";
 
 	type BlockNumber = BlockNumber;
 	type Hash = Hash;

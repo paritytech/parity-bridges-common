@@ -150,6 +150,7 @@ mod tests {
 		WithRialtoParachainMessagesInstance,
 	};
 
+	use bp_runtime::Chain;
 	use bridge_runtime_common::{
 		assert_complete_bridge_types,
 		integrity::{
@@ -195,7 +196,7 @@ mod tests {
 					bp_rialto_parachain::MAX_UNREWARDED_RELAYERS_IN_CONFIRMATION_TX,
 				max_unconfirmed_messages_in_bridged_confirmation_tx:
 					bp_rialto_parachain::MAX_UNCONFIRMED_MESSAGES_IN_CONFIRMATION_TX,
-				bridged_chain_id: bp_runtime::RIALTO_PARACHAIN_CHAIN_ID,
+				bridged_chain_id: bp_rialto_parachain::RialtoParachain::ID,
 			},
 			pallet_names: AssertBridgePalletNames {
 				with_this_chain_messages_pallet_name: bp_millau::WITH_MILLAU_MESSAGES_PALLET_NAME,

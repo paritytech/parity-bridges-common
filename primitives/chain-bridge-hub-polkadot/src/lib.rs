@@ -32,7 +32,7 @@ use sp_std::prelude::*;
 pub struct BridgeHubPolkadot;
 
 impl Chain for BridgeHubPolkadot {
-	const ID: ChainId = bp_runtime::BRIDGE_HUB_POLKADOT_CHAIN_ID;
+	const ID: ChainId = *b"bhpd";
 
 	type BlockNumber = BlockNumber;
 	type Hash = Hash;

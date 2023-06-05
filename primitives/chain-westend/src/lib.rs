@@ -29,7 +29,7 @@ use frame_support::weights::Weight;
 pub struct Westend;
 
 impl Chain for Westend {
-	const ID: ChainId = bp_runtime::WESTEND_CHAIN_ID;
+	const ID: ChainId = *b"wend";
 
 	type BlockNumber = BlockNumber;
 	type Hash = Hash;
@@ -68,7 +68,7 @@ pub struct Westmint;
 // Westmint seems to use the same configuration as all Polkadot-like chains, so we'll use Westend
 // primitives here.
 impl Chain for Westmint {
-	const ID: ChainId = bp_runtime::WESTMINT_CHAIN_ID;
+	const ID: ChainId = *b"wmnt";
 
 	type BlockNumber = BlockNumber;
 	type Hash = Hash;

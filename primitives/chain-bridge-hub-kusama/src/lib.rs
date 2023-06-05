@@ -36,7 +36,7 @@ use sp_std::prelude::*;
 pub struct BridgeHubKusama;
 
 impl Chain for BridgeHubKusama {
-	const ID: ChainId = bp_runtime::BRIDGE_HUB_KUSAMA_CHAIN_ID;
+	const ID: ChainId = *b"bhks";
 
 	type BlockNumber = BlockNumber;
 	type Hash = Hash;

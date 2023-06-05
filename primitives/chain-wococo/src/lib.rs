@@ -32,7 +32,7 @@ use frame_support::weights::Weight;
 pub struct Wococo;
 
 impl Chain for Wococo {
-	const ID: ChainId = bp_runtime::WOCOCO_CHAIN_ID;
+	const ID: ChainId = *b"woco";
 
 	type BlockNumber = BlockNumber;
 	type Hash = Hash;

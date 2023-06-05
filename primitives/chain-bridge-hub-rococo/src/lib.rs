@@ -36,7 +36,7 @@ use sp_std::prelude::*;
 pub struct BridgeHubRococo;
 
 impl Chain for BridgeHubRococo {
-	const ID: ChainId = bp_runtime::BRIDGE_HUB_ROCOCO_CHAIN_ID;
+	const ID: ChainId = *b"bhro";
 
 	type BlockNumber = BlockNumber;
 	type Hash = Hash;

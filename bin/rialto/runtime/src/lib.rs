@@ -32,7 +32,7 @@ pub mod millau_messages;
 pub mod parachains;
 pub mod xcm_config;
 
-use bp_runtime::HeaderId;
+use bp_runtime::{Chain, HeaderId};
 use pallet_grandpa::{
 	fg_primitives, AuthorityId as GrandpaId, AuthorityList as GrandpaAuthorityList,
 };
@@ -412,7 +412,7 @@ parameter_types! {
 	pub const MaxUnconfirmedMessagesAtInboundLane: bp_messages::MessageNonce =
 		bp_millau::MAX_UNCONFIRMED_MESSAGES_IN_CONFIRMATION_TX;
 	pub const RootAccountForPayments: Option<AccountId> = None;
-	pub const BridgedChainId: bp_runtime::ChainId = bp_runtime::MILLAU_CHAIN_ID;
+	pub const BridgedChainId: bp_runtime::ChainId = bp_millau::Millau::ID;
 	pub ActiveOutboundLanes: &'static [bp_messages::LaneId] = &[millau_messages::XCM_LANE];
 }
 
