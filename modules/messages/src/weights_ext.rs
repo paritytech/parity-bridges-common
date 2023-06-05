@@ -343,16 +343,6 @@ pub trait WeightInfoExt: WeightInfo {
 
 	// Functions that are used by extrinsics weights formulas.
 
-	/// Returns weight that needs to be accounted when receiving given a number of messages with
-	/// message delivery transaction (`receive_messages_proof`).
-	fn receive_messages_proof_messages_overhead(messages: MessageNonce) -> Weight {
-		let weight_of_two_messages_and_single_tx_overhead = Self::receive_n_messages_proof(2);
-		let weight_of_single_message_and_single_tx_overhead = Self::receive_n_messages_proof(1);
-		weight_of_two_messages_and_single_tx_overhead
-			.saturating_sub(weight_of_single_message_and_single_tx_overhead)
-			.saturating_mul(messages as _)
-	}
-
 	/// Returns weight that needs to be accounted when message delivery transaction
 	/// (`receive_messages_proof`) is carrying outbound lane state proof.
 	fn receive_messages_proof_outbound_lane_state_overhead() -> Weight {
