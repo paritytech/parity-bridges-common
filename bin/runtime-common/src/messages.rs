@@ -324,15 +324,13 @@ pub type BridgeMessagesCallOf<C> = bp_messages::BridgeMessagesCall<
 #[cfg(test)]
 mod tests {
 	use super::*;
-	use crate::{
-		messages_generation::{
-			encode_all_messages, encode_lane_data, prepare_messages_storage_proof,
-		},
-		mock::*,
-	};
+	use crate::mock::*;
 	use bp_header_chain::{HeaderChainError, StoredHeaderDataBuilder};
 	use bp_runtime::{HeaderId, VecDbError};
 	use codec::Encode;
+	use pallet_bridge_messages::messages_generation::{
+		encode_all_messages, encode_lane_data, prepare_messages_storage_proof,
+	};
 	use sp_core::H256;
 	use sp_runtime::traits::Header as _;
 
@@ -377,17 +375,18 @@ mod tests {
 		add_unused_key: bool,
 		test: impl Fn(FromBridgedChainMessagesProof<H256>) -> R,
 	) -> R {
-		let (state_root, storage) = prepare_messages_storage_proof::<OnThisChainBridge>(
-			TEST_LANE_ID,
-			1..=nonces_end,
-			outbound_lane_data,
-			bp_runtime::StorageProofSize::Minimal(0),
-			vec![42],
-			encode_message,
-			encode_outbound_lane_data,
-			add_duplicate_key,
-			add_unused_key,
-		);
+		let (state_root, storage) =
+			prepare_messages_storage_proof::<crate::mock::BridgedChain, crate::mock::ThisChain>(
+				TEST_LANE_ID,
+				1..=nonces_end,
+				outbound_lane_data,
+				bp_runtime::StorageProofSize::Minimal(0),
+				vec![42],
+				encode_message,
+				encode_outbound_lane_data,
+				add_duplicate_key,
+				add_unused_key,
+			);
 
 		sp_io::TestExternalities::new(Default::default()).execute_with(move || {
 			let bridged_header = BridgedChainHeader::new(

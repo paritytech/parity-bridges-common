@@ -70,6 +70,7 @@ pub type TestDispatchLevelResult = ();
 
 type Block = frame_system::mocking::MockBlock<TestRuntime>;
 type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<TestRuntime>;
+pub type TestEvent = RuntimeEvent;
 
 use crate as pallet_bridge_messages;
 

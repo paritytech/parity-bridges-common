@@ -6724,6 +6724,7 @@ dependencies = [
  "sp-io",
  "sp-runtime",
  "sp-std 8.0.0 (git+https://github.com/paritytech/substrate?branch=master)",
+ "sp-trie",
 ]
 
 [[package]]
