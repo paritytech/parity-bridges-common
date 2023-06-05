@@ -1007,6 +1007,7 @@ impl_runtime_apis! {
 				source_chain::FromBridgedChainMessagesDeliveryProof,
 				target_chain::FromBridgedChainMessagesProof,
 			};
+			use bp_runtime::Chain;
 			use bridge_runtime_common::messages_benchmarking::{
 				prepare_message_delivery_proof_from_grandpa_chain,
 				prepare_message_delivery_proof_from_parachain,

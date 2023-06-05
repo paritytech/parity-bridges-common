@@ -20,14 +20,15 @@
 
 use crate::{
 	inbound_lane::InboundLaneStorage, outbound_lane, weights_ext::EXPECTED_DEFAULT_MESSAGE_LENGTH,
-	Call, OutboundLanes, RuntimeInboundLaneStorage,
+	BridgedChainOf, Call, OutboundLanes, RuntimeInboundLaneStorage,
 };
 
 use bp_messages::{
-	source_chain::TargetHeaderChain, DeliveredMessages, InboundLaneData, LaneId, MessageNonce,
-	OutboundLaneData, UnrewardedRelayer, UnrewardedRelayersState,
+	source_chain::TargetHeaderChain, target_chain::FromBridgedChainMessagesProof,
+	DeliveredMessages, InboundLaneData, LaneId, MessageNonce, OutboundLaneData, UnrewardedRelayer,
+	UnrewardedRelayersState,
 };
-use bp_runtime::StorageProofSize;
+use bp_runtime::{HashOf, StorageProofSize};
 use codec::Decode;
 use frame_benchmarking::{account, v2::*};
 use frame_support::weights::Weight;
