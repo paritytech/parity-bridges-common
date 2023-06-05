@@ -488,7 +488,7 @@ mod tests {
 			pallet_bridge_messages::Call::<TestRuntime>::receive_messages_delivery_proof {
 				proof: FromBridgedChainMessagesDeliveryProof {
 					bridged_header_hash: Default::default(),
-					storage_proof: Vec::new(),
+					storage_proof: Default::default(),
 					lane: LaneId([0, 0, 0, 0]),
 				},
 				relayers_state: UnrewardedRelayersState {

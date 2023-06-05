@@ -18,7 +18,7 @@
 
 use crate::{InboundLaneData, LaneId, MessageNonce, UnrewardedRelayer, VerificationError};
 
-use bp_runtime::{RawStorageProof, Size};
+use bp_runtime::{Size, UntrustedVecDb};
 use codec::{Decode, Encode};
 use frame_support::{Parameter, RuntimeDebug};
 use scale_info::TypeInfo;
@@ -43,19 +43,14 @@ pub struct FromBridgedChainMessagesDeliveryProof<BridgedHeaderHash> {
 	/// Hash of the bridge header the proof is for.
 	pub bridged_header_hash: BridgedHeaderHash,
 	/// Storage trie proof generated for [`Self::bridged_header_hash`].
-	pub storage_proof: RawStorageProof,
+	pub storage_proof: UntrustedVecDb,
 	/// Lane id of which messages were delivered and the proof is for.
 	pub lane: LaneId,
 }
 
 impl<BridgedHeaderHash> Size for FromBridgedChainMessagesDeliveryProof<BridgedHeaderHash> {
 	fn size(&self) -> u32 {
-		u32::try_from(
-			self.storage_proof
-				.iter()
-				.fold(0usize, |sum, node| sum.saturating_add(node.len())),
-		)
-		.unwrap_or(u32::MAX)
+		self.storage_proof.size()
 	}
 }
 

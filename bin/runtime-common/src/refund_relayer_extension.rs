@@ -817,7 +817,7 @@ mod tests {
 		RuntimeCall::BridgeMessages(MessagesCall::receive_messages_delivery_proof {
 			proof: FromBridgedChainMessagesDeliveryProof {
 				bridged_header_hash: Default::default(),
-				storage_proof: vec![],
+				storage_proof: Default::default(),
 				lane: TestLaneId::get(),
 			},
 			relayers_state: UnrewardedRelayersState {

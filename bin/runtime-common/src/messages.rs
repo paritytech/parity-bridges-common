@@ -162,7 +162,7 @@ pub mod source {
 		let FromBridgedChainMessagesDeliveryProof { bridged_header_hash, storage_proof, lane } =
 			proof;
 		let mut storage =
-			B::BridgedHeaderChain::storage_proof_checker(bridged_header_hash, storage_proof)
+			B::BridgedHeaderChain::verify_vec_db_storage(bridged_header_hash, storage_proof)
 				.map_err(VerificationError::HeaderChain)?;
 		// Messages delivery proof is just proof of single storage key read => any error
 		// is fatal.
@@ -171,11 +171,11 @@ pub mod source {
 			&lane,
 		);
 		let inbound_lane_data = storage
-			.read_and_decode_mandatory_value(storage_inbound_lane_data_key.0.as_ref())
+			.get_and_decode_mandatory(&storage_inbound_lane_data_key)
 			.map_err(VerificationError::InboundLaneStorage)?;
 
 		// check that the storage proof doesn't have any untouched trie nodes
-		storage.ensure_no_unused_nodes().map_err(VerificationError::StorageProof)?;
+		storage.ensure_no_unused_keys().map_err(VerificationError::VecDb)?;
 
 		Ok((lane, inbound_lane_data))
 	}
