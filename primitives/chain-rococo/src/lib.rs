@@ -21,31 +21,33 @@
 pub use bp_polkadot_core::*;
 
 use bp_header_chain::ChainWithGrandpa;
-use bp_runtime::{decl_bridge_finality_runtime_apis, Chain};
+use bp_runtime::{decl_bridge_finality_runtime_apis, Chain, ChainId};
 use frame_support::{parameter_types, weights::Weight, StateVersion};
 
 /// Rococo Chain
 pub struct Rococo;
 
 impl Chain for Rococo {
-	type BlockNumber = <PolkadotLike as Chain>::BlockNumber;
-	type Hash = <PolkadotLike as Chain>::Hash;
-	type Hasher = <PolkadotLike as Chain>::Hasher;
-	type Header = <PolkadotLike as Chain>::Header;
+	const ID: ChainId = bp_runtime::ROCOCO_CHAIN_ID;
 
-	type AccountId = <PolkadotLike as Chain>::AccountId;
-	type Balance = <PolkadotLike as Chain>::Balance;
-	type Index = <PolkadotLike as Chain>::Index;
-	type Signature = <PolkadotLike as Chain>::Signature;
+	type BlockNumber = BlockNumber;
+	type Hash = Hash;
+	type Hasher = Hasher;
+	type Header = Header;
+
+	type AccountId = AccountId;
+	type Balance = Balance;
+	type Index = Index;
+	type Signature = Signature;
 
 	const STATE_VERSION: StateVersion = StateVersion::V1;
 
 	fn max_extrinsic_size() -> u32 {
-		PolkadotLike::max_extrinsic_size()
+		max_extrinsic_size()
 	}
 
 	fn max_extrinsic_weight() -> Weight {
-		PolkadotLike::max_extrinsic_weight()
+		max_extrinsic_weight()
 	}
 }
 

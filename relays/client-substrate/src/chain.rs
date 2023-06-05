@@ -18,8 +18,8 @@ use crate::calls::UtilityCall;
 
 use bp_messages::ChainWithMessages as ChainWithMessagesBase;
 use bp_runtime::{
-	Chain as ChainBase, ChainId, EncodedOrDecodedCall, HashOf, Parachain as ParachainBase,
-	TransactionEra, TransactionEraOf, UnderlyingChainProvider,
+	Chain as ChainBase, EncodedOrDecodedCall, HashOf, Parachain as ParachainBase, TransactionEra,
+	TransactionEraOf, UnderlyingChainProvider,
 };
 use codec::{Codec, Encode};
 use jsonrpsee::core::{DeserializeOwned, Serialize};
@@ -38,8 +38,6 @@ pub type SignedBlockOf<C> = <C as Chain>::SignedBlock;
 
 /// Substrate-based chain from minimal relay-client point of view.
 pub trait Chain: ChainBase + Clone {
-	/// Chain id.
-	const ID: ChainId;
 	/// Chain name.
 	const NAME: &'static str;
 	/// Name of the runtime API method that is returning best known finalized header number

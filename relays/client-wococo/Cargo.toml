@@ -11,7 +11,6 @@ relay-utils = { path = "../utils" }
 
 # Bridge dependencies
 
-bp-runtime = { path = "../../primitives/runtime" }
 bp-wococo = { path = "../../primitives/chain-wococo" }
 
 # Substrate Dependencies

@@ -18,7 +18,7 @@
 #![allow(clippy::from_over_into)]
 
 use bp_header_chain::ChainWithGrandpa;
-use bp_runtime::Chain;
+use bp_runtime::{Chain, ChainId};
 use frame_support::{
 	construct_runtime, parameter_types,
 	traits::{ConstU32, ConstU64, Hooks},
@@ -106,6 +106,8 @@ impl grandpa::Config for TestRuntime {
 pub struct TestBridgedChain;
 
 impl Chain for TestBridgedChain {
+	const ID: ChainId = *b"tbch";
+
 	type BlockNumber = <TestRuntime as frame_system::Config>::BlockNumber;
 	type Hash = <TestRuntime as frame_system::Config>::Hash;
 	type Hasher = <TestRuntime as frame_system::Config>::Hashing;

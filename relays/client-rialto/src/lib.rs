@@ -16,7 +16,6 @@
 
 //! Types used to connect to the Rialto-Substrate chain.
 
-use bp_runtime::ChainId;
 use codec::{Compact, Decode, Encode};
 use relay_substrate_client::{
 	BalanceOf, Chain, ChainWithBalances, ChainWithMessages, ChainWithTransactions,
@@ -39,7 +38,6 @@ impl UnderlyingChainProvider for Rialto {
 }
 
 impl Chain for Rialto {
-	const ID: ChainId = bp_runtime::RIALTO_CHAIN_ID;
 	const NAME: &'static str = "Rialto";
 	const BEST_FINALIZED_HEADER_ID_METHOD: &'static str =
 		bp_rialto::BEST_FINALIZED_RIALTO_HEADER_METHOD;

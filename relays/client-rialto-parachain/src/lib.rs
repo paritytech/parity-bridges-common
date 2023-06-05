@@ -19,7 +19,6 @@
 pub mod codegen_runtime;
 
 use bp_bridge_hub_cumulus::BridgeHubSignedExtension;
-use bp_runtime::ChainId;
 use codec::Encode;
 use relay_substrate_client::{
 	Chain, ChainWithBalances, ChainWithMessages, ChainWithTransactions, Error as SubstrateError,
@@ -48,7 +47,6 @@ impl UnderlyingChainProvider for RialtoParachain {
 }
 
 impl Chain for RialtoParachain {
-	const ID: ChainId = bp_runtime::RIALTO_PARACHAIN_CHAIN_ID;
 	const NAME: &'static str = "RialtoParachain";
 	const BEST_FINALIZED_HEADER_ID_METHOD: &'static str =
 		bp_rialto_parachain::BEST_FINALIZED_RIALTO_PARACHAIN_HEADER_METHOD;

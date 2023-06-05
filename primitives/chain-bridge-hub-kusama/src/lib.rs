@@ -22,7 +22,7 @@
 pub use bp_bridge_hub_cumulus::*;
 use bp_messages::*;
 use bp_runtime::{
-	decl_bridge_finality_runtime_apis, decl_bridge_messages_runtime_apis, Chain, Parachain,
+	decl_bridge_finality_runtime_apis, decl_bridge_messages_runtime_apis, Chain, ChainId, Parachain,
 };
 use frame_support::{
 	dispatch::DispatchClass,
@@ -36,6 +36,8 @@ use sp_std::prelude::*;
 pub struct BridgeHubKusama;
 
 impl Chain for BridgeHubKusama {
+	const ID: ChainId = bp_runtime::BRIDGE_HUB_KUSAMA_CHAIN_ID;
+
 	type BlockNumber = BlockNumber;
 	type Hash = Hash;
 	type Hasher = Hasher;

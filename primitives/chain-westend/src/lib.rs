@@ -22,31 +22,33 @@ pub use bp_polkadot_core::*;
 use frame_support::StateVersion;
 
 use bp_header_chain::ChainWithGrandpa;
-use bp_runtime::{decl_bridge_finality_runtime_apis, Chain, Parachain};
+use bp_runtime::{decl_bridge_finality_runtime_apis, Chain, ChainId, Parachain};
 use frame_support::weights::Weight;
 
 /// Westend Chain
 pub struct Westend;
 
 impl Chain for Westend {
-	type BlockNumber = <PolkadotLike as Chain>::BlockNumber;
-	type Hash = <PolkadotLike as Chain>::Hash;
-	type Hasher = <PolkadotLike as Chain>::Hasher;
-	type Header = <PolkadotLike as Chain>::Header;
+	const ID: ChainId = bp_runtime::WESTEND_CHAIN_ID;
 
-	type AccountId = <PolkadotLike as Chain>::AccountId;
-	type Balance = <PolkadotLike as Chain>::Balance;
-	type Index = <PolkadotLike as Chain>::Index;
-	type Signature = <PolkadotLike as Chain>::Signature;
+	type BlockNumber = BlockNumber;
+	type Hash = Hash;
+	type Hasher = Hasher;
+	type Header = Header;
+
+	type AccountId = AccountId;
+	type Balance = Balance;
+	type Index = Index;
+	type Signature = Signature;
 
 	const STATE_VERSION: StateVersion = StateVersion::V1;
 
 	fn max_extrinsic_size() -> u32 {
-		PolkadotLike::max_extrinsic_size()
+		max_extrinsic_size()
 	}
 
 	fn max_extrinsic_weight() -> Weight {
-		PolkadotLike::max_extrinsic_weight()
+		max_extrinsic_weight()
 	}
 }
 
@@ -66,6 +68,8 @@ pub struct Westmint;
 // Westmint seems to use the same configuration as all Polkadot-like chains, so we'll use Westend
 // primitives here.
 impl Chain for Westmint {
+	const ID: ChainId = bp_runtime::WESTMINT_CHAIN_ID;
+
 	type BlockNumber = BlockNumber;
 	type Hash = Hash;
 	type Hasher = Hasher;
