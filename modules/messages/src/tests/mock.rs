@@ -37,7 +37,7 @@ use bp_messages::{
 	VerificationError,
 };
 use bp_runtime::{
-	messages::MessageDispatchResult, Chain, ChainId, RangeInclusiveExt, Size, StorageProofSize,
+	messages::MessageDispatchResult, Chain, ChainId, Size, StorageProofSize,
 };
 use codec::{Decode, Encode};
 use frame_support::{
@@ -270,6 +270,8 @@ impl crate::benchmarking::Config<()> for TestRuntime {
 	fn prepare_message_proof(
 		params: crate::benchmarking::MessageProofParams,
 	) -> (FromBridgedChainMessagesProof<BridgedHeaderHash>, Weight) {
+		use bp_runtime::RangeInclusiveExt;
+
 		let dispatch_weight =
 			REGULAR_PAYLOAD.declared_weight * params.message_nonces.checked_len().unwrap_or(0);
 		(
