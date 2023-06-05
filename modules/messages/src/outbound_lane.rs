@@ -212,11 +212,11 @@ fn ensure_unrewarded_relayers_are_correct<RelayerId>(
 mod tests {
 	use super::*;
 	use crate::{
-		mock::{
+		outbound_lane,
+		tests::mock::{
 			outbound_message_data, run_test, unrewarded_relayer, TestRelayer, TestRuntime,
 			REGULAR_PAYLOAD, TEST_LANE_ID,
 		},
-		outbound_lane,
 	};
 	use frame_support::{assert_ok, weights::constants::RocksDbWeight};
 	use sp_std::ops::RangeInclusive;

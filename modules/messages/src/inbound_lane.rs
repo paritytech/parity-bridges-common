@@ -215,7 +215,7 @@ mod tests {
 	use super::*;
 	use crate::{
 		inbound_lane,
-		mock::{
+		tests::mock::{
 			dispatch_result, inbound_message_data, inbound_unrewarded_relayers_state, run_test,
 			unrewarded_relayer, TestMessageDispatch, TestRuntime, REGULAR_PAYLOAD, TEST_LANE_ID,
 			TEST_RELAYER_A, TEST_RELAYER_B, TEST_RELAYER_C,

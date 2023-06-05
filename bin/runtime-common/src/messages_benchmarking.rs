@@ -19,24 +19,23 @@
 
 #![cfg(feature = "runtime-benchmarks")]
 
-use crate::{
-	messages::{AccountIdOf, BridgedChain, HashOf, HasherOf, MessageBridge, ThisChain},
-	messages_generation::{
-		encode_all_messages, encode_lane_data, grow_trie_leaf_value, prepare_messages_storage_proof,
-	},
-};
+use crate::messages::{AccountIdOf, BridgedChain, HashOf, HasherOf, MessageBridge, ThisChain};
 
 use bp_messages::{
 	source_chain::FromBridgedChainMessagesDeliveryProof, storage_keys,
-	target_chain::FromBridgedChainMessagesProof,
+	target_chain::FromBridgedChainMessagesProof, ChainWithMessages,
 };
 use bp_polkadot_core::parachains::ParaHash;
 use bp_runtime::{
-	record_all_trie_keys, Chain, Parachain, RawStorageProof, StorageProofSize, UnderlyingChainOf,
+	grow_trie_leaf_value, record_all_trie_keys, Chain, Parachain, RawStorageProof,
+	StorageProofSize, UnderlyingChainOf,
 };
 use codec::Encode;
 use frame_support::weights::Weight;
-use pallet_bridge_messages::benchmarking::{MessageDeliveryProofParams, MessageProofParams};
+use pallet_bridge_messages::{
+	benchmarking::{MessageDeliveryProofParams, MessageProofParams},
+	messages_generation::{encode_all_messages, encode_lane_data, prepare_messages_storage_proof},
+};
 use sp_runtime::traits::{Header, Zero};
 use sp_std::prelude::*;
 use sp_trie::{trie_types::TrieDBMutBuilderV1, LayoutV1, MemoryDB, TrieMut};
@@ -90,9 +89,12 @@ where
 	R: pallet_bridge_grandpa::Config<FI, BridgedChain = UnderlyingChainOf<BridgedChain<B>>>,
 	FI: 'static,
 	B: MessageBridge,
+	BridgedChain<B>: 'static + Send + Sync,
+	ThisChain<B>: 'static + Send + Sync,
+	UnderlyingChainOf<ThisChain<B>>: ChainWithMessages,
 {
 	// prepare storage proof
-	let (state_root, storage) = prepare_messages_storage_proof::<B>(
+	let (state_root, storage) = prepare_messages_storage_proof::<BridgedChain<B>, ThisChain<B>>(
 		params.lane,
 		params.message_nonces.clone(),
 		params.outbound_lane_data.clone(),
@@ -135,10 +137,13 @@ where
 	R: pallet_bridge_parachains::Config<PI>,
 	PI: 'static,
 	B: MessageBridge,
+	BridgedChain<B>: 'static + Send + Sync,
+	ThisChain<B>: 'static + Send + Sync,
 	UnderlyingChainOf<BridgedChain<B>>: Chain<Hash = ParaHash> + Parachain,
+	UnderlyingChainOf<ThisChain<B>>: ChainWithMessages,
 {
 	// prepare storage proof
-	let (state_root, storage) = prepare_messages_storage_proof::<B>(
+	let (state_root, storage) = prepare_messages_storage_proof::<BridgedChain<B>, ThisChain<B>>(
 		params.lane,
 		params.message_nonces.clone(),
 		params.outbound_lane_data.clone(),
