@@ -2,6 +2,8 @@
 resolver = "2"
 
 members = [
+	"bin/aleph-parachain/node",
+	"bin/aleph-parachain/runtime",
 	"bin/millau/node",
 	"bin/millau/runtime",
 	"bin/rialto/node",
