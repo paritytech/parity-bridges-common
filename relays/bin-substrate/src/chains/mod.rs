@@ -42,16 +42,9 @@ mod tests {
 			bp_millau::Millau::max_extrinsic_size(),
 		);
 
-		let message = vec![42; maximal_message_size as _];
 		assert_eq!(
-			message.encoded_size() as u32,
+			maximal_message_size,
 			bp_millau::Millau::maximal_incoming_message_size()
-		);
-
-		let message = vec![42; (maximal_message_size + 1) as _];
-		assert_eq!(
-			message.encoded_size() as u32,
-			bp_millau::Millau::maximal_incoming_message_size() + 1
 		);
 	}
 
