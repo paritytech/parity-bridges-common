@@ -298,9 +298,7 @@ where
 	P: SubstrateMessageLane,
 	R: BridgeMessagesConfig<I, InboundRelayer = AccountIdOf<P::SourceChain>>,
 	I: 'static,
-	R::SourceHeaderChain: bp_messages::target_chain::SourceHeaderChain<
-		MessagesProof = FromBridgedChainMessagesProof<HashOf<P::SourceChain>>,
-	>,
+	R::BridgedChain: bp_runtime::Chain<Hash = HashOf<P::SourceChain>>,
 	CallOf<P::TargetChain>: From<BridgeMessagesCall<R, I>> + GetDispatchInfo,
 {
 	fn build_receive_messages_proof_call(

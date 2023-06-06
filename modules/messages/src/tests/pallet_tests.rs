@@ -28,9 +28,10 @@ use crate::{
 };
 
 use bp_messages::{
-	BridgeMessagesCall, DeliveredMessages, InboundLaneData, InboundMessageDetails, MessageKey,
-	MessageNonce, MessagesOperatingMode, OutboundLaneData, OutboundMessageDetails,
-	UnrewardedRelayer, UnrewardedRelayersState, VerificationError,
+	target_chain::FromBridgedChainMessagesProof, BridgeMessagesCall, DeliveredMessages,
+	InboundLaneData, InboundMessageDetails, MessageKey, MessageNonce, MessagesOperatingMode,
+	OutboundLaneData, OutboundMessageDetails, UnrewardedRelayer, UnrewardedRelayersState,
+	VerificationError,
 };
 use bp_runtime::{BasicOperatingMode, PreComputedSize, Size};
 use bp_test_utils::generate_owned_bridge_module_tests;
@@ -127,11 +128,12 @@ fn pallet_rejects_transactions_if_halted() {
 			Error::<TestRuntime, ()>::NotOperatingNormally,
 		);
 
+		let messages_proof = prepare_messages_proof(vec![message(2, REGULAR_PAYLOAD)], None);
 		assert_noop!(
 			Pallet::<TestRuntime>::receive_messages_proof(
 				RuntimeOrigin::signed(1),
 				TEST_RELAYER_A,
-				Ok(vec![message(2, REGULAR_PAYLOAD)]).into(),
+				messages_proof,
 				1,
 				REGULAR_PAYLOAD.declared_weight,
 			),
@@ -180,7 +182,7 @@ fn pallet_rejects_new_messages_in_rejecting_outbound_messages_operating_mode() {
 		assert_ok!(Pallet::<TestRuntime>::receive_messages_proof(
 			RuntimeOrigin::signed(1),
 			TEST_RELAYER_A,
-			Ok(vec![message(1, REGULAR_PAYLOAD)]).into(),
+			prepare_messages_proof(vec![message(1, REGULAR_PAYLOAD)], None),
 			1,
 			REGULAR_PAYLOAD.declared_weight,
 		),);
@@ -253,7 +255,7 @@ fn receive_messages_proof_works() {
 		assert_ok!(Pallet::<TestRuntime>::receive_messages_proof(
 			RuntimeOrigin::signed(1),
 			TEST_RELAYER_A,
-			Ok(vec![message(1, REGULAR_PAYLOAD)]).into(),
+			prepare_messages_proof(vec![message(1, REGULAR_PAYLOAD)], None),
 			1,
 			REGULAR_PAYLOAD.declared_weight,
 		));
@@ -291,14 +293,13 @@ fn receive_messages_proof_updates_confirmed_message_nonce() {
 		);
 
 		// message proof includes outbound lane state with latest confirmed message updated to 9
-		let mut message_proof: TestMessagesProof = Ok(vec![message(11, REGULAR_PAYLOAD)]).into();
-		message_proof.result.as_mut().unwrap()[0].1.lane_state =
-			Some(OutboundLaneData { latest_received_nonce: 9, ..Default::default() });
-
 		assert_ok!(Pallet::<TestRuntime>::receive_messages_proof(
 			RuntimeOrigin::signed(1),
 			TEST_RELAYER_A,
-			message_proof,
+			prepare_messages_proof(
+				vec![message(11, REGULAR_PAYLOAD)],
+				Some(OutboundLaneData { latest_received_nonce: 9, ..Default::default() }),
+			),
 			1,
 			REGULAR_PAYLOAD.declared_weight,
 		));
@@ -330,13 +331,15 @@ fn receive_messages_proof_updates_confirmed_message_nonce() {
 #[test]
 fn receive_messages_proof_does_not_accept_message_if_dispatch_weight_is_not_enough() {
 	run_test(|| {
+		let proof = prepare_messages_proof(vec![message(1, REGULAR_PAYLOAD)], None);
 		let mut declared_weight = REGULAR_PAYLOAD.declared_weight;
 		*declared_weight.ref_time_mut() -= 1;
+
 		assert_noop!(
 			Pallet::<TestRuntime>::receive_messages_proof(
 				RuntimeOrigin::signed(1),
 				TEST_RELAYER_A,
-				Ok(vec![message(1, REGULAR_PAYLOAD)]).into(),
+				proof,
 				1,
 				declared_weight,
 			),
@@ -349,11 +352,14 @@ fn receive_messages_proof_does_not_accept_message_if_dispatch_weight_is_not_enou
 #[test]
 fn receive_messages_proof_rejects_invalid_proof() {
 	run_test(|| {
+		let mut proof = prepare_messages_proof(vec![message(1, REGULAR_PAYLOAD)], None);
+		proof.nonces_end += 1;
+
 		assert_noop!(
 			Pallet::<TestRuntime, ()>::receive_messages_proof(
 				RuntimeOrigin::signed(1),
 				TEST_RELAYER_A,
-				Err(()).into(),
+				proof,
 				1,
 				Weight::zero(),
 			),
@@ -365,11 +371,12 @@ fn receive_messages_proof_rejects_invalid_proof() {
 #[test]
 fn receive_messages_proof_rejects_proof_with_too_many_messages() {
 	run_test(|| {
+		let proof = prepare_messages_proof(vec![message(1, REGULAR_PAYLOAD)], None);
 		assert_noop!(
 			Pallet::<TestRuntime, ()>::receive_messages_proof(
 				RuntimeOrigin::signed(1),
 				TEST_RELAYER_A,
-				Ok(vec![message(1, REGULAR_PAYLOAD)]).into(),
+				proof,
 				u32::MAX,
 				Weight::zero(),
 			),
@@ -578,7 +585,7 @@ fn receive_messages_accepts_single_message_with_invalid_payload() {
 		assert_ok!(Pallet::<TestRuntime, ()>::receive_messages_proof(
 			RuntimeOrigin::signed(1),
 			TEST_RELAYER_A,
-			Ok(vec![invalid_message]).into(),
+			prepare_messages_proof(vec![invalid_message], None),
 			1,
 			Weight::zero(), /* weight may be zero in this case (all messages are
 			                 * improperly encoded) */
@@ -597,8 +604,10 @@ fn receive_messages_accepts_batch_with_message_with_invalid_payload() {
 		assert_ok!(Pallet::<TestRuntime, ()>::receive_messages_proof(
 			RuntimeOrigin::signed(1),
 			TEST_RELAYER_A,
-			Ok(vec![message(1, REGULAR_PAYLOAD), invalid_message, message(3, REGULAR_PAYLOAD),])
-				.into(),
+			prepare_messages_proof(
+				vec![message(1, REGULAR_PAYLOAD), invalid_message, message(3, REGULAR_PAYLOAD),],
+				None
+			),
 			3,
 			REGULAR_PAYLOAD.declared_weight + REGULAR_PAYLOAD.declared_weight,
 		),);
@@ -614,12 +623,13 @@ fn actual_dispatch_weight_does_not_overlow() {
 		let message2 = message(2, message_payload(0, u64::MAX / 2));
 		let message3 = message(3, message_payload(0, u64::MAX / 2));
 
+		let proof = prepare_messages_proof(vec![message1, message2, message3], None);
 		assert_noop!(
 			Pallet::<TestRuntime, ()>::receive_messages_proof(
 				RuntimeOrigin::signed(1),
 				TEST_RELAYER_A,
 				// this may cause overflow if source chain storage is invalid
-				Ok(vec![message1, message2, message3]).into(),
+				proof,
 				3,
 				Weight::MAX,
 			),
@@ -638,7 +648,7 @@ fn ref_time_refund_from_receive_messages_proof_works() {
 		) -> (Weight, Weight) {
 			let mut payload = REGULAR_PAYLOAD;
 			*payload.dispatch_result.unspent_weight.ref_time_mut() = unspent_weight;
-			let proof = Ok(vec![message(nonce, payload)]).into();
+			let proof = prepare_messages_proof(vec![message(nonce, payload)], None);
 			let messages_count = 1;
 			let pre_dispatch_weight =
 				<TestRuntime as Config>::WeightInfo::receive_messages_proof_weight(
@@ -693,7 +703,7 @@ fn proof_size_refund_from_receive_messages_proof_works() {
 
 		// if there's maximal number of unrewarded relayer entries at the inbound lane, then
 		// `proof_size` is unchanged in post-dispatch weight
-		let proof: TestMessagesProof = Ok(vec![message(101, REGULAR_PAYLOAD)]).into();
+		let proof = prepare_messages_proof(vec![message(101, REGULAR_PAYLOAD)], None);
 		let messages_count = 1;
 		let pre_dispatch_weight =
 			<TestRuntime as Config>::WeightInfo::receive_messages_proof_weight(
@@ -1027,62 +1037,67 @@ fn outbound_message_from_unconfigured_lane_is_rejected() {
 
 #[test]
 fn test_bridge_messages_call_is_correctly_defined() {
-	let account_id = 1;
-	let message_proof: TestMessagesProof = Ok(vec![message(1, REGULAR_PAYLOAD)]).into();
-	let message_delivery_proof = TestMessagesDeliveryProof(Ok((
-		TEST_LANE_ID,
-		InboundLaneData {
-			last_confirmed_nonce: 1,
-			relayers: vec![UnrewardedRelayer { relayer: 0, messages: DeliveredMessages::new(1) }]
+	run_test(|| {
+		let account_id = 1;
+		let message_proof = prepare_messages_proof(vec![message(1, REGULAR_PAYLOAD)], None);
+		let message_delivery_proof = TestMessagesDeliveryProof(Ok((
+			TEST_LANE_ID,
+			InboundLaneData {
+				last_confirmed_nonce: 1,
+				relayers: vec![UnrewardedRelayer {
+					relayer: 0,
+					messages: DeliveredMessages::new(1),
+				}]
 				.into_iter()
 				.collect(),
-		},
-	)));
-	let unrewarded_relayer_state = UnrewardedRelayersState {
-		unrewarded_relayer_entries: 1,
-		total_messages: 1,
-		last_delivered_nonce: 1,
-		..Default::default()
-	};
-
-	let direct_receive_messages_proof_call = Call::<TestRuntime>::receive_messages_proof {
-		relayer_id_at_bridged_chain: account_id,
-		proof: message_proof.clone(),
-		messages_count: 1,
-		dispatch_weight: REGULAR_PAYLOAD.declared_weight,
-	};
-	let indirect_receive_messages_proof_call = BridgeMessagesCall::<
-		AccountId,
-		TestMessagesProof,
-		TestMessagesDeliveryProof,
-	>::receive_messages_proof {
-		relayer_id_at_bridged_chain: account_id,
-		proof: message_proof,
-		messages_count: 1,
-		dispatch_weight: REGULAR_PAYLOAD.declared_weight,
-	};
-	assert_eq!(
-		direct_receive_messages_proof_call.encode(),
-		indirect_receive_messages_proof_call.encode()
-	);
-
-	let direct_receive_messages_delivery_proof_call =
-		Call::<TestRuntime>::receive_messages_delivery_proof {
-			proof: message_delivery_proof.clone(),
-			relayers_state: unrewarded_relayer_state.clone(),
+			},
+		)));
+		let unrewarded_relayer_state = UnrewardedRelayersState {
+			unrewarded_relayer_entries: 1,
+			total_messages: 1,
+			last_delivered_nonce: 1,
+			..Default::default()
 		};
-	let indirect_receive_messages_delivery_proof_call = BridgeMessagesCall::<
-		AccountId,
-		TestMessagesProof,
-		TestMessagesDeliveryProof,
-	>::receive_messages_delivery_proof {
-		proof: message_delivery_proof,
-		relayers_state: unrewarded_relayer_state,
-	};
-	assert_eq!(
-		direct_receive_messages_delivery_proof_call.encode(),
-		indirect_receive_messages_delivery_proof_call.encode()
-	);
+
+		let direct_receive_messages_proof_call = Call::<TestRuntime>::receive_messages_proof {
+			relayer_id_at_bridged_chain: account_id,
+			proof: message_proof.clone(),
+			messages_count: 1,
+			dispatch_weight: REGULAR_PAYLOAD.declared_weight,
+		};
+		let indirect_receive_messages_proof_call = BridgeMessagesCall::<
+			AccountId,
+			FromBridgedChainMessagesProof<BridgedHeaderHash>,
+			TestMessagesDeliveryProof,
+		>::receive_messages_proof {
+			relayer_id_at_bridged_chain: account_id,
+			proof: message_proof,
+			messages_count: 1,
+			dispatch_weight: REGULAR_PAYLOAD.declared_weight,
+		};
+		assert_eq!(
+			direct_receive_messages_proof_call.encode(),
+			indirect_receive_messages_proof_call.encode()
+		);
+
+		let direct_receive_messages_delivery_proof_call =
+			Call::<TestRuntime>::receive_messages_delivery_proof {
+				proof: message_delivery_proof.clone(),
+				relayers_state: unrewarded_relayer_state.clone(),
+			};
+		let indirect_receive_messages_delivery_proof_call = BridgeMessagesCall::<
+			AccountId,
+			FromBridgedChainMessagesProof<BridgedHeaderHash>,
+			TestMessagesDeliveryProof,
+		>::receive_messages_delivery_proof {
+			proof: message_delivery_proof,
+			relayers_state: unrewarded_relayer_state,
+		};
+		assert_eq!(
+			direct_receive_messages_delivery_proof_call.encode(),
+			indirect_receive_messages_delivery_proof_call.encode()
+		);
+	});
 }
 
 generate_owned_bridge_module_tests!(
