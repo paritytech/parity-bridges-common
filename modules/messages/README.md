@@ -127,7 +127,7 @@ mechanism for that.
 The `pallet_bridge_messages::Config` trait has 2 main associated types that are used to work with
 inbound messages. The `pallet_bridge_messages::BridgedChain` defines basic primitives of the bridged
 chain. The `pallet_bridge_messages::BridgedHeaderChain` defines the way we access the bridged chain
-headers in our runtime. You may use `pallet_bridge_grandpa` if you're bridging with chain thatuses
+headers in our runtime. You may use `pallet_bridge_grandpa` if you're bridging with chain that uses
 GRANDPA finality or `pallet_bridge_parachains::ParachainHeaders` if you're bridging with parachain.
 
 The `pallet_bridge_messages::Config::MessageDispatch` defines a way on how to dispatch delivered
