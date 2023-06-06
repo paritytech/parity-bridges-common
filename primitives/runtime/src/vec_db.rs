@@ -21,16 +21,20 @@ use sp_core::{storage::TrackedStorageKey, RuntimeDebug};
 use sp_runtime::SaturatedConversion;
 use sp_std::{default::Default, vec, vec::Vec};
 use sp_trie::{
-	generate_trie_proof, verify_trie_proof, LayoutV0, LayoutV1, StorageProof, TrieDBBuilder,
-	TrieHash,
+	generate_trie_proof, verify_trie_proof, LayoutV0, LayoutV1, MemoryDB, StorageProof,
+	TrieDBBuilder, TrieHash,
 };
 
-use codec::{Decode, Encode};
+use codec::{Codec, Decode, Encode};
 use hash_db::Hasher;
 use scale_info::TypeInfo;
+use sp_state_machine::TrieBackend;
 use trie_db::{DBValue, Trie};
 
-use crate::{storage_proof::RawStorageProof, Size};
+use crate::{
+	storage_proof::{record_all_keys, RawStorageProof},
+	Size,
+};
 
 pub type RawStorageKey = Vec<u8>;
 
@@ -87,6 +91,29 @@ impl UntrustedVecDb {
 		}
 
 		Ok(Self { proof: trie_proof, db: entries })
+	}
+
+	/// Creates a new instance of `UntrustedVecDb` from the provided entries.
+	///
+	/// This function is used by the test logic.
+	#[cfg(feature = "std")]
+	pub fn try_from_entries<H: Hasher>(
+		state_version: StateVersion,
+		entries: &[(RawStorageKey, Option<DBValue>)],
+	) -> Option<(H::Out, UntrustedVecDb)>
+	where
+		H::Out: Codec,
+	{
+		let keys: Vec<_> = entries.iter().map(|(key, _)| key.clone()).collect();
+		let entries: Vec<_> =
+			entries.iter().cloned().map(|(key, val)| (None, vec![(key, val)])).collect();
+		let backend = TrieBackend::<MemoryDB<H>, H>::from((entries, state_version));
+		let root = *backend.root();
+		let read_proof = StorageProof::new(
+			record_all_keys::<LayoutV1<H>, _>(backend.backend_storage(), &root).ok()?,
+		);
+
+		Some((root, UntrustedVecDb::try_new::<H>(read_proof, root, keys).ok()?))
 	}
 
 	/// Validates the contained `db` against the contained proof. If the `db` is valid, converts it
@@ -193,43 +220,30 @@ impl TrustedVecDb {
 #[cfg(test)]
 mod tests {
 	use super::*;
-	use sp_core::H256;
-
-	use sp_state_machine::{prove_read, InMemoryBackend};
 
 	type Hasher = sp_core::Blake2Hasher;
 
-	fn generate_untrusted_vec_db(
-		entries: Vec<(RawStorageKey, Option<DBValue>)>,
-	) -> (H256, Result<UntrustedVecDb, VecDbError>) {
-		let keys: Vec<_> = entries.iter().map(|(key, _)| key.clone()).collect();
-		let entries: Vec<_> =
-			entries.iter().cloned().map(|(key, val)| (None, vec![(key, val)])).collect();
-		let backend = InMemoryBackend::<Hasher>::from((entries, StateVersion::V1));
-		let root = *backend.root();
-		let read_proof = prove_read(backend, &keys).unwrap();
-
-		(root, UntrustedVecDb::try_new::<Hasher>(read_proof, root, keys))
-	}
-
 	#[test]
 	fn verify_succeeds_when_used_correctly() {
-		let (root, maybe_db) = generate_untrusted_vec_db(vec![
-			(b"key1".to_vec(), None),
-			(b"key2".to_vec(), Some(b"val2".to_vec())),
-		]);
-		let db = maybe_db.unwrap();
+		let (root, db) = UntrustedVecDb::try_from_entries::<Hasher>(
+			StateVersion::default(),
+			&[(b"key1".to_vec(), None), (b"key2".to_vec(), Some(b"val2".to_vec()))],
+		)
+		.expect("UntrustedVecDb::try_from_entries() shouldn't fail in tests");
 
 		assert!(db.verify::<Hasher>(StateVersion::V1, &root).is_ok());
 	}
 
 	#[test]
 	fn verify_fails_when_proof_contains_unneeded_nodes() {
-		let (root, maybe_db) = generate_untrusted_vec_db(vec![
-			(b"key1".to_vec(), Some(b"val1".to_vec().encode())),
-			(b"key2".to_vec(), Some(b"val2".to_vec().encode())),
-		]);
-		let mut db = maybe_db.unwrap();
+		let (root, mut db) = UntrustedVecDb::try_from_entries::<Hasher>(
+			StateVersion::default(),
+			&[
+				(b"key1".to_vec(), Some(b"val1".to_vec().encode())),
+				(b"key2".to_vec(), Some(b"val2".to_vec().encode())),
+			],
+		)
+		.expect("UntrustedVecDb::try_from_entries() shouldn't fail in tests");
 		assert!(db.db.pop().is_some());
 
 		assert!(matches!(
@@ -240,8 +254,11 @@ mod tests {
 
 	#[test]
 	fn verify_fails_when_db_contains_duplicate_nodes() {
-		let (root, maybe_db) = generate_untrusted_vec_db(vec![(b"key".to_vec(), None)]);
-		let mut db = maybe_db.unwrap();
+		let (root, mut db) = UntrustedVecDb::try_from_entries::<Hasher>(
+			StateVersion::default(),
+			&[(b"key".to_vec(), None)],
+		)
+		.expect("UntrustedVecDb::try_from_entries() shouldn't fail in tests");
 		db.db.push((b"key".to_vec(), None));
 
 		assert!(matches!(
@@ -252,11 +269,14 @@ mod tests {
 
 	#[test]
 	fn verify_fails_when_entries_are_not_sorted() {
-		let (root, maybe_db) = generate_untrusted_vec_db(vec![
-			(b"key1".to_vec(), Some(b"val1".to_vec().encode())),
-			(b"key2".to_vec(), Some(b"val2".to_vec().encode())),
-		]);
-		let mut db = maybe_db.unwrap();
+		let (root, mut db) = UntrustedVecDb::try_from_entries::<Hasher>(
+			StateVersion::default(),
+			&[
+				(b"key1".to_vec(), Some(b"val1".to_vec().encode())),
+				(b"key2".to_vec(), Some(b"val2".to_vec().encode())),
+			],
+		)
+		.expect("UntrustedVecDb::try_from_entries() shouldn't fail in tests");
 		db.db.reverse();
 
 		assert!(matches!(
@@ -267,13 +287,16 @@ mod tests {
 
 	#[test]
 	fn get_and_decode_mandatory_works() {
-		let (root, maybe_db) = generate_untrusted_vec_db(vec![
-			(b"key11".to_vec(), Some(b"val11".to_vec().encode())),
-			(b"key2".to_vec(), Some(b"val2".to_vec().encode())),
-			(b"key1".to_vec(), None),
-			(b"key15".to_vec(), Some(b"val15".to_vec())),
-		]);
-		let db = maybe_db.unwrap();
+		let (root, db) = UntrustedVecDb::try_from_entries::<Hasher>(
+			StateVersion::default(),
+			&[
+				(b"key11".to_vec(), Some(b"val11".to_vec().encode())),
+				(b"key2".to_vec(), Some(b"val2".to_vec().encode())),
+				(b"key1".to_vec(), None),
+				(b"key15".to_vec(), Some(b"val15".to_vec())),
+			],
+		)
+		.expect("UntrustedVecDb::try_from_entries() shouldn't fail in tests");
 		let mut trusted_db = db.verify::<Hasher>(StateVersion::V1, &root).unwrap();
 
 		assert!(
@@ -294,13 +317,16 @@ mod tests {
 
 	#[test]
 	fn get_and_decode_optional_works() {
-		let (root, maybe_db) = generate_untrusted_vec_db(vec![
-			(b"key11".to_vec(), Some(b"val11".to_vec().encode())),
-			(b"key2".to_vec(), Some(b"val2".to_vec().encode())),
-			(b"key1".to_vec(), None),
-			(b"key15".to_vec(), Some(b"val15".to_vec())),
-		]);
-		let db = maybe_db.unwrap();
+		let (root, db) = UntrustedVecDb::try_from_entries::<Hasher>(
+			StateVersion::default(),
+			&[
+				(b"key11".to_vec(), Some(b"val11".to_vec().encode())),
+				(b"key2".to_vec(), Some(b"val2".to_vec().encode())),
+				(b"key1".to_vec(), None),
+				(b"key15".to_vec(), Some(b"val15".to_vec())),
+			],
+		)
+		.expect("UntrustedVecDb::try_from_entries() shouldn't fail in tests");
 		let mut trusted_db = db.verify::<Hasher>(StateVersion::V1, &root).unwrap();
 
 		assert!(
@@ -319,11 +345,11 @@ mod tests {
 
 	#[test]
 	fn ensure_no_unused_keys_works_correctly() {
-		let (root, maybe_db) = generate_untrusted_vec_db(vec![
-			(b"key1".to_vec(), None),
-			(b"key2".to_vec(), Some(b"val2".to_vec())),
-		]);
-		let db = maybe_db.unwrap();
+		let (root, db) = UntrustedVecDb::try_from_entries::<Hasher>(
+			StateVersion::default(),
+			&[(b"key1".to_vec(), None), (b"key2".to_vec(), Some(b"val2".to_vec()))],
+		)
+		.expect("UntrustedVecDb::try_from_entries() shouldn't fail in tests");
 		let mut trusted_db = db.verify::<Hasher>(StateVersion::V1, &root).unwrap();
 		assert!(trusted_db.get(b"key1").is_ok());
 
