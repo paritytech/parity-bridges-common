@@ -28,7 +28,7 @@ mod wococo;
 #[cfg(test)]
 mod tests {
 	use crate::cli::encode_message;
-	use bp_messages::source_chain::TargetHeaderChain;
+	use bp_messages::ChainWithMessages as _;
 	use bp_runtime::Chain as _;
 	use codec::Encode;
 	use relay_millau_client::Millau;
@@ -37,29 +37,22 @@ mod tests {
 
 	#[test]
 	fn maximal_rialto_to_millau_message_size_is_computed_correctly() {
-		use rialto_runtime::millau_messages::MillauAsTargetHeaderChain;
-
 		let maximal_message_size = encode_message::compute_maximal_message_size(
 			bp_rialto::Rialto::max_extrinsic_size(),
 			bp_millau::Millau::max_extrinsic_size(),
 		);
 
-		let message = vec![42; maximal_message_size as _];
-		assert_eq!(MillauAsTargetHeaderChain::verify_message(&message), Ok(()));
-
-		let message = vec![42; (maximal_message_size + 1) as _];
-		assert!(MillauAsTargetHeaderChain::verify_message(&message).is_err());
+		assert_eq!(maximal_message_size, bp_millau::Millau::maximal_incoming_message_size());
 	}
 
 	#[test]
 	fn maximal_size_remark_to_rialto_is_generated_correctly() {
 		assert!(
-			bridge_runtime_common::messages::target::maximal_incoming_message_size(
-				bp_rialto::Rialto::max_extrinsic_size()
-			) > bp_millau::Millau::max_extrinsic_size(),
+			bp_rialto::Rialto::maximal_incoming_message_size() > bp_millau::Millau::max_extrinsic_size(),
 			"We can't actually send maximal messages to Rialto from Millau, because Millau extrinsics can't be that large",
 		)
 	}
+
 	#[test]
 	fn rialto_tx_extra_bytes_constant_is_correct() {
 		let rialto_call = rialto_runtime::RuntimeCall::System(rialto_runtime::SystemCall::remark {

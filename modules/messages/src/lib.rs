@@ -53,7 +53,9 @@ use crate::{
 
 use bp_header_chain::HeaderChain;
 use bp_messages::{
-	source_chain::{DeliveryConfirmationPayments, SendMessageArtifacts, TargetHeaderChain},
+	source_chain::{
+		DeliveryConfirmationPayments, FromBridgedChainMessagesDeliveryProof, SendMessageArtifacts,
+	},
 	target_chain::{
 		DeliveryPayments, DispatchMessage, FromBridgedChainMessagesProof, MessageDispatch,
 		ProvedLaneMessages, ProvedMessages,
@@ -69,8 +71,8 @@ use sp_runtime::traits::UniqueSaturatedFrom;
 use sp_std::{marker::PhantomData, prelude::*};
 
 mod inbound_lane;
-mod messages_proof;
 mod outbound_lane;
+mod proofs;
 mod tests;
 mod weights_ext;
 
@@ -113,6 +115,7 @@ pub mod pallet {
 
 		/// Get all active outbound lanes that the message pallet is serving.
 		type ActiveOutboundLanes: Get<&'static [LaneId]>;
+		// TODO: https://github.com/paritytech/parity-bridges-common/issues/1666 - use const from `ChainWithMessages` instead
 		/// Maximal number of unrewarded relayer entries at inbound lane. Unrewarded means that the
 		/// relayer has delivered messages, but either confirmations haven't been delivered back to
 		/// the source chain, or we haven't received reward confirmations yet.
@@ -121,6 +124,7 @@ pub mod pallet {
 		/// in mind that the same relayer account may take several (non-consecutive) entries in this
 		/// set.
 		type MaxUnrewardedRelayerEntriesAtInboundLane: Get<MessageNonce>;
+		// TODO: https://github.com/paritytech/parity-bridges-common/issues/1666 - use const from `ChainWithMessages` instead
 		/// Maximal number of unconfirmed messages at inbound lane. Unconfirmed means that the
 		/// message has been delivered, but either confirmations haven't been delivered back to the
 		/// source chain, or we haven't received reward confirmations for these messages yet.
@@ -137,6 +141,7 @@ pub mod pallet {
 		/// these messages are from different lanes.
 		type MaxUnconfirmedMessagesAtInboundLane: Get<MessageNonce>;
 
+		// TODO: https://github.com/paritytech/parity-bridges-common/issues/1666 - use method from `ChainWithMessages` instead
 		/// Maximal encoded size of the outbound payload.
 		#[pallet::constant]
 		type MaximalOutboundPayloadSize: Get<u32>;
@@ -153,8 +158,6 @@ pub mod pallet {
 
 		// Types that are used by outbound_lane (on source chain).
 
-		/// Target header chain.
-		type TargetHeaderChain: TargetHeaderChain<Self::OutboundPayload, Self::AccountId>;
 		/// Delivery confirmation payments.
 		type DeliveryConfirmationPayments: DeliveryConfirmationPayments<Self::AccountId>;
 
@@ -164,16 +167,12 @@ pub mod pallet {
 		type MessageDispatch: MessageDispatch<DispatchPayload = Self::InboundPayload>;
 	}
 
+	/// Shortcut to this chain type for Config.
+	pub type ThisChainOf<T, I> = <T as Config<I>>::ThisChain;
 	/// Shortcut to bridged chain type for Config.
 	pub type BridgedChainOf<T, I> = <T as Config<I>>::BridgedChain;
 	/// Shortcut to bridged header chain type for Config.
 	pub type BridgedHeaderChainOf<T, I> = <T as Config<I>>::BridgedHeaderChain;
-	/// Shortcut to messages delivery proof type for Config.
-	pub type MessagesDeliveryProofOf<T, I> =
-		<<T as Config<I>>::TargetHeaderChain as TargetHeaderChain<
-			<T as Config<I>>::OutboundPayload,
-			<T as frame_system::Config>::AccountId,
-		>>::MessagesDeliveryProof;
 
 	#[pallet::pallet]
 	pub struct Pallet<T, I = ()>(PhantomData<(T, I)>);
@@ -417,14 +416,14 @@ pub mod pallet {
 		))]
 		pub fn receive_messages_delivery_proof(
 			origin: OriginFor<T>,
-			proof: MessagesDeliveryProofOf<T, I>,
+			proof: FromBridgedChainMessagesDeliveryProof<HashOf<BridgedChainOf<T, I>>>,
 			mut relayers_state: UnrewardedRelayersState,
 		) -> DispatchResultWithPostInfo {
 			Self::ensure_not_halted().map_err(Error::<T, I>::BridgeModule)?;
 
 			let proof_size = proof.size();
 			let confirmation_relayer = ensure_signed(origin)?;
-			let (lane_id, lane_data) = T::TargetHeaderChain::verify_messages_delivery_proof(proof)
+			let (lane_id, lane_data) = proofs::verify_messages_delivery_proof::<T, I>(proof)
 				.map_err(|err| {
 					log::trace!(
 						target: LOG_TARGET,
@@ -663,27 +662,29 @@ fn send_message<T: Config<I>, I: 'static>(
 	SendMessageArtifacts,
 	sp_runtime::DispatchErrorWithPostInfo<PostDispatchInfo>,
 > {
+	// IMPORTANT: any error that is returned here is fatal for the bridge, because
+	// this code is executed at the bridge hub and message sender actually lives
+	// at some sibling parachain. So we are failing **after** the message has been
+	// sent and we can't report it back to sender (unless error report mechanism is
+	// embedded into message and its dispatcher).
+
+	// apart from maximal message size check (see below), we should also check the message
+	// dispatch weight here. But we assume that the bridged chain will just push the message
+	// to some queue (XCMP, UMP, DMP), so the weight is constant and fits the block.
+
+	// we can't accept any messages if the pallet is halted
 	ensure_normal_operating_mode::<T, I>()?;
 
 	// let's check if outbound lane is active
 	ensure!(T::ActiveOutboundLanes::get().contains(&lane_id), Error::<T, I>::InactiveOutboundLane,);
 
-	// let's first check if message can be delivered to target chain
-	T::TargetHeaderChain::verify_message(&payload).map_err(|err| {
-		log::trace!(
-			target: LOG_TARGET,
-			"Message to lane {:?} is rejected by target chain: {:?}",
-			lane_id,
-			err,
-		);
-
-		Error::<T, I>::MessageRejectedByChainVerifier(err)
-	})?;
-
 	// finally, save message in outbound storage and emit event
 	let mut lane = outbound_lane::<T, I>(lane_id);
 	let encoded_payload = payload.encode();
 	let encoded_payload_len = encoded_payload.len();
+
+	// the message size is checked by the `send_message` method, so we don't need to repeat
+	// it here
 	let nonce = lane
 		.send_message(encoded_payload)
 		.map_err(Error::<T, I>::MessageRejectedByPallet)?;
@@ -843,7 +844,7 @@ fn verify_and_decode_messages_proof<T: Config<I>, I: 'static>(
 	// `receive_messages_proof` weight formula and `MaxUnconfirmedMessagesAtInboundLane` check
 	// guarantees that the `message_count` is sane and Vec<Message> may be allocated.
 	// (tx with too many messages will either be rejected from the pool, or will fail earlier)
-	messages_proof::verify_messages_proof::<T, I>(proof, messages_count).map(|messages_by_lane| {
+	proofs::verify_messages_proof::<T, I>(proof, messages_count).map(|messages_by_lane| {
 		messages_by_lane
 			.into_iter()
 			.map(|(lane, lane_data)| {

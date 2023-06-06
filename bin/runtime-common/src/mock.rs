@@ -24,10 +24,7 @@
 #![cfg(test)]
 
 use crate::messages::{
-	source::{
-		FromThisChainMaximalOutboundPayloadSize, FromThisChainMessagePayload,
-		TargetHeaderChainAdapter,
-	},
+	source::{FromThisChainMaximalOutboundPayloadSize, FromThisChainMessagePayload},
 	BridgedChainWithMessages, HashOf, MessageBridge, ThisChainWithMessages,
 };
 
@@ -102,8 +99,6 @@ pub type TestStakeAndSlash = pallet_bridge_relayers::StakeAndSlashNamed<
 pub const TEST_LANE_ID: LaneId = LaneId([0, 0, 0, 0]);
 /// Bridged chain id used in tests.
 pub const TEST_BRIDGED_CHAIN_ID: ChainId = *b"brdg";
-/// Maximal extrinsic weight at the `BridgedChain`.
-pub const BRIDGED_CHAIN_MAX_EXTRINSIC_WEIGHT: usize = 2048;
 /// Maximal extrinsic size at the `BridgedChain`.
 pub const BRIDGED_CHAIN_MAX_EXTRINSIC_SIZE: u32 = 1024;
 
@@ -243,7 +238,6 @@ impl pallet_bridge_messages::Config for TestRuntime {
 	type InboundRelayer = BridgedChainAccountId;
 	type DeliveryPayments = ();
 
-	type TargetHeaderChain = TargetHeaderChainAdapter<OnThisChainBridge>;
 	type DeliveryConfirmationPayments = pallet_bridge_relayers::DeliveryConfirmationPaymentsAdapter<
 		TestRuntime,
 		(),

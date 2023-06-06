@@ -23,7 +23,7 @@ use crate::{MillauGrandpaInstance, Runtime, RuntimeOrigin, WithMillauMessagesIns
 
 use bp_messages::LaneId;
 use bridge_runtime_common::{
-	messages::{self, source::TargetHeaderChainAdapter, MessageBridge},
+	messages::{self, MessageBridge},
 	messages_xcm_extension::{XcmBlobHauler, XcmBlobHaulerAdapter},
 };
 use frame_support::{parameter_types, weights::Weight, RuntimeDebug};
@@ -90,8 +90,6 @@ impl messages::ThisChainWithMessages for RialtoParachain {
 /// Millau chain from message lane point of view.
 #[derive(RuntimeDebug, Clone, Copy)]
 pub struct Millau;
-/// Millau as target header chain.
-pub type MillauAsTargetHeaderChain = TargetHeaderChainAdapter<WithMillauMessageBridge>;
 
 impl messages::UnderlyingChainProvider for Millau {
 	type Chain = bp_millau::Millau;

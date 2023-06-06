@@ -437,7 +437,6 @@ impl pallet_bridge_messages::Config<WithMillauMessagesInstance> for Runtime {
 	type InboundRelayer = bp_millau::AccountId;
 	type DeliveryPayments = ();
 
-	type TargetHeaderChain = crate::millau_messages::MillauAsTargetHeaderChain;
 	type DeliveryConfirmationPayments = pallet_bridge_relayers::DeliveryConfirmationPaymentsAdapter<
 		Runtime,
 		WithMillauMessagesInstance,

@@ -14,18 +14,23 @@
 // You should have received a copy of the GNU General Public License
 // along with Parity Bridges Common.  If not, see <http://www.gnu.org/licenses/>.
 
-//! Tools for messages proof verification.
+//! Tools for messages and delivery proof verification.
 
 use crate::{BridgedChainOf, BridgedHeaderChainOf, Config};
 
 use bp_header_chain::HeaderChain;
 use bp_messages::{
+	source_chain::FromBridgedChainMessagesDeliveryProof,
 	target_chain::{FromBridgedChainMessagesProof, ProvedLaneMessages, ProvedMessages},
-	ChainWithMessages, LaneId, Message, MessageKey, MessageNonce, MessagePayload, OutboundLaneData,
-	VerificationError,
+	ChainWithMessages, InboundLaneData, LaneId, Message, MessageKey, MessageNonce, MessagePayload,
+	OutboundLaneData, VerificationError,
 };
 use bp_runtime::{HashOf, RangeInclusiveExt, TrustedVecDb};
 use sp_std::vec::Vec;
+
+/// 'Parsed' message delivery proof - inbound lane id and its state.
+pub(crate) type ParsedMessagesDeliveryProofFromBridgedChain<T> =
+	(LaneId, InboundLaneData<<T as frame_system::Config>::AccountId>);
 
 /// Verify proof of Bridged -> This chain messages.
 ///
@@ -88,6 +93,30 @@ pub fn verify_messages_proof<T: Config<I>, I: 'static>(
 	proved_messages.insert(lane, proved_lane_messages);
 
 	Ok(proved_messages)
+}
+
+/// Verify proof of This -> Bridged chain messages delivery.
+pub fn verify_messages_delivery_proof<T: Config<I>, I: 'static>(
+	proof: FromBridgedChainMessagesDeliveryProof<HashOf<BridgedChainOf<T, I>>>,
+) -> Result<ParsedMessagesDeliveryProofFromBridgedChain<T>, VerificationError> {
+	let FromBridgedChainMessagesDeliveryProof { bridged_header_hash, storage_proof, lane } = proof;
+	let mut storage =
+		T::BridgedHeaderChain::verify_vec_db_storage(bridged_header_hash, storage_proof)
+			.map_err(VerificationError::HeaderChain)?;
+	// Messages delivery proof is just proof of single storage key read => any error
+	// is fatal.
+	let storage_inbound_lane_data_key = bp_messages::storage_keys::inbound_lane_data_key(
+		T::ThisChain::WITH_CHAIN_MESSAGES_PALLET_NAME,
+		&lane,
+	);
+	let inbound_lane_data = storage
+		.get_and_decode_mandatory(&storage_inbound_lane_data_key)
+		.map_err(VerificationError::InboundLaneStorage)?;
+
+	// check that the storage proof doesn't have any untouched trie nodes
+	storage.ensure_no_unused_keys().map_err(VerificationError::VecDb)?;
+
+	Ok((lane, inbound_lane_data))
 }
 
 struct StorageAdapter<T, I> {

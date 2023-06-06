@@ -14,9 +14,7 @@
 // You should have received a copy of the GNU General Public License
 // along with Parity Bridges Common.  If not, see <http://www.gnu.org/licenses/>.
 
-use bp_messages::{
-	source_chain::FromBridgedChainMessagesDeliveryProof, InboundLaneData, LaneId, MessageNonce,
-};
+use bp_messages::{InboundLaneData, LaneId, MessageNonce};
 use frame_support::{
 	dispatch::CallableCallFor,
 	traits::{Get, IsSubType},
@@ -188,14 +186,8 @@ pub trait MessagesCallSubType<T: Config<I, RuntimeCall = Self>, I: 'static>:
 }
 
 impl<
-		BridgedHeaderHash,
-		TargetHeaderChain: bp_messages::source_chain::TargetHeaderChain<
-			<T as Config<I>>::OutboundPayload,
-			<T as frame_system::Config>::AccountId,
-			MessagesDeliveryProof = FromBridgedChainMessagesDeliveryProof<BridgedHeaderHash>,
-		>,
 		Call: IsSubType<CallableCallFor<Pallet<T, I>, T>>,
-		T: frame_system::Config<RuntimeCall = Call> + Config<I, TargetHeaderChain = TargetHeaderChain>,
+		T: frame_system::Config<RuntimeCall = Call> + Config<I>,
 		I: 'static,
 	> MessagesCallSubType<T, I> for T::RuntimeCall
 {

@@ -13402,6 +13402,7 @@ dependencies = [
  "millau-runtime",
  "num-format",
  "num-traits",
+ "pallet-bridge-messages",
  "pallet-bridge-parachains",
  "parachains-relay",
  "parity-scale-codec",
