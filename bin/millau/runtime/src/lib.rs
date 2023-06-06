@@ -427,10 +427,6 @@ impl pallet_shift_session_manager::Config for Runtime {}
 
 parameter_types! {
 	pub const MaxMessagesToPruneAtOnce: bp_messages::MessageNonce = 8;
-	pub const MaxUnrewardedRelayerEntriesAtInboundLane: bp_messages::MessageNonce =
-		bp_rialto::MAX_UNREWARDED_RELAYERS_IN_CONFIRMATION_TX;
-	pub const MaxUnconfirmedMessagesAtInboundLane: bp_messages::MessageNonce =
-		bp_rialto::MAX_UNCONFIRMED_MESSAGES_IN_CONFIRMATION_TX;
 	pub const RootAccountForPayments: Option<AccountId> = None;
 	pub RialtoActiveOutboundLanes: &'static [bp_messages::LaneId] = &[rialto_messages::XCM_LANE];
 	pub RialtoParachainActiveOutboundLanes: &'static [bp_messages::LaneId] = &[rialto_parachain_messages::XCM_LANE];
@@ -448,8 +444,6 @@ impl pallet_bridge_messages::Config<WithRialtoMessagesInstance> for Runtime {
 	type BridgedHeaderChain = BridgeRialtoGrandpa;
 
 	type ActiveOutboundLanes = RialtoActiveOutboundLanes;
-	type MaxUnrewardedRelayerEntriesAtInboundLane = MaxUnrewardedRelayerEntriesAtInboundLane;
-	type MaxUnconfirmedMessagesAtInboundLane = MaxUnconfirmedMessagesAtInboundLane;
 
 	type MaximalOutboundPayloadSize = crate::rialto_messages::ToRialtoMaximalOutboundPayloadSize;
 	type OutboundPayload = crate::rialto_messages::ToRialtoMessagePayload;
@@ -483,8 +477,6 @@ impl pallet_bridge_messages::Config<WithRialtoParachainMessagesInstance> for Run
 	>;
 
 	type ActiveOutboundLanes = RialtoParachainActiveOutboundLanes;
-	type MaxUnrewardedRelayerEntriesAtInboundLane = MaxUnrewardedRelayerEntriesAtInboundLane;
-	type MaxUnconfirmedMessagesAtInboundLane = MaxUnconfirmedMessagesAtInboundLane;
 
 	type MaximalOutboundPayloadSize =
 		crate::rialto_parachain_messages::ToRialtoParachainMaximalOutboundPayloadSize;

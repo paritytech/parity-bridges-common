@@ -225,8 +225,6 @@ impl pallet_bridge_grandpa::Config for TestRuntime {
 
 parameter_types! {
 	pub const MaxMessagesToPruneAtOnce: u64 = 10;
-	pub const MaxUnrewardedRelayerEntriesAtInboundLane: u64 = 16;
-	pub const MaxUnconfirmedMessagesAtInboundLane: u64 = 128;
 	pub const TestBridgedChainId: bp_runtime::ChainId = *b"test";
 	pub const ActiveOutboundLanes: &'static [LaneId] = &[TEST_LANE_ID, TEST_LANE_ID_2];
 }
@@ -243,8 +241,6 @@ impl Config for TestRuntime {
 	type BridgedHeaderChain = BridgedChainGrandpa;
 
 	type ActiveOutboundLanes = ActiveOutboundLanes;
-	type MaxUnrewardedRelayerEntriesAtInboundLane = MaxUnrewardedRelayerEntriesAtInboundLane;
-	type MaxUnconfirmedMessagesAtInboundLane = MaxUnconfirmedMessagesAtInboundLane;
 
 	type MaximalOutboundPayloadSize = frame_support::traits::ConstU32<MAX_OUTBOUND_PAYLOAD_SIZE>;
 	type OutboundPayload = TestPayload;

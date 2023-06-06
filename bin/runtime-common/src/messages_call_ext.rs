@@ -14,12 +14,8 @@
 // You should have received a copy of the GNU General Public License
 // along with Parity Bridges Common.  If not, see <http://www.gnu.org/licenses/>.
 
-use bp_messages::{InboundLaneData, LaneId, MessageNonce};
-use frame_support::{
-	dispatch::CallableCallFor,
-	traits::{Get, IsSubType},
-	RuntimeDebug,
-};
+use bp_messages::{ChainWithMessages, InboundLaneData, LaneId, MessageNonce};
+use frame_support::{dispatch::CallableCallFor, traits::IsSubType, RuntimeDebug};
 use pallet_bridge_messages::{Config, Pallet};
 use sp_runtime::transaction_validity::TransactionValidity;
 use sp_std::ops::RangeInclusive;
@@ -294,13 +290,14 @@ fn unrewarded_relayers_occupation<T: Config<I>, I: 'static>(
 	inbound_lane_data: &InboundLaneData<T::InboundRelayer>,
 ) -> UnrewardedRelayerOccupation {
 	UnrewardedRelayerOccupation {
-		free_relayer_slots: T::MaxUnrewardedRelayerEntriesAtInboundLane::get()
+		free_relayer_slots: T::BridgedChain::MAX_UNREWARDED_RELAYERS_IN_CONFIRMATION_TX
 			.saturating_sub(inbound_lane_data.relayers.len() as MessageNonce),
 		free_message_slots: {
 			let unconfirmed_messages = inbound_lane_data
 				.last_delivered_nonce()
 				.saturating_sub(inbound_lane_data.last_confirmed_nonce);
-			T::MaxUnconfirmedMessagesAtInboundLane::get().saturating_sub(unconfirmed_messages)
+			T::BridgedChain::MAX_UNCONFIRMED_MESSAGES_IN_CONFIRMATION_TX
+				.saturating_sub(unconfirmed_messages)
 		},
 	}
 }
@@ -310,10 +307,7 @@ mod tests {
 	use super::*;
 	use crate::{
 		messages_call_ext::MessagesCallSubType,
-		mock::{
-			MaxUnconfirmedMessagesAtInboundLane, MaxUnrewardedRelayerEntriesAtInboundLane,
-			TestRuntime, ThisChainRuntimeCall,
-		},
+		mock::{BridgedUnderlyingChain, TestRuntime, ThisChainRuntimeCall},
 	};
 	use bp_messages::{
 		source_chain::FromBridgedChainMessagesDeliveryProof,
@@ -325,7 +319,7 @@ mod tests {
 	fn fill_unrewarded_relayers() {
 		let mut inbound_lane_state =
 			pallet_bridge_messages::InboundLanes::<TestRuntime>::get(LaneId([0, 0, 0, 0]));
-		for n in 0..MaxUnrewardedRelayerEntriesAtInboundLane::get() {
+		for n in 0..BridgedUnderlyingChain::MAX_UNREWARDED_RELAYERS_IN_CONFIRMATION_TX {
 			inbound_lane_state.relayers.push_back(UnrewardedRelayer {
 				relayer: Default::default(),
 				messages: DeliveredMessages { begin: n + 1, end: n + 1 },
@@ -344,7 +338,7 @@ mod tests {
 			relayer: Default::default(),
 			messages: DeliveredMessages {
 				begin: 1,
-				end: MaxUnconfirmedMessagesAtInboundLane::get(),
+				end: BridgedUnderlyingChain::MAX_UNCONFIRMED_MESSAGES_IN_CONFIRMATION_TX,
 			},
 		});
 		pallet_bridge_messages::InboundLanes::<TestRuntime>::insert(
@@ -448,8 +442,8 @@ mod tests {
 		sp_io::TestExternalities::new(Default::default()).execute_with(|| {
 			fill_unrewarded_messages();
 			assert!(validate_message_delivery(
-				MaxUnconfirmedMessagesAtInboundLane::get(),
-				MaxUnconfirmedMessagesAtInboundLane::get() - 1
+				BridgedUnderlyingChain::MAX_UNCONFIRMED_MESSAGES_IN_CONFIRMATION_TX,
+				BridgedUnderlyingChain::MAX_UNCONFIRMED_MESSAGES_IN_CONFIRMATION_TX - 1
 			));
 		});
 	}
@@ -548,7 +542,7 @@ mod tests {
 					free_message_slots: if is_empty {
 						0
 					} else {
-						MaxUnconfirmedMessagesAtInboundLane::get()
+						BridgedUnderlyingChain::MAX_UNCONFIRMED_MESSAGES_IN_CONFIRMATION_TX
 					},
 				},
 			},

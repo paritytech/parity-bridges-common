@@ -29,10 +29,10 @@ use crate::{
 
 use bp_messages::{
 	source_chain::FromBridgedChainMessagesDeliveryProof,
-	target_chain::FromBridgedChainMessagesProof, BridgeMessagesCall, DeliveredMessages,
-	InboundLaneData, InboundMessageDetails, MessageKey, MessageNonce, MessagesOperatingMode,
-	OutboundLaneData, OutboundMessageDetails, UnrewardedRelayer, UnrewardedRelayersState,
-	VerificationError,
+	target_chain::FromBridgedChainMessagesProof, BridgeMessagesCall, ChainWithMessages,
+	DeliveredMessages, InboundLaneData, InboundMessageDetails, MessageKey, MessageNonce,
+	MessagesOperatingMode, OutboundLaneData, OutboundMessageDetails, UnrewardedRelayer,
+	UnrewardedRelayersState, VerificationError,
 };
 use bp_runtime::{BasicOperatingMode, PreComputedSize, Size};
 use bp_test_utils::generate_owned_bridge_module_tests;
@@ -685,7 +685,7 @@ fn ref_time_refund_from_receive_messages_proof_works() {
 #[test]
 fn proof_size_refund_from_receive_messages_proof_works() {
 	run_test(|| {
-		let max_entries = mock::MaxUnrewardedRelayerEntriesAtInboundLane::get() as usize;
+		let max_entries = BridgedChain::MAX_UNREWARDED_RELAYERS_IN_CONFIRMATION_TX as usize;
 
 		// if there's maximal number of unrewarded relayer entries at the inbound lane, then
 		// `proof_size` is unchanged in post-dispatch weight
@@ -1047,12 +1047,12 @@ fn inbound_storage_extra_proof_size_bytes_works() {
 		}
 	}
 
-	let max_entries = mock::MaxUnrewardedRelayerEntriesAtInboundLane::get() as usize;
+	let max_entries = BridgedChain::MAX_UNREWARDED_RELAYERS_IN_CONFIRMATION_TX as usize;
 
-	// when we have exactly `MaxUnrewardedRelayerEntriesAtInboundLane` unrewarded relayers
+	// when we have exactly `MAX_UNREWARDED_RELAYERS_IN_CONFIRMATION_TX` unrewarded relayers
 	assert_eq!(storage(max_entries).extra_proof_size_bytes(), 0);
 
-	// when we have less than `MaxUnrewardedRelayerEntriesAtInboundLane` unrewarded relayers
+	// when we have less than `MAX_UNREWARDED_RELAYERS_IN_CONFIRMATION_TX` unrewarded relayers
 	assert_eq!(
 		storage(max_entries - 1).extra_proof_size_bytes(),
 		relayer_entry().encode().len() as u64
@@ -1062,7 +1062,7 @@ fn inbound_storage_extra_proof_size_bytes_works() {
 		2 * relayer_entry().encode().len() as u64
 	);
 
-	// when we have more than `MaxUnrewardedRelayerEntriesAtInboundLane` unrewarded relayers
+	// when we have more than `MAX_UNREWARDED_RELAYERS_IN_CONFIRMATION_TX` unrewarded relayers
 	// (shall not happen in practice)
 	assert_eq!(storage(max_entries + 1).extra_proof_size_bytes(), 0);
 }
