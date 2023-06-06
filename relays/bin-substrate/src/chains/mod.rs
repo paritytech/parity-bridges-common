@@ -42,10 +42,7 @@ mod tests {
 			bp_millau::Millau::max_extrinsic_size(),
 		);
 
-		assert_eq!(
-			maximal_message_size,
-			bp_millau::Millau::maximal_incoming_message_size()
-		);
+		assert_eq!(maximal_message_size, bp_millau::Millau::maximal_incoming_message_size());
 	}
 
 	#[test]

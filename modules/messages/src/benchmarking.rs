@@ -24,6 +24,7 @@ use crate::{
 };
 
 use bp_messages::{
+	source_chain::FromBridgedChainMessagesDeliveryProof,
 	target_chain::FromBridgedChainMessagesProof, DeliveredMessages, InboundLaneData, LaneId,
 	MessageNonce, OutboundLaneData, UnrewardedRelayer, UnrewardedRelayersState,
 };
