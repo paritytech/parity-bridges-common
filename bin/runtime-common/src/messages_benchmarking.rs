@@ -27,18 +27,20 @@ use bp_messages::{
 };
 use bp_polkadot_core::parachains::ParaHash;
 use bp_runtime::{
-	grow_trie_leaf_value, record_all_trie_keys, Chain, Parachain, RawStorageProof,
-	StorageProofSize, UnderlyingChainOf,
+	grow_trie_leaf_value, record_all_trie_keys, Chain, Parachain, StorageProofSize,
+	UnderlyingChainOf, UntrustedVecDb,
 };
 use codec::Encode;
-use frame_support::weights::Weight;
+use frame_support::{weights::Weight, StateVersion};
 use pallet_bridge_messages::{
 	benchmarking::{MessageDeliveryProofParams, MessageProofParams},
 	messages_generation::{encode_all_messages, encode_lane_data, prepare_messages_storage_proof},
 };
 use sp_runtime::traits::{Header, Zero};
 use sp_std::prelude::*;
-use sp_trie::{trie_types::TrieDBMutBuilderV1, LayoutV1, MemoryDB, TrieMut};
+use sp_trie::{
+	LayoutV0, LayoutV1, MemoryDB, StorageProof, TrieConfiguration, TrieDBMutBuilder, TrieMut,
+};
 use xcm::v3::prelude::*;
 
 /// Prepare inbound bridge message according to given message proof parameters.
@@ -230,7 +232,22 @@ where
 /// Prepare in-memory message delivery proof, without inserting anything to the runtime storage.
 fn prepare_message_delivery_proof<B>(
 	params: MessageDeliveryProofParams<AccountIdOf<ThisChain<B>>>,
-) -> (HashOf<BridgedChain<B>>, RawStorageProof)
+) -> (HashOf<BridgedChain<B>>, UntrustedVecDb)
+where
+	B: MessageBridge,
+{
+	match UnderlyingChainOf::<BridgedChain<B>>::STATE_VERSION {
+		StateVersion::V0 =>
+			do_prepare_message_delivery_proof::<B, LayoutV0<HasherOf<BridgedChain<B>>>>(params),
+		StateVersion::V1 =>
+			do_prepare_message_delivery_proof::<B, LayoutV1<HasherOf<BridgedChain<B>>>>(params),
+	}
+}
+
+/// Prepare in-memory message delivery proof, without inserting anything to the runtime storage.
+fn do_prepare_message_delivery_proof<B, L: TrieConfiguration<Hash = HasherOf<BridgedChain<B>>>>(
+	params: MessageDeliveryProofParams<AccountIdOf<ThisChain<B>>>,
+) -> (HashOf<BridgedChain<B>>, UntrustedVecDb)
 where
 	B: MessageBridge,
 {
@@ -240,8 +257,7 @@ where
 	let mut root = Default::default();
 	let mut mdb = MemoryDB::default();
 	{
-		let mut trie =
-			TrieDBMutBuilderV1::<HasherOf<BridgedChain<B>>>::new(&mut mdb, &mut root).build();
+		let mut trie = TrieDBMutBuilder::<L>::new(&mut mdb, &mut root).build();
 		let inbound_lane_data =
 			grow_trie_leaf_value(params.inbound_lane_data.encode(), params.size);
 		trie.insert(&storage_key, &inbound_lane_data)
@@ -250,9 +266,15 @@ where
 	}
 
 	// generate storage proof to be delivered to This chain
-	let storage_proof = record_all_trie_keys::<LayoutV1<HasherOf<BridgedChain<B>>>, _>(&mdb, &root)
+	let read_proof = record_all_trie_keys::<L, _>(&mdb, &root)
 		.map_err(|_| "record_all_trie_keys has failed")
 		.expect("record_all_trie_keys should not fail in benchmarks");
+	let storage_proof = UntrustedVecDb::try_new::<HasherOf<BridgedChain<B>>>(
+		StorageProof::new(read_proof),
+		root,
+		vec![storage_key],
+	)
+	.unwrap();
 
 	(root, storage_proof)
 }
