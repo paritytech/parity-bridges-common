@@ -36,9 +36,7 @@ use bp_messages::{
 	MessageNonce, MessagePayload, OutboundLaneData, UnrewardedRelayer, UnrewardedRelayersState,
 	VerificationError,
 };
-use bp_runtime::{
-	messages::MessageDispatchResult, Chain, ChainId, Size, StorageProofSize,
-};
+use bp_runtime::{messages::MessageDispatchResult, Chain, ChainId, Size, StorageProofSize};
 use codec::{Decode, Encode};
 use frame_support::{
 	parameter_types,
