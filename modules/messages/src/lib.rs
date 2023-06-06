@@ -53,7 +53,10 @@ use crate::{
 
 use bp_header_chain::HeaderChain;
 use bp_messages::{
-	source_chain::{DeliveryConfirmationPayments, SendMessageArtifacts, TargetHeaderChain},
+	source_chain::{
+		DeliveryConfirmationPayments, FromBridgedChainMessagesDeliveryProof, SendMessageArtifacts,
+		TargetHeaderChain,
+	},
 	target_chain::{
 		DeliveryPayments, DispatchMessage, FromBridgedChainMessagesProof, MessageDispatch,
 		ProvedLaneMessages, ProvedMessages,
@@ -69,8 +72,8 @@ use sp_runtime::traits::UniqueSaturatedFrom;
 use sp_std::{marker::PhantomData, prelude::*};
 
 mod inbound_lane;
-mod messages_proof;
 mod outbound_lane;
+mod proofs;
 mod tests;
 mod weights_ext;
 
@@ -164,16 +167,12 @@ pub mod pallet {
 		type MessageDispatch: MessageDispatch<DispatchPayload = Self::InboundPayload>;
 	}
 
+	/// Shortcut to this chain type for Config.
+	pub type ThisChainOf<T, I> = <T as Config<I>>::ThisChain;
 	/// Shortcut to bridged chain type for Config.
 	pub type BridgedChainOf<T, I> = <T as Config<I>>::BridgedChain;
 	/// Shortcut to bridged header chain type for Config.
 	pub type BridgedHeaderChainOf<T, I> = <T as Config<I>>::BridgedHeaderChain;
-	/// Shortcut to messages delivery proof type for Config.
-	pub type MessagesDeliveryProofOf<T, I> =
-		<<T as Config<I>>::TargetHeaderChain as TargetHeaderChain<
-			<T as Config<I>>::OutboundPayload,
-			<T as frame_system::Config>::AccountId,
-		>>::MessagesDeliveryProof;
 
 	#[pallet::pallet]
 	pub struct Pallet<T, I = ()>(PhantomData<(T, I)>);
@@ -417,14 +416,14 @@ pub mod pallet {
 		))]
 		pub fn receive_messages_delivery_proof(
 			origin: OriginFor<T>,
-			proof: MessagesDeliveryProofOf<T, I>,
+			proof: FromBridgedChainMessagesDeliveryProof<HashOf<BridgedChainOf<T, I>>>,
 			mut relayers_state: UnrewardedRelayersState,
 		) -> DispatchResultWithPostInfo {
 			Self::ensure_not_halted().map_err(Error::<T, I>::BridgeModule)?;
 
 			let proof_size = proof.size();
 			let confirmation_relayer = ensure_signed(origin)?;
-			let (lane_id, lane_data) = T::TargetHeaderChain::verify_messages_delivery_proof(proof)
+			let (lane_id, lane_data) = proofs::verify_messages_delivery_proof::<T, I>(proof)
 				.map_err(|err| {
 					log::trace!(
 						target: LOG_TARGET,
@@ -843,7 +842,7 @@ fn verify_and_decode_messages_proof<T: Config<I>, I: 'static>(
 	// `receive_messages_proof` weight formula and `MaxUnconfirmedMessagesAtInboundLane` check
 	// guarantees that the `message_count` is sane and Vec<Message> may be allocated.
 	// (tx with too many messages will either be rejected from the pool, or will fail earlier)
-	messages_proof::verify_messages_proof::<T, I>(proof, messages_count).map(|messages_by_lane| {
+	proofs::verify_messages_proof::<T, I>(proof, messages_count).map(|messages_by_lane| {
 		messages_by_lane
 			.into_iter()
 			.map(|(lane, lane_data)| {

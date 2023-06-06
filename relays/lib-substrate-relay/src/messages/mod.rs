@@ -394,6 +394,7 @@ where
 	P: SubstrateMessageLane,
 	R: BridgeMessagesConfig<I>,
 	I: 'static,
+	R::BridgedChain: bp_runtime::Chain<Hash = HashOf<P::TargetChain>>,
 	R::TargetHeaderChain: bp_messages::source_chain::TargetHeaderChain<
 		R::OutboundPayload,
 		R::AccountId,
