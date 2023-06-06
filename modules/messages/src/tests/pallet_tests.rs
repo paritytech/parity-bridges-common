@@ -89,8 +89,7 @@ fn receive_messages_delivery_proof() {
 					relayer: 0,
 					messages: DeliveredMessages::new(1),
 				}]
-				.into_iter()
-				.collect(),
+				.into(),
 			},
 		),
 		UnrewardedRelayersState {
@@ -145,7 +144,7 @@ fn pallet_rejects_transactions_if_halted() {
 			TEST_LANE_ID,
 			InboundLaneData {
 				last_confirmed_nonce: 1,
-				relayers: vec![unrewarded_relayer(1, 1, TEST_RELAYER_A)].into_iter().collect(),
+				relayers: vec![unrewarded_relayer(1, 1, TEST_RELAYER_A)].into(),
 			},
 		);
 		assert_noop!(
@@ -193,7 +192,7 @@ fn pallet_rejects_new_messages_in_rejecting_outbound_messages_operating_mode() {
 				TEST_LANE_ID,
 				InboundLaneData {
 					last_confirmed_nonce: 1,
-					relayers: vec![unrewarded_relayer(1, 1, TEST_RELAYER_A)].into_iter().collect(),
+					relayers: vec![unrewarded_relayer(1, 1, TEST_RELAYER_A)].into(),
 				},
 			),
 			UnrewardedRelayersState {
@@ -265,8 +264,7 @@ fn receive_messages_proof_updates_confirmed_message_nonce() {
 					unrewarded_relayer(9, 9, TEST_RELAYER_A),
 					unrewarded_relayer(10, 10, TEST_RELAYER_B),
 				]
-				.into_iter()
-				.collect(),
+				.into(),
 			},
 		);
 		assert_eq!(
@@ -299,8 +297,7 @@ fn receive_messages_proof_updates_confirmed_message_nonce() {
 					unrewarded_relayer(10, 10, TEST_RELAYER_B),
 					unrewarded_relayer(11, 11, TEST_RELAYER_A)
 				]
-				.into_iter()
-				.collect(),
+				.into(),
 			},
 		);
 		assert_eq!(
@@ -392,7 +389,7 @@ fn receive_messages_delivery_proof_rewards_relayers() {
 		let single_message_delivery_proof = prepare_messages_delivery_proof(
 			TEST_LANE_ID,
 			InboundLaneData {
-				relayers: vec![unrewarded_relayer(1, 1, TEST_RELAYER_A)].into_iter().collect(),
+				relayers: vec![unrewarded_relayer(1, 1, TEST_RELAYER_A)].into(),
 				..Default::default()
 			},
 		);
@@ -431,8 +428,7 @@ fn receive_messages_delivery_proof_rewards_relayers() {
 					unrewarded_relayer(1, 1, TEST_RELAYER_A),
 					unrewarded_relayer(2, 2, TEST_RELAYER_B),
 				]
-				.into_iter()
-				.collect(),
+				.into(),
 				..Default::default()
 			},
 		);
@@ -494,8 +490,7 @@ fn receive_messages_delivery_proof_rejects_proof_if_declared_relayers_state_is_i
 					unrewarded_relayer(1, 1, TEST_RELAYER_A),
 					unrewarded_relayer(2, 2, TEST_RELAYER_B),
 				]
-				.into_iter()
-				.collect(),
+				.into(),
 				..Default::default()
 			},
 		);
@@ -521,8 +516,7 @@ fn receive_messages_delivery_proof_rejects_proof_if_declared_relayers_state_is_i
 					unrewarded_relayer(1, 1, TEST_RELAYER_A),
 					unrewarded_relayer(2, 2, TEST_RELAYER_B),
 				]
-				.into_iter()
-				.collect(),
+				.into(),
 				..Default::default()
 			},
 		);
@@ -548,8 +542,7 @@ fn receive_messages_delivery_proof_rejects_proof_if_declared_relayers_state_is_i
 					unrewarded_relayer(1, 1, TEST_RELAYER_A),
 					unrewarded_relayer(2, 2, TEST_RELAYER_B),
 				]
-				.into_iter()
-				.collect(),
+				.into(),
 				..Default::default()
 			},
 		);
@@ -714,8 +707,7 @@ fn proof_size_refund_from_receive_messages_proof_works() {
 					};
 					max_entries
 				]
-				.into_iter()
-				.collect(),
+				.into(),
 				last_confirmed_nonce: 0,
 			}),
 		);
@@ -743,8 +735,7 @@ fn proof_size_refund_from_receive_messages_proof_works() {
 					};
 					max_entries - 1
 				]
-				.into_iter()
-				.collect(),
+				.into(),
 				last_confirmed_nonce: 0,
 			}),
 		);
@@ -851,7 +842,7 @@ fn on_idle_callback_respects_remaining_weight() {
 				TEST_LANE_ID,
 				InboundLaneData {
 					last_confirmed_nonce: 4,
-					relayers: vec![unrewarded_relayer(1, 4, TEST_RELAYER_A)].into_iter().collect(),
+					relayers: vec![unrewarded_relayer(1, 4, TEST_RELAYER_A)].into(),
 				},
 			),
 			UnrewardedRelayersState {
@@ -909,7 +900,7 @@ fn on_idle_callback_is_rotating_lanes_to_prune() {
 				TEST_LANE_ID_2,
 				InboundLaneData {
 					last_confirmed_nonce: 1,
-					relayers: vec![unrewarded_relayer(1, 1, TEST_RELAYER_A)].into_iter().collect(),
+					relayers: vec![unrewarded_relayer(1, 1, TEST_RELAYER_A)].into(),
 				},
 			),
 			UnrewardedRelayersState {
@@ -983,8 +974,7 @@ fn test_bridge_messages_call_is_correctly_defined() {
 					relayer: 0,
 					messages: DeliveredMessages::new(1),
 				}]
-				.into_iter()
-				.collect(),
+				.into(),
 			},
 		);
 		let unrewarded_relayer_state = UnrewardedRelayersState {
@@ -1050,7 +1040,7 @@ fn inbound_storage_extra_proof_size_bytes_works() {
 		RuntimeInboundLaneStorage {
 			lane_id: Default::default(),
 			cached_data: Some(InboundLaneData {
-				relayers: vec![relayer_entry(); relayer_entries].into_iter().collect(),
+				relayers: vec![relayer_entry(); relayer_entries].into(),
 				last_confirmed_nonce: 0,
 			}),
 			_phantom: Default::default(),
