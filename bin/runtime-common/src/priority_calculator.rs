@@ -47,6 +47,7 @@ mod integrity_tests {}
 #[cfg(feature = "integrity-test")]
 mod integrity_tests {
 	use super::compute_priority_boost;
+	use bp_messages::ChainWithMessages;
 
 	use bp_messages::MessageNonce;
 	use bp_runtime::PreComputedSize;
@@ -86,7 +87,7 @@ mod integrity_tests {
 	{
 		let priority_boost_per_message = PriorityBoostPerMessage::get();
 		let maximal_messages_in_delivery_transaction =
-			Runtime::MaxUnconfirmedMessagesAtInboundLane::get();
+			Runtime::BridgedChain::MAX_UNCONFIRMED_MESSAGES_IN_CONFIRMATION_TX;
 		for messages in 1..=maximal_messages_in_delivery_transaction {
 			let base_priority = estimate_message_delivery_transaction_priority::<
 				Runtime,
@@ -129,7 +130,7 @@ mod integrity_tests {
 	{
 		// esimate priority of transaction that delivers one message and has large tip
 		let maximal_messages_in_delivery_transaction =
-			Runtime::MaxUnconfirmedMessagesAtInboundLane::get();
+			Runtime::BridgedChain::MAX_UNCONFIRMED_MESSAGES_IN_CONFIRMATION_TX;
 		let small_with_tip_priority =
 			estimate_message_delivery_transaction_priority::<Runtime, MessagesInstance>(
 				1,

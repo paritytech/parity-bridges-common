@@ -48,10 +48,29 @@ pub trait ChainWithMessages: Chain {
 	const WITH_CHAIN_MESSAGES_PALLET_NAME: &'static str;
 
 	/// Maximal number of unrewarded relayers in a single confirmation transaction at this
-	/// `ChainWithMessages`.
+	/// `ChainWithMessages`. Unrewarded means that the relayer has delivered messages, but
+	/// either confirmations haven't been delivered back to the source chain, or we haven't
+	/// received reward confirmations yet.
+	///
+	/// This constant limits maximal number of entries in the `InboundLaneData::relayers`. Keep
+	/// in mind that the same relayer account may take several (non-consecutive) entries in this
+	/// set.
 	const MAX_UNREWARDED_RELAYERS_IN_CONFIRMATION_TX: MessageNonce;
 	/// Maximal number of unconfirmed messages in a single confirmation transaction at this
-	/// `ChainWithMessages`.
+	/// `ChainWithMessages`. Unconfirmed means that the
+	/// message has been delivered, but either confirmations haven't been delivered back to the
+	/// source chain, or we haven't received reward confirmations for these messages yet.
+	///
+	/// This constant limits difference between last message from last entry of the
+	/// `InboundLaneData::relayers` and first message at the first entry.
+	///
+	/// There is no point of making this parameter lesser than
+	/// `MAX_UNREWARDED_RELAYERS_IN_CONFIRMATION_TX`, because then maximal number of relayer entries
+	/// will be limited by maximal number of messages.
+	///
+	/// This value also represents maximal number of messages in single delivery transaction.
+	/// Transaction that is declaring more messages than this value, will be rejected. Even if
+	/// these messages are from different lanes.
 	const MAX_UNCONFIRMED_MESSAGES_IN_CONFIRMATION_TX: MessageNonce;
 
 	/// Return maximal dispatch weight of the message we're able to receive.
@@ -440,7 +459,7 @@ where
 	AccountId: sp_std::cmp::Ord,
 {
 	// remember to reward relayers that have delivered messages
-	// this loop is bounded by `T::MaxUnrewardedRelayerEntriesAtInboundLane` on the bridged chain
+	// this loop is bounded by `T::MAX_UNREWARDED_RELAYERS_IN_CONFIRMATION_TX` on the bridged chain
 	let mut relayers_rewards = RelayersRewards::new();
 	for entry in messages_relayers {
 		let nonce_begin = sp_std::cmp::max(entry.messages.begin, *received_range.start());

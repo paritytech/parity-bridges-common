@@ -187,7 +187,7 @@ mod benchmarks {
 	//
 
 	fn max_msgs<T: Config<I>, I: 'static>() -> u32 {
-		T::MaxUnconfirmedMessagesAtInboundLane::get() as u32 -
+		T::MAX_UNCONFIRMED_MESSAGES_IN_CONFIRMATION_TX::get() as u32 -
 			ReceiveMessagesProofSetup::<T, I>::LATEST_RECEIVED_NONCE as u32
 	}
 

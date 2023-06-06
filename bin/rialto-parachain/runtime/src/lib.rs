@@ -551,10 +551,6 @@ impl pallet_bridge_grandpa::Config for Runtime {
 
 parameter_types! {
 	pub const MaxMessagesToPruneAtOnce: bp_messages::MessageNonce = 8;
-	pub const MaxUnrewardedRelayerEntriesAtInboundLane: bp_messages::MessageNonce =
-		bp_millau::MAX_UNREWARDED_RELAYERS_IN_CONFIRMATION_TX;
-	pub const MaxUnconfirmedMessagesAtInboundLane: bp_messages::MessageNonce =
-		bp_millau::MAX_UNCONFIRMED_MESSAGES_IN_CONFIRMATION_TX;
 	pub const RootAccountForPayments: Option<AccountId> = None;
 	pub ActiveOutboundLanes: &'static [bp_messages::LaneId] = &[millau_messages::XCM_LANE];
 }
@@ -571,8 +567,6 @@ impl pallet_bridge_messages::Config<WithMillauMessagesInstance> for Runtime {
 	type BridgedHeaderChain = BridgeMillauGrandpa;
 
 	type ActiveOutboundLanes = ActiveOutboundLanes;
-	type MaxUnrewardedRelayerEntriesAtInboundLane = MaxUnrewardedRelayerEntriesAtInboundLane;
-	type MaxUnconfirmedMessagesAtInboundLane = MaxUnconfirmedMessagesAtInboundLane;
 
 	type MaximalOutboundPayloadSize = crate::millau_messages::ToMillauMaximalOutboundPayloadSize;
 	type OutboundPayload = crate::millau_messages::ToMillauMessagePayload;

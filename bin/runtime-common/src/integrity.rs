@@ -209,15 +209,15 @@ where
 		R::ActiveOutboundLanes::get(),
 	);
 	assert!(
-		R::MaxUnrewardedRelayerEntriesAtInboundLane::get() <= params.max_unrewarded_relayers_in_bridged_confirmation_tx,
-		"MaxUnrewardedRelayerEntriesAtInboundLane ({}) must be <= than the hardcoded value for bridged chain: {}",
-		R::MaxUnrewardedRelayerEntriesAtInboundLane::get(),
+		R::BridgedChain::MAX_UNREWARDED_RELAYERS_IN_CONFIRMATION_TX <= params.max_unrewarded_relayers_in_bridged_confirmation_tx,
+		"MAX_UNREWARDED_RELAYERS_IN_CONFIRMATION_TX ({}) must be <= than the hardcoded value for bridged chain: {}",
+		R::BridgedChain::MAX_UNREWARDED_RELAYERS_IN_CONFIRMATION_TX,
 		params.max_unrewarded_relayers_in_bridged_confirmation_tx,
 	);
 	assert!(
-		R::MaxUnconfirmedMessagesAtInboundLane::get() <= params.max_unconfirmed_messages_in_bridged_confirmation_tx,
-		"MaxUnrewardedRelayerEntriesAtInboundLane ({}) must be <= than the hardcoded value for bridged chain: {}",
-		R::MaxUnconfirmedMessagesAtInboundLane::get(),
+		R::BridgedChain::MAX_UNCONFIRMED_MESSAGES_IN_CONFIRMATION_TX <= params.max_unconfirmed_messages_in_bridged_confirmation_tx,
+		"MAX_UNREWARDED_RELAYERS_IN_CONFIRMATION_TX ({}) must be <= than the hardcoded value for bridged chain: {}",
+		R::BridgedChain::MAX_UNCONFIRMED_MESSAGES_IN_CONFIRMATION_TX,
 		params.max_unconfirmed_messages_in_bridged_confirmation_tx,
 	);
 	assert_eq!(R::BridgedChain::ID, params.bridged_chain_id);

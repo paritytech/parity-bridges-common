@@ -115,31 +115,6 @@ pub mod pallet {
 
 		/// Get all active outbound lanes that the message pallet is serving.
 		type ActiveOutboundLanes: Get<&'static [LaneId]>;
-		// TODO: https://github.com/paritytech/parity-bridges-common/issues/1666 - use const from `ChainWithMessages` instead
-		/// Maximal number of unrewarded relayer entries at inbound lane. Unrewarded means that the
-		/// relayer has delivered messages, but either confirmations haven't been delivered back to
-		/// the source chain, or we haven't received reward confirmations yet.
-		///
-		/// This constant limits maximal number of entries in the `InboundLaneData::relayers`. Keep
-		/// in mind that the same relayer account may take several (non-consecutive) entries in this
-		/// set.
-		type MaxUnrewardedRelayerEntriesAtInboundLane: Get<MessageNonce>;
-		// TODO: https://github.com/paritytech/parity-bridges-common/issues/1666 - use const from `ChainWithMessages` instead
-		/// Maximal number of unconfirmed messages at inbound lane. Unconfirmed means that the
-		/// message has been delivered, but either confirmations haven't been delivered back to the
-		/// source chain, or we haven't received reward confirmations for these messages yet.
-		///
-		/// This constant limits difference between last message from last entry of the
-		/// `InboundLaneData::relayers` and first message at the first entry.
-		///
-		/// There is no point of making this parameter lesser than
-		/// MaxUnrewardedRelayerEntriesAtInboundLane, because then maximal number of relayer entries
-		/// will be limited by maximal number of messages.
-		///
-		/// This value also represents maximal number of messages in single delivery transaction.
-		/// Transaction that is declaring more messages than this value, will be rejected. Even if
-		/// these messages are from different lanes.
-		type MaxUnconfirmedMessagesAtInboundLane: Get<MessageNonce>;
 
 		// TODO: https://github.com/paritytech/parity-bridges-common/issues/1666 - use method from `ChainWithMessages` instead
 		/// Maximal encoded size of the outbound payload.
@@ -276,7 +251,8 @@ pub mod pallet {
 
 			// reject transactions that are declaring too many messages
 			ensure!(
-				MessageNonce::from(messages_count) <= T::MaxUnconfirmedMessagesAtInboundLane::get(),
+				MessageNonce::from(messages_count) <=
+					BridgedChainOf::<T, I>::MAX_UNCONFIRMED_MESSAGES_IN_CONFIRMATION_TX,
 				Error::<T, I>::TooManyMessagesInTheProof
 			);
 
@@ -747,7 +723,7 @@ impl<T: Config<I>, I: 'static> RuntimeInboundLaneStorage<T, I> {
 	/// maximal configured.
 	///
 	/// Maximal inbound lane state set size is configured by the
-	/// `MaxUnrewardedRelayerEntriesAtInboundLane` constant from the pallet configuration. The PoV
+	/// `MAX_UNREWARDED_RELAYERS_IN_CONFIRMATION_TX` constant from the pallet configuration. The PoV
 	/// of the call includes the maximal size of inbound lane state. If the actual size is smaller,
 	/// we may subtract extra bytes from this component.
 	pub fn extra_proof_size_bytes(&mut self) -> u64 {
@@ -768,11 +744,11 @@ impl<T: Config<I>, I: 'static> InboundLaneStorage for RuntimeInboundLaneStorage<
 	}
 
 	fn max_unrewarded_relayer_entries(&self) -> MessageNonce {
-		T::MaxUnrewardedRelayerEntriesAtInboundLane::get()
+		BridgedChainOf::<T, I>::MAX_UNREWARDED_RELAYERS_IN_CONFIRMATION_TX
 	}
 
 	fn max_unconfirmed_messages(&self) -> MessageNonce {
-		T::MaxUnconfirmedMessagesAtInboundLane::get()
+		BridgedChainOf::<T, I>::MAX_UNCONFIRMED_MESSAGES_IN_CONFIRMATION_TX
 	}
 
 	fn get_or_init_data(&mut self) -> InboundLaneData<T::InboundRelayer> {
@@ -841,8 +817,8 @@ fn verify_and_decode_messages_proof<T: Config<I>, I: 'static>(
 	proof: FromBridgedChainMessagesProof<HashOf<BridgedChainOf<T, I>>>,
 	messages_count: u32,
 ) -> Result<ProvedMessages<DispatchMessage<T::InboundPayload>>, VerificationError> {
-	// `receive_messages_proof` weight formula and `MaxUnconfirmedMessagesAtInboundLane` check
-	// guarantees that the `message_count` is sane and Vec<Message> may be allocated.
+	// `receive_messages_proof` weight formula and `MAX_UNCONFIRMED_MESSAGES_IN_CONFIRMATION_TX`
+	// check guarantees that the `message_count` is sane and Vec<Message> may be allocated.
 	// (tx with too many messages will either be rejected from the pool, or will fail earlier)
 	proofs::verify_messages_proof::<T, I>(proof, messages_count).map(|messages_by_lane| {
 		messages_by_lane
