@@ -465,21 +465,24 @@ fn receive_messages_delivery_proof_rewards_relayers() {
 		assert!(TestDeliveryConfirmationPayments::is_reward_paid(TEST_RELAYER_B, 1));
 	});
 }
-/* TODO
+
 #[test]
 fn receive_messages_delivery_proof_rejects_invalid_proof() {
 	run_test(|| {
+		let mut proof = prepare_messages_delivery_proof(TEST_LANE_ID, Default::default());
+		proof.lane = bp_messages::LaneId([42, 42, 42, 42]);
+
 		assert_noop!(
 			Pallet::<TestRuntime>::receive_messages_delivery_proof(
 				RuntimeOrigin::signed(1),
-				TestMessagesDeliveryProof(Err(())),
+				proof,
 				Default::default(),
 			),
 			Error::<TestRuntime, ()>::InvalidMessagesDeliveryProof,
 		);
 	});
 }
-*/
+
 #[test]
 fn receive_messages_delivery_proof_rejects_proof_if_declared_relayers_state_is_invalid() {
 	run_test(|| {
