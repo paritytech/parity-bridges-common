@@ -168,10 +168,11 @@ chain to confirm delivery and pay rewards. So to make sure we are able to craft 
 transaction, we need to: (1) keep the size of this map below a certain limit and (2) make sure that
 the weight of processing this map is below a certain limit. Both size and processing weight mostly
 depend on the number of entries. The number of entries is limited with the
-`pallet_bridge_messages::ConfigMaxUnrewardedRelayerEntriesAtInboundLane` parameter. Processing weight
-also depends on the total number of messages that are being confirmed, because every confirmed
-message needs to be read. So there's another
-`pallet_bridge_messages::Config::MaxUnconfirmedMessagesAtInboundLane` parameter for that.
+`pallet_bridge_messages::Config::BridgedChain::MAX_UNREWARDED_RELAYERS_IN_CONFIRMATION_TX` parameter.
+Processing weight also depends on the total number of messages that are being confirmed, because every
+confirmed message needs to be read. So there's another
+`pallet_bridge_messages::Config::BridgedChain::MAX_UNCONFIRMED_MESSAGES_IN_CONFIRMATION_TX` parameter
+for that.
 
 When choosing values for these parameters, you must also keep in mind that if proof in your scheme
 is based on finality of headers (and it is the most obvious option for Substrate-based chains with
