@@ -148,11 +148,10 @@ all required traits and will simply reject all transactions, related to outbound
 ### How to plug-in Messages Module to Receive Messages from the Bridged Chain?
 
 The `pallet_bridge_messages::Config` trait has 2 main associated types that are used to work with
-inbound messages. The `pallet_bridge_messages::Config::SourceHeaderChain` defines how we see the
-bridged chain as the source of our inbound messages. When relayer sends us a delivery transaction,
-this implementation must be able to parse and verify the proof of messages wrapped in this
-transaction. Normally, you would reuse the same (configurable) type on all chains that are sending
-messages to the same bridged chain.
+inbound messages. The `pallet_bridge_messages::BridgedChain` defines basic primitives of the bridged
+chain. The `pallet_bridge_messages::BridgedHeaderChain` defines the way we access the bridged chain
+headers in our runtime. You may use `pallet_bridge_grandpa` if you're bridging with chain thatuses
+GRANDPA finality or `pallet_bridge_parachains::ParachainHeaders` if you're bridging with parachain.
 
 The `pallet_bridge_messages::Config::MessageDispatch` defines a way on how to dispatch delivered
 messages. Apart from actually dispatching the message, the implementation must return the correct

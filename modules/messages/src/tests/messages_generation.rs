@@ -34,6 +34,11 @@ use sp_trie::{
 	LayoutV0, LayoutV1, MemoryDB, StorageProof, TrieConfiguration, TrieDBMutBuilder, TrieMut,
 };
 
+/// Dummy message generation function.
+pub fn generate_dummy_message(_: MessageNonce) -> MessagePayload {
+	vec![42]
+}
+
 /// Simple and correct message data encode function.
 pub fn encode_all_messages(_: MessageNonce, m: &MessagePayload) -> Option<Vec<u8>> {
 	Some(m.encode())
@@ -50,7 +55,7 @@ pub fn prepare_messages_storage_proof<BridgedChain: Chain, ThisChain: ChainWithM
 	message_nonces: RangeInclusive<MessageNonce>,
 	outbound_lane_data: Option<OutboundLaneData>,
 	size: StorageProofSize,
-	message_payload: MessagePayload,
+	generate_message: impl Fn(MessageNonce) -> MessagePayload,
 	encode_message: impl Fn(MessageNonce, &MessagePayload) -> Option<Vec<u8>>,
 	encode_outbound_lane_data: impl Fn(&OutboundLaneData) -> Vec<u8>,
 	add_duplicate_key: bool,
@@ -69,7 +74,7 @@ where
 			message_nonces,
 			outbound_lane_data,
 			size,
-			message_payload,
+			generate_message,
 			encode_message,
 			encode_outbound_lane_data,
 			add_duplicate_key,
@@ -84,7 +89,7 @@ where
 			message_nonces,
 			outbound_lane_data,
 			size,
-			message_payload,
+			generate_message,
 			encode_message,
 			encode_outbound_lane_data,
 			add_duplicate_key,
@@ -102,7 +107,7 @@ fn do_prepare_messages_storage_proof<BridgedChain: Chain, ThisChain: ChainWithMe
 	message_nonces: RangeInclusive<MessageNonce>,
 	outbound_lane_data: Option<OutboundLaneData>,
 	size: StorageProofSize,
-	message_payload: MessagePayload,
+	generate_message: impl Fn(MessageNonce) -> MessagePayload,
 	encode_message: impl Fn(MessageNonce, &MessagePayload) -> Option<Vec<u8>>,
 	encode_outbound_lane_data: impl Fn(&OutboundLaneData) -> Vec<u8>,
 	add_duplicate_key: bool,
@@ -123,7 +128,7 @@ where
 		// insert messages
 		for (i, nonce) in message_nonces.into_iter().enumerate() {
 			let message_key = MessageKey { lane_id: lane, nonce };
-			let message_payload = match encode_message(nonce, &message_payload) {
+			let message_payload = match encode_message(nonce, &generate_message(nonce)) {
 				Some(message_payload) =>
 					if i == 0 {
 						grow_trie_leaf_value(message_payload, size)

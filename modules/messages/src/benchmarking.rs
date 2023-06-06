@@ -20,15 +20,15 @@
 
 use crate::{
 	inbound_lane::InboundLaneStorage, outbound_lane, weights_ext::EXPECTED_DEFAULT_MESSAGE_LENGTH,
-	Call, OutboundLanes, RuntimeInboundLaneStorage,
+	BridgedChainOf, Call, OutboundLanes, RuntimeInboundLaneStorage,
 };
 
 use bp_messages::{
-	source_chain::TargetHeaderChain, target_chain::SourceHeaderChain, DeliveredMessages,
-	InboundLaneData, LaneId, MessageNonce, OutboundLaneData, UnrewardedRelayer,
+	source_chain::TargetHeaderChain, target_chain::FromBridgedChainMessagesProof,
+	DeliveredMessages, InboundLaneData, LaneId, MessageNonce, OutboundLaneData, UnrewardedRelayer,
 	UnrewardedRelayersState,
 };
-use bp_runtime::StorageProofSize;
+use bp_runtime::{HashOf, StorageProofSize};
 use codec::Decode;
 use frame_benchmarking::{account, v2::*};
 use frame_support::weights::Weight;
@@ -96,7 +96,7 @@ pub trait Config<I: 'static>: crate::Config<I> {
 	/// Prepare messages proof to receive by the module.
 	fn prepare_message_proof(
 		params: MessageProofParams,
-	) -> (<Self::SourceHeaderChain as SourceHeaderChain>::MessagesProof, Weight);
+	) -> (FromBridgedChainMessagesProof<HashOf<BridgedChainOf<Self, I>>>, Weight);
 	/// Prepare messages delivery proof to receive by the module.
 	fn prepare_message_delivery_proof(
 		params: MessageDeliveryProofParams<Self::AccountId>,
@@ -517,5 +517,9 @@ mod benchmarks {
 		assert!(T::is_message_successfully_dispatched(setup.last_nonce()));
 	}
 
-	impl_benchmark_test_suite!(Pallet, crate::mock::new_test_ext(), crate::mock::TestRuntime);
+	impl_benchmark_test_suite!(
+		Pallet,
+		crate::tests::mock::new_test_ext(),
+		crate::tests::mock::TestRuntime
+	);
 }

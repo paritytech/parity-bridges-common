@@ -83,7 +83,7 @@ macro_rules! assert_bridge_messages_pallet_types(
 			// and relays will stop functioning)
 			use $crate::messages::{
 				source::{FromThisChainMessagePayload, TargetHeaderChainAdapter},
-				target::{FromBridgedChainMessagePayload, SourceHeaderChainAdapter},
+				target::FromBridgedChainMessagePayload,
 				AccountIdOf, BalanceOf, BridgedChain, ThisChain,
 			};
 			use pallet_bridge_messages::Config as MessagesConfig;
@@ -94,7 +94,9 @@ macro_rules! assert_bridge_messages_pallet_types(
 			assert_type_eq_all!(<$r as MessagesConfig<$i>>::InboundRelayer, AccountIdOf<BridgedChain<$bridge>>);
 
 			assert_type_eq_all!(<$r as MessagesConfig<$i>>::TargetHeaderChain, TargetHeaderChainAdapter<$bridge>);
-			assert_type_eq_all!(<$r as MessagesConfig<$i>>::SourceHeaderChain, SourceHeaderChainAdapter<$bridge>);
+
+			// TODO: https://github.com/paritytech/parity-bridges-common/issues/1666: check ThisChain, BridgedChain
+			// and BridgedHeaderChain types
 		}
 	}
 );
@@ -220,7 +222,7 @@ where
 		R::MaxUnconfirmedMessagesAtInboundLane::get(),
 		params.max_unconfirmed_messages_in_bridged_confirmation_tx,
 	);
-	assert_eq!(R::BridgedChainId::get(), params.bridged_chain_id);
+	assert_eq!(R::BridgedChain::ID, params.bridged_chain_id);
 }
 
 /// Parameters for asserting bridge pallet names.

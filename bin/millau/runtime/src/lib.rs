@@ -36,7 +36,7 @@ pub mod xcm_config;
 use bp_parachains::SingleParaStoredHeaderDataBuilder;
 #[cfg(feature = "runtime-benchmarks")]
 use bp_relayers::{RewardsAccountOwner, RewardsAccountParams};
-use bp_runtime::{Chain, HeaderId};
+use bp_runtime::HeaderId;
 use pallet_grandpa::{
 	fg_primitives, AuthorityId as GrandpaId, AuthorityList as GrandpaAuthorityList,
 };
@@ -432,8 +432,6 @@ parameter_types! {
 	pub const MaxUnconfirmedMessagesAtInboundLane: bp_messages::MessageNonce =
 		bp_rialto::MAX_UNCONFIRMED_MESSAGES_IN_CONFIRMATION_TX;
 	pub const RootAccountForPayments: Option<AccountId> = None;
-	pub const RialtoChainId: bp_runtime::ChainId = bp_rialto::Rialto::ID;
-	pub const RialtoParachainChainId: bp_runtime::ChainId = bp_rialto_parachain::RialtoParachain::ID;
 	pub RialtoActiveOutboundLanes: &'static [bp_messages::LaneId] = &[rialto_messages::XCM_LANE];
 	pub RialtoParachainActiveOutboundLanes: &'static [bp_messages::LaneId] = &[rialto_parachain_messages::XCM_LANE];
 }
@@ -444,6 +442,11 @@ pub type WithRialtoMessagesInstance = ();
 impl pallet_bridge_messages::Config<WithRialtoMessagesInstance> for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 	type WeightInfo = weights::RialtoMessagesWeightInfo<Runtime>;
+
+	type ThisChain = bp_millau::Millau;
+	type BridgedChain = bp_rialto::Rialto;
+	type BridgedHeaderChain = BridgeRialtoGrandpa;
+
 	type ActiveOutboundLanes = RialtoActiveOutboundLanes;
 	type MaxUnrewardedRelayerEntriesAtInboundLane = MaxUnrewardedRelayerEntriesAtInboundLane;
 	type MaxUnconfirmedMessagesAtInboundLane = MaxUnconfirmedMessagesAtInboundLane;
@@ -462,9 +465,7 @@ impl pallet_bridge_messages::Config<WithRialtoMessagesInstance> for Runtime {
 		frame_support::traits::ConstU64<100_000>,
 	>;
 
-	type SourceHeaderChain = crate::rialto_messages::RialtoAsSourceHeaderChain;
 	type MessageDispatch = crate::rialto_messages::FromRialtoMessageDispatch;
-	type BridgedChainId = RialtoChainId;
 }
 
 /// Instance of the messages pallet used to relay messages to/from RialtoParachain chain.
@@ -473,6 +474,15 @@ pub type WithRialtoParachainMessagesInstance = pallet_bridge_messages::Instance1
 impl pallet_bridge_messages::Config<WithRialtoParachainMessagesInstance> for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 	type WeightInfo = weights::RialtoParachainMessagesWeightInfo<Runtime>;
+
+	type ThisChain = bp_millau::Millau;
+	type BridgedChain = bp_rialto_parachain::RialtoParachain;
+	type BridgedHeaderChain = pallet_bridge_parachains::ParachainHeaders<
+		Runtime,
+		WithRialtoParachainsInstance,
+		bp_rialto_parachain::RialtoParachain,
+	>;
+
 	type ActiveOutboundLanes = RialtoParachainActiveOutboundLanes;
 	type MaxUnrewardedRelayerEntriesAtInboundLane = MaxUnrewardedRelayerEntriesAtInboundLane;
 	type MaxUnconfirmedMessagesAtInboundLane = MaxUnconfirmedMessagesAtInboundLane;
@@ -492,9 +502,7 @@ impl pallet_bridge_messages::Config<WithRialtoParachainMessagesInstance> for Run
 		frame_support::traits::ConstU64<100_000>,
 	>;
 
-	type SourceHeaderChain = crate::rialto_parachain_messages::RialtoParachainAsSourceHeaderChain;
 	type MessageDispatch = crate::rialto_parachain_messages::FromRialtoParachainMessageDispatch;
-	type BridgedChainId = RialtoParachainChainId;
 }
 
 parameter_types! {
@@ -999,6 +1007,7 @@ impl_runtime_apis! {
 				source_chain::FromBridgedChainMessagesDeliveryProof,
 				target_chain::FromBridgedChainMessagesProof,
 			};
+			use bp_runtime::Chain;
 			use bridge_runtime_common::messages_benchmarking::{
 				prepare_message_delivery_proof_from_grandpa_chain,
 				prepare_message_delivery_proof_from_parachain,

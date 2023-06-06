@@ -24,7 +24,7 @@ use crate::messages_call_ext::{
 };
 use bp_messages::{LaneId, MessageNonce};
 use bp_relayers::{RewardsAccountOwner, RewardsAccountParams};
-use bp_runtime::{Parachain, ParachainIdOf, RangeInclusiveExt, StaticStrProvider};
+use bp_runtime::{Chain, Parachain, ParachainIdOf, RangeInclusiveExt, StaticStrProvider};
 use codec::{Decode, Encode};
 use frame_support::{
 	dispatch::{CallableCallFor, DispatchInfo, Dispatchable, PostDispatchInfo},
@@ -346,7 +346,7 @@ where
 		// => let's prepare the correspondent account that pays reward/receives slashed amount
 		let reward_account_params = RewardsAccountParams::new(
 			Msgs::Id::get(),
-			Runtime::BridgedChainId::get(),
+			<Runtime as MessagesConfig<Msgs::Instance>>::BridgedChain::ID,
 			if call_info.is_receive_messages_proof_call() {
 				RewardsAccountOwner::ThisChain
 			} else {
