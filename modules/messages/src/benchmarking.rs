@@ -25,15 +25,16 @@ use crate::{
 
 use bp_messages::{
 	source_chain::FromBridgedChainMessagesDeliveryProof,
-	target_chain::FromBridgedChainMessagesProof, DeliveredMessages, InboundLaneData, LaneId,
-	MessageNonce, OutboundLaneData, UnrewardedRelayer, UnrewardedRelayersState,
+	target_chain::FromBridgedChainMessagesProof, ChainWithMessages, DeliveredMessages,
+	InboundLaneData, LaneId, MessageNonce, OutboundLaneData, UnrewardedRelayer,
+	UnrewardedRelayersState,
 };
 use bp_runtime::{HashOf, StorageProofSize};
 use codec::Decode;
 use frame_benchmarking::{account, v2::*};
 use frame_support::weights::Weight;
 use frame_system::RawOrigin;
-use sp_runtime::traits::{Get, TrailingZeroInput};
+use sp_runtime::traits::TrailingZeroInput;
 use sp_std::{ops::RangeInclusive, prelude::*};
 
 const SEED: u32 = 0;
@@ -187,7 +188,7 @@ mod benchmarks {
 	//
 
 	fn max_msgs<T: Config<I>, I: 'static>() -> u32 {
-		T::MAX_UNCONFIRMED_MESSAGES_IN_CONFIRMATION_TX as u32 -
+		T::BridgedChain::MAX_UNCONFIRMED_MESSAGES_IN_CONFIRMATION_TX as u32 -
 			ReceiveMessagesProofSetup::<T, I>::LATEST_RECEIVED_NONCE as u32
 	}
 
