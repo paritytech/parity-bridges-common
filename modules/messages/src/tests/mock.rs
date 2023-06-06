@@ -28,16 +28,13 @@ use crate::{
 use bp_header_chain::{ChainWithGrandpa, StoredHeaderData};
 use bp_messages::{
 	calc_relayers_rewards,
-	source_chain::{
-		DeliveryConfirmationPayments, FromBridgedChainMessagesDeliveryProof, TargetHeaderChain,
-	},
+	source_chain::{DeliveryConfirmationPayments, FromBridgedChainMessagesDeliveryProof},
 	target_chain::{
 		DeliveryPayments, DispatchMessage, DispatchMessageData, FromBridgedChainMessagesProof,
 		MessageDispatch,
 	},
 	ChainWithMessages, DeliveredMessages, InboundLaneData, LaneId, Message, MessageKey,
 	MessageNonce, MessagePayload, OutboundLaneData, UnrewardedRelayer, UnrewardedRelayersState,
-	VerificationError,
 };
 use bp_runtime::{messages::MessageDispatchResult, Chain, ChainId, Size, StorageProofSize};
 use codec::{Decode, Encode};
@@ -256,7 +253,6 @@ impl Config for TestRuntime {
 	type InboundRelayer = TestRelayer;
 	type DeliveryPayments = TestDeliveryPayments;
 
-	type TargetHeaderChain = TestTargetHeaderChain;
 	type DeliveryConfirmationPayments = TestDeliveryConfirmationPayments;
 
 	type MessageDispatch = TestMessageDispatch;
@@ -318,9 +314,6 @@ pub const TEST_RELAYER_B: AccountId = 101;
 /// Account id of additional test relayer - C.
 pub const TEST_RELAYER_C: AccountId = 102;
 
-/// Error that is returned by all test implementations.
-pub const TEST_ERROR: &str = "Test error";
-
 /// Lane that we're using in tests.
 pub const TEST_LANE_ID: LaneId = LaneId([0, 0, 0, 1]);
 
@@ -332,31 +325,6 @@ pub const TEST_LANE_ID_3: LaneId = LaneId([0, 0, 0, 3]);
 
 /// Regular message payload.
 pub const REGULAR_PAYLOAD: TestPayload = message_payload(0, 50);
-
-/// Payload that is rejected by `TestTargetHeaderChain`.
-pub const PAYLOAD_REJECTED_BY_TARGET_CHAIN: TestPayload = message_payload(1, 50);
-
-/// Target header chain that is used in tests.
-#[derive(Debug, Default)]
-pub struct TestTargetHeaderChain;
-
-impl TargetHeaderChain<TestPayload, TestRelayer> for TestTargetHeaderChain {
-	type MessagesDeliveryProof = FromBridgedChainMessagesDeliveryProof<BridgedHeaderHash>;
-
-	fn verify_message(payload: &TestPayload) -> Result<(), VerificationError> {
-		if *payload == PAYLOAD_REJECTED_BY_TARGET_CHAIN {
-			Err(VerificationError::Other(TEST_ERROR))
-		} else {
-			Ok(())
-		}
-	}
-
-	fn verify_messages_delivery_proof(
-		_proof: Self::MessagesDeliveryProof,
-	) -> Result<(LaneId, InboundLaneData<TestRelayer>), VerificationError> {
-		unimplemented!("TODO: remove me")
-	}
-}
 
 /// Reward payments at the target chain during delivery transaction.
 #[derive(Debug, Default)]

@@ -121,23 +121,6 @@ The pallet provides no means to get the result of message dispatch at the target
 required, it must be done outside of the pallet. For example, XCM messages, when dispatched, have
 special instructions to send some data back to the sender. Other dispatchers may use similar
 mechanism for that.
-### How to plug-in Messages Module to Send Messages to the Bridged Chain?
-
-The `pallet_bridge_messages::Config` trait has 3 main associated types that are used to work with
-outbound messages. The `pallet_bridge_messages::Config::TargetHeaderChain` defines how we see the
-bridged chain as the target for our outbound messages. It must be able to check that the bridged
-chain may accept our message - like that the message has size below maximal possible transaction
-size of the chain and so on. And when the relayer sends us a confirmation transaction, this
-implementation must be able to parse and verify the proof of messages delivery. Normally, you would
-reuse the same (configurable) type on all chains that are sending messages to the same bridged
-chain.
-
-The last type is the `pallet_bridge_messages::Config::DeliveryConfirmationPayments`. When confirmation
-transaction is received, we call the `pay_reward()` method, passing the range of delivered messages.
-You may use the [`pallet-bridge-relayers`](../relayers/) pallet and its
-[`DeliveryConfirmationPaymentsAdapter`](../relayers/src/payment_adapter.rs) adapter as a possible
-implementation. It allows you to pay fixed reward for relaying the message and some of its portion
-for confirming delivery.
 
 ### I have a Messages Module in my Runtime, but I Want to Reject all Outbound Messages. What shall I do?
 
@@ -152,6 +135,13 @@ inbound messages. The `pallet_bridge_messages::BridgedChain` defines basic primi
 chain. The `pallet_bridge_messages::BridgedHeaderChain` defines the way we access the bridged chain
 headers in our runtime. You may use `pallet_bridge_grandpa` if you're bridging with chain thatuses
 GRANDPA finality or `pallet_bridge_parachains::ParachainHeaders` if you're bridging with parachain.
+
+The last type is the `pallet_bridge_messages::Config::DeliveryConfirmationPayments`. When confirmation
+transaction is received, we call the `pay_reward()` method, passing the range of delivered messages.
+You may use the [`pallet-bridge-relayers`](../relayers/) pallet and its
+[`DeliveryConfirmationPaymentsAdapter`](../relayers/src/payment_adapter.rs) adapter as a possible
+implementation. It allows you to pay fixed reward for relaying the message and some of its portion
+for confirming delivery.
 
 The `pallet_bridge_messages::Config::MessageDispatch` defines a way on how to dispatch delivered
 messages. Apart from actually dispatching the message, the implementation must return the correct

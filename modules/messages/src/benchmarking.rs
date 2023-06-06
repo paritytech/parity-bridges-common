@@ -24,9 +24,8 @@ use crate::{
 };
 
 use bp_messages::{
-	source_chain::TargetHeaderChain, target_chain::FromBridgedChainMessagesProof,
-	DeliveredMessages, InboundLaneData, LaneId, MessageNonce, OutboundLaneData, UnrewardedRelayer,
-	UnrewardedRelayersState,
+	target_chain::FromBridgedChainMessagesProof, DeliveredMessages, InboundLaneData, LaneId,
+	MessageNonce, OutboundLaneData, UnrewardedRelayer, UnrewardedRelayersState,
 };
 use bp_runtime::{HashOf, StorageProofSize};
 use codec::Decode;
@@ -100,7 +99,7 @@ pub trait Config<I: 'static>: crate::Config<I> {
 	/// Prepare messages delivery proof to receive by the module.
 	fn prepare_message_delivery_proof(
 		params: MessageDeliveryProofParams<Self::AccountId>,
-	) -> <Self::TargetHeaderChain as TargetHeaderChain<Self::OutboundPayload, Self::AccountId>>::MessagesDeliveryProof;
+	) -> FromBridgedChainMessagesDeliveryProof<HashOf<BridgedChainOf<Self, I>>>;
 
 	/// Returns true if message has been successfully dispatched or not.
 	fn is_message_successfully_dispatched(_nonce: MessageNonce) -> bool {

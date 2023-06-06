@@ -53,6 +53,32 @@ pub trait ChainWithMessages: Chain {
 	/// Maximal number of unconfirmed messages in a single confirmation transaction at this
 	/// `ChainWithMessages`.
 	const MAX_UNCONFIRMED_MESSAGES_IN_CONFIRMATION_TX: MessageNonce;
+
+	/// Return maximal dispatch weight of the message we're able to receive.
+	fn maximal_incoming_message_dispatch_weight() -> Weight {
+		// we leave 1/2 of `max_extrinsic_weight` for the delivery transaction itself
+		Self::max_extrinsic_weight() / 2
+	}
+
+	/// Return maximal size of the message we're able to receive.
+	fn maximal_incoming_message_size() -> u32 {
+		maximal_incoming_message_size(Self::max_extrinsic_size())
+	}
+}
+
+/// Return maximal size of the message the chain with `max_extrinsic_size` is able to receive.
+pub fn maximal_incoming_message_size(max_extrinsic_size: u32) -> u32 {
+	// The maximal size of extrinsic at Substrate-based chain depends on the
+	// `frame_system::Config::MaximumBlockLength` and
+	// `frame_system::Config::AvailableBlockRatio` constants. This check is here to be sure that
+	// the lane won't stuck because message is too large to fit into delivery transaction.
+	//
+	// **IMPORTANT NOTE**: the delivery transaction contains storage proof of the message, not
+	// the message itself. The proof is always larger than the message. But unless chain state
+	// is enormously large, it should be several dozens/hundreds of bytes. The delivery
+	// transaction also contains signatures and signed extensions. Because of this, we reserve
+	// 1/3 of the the maximal extrinsic size for this data.
+	max_extrinsic_size / 3 * 2
 }
 
 impl<T> ChainWithMessages for T

@@ -237,19 +237,6 @@ fn send_message_rejects_too_large_message() {
 }
 
 #[test]
-fn chain_verifier_rejects_invalid_message_in_send_message() {
-	run_test(|| {
-		// messages with this payload are rejected by target chain verifier
-		assert_noop!(
-			send_message::<TestRuntime, ()>(TEST_LANE_ID, PAYLOAD_REJECTED_BY_TARGET_CHAIN,),
-			Error::<TestRuntime, ()>::MessageRejectedByChainVerifier(VerificationError::Other(
-				mock::TEST_ERROR
-			)),
-		);
-	});
-}
-
-#[test]
 fn receive_messages_proof_works() {
 	run_test(|| {
 		assert_ok!(Pallet::<TestRuntime>::receive_messages_proof(

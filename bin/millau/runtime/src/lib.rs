@@ -458,7 +458,6 @@ impl pallet_bridge_messages::Config<WithRialtoMessagesInstance> for Runtime {
 	type InboundRelayer = bp_rialto::AccountId;
 	type DeliveryPayments = ();
 
-	type TargetHeaderChain = crate::rialto_messages::RialtoAsTargetHeaderChain;
 	type DeliveryConfirmationPayments = pallet_bridge_relayers::DeliveryConfirmationPaymentsAdapter<
 		Runtime,
 		WithRialtoMessagesInstance,
@@ -495,7 +494,6 @@ impl pallet_bridge_messages::Config<WithRialtoParachainMessagesInstance> for Run
 	type InboundRelayer = bp_rialto_parachain::AccountId;
 	type DeliveryPayments = ();
 
-	type TargetHeaderChain = crate::rialto_parachain_messages::RialtoParachainAsTargetHeaderChain;
 	type DeliveryConfirmationPayments = pallet_bridge_relayers::DeliveryConfirmationPaymentsAdapter<
 		Runtime,
 		WithRialtoParachainMessagesInstance,
