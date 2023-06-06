@@ -134,9 +134,7 @@ pub(crate) fn compute_maximal_message_size(
 	let maximal_source_extrinsic_size =
 		maximal_source_extrinsic_size - service_tx_bytes_on_source_chain;
 	let maximal_message_size =
-		bridge_runtime_common::messages::target::maximal_incoming_message_size(
-			maximal_target_extrinsic_size,
-		);
+		bp_messages::maximal_incoming_message_size(maximal_target_extrinsic_size);
 	std::cmp::min(maximal_message_size, maximal_source_extrinsic_size)
 }
 

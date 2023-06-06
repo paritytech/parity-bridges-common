@@ -19,9 +19,9 @@
 //! Most of the tests in this module assume that the bridge is using standard (see `crate::messages`
 //! module for details) configuration.
 
-use crate::{messages, messages::MessageBridge};
+use crate::messages::MessageBridge;
 
-use bp_messages::{InboundLaneData, MessageNonce};
+use bp_messages::{ChainWithMessages, InboundLaneData, MessageNonce};
 use bp_runtime::{Chain, ChainId};
 use codec::Encode;
 use frame_support::{storage::generator::StorageValue, traits::Get, weights::Weight};
@@ -82,7 +82,7 @@ macro_rules! assert_bridge_messages_pallet_types(
 			// configuration is used), or something has broke existing configuration (meaning that all bridged chains
 			// and relays will stop functioning)
 			use $crate::messages::{
-				source::{FromThisChainMessagePayload, TargetHeaderChainAdapter},
+				source::FromThisChainMessagePayload,
 				target::FromBridgedChainMessagePayload,
 				AccountIdOf, BalanceOf, BridgedChain, ThisChain,
 			};
@@ -92,8 +92,6 @@ macro_rules! assert_bridge_messages_pallet_types(
 			assert_type_eq_all!(<$r as MessagesConfig<$i>>::OutboundPayload, FromThisChainMessagePayload);
 
 			assert_type_eq_all!(<$r as MessagesConfig<$i>>::InboundRelayer, AccountIdOf<BridgedChain<$bridge>>);
-
-			assert_type_eq_all!(<$r as MessagesConfig<$i>>::TargetHeaderChain, TargetHeaderChainAdapter<$bridge>);
 
 			// TODO: https://github.com/paritytech/parity-bridges-common/issues/1666: check ThisChain, BridgedChain
 			// and BridgedHeaderChain types
@@ -293,7 +291,7 @@ where
 
 /// Check that the message lane weights are correct.
 pub fn check_message_lane_weights<
-	C: Chain,
+	C: ChainWithMessages,
 	T: frame_system::Config + pallet_bridge_messages::Config<MessagesPalletInstance>,
 	MessagesPalletInstance: 'static,
 >(
@@ -312,13 +310,13 @@ pub fn check_message_lane_weights<
 	pallet_bridge_messages::ensure_weights_are_correct::<Weights<T, MessagesPalletInstance>>();
 
 	// check that weights allow us to receive messages
-	let max_incoming_message_proof_size = bridged_chain_extra_storage_proof_size
-		.saturating_add(messages::target::maximal_incoming_message_size(C::max_extrinsic_size()));
+	let max_incoming_message_proof_size =
+		bridged_chain_extra_storage_proof_size.saturating_add(C::maximal_incoming_message_size());
 	pallet_bridge_messages::ensure_able_to_receive_message::<Weights<T, MessagesPalletInstance>>(
 		C::max_extrinsic_size(),
 		C::max_extrinsic_weight(),
 		max_incoming_message_proof_size,
-		messages::target::maximal_incoming_message_dispatch_weight(C::max_extrinsic_weight()),
+		C::maximal_incoming_message_dispatch_weight(),
 	);
 
 	// check that weights allow us to receive delivery confirmations

@@ -27,7 +27,6 @@ use crate::{
 
 use async_std::sync::Arc;
 use bp_messages::{
-	source_chain::FromBridgedChainMessagesDeliveryProof,
 	target_chain::FromBridgedChainMessagesProof, ChainWithMessages as _, LaneId, MessageNonce,
 };
 use bp_runtime::{
@@ -394,11 +393,7 @@ where
 	P: SubstrateMessageLane,
 	R: BridgeMessagesConfig<I>,
 	I: 'static,
-	R::TargetHeaderChain: bp_messages::source_chain::TargetHeaderChain<
-		R::OutboundPayload,
-		R::AccountId,
-		MessagesDeliveryProof = FromBridgedChainMessagesDeliveryProof<HashOf<P::TargetChain>>,
-	>,
+	R::BridgedChain: bp_runtime::Chain<Hash = HashOf<P::TargetChain>>,
 	CallOf<P::SourceChain>: From<BridgeMessagesCall<R, I>> + GetDispatchInfo,
 {
 	fn build_receive_messages_delivery_proof_call(

@@ -19,7 +19,8 @@
 
 use crate::{
 	tests::messages_generation::{
-		encode_all_messages, encode_lane_data, prepare_messages_storage_proof,
+		encode_all_messages, encode_lane_data, prepare_message_delivery_storage_proof,
+		prepare_messages_storage_proof,
 	},
 	Config,
 };
@@ -27,14 +28,13 @@ use crate::{
 use bp_header_chain::{ChainWithGrandpa, StoredHeaderData};
 use bp_messages::{
 	calc_relayers_rewards,
-	source_chain::{DeliveryConfirmationPayments, TargetHeaderChain},
+	source_chain::{DeliveryConfirmationPayments, FromBridgedChainMessagesDeliveryProof},
 	target_chain::{
 		DeliveryPayments, DispatchMessage, DispatchMessageData, FromBridgedChainMessagesProof,
 		MessageDispatch,
 	},
 	ChainWithMessages, DeliveredMessages, InboundLaneData, LaneId, Message, MessageKey,
 	MessageNonce, MessagePayload, OutboundLaneData, UnrewardedRelayer, UnrewardedRelayersState,
-	VerificationError,
 };
 use bp_runtime::{messages::MessageDispatchResult, Chain, ChainId, Size, StorageProofSize};
 use codec::{Decode, Encode};
@@ -253,7 +253,6 @@ impl Config for TestRuntime {
 	type InboundRelayer = TestRelayer;
 	type DeliveryPayments = TestDeliveryPayments;
 
-	type TargetHeaderChain = TestTargetHeaderChain;
 	type DeliveryConfirmationPayments = TestDeliveryConfirmationPayments;
 
 	type MessageDispatch = TestMessageDispatch;
@@ -283,10 +282,10 @@ impl crate::benchmarking::Config<()> for TestRuntime {
 
 	fn prepare_message_delivery_proof(
 		params: crate::benchmarking::MessageDeliveryProofParams<AccountId>,
-	) -> TestMessagesDeliveryProof {
+	) -> FromBridgedChainMessagesDeliveryProof<BridgedHeaderHash> {
 		// in mock run we only care about benchmarks correctness, not the benchmark results
 		// => ignore size related arguments
-		TestMessagesDeliveryProof(Ok((params.lane, params.inbound_lane_data)))
+		prepare_messages_delivery_proof(params.lane, params.inbound_lane_data)
 	}
 
 	fn is_relayer_rewarded(_relayer: &AccountId) -> bool {
@@ -315,9 +314,6 @@ pub const TEST_RELAYER_B: AccountId = 101;
 /// Account id of additional test relayer - C.
 pub const TEST_RELAYER_C: AccountId = 102;
 
-/// Error that is returned by all test implementations.
-pub const TEST_ERROR: &str = "Test error";
-
 /// Lane that we're using in tests.
 pub const TEST_LANE_ID: LaneId = LaneId([0, 0, 0, 1]);
 
@@ -329,41 +325,6 @@ pub const TEST_LANE_ID_3: LaneId = LaneId([0, 0, 0, 3]);
 
 /// Regular message payload.
 pub const REGULAR_PAYLOAD: TestPayload = message_payload(0, 50);
-
-/// Payload that is rejected by `TestTargetHeaderChain`.
-pub const PAYLOAD_REJECTED_BY_TARGET_CHAIN: TestPayload = message_payload(1, 50);
-
-/// Messages delivery proof used in tests.
-#[derive(Debug, Encode, Decode, Eq, Clone, PartialEq, TypeInfo)]
-pub struct TestMessagesDeliveryProof(pub Result<(LaneId, InboundLaneData<TestRelayer>), ()>);
-
-impl Size for TestMessagesDeliveryProof {
-	fn size(&self) -> u32 {
-		0
-	}
-}
-
-/// Target header chain that is used in tests.
-#[derive(Debug, Default)]
-pub struct TestTargetHeaderChain;
-
-impl TargetHeaderChain<TestPayload, TestRelayer> for TestTargetHeaderChain {
-	type MessagesDeliveryProof = TestMessagesDeliveryProof;
-
-	fn verify_message(payload: &TestPayload) -> Result<(), VerificationError> {
-		if *payload == PAYLOAD_REJECTED_BY_TARGET_CHAIN {
-			Err(VerificationError::Other(TEST_ERROR))
-		} else {
-			Ok(())
-		}
-	}
-
-	fn verify_messages_delivery_proof(
-		proof: Self::MessagesDeliveryProof,
-	) -> Result<(LaneId, InboundLaneData<TestRelayer>), VerificationError> {
-		proof.0.map_err(|_| VerificationError::Other(TEST_ERROR))
-	}
-}
 
 /// Reward payments at the target chain during delivery transaction.
 #[derive(Debug, Default)]
@@ -552,5 +513,34 @@ pub fn prepare_messages_proof(
 		lane,
 		nonces_start,
 		nonces_end,
+	}
+}
+
+/// Prepare valid storage proof for given messages and insert appropriate header to the
+/// bridged header chain.
+///
+/// Since this function changes the runtime storage, you can't "inline" it in the
+/// `asset_noop` macro calls.
+pub fn prepare_messages_delivery_proof(
+	lane: LaneId,
+	inbound_lane_data: InboundLaneData<AccountId>,
+) -> FromBridgedChainMessagesDeliveryProof<BridgedHeaderHash> {
+	// first - let's generate storage proof
+	let (storage_root, storage_proof) = prepare_message_delivery_storage_proof::<
+		BridgedChain,
+		ThisChain,
+	>(lane, inbound_lane_data, StorageProofSize::Minimal(0));
+
+	// let's now insert bridged chain header into the storage
+	let bridged_header_hash = Default::default();
+	pallet_bridge_grandpa::ImportedHeaders::<TestRuntime>::insert(
+		bridged_header_hash,
+		StoredHeaderData { number: 0, state_root: storage_root },
+	);
+
+	FromBridgedChainMessagesDeliveryProof::<BridgedHeaderHash> {
+		bridged_header_hash,
+		storage_proof,
+		lane,
 	}
 }

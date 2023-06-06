@@ -121,16 +121,18 @@ The pallet provides no means to get the result of message dispatch at the target
 required, it must be done outside of the pallet. For example, XCM messages, when dispatched, have
 special instructions to send some data back to the sender. Other dispatchers may use similar
 mechanism for that.
-### How to plug-in Messages Module to Send Messages to the Bridged Chain?
 
-The `pallet_bridge_messages::Config` trait has 3 main associated types that are used to work with
-outbound messages. The `pallet_bridge_messages::Config::TargetHeaderChain` defines how we see the
-bridged chain as the target for our outbound messages. It must be able to check that the bridged
-chain may accept our message - like that the message has size below maximal possible transaction
-size of the chain and so on. And when the relayer sends us a confirmation transaction, this
-implementation must be able to parse and verify the proof of messages delivery. Normally, you would
-reuse the same (configurable) type on all chains that are sending messages to the same bridged
-chain.
+### How to plug-in Messages Module to Send and Receive Messages from the Bridged Chain?
+
+The `pallet_bridge_messages::Config` trait has 2 main associated types that are used to work with
+inbound messages. The `pallet_bridge_messages::BridgedChain` defines basic primitives of the bridged
+chain. The `pallet_bridge_messages::BridgedHeaderChain` defines the way we access the bridged chain
+headers in our runtime. You may use `pallet_bridge_grandpa` if you're bridging with chain that uses
+GRANDPA finality or `pallet_bridge_parachains::ParachainHeaders` if you're bridging with parachain.
+
+The `pallet_bridge_messages::Config::MessageDispatch` defines a way on how to dispatch delivered
+messages. Apart from actually dispatching the message, the implementation must return the correct
+dispatch weight of the message before dispatch is called.
 
 The last type is the `pallet_bridge_messages::Config::DeliveryConfirmationPayments`. When confirmation
 transaction is received, we call the `pay_reward()` method, passing the range of delivered messages.
@@ -144,18 +146,6 @@ for confirming delivery.
 You should be looking at the `bp_messages::source_chain::ForbidOutboundMessages` structure
 [`bp_messages::source_chain`](../../primitives/messages/src/source_chain.rs). It implements
 all required traits and will simply reject all transactions, related to outbound messages.
-
-### How to plug-in Messages Module to Receive Messages from the Bridged Chain?
-
-The `pallet_bridge_messages::Config` trait has 2 main associated types that are used to work with
-inbound messages. The `pallet_bridge_messages::BridgedChain` defines basic primitives of the bridged
-chain. The `pallet_bridge_messages::BridgedHeaderChain` defines the way we access the bridged chain
-headers in our runtime. You may use `pallet_bridge_grandpa` if you're bridging with chain thatuses
-GRANDPA finality or `pallet_bridge_parachains::ParachainHeaders` if you're bridging with parachain.
-
-The `pallet_bridge_messages::Config::MessageDispatch` defines a way on how to dispatch delivered
-messages. Apart from actually dispatching the message, the implementation must return the correct
-dispatch weight of the message before dispatch is called.
 
 ### I have a Messages Module in my Runtime, but I Want to Reject all Inbound Messages. What shall I do?
 
