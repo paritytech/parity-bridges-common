@@ -24,8 +24,8 @@
 #![cfg(test)]
 
 use crate::messages::{
-	source::{FromThisChainMaximalOutboundPayloadSize, FromThisChainMessagePayload},
-	BridgedChainWithMessages, HashOf, MessageBridge, ThisChainWithMessages,
+	source::FromThisChainMessagePayload, BridgedChainWithMessages, HashOf, MessageBridge,
+	ThisChainWithMessages,
 };
 
 use bp_header_chain::{ChainWithGrandpa, HeaderChain};
@@ -227,7 +227,6 @@ impl pallet_bridge_messages::Config for TestRuntime {
 	type WeightInfo = pallet_bridge_messages::weights::BridgeWeight<TestRuntime>;
 	type ActiveOutboundLanes = ActiveOutboundLanes;
 
-	type MaximalOutboundPayloadSize = FromThisChainMaximalOutboundPayloadSize<OnThisChainBridge>;
 	type OutboundPayload = FromThisChainMessagePayload;
 
 	type InboundPayload = Vec<u8>;

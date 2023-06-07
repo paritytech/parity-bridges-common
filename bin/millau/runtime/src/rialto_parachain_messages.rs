@@ -57,10 +57,6 @@ pub type FromRialtoParachainMessageDispatch =
 		(),
 	>;
 
-/// Maximal outbound payload size of Millau -> RialtoParachain messages.
-pub type ToRialtoParachainMaximalOutboundPayloadSize =
-	messages::source::FromThisChainMaximalOutboundPayloadSize<WithRialtoParachainMessageBridge>;
-
 /// Millau <-> RialtoParachain message bridge.
 #[derive(RuntimeDebug, Clone, Copy)]
 pub struct WithRialtoParachainMessageBridge;

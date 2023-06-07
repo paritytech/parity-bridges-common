@@ -424,7 +424,6 @@ impl pallet_bridge_messages::Config<WithMillauMessagesInstance> for Runtime {
 
 	type ActiveOutboundLanes = ActiveOutboundLanes;
 
-	type MaximalOutboundPayloadSize = crate::millau_messages::ToMillauMaximalOutboundPayloadSize;
 	type OutboundPayload = crate::millau_messages::ToMillauMessagePayload;
 
 	type InboundPayload = crate::millau_messages::FromMillauMessagePayload;

@@ -217,20 +217,21 @@ fn send_message_rejects_too_large_message() {
 	run_test(|| {
 		let mut message_payload = message_payload(1, 0);
 		// the payload isn't simply extra, so it'll definitely overflow
-		// `MAX_OUTBOUND_PAYLOAD_SIZE` if we add `MAX_OUTBOUND_PAYLOAD_SIZE` bytes to extra
+		// `max_outbound_payload_size` if we add `max_outbound_payload_size` bytes to extra
+		let max_outbound_payload_size = BridgedChain::maximal_incoming_message_size();
 		message_payload
 			.extra
-			.extend_from_slice(&[0u8; MAX_OUTBOUND_PAYLOAD_SIZE as usize]);
+			.extend_from_slice(&vec![0u8; max_outbound_payload_size as usize]);
 		assert_noop!(
 			send_message::<TestRuntime, ()>(TEST_LANE_ID, message_payload.clone(),),
 			Error::<TestRuntime, ()>::MessageRejectedByPallet(VerificationError::MessageTooLarge),
 		);
 
-		// let's check that we're able to send `MAX_OUTBOUND_PAYLOAD_SIZE` messages
-		while message_payload.encoded_size() as u32 > MAX_OUTBOUND_PAYLOAD_SIZE {
+		// let's check that we're able to send `max_outbound_payload_size` messages
+		while message_payload.encoded_size() as u32 > max_outbound_payload_size {
 			message_payload.extra.pop();
 		}
-		assert_eq!(message_payload.encoded_size() as u32, MAX_OUTBOUND_PAYLOAD_SIZE);
+		assert_eq!(message_payload.encoded_size() as u32, max_outbound_payload_size);
 		assert_ok!(send_message::<TestRuntime, ()>(TEST_LANE_ID, message_payload,),);
 	})
 }
