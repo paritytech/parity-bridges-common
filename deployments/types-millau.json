@@ -77,7 +77,6 @@
     "lane_id": "LaneId",
     "nonce:": "MessageNonce"
   },
-  "InboundRelayer": "AccountId",
   "InboundLaneData": {
     "relayers": "Vec<UnrewardedRelayer>",
     "last_confirmed_nonce": "MessageNonce"

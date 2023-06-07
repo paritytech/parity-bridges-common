@@ -446,11 +446,9 @@ impl pallet_bridge_messages::Config<WithRialtoMessagesInstance> for Runtime {
 	type ActiveOutboundLanes = RialtoActiveOutboundLanes;
 
 	type OutboundPayload = bridge_runtime_common::messages_xcm_extension::XcmAsPlainPayload;
-
 	type InboundPayload = bridge_runtime_common::messages_xcm_extension::XcmAsPlainPayload;
-	type InboundRelayer = bp_rialto::AccountId;
-	type DeliveryPayments = ();
 
+	type DeliveryPayments = ();
 	type DeliveryConfirmationPayments = pallet_bridge_relayers::DeliveryConfirmationPaymentsAdapter<
 		Runtime,
 		WithRialtoMessagesInstance,
@@ -478,11 +476,9 @@ impl pallet_bridge_messages::Config<WithRialtoParachainMessagesInstance> for Run
 	type ActiveOutboundLanes = RialtoParachainActiveOutboundLanes;
 
 	type OutboundPayload = bridge_runtime_common::messages_xcm_extension::XcmAsPlainPayload;
-
 	type InboundPayload = bridge_runtime_common::messages_xcm_extension::XcmAsPlainPayload;
-	type InboundRelayer = bp_rialto_parachain::AccountId;
-	type DeliveryPayments = ();
 
+	type DeliveryPayments = ();
 	type DeliveryConfirmationPayments = pallet_bridge_relayers::DeliveryConfirmationPaymentsAdapter<
 		Runtime,
 		WithRialtoParachainMessagesInstance,
