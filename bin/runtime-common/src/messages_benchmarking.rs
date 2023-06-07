@@ -235,66 +235,6 @@ where
 	}
 }
 
-/// Prepare in-memory message delivery proof, without inserting anything to the runtime storage.
-fn prepare_message_delivery_proof<R, MI>(
-	params: MessageDeliveryProofParams<AccountIdOf<ThisChainOf<R, MI>>>,
-) -> (HashOf<BridgedChainOf<R, MI>>, UntrustedVecDb)
-where
-	R: pallet_bridge_messages::Config<MI>,
-	MI: 'static,
-{
-	match BridgedChainOf::<R, MI>::STATE_VERSION {
-		StateVersion::V0 =>
-			do_prepare_message_delivery_proof::<R, MI, LayoutV0<HasherOf<BridgedChainOf<R, MI>>>>(
-				params,
-			),
-		StateVersion::V1 =>
-			do_prepare_message_delivery_proof::<R, MI, LayoutV1<HasherOf<BridgedChainOf<R, MI>>>>(
-				params,
-			),
-	}
-}
-
-/// Prepare in-memory message delivery proof, without inserting anything to the runtime storage.
-fn do_prepare_message_delivery_proof<
-	R,
-	MI,
-	L: TrieConfiguration<Hash = HasherOf<BridgedChainOf<R, MI>>>,
->(
-	params: MessageDeliveryProofParams<AccountIdOf<ThisChainOf<R, MI>>>,
-) -> (HashOf<BridgedChainOf<R, MI>>, UntrustedVecDb)
-where
-	R: pallet_bridge_messages::Config<MI>,
-	MI: 'static,
-{
-	// prepare Bridged chain storage with inbound lane state
-	let storage_key = storage_keys::inbound_lane_data_key(
-		R::ThisChain::WITH_CHAIN_MESSAGES_PALLET_NAME,
-		&params.lane,
-	)
-	.0;
-	let mut root = Default::default();
-	let mut mdb = MemoryDB::default();
-	{
-		let mut trie = TrieDBMutBuilder::<L>::new(&mut mdb, &mut root).build();
-		let inbound_lane_data =
-			grow_trie_leaf_value(params.inbound_lane_data.encode(), params.size);
-		trie.insert(&storage_key, &inbound_lane_data)
-			.map_err(|_| "TrieMut::insert has failed")
-			.expect("TrieMut::insert should not fail in benchmarks");
-	}
-
-	// generate storage proof to be delivered to This chain
-	let storage_proof = UntrustedVecDb::try_from_db::<HasherOf<BridgedChainOf<R, MI>>, _>(
-		&mdb,
-		root,
-		vec![storage_key],
-	)
-	.expect("UntrustedVecDb::try_from_db() should not fail in benchmarks");
-
-	(root, storage_proof)
-}
-
 /// Insert header to the bridge GRANDPA pallet.
 pub(crate) fn insert_header_to_grandpa_pallet<R, GI>(
 	state_root: bp_runtime::HashOf<R::BridgedChain>,
