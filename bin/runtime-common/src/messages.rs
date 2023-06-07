@@ -26,8 +26,6 @@ pub use bp_runtime::{
 	Chain, RangeInclusiveExt, RawStorageProof, Size, TrustedVecDb, UnderlyingChainOf,
 	UnderlyingChainProvider, UntrustedVecDb,
 };
-use frame_support::traits::Get;
-use sp_std::marker::PhantomData;
 
 /// Bidirectional message bridge.
 pub trait MessageBridge {
@@ -70,24 +68,8 @@ pub type OriginOf<C> = <C as ThisChainWithMessages>::RuntimeOrigin;
 
 /// Sub-module that is declaring types required for processing This -> Bridged chain messages.
 pub mod source {
-	use super::*;
-
 	/// Message payload for This -> Bridged chain messages.
 	pub type FromThisChainMessagePayload = crate::messages_xcm_extension::XcmAsPlainPayload;
-
-	// TODO: https://github.com/paritytech/parity-bridges-common/issues/1666 remove me
-	/// Maximal size of outbound message payload.
-	pub struct FromThisChainMaximalOutboundPayloadSize<B>(PhantomData<B>);
-
-	impl<B: MessageBridge> Get<u32> for FromThisChainMaximalOutboundPayloadSize<B>
-	where
-		UnderlyingChainOf<BridgedChain<B>>: bp_messages::ChainWithMessages,
-	{
-		fn get() -> u32 {
-			use bp_messages::ChainWithMessages;
-			UnderlyingChainOf::<BridgedChain<B>>::maximal_incoming_message_size()
-		}
-	}
 }
 
 /// Sub-module that is declaring types required for processing Bridged -> This chain messages.
