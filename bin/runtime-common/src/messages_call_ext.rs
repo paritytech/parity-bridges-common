@@ -15,8 +15,9 @@
 // along with Parity Bridges Common.  If not, see <http://www.gnu.org/licenses/>.
 
 use bp_messages::{ChainWithMessages, InboundLaneData, LaneId, MessageNonce};
+use bp_runtime::AccountIdOf;
 use frame_support::{dispatch::CallableCallFor, traits::IsSubType, RuntimeDebug};
-use pallet_bridge_messages::{Config, Pallet};
+use pallet_bridge_messages::{BridgedChainOf, Config, Pallet};
 use sp_runtime::transaction_validity::TransactionValidity;
 use sp_std::ops::RangeInclusive;
 
@@ -287,7 +288,7 @@ impl<
 
 /// Returns occupation state of unrewarded relayers vector.
 fn unrewarded_relayers_occupation<T: Config<I>, I: 'static>(
-	inbound_lane_data: &InboundLaneData<T::InboundRelayer>,
+	inbound_lane_data: &InboundLaneData<AccountIdOf<BridgedChainOf<T, I>>>,
 ) -> UnrewardedRelayerOccupation {
 	UnrewardedRelayerOccupation {
 		free_relayer_slots: T::BridgedChain::MAX_UNREWARDED_RELAYERS_IN_CONFIRMATION_TX

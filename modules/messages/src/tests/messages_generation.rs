@@ -24,15 +24,13 @@ use bp_messages::{
 	MessagePayload, OutboundLaneData,
 };
 use bp_runtime::{
-	grow_trie_leaf_value, record_all_trie_keys, AccountIdOf, Chain, HashOf, HasherOf,
-	RangeInclusiveExt, StorageProofSize, UntrustedVecDb,
+	grow_trie_leaf_value, AccountIdOf, Chain, HashOf, HasherOf, RangeInclusiveExt,
+	StorageProofSize, UntrustedVecDb,
 };
 use codec::Encode;
 use frame_support::StateVersion;
 use sp_std::{ops::RangeInclusive, prelude::*};
-use sp_trie::{
-	LayoutV0, LayoutV1, MemoryDB, StorageProof, TrieConfiguration, TrieDBMutBuilder, TrieMut,
-};
+use sp_trie::{LayoutV0, LayoutV1, MemoryDB, TrieConfiguration, TrieDBMutBuilder, TrieMut};
 
 /// Dummy message generation function.
 pub fn generate_dummy_message(_: MessageNonce) -> MessagePayload {
@@ -202,15 +200,10 @@ where
 	}
 
 	// generate storage proof to be delivered to This chain
-	let read_proof = record_all_trie_keys::<L, _>(&mdb, &root)
-		.map_err(|_| "record_all_trie_keys has failed")
-		.expect("record_all_trie_keys should not fail in benchmarks");
-	let storage = UntrustedVecDb::try_new::<HasherOf<BridgedChain>>(
-		StorageProof::new(read_proof),
-		root,
-		storage_keys,
-	)
-	.unwrap();
+	let storage =
+		UntrustedVecDb::try_from_db::<HasherOf<BridgedChain>, _>(&mdb, root, storage_keys)
+			.expect("UntrustedVecDb::try_from_db() should not fail in benchmarks");
+
 	(root, storage)
 }
 
@@ -240,14 +233,8 @@ where
 	}
 
 	// generate storage proof to be delivered to This chain
-	let read_proof = record_all_trie_keys::<L, _>(&mdb, &root)
-		.map_err(|_| "record_all_trie_keys has failed")
-		.expect("record_all_trie_keys should not fail in benchmarks");
-	let storage = UntrustedVecDb::try_new::<HasherOf<BridgedChain>>(
-		StorageProof::new(read_proof),
-		root,
-		vec![storage_key],
-	)
-	.unwrap();
+	let storage =
+		UntrustedVecDb::try_from_db::<HasherOf<BridgedChain>, _>(&mdb, root, vec![storage_key])
+			.expect("UntrustedVecDb::try_from_db() should not fail in benchmarks");
 	(root, storage)
 }
