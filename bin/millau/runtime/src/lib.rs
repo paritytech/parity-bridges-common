@@ -445,9 +445,9 @@ impl pallet_bridge_messages::Config<WithRialtoMessagesInstance> for Runtime {
 
 	type ActiveOutboundLanes = RialtoActiveOutboundLanes;
 
-	type OutboundPayload = crate::rialto_messages::ToRialtoMessagePayload;
+	type OutboundPayload = bridge_runtime_common::messages_xcm_extension::XcmAsPlainPayload;
 
-	type InboundPayload = crate::rialto_messages::FromRialtoMessagePayload;
+	type InboundPayload = bridge_runtime_common::messages_xcm_extension::XcmAsPlainPayload;
 	type InboundRelayer = bp_rialto::AccountId;
 	type DeliveryPayments = ();
 
@@ -477,9 +477,9 @@ impl pallet_bridge_messages::Config<WithRialtoParachainMessagesInstance> for Run
 
 	type ActiveOutboundLanes = RialtoParachainActiveOutboundLanes;
 
-	type OutboundPayload = crate::rialto_parachain_messages::ToRialtoParachainMessagePayload;
+	type OutboundPayload = bridge_runtime_common::messages_xcm_extension::XcmAsPlainPayload;
 
-	type InboundPayload = crate::rialto_parachain_messages::FromRialtoParachainMessagePayload;
+	type InboundPayload = bridge_runtime_common::messages_xcm_extension::XcmAsPlainPayload;
 	type InboundRelayer = bp_rialto_parachain::AccountId;
 	type DeliveryPayments = ();
 
@@ -1015,8 +1015,6 @@ impl_runtime_apis! {
 				Pallet as RelayersBench,
 				Config as RelayersConfig,
 			};
-			use rialto_messages::WithRialtoMessageBridge;
-			use rialto_parachain_messages::WithRialtoParachainMessageBridge;
 
 			impl MessagesConfig<WithRialtoParachainMessagesInstance> for Runtime {
 				fn prepare_message_proof(
@@ -1025,7 +1023,7 @@ impl_runtime_apis! {
 					prepare_message_proof_from_parachain::<
 						Runtime,
 						WithRialtoParachainsInstance,
-						WithRialtoParachainMessageBridge,
+						WithRialtoParachainMessagesInstance,
 					>(params, xcm::v3::Junctions::Here)
 				}
 
@@ -1035,7 +1033,7 @@ impl_runtime_apis! {
 					prepare_message_delivery_proof_from_parachain::<
 						Runtime,
 						WithRialtoParachainsInstance,
-						WithRialtoParachainMessageBridge,
+						WithRialtoParachainMessagesInstance,
 					>(params)
 				}
 
@@ -1056,7 +1054,7 @@ impl_runtime_apis! {
 					prepare_message_proof_from_grandpa_chain::<
 						Runtime,
 						RialtoGrandpaInstance,
-						WithRialtoMessageBridge,
+						WithRialtoMessagesInstance,
 					>(params, xcm::v3::Junctions::Here)
 				}
 
@@ -1066,7 +1064,7 @@ impl_runtime_apis! {
 					prepare_message_delivery_proof_from_grandpa_chain::<
 						Runtime,
 						RialtoGrandpaInstance,
-						WithRialtoMessageBridge,
+						WithRialtoMessagesInstance,
 					>(params)
 				}
 

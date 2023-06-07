@@ -24,7 +24,6 @@ use pallet_bridge_parachains::CallSubType as ParachainsCallSubtype;
 use sp_runtime::transaction_validity::TransactionValidity;
 use xcm::v3::NetworkId;
 
-pub mod messages;
 pub mod messages_api;
 pub mod messages_benchmarking;
 pub mod messages_call_ext;
