@@ -568,9 +568,9 @@ impl pallet_bridge_messages::Config<WithMillauMessagesInstance> for Runtime {
 
 	type ActiveOutboundLanes = ActiveOutboundLanes;
 
-	type OutboundPayload = crate::millau_messages::ToMillauMessagePayload;
+	type OutboundPayload = bridge_runtime_common::messages_xcm_extension::XcmAsPlainPayload;
 
-	type InboundPayload = crate::millau_messages::FromMillauMessagePayload;
+	type InboundPayload = bridge_runtime_common::messages_xcm_extension::XcmAsPlainPayload;
 	type InboundRelayer = bp_millau::AccountId;
 	type DeliveryPayments = ();
 
