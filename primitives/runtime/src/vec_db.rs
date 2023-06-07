@@ -19,7 +19,7 @@
 use frame_support::{PalletError, StateVersion};
 use sp_core::{storage::TrackedStorageKey, RuntimeDebug};
 use sp_runtime::SaturatedConversion;
-use sp_std::{default::Default, vec, vec::Vec};
+use sp_std::{collections::btree_set::BTreeSet, default::Default, vec, vec::Vec};
 use sp_trie::{
 	generate_trie_proof, verify_trie_proof, LayoutV0, LayoutV1, MemoryDB, StorageProof,
 	TrieDBBuilder, TrieHash,
@@ -29,12 +29,12 @@ use codec::{Codec, Decode, Encode};
 use hash_db::Hasher;
 use scale_info::TypeInfo;
 use sp_state_machine::TrieBackend;
-use trie_db::{DBValue, Trie};
+use trie_db::{DBValue, Recorder, Trie};
 
-use crate::{
-	storage_proof::{record_all_keys, RawStorageProof},
-	Size,
-};
+use crate::Size;
+
+/// Raw storage proof type (just raw trie nodes).
+pub type RawStorageProof = Vec<Vec<u8>>;
 
 pub type RawStorageKey = Vec<u8>;
 
@@ -95,12 +95,12 @@ impl UntrustedVecDb {
 
 	/// Creates a new instance of `UntrustedVecDb` from the provided entries.
 	///
-	/// This function is used by the test logic.
+	/// **This function is used only in tests and benchmarks.**
 	#[cfg(feature = "std")]
 	pub fn try_from_entries<H: Hasher>(
 		state_version: StateVersion,
 		entries: &[(RawStorageKey, Option<DBValue>)],
-	) -> Option<(H::Out, UntrustedVecDb)>
+	) -> Result<(H::Out, UntrustedVecDb), VecDbError>
 	where
 		H::Out: Codec,
 	{
@@ -109,11 +109,40 @@ impl UntrustedVecDb {
 			entries.iter().cloned().map(|(key, val)| (None, vec![(key, val)])).collect();
 		let backend = TrieBackend::<MemoryDB<H>, H>::from((entries, state_version));
 		let root = *backend.root();
-		let read_proof = StorageProof::new(
-			record_all_keys::<LayoutV1<H>, _>(backend.backend_storage(), &root).ok()?,
-		);
 
-		Some((root, UntrustedVecDb::try_new::<H>(read_proof, root, keys).ok()?))
+		Ok((root, UntrustedVecDb::try_from_db(backend.backend_storage(), root, keys)?))
+	}
+
+	/// Creates a new instance of `UntrustedVecDb` from the provided db.
+	///
+	/// **This function is used only in tests and benchmarks.**
+	pub fn try_from_db<H: Hasher, DB>(
+		db: &DB,
+		root: H::Out,
+		keys: Vec<impl AsRef<[u8]> + Ord>,
+	) -> Result<UntrustedVecDb, VecDbError>
+	where
+		DB: hash_db::HashDBRef<H, DBValue>,
+	{
+		let mut recorder = Recorder::<LayoutV1<H>>::new();
+		let trie = TrieDBBuilder::<LayoutV1<H>>::new(db, &root)
+			.with_recorder(&mut recorder)
+			.build();
+		for key in &keys {
+			trie.get(key.as_ref()).map_err(|_| VecDbError::UnavailableKey)?;
+		}
+
+		let raw_read_proof: Vec<_> = recorder
+			.drain()
+			.into_iter()
+			.map(|n| n.data)
+			// recorder may record the same trie node multiple times and we don't want duplicate
+			// nodes in our proofs => let's deduplicate it by collecting to the BTreeSet first
+			.collect::<BTreeSet<_>>()
+			.into_iter()
+			.collect();
+
+		UntrustedVecDb::try_new::<H>(StorageProof::new(raw_read_proof), root, keys)
 	}
 
 	/// Validates the contained `db` against the contained proof. If the `db` is valid, converts it

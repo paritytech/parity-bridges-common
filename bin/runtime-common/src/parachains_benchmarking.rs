@@ -22,17 +22,13 @@ use crate::messages_benchmarking::insert_header_to_grandpa_pallet;
 
 use bp_parachains::parachain_head_storage_key_at_source;
 use bp_polkadot_core::parachains::{ParaHash, ParaHead, ParaHeadsProof, ParaId};
-use bp_runtime::{
-	grow_trie_leaf_value, record_all_trie_keys, Chain, StorageProofSize, UntrustedVecDb,
-};
+use bp_runtime::{grow_trie_leaf_value, Chain, StorageProofSize, UntrustedVecDb};
 use codec::Encode;
 use frame_support::{traits::Get, StateVersion};
 use pallet_bridge_grandpa::BridgedChain;
 use pallet_bridge_parachains::{RelayBlockHash, RelayBlockHasher, RelayBlockNumber};
 use sp_std::prelude::*;
-use sp_trie::{
-	LayoutV0, LayoutV1, MemoryDB, StorageProof, TrieConfiguration, TrieDBMutBuilder, TrieMut,
-};
+use sp_trie::{LayoutV0, LayoutV1, MemoryDB, TrieConfiguration, TrieDBMutBuilder, TrieMut};
 
 /// Prepare proof of messages for the `receive_messages_proof` call.
 ///
@@ -105,15 +101,8 @@ where
 	}
 
 	// generate heads storage proof
-	let read_proof = record_all_trie_keys::<L, _>(&mdb, &state_root)
-		.map_err(|_| "record_all_trie_keys has failed")
-		.expect("record_all_trie_keys should not fail in benchmarks");
-	let storage_proof = UntrustedVecDb::try_new::<RelayBlockHasher>(
-		StorageProof::new(read_proof),
-		state_root,
-		storage_keys,
-	)
-	.expect("UntrustedVecDb::try_new() should not fail in benchmarks");
+	let storage_proof = UntrustedVecDb::try_from_db::<L::Hash, _>(&mdb, state_root, storage_keys)
+		.expect("UntrustedVecDb::try_from_db() should not fail in benchmarks");
 
 	let (relay_block_number, relay_block_hash) =
 		insert_header_to_grandpa_pallet::<R, R::BridgesGrandpaPalletInstance>(state_root);

@@ -16,11 +16,7 @@
 
 //! Additional logic for working with Substrate storage proofs.
 
-use sp_std::{boxed::Box, collections::btree_set::BTreeSet, vec::Vec};
-use sp_trie::{Recorder, Trie, TrieConfiguration, TrieDBBuilder, TrieError, TrieHash};
-
-/// Raw storage proof type (just raw trie nodes).
-pub type RawStorageProof = Vec<Vec<u8>>;
+use sp_std::vec::Vec;
 
 /// Storage proof size requirements.
 ///
@@ -45,30 +41,4 @@ pub fn grow_trie_leaf_value(mut value: Vec<u8>, size: ProofSize) -> Vec<u8> {
 		ProofSize::HasLargeLeaf(_) => (),
 	}
 	value
-}
-
-/// Record all keys for a given root.
-pub fn record_all_keys<L: TrieConfiguration, DB>(
-	db: &DB,
-	root: &TrieHash<L>,
-) -> Result<RawStorageProof, Box<TrieError<L>>>
-where
-	DB: hash_db::HashDBRef<L::Hash, trie_db::DBValue>,
-{
-	let mut recorder = Recorder::<L>::new();
-	let trie = TrieDBBuilder::<L>::new(db, root).with_recorder(&mut recorder).build();
-	for x in trie.iter()? {
-		let (key, _) = x?;
-		trie.get(&key)?;
-	}
-
-	// recorder may record the same trie node multiple times and we don't want duplicate nodes
-	// in our proofs => let's deduplicate it by collecting to the BTreeSet first
-	Ok(recorder
-		.drain()
-		.into_iter()
-		.map(|n| n.data.to_vec())
-		.collect::<BTreeSet<_>>()
-		.into_iter()
-		.collect())
 }
