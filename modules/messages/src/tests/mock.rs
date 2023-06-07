@@ -115,7 +115,7 @@ impl Chain for BridgedChain {
 	type Hash = BridgedHeaderHash;
 	type Hasher = BlakeTwo256;
 	type Header = BridgedChainHeader;
-	type AccountId = AccountId;
+	type AccountId = TestRelayer;
 	type Balance = Balance;
 	type Index = u64;
 	type Signature = sp_runtime::MultiSignature;
@@ -245,7 +245,6 @@ impl Config for TestRuntime {
 	type OutboundPayload = TestPayload;
 
 	type InboundPayload = TestPayload;
-	type InboundRelayer = TestRelayer;
 	type DeliveryPayments = TestDeliveryPayments;
 
 	type DeliveryConfirmationPayments = TestDeliveryConfirmationPayments;
