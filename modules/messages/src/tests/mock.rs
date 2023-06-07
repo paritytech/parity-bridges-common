@@ -122,7 +122,7 @@ impl Chain for BridgedChain {
 	const STATE_VERSION: StateVersion = StateVersion::V1;
 
 	fn max_extrinsic_size() -> u32 {
-		u32::MAX
+		4096
 	}
 
 	fn max_extrinsic_weight() -> Weight {
@@ -242,7 +242,6 @@ impl Config for TestRuntime {
 
 	type ActiveOutboundLanes = ActiveOutboundLanes;
 
-	type MaximalOutboundPayloadSize = frame_support::traits::ConstU32<MAX_OUTBOUND_PAYLOAD_SIZE>;
 	type OutboundPayload = TestPayload;
 
 	type InboundPayload = TestPayload;
@@ -294,9 +293,6 @@ impl Size for TestPayload {
 		16 + self.extra.len() as u32
 	}
 }
-
-/// Maximal outbound payload size.
-pub const MAX_OUTBOUND_PAYLOAD_SIZE: u32 = 4096;
 
 /// Account that has balance to use in tests.
 pub const ENDOWED_ACCOUNT: AccountId = 0xDEAD;

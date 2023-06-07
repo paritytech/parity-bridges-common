@@ -445,7 +445,6 @@ impl pallet_bridge_messages::Config<WithRialtoMessagesInstance> for Runtime {
 
 	type ActiveOutboundLanes = RialtoActiveOutboundLanes;
 
-	type MaximalOutboundPayloadSize = crate::rialto_messages::ToRialtoMaximalOutboundPayloadSize;
 	type OutboundPayload = crate::rialto_messages::ToRialtoMessagePayload;
 
 	type InboundPayload = crate::rialto_messages::FromRialtoMessagePayload;
@@ -478,8 +477,6 @@ impl pallet_bridge_messages::Config<WithRialtoParachainMessagesInstance> for Run
 
 	type ActiveOutboundLanes = RialtoParachainActiveOutboundLanes;
 
-	type MaximalOutboundPayloadSize =
-		crate::rialto_parachain_messages::ToRialtoParachainMaximalOutboundPayloadSize;
 	type OutboundPayload = crate::rialto_parachain_messages::ToRialtoParachainMessagePayload;
 
 	type InboundPayload = crate::rialto_parachain_messages::FromRialtoParachainMessagePayload;

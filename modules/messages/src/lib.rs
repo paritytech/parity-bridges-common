@@ -116,10 +116,6 @@ pub mod pallet {
 		/// Get all active outbound lanes that the message pallet is serving.
 		type ActiveOutboundLanes: Get<&'static [LaneId]>;
 
-		// TODO: https://github.com/paritytech/parity-bridges-common/issues/1666 - use method from `ChainWithMessages` instead
-		/// Maximal encoded size of the outbound payload.
-		#[pallet::constant]
-		type MaximalOutboundPayloadSize: Get<u32>;
 		/// Payload type of outbound messages. This payload is dispatched on the bridged chain.
 		type OutboundPayload: Parameter + Size;
 
