@@ -85,7 +85,7 @@ mod tests {
 	use bridge_runtime_common::{
 		assert_complete_bridge_types,
 		integrity::{
-			assert_complete_bridge_constants, check_message_lane_weights, AssertBridgePalletNames,
+			assert_complete_with_relay_chain_bridge_constants, check_message_lane_weights,
 			AssertChainConstants, AssertCompleteBridgeConstants,
 		},
 	};
@@ -110,7 +110,7 @@ mod tests {
 			bridged_chain: bp_rialto::Rialto,
 		);
 
-		assert_complete_bridge_constants::<
+		assert_complete_with_relay_chain_bridge_constants::<
 			Runtime,
 			RialtoGrandpaInstance,
 			WithRialtoMessagesInstance,
@@ -118,12 +118,6 @@ mod tests {
 			this_chain_constants: AssertChainConstants {
 				block_length: bp_millau::BlockLength::get(),
 				block_weights: bp_millau::BlockWeights::get(),
-			},
-			pallet_names: AssertBridgePalletNames {
-				with_this_chain_messages_pallet_name: bp_millau::WITH_MILLAU_MESSAGES_PALLET_NAME,
-				with_bridged_chain_grandpa_pallet_name: bp_rialto::WITH_RIALTO_GRANDPA_PALLET_NAME,
-				with_bridged_chain_messages_pallet_name:
-					bp_rialto::WITH_RIALTO_MESSAGES_PALLET_NAME,
 			},
 		});
 	}
