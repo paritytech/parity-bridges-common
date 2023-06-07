@@ -792,7 +792,7 @@ mod tests {
 				ParaId(TestParachain::get()),
 				[parachain_head_at_relay_header_number as u8; 32].into(),
 			)],
-			parachain_heads_proof: ParaHeadsProof(vec![]),
+			parachain_heads_proof: ParaHeadsProof { storage_proof: Default::default() },
 		})
 	}
 
@@ -1366,7 +1366,7 @@ mod tests {
 							(ParaId(TestParachain::get()), [1u8; 32].into()),
 							(ParaId(TestParachain::get() + 1), [1u8; 32].into()),
 						],
-						parachain_heads_proof: ParaHeadsProof(vec![]),
+						parachain_heads_proof: ParaHeadsProof { storage_proof: Default::default() },
 					}),
 					message_delivery_call(200),
 				],
