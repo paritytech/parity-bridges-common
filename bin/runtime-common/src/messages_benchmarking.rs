@@ -28,8 +28,8 @@ use bp_messages::{
 };
 use bp_polkadot_core::parachains::ParaHash;
 use bp_runtime::{
-	grow_trie_leaf_value, record_all_trie_keys, AccountIdOf, Chain, HashOf, HasherOf, Parachain,
-	StorageProofSize, UntrustedVecDb,
+	grow_trie_leaf_value, AccountIdOf, Chain, HashOf, HasherOf, Parachain, StorageProofSize,
+	UntrustedVecDb,
 };
 use codec::Encode;
 use frame_support::{weights::Weight, StateVersion};
@@ -40,9 +40,7 @@ use pallet_bridge_messages::{
 };
 use sp_runtime::traits::{Header, Zero};
 use sp_std::prelude::*;
-use sp_trie::{
-	LayoutV0, LayoutV1, MemoryDB, StorageProof, TrieConfiguration, TrieDBMutBuilder, TrieMut,
-};
+use sp_trie::{LayoutV0, LayoutV1, MemoryDB, TrieConfiguration, TrieDBMutBuilder, TrieMut};
 use xcm::v3::prelude::*;
 
 /// Prepare inbound bridge message according to given message proof parameters.
@@ -285,15 +283,12 @@ where
 	}
 
 	// generate storage proof to be delivered to This chain
-	let read_proof = record_all_trie_keys::<L, _>(&mdb, &root)
-		.map_err(|_| "record_all_trie_keys has failed")
-		.expect("record_all_trie_keys should not fail in benchmarks");
-	let storage_proof = UntrustedVecDb::try_new::<HasherOf<BridgedChainOf<R, MI>>>(
-		StorageProof::new(read_proof),
+	let storage_proof = UntrustedVecDb::try_from_db::<HasherOf<BridgedChainOf<R, MI>>, _>(
+		&mdb,
 		root,
 		vec![storage_key],
 	)
-	.unwrap();
+	.expect("UntrustedVecDb::try_from_db() should not fail in benchmarks");
 
 	(root, storage_proof)
 }

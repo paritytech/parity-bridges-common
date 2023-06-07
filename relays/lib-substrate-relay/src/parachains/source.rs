@@ -22,7 +22,7 @@ use async_std::sync::{Arc, Mutex};
 use async_trait::async_trait;
 use bp_parachains::parachain_head_storage_key_at_source;
 use bp_polkadot_core::parachains::{ParaHash, ParaHead, ParaHeadsProof, ParaId};
-use bp_runtime::HeaderIdProvider;
+use bp_runtime::{HasherOf, HeaderIdProvider, UntrustedVecDb};
 use codec::Decode;
 use parachains_relay::parachains_loop::{AvailableHeader, SourceClient};
 use relay_substrate_client::{
@@ -30,6 +30,7 @@ use relay_substrate_client::{
 	RelayChain,
 };
 use relay_utils::relay_loop::Client as RelayClient;
+use sp_runtime::traits::Header;
 
 /// Shared updatable reference to the maximal parachain header id that we want to sync from the
 /// source.
@@ -141,12 +142,18 @@ where
 		let parachain = ParaId(P::SourceParachain::PARACHAIN_ID);
 		let storage_key =
 			parachain_head_storage_key_at_source(P::SourceRelayChain::PARAS_PALLET_NAME, parachain);
-		let parachain_heads_proof = self
-			.client
-			.prove_storage(at_block.hash(), vec![storage_key.clone()])
-			.await?
-			.into_iter_nodes()
-			.collect();
+
+		let root = *self.client.header_by_hash(at_block.hash()).await?.state_root();
+		let read_proof =
+			self.client.prove_storage(at_block.hash(), vec![storage_key.clone()]).await?;
+		let storage_proof = UntrustedVecDb::try_new::<HasherOf<P::SourceRelayChain>>(
+			read_proof,
+			root,
+			vec![storage_key.clone()],
+		)
+		.map_err(|e| {
+			SubstrateError::Custom(format!("Error generating parachain head proof: {:?}", e))
+		})?;
 
 		// why we're reading parachain head here once again (it has already been read at the
 		// `parachain_head`)? that's because `parachain_head` sometimes returns obsolete parachain
@@ -166,6 +173,6 @@ where
 			})?;
 		let parachain_head_hash = parachain_head.hash();
 
-		Ok((ParaHeadsProof(parachain_heads_proof), parachain_head_hash))
+		Ok((ParaHeadsProof { storage_proof }, parachain_head_hash))
 	}
 }
