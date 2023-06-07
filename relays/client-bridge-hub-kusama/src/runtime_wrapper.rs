@@ -22,8 +22,8 @@ use scale_info::TypeInfo;
 
 pub use bp_bridge_hub_kusama::SignedExtension;
 pub use bp_header_chain::BridgeGrandpaCallOf;
+pub use bp_messages::BridgeMessagesCallOf;
 pub use bp_parachains::BridgeParachainCall;
-pub use bridge_runtime_common::messages::BridgeMessagesCallOf;
 pub use relay_substrate_client::calls::{SystemCall, UtilityCall};
 
 /// Unchecked BridgeHubKusama extrinsic.

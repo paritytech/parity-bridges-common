@@ -16,14 +16,11 @@
 
 //! Everything required to serve Millau <-> Rialto messages.
 
-use crate::{RialtoGrandpaInstance, Runtime, RuntimeOrigin, WithRialtoMessagesInstance};
+use crate::{Runtime, WithRialtoMessagesInstance};
 
 use bp_messages::LaneId;
-use bridge_runtime_common::{
-	messages::{self, MessageBridge},
-	messages_xcm_extension::{XcmBlobHauler, XcmBlobHaulerAdapter},
-};
-use frame_support::{parameter_types, weights::Weight, RuntimeDebug};
+use bridge_runtime_common::messages_xcm_extension::{XcmBlobHauler, XcmBlobHaulerAdapter};
+use frame_support::{parameter_types, weights::Weight};
 use pallet_bridge_relayers::WeightInfoExt as _;
 use xcm_builder::HaulBlobExporter;
 
@@ -42,53 +39,12 @@ parameter_types! {
 	pub const WeightCredit: Weight = BASE_XCM_WEIGHT_TWICE;
 }
 
-/// Message payload for Millau -> Rialto messages.
-pub type ToRialtoMessagePayload = messages::source::FromThisChainMessagePayload;
-
-/// Message payload for Rialto -> Millau messages.
-pub type FromRialtoMessagePayload = messages::target::FromBridgedChainMessagePayload;
-
 /// Call-dispatch based message dispatch for Rialto -> Millau messages.
 pub type FromRialtoMessageDispatch =
 	bridge_runtime_common::messages_xcm_extension::XcmBlobMessageDispatch<
 		crate::xcm_config::OnMillauBlobDispatcher,
 		(),
 	>;
-
-/// Millau <-> Rialto message bridge.
-#[derive(RuntimeDebug, Clone, Copy)]
-pub struct WithRialtoMessageBridge;
-
-impl MessageBridge for WithRialtoMessageBridge {
-	const BRIDGED_MESSAGES_PALLET_NAME: &'static str = bp_millau::WITH_MILLAU_MESSAGES_PALLET_NAME;
-
-	type ThisChain = Millau;
-	type BridgedChain = Rialto;
-	type BridgedHeaderChain =
-		pallet_bridge_grandpa::GrandpaChainHeaders<Runtime, RialtoGrandpaInstance>;
-}
-
-/// Millau chain from message lane point of view.
-#[derive(RuntimeDebug, Clone, Copy)]
-pub struct Millau;
-
-impl messages::UnderlyingChainProvider for Millau {
-	type Chain = bp_millau::Millau;
-}
-
-impl messages::ThisChainWithMessages for Millau {
-	type RuntimeOrigin = RuntimeOrigin;
-}
-
-/// Rialto chain from message lane point of view.
-#[derive(RuntimeDebug, Clone, Copy)]
-pub struct Rialto;
-
-impl messages::UnderlyingChainProvider for Rialto {
-	type Chain = bp_rialto::Rialto;
-}
-
-impl messages::BridgedChainWithMessages for Rialto {}
 
 /// Export XCM messages to be relayed to Rialto.
 pub type ToRialtoBlobExporter = HaulBlobExporter<
@@ -124,16 +80,13 @@ impl pallet_bridge_messages::WeightInfoExt for crate::weights::RialtoMessagesWei
 
 #[cfg(test)]
 mod tests {
-	use super::*;
-	use crate::{Runtime, WithRialtoMessagesInstance};
+	use crate::{RialtoGrandpaInstance, Runtime, WithRialtoMessagesInstance};
 
-	use bp_runtime::Chain;
 	use bridge_runtime_common::{
 		assert_complete_bridge_types,
 		integrity::{
-			assert_complete_bridge_constants, check_message_lane_weights,
-			AssertBridgeMessagesPalletConstants, AssertBridgePalletNames, AssertChainConstants,
-			AssertCompleteBridgeConstants,
+			assert_complete_bridge_constants, check_message_lane_weights, AssertBridgePalletNames,
+			AssertChainConstants, AssertCompleteBridgeConstants,
 		},
 	};
 
@@ -153,7 +106,6 @@ mod tests {
 			runtime: Runtime,
 			with_bridged_chain_grandpa_instance: RialtoGrandpaInstance,
 			with_bridged_chain_messages_instance: WithRialtoMessagesInstance,
-			bridge: WithRialtoMessageBridge,
 			this_chain: bp_millau::Millau,
 			bridged_chain: bp_rialto::Rialto,
 		);
@@ -162,18 +114,10 @@ mod tests {
 			Runtime,
 			RialtoGrandpaInstance,
 			WithRialtoMessagesInstance,
-			WithRialtoMessageBridge,
 		>(AssertCompleteBridgeConstants {
 			this_chain_constants: AssertChainConstants {
 				block_length: bp_millau::BlockLength::get(),
 				block_weights: bp_millau::BlockWeights::get(),
-			},
-			messages_pallet_constants: AssertBridgeMessagesPalletConstants {
-				max_unrewarded_relayers_in_bridged_confirmation_tx:
-					bp_rialto::MAX_UNREWARDED_RELAYERS_IN_CONFIRMATION_TX,
-				max_unconfirmed_messages_in_bridged_confirmation_tx:
-					bp_rialto::MAX_UNCONFIRMED_MESSAGES_IN_CONFIRMATION_TX,
-				bridged_chain_id: bp_rialto::Rialto::ID,
 			},
 			pallet_names: AssertBridgePalletNames {
 				with_this_chain_messages_pallet_name: bp_millau::WITH_MILLAU_MESSAGES_PALLET_NAME,

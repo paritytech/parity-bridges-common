@@ -124,8 +124,6 @@ pub mod pallet {
 		/// Identifier of relayer that deliver messages to this chain. Relayer reward is paid on the
 		/// bridged chain.
 		type InboundRelayer: Parameter + MaxEncodedLen;
-		/// Delivery payments.
-		type DeliveryPayments: DeliveryPayments<Self::AccountId>;
 
 		// Types that are used by outbound_lane (on source chain).
 
@@ -136,6 +134,8 @@ pub mod pallet {
 
 		/// Message dispatch.
 		type MessageDispatch: MessageDispatch<DispatchPayload = Self::InboundPayload>;
+		/// Delivery payments.
+		type DeliveryPayments: DeliveryPayments<Self::AccountId>;
 	}
 
 	/// Shortcut to this chain type for Config.
