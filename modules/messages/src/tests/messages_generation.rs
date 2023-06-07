@@ -16,9 +16,6 @@
 
 //! Helpers for generating message storage proofs, that are used by tests and by benchmarks.
 
-// TODO: remove me in https://github.com/paritytech/parity-bridges-common/issues/1666
-#![allow(dead_code)]
-
 use bp_messages::{
 	storage_keys, ChainWithMessages, InboundLaneData, LaneId, MessageKey, MessageNonce,
 	MessagePayload, OutboundLaneData,
