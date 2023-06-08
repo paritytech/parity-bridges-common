@@ -21,7 +21,7 @@
 use bp_header_chain::justification::{required_justification_precommits, GrandpaJustification};
 use bp_parachains::parachain_head_storage_key_at_source;
 use bp_polkadot_core::parachains::{ParaHash, ParaHead, ParaHeadsProof, ParaId};
-use bp_runtime::UntrustedVecDb;
+use bp_runtime::UnverifiedStorageProof;
 use codec::Encode;
 use sp_consensus_grandpa::{AuthorityId, AuthoritySignature, AuthorityWeight, SetId};
 use sp_runtime::traits::{Header as HeaderT, One, Zero};
@@ -188,8 +188,9 @@ pub fn prepare_parachain_heads_proof<H: HeaderT>(
 	}
 
 	// generate storage proof to be delivered to This chain
-	let storage_proof = UntrustedVecDb::try_from_db::<H::Hashing, _>(&mdb, root, storage_keys)
-		.expect("UntrustedVecDb::try_from_db() should not fail in benchmarks");
+	let storage_proof =
+		UnverifiedStorageProof::try_from_db::<H::Hashing, _>(&mdb, root, storage_keys)
+			.expect("UnverifiedStorageProof::try_from_db() should not fail in benchmarks");
 
 	(root, ParaHeadsProof { storage_proof }, parachains)
 }

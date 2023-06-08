@@ -27,7 +27,7 @@ use crate::{
 
 use async_std::sync::{Arc, Mutex, RwLock};
 use async_trait::async_trait;
-use bp_runtime::UntrustedVecDb;
+use bp_runtime::UnverifiedStorageProof;
 use codec::Encode;
 use frame_support::weights::Weight;
 use quick_cache::unsync::Cache;
@@ -316,7 +316,7 @@ impl<C: Chain, B: Client<C>> Client<C> for CachingClient<C, B> {
 		at: HashOf<C>,
 		state_root: HashOf<C>,
 		keys: Vec<StorageKey>,
-	) -> Result<UntrustedVecDb> {
+	) -> Result<UnverifiedStorageProof> {
 		self.backend.prove_storage_with_root(at, state_root, keys).await
 	}
 }

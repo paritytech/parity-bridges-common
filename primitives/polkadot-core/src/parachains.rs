@@ -22,7 +22,7 @@
 //! parachains. Having pallets that are referencing polkadot, would mean that there may
 //! be two versions of polkadot crates included in the runtime. Which is bad.
 
-use bp_runtime::{Size, UntrustedVecDb};
+use bp_runtime::{Size, UnverifiedStorageProof};
 use codec::{CompactAs, Decode, Encode, MaxEncodedLen};
 use frame_support::RuntimeDebug;
 use scale_info::TypeInfo;
@@ -89,7 +89,7 @@ pub type ParaHasher = crate::Hasher;
 /// Raw storage proof of parachain heads, stored in polkadot-like chain runtime.
 #[derive(Clone, Decode, Encode, Eq, PartialEq, RuntimeDebug, TypeInfo)]
 pub struct ParaHeadsProof {
-	pub storage_proof: UntrustedVecDb,
+	pub storage_proof: UnverifiedStorageProof,
 }
 
 impl Size for ParaHeadsProof {
