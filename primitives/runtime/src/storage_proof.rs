@@ -53,7 +53,7 @@ pub enum StorageProofError {
 	EmptyVal,
 	/// Error decoding value associated to a provided key.
 	DecodeError,
-	/// At least one key in the `VecDb` wasn't read.
+	/// At least one key in the `VerifiedStorageProof` wasn't read.
 	UnusedKey,
 }
 

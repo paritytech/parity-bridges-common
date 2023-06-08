@@ -85,8 +85,11 @@ pub fn verify_messages_proof<T: Config<I>, I: 'static>(
 		return Err(VerificationError::EmptyMessageProof)
 	}
 
-	// Check that the `VecDb` doesn't have any untouched keys.
-	parser.storage.ensure_no_unused_keys().map_err(VerificationError::VecDb)?;
+	// Check that the storage proof doesn't have any untouched keys.
+	parser
+		.storage
+		.ensure_no_unused_keys()
+		.map_err(VerificationError::StorageProof)?;
 
 	// We only support single lane messages in this generated_schema
 	let mut proved_messages = ProvedMessages::new();
@@ -114,7 +117,7 @@ pub fn verify_messages_delivery_proof<T: Config<I>, I: 'static>(
 		.map_err(VerificationError::InboundLaneStorage)?;
 
 	// check that the storage proof doesn't have any untouched trie nodes
-	storage.ensure_no_unused_keys().map_err(VerificationError::VecDb)?;
+	storage.ensure_no_unused_keys().map_err(VerificationError::StorageProof)?;
 
 	Ok((lane, inbound_lane_data))
 }
@@ -301,7 +304,7 @@ mod tests {
 					verify_messages_proof::<TestRuntime, ()>(proof, 10)
 				}
 			),
-			Err(VerificationError::HeaderChain(HeaderChainError::VecDb(
+			Err(VerificationError::HeaderChain(HeaderChainError::StorageProof(
 				StorageProofError::InvalidProof
 			))),
 		);
@@ -319,7 +322,7 @@ mod tests {
 				false,
 				|proof| { verify_messages_proof::<TestRuntime, ()>(proof, 10) },
 			),
-			Err(VerificationError::HeaderChain(HeaderChainError::VecDb(
+			Err(VerificationError::HeaderChain(HeaderChainError::StorageProof(
 				StorageProofError::InvalidProof
 			))),
 		);
@@ -337,7 +340,7 @@ mod tests {
 				true,
 				|proof| { verify_messages_proof::<TestRuntime, ()>(proof, 10) },
 			),
-			Err(VerificationError::VecDb(StorageProofError::UnusedKey)),
+			Err(VerificationError::StorageProof(StorageProofError::UnusedKey)),
 		);
 	}
 

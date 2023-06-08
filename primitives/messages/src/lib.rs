@@ -511,14 +511,14 @@ pub enum VerificationError {
 	InvalidMessageWeight,
 	/// Declared messages count doesn't match actual value.
 	MessagesCountMismatch,
-	/// Error returned while reading/decoding message data from the `VecDb`.
+	/// Error returned while reading/decoding message data from the `VerifiedStorageProof`.
 	MessageStorage(StorageProofError),
 	/// The message is too large.
 	MessageTooLarge,
-	/// Error returned while reading/decoding outbound lane data from the `VecDb`.
+	/// Error returned while reading/decoding outbound lane data from the `VerifiedStorageProof`.
 	OutboundLaneStorage(StorageProofError),
-	/// `VecDb` related error.
-	VecDb(StorageProofError),
+	/// Storage proof related error.
+	StorageProof(StorageProofError),
 	/// Custom error
 	Other(#[codec(skip)] &'static str),
 }

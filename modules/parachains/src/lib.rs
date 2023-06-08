@@ -438,9 +438,9 @@ pub mod pallet {
 			// => treat this as an error
 			//
 			// (we can throw error here, because now all our calls are transactional)
-			storage
-				.ensure_no_unused_keys()
-				.map_err(|e| Error::<T, I>::HeaderChainStorageProof(HeaderChainError::VecDb(e)))?;
+			storage.ensure_no_unused_keys().map_err(|e| {
+				Error::<T, I>::HeaderChainStorageProof(HeaderChainError::StorageProof(e))
+			})?;
 
 			Ok(PostDispatchInfo { actual_weight: Some(actual_weight), pays_fee: Pays::Yes })
 		}
@@ -1408,7 +1408,7 @@ pub(crate) mod tests {
 			// try to import head#5 of parachain#1 at relay chain block #0
 			assert_noop!(
 				import_parachain_1_head(0, Default::default(), parachains, proof),
-				Error::<TestRuntime>::HeaderChainStorageProof(HeaderChainError::VecDb(
+				Error::<TestRuntime>::HeaderChainStorageProof(HeaderChainError::StorageProof(
 					StorageProofError::InvalidProof
 				))
 			);
