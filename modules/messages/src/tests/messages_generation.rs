@@ -21,8 +21,8 @@ use bp_messages::{
 	MessagePayload, OutboundLaneData,
 };
 use bp_runtime::{
-	grow_trie_leaf_value, AccountIdOf, Chain, HashOf, HasherOf, RangeInclusiveExt,
-	StorageProofSize, UntrustedVecDb,
+	grow_storage_value, AccountIdOf, Chain, HashOf, HasherOf, RangeInclusiveExt, StorageProofSize,
+	UnverifiedStorageProof,
 };
 use codec::Encode;
 use frame_support::StateVersion;
@@ -56,7 +56,7 @@ pub fn prepare_messages_storage_proof<BridgedChain: Chain, ThisChain: ChainWithM
 	encode_outbound_lane_data: impl Fn(&OutboundLaneData) -> Vec<u8>,
 	add_duplicate_key: bool,
 	add_unused_key: bool,
-) -> (HashOf<BridgedChain>, UntrustedVecDb)
+) -> (HashOf<BridgedChain>, UnverifiedStorageProof)
 where
 	HashOf<BridgedChain>: Copy + Default,
 {
@@ -99,7 +99,7 @@ pub fn prepare_message_delivery_storage_proof<BridgedChain: Chain, ThisChain: Ch
 	lane: LaneId,
 	inbound_lane_data: InboundLaneData<AccountIdOf<ThisChain>>,
 	size: StorageProofSize,
-) -> (HashOf<BridgedChain>, UntrustedVecDb)
+) -> (HashOf<BridgedChain>, UnverifiedStorageProof)
 where
 	HashOf<BridgedChain>: Copy + Default,
 {
@@ -131,7 +131,7 @@ fn do_prepare_messages_storage_proof<BridgedChain: Chain, ThisChain: ChainWithMe
 	encode_outbound_lane_data: impl Fn(&OutboundLaneData) -> Vec<u8>,
 	add_duplicate_key: bool,
 	add_unused_key: bool,
-) -> (HashOf<BridgedChain>, UntrustedVecDb)
+) -> (HashOf<BridgedChain>, UnverifiedStorageProof)
 where
 	L: TrieConfiguration<Hash = HasherOf<BridgedChain>>,
 	HashOf<BridgedChain>: Copy + Default,
@@ -150,7 +150,7 @@ where
 			let message_payload = match encode_message(nonce, &generate_message(nonce)) {
 				Some(message_payload) =>
 					if i == 0 {
-						grow_trie_leaf_value(message_payload, size)
+						grow_storage_value(message_payload, size)
 					} else {
 						message_payload
 					},
@@ -198,8 +198,8 @@ where
 
 	// generate storage proof to be delivered to This chain
 	let storage =
-		UntrustedVecDb::try_from_db::<HasherOf<BridgedChain>, _>(&mdb, root, storage_keys)
-			.expect("UntrustedVecDb::try_from_db() should not fail in benchmarks");
+		UnverifiedStorageProof::try_from_db::<HasherOf<BridgedChain>, _>(&mdb, root, storage_keys)
+			.expect("UnverifiedStorageProof::try_from_db() should not fail in benchmarks");
 
 	(root, storage)
 }
@@ -211,7 +211,7 @@ fn do_prepare_message_delivery_storage_proof<BridgedChain: Chain, ThisChain: Cha
 	lane: LaneId,
 	inbound_lane_data: InboundLaneData<AccountIdOf<ThisChain>>,
 	size: StorageProofSize,
-) -> (HashOf<BridgedChain>, UntrustedVecDb)
+) -> (HashOf<BridgedChain>, UnverifiedStorageProof)
 where
 	L: TrieConfiguration<Hash = HasherOf<BridgedChain>>,
 	HashOf<BridgedChain>: Copy + Default,
@@ -223,15 +223,18 @@ where
 	let mut mdb = MemoryDB::default();
 	{
 		let mut trie = TrieDBMutBuilder::<L>::new(&mut mdb, &mut root).build();
-		let inbound_lane_data = grow_trie_leaf_value(inbound_lane_data.encode(), size);
+		let inbound_lane_data = grow_storage_value(inbound_lane_data.encode(), size);
 		trie.insert(&storage_key, &inbound_lane_data)
 			.map_err(|_| "TrieMut::insert has failed")
 			.expect("TrieMut::insert should not fail in benchmarks");
 	}
 
 	// generate storage proof to be delivered to This chain
-	let storage =
-		UntrustedVecDb::try_from_db::<HasherOf<BridgedChain>, _>(&mdb, root, vec![storage_key])
-			.expect("UntrustedVecDb::try_from_db() should not fail in benchmarks");
+	let storage = UnverifiedStorageProof::try_from_db::<HasherOf<BridgedChain>, _>(
+		&mdb,
+		root,
+		vec![storage_key],
+	)
+	.expect("UnverifiedStorageProof::try_from_db() should not fail in benchmarks");
 	(root, storage)
 }

@@ -672,7 +672,7 @@ mod tests {
 		TestHeader, TestNumber, TestRuntime, MAX_BRIDGED_AUTHORITIES,
 	};
 	use bp_header_chain::BridgeGrandpaCall;
-	use bp_runtime::{BasicOperatingMode, UntrustedVecDb};
+	use bp_runtime::{BasicOperatingMode, UnverifiedStorageProof};
 	use bp_test_utils::{
 		authority_list, generate_owned_bridge_module_tests, make_default_justification,
 		make_justification_for_header, JustificationGeneratorParams, ALICE, BOB,
@@ -1206,7 +1206,7 @@ mod tests {
 	fn verify_vec_db_storage_rejects_unknown_header() {
 		run_test(|| {
 			assert_noop!(
-				Pallet::<TestRuntime>::verify_vec_db_storage(
+				Pallet::<TestRuntime>::verify_storage_proof(
 					Default::default(),
 					Default::default(),
 				)
@@ -1219,10 +1219,10 @@ mod tests {
 	#[test]
 	fn parse_finalized_storage_accepts_valid_proof() {
 		run_test(|| {
-			let (state_root, storage_proof) = UntrustedVecDb::try_from_entries::<
+			let (state_root, storage_proof) = UnverifiedStorageProof::try_from_entries::<
 				sp_core::Blake2Hasher,
 			>(Default::default(), &[(b"key1".to_vec(), None)])
-			.expect("UntrustedVecDb::try_from_entries() shouldn't fail in tests");
+			.expect("UnverifiedStorageProof::try_from_entries() shouldn't fail in tests");
 
 			let mut header = test_header(2);
 			header.set_state_root(state_root);
@@ -1231,9 +1231,7 @@ mod tests {
 			<BestFinalized<TestRuntime>>::put(HeaderId(2, hash));
 			<ImportedHeaders<TestRuntime>>::insert(hash, header.build());
 
-			assert_ok!(
-				Pallet::<TestRuntime>::verify_vec_db_storage(hash, storage_proof).map(|_| ())
-			);
+			assert_ok!(Pallet::<TestRuntime>::verify_storage_proof(hash, storage_proof).map(|_| ()));
 		});
 	}
 

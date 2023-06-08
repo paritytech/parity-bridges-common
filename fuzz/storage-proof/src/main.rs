@@ -21,7 +21,7 @@
 use honggfuzz::fuzz;
 // Logic for checking Substrate storage proofs.
 
-use bp_runtime::UntrustedVecDb;
+use bp_runtime::UnverifiedStorageProof;
 use sp_core::{storage::StateVersion, Blake2Hasher};
 use sp_std::vec::Vec;
 use std::collections::HashMap;
@@ -46,14 +46,14 @@ fn run_fuzzer() {
 			return
 		}
 		let unique_input_vec = transform_into_unique(input_vec);
-		let (root, storage_proof) = UntrustedVecDb::try_from_entries::<Blake2Hasher>(
+		let (root, storage_proof) = UnverifiedStorageProof::try_from_entries::<Blake2Hasher>(
 			StateVersion::default(),
 			&unique_input_vec,
 		)
-		.expect("UntrustedVecDb::try_from_entries() shouldn't fail");
+		.expect("UnverifiedStorageProof::try_from_entries() shouldn't fail");
 		let mut storage = storage_proof
 			.verify::<Blake2Hasher>(StateVersion::V1, &root)
-			.expect("UntrustedVecDb::verify() shouldn't fail");
+			.expect("UnverifiedStorageProof::verify() shouldn't fail");
 
 		for key_value_pair in &unique_input_vec {
 			log::info!("Reading value for pair {:?}", key_value_pair);
