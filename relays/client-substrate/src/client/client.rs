@@ -22,7 +22,7 @@ use crate::{
 };
 
 use async_trait::async_trait;
-use bp_runtime::{StorageDoubleMapKeyProvider, StorageMapKeyProvider, UntrustedVecDb};
+use bp_runtime::{StorageDoubleMapKeyProvider, StorageMapKeyProvider, UnverifiedStorageProof};
 use codec::{Decode, Encode};
 use frame_support::weights::Weight;
 use sp_core::{
@@ -217,10 +217,14 @@ pub trait Client<C: Chain>: 'static + Send + Sync + Clone + Debug {
 		at: HashOf<C>,
 		state_root: HashOf<C>,
 		keys: Vec<StorageKey>,
-	) -> Result<UntrustedVecDb>;
+	) -> Result<UnverifiedStorageProof>;
 
 	/// Returns storage proof of given storage keys.
-	async fn prove_storage(&self, at: HashOf<C>, keys: Vec<StorageKey>) -> Result<UntrustedVecDb> {
+	async fn prove_storage(
+		&self,
+		at: HashOf<C>,
+		keys: Vec<StorageKey>,
+	) -> Result<UnverifiedStorageProof> {
 		let root = *self.header_by_hash(at).await?.state_root();
 
 		self.prove_storage_with_root(at, root, keys).await

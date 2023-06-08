@@ -22,7 +22,7 @@ use crate::messages_benchmarking::insert_header_to_grandpa_pallet;
 
 use bp_parachains::parachain_head_storage_key_at_source;
 use bp_polkadot_core::parachains::{ParaHash, ParaHead, ParaHeadsProof, ParaId};
-use bp_runtime::{grow_trie_leaf_value, Chain, StorageProofSize, UntrustedVecDb};
+use bp_runtime::{grow_storage_value, Chain, StorageSize, UnverifiedStorageProof};
 use codec::Encode;
 use frame_support::{traits::Get, StateVersion};
 use pallet_bridge_grandpa::BridgedChain;
@@ -37,7 +37,7 @@ use sp_trie::{LayoutV0, LayoutV1, MemoryDB, TrieConfiguration, TrieDBMutBuilder,
 pub fn prepare_parachain_heads_proof<R, PI>(
 	parachains: &[ParaId],
 	parachain_head_size: u32,
-	size: StorageProofSize,
+	size: StorageSize,
 ) -> (RelayBlockNumber, RelayBlockHash, ParaHeadsProof, Vec<(ParaId, ParaHash)>)
 where
 	R: pallet_bridge_parachains::Config<PI>
@@ -63,7 +63,7 @@ where
 pub fn do_prepare_parachain_heads_proof<R, PI, L>(
 	parachains: &[ParaId],
 	parachain_head_size: u32,
-	size: StorageProofSize,
+	size: StorageSize,
 ) -> (RelayBlockNumber, RelayBlockHash, ParaHeadsProof, Vec<(ParaId, ParaHash)>)
 where
 	R: pallet_bridge_parachains::Config<PI>
@@ -88,7 +88,7 @@ where
 			let storage_key =
 				parachain_head_storage_key_at_source(R::ParasPalletName::get(), *parachain);
 			let leaf_data = if i == 0 {
-				grow_trie_leaf_value(parachain_head.encode(), size)
+				grow_storage_value(parachain_head.encode(), size)
 			} else {
 				parachain_head.encode()
 			};
@@ -101,8 +101,9 @@ where
 	}
 
 	// generate heads storage proof
-	let storage_proof = UntrustedVecDb::try_from_db::<L::Hash, _>(&mdb, state_root, storage_keys)
-		.expect("UntrustedVecDb::try_from_db() should not fail in benchmarks");
+	let storage_proof =
+		UnverifiedStorageProof::try_from_db::<L::Hash, _>(&mdb, state_root, storage_keys)
+			.expect("UnverifiedStorageProof::try_from_db() should not fail in benchmarks");
 
 	let (relay_block_number, relay_block_hash) =
 		insert_header_to_grandpa_pallet::<R, R::BridgesGrandpaPalletInstance>(state_root);

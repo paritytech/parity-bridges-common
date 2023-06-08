@@ -25,7 +25,7 @@ use bp_messages::{
 	ChainWithMessages, InboundLaneData, LaneId, Message, MessageKey, MessageNonce, MessagePayload,
 	OutboundLaneData, VerificationError,
 };
-use bp_runtime::{HashOf, RangeInclusiveExt, TrustedVecDb};
+use bp_runtime::{HashOf, RangeInclusiveExt, VerifiedStorageProof};
 use sp_std::vec::Vec;
 
 /// 'Parsed' message delivery proof - inbound lane id and its state.
@@ -51,7 +51,7 @@ pub fn verify_messages_proof<T: Config<I>, I: 'static>(
 		nonces_start,
 		nonces_end,
 	} = proof;
-	let storage = BridgedHeaderChainOf::<T, I>::verify_vec_db_storage(bridged_header_hash, storage)
+	let storage = BridgedHeaderChainOf::<T, I>::verify_storage_proof(bridged_header_hash, storage)
 		.map_err(VerificationError::HeaderChain)?;
 	let mut parser = StorageAdapter::<T, I> { storage, _dummy: Default::default() };
 	let nonces_range = nonces_start..=nonces_end;
@@ -101,7 +101,7 @@ pub fn verify_messages_delivery_proof<T: Config<I>, I: 'static>(
 ) -> Result<ParsedMessagesDeliveryProofFromBridgedChain<T>, VerificationError> {
 	let FromBridgedChainMessagesDeliveryProof { bridged_header_hash, storage_proof, lane } = proof;
 	let mut storage =
-		T::BridgedHeaderChain::verify_vec_db_storage(bridged_header_hash, storage_proof)
+		T::BridgedHeaderChain::verify_storage_proof(bridged_header_hash, storage_proof)
 			.map_err(VerificationError::HeaderChain)?;
 	// Messages delivery proof is just proof of single storage key read => any error
 	// is fatal.
@@ -120,7 +120,7 @@ pub fn verify_messages_delivery_proof<T: Config<I>, I: 'static>(
 }
 
 struct StorageAdapter<T, I> {
-	storage: TrustedVecDb,
+	storage: VerifiedStorageProof,
 	_dummy: sp_std::marker::PhantomData<(T, I)>,
 }
 
@@ -166,7 +166,7 @@ mod tests {
 	};
 
 	use bp_header_chain::{HeaderChainError, StoredHeaderDataBuilder};
-	use bp_runtime::{HeaderId, VecDbError};
+	use bp_runtime::{HeaderId, StorageProofError};
 	use codec::Encode;
 	use sp_runtime::traits::Header;
 
@@ -183,7 +183,7 @@ mod tests {
 			TEST_LANE_ID,
 			1..=nonces_end,
 			outbound_lane_data,
-			bp_runtime::StorageProofSize::Minimal(0),
+			bp_runtime::StorageSize::Minimal(0),
 			generate_dummy_message,
 			encode_message,
 			encode_outbound_lane_data,
@@ -301,7 +301,9 @@ mod tests {
 					verify_messages_proof::<TestRuntime, ()>(proof, 10)
 				}
 			),
-			Err(VerificationError::HeaderChain(HeaderChainError::VecDb(VecDbError::InvalidProof))),
+			Err(VerificationError::HeaderChain(HeaderChainError::VecDb(
+				StorageProofError::InvalidProof
+			))),
 		);
 	}
 
@@ -317,7 +319,9 @@ mod tests {
 				false,
 				|proof| { verify_messages_proof::<TestRuntime, ()>(proof, 10) },
 			),
-			Err(VerificationError::HeaderChain(HeaderChainError::VecDb(VecDbError::InvalidProof))),
+			Err(VerificationError::HeaderChain(HeaderChainError::VecDb(
+				StorageProofError::InvalidProof
+			))),
 		);
 	}
 
@@ -333,7 +337,7 @@ mod tests {
 				true,
 				|proof| { verify_messages_proof::<TestRuntime, ()>(proof, 10) },
 			),
-			Err(VerificationError::VecDb(VecDbError::UnusedKey)),
+			Err(VerificationError::VecDb(StorageProofError::UnusedKey)),
 		);
 	}
 
@@ -349,7 +353,7 @@ mod tests {
 				false,
 				|proof| verify_messages_proof::<TestRuntime, ()>(proof, 10)
 			),
-			Err(VerificationError::MessageStorage(VecDbError::EmptyVal)),
+			Err(VerificationError::MessageStorage(StorageProofError::EmptyVal)),
 		);
 	}
 
@@ -371,7 +375,7 @@ mod tests {
 				false,
 				|proof| verify_messages_proof::<TestRuntime, ()>(proof, 10),
 			),
-			Err(VerificationError::MessageStorage(VecDbError::DecodeError)),
+			Err(VerificationError::MessageStorage(StorageProofError::DecodeError)),
 		);
 	}
 
@@ -395,7 +399,7 @@ mod tests {
 				false,
 				|proof| verify_messages_proof::<TestRuntime, ()>(proof, 10),
 			),
-			Err(VerificationError::OutboundLaneStorage(VecDbError::DecodeError)),
+			Err(VerificationError::OutboundLaneStorage(StorageProofError::DecodeError)),
 		);
 	}
 

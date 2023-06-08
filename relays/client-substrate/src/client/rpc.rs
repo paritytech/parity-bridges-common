@@ -35,7 +35,7 @@ use crate::{
 
 use async_std::sync::{Arc, Mutex, RwLock};
 use async_trait::async_trait;
-use bp_runtime::{HasherOf, HeaderIdProvider, UntrustedVecDb};
+use bp_runtime::{HasherOf, HeaderIdProvider, UnverifiedStorageProof};
 use codec::Encode;
 use frame_support::weights::Weight;
 use futures::{TryFutureExt, TryStreamExt};
@@ -509,7 +509,7 @@ impl<C: Chain> Client<C> for RpcClient<C> {
 		at: HashOf<C>,
 		state_root: HashOf<C>,
 		keys: Vec<StorageKey>,
-	) -> Result<UntrustedVecDb> {
+	) -> Result<UnverifiedStorageProof> {
 		let keys_clone = keys.clone();
 		let read_proof = self
 			.jsonrpsee_execute(move |client| async move {
@@ -521,7 +521,7 @@ impl<C: Chain> Client<C> for RpcClient<C> {
 			.await
 			.map_err(|e| Error::failed_to_prove_storage::<C>(at, keys.clone(), e))?;
 
-		UntrustedVecDb::try_new::<HasherOf<C>>(read_proof, state_root, keys)
+		UnverifiedStorageProof::try_new::<HasherOf<C>>(read_proof, state_root, keys)
 			.map_err(|e| Error::Custom(format!("Error generating storage proof: {:?}", e)))
 	}
 }

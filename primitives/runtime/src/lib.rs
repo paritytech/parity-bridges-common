@@ -36,9 +36,11 @@ pub use chain::{
 };
 pub use frame_support::storage::storage_prefix as storage_value_final_key;
 use num_traits::{CheckedAdd, CheckedSub, One, SaturatingAdd, Zero};
-pub use storage_proof::{grow_trie_leaf_value, ProofSize as StorageProofSize};
+pub use storage_proof::{
+	grow_storage_value, StorageProofError, StorageSize, UnverifiedStorageProof,
+	VerifiedStorageProof,
+};
 pub use storage_types::BoundedStorageValue;
-pub use vec_db::{TrustedVecDb, UntrustedVecDb, VecDbError};
 
 pub mod extensions;
 pub mod messages;
@@ -46,7 +48,6 @@ pub mod messages;
 mod chain;
 mod storage_proof;
 mod storage_types;
-mod vec_db;
 
 // Re-export macro to aviod include paste dependency everywhere
 pub use sp_runtime::paste;

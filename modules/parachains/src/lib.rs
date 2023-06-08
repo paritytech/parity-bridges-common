@@ -81,7 +81,7 @@ pub mod pallet {
 	};
 	use bp_runtime::{
 		BasicOperatingMode, BoundedStorageValue, OwnedBridgeModule, StorageDoubleMapKeyProvider,
-		StorageMapKeyProvider, TrustedVecDb, VecDbError,
+		StorageMapKeyProvider, StorageProofError, VerifiedStorageProof,
 	};
 	use frame_support::pallet_prelude::*;
 	use frame_system::pallet_prelude::*;
@@ -333,7 +333,7 @@ pub mod pallet {
 				parachains.len() as _,
 			);
 
-			let mut storage = GrandpaPalletOf::<T, I>::verify_vec_db_storage(
+			let mut storage = GrandpaPalletOf::<T, I>::verify_storage_proof(
 				relay_block_hash,
 				parachain_heads_proof.storage_proof,
 			)
@@ -508,9 +508,9 @@ pub mod pallet {
 
 		/// Read parachain head from storage proof.
 		fn read_parachain_head(
-			storage: &mut TrustedVecDb,
+			storage: &mut VerifiedStorageProof,
 			parachain: ParaId,
-		) -> Result<Option<ParaHead>, VecDbError> {
+		) -> Result<Option<ParaHead>, StorageProofError> {
 			let parachain_head_key =
 				parachain_head_storage_key_at_source(T::ParasPalletName::get(), parachain);
 			storage.get_and_decode_optional(&parachain_head_key)
@@ -701,7 +701,7 @@ pub(crate) mod tests {
 	};
 	use bp_runtime::{
 		BasicOperatingMode, OwnedBridgeModuleError, StorageDoubleMapKeyProvider,
-		StorageMapKeyProvider, VecDbError,
+		StorageMapKeyProvider, StorageProofError,
 	};
 	use bp_test_utils::{
 		authority_list, generate_owned_bridge_module_tests, make_default_justification,
@@ -1409,7 +1409,7 @@ pub(crate) mod tests {
 			assert_noop!(
 				import_parachain_1_head(0, Default::default(), parachains, proof),
 				Error::<TestRuntime>::HeaderChainStorageProof(HeaderChainError::VecDb(
-					VecDbError::InvalidProof
+					StorageProofError::InvalidProof
 				))
 			);
 		});
