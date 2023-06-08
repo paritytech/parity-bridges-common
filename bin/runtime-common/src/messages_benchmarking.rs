@@ -24,7 +24,7 @@ use bp_messages::{
 	target_chain::FromBridgedChainMessagesProof,
 };
 use bp_polkadot_core::parachains::ParaHash;
-use bp_runtime::{AccountIdOf, Chain, HashOf, Parachain, StorageSize};
+use bp_runtime::{AccountIdOf, Chain, HashOf, Parachain, StorageProofSize};
 use codec::Encode;
 use frame_support::weights::Weight;
 use pallet_bridge_messages::{
@@ -46,7 +46,7 @@ fn prepare_inbound_message(
 ) -> Vec<u8> {
 	// we only care about **this** message size when message proof needs to be `Minimal`
 	let expected_size = match params.size {
-		StorageSize::Minimal(size) => size as usize,
+		StorageProofSize::Minimal(size) => size as usize,
 		_ => 0,
 	};
 

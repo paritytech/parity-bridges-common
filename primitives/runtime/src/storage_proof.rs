@@ -246,27 +246,27 @@ impl VerifiedStorageProof {
 	}
 }
 
-/// Storage size requirements.
+/// Storage proof size requirements.
 ///
 /// This is currently used by benchmarks when generating storage proofs.
 #[derive(Clone, Copy, Debug)]
-pub enum StorageSize {
-	/// The storage is expected to be minimal. If value size may be changed, then it is expected to
-	/// have given size.
+pub enum StorageProofSize {
+	/// The storage proof is expected to be minimal. If value size may be changed, then it is
+	/// expected to have given size.
 	Minimal(u32),
-	/// The storage is expected to have at least given size and grow by increasing value that is
-	/// stored in the trie.
+	/// The storage proof is expected to have at least given size and grow by increasing value that
+	/// is stored in the trie.
 	HasLargeLeaf(u32),
 }
 
 /// Add extra data to the storage value so that it'll be of given size.
-pub fn grow_storage_value(mut value: Vec<u8>, size: StorageSize) -> Vec<u8> {
+pub fn grow_storage_value(mut value: Vec<u8>, size: StorageProofSize) -> Vec<u8> {
 	match size {
-		StorageSize::Minimal(_) => (),
-		StorageSize::HasLargeLeaf(size) if size as usize > value.len() => {
+		StorageProofSize::Minimal(_) => (),
+		StorageProofSize::HasLargeLeaf(size) if size as usize > value.len() => {
 			value.extend(sp_std::iter::repeat(42u8).take(size as usize - value.len()));
 		},
-		StorageSize::HasLargeLeaf(_) => (),
+		StorageProofSize::HasLargeLeaf(_) => (),
 	}
 	value
 }

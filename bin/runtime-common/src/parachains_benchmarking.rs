@@ -22,7 +22,7 @@ use crate::messages_benchmarking::insert_header_to_grandpa_pallet;
 
 use bp_parachains::parachain_head_storage_key_at_source;
 use bp_polkadot_core::parachains::{ParaHash, ParaHead, ParaHeadsProof, ParaId};
-use bp_runtime::{grow_storage_value, Chain, StorageSize, UnverifiedStorageProof};
+use bp_runtime::{grow_storage_value, Chain, StorageProofSize, UnverifiedStorageProof};
 use codec::Encode;
 use frame_support::{traits::Get, StateVersion};
 use pallet_bridge_grandpa::BridgedChain;
@@ -37,7 +37,7 @@ use sp_trie::{LayoutV0, LayoutV1, MemoryDB, TrieConfiguration, TrieDBMutBuilder,
 pub fn prepare_parachain_heads_proof<R, PI>(
 	parachains: &[ParaId],
 	parachain_head_size: u32,
-	size: StorageSize,
+	size: StorageProofSize,
 ) -> (RelayBlockNumber, RelayBlockHash, ParaHeadsProof, Vec<(ParaId, ParaHash)>)
 where
 	R: pallet_bridge_parachains::Config<PI>
@@ -63,7 +63,7 @@ where
 pub fn do_prepare_parachain_heads_proof<R, PI, L>(
 	parachains: &[ParaId],
 	parachain_head_size: u32,
-	size: StorageSize,
+	size: StorageProofSize,
 ) -> (RelayBlockNumber, RelayBlockHash, ParaHeadsProof, Vec<(ParaId, ParaHash)>)
 where
 	R: pallet_bridge_parachains::Config<PI>
