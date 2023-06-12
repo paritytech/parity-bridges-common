@@ -11,7 +11,7 @@ async-trait = "0.1"
 env_logger = "0.10"
 futures = "0.3.28"
 hex = "0.4"
-log = "0.4.18"
+log = "0.4.19"
 num-traits = "0.2"
 parking_lot = "0.12.1"
 
