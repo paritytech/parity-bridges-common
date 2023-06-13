@@ -34,6 +34,10 @@ const CHANNEL_CAPACITY: usize = 128;
 /// Underlying subscription type.
 pub type UnderlyingSubscription<T> = Box<dyn Stream<Item = T> + Unpin + Send>;
 
+/// Chainable stream that transforms items of type `Result<T, E>` to items of type `T`.
+///
+/// If it encounters an item of type `Err`, it returns `Poll::Ready(None)`
+/// and terminates the underlying stream.
 pub struct Unwrap<S: Stream<Item = std::result::Result<T, E>>, T, E> {
 	chain_name: String,
 	item_type: String,
@@ -41,6 +45,7 @@ pub struct Unwrap<S: Stream<Item = std::result::Result<T, E>>, T, E> {
 }
 
 impl<S: Stream<Item = std::result::Result<T, E>>, T, E> Unwrap<S, T, E> {
+	/// Create a new instance of `Unwrap`.
 	pub fn new(chain_name: String, item_type: String, subscription: S) -> Self {
 		Self { chain_name, item_type, subscription: Some(subscription) }
 	}
