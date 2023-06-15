@@ -241,7 +241,7 @@ impl<P: SubstrateFinalitySyncPipeline, SourceClnt: Client<P::SourceChain>>
 	async fn finality_proofs(&self) -> Result<Self::FinalityProofsStream, Error> {
 		Ok(unfold(
 			P::FinalityEngine::finality_proofs(&self.client).await?,
-			move |subscription| async move {
+			move |mut subscription| async move {
 				loop {
 					let log_error = |err| {
 						log::error!(
@@ -252,11 +252,7 @@ impl<P: SubstrateFinalitySyncPipeline, SourceClnt: Client<P::SourceChain>>
 						);
 					};
 
-					let next_justification = subscription
-						.next()
-						.await
-						.map_err(|err| log_error(err.to_string()))
-						.ok()??;
+					let next_justification = subscription.next().await?;
 
 					let decoded_justification =
 						<P::FinalityEngine as Engine<P::SourceChain>>::FinalityProof::decode(
