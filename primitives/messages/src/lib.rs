@@ -193,9 +193,21 @@ pub struct Message {
 	pub payload: MessagePayload,
 }
 
+/// Lane state.
+#[derive(Encode, Decode, Clone, MaxEncodedLen, RuntimeDebug, PartialEq, Eq, TypeInfo)]
+pub enum LaneState {
+	/// Lane is closed.
+	Closed,
+	/// Lane is opened.
+	Opened,
+}
+
 /// Inbound lane data.
 #[derive(Encode, Decode, Clone, RuntimeDebug, PartialEq, Eq, TypeInfo)]
 pub struct InboundLaneData<RelayerId> {
+	/// Current lane state.
+	pub state: LaneState,
+
 	/// Identifiers of relayers and messages that they have delivered to this lane (ordered by
 	/// message nonce).
 	///
@@ -228,7 +240,11 @@ pub struct InboundLaneData<RelayerId> {
 
 impl<RelayerId> Default for InboundLaneData<RelayerId> {
 	fn default() -> Self {
-		InboundLaneData { relayers: VecDeque::new(), last_confirmed_nonce: 0 }
+		InboundLaneData {
+			state: LaneState::Closed,
+			relayers: VecDeque::new(),
+			last_confirmed_nonce: 0,
+		}
 	}
 }
 
@@ -429,6 +445,8 @@ impl<RelayerId> From<&InboundLaneData<RelayerId>> for UnrewardedRelayersState {
 /// Outbound lane data.
 #[derive(Encode, Decode, Clone, RuntimeDebug, PartialEq, Eq, TypeInfo, MaxEncodedLen)]
 pub struct OutboundLaneData {
+	/// Current lane state.
+	pub state: LaneState,
 	/// Nonce of the oldest message that we haven't yet pruned. May point to not-yet-generated
 	/// message if all sent messages are already pruned.
 	pub oldest_unpruned_nonce: MessageNonce,
@@ -441,6 +459,7 @@ pub struct OutboundLaneData {
 impl Default for OutboundLaneData {
 	fn default() -> Self {
 		OutboundLaneData {
+			state: LaneState::Closed,
 			// it is 1 because we're pruning everything in [oldest_unpruned_nonce;
 			// latest_received_nonce]
 			oldest_unpruned_nonce: 1,

@@ -16,6 +16,7 @@ members = [
 	"modules/parachains",
 	"modules/relayers",
 	"modules/shift-session-manager",
+	"modules/xcm-over-bridge",
 	"primitives/beefy",
 	"primitives/chain-bridge-hub-cumulus",
 	"primitives/chain-bridge-hub-kusama",
