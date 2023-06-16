@@ -61,7 +61,7 @@ use bp_messages::{
 		ProvedLaneMessages, ProvedMessages,
 	},
 	ChainWithMessages, DeliveredMessages, InboundLaneData, InboundMessageDetails, LaneId,
-	MessageKey, MessageNonce, MessagePayload, MessagesOperatingMode, OutboundLaneData,
+	LaneState, MessageKey, MessageNonce, MessagePayload, MessagesOperatingMode, OutboundLaneData,
 	OutboundMessageDetails, UnrewardedRelayersState, VerificationError,
 };
 use bp_runtime::{
@@ -443,8 +443,12 @@ pub mod pallet {
 		NotOperatingNormally,
 		/// The outbound lane is unknown.
 		UnknownOutboundLane,
+		/// The outbound lane exists, but it is currently closed.
+		ClosedOutboundLane,
 		/// The inbound lane is unknown.
 		UnknownInboundLane,
+		/// The inbound lane exists, but it is currently closed.
+		ClosedInboundLane,
 		/// Message has been treated as invalid by chain verifier.
 		MessageRejectedByChainVerifier(VerificationError),
 		/// Message has been treated as invalid by lane verifier.
@@ -660,6 +664,7 @@ impl<T: Config<I>, I: 'static> RuntimeInboundLaneStorage<T, I> {
 	fn from_lane_id(lane_id: LaneId) -> Result<RuntimeInboundLaneStorage<T, I>, Error<T, I>> {
 		let cached_data =
 			InboundLanes::<T, I>::get(lane_id).ok_or(Error::<T, I>::UnknownInboundLane)?;
+		ensure!(cached_data.state == LaneState::Opened, Error::<T, I>::ClosedInboundLane);
 		Ok(RuntimeInboundLaneStorage {
 			lane_id,
 			cached_data: cached_data.into(),
@@ -724,6 +729,7 @@ impl<T: Config<I>, I: 'static> RuntimeOutboundLaneStorage<T, I> {
 	fn from_lane_id(lane_id: LaneId) -> Result<Self, Error<T, I>> {
 		let cached_data =
 			OutboundLanes::<T, I>::get(lane_id).ok_or(Error::<T, I>::UnknownOutboundLane)?;
+		ensure!(cached_data.state == LaneState::Opened, Error::<T, I>::ClosedOutboundLane);
 		Ok(Self { lane_id, cached_data, _phantom: PhantomData })
 	}
 }

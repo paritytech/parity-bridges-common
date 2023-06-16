@@ -305,6 +305,12 @@ pub const TEST_RELAYER_C: AccountId = 102;
 /// Lane that we're using in tests.
 pub const TEST_LANE_ID: LaneId = LaneId([0, 0, 0, 1]);
 
+/// Lane that is completely unknown to our runtime.
+pub const UNKNOWN_LANE_ID: LaneId = LaneId([0, 0, 0, 2]);
+
+/// Lane that is registered, but it is closed.
+pub const CLOSED_LANE_ID: LaneId = LaneId([0, 0, 0, 3]);
+
 /// Regular message payload.
 pub const REGULAR_PAYLOAD: TestPayload = message_payload(0, 50);
 
@@ -463,6 +469,14 @@ pub fn run_test<T>(test: impl FnOnce() -> T) -> T {
 			TEST_LANE_ID,
 			OutboundLaneData { state: LaneState::Opened, ..Default::default() },
 		);
+		crate::InboundLanes::<TestRuntime, ()>::insert(
+			CLOSED_LANE_ID,
+			InboundLaneData { state: LaneState::Closed, ..Default::default() },
+		);
+		crate::OutboundLanes::<TestRuntime, ()>::insert(
+			CLOSED_LANE_ID,
+			OutboundLaneData { state: LaneState::Closed, ..Default::default() },
+		);
 		test()
 	})
 }
@@ -481,7 +495,7 @@ pub fn prepare_messages_proof(
 	let nonces_start = messages.first().unwrap().key.nonce;
 	let nonces_end = messages.last().unwrap().key.nonce;
 	let (storage_root, storage) = prepare_messages_storage_proof::<BridgedChain, ThisChain>(
-		TEST_LANE_ID,
+		lane,
 		nonces_start..=nonces_end,
 		outbound_lane_data,
 		StorageProofSize::Minimal(0),
