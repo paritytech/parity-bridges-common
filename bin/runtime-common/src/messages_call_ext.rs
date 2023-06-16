@@ -312,8 +312,8 @@ mod tests {
 	};
 	use bp_messages::{
 		source_chain::FromBridgedChainMessagesDeliveryProof,
-		target_chain::FromBridgedChainMessagesProof, DeliveredMessages, UnrewardedRelayer,
-		UnrewardedRelayersState,
+		target_chain::FromBridgedChainMessagesProof, DeliveredMessages, LaneState,
+		UnrewardedRelayer, UnrewardedRelayersState,
 	};
 	use sp_std::ops::RangeInclusive;
 
@@ -351,7 +351,11 @@ mod tests {
 	fn deliver_message_10() {
 		pallet_bridge_messages::InboundLanes::<TestRuntime>::insert(
 			LaneId([0, 0, 0, 0]),
-			bp_messages::InboundLaneData { relayers: Default::default(), last_confirmed_nonce: 10 },
+			bp_messages::InboundLaneData {
+				state: LaneState::Opened,
+				relayers: Default::default(),
+				last_confirmed_nonce: 10,
+			},
 		);
 	}
 
@@ -463,6 +467,7 @@ mod tests {
 		pallet_bridge_messages::OutboundLanes::<TestRuntime>::insert(
 			LaneId([0, 0, 0, 0]),
 			bp_messages::OutboundLaneData {
+				state: LaneState::Opened,
 				oldest_unpruned_nonce: 0,
 				latest_received_nonce: 10,
 				latest_generated_nonce: 10,

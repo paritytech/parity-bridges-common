@@ -30,7 +30,7 @@ use crate::{
 use bp_messages::{
 	source_chain::FromBridgedChainMessagesDeliveryProof,
 	target_chain::FromBridgedChainMessagesProof, BridgeMessagesCall, ChainWithMessages,
-	DeliveredMessages, InboundLaneData, InboundMessageDetails, MessageKey, MessageNonce,
+	DeliveredMessages, InboundLaneData, InboundMessageDetails, LaneState, MessageKey, MessageNonce,
 	MessagesOperatingMode, OutboundLaneData, OutboundMessageDetails, UnrewardedRelayer,
 	UnrewardedRelayersState, VerificationError,
 };
@@ -83,6 +83,7 @@ fn receive_messages_delivery_proof() {
 		prepare_messages_delivery_proof(
 			TEST_LANE_ID,
 			InboundLaneData {
+				state: LaneState::Opened,
 				last_confirmed_nonce: 1,
 				relayers: vec![UnrewardedRelayer {
 					relayer: 0,
@@ -142,6 +143,7 @@ fn pallet_rejects_transactions_if_halted() {
 		let delivery_proof = prepare_messages_delivery_proof(
 			TEST_LANE_ID,
 			InboundLaneData {
+				state: LaneState::Opened,
 				last_confirmed_nonce: 1,
 				relayers: vec![unrewarded_relayer(1, 1, TEST_RELAYER_A)].into(),
 			},
@@ -190,6 +192,7 @@ fn pallet_rejects_new_messages_in_rejecting_outbound_messages_operating_mode() {
 			prepare_messages_delivery_proof(
 				TEST_LANE_ID,
 				InboundLaneData {
+					state: LaneState::Opened,
 					last_confirmed_nonce: 1,
 					relayers: vec![unrewarded_relayer(1, 1, TEST_RELAYER_A)].into(),
 				},
@@ -259,6 +262,7 @@ fn receive_messages_proof_updates_confirmed_message_nonce() {
 		InboundLanes::<TestRuntime, ()>::insert(
 			TEST_LANE_ID,
 			InboundLaneData {
+				state: LaneState::Opened,
 				last_confirmed_nonce: 8,
 				relayers: vec![
 					unrewarded_relayer(9, 9, TEST_RELAYER_A),
@@ -292,6 +296,7 @@ fn receive_messages_proof_updates_confirmed_message_nonce() {
 		assert_eq!(
 			InboundLanes::<TestRuntime>::get(TEST_LANE_ID).0,
 			InboundLaneData {
+				state: LaneState::Opened,
 				last_confirmed_nonce: 9,
 				relayers: vec![
 					unrewarded_relayer(10, 10, TEST_RELAYER_B),
@@ -700,6 +705,7 @@ fn proof_size_refund_from_receive_messages_proof_works() {
 		InboundLanes::<TestRuntime>::insert(
 			TEST_LANE_ID,
 			StoredInboundLaneData(InboundLaneData {
+				state: LaneState::Opened,
 				relayers: vec![
 					UnrewardedRelayer {
 						relayer: 42,
@@ -728,6 +734,7 @@ fn proof_size_refund_from_receive_messages_proof_works() {
 		InboundLanes::<TestRuntime>::insert(
 			TEST_LANE_ID,
 			StoredInboundLaneData(InboundLaneData {
+				state: LaneState::Opened,
 				relayers: vec![
 					UnrewardedRelayer {
 						relayer: 42,
@@ -773,7 +780,11 @@ fn receive_messages_delivery_proof_rejects_proof_if_trying_to_confirm_more_messa
 		//    numer of actually confirmed messages is `1`.
 		let proof = prepare_messages_delivery_proof(
 			TEST_LANE_ID,
-			InboundLaneData { last_confirmed_nonce: 1, relayers: Default::default() },
+			InboundLaneData {
+				state: LaneState::Opened,
+				last_confirmed_nonce: 1,
+				relayers: Default::default(),
+			},
 		);
 		assert_noop!(
 			Pallet::<TestRuntime>::receive_messages_delivery_proof(
@@ -846,6 +857,7 @@ fn test_bridge_messages_call_is_correctly_defined() {
 		let message_delivery_proof = prepare_messages_delivery_proof(
 			TEST_LANE_ID,
 			InboundLaneData {
+				state: LaneState::Opened,
 				last_confirmed_nonce: 1,
 				relayers: vec![UnrewardedRelayer {
 					relayer: 0,
@@ -917,6 +929,7 @@ fn inbound_storage_extra_proof_size_bytes_works() {
 		RuntimeInboundLaneStorage {
 			lane_id: Default::default(),
 			cached_data: Some(InboundLaneData {
+				state: LaneState::Opened,
 				relayers: vec![relayer_entry(); relayer_entries].into(),
 				last_confirmed_nonce: 0,
 			}),
