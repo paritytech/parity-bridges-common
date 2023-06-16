@@ -244,7 +244,7 @@ mod tests {
 	#[test]
 	fn receive_status_update_ignores_status_from_the_future() {
 		run_test(|| {
-			let mut lane = inbound_lane::<TestRuntime, _>(TEST_LANE_ID);
+			let mut lane = inbound_lane::<TestRuntime, _>(TEST_LANE_ID).unwrap();
 			receive_regular_message(&mut lane, 1);
 			assert_eq!(
 				lane.receive_state_update(OutboundLaneData {
@@ -261,7 +261,7 @@ mod tests {
 	#[test]
 	fn receive_status_update_ignores_obsolete_status() {
 		run_test(|| {
-			let mut lane = inbound_lane::<TestRuntime, _>(TEST_LANE_ID);
+			let mut lane = inbound_lane::<TestRuntime, _>(TEST_LANE_ID).unwrap();
 			receive_regular_message(&mut lane, 1);
 			receive_regular_message(&mut lane, 2);
 			receive_regular_message(&mut lane, 3);
@@ -288,7 +288,7 @@ mod tests {
 	#[test]
 	fn receive_status_update_works() {
 		run_test(|| {
-			let mut lane = inbound_lane::<TestRuntime, _>(TEST_LANE_ID);
+			let mut lane = inbound_lane::<TestRuntime, _>(TEST_LANE_ID).unwrap();
 			receive_regular_message(&mut lane, 1);
 			receive_regular_message(&mut lane, 2);
 			receive_regular_message(&mut lane, 3);
@@ -326,7 +326,7 @@ mod tests {
 	#[test]
 	fn receive_status_update_works_with_batches_from_relayers() {
 		run_test(|| {
-			let mut lane = inbound_lane::<TestRuntime, _>(TEST_LANE_ID);
+			let mut lane = inbound_lane::<TestRuntime, _>(TEST_LANE_ID).unwrap();
 			let mut seed_storage_data = lane.storage.get_or_init_data();
 			// Prepare data
 			seed_storage_data.last_confirmed_nonce = 0;
@@ -357,7 +357,7 @@ mod tests {
 	#[test]
 	fn fails_to_receive_message_with_incorrect_nonce() {
 		run_test(|| {
-			let mut lane = inbound_lane::<TestRuntime, _>(TEST_LANE_ID);
+			let mut lane = inbound_lane::<TestRuntime, _>(TEST_LANE_ID).unwrap();
 			assert_eq!(
 				lane.receive_message::<TestMessageDispatch>(
 					&TEST_RELAYER_A,
@@ -373,7 +373,7 @@ mod tests {
 	#[test]
 	fn fails_to_receive_messages_above_unrewarded_relayer_entries_limit_per_lane() {
 		run_test(|| {
-			let mut lane = inbound_lane::<TestRuntime, _>(TEST_LANE_ID);
+			let mut lane = inbound_lane::<TestRuntime, _>(TEST_LANE_ID).unwrap();
 			let max_nonce = BridgedChain::MAX_UNREWARDED_RELAYERS_IN_CONFIRMATION_TX;
 			for current_nonce in 1..max_nonce + 1 {
 				assert_eq!(
@@ -409,7 +409,7 @@ mod tests {
 	#[test]
 	fn fails_to_receive_messages_above_unconfirmed_messages_limit_per_lane() {
 		run_test(|| {
-			let mut lane = inbound_lane::<TestRuntime, _>(TEST_LANE_ID);
+			let mut lane = inbound_lane::<TestRuntime, _>(TEST_LANE_ID).unwrap();
 			let max_nonce = BridgedChain::MAX_UNCONFIRMED_MESSAGES_IN_CONFIRMATION_TX;
 			for current_nonce in 1..=max_nonce {
 				assert_eq!(
@@ -445,7 +445,7 @@ mod tests {
 	#[test]
 	fn correctly_receives_following_messages_from_two_relayers_alternately() {
 		run_test(|| {
-			let mut lane = inbound_lane::<TestRuntime, _>(TEST_LANE_ID);
+			let mut lane = inbound_lane::<TestRuntime, _>(TEST_LANE_ID).unwrap();
 			assert_eq!(
 				lane.receive_message::<TestMessageDispatch>(
 					&TEST_RELAYER_A,
@@ -484,7 +484,7 @@ mod tests {
 	#[test]
 	fn rejects_same_message_from_two_different_relayers() {
 		run_test(|| {
-			let mut lane = inbound_lane::<TestRuntime, _>(TEST_LANE_ID);
+			let mut lane = inbound_lane::<TestRuntime, _>(TEST_LANE_ID).unwrap();
 			assert_eq!(
 				lane.receive_message::<TestMessageDispatch>(
 					&TEST_RELAYER_A,
@@ -507,7 +507,7 @@ mod tests {
 	#[test]
 	fn correct_message_is_processed_instantly() {
 		run_test(|| {
-			let mut lane = inbound_lane::<TestRuntime, _>(TEST_LANE_ID);
+			let mut lane = inbound_lane::<TestRuntime, _>(TEST_LANE_ID).unwrap();
 			receive_regular_message(&mut lane, 1);
 			assert_eq!(lane.storage.get_or_init_data().last_delivered_nonce(), 1);
 		});
@@ -516,7 +516,7 @@ mod tests {
 	#[test]
 	fn unspent_weight_is_returned_by_receive_message() {
 		run_test(|| {
-			let mut lane = inbound_lane::<TestRuntime, _>(TEST_LANE_ID);
+			let mut lane = inbound_lane::<TestRuntime, _>(TEST_LANE_ID).unwrap();
 			let mut payload = REGULAR_PAYLOAD;
 			*payload.dispatch_result.unspent_weight.ref_time_mut() = 1;
 			assert_eq!(
@@ -533,7 +533,7 @@ mod tests {
 	#[test]
 	fn first_message_is_confirmed_correctly() {
 		run_test(|| {
-			let mut lane = inbound_lane::<TestRuntime, _>(TEST_LANE_ID);
+			let mut lane = inbound_lane::<TestRuntime, _>(TEST_LANE_ID).unwrap();
 			receive_regular_message(&mut lane, 1);
 			receive_regular_message(&mut lane, 2);
 			assert_eq!(
