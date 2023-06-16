@@ -495,7 +495,8 @@ pub mod pallet {
 	pub type PalletOperatingMode<T: Config<I>, I: 'static = ()> =
 		StorageValue<_, MessagesOperatingMode, ValueQuery>;
 
-	// TODO: let's limit number of possible opened lanes && use it to constraint thos maps
+	// TODO: https://github.com/paritytech/parity-bridges-common/pull/2213: let's limit number of
+	// possible opened lanes && use it to constraint maps below
 
 	/// Map of lane id => inbound lane data.
 	#[pallet::storage]
