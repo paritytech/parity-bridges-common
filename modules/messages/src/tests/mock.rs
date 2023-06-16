@@ -461,14 +461,8 @@ pub fn new_test_ext() -> sp_io::TestExternalities {
 /// Run pallet test.
 pub fn run_test<T>(test: impl FnOnce() -> T) -> T {
 	new_test_ext().execute_with(|| {
-		crate::InboundLanes::<TestRuntime, ()>::insert(
-			TEST_LANE_ID,
-			InboundLaneData { state: LaneState::Opened, ..Default::default() },
-		);
-		crate::OutboundLanes::<TestRuntime, ()>::insert(
-			TEST_LANE_ID,
-			OutboundLaneData { state: LaneState::Opened, ..Default::default() },
-		);
+		crate::InboundLanes::<TestRuntime, ()>::insert(TEST_LANE_ID, InboundLaneData::opened());
+		crate::OutboundLanes::<TestRuntime, ()>::insert(TEST_LANE_ID, OutboundLaneData::opened());
 		crate::InboundLanes::<TestRuntime, ()>::insert(
 			CLOSED_LANE_ID,
 			InboundLaneData { state: LaneState::Closed, ..Default::default() },

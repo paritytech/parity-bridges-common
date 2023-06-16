@@ -523,6 +523,8 @@ pub mod pallet {
 		pub operating_mode: MessagesOperatingMode,
 		/// Initial pallet owner.
 		pub owner: Option<T::AccountId>,
+		/// Opened lanes.
+		pub opened_lanes: Vec<LaneId>,
 		/// Dummy marker.
 		pub phantom: sp_std::marker::PhantomData<I>,
 	}
@@ -533,6 +535,11 @@ pub mod pallet {
 			PalletOperatingMode::<T, I>::put(self.operating_mode);
 			if let Some(ref owner) = self.owner {
 				PalletOwner::<T, I>::put(owner);
+			}
+
+			for lane_id in &self.opened_lanes {
+				InboundLanes::<T, I>::insert(lane_id, InboundLaneData::opened());
+				OutboundLanes::<T, I>::insert(lane_id, OutboundLaneData::opened());
 			}
 		}
 	}

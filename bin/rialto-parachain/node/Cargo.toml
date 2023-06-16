@@ -26,6 +26,8 @@ serde = { version = '1.0', features = ['derive'] }
 jsonrpsee = { version = "0.16.2", features = ["server"] }
 
 # Local Dependencies
+
+bp-messages = { path = "../../../primitives/messages" }
 rialto-parachain-runtime = { path = '../runtime' }
 
 # Substrate Dependencies

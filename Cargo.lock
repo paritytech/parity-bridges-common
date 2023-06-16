@@ -5805,6 +5805,7 @@ dependencies = [
 name = "millau-bridge-node"
 version = "0.1.0"
 dependencies = [
+ "bp-messages",
  "clap 4.3.3",
  "frame-benchmarking",
  "frame-benchmarking-cli",
@@ -10102,6 +10103,7 @@ dependencies = [
 name = "rialto-bridge-node"
 version = "0.1.0"
 dependencies = [
+ "bp-messages",
  "clap 4.3.3",
  "frame-benchmarking",
  "frame-benchmarking-cli",
@@ -10129,6 +10131,7 @@ dependencies = [
 name = "rialto-parachain-collator"
 version = "0.1.0"
 dependencies = [
+ "bp-messages",
  "clap 4.3.3",
  "cumulus-client-cli",
  "cumulus-client-consensus-aura",

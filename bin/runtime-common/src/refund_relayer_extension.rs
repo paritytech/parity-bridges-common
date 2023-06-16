@@ -806,6 +806,7 @@ mod tests {
 				nonces_start: pallet_bridge_messages::InboundLanes::<TestRuntime>::get(
 					TEST_LANE_ID,
 				)
+				.unwrap()
 				.last_delivered_nonce() +
 					1,
 				nonces_end: best_message,
