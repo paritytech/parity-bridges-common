@@ -410,9 +410,8 @@ pub trait WeightInfoExt: WeightInfo {
 	/// is less than that cost).
 	fn storage_proof_size_overhead(proof_size: u32) -> Weight {
 		let proof_size_in_bytes = proof_size;
-		let byte_weight = (Self::receive_single_message_n_kb_proof(2) -
-			Self::receive_single_message_n_kb_proof(1)) /
-			1024;
+		let byte_weight = Self::receive_single_message_n_bytes_proof(2) -
+			Self::receive_single_message_n_bytes_proof(1);
 		proof_size_in_bytes * byte_weight
 	}
 
@@ -424,10 +423,9 @@ pub trait WeightInfoExt: WeightInfo {
 	/// `receive_single_message_proof_with_dispatch` benchmark. See its requirements for
 	/// details.
 	fn message_dispatch_weight(message_size: u32) -> Weight {
-		let message_size_in_kb = message_size / 1024;
-		Self::receive_single_message_n_kb_proof_with_dispatch(message_size_in_kb).saturating_sub(
-			Self::receive_single_message_n_kb_proof(message_size_in_kb),
-		)
+		let message_size_in_bytes = message_size;
+		Self::receive_single_message_n_bytes_proof_with_dispatch(message_size_in_bytes)
+			.saturating_sub(Self::receive_single_message_n_bytes_proof(message_size_in_bytes))
 	}
 }
 

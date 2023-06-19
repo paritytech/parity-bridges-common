@@ -42,8 +42,8 @@ impl<T: frame_system::Config> pallet_bridge_messages::WeightInfo for WeightInfo<
 		// Proof Size summary in bytes:
 		//  Measured:  `490`
 		//  Estimated: `52645`
-		// Minimum execution time: 47_868_000 picoseconds.
-		Weight::from_parts(49_618_000, 0)
+		// Minimum execution time: 48_486_000 picoseconds.
+		Weight::from_parts(49_481_000, 0)
 			.saturating_add(Weight::from_parts(0, 52645))
 			.saturating_add(T::DbWeight::get().reads(3))
 			.saturating_add(T::DbWeight::get().writes(1))
@@ -60,11 +60,11 @@ impl<T: frame_system::Config> pallet_bridge_messages::WeightInfo for WeightInfo<
 		// Proof Size summary in bytes:
 		//  Measured:  `490`
 		//  Estimated: `52645`
-		// Minimum execution time: 48_202_000 picoseconds.
-		Weight::from_parts(49_608_000, 0)
+		// Minimum execution time: 49_093_000 picoseconds.
+		Weight::from_parts(49_882_000, 0)
 			.saturating_add(Weight::from_parts(0, 52645))
-			// Standard Error: 69_163
-			.saturating_add(Weight::from_parts(11_655_559, 0).saturating_mul(n.into()))
+			// Standard Error: 62_522
+			.saturating_add(Weight::from_parts(11_310_128, 0).saturating_mul(n.into()))
 			.saturating_add(T::DbWeight::get().reads(3))
 			.saturating_add(T::DbWeight::get().writes(1))
 	}
@@ -78,8 +78,8 @@ impl<T: frame_system::Config> pallet_bridge_messages::WeightInfo for WeightInfo<
 		// Proof Size summary in bytes:
 		//  Measured:  `490`
 		//  Estimated: `52645`
-		// Minimum execution time: 55_680_000 picoseconds.
-		Weight::from_parts(56_997_000, 0)
+		// Minimum execution time: 56_493_000 picoseconds.
+		Weight::from_parts(58_938_000, 0)
 			.saturating_add(Weight::from_parts(0, 52645))
 			.saturating_add(T::DbWeight::get().reads(3))
 			.saturating_add(T::DbWeight::get().writes(1))
@@ -90,17 +90,17 @@ impl<T: frame_system::Config> pallet_bridge_messages::WeightInfo for WeightInfo<
 	/// Proof: BridgeRialtoGrandpa ImportedHeaders (max_values: Some(14400), max_size: Some(68), added: 2048, mode: MaxEncodedLen)
 	/// Storage: BridgeRialtoMessages InboundLanes (r:1 w:1)
 	/// Proof: BridgeRialtoMessages InboundLanes (max_values: None, max_size: Some(49180), added: 51655, mode: MaxEncodedLen)
-	/// The range of component `n` is `[1, 16]`.
-	/// The range of component `n` is `[1, 16]`.
-	fn receive_single_message_n_kb_proof(n: u32, ) -> Weight {
+	/// The range of component `n` is `[1, 16384]`.
+	/// The range of component `n` is `[1, 16384]`.
+	fn receive_single_message_n_bytes_proof(n: u32, ) -> Weight {
 		// Proof Size summary in bytes:
 		//  Measured:  `490`
 		//  Estimated: `52645`
-		// Minimum execution time: 49_726_000 picoseconds.
-		Weight::from_parts(50_528_640, 0)
+		// Minimum execution time: 48_063_000 picoseconds.
+		Weight::from_parts(50_155_520, 0)
 			.saturating_add(Weight::from_parts(0, 52645))
-			// Standard Error: 5_744
-			.saturating_add(Weight::from_parts(1_306_830, 0).saturating_mul(n.into()))
+			// Standard Error: 3
+			.saturating_add(Weight::from_parts(1_328, 0).saturating_mul(n.into()))
 			.saturating_add(T::DbWeight::get().reads(3))
 			.saturating_add(T::DbWeight::get().writes(1))
 	}
@@ -113,13 +113,13 @@ impl<T: frame_system::Config> pallet_bridge_messages::WeightInfo for WeightInfo<
 	/// Storage: BridgeRelayers RelayerRewards (r:1 w:1)
 	/// Proof: BridgeRelayers RelayerRewards (max_values: None, max_size: Some(65), added: 2540, mode: MaxEncodedLen)
 	/// Storage: BridgeRialtoMessages OutboundMessages (r:0 w:1)
-	/// Proof: BridgeRialtoMessages OutboundMessages (max_values: None, max_size: Some(2621472), added: 2623947, mode: MaxEncodedLen)
+	/// Proof: BridgeRialtoMessages OutboundMessages (max_values: None, max_size: Some(65568), added: 68043, mode: MaxEncodedLen)
 	fn receive_delivery_proof_for_single_message() -> Weight {
 		// Proof Size summary in bytes:
 		//  Measured:  `515`
 		//  Estimated: `3530`
-		// Minimum execution time: 44_162_000 picoseconds.
-		Weight::from_parts(45_635_000, 0)
+		// Minimum execution time: 44_385_000 picoseconds.
+		Weight::from_parts(45_415_000, 0)
 			.saturating_add(Weight::from_parts(0, 3530))
 			.saturating_add(T::DbWeight::get().reads(4))
 			.saturating_add(T::DbWeight::get().writes(3))
@@ -133,13 +133,13 @@ impl<T: frame_system::Config> pallet_bridge_messages::WeightInfo for WeightInfo<
 	/// Storage: BridgeRelayers RelayerRewards (r:1 w:1)
 	/// Proof: BridgeRelayers RelayerRewards (max_values: None, max_size: Some(65), added: 2540, mode: MaxEncodedLen)
 	/// Storage: BridgeRialtoMessages OutboundMessages (r:0 w:2)
-	/// Proof: BridgeRialtoMessages OutboundMessages (max_values: None, max_size: Some(2621472), added: 2623947, mode: MaxEncodedLen)
+	/// Proof: BridgeRialtoMessages OutboundMessages (max_values: None, max_size: Some(65568), added: 68043, mode: MaxEncodedLen)
 	fn receive_delivery_proof_for_two_messages_by_single_relayer() -> Weight {
 		// Proof Size summary in bytes:
 		//  Measured:  `532`
 		//  Estimated: `3530`
-		// Minimum execution time: 44_407_000 picoseconds.
-		Weight::from_parts(45_731_000, 0)
+		// Minimum execution time: 44_913_000 picoseconds.
+		Weight::from_parts(46_369_000, 0)
 			.saturating_add(Weight::from_parts(0, 3530))
 			.saturating_add(T::DbWeight::get().reads(4))
 			.saturating_add(T::DbWeight::get().writes(4))
@@ -153,13 +153,13 @@ impl<T: frame_system::Config> pallet_bridge_messages::WeightInfo for WeightInfo<
 	/// Storage: BridgeRelayers RelayerRewards (r:2 w:2)
 	/// Proof: BridgeRelayers RelayerRewards (max_values: None, max_size: Some(65), added: 2540, mode: MaxEncodedLen)
 	/// Storage: BridgeRialtoMessages OutboundMessages (r:0 w:2)
-	/// Proof: BridgeRialtoMessages OutboundMessages (max_values: None, max_size: Some(2621472), added: 2623947, mode: MaxEncodedLen)
+	/// Proof: BridgeRialtoMessages OutboundMessages (max_values: None, max_size: Some(65568), added: 68043, mode: MaxEncodedLen)
 	fn receive_delivery_proof_for_two_messages_by_two_relayers() -> Weight {
 		// Proof Size summary in bytes:
 		//  Measured:  `532`
 		//  Estimated: `6070`
-		// Minimum execution time: 47_407_000 picoseconds.
-		Weight::from_parts(49_031_000, 0)
+		// Minimum execution time: 48_045_000 picoseconds.
+		Weight::from_parts(49_543_000, 0)
 			.saturating_add(Weight::from_parts(0, 6070))
 			.saturating_add(T::DbWeight::get().reads(5))
 			.saturating_add(T::DbWeight::get().writes(5))
@@ -170,17 +170,17 @@ impl<T: frame_system::Config> pallet_bridge_messages::WeightInfo for WeightInfo<
 	/// Proof: BridgeRialtoGrandpa ImportedHeaders (max_values: Some(14400), max_size: Some(68), added: 2048, mode: MaxEncodedLen)
 	/// Storage: BridgeRialtoMessages InboundLanes (r:1 w:1)
 	/// Proof: BridgeRialtoMessages InboundLanes (max_values: None, max_size: Some(49180), added: 51655, mode: MaxEncodedLen)
-	/// The range of component `n` is `[1, 16]`.
-	/// The range of component `n` is `[1, 16]`.
-	fn receive_single_message_n_kb_proof_with_dispatch(n: u32, ) -> Weight {
+	/// The range of component `n` is `[1, 16384]`.
+	/// The range of component `n` is `[1, 16384]`.
+	fn receive_single_message_n_bytes_proof_with_dispatch(n: u32, ) -> Weight {
 		// Proof Size summary in bytes:
 		//  Measured:  `490`
 		//  Estimated: `52645`
-		// Minimum execution time: 492_892_000 picoseconds.
-		Weight::from_parts(498_669_000, 0)
+		// Minimum execution time: 48_529_000 picoseconds.
+		Weight::from_parts(48_967_000, 0)
 			.saturating_add(Weight::from_parts(0, 52645))
-			// Standard Error: 1_440_895
-			.saturating_add(Weight::from_parts(503_410_233, 0).saturating_mul(n.into()))
+			// Standard Error: 595
+			.saturating_add(Weight::from_parts(505_322, 0).saturating_mul(n.into()))
 			.saturating_add(T::DbWeight::get().reads(3))
 			.saturating_add(T::DbWeight::get().writes(1))
 	}
