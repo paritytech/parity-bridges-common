@@ -490,9 +490,9 @@ mod benchmarks {
 	// * message requires all heavy checks done by dispatcher.
 	// #[benchmark(extra)]
 	#[benchmark]
-	fn receive_single_message_n_bytes_proof_with_dispatch(
-		/// Proof size in bytes
-		n: Linear<EXPECTED_DEFAULT_MESSAGE_LENGTH, { EXPECTED_DEFAULT_MESSAGE_LENGTH * 16 }>,
+	fn receive_single_message_n_kb_proof_with_dispatch(
+		/// Proof size in KB
+		n: Linear<1, 16>,
 	) {
 		// setup code
 		let setup = ReceiveMessagesProofSetup::<T, I>::new(1);
@@ -501,7 +501,7 @@ mod benchmarks {
 			message_nonces: setup.nonces(),
 			outbound_lane_data: None,
 			is_successful_dispatch_expected: true,
-			size: StorageProofSize::Minimal(n),
+			size: StorageProofSize::Minimal(n * 1024),
 		});
 
 		#[extrinsic_call]

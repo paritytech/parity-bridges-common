@@ -424,12 +424,11 @@ pub trait WeightInfoExt: WeightInfo {
 	/// `receive_single_message_proof_with_dispatch` benchmark. See its requirements for
 	/// details.
 	fn message_dispatch_weight(message_size: u32) -> Weight {
-		// There may be a tiny overweight/underweight here, because we don't account how message
-		// size affects all steps before dispatch. But the effect should be small enough and we
-		// may ignore it.
-		Self::receive_single_message_n_bytes_proof_with_dispatch(message_size)
-			.saturating_sub(Self::receive_single_message_proof())
-		}
+		let message_size_in_kb = message_size / 1024;
+		Self::receive_single_message_n_kb_proof_with_dispatch(message_size_in_kb).saturating_sub(
+			Self::receive_single_message_n_kb_proof_with_dispatch(message_size_in_kb),
+		)
+	}
 }
 
 impl WeightInfoExt for () {
