@@ -426,7 +426,7 @@ pub trait WeightInfoExt: WeightInfo {
 	fn message_dispatch_weight(message_size: u32) -> Weight {
 		let message_size_in_kb = message_size / 1024;
 		Self::receive_single_message_n_kb_proof_with_dispatch(message_size_in_kb).saturating_sub(
-			Self::receive_single_message_n_kb_proof_with_dispatch(message_size_in_kb),
+			Self::receive_single_message_n_kb_proof(message_size_in_kb),
 		)
 	}
 }
