@@ -19,8 +19,11 @@
 //! with calls that are: delivering new messsage and all necessary underlying headers
 //! (parachain or relay chain).
 
-use crate::messages_call_ext::{
-	CallHelper as MessagesCallHelper, CallInfo as MessagesCallInfo, MessagesCallSubType,
+use crate::{
+	messages_call_ext::{
+		CallHelper as MessagesCallHelper, CallInfo as MessagesCallInfo, MessagesCallSubType,
+	},
+	messages_xcm_extension::LaneIdFromChainId,
 };
 use bp_messages::{ChainWithMessages, LaneId, MessageNonce};
 use bp_relayers::{RewardsAccountOwner, RewardsAccountParams};
@@ -102,14 +105,15 @@ pub trait RefundableMessagesLaneId {
 }
 
 /// Default implementation of `RefundableMessagesLaneId`.
-pub struct RefundableMessagesLane<Instance, Id>(PhantomData<(Instance, Id)>);
+pub struct RefundableMessagesLane<Runtime, Instance>(PhantomData<(Runtime, Instance)>);
 
-impl<Instance, Id> RefundableMessagesLaneId for RefundableMessagesLane<Instance, Id>
+impl<Runtime, Instance> RefundableMessagesLaneId for RefundableMessagesLane<Runtime, Instance>
 where
-	Id: Get<LaneId>,
+	Runtime: MessagesConfig<Instance>,
+	Instance: 'static,
 {
 	type Instance = Instance;
-	type Id = Id;
+	type Id = LaneIdFromChainId<Runtime, Instance>;
 }
 
 /// Refund calculator.
@@ -680,14 +684,13 @@ mod tests {
 
 	parameter_types! {
 		TestParachain: u32 = 1000;
-		pub TestLaneId: LaneId = TEST_LANE_ID;
 		pub MsgProofsRewardsAccount: RewardsAccountParams = RewardsAccountParams::new(
-			TEST_LANE_ID,
+			test_lane_id(),
 			TEST_BRIDGED_CHAIN_ID,
 			RewardsAccountOwner::ThisChain,
 		);
 		pub MsgDeliveryProofsRewardsAccount: RewardsAccountParams = RewardsAccountParams::new(
-			TEST_LANE_ID,
+			test_lane_id(),
 			TEST_BRIDGED_CHAIN_ID,
 			RewardsAccountOwner::BridgedChain,
 		);
@@ -697,7 +700,7 @@ mod tests {
 	type TestExtension = RefundBridgedParachainMessages<
 		TestRuntime,
 		DefaultRefundableParachainId<(), TestParachain>,
-		RefundableMessagesLane<(), TestLaneId>,
+		RefundableMessagesLane<TestRuntime, ()>,
 		ActualFeeRefund<TestRuntime>,
 		ConstU64<1>,
 		StrTestExtension,
@@ -749,7 +752,7 @@ mod tests {
 		};
 		pallet_bridge_parachains::ParasInfo::<TestRuntime>::insert(para_id, para_info);
 
-		let lane_id = TestLaneId::get();
+		let lane_id = test_lane_id();
 		let in_lane_data =
 			InboundLaneData { last_confirmed_nonce: best_message, ..Default::default() };
 		pallet_bridge_messages::InboundLanes::<TestRuntime>::insert(lane_id, in_lane_data);
@@ -802,9 +805,9 @@ mod tests {
 			proof: FromBridgedChainMessagesProof {
 				bridged_header_hash: Default::default(),
 				storage: Default::default(),
-				lane: TestLaneId::get(),
+				lane: test_lane_id(),
 				nonces_start: pallet_bridge_messages::InboundLanes::<TestRuntime>::get(
-					TEST_LANE_ID,
+					test_lane_id(),
 				)
 				.unwrap()
 				.last_delivered_nonce() +
@@ -821,7 +824,7 @@ mod tests {
 			proof: FromBridgedChainMessagesDeliveryProof {
 				bridged_header_hash: Default::default(),
 				storage_proof: Default::default(),
-				lane: TestLaneId::get(),
+				lane: test_lane_id(),
 			},
 			relayers_state: UnrewardedRelayersState {
 				last_delivered_nonce: best_message,
@@ -898,7 +901,7 @@ mod tests {
 				},
 				MessagesCallInfo::ReceiveMessagesProof(ReceiveMessagesProofInfo {
 					base: BaseMessagesProofInfo {
-						lane_id: TEST_LANE_ID,
+						lane_id: test_lane_id(),
 						bundled_range: 101..=200,
 						best_stored_nonce: 100,
 					},
@@ -929,7 +932,7 @@ mod tests {
 				},
 				MessagesCallInfo::ReceiveMessagesDeliveryProof(ReceiveMessagesDeliveryProofInfo(
 					BaseMessagesProofInfo {
-						lane_id: TEST_LANE_ID,
+						lane_id: test_lane_id(),
 						bundled_range: 101..=200,
 						best_stored_nonce: 100,
 					},
@@ -949,7 +952,7 @@ mod tests {
 				},
 				MessagesCallInfo::ReceiveMessagesProof(ReceiveMessagesProofInfo {
 					base: BaseMessagesProofInfo {
-						lane_id: TEST_LANE_ID,
+						lane_id: test_lane_id(),
 						bundled_range: 101..=200,
 						best_stored_nonce: 100,
 					},
@@ -975,7 +978,7 @@ mod tests {
 				},
 				MessagesCallInfo::ReceiveMessagesDeliveryProof(ReceiveMessagesDeliveryProofInfo(
 					BaseMessagesProofInfo {
-						lane_id: TEST_LANE_ID,
+						lane_id: test_lane_id(),
 						bundled_range: 101..=200,
 						best_stored_nonce: 100,
 					},
@@ -990,7 +993,7 @@ mod tests {
 			call_info: CallInfo::Msgs(MessagesCallInfo::ReceiveMessagesProof(
 				ReceiveMessagesProofInfo {
 					base: BaseMessagesProofInfo {
-						lane_id: TEST_LANE_ID,
+						lane_id: test_lane_id(),
 						bundled_range: 101..=200,
 						best_stored_nonce: 100,
 					},
@@ -1010,7 +1013,7 @@ mod tests {
 			relayer: relayer_account_at_this_chain(),
 			call_info: CallInfo::Msgs(MessagesCallInfo::ReceiveMessagesDeliveryProof(
 				ReceiveMessagesDeliveryProofInfo(BaseMessagesProofInfo {
-					lane_id: TEST_LANE_ID,
+					lane_id: test_lane_id(),
 					bundled_range: 101..=200,
 					best_stored_nonce: 100,
 				}),

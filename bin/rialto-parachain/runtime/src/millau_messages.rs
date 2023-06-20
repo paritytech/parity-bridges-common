@@ -22,12 +22,13 @@
 use crate::{Runtime, WithMillauMessagesInstance};
 
 use bp_messages::LaneId;
-use bridge_runtime_common::messages_xcm_extension::{XcmBlobHauler, XcmBlobHaulerAdapter};
+use bridge_runtime_common::messages_xcm_extension::{
+	LaneIdFromChainId, XcmBlobHauler, XcmBlobHaulerAdapter,
+};
 use frame_support::{parameter_types, weights::Weight};
+use sp_core::Get;
 use xcm_builder::HaulBlobExporter;
 
-/// Default lane that is used to send messages to Millau.
-pub const XCM_LANE: LaneId = LaneId([0, 0, 0, 0]);
 /// Weight of 2 XCM instructions is for simple `Trap(42)` program, coming through bridge
 /// (it is prepended with `UniversalOrigin` instruction). It is used just for simplest manual
 /// tests, confirming that we don't break encoding somewhere between.
@@ -59,7 +60,7 @@ impl XcmBlobHauler for ToMillauXcmBlobHauler {
 	type MessageSender = pallet_bridge_messages::Pallet<Runtime, WithMillauMessagesInstance>;
 
 	fn xcm_lane() -> LaneId {
-		XCM_LANE
+		LaneIdFromChainId::<Runtime, WithMillauMessagesInstance>::get()
 	}
 }
 

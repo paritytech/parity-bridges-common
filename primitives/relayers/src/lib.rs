@@ -162,21 +162,21 @@ mod tests {
 	fn different_lanes_are_using_different_accounts() {
 		assert_eq!(
 			PayRewardFromAccount::<(), H256>::rewards_account(RewardsAccountParams::new(
-				LaneId([0, 0, 0, 0]),
+				LaneId::new(1, 2),
 				*b"test",
 				RewardsAccountOwner::ThisChain
 			)),
-			hex_literal::hex!("62726170000000007465737400726577617264732d6163636f756e7400000000")
+			hex_literal::hex!("627261706087240931c736c98ccb5748ffe8b0a946fb1bb382db195ad826ec3e")
 				.into(),
 		);
 
 		assert_eq!(
 			PayRewardFromAccount::<(), H256>::rewards_account(RewardsAccountParams::new(
-				LaneId([0, 0, 0, 1]),
+				LaneId::new(1, 3),
 				*b"test",
 				RewardsAccountOwner::ThisChain
 			)),
-			hex_literal::hex!("62726170000000017465737400726577617264732d6163636f756e7400000000")
+			hex_literal::hex!("62726170660195d2685fa2f4dd552ca4cc3478730588512e95a2544df0174e81")
 				.into(),
 		);
 	}
@@ -185,21 +185,21 @@ mod tests {
 	fn different_directions_are_using_different_accounts() {
 		assert_eq!(
 			PayRewardFromAccount::<(), H256>::rewards_account(RewardsAccountParams::new(
-				LaneId([0, 0, 0, 0]),
+				LaneId::new(1, 2),
 				*b"test",
 				RewardsAccountOwner::ThisChain
 			)),
-			hex_literal::hex!("62726170000000007465737400726577617264732d6163636f756e7400000000")
+			hex_literal::hex!("627261706087240931c736c98ccb5748ffe8b0a946fb1bb382db195ad826ec3e")
 				.into(),
 		);
 
 		assert_eq!(
 			PayRewardFromAccount::<(), H256>::rewards_account(RewardsAccountParams::new(
-				LaneId([0, 0, 0, 0]),
+				LaneId::new(1, 2),
 				*b"test",
 				RewardsAccountOwner::BridgedChain
 			)),
-			hex_literal::hex!("62726170000000007465737401726577617264732d6163636f756e7400000000")
+			hex_literal::hex!("627261706087240931c736c98ccb5748ffe8b0a946fb1bb382db195ad826ec3e")
 				.into(),
 		);
 	}
