@@ -1466,9 +1466,9 @@ dependencies = [
 
 [[package]]
 name = "clap"
-version = "4.3.3"
+version = "4.3.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ca8f255e4b8027970e78db75e78831229c9815fdbfa67eb1a1b777a62e24b4a0"
+checksum = "80672091db20273a15cf9fdd4e47ed43b5091ec9841bf4c6145c9dfbbcae09ed"
 dependencies = [
  "clap_builder",
  "clap_derive",
@@ -1477,9 +1477,9 @@ dependencies = [
 
 [[package]]
 name = "clap_builder"
-version = "4.3.3"
+version = "4.3.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "acd4f3c17c83b0ba34ffbc4f8bbd74f079413f747f84a6f89292f138057e36ab"
+checksum = "c1458a1df40e1e2afebb7ab60ce55c1fa8f431146205aa5f4887e0b111c27636"
 dependencies = [
  "anstream",
  "anstyle",
@@ -1540,8 +1540,8 @@ version = "6.1.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6e7b787b0dc42e8111badfdbe4c3059158ccb2db8780352fa1b01e8ccf45cc4d"
 dependencies = [
- "strum",
- "strum_macros",
+ "strum 0.24.1",
+ "strum_macros 0.24.3",
  "unicode-width",
 ]
 
@@ -1903,7 +1903,7 @@ name = "cumulus-client-cli"
 version = "0.1.0"
 source = "git+https://github.com/paritytech/cumulus?branch=master#5dd73ad67d8a170c5d3ca9edc0c3adb5de745bea"
 dependencies = [
- "clap 4.3.3",
+ "clap 4.3.4",
  "parity-scale-codec",
  "sc-chain-spec",
  "sc-cli",
@@ -3397,7 +3397,7 @@ dependencies = [
  "Inflector",
  "array-bytes 4.2.0",
  "chrono",
- "clap 4.3.3",
+ "clap 4.3.4",
  "comfy-table",
  "frame-benchmarking",
  "frame-support",
@@ -5806,7 +5806,7 @@ name = "millau-bridge-node"
 version = "0.1.0"
 dependencies = [
  "bp-messages",
- "clap 4.3.3",
+ "clap 4.3.4",
  "frame-benchmarking",
  "frame-benchmarking-cli",
  "jsonrpsee 0.16.2",
@@ -6226,7 +6226,7 @@ name = "node-inspect"
 version = "0.9.0-dev"
 source = "git+https://github.com/paritytech/substrate?branch=master#5aa46775c0600fe722510abff30fc3eff313acbc"
 dependencies = [
- "clap 4.3.3",
+ "clap 4.3.4",
  "parity-scale-codec",
  "sc-cli",
  "sc-client-api",
@@ -6866,7 +6866,7 @@ dependencies = [
  "sp-npos-elections",
  "sp-runtime",
  "sp-std 8.0.0 (git+https://github.com/paritytech/substrate?branch=master)",
- "strum",
+ "strum 0.24.1",
 ]
 
 [[package]]
@@ -8036,7 +8036,7 @@ name = "polkadot-cli"
 version = "0.9.41"
 source = "git+https://github.com/paritytech/polkadot?branch=master#478c6596f2f9137f2d66709665d96d01d5c189e1"
 dependencies = [
- "clap 4.3.3",
+ "clap 4.3.4",
  "frame-benchmarking-cli",
  "futures",
  "log",
@@ -8611,7 +8611,7 @@ dependencies = [
  "rand 0.8.5",
  "sc-authority-discovery",
  "sc-network",
- "strum",
+ "strum 0.24.1",
  "thiserror",
  "tracing-gum",
 ]
@@ -10104,7 +10104,7 @@ name = "rialto-bridge-node"
 version = "0.1.0"
 dependencies = [
  "bp-messages",
- "clap 4.3.3",
+ "clap 4.3.4",
  "frame-benchmarking",
  "frame-benchmarking-cli",
  "frame-support",
@@ -10132,7 +10132,7 @@ name = "rialto-parachain-collator"
 version = "0.1.0"
 dependencies = [
  "bp-messages",
- "clap 4.3.3",
+ "clap 4.3.4",
  "cumulus-client-cli",
  "cumulus-client-consensus-aura",
  "cumulus-client-consensus-common",
@@ -10784,7 +10784,7 @@ source = "git+https://github.com/paritytech/substrate?branch=master#5aa46775c060
 dependencies = [
  "array-bytes 4.2.0",
  "chrono",
- "clap 4.3.3",
+ "clap 4.3.4",
  "fdlimit",
  "futures",
  "libp2p-identity",
@@ -11613,7 +11613,7 @@ name = "sc-storage-monitor"
 version = "0.1.0"
 source = "git+https://github.com/paritytech/substrate?branch=master#5aa46775c0600fe722510abff30fc3eff313acbc"
 dependencies = [
- "clap 4.3.3",
+ "clap 4.3.4",
  "fs4",
  "futures",
  "log",
@@ -12100,9 +12100,9 @@ dependencies = [
 
 [[package]]
 name = "serde_json"
-version = "1.0.96"
+version = "1.0.97"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "057d394a50403bcac12672b2b18fb387ab6d289d957dab67dd201875391e52f1"
+checksum = "bdf3bf93142acad5821c99197022e170842cdbc1c30482b98750c688c640842a"
 dependencies = [
  "indexmap",
  "itoa",
@@ -12551,7 +12551,7 @@ dependencies = [
  "sp-mmr-primitives",
  "sp-runtime",
  "sp-std 8.0.0 (git+https://github.com/paritytech/substrate?branch=master)",
- "strum",
+ "strum 0.24.1",
 ]
 
 [[package]]
@@ -12747,7 +12747,7 @@ dependencies = [
  "lazy_static",
  "sp-core",
  "sp-runtime",
- "strum",
+ "strum 0.24.1",
 ]
 
 [[package]]
@@ -13132,7 +13132,7 @@ checksum = "08615eea740067d9899969bc2891c68a19c315cb1f66640af9a9ecb91b13bcab"
 dependencies = [
  "lazy_static",
  "maplit",
- "strum",
+ "strum 0.24.1",
 ]
 
 [[package]]
@@ -13292,7 +13292,16 @@ version = "0.24.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "063e6045c0e62079840579a7e47a355ae92f60eb74daaf156fb1e84ba164e63f"
 dependencies = [
- "strum_macros",
+ "strum_macros 0.24.3",
+]
+
+[[package]]
+name = "strum"
+version = "0.25.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "290d54ea6f91c969195bdbcd7442c8c2a2ba87da8bf60a7ee86a235d4bc1e125"
+dependencies = [
+ "strum_macros 0.25.0",
 ]
 
 [[package]]
@@ -13306,6 +13315,19 @@ dependencies = [
  "quote 1.0.28",
  "rustversion",
  "syn 1.0.109",
+]
+
+[[package]]
+name = "strum_macros"
+version = "0.25.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "fe9f3bd7d2e45dcc5e265fbb88d6513e4747d8ef9444cf01a533119bce28a157"
+dependencies = [
+ "heck 0.4.1",
+ "proc-macro2 1.0.59",
+ "quote 1.0.28",
+ "rustversion",
+ "syn 2.0.18",
 ]
 
 [[package]]
@@ -13436,7 +13458,7 @@ dependencies = [
  "sp-keyring",
  "sp-runtime",
  "structopt",
- "strum",
+ "strum 0.25.0",
  "substrate-relay-helper",
  "tempfile",
  "xcm",
@@ -13532,7 +13554,7 @@ dependencies = [
  "filetime",
  "parity-wasm",
  "sp-maybe-compressed-blob",
- "strum",
+ "strum 0.24.1",
  "tempfile",
  "toml 0.7.3",
  "walkdir",
@@ -14297,7 +14319,7 @@ version = "0.10.0-dev"
 source = "git+https://github.com/paritytech/substrate?branch=master#5aa46775c0600fe722510abff30fc3eff313acbc"
 dependencies = [
  "async-trait",
- "clap 4.3.3",
+ "clap 4.3.4",
  "frame-remote-externalities",
  "hex",
  "log",
@@ -14669,8 +14691,8 @@ checksum = "87fef6d0d508f08334e0ab0e6877feb4c0ecb3956bcf2cb950699b22fedf3e9c"
 dependencies = [
  "anyhow",
  "libc",
- "strum",
- "strum_macros",
+ "strum 0.24.1",
+ "strum_macros 0.24.3",
  "tempfile",
  "thiserror",
  "wasm-opt-cxx-sys",
