@@ -224,7 +224,7 @@ mod benchmarks {
 		receive_messages_proof(
 			RawOrigin::Signed(setup.relayer_id_on_tgt()),
 			setup.relayer_id_on_src(),
-			proof,
+			Box::new(proof),
 			setup.msgs_count,
 			dispatch_weight,
 		);
@@ -255,7 +255,7 @@ mod benchmarks {
 		receive_messages_proof(
 			RawOrigin::Signed(setup.relayer_id_on_tgt()),
 			setup.relayer_id_on_src(),
-			proof,
+			Box::new(proof),
 			setup.msgs_count,
 			dispatch_weight,
 		);
@@ -296,7 +296,7 @@ mod benchmarks {
 		receive_messages_proof(
 			RawOrigin::Signed(setup.relayer_id_on_tgt()),
 			setup.relayer_id_on_src(),
-			proof,
+			Box::new(proof),
 			setup.msgs_count,
 			dispatch_weight,
 		);
@@ -331,7 +331,7 @@ mod benchmarks {
 		receive_messages_proof(
 			RawOrigin::Signed(setup.relayer_id_on_tgt()),
 			setup.relayer_id_on_src(),
-			proof,
+			Box::new(proof),
 			setup.msgs_count,
 			dispatch_weight,
 		);
@@ -531,7 +531,7 @@ mod benchmarks {
 		receive_messages_proof(
 			RawOrigin::Signed(setup.relayer_id_on_tgt()),
 			setup.relayer_id_on_src(),
-			proof,
+			Box::new(proof),
 			setup.msgs_count,
 			dispatch_weight,
 		);

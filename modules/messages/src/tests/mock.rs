@@ -483,7 +483,7 @@ pub fn run_test<T>(test: impl FnOnce() -> T) -> T {
 pub fn prepare_messages_proof(
 	messages: Vec<Message>,
 	outbound_lane_data: Option<OutboundLaneData>,
-) -> FromBridgedChainMessagesProof<BridgedHeaderHash> {
+) -> Box<FromBridgedChainMessagesProof<BridgedHeaderHash>> {
 	// first - let's generate storage proof
 	let lane = messages.first().unwrap().key.lane_id;
 	let nonces_start = messages.first().unwrap().key.nonce;
@@ -507,13 +507,13 @@ pub fn prepare_messages_proof(
 		StoredHeaderData { number: 0, state_root: storage_root },
 	);
 
-	FromBridgedChainMessagesProof::<BridgedHeaderHash> {
+	Box::new(FromBridgedChainMessagesProof::<BridgedHeaderHash> {
 		bridged_header_hash,
 		storage,
 		lane,
 		nonces_start,
 		nonces_end,
-	}
+	})
 }
 
 /// Prepare valid storage proof for given messages and insert appropriate header to the
