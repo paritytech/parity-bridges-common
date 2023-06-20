@@ -799,7 +799,7 @@ mod tests {
 	fn message_delivery_call(best_message: MessageNonce) -> RuntimeCall {
 		RuntimeCall::BridgeMessages(MessagesCall::receive_messages_proof {
 			relayer_id_at_bridged_chain: relayer_account_at_bridged_chain(),
-			proof: FromBridgedChainMessagesProof {
+			proof: Box::new(FromBridgedChainMessagesProof {
 				bridged_header_hash: Default::default(),
 				storage: Default::default(),
 				lane: TestLaneId::get(),
@@ -810,7 +810,7 @@ mod tests {
 				.last_delivered_nonce() +
 					1,
 				nonces_end: best_message,
-			},
+			}),
 			messages_count: 1,
 			dispatch_weight: Weight::zero(),
 		})
