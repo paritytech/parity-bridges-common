@@ -190,7 +190,7 @@ impl LaneId {
 	/// Create lane identifier from given hash.
 	///
 	/// There's no `From<H256>` implementation for the `LaneId`, because using this conversion
-	/// in a wrong way (i.e. computing hash of endpoiints manually) may lead to issues. So we
+	/// in a wrong way (i.e. computing hash of endpoints manually) may lead to issues. So we
 	/// want the call to be explicit.
 	pub const fn from_inner(hash: H256) -> Self {
 		LaneId(hash)
