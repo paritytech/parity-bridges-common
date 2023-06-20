@@ -188,7 +188,7 @@ pub enum LaneState {
 	/// and/or sending messages over the lane, have to coordinate their actions on
 	/// both ends to make sure that lane is operating smoothly on both ends.
 	Closed,
-	/// Lane is opened and messages may be sent/receoved over it.
+	/// Lane is opened and messages may be sent/received over it.
 	Opened,
 }
 
