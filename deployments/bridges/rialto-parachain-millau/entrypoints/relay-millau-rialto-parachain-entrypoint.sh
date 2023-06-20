@@ -7,6 +7,10 @@ MILLAU_RELAY_ACCOUNT=${EXT_MILLAU_RELAY_ACCOUNT:-//RialtoParachain.HeadersAndMes
 MILLAU_RELAY_ACCOUNT_HEADERS_OVERRIDE=${EXT_MILLAU_RELAY_ACCOUNT_HEADERS_OVERRIDE:-//RialtoParachain.RialtoHeadersRelay1}
 RIALTO_PARACHAIN_RELAY_ACCOUNT=${EXT_RIALTO_PARACHAIN_RELAY_ACCOUNT:-//Millau.HeadersAndMessagesRelay1}
 
+# see `rialto_parachain_millau_bridge_identifier_does_not_changed` test in `millau-runtime` crate for
+# details on how this lane is computed
+MESSAGE_LANE="5b442a96565071264d3509869d1b89dbe2de301511db9ad8a6662e73037d8802"
+
 /home/user/substrate-relay init-bridge millau-to-rialto-parachain \
 	--source-host millau-node-alice \
 	--source-port 9944 \
@@ -35,5 +39,5 @@ exec /home/user/substrate-relay relay-headers-and-messages millau-rialto-paracha
 	--rialto-parachain-transactions-mortality=64 \
 	--rialto-host rialto-node-alice \
 	--rialto-port 9944 \
-	--lane=00000000 \
+	--lane=$MESSAGE_LANE \
 	--prometheus-host=0.0.0.0

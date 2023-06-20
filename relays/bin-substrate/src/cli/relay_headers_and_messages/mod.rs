@@ -84,7 +84,7 @@ use substrate_relay_helper::{
 #[derive(Debug, PartialEq, StructOpt)]
 pub struct HeadersAndMessagesSharedParams {
 	/// Hex-encoded lane identifiers that should be served by the complex relay.
-	#[structopt(long, default_value = "00000000")]
+	#[structopt(long)]
 	pub lane: Vec<HexLaneId>,
 	/// If passed, only mandatory headers (headers that are changing the GRANDPA authorities set)
 	/// are relayed.

@@ -48,8 +48,8 @@ pub struct RelayMessages {
 	/// A bridge instance to relay messages for.
 	#[structopt(possible_values = FullBridge::VARIANTS, case_insensitive = true)]
 	bridge: FullBridge,
-	/// Hex-encoded lane id that should be served by the relay. Defaults to `00000000`.
-	#[structopt(long, default_value = "00000000")]
+	/// Hex-encoded lane id that should be served by the relay.
+	#[structopt(long)]
 	lane: HexLaneId,
 	#[structopt(flatten)]
 	source: SourceConnectionParams,
