@@ -84,6 +84,7 @@ impl pallet_bridge_messages::WeightInfoExt
 
 #[cfg(test)]
 mod tests {
+	use super::*;
 	use crate::{
 		PriorityBoostPerMessage, RialtoGrandpaInstance, Runtime,
 		WithRialtoParachainMessagesInstance,
@@ -134,5 +135,16 @@ mod tests {
 			WithRialtoParachainMessagesInstance,
 			PriorityBoostPerMessage,
 		>(1_000_000);
+	}
+
+	#[test]
+	fn rialto_parachain_millau_bridge_identifier_does_not_changed() {
+		// there's nothing criminal if it is changed, but then thou need to fix it across
+		// all deployments scripts, alerts and so on
+		assert_eq!(
+			*ToRialtoParachainXcmBlobHauler::xcm_lane().as_ref(),
+			hex_literal::hex!("5b442a96565071264d3509869d1b89dbe2de301511db9ad8a6662e73037d8802")
+				.into(),
+		);
 	}
 }

@@ -66,6 +66,7 @@ impl XcmBlobHauler for ToMillauXcmBlobHauler {
 
 #[cfg(test)]
 mod tests {
+	use super::*;
 	use crate::{MillauGrandpaInstance, Runtime, WithMillauMessagesInstance};
 	use bridge_runtime_common::{
 		assert_complete_bridge_types,
@@ -109,5 +110,16 @@ mod tests {
 				block_weights: bp_rialto_parachain::BlockWeights::get(),
 			},
 		});
+	}
+
+	#[test]
+	fn rialto_parachain_millau_bridge_identifier_does_not_changed() {
+		// there's nothing criminal if it is changed, but then thou need to fix it across
+		// all deployments scripts, alerts and so on
+		assert_eq!(
+			*ToMillauXcmBlobHauler::xcm_lane().as_ref(),
+			hex_literal::hex!("5b442a96565071264d3509869d1b89dbe2de301511db9ad8a6662e73037d8802")
+				.into(),
+		);
 	}
 }

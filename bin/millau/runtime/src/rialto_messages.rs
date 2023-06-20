@@ -81,6 +81,7 @@ impl pallet_bridge_messages::WeightInfoExt for crate::weights::RialtoMessagesWei
 
 #[cfg(test)]
 mod tests {
+	use super::*;
 	use crate::{RialtoGrandpaInstance, Runtime, WithRialtoMessagesInstance};
 
 	use bridge_runtime_common::{
@@ -121,5 +122,16 @@ mod tests {
 				block_weights: bp_millau::BlockWeights::get(),
 			},
 		});
+	}
+
+	#[test]
+	fn rialto_millau_bridge_identifier_does_not_changed() {
+		// there's nothing criminal if it is changed, but then thou need to fix it across
+		// all deployments scripts, alerts and so on
+		assert_eq!(
+			*ToRialtoXcmBlobHauler::xcm_lane().as_ref(),
+			hex_literal::hex!("17b6b4a8072ca3b1aee7b6fae09ac69a77c2b81bc6385b3c02798df2f64546f6")
+				.into(),
+		);
 	}
 }

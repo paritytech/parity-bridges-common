@@ -1274,4 +1274,12 @@ pub(crate) mod tests {
 		assert!(!result.target_to_source_header_requirements.is_empty());
 		assert!(!result.source_to_target_header_requirements.is_empty());
 	}
+
+	#[test]
+	fn metrics_prefix_is_valid() {
+		assert!(MessageLaneLoopMetrics::new(Some(&metrics_prefix::<TestMessageLane>(
+			&LaneId::new(1, 2)
+		)))
+		.is_ok());
+	}
 }

@@ -694,4 +694,14 @@ mod tests {
 			format!("{:?}", H256::from([1u8; 32])),
 		);
 	}
+
+	#[test]
+	fn lane_id_is_generated_using_ordered_endpoints() {
+		assert_eq!(LaneId::new(1, 2), LaneId::new(2, 1));
+	}
+
+	#[test]
+	fn lane_id_is_different_for_different_endpoints() {
+		assert_ne!(LaneId::new(1, 2), LaneId::new(1, 3));
+	}
 }
