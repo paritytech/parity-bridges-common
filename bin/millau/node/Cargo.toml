@@ -15,6 +15,7 @@ serde_json = "1.0.96"
 
 # Bridge dependencies
 
+bp-messages = { path = "../../../primitives/messages" }
 millau-runtime = { path = "../runtime" }
 
 # Substrate Dependencies
