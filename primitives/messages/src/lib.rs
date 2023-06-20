@@ -158,6 +158,7 @@ impl OperatingMode for MessagesOperatingMode {
 #[derive(
 	Clone, Copy, Decode, Default, Encode, Eq, Ord, PartialOrd, PartialEq, TypeInfo, MaxEncodedLen,
 )]
+#[cfg_attr(feature = "std", derive(serde::Serialize, serde::Deserialize))]
 pub struct LaneId(pub [u8; 4]);
 
 impl core::fmt::Debug for LaneId {
@@ -174,6 +175,21 @@ impl AsRef<[u8]> for LaneId {
 
 impl TypeId for LaneId {
 	const TYPE_ID: [u8; 4] = *b"blan";
+}
+
+/// Lane state.
+#[derive(Clone, Copy, Decode, Encode, Eq, PartialEq, TypeInfo, MaxEncodedLen, RuntimeDebug)]
+pub enum LaneState {
+	/// Lane is closed and all attempts to send/receive messages to/from this lane
+	/// will fail.
+	///
+	/// Keep in mind that the lane has two ends and the state of the same lane at
+	/// its ends may be different. Those who are controlling/serving the lane
+	/// and/or sending messages over the lane, have to coordinate their actions on
+	/// both ends to make sure that lane is operating smoothly on both ends.
+	Closed,
+	/// Lane is opened and messages may be sent/received over it.
+	Opened,
 }
 
 /// Message nonce. Valid messages will never have 0 nonce.
@@ -206,6 +222,11 @@ pub struct Message {
 /// Inbound lane data.
 #[derive(Encode, Decode, Clone, RuntimeDebug, PartialEq, Eq, TypeInfo)]
 pub struct InboundLaneData<RelayerId> {
+	/// Inbound lane state.
+	///
+	/// If state is `Closed`, then all attempts to deliver messages to this end will fail.
+	pub state: LaneState,
+
 	/// Identifiers of relayers and messages that they have delivered to this lane (ordered by
 	/// message nonce).
 	///
@@ -238,11 +259,20 @@ pub struct InboundLaneData<RelayerId> {
 
 impl<RelayerId> Default for InboundLaneData<RelayerId> {
 	fn default() -> Self {
-		InboundLaneData { relayers: VecDeque::new(), last_confirmed_nonce: 0 }
+		InboundLaneData {
+			state: LaneState::Closed,
+			relayers: VecDeque::new(),
+			last_confirmed_nonce: 0,
+		}
 	}
 }
 
 impl<RelayerId> InboundLaneData<RelayerId> {
+	/// Returns default inbound lane data with opened state.
+	pub fn opened() -> Self {
+		InboundLaneData { state: LaneState::Opened, ..Default::default() }
+	}
+
 	/// Returns approximate size of the struct, given a number of entries in the `relayers` set and
 	/// size of each entry.
 	///
@@ -439,6 +469,10 @@ impl<RelayerId> From<&InboundLaneData<RelayerId>> for UnrewardedRelayersState {
 /// Outbound lane data.
 #[derive(Encode, Decode, Clone, RuntimeDebug, PartialEq, Eq, TypeInfo, MaxEncodedLen)]
 pub struct OutboundLaneData {
+	/// Lane state.
+	///
+	/// If state is `Closed`, then all attempts to send messages messages at this end will fail.
+	pub state: LaneState,
 	/// Nonce of the oldest message that we haven't yet pruned. May point to not-yet-generated
 	/// message if all sent messages are already pruned.
 	pub oldest_unpruned_nonce: MessageNonce,
@@ -448,9 +482,17 @@ pub struct OutboundLaneData {
 	pub latest_generated_nonce: MessageNonce,
 }
 
+impl OutboundLaneData {
+	/// Returns default outbound lane data with opened state.
+	pub fn opened() -> Self {
+		OutboundLaneData { state: LaneState::Opened, ..Default::default() }
+	}
+}
+
 impl Default for OutboundLaneData {
 	fn default() -> Self {
 		OutboundLaneData {
+			state: LaneState::Closed,
 			// it is 1 because we're pruning everything in [oldest_unpruned_nonce;
 			// latest_received_nonce]
 			oldest_unpruned_nonce: 1,
@@ -538,8 +580,15 @@ mod tests {
 	use super::*;
 
 	#[test]
+	fn lane_is_closed_by_default() {
+		assert_eq!(InboundLaneData::<()>::default().state, LaneState::Closed);
+		assert_eq!(OutboundLaneData::default().state, LaneState::Closed);
+	}
+
+	#[test]
 	fn total_unrewarded_messages_does_not_overflow() {
 		let lane_data = InboundLaneData {
+			state: LaneState::Opened,
 			relayers: vec![
 				UnrewardedRelayer { relayer: 1, messages: DeliveredMessages::new(0) },
 				UnrewardedRelayer {
@@ -567,6 +616,7 @@ mod tests {
 		for (relayer_entries, messages_count) in test_cases {
 			let expected_size = InboundLaneData::<u8>::encoded_size_hint(relayer_entries as _);
 			let actual_size = InboundLaneData {
+				state: LaneState::Opened,
 				relayers: (1u8..=relayer_entries)
 					.map(|i| UnrewardedRelayer {
 						relayer: i,

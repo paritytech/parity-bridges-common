@@ -197,7 +197,7 @@ mod tests {
 	};
 	use bp_messages::{
 		target_chain::{DispatchMessage, DispatchMessageData, MessageDispatch},
-		LaneId, MessageKey,
+		LaneId, MessageKey, OutboundLaneData,
 	};
 	use bridge_runtime_common::messages_xcm_extension::XcmBlobMessageDispatchResult;
 	use codec::Encode;
@@ -223,8 +223,13 @@ mod tests {
 	fn xcm_messages_to_millau_are_sent_using_bridge_exporter() {
 		new_test_ext().execute_with(|| {
 			// ensure that the there are no messages queued
+			OutboundLanes::<Runtime, WithMillauMessagesInstance>::insert(
+				XCM_LANE,
+				OutboundLaneData::opened(),
+			);
 			assert_eq!(
 				OutboundLanes::<Runtime, WithMillauMessagesInstance>::get(XCM_LANE)
+					.unwrap()
 					.latest_generated_nonce,
 				0,
 			);
@@ -243,6 +248,7 @@ mod tests {
 			// ensure that the message has been queued
 			assert_eq!(
 				OutboundLanes::<Runtime, WithMillauMessagesInstance>::get(XCM_LANE)
+					.unwrap()
 					.latest_generated_nonce,
 				1,
 			);

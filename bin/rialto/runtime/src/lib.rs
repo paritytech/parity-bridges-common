@@ -408,7 +408,6 @@ impl pallet_shift_session_manager::Config for Runtime {}
 parameter_types! {
 	pub const MaxMessagesToPruneAtOnce: bp_messages::MessageNonce = 8;
 	pub const RootAccountForPayments: Option<AccountId> = None;
-	pub ActiveOutboundLanes: &'static [bp_messages::LaneId] = &[millau_messages::XCM_LANE];
 }
 
 /// Instance of the messages pallet used to relay messages to/from Millau chain.
@@ -421,8 +420,6 @@ impl pallet_bridge_messages::Config<WithMillauMessagesInstance> for Runtime {
 	type ThisChain = bp_rialto::Rialto;
 	type BridgedChain = bp_millau::Millau;
 	type BridgedHeaderChain = BridgeMillauGrandpa;
-
-	type ActiveOutboundLanes = ActiveOutboundLanes;
 
 	type OutboundPayload = bridge_runtime_common::messages_xcm_extension::XcmAsPlainPayload;
 	type InboundPayload = bridge_runtime_common::messages_xcm_extension::XcmAsPlainPayload;

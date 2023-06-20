@@ -552,7 +552,6 @@ impl pallet_bridge_grandpa::Config for Runtime {
 parameter_types! {
 	pub const MaxMessagesToPruneAtOnce: bp_messages::MessageNonce = 8;
 	pub const RootAccountForPayments: Option<AccountId> = None;
-	pub ActiveOutboundLanes: &'static [bp_messages::LaneId] = &[millau_messages::XCM_LANE];
 }
 
 /// Instance of the messages pallet used to relay messages to/from Millau chain.
@@ -565,8 +564,6 @@ impl pallet_bridge_messages::Config<WithMillauMessagesInstance> for Runtime {
 	type ThisChain = bp_rialto_parachain::RialtoParachain;
 	type BridgedChain = bp_millau::Millau;
 	type BridgedHeaderChain = BridgeMillauGrandpa;
-
-	type ActiveOutboundLanes = ActiveOutboundLanes;
 
 	type OutboundPayload = bridge_runtime_common::messages_xcm_extension::XcmAsPlainPayload;
 	type InboundPayload = bridge_runtime_common::messages_xcm_extension::XcmAsPlainPayload;
@@ -845,7 +842,7 @@ mod tests {
 	use crate::millau_messages::{FromMillauMessageDispatch, XCM_LANE};
 	use bp_messages::{
 		target_chain::{DispatchMessage, DispatchMessageData, MessageDispatch},
-		LaneId, MessageKey,
+		LaneId, MessageKey, OutboundLaneData,
 	};
 	use bp_runtime::Chain;
 	use bridge_runtime_common::{
@@ -883,8 +880,13 @@ mod tests {
 	fn xcm_messages_to_millau_are_sent_using_bridge_exporter() {
 		new_test_ext().execute_with(|| {
 			// ensure that the there are no messages queued
+			OutboundLanes::<Runtime, WithMillauMessagesInstance>::insert(
+				XCM_LANE,
+				OutboundLaneData::opened(),
+			);
 			assert_eq!(
 				OutboundLanes::<Runtime, WithMillauMessagesInstance>::get(XCM_LANE)
+					.unwrap()
 					.latest_generated_nonce,
 				0,
 			);
@@ -903,6 +905,7 @@ mod tests {
 			// ensure that the message has been queued
 			assert_eq!(
 				OutboundLanes::<Runtime, WithMillauMessagesInstance>::get(XCM_LANE)
+					.unwrap()
 					.latest_generated_nonce,
 				1,
 			);
