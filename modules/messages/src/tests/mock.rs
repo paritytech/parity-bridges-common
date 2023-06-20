@@ -263,7 +263,7 @@ impl crate::benchmarking::Config<()> for TestRuntime {
 		let dispatch_weight =
 			REGULAR_PAYLOAD.declared_weight * params.message_nonces.checked_len().unwrap_or(0);
 		(
-			prepare_messages_proof(
+			*prepare_messages_proof(
 				params.message_nonces.into_iter().map(|n| message(n, REGULAR_PAYLOAD)).collect(),
 				params.outbound_lane_data,
 			),
