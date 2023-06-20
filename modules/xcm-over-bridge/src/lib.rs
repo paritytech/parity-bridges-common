@@ -92,27 +92,28 @@ pub mod pallet {
 			);
 
 			// reserve balance on the parachain sovereign account
-			let sibling_location = T::AccountIdConverter::convert_location(&sibling_location);
-			T::NativeCurrency::reserve(&sibling_location, T::BridgePayment::get())
+			let sibling_account = T::AccountIdConverter::convert_location(&sibling_location);
+			let payment = T::BridgePayment::get();
+			T::NativeCurrency::reserve(&sibling_account, payment.clone())
 				.map_err(|_| Error::<T, I>::FailedToReserveBridgePayment)?;
 
 			// insert new lane in the waiting status
-			let lane_id = Self::generate_lane_id(sibling_location, remote_destination);
-			pallet_bridge_messages::InboundLanes::<T, T::BridgeMessagesPalletInstance>::try_mutate(
-				lane_id,
-				|lane| match lane {
-					// TODO: replace the lane with the ordered (MultiLocation, MultiLocation) pair
-					// to avoid collisions
-					Some(lane) => Err(Error::<T, I>::LaneAlreadyRegistered),
-					None => Ok(InboundLaneData::default()),
-				},
-			)?;
-			pallet_bridge_messages::OutboundLanes::<T, T::BridgeMessagesPalletInstance>::try_mutate(
-				lane_id,
-				|lane| match lane {
-					// TODO: replace the lane with the ordered (MultiLocation, MultiLocation) pair to avoid collisions
-					Some(lane) => Err(Error::<T, I>::LaneAlreadyRegistered),
-					None => Ok(InboundLaneData::default()),
+			// TODO: replace the lane_id with the ordered (MultiLocation, MultiLocation) pair
+			// to avoid collisions
+			let bridge_id = OrderedLocationKey::new(sibling_location, remote_destination);
+			let lane_id = Self::generate_lane_id(bridge_id);
+			pallet_bridge_messages::Pallet::<T, T::BridgeMessagesPalletInstance>::create_lane(lane_id)
+				.map_err(|_| Error::<T, I>::LaneAlreadyRegistered)?;
+
+			// save lane metadata
+			BridgeMetdata::<T, I>::try_mutate(
+				bridge_id,
+				|meta| match meta {
+					Some(_) => Err(Error::<T, I>::LaneAlreadyRegistered),
+					None => Ok(LaneMetadata {
+						lane_id,
+						payment,
+					}),
 				},
 			)?;
 

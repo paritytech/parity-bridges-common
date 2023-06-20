@@ -561,6 +561,35 @@ pub mod pallet {
 		) -> InboundLaneData<AccountIdOf<BridgedChainOf<T, I>>> {
 			InboundLanes::<T, I>::get(lane).0
 		}
+
+		/// Creates new inbound and outbound lane with given id. Returns `Err(())` if the
+		/// lane already exists.
+		///
+		/// Lane is created in closed state.
+		pub fn create_lane(lane_id: LaneId) -> Result<(), ()> {
+			OutboundLanes::<T, I>::try_mutate(
+				lane_id,
+				|lane| match lane {
+					Some(_) => Err(()),
+					None => Ok(OutboundLaneData {
+						state: LaneState::Closed,
+						..Default::default()
+					}),
+				},
+			)?;
+			InboundLanes::<T, I>::try_mutate(
+				lane_id,
+				|lane| match lane {
+					Some(_) => Err(()),
+					None => Ok(InboundLaneData {
+						state: LaneState::Closed,
+						..Default::default()
+					}),
+				},
+			)?;
+
+			Ok(())
+		}
 	}
 
 	/// Get-parameter that returns number of active outbound lanes that the pallet maintains.
