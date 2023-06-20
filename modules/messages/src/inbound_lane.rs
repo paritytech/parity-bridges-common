@@ -41,7 +41,7 @@ pub trait InboundLaneStorage {
 	/// Return maximal number of unconfirmed messages in inbound lane.
 	fn max_unconfirmed_messages(&self) -> MessageNonce;
 	/// Get lane data from the storage.
-	fn get_or_init_data(&mut self) -> InboundLaneData<Self::Relayer>;
+	fn data(&self) -> InboundLaneData<Self::Relayer>;
 	/// Update lane data in the storage.
 	fn set_data(&mut self, data: InboundLaneData<Self::Relayer>);
 }
@@ -130,7 +130,7 @@ impl<S: InboundLaneStorage> InboundLane<S> {
 		&mut self,
 		outbound_lane_data: OutboundLaneData,
 	) -> Option<MessageNonce> {
-		let mut data = self.storage.get_or_init_data();
+		let mut data = self.storage.data();
 		let last_delivered_nonce = data.last_delivered_nonce();
 
 		if outbound_lane_data.latest_received_nonce > last_delivered_nonce {
@@ -173,7 +173,7 @@ impl<S: InboundLaneStorage> InboundLane<S> {
 		nonce: MessageNonce,
 		message_data: DispatchMessageData<Dispatch::DispatchPayload>,
 	) -> ReceivalResult<Dispatch::DispatchLevelResult> {
-		let mut data = self.storage.get_or_init_data();
+		let mut data = self.storage.data();
 		if Some(nonce) != data.last_delivered_nonce().checked_add(1) {
 			return ReceivalResult::InvalidNonce
 		}
@@ -254,7 +254,7 @@ mod tests {
 				None,
 			);
 
-			assert_eq!(lane.storage.get_or_init_data().last_confirmed_nonce, 0);
+			assert_eq!(lane.storage.data().last_confirmed_nonce, 0);
 		});
 	}
 
@@ -272,7 +272,7 @@ mod tests {
 				}),
 				Some(3),
 			);
-			assert_eq!(lane.storage.get_or_init_data().last_confirmed_nonce, 3);
+			assert_eq!(lane.storage.data().last_confirmed_nonce, 3);
 
 			assert_eq!(
 				lane.receive_state_update(OutboundLaneData {
@@ -281,7 +281,7 @@ mod tests {
 				}),
 				None,
 			);
-			assert_eq!(lane.storage.get_or_init_data().last_confirmed_nonce, 3);
+			assert_eq!(lane.storage.data().last_confirmed_nonce, 3);
 		});
 	}
 
@@ -292,9 +292,9 @@ mod tests {
 			receive_regular_message(&mut lane, 1);
 			receive_regular_message(&mut lane, 2);
 			receive_regular_message(&mut lane, 3);
-			assert_eq!(lane.storage.get_or_init_data().last_confirmed_nonce, 0);
+			assert_eq!(lane.storage.data().last_confirmed_nonce, 0);
 			assert_eq!(
-				lane.storage.get_or_init_data().relayers,
+				lane.storage.data().relayers,
 				vec![unrewarded_relayer(1, 3, TEST_RELAYER_A)]
 			);
 
@@ -305,9 +305,9 @@ mod tests {
 				}),
 				Some(2),
 			);
-			assert_eq!(lane.storage.get_or_init_data().last_confirmed_nonce, 2);
+			assert_eq!(lane.storage.data().last_confirmed_nonce, 2);
 			assert_eq!(
-				lane.storage.get_or_init_data().relayers,
+				lane.storage.data().relayers,
 				vec![unrewarded_relayer(3, 3, TEST_RELAYER_A)]
 			);
 
@@ -318,8 +318,8 @@ mod tests {
 				}),
 				Some(3),
 			);
-			assert_eq!(lane.storage.get_or_init_data().last_confirmed_nonce, 3);
-			assert_eq!(lane.storage.get_or_init_data().relayers, vec![]);
+			assert_eq!(lane.storage.data().last_confirmed_nonce, 3);
+			assert_eq!(lane.storage.data().relayers, vec![]);
 		});
 	}
 
@@ -327,7 +327,7 @@ mod tests {
 	fn receive_status_update_works_with_batches_from_relayers() {
 		run_test(|| {
 			let mut lane = inbound_lane::<TestRuntime, _>(TEST_LANE_ID).unwrap();
-			let mut seed_storage_data = lane.storage.get_or_init_data();
+			let mut seed_storage_data = lane.storage.data();
 			// Prepare data
 			seed_storage_data.last_confirmed_nonce = 0;
 			seed_storage_data.relayers.push_back(unrewarded_relayer(1, 1, TEST_RELAYER_A));
@@ -343,9 +343,9 @@ mod tests {
 				}),
 				Some(3),
 			);
-			assert_eq!(lane.storage.get_or_init_data().last_confirmed_nonce, 3);
+			assert_eq!(lane.storage.data().last_confirmed_nonce, 3);
 			assert_eq!(
-				lane.storage.get_or_init_data().relayers,
+				lane.storage.data().relayers,
 				vec![
 					unrewarded_relayer(4, 4, TEST_RELAYER_B),
 					unrewarded_relayer(5, 5, TEST_RELAYER_C)
@@ -366,7 +366,7 @@ mod tests {
 				),
 				ReceivalResult::InvalidNonce
 			);
-			assert_eq!(lane.storage.get_or_init_data().last_delivered_nonce(), 0);
+			assert_eq!(lane.storage.data().last_delivered_nonce(), 0);
 		});
 	}
 
@@ -471,7 +471,7 @@ mod tests {
 				ReceivalResult::Dispatched(dispatch_result(0))
 			);
 			assert_eq!(
-				lane.storage.get_or_init_data().relayers,
+				lane.storage.data().relayers,
 				vec![
 					unrewarded_relayer(1, 1, TEST_RELAYER_A),
 					unrewarded_relayer(2, 2, TEST_RELAYER_B),
@@ -509,7 +509,7 @@ mod tests {
 		run_test(|| {
 			let mut lane = inbound_lane::<TestRuntime, _>(TEST_LANE_ID).unwrap();
 			receive_regular_message(&mut lane, 1);
-			assert_eq!(lane.storage.get_or_init_data().last_delivered_nonce(), 1);
+			assert_eq!(lane.storage.data().last_delivered_nonce(), 1);
 		});
 	}
 

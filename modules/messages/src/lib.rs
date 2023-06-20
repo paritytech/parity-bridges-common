@@ -257,7 +257,7 @@ pub mod pallet {
 							"Received lane {:?} state update: latest_confirmed_nonce={}. Unrewarded relayers: {:?}",
 							lane_id,
 							updated_latest_confirmed_nonce,
-							UnrewardedRelayersState::from(&lane.storage_mut().get_or_init_data()),
+							UnrewardedRelayersState::from(&lane.storage_mut().data()),
 						);
 					}
 				}
@@ -692,7 +692,7 @@ impl<T: Config<I>, I: 'static> RuntimeInboundLaneStorage<T, I> {
 	/// we may subtract extra bytes from this component.
 	pub fn extra_proof_size_bytes(&mut self) -> u64 {
 		let max_encoded_len = StoredInboundLaneData::<T, I>::max_encoded_len();
-		let relayers_count = self.get_or_init_data().relayers.len();
+		let relayers_count = self.data().relayers.len();
 		let actual_encoded_len =
 			InboundLaneData::<AccountIdOf<BridgedChainOf<T, I>>>::encoded_size_hint(relayers_count)
 				.unwrap_or(usize::MAX);
@@ -715,7 +715,7 @@ impl<T: Config<I>, I: 'static> InboundLaneStorage for RuntimeInboundLaneStorage<
 		BridgedChainOf::<T, I>::MAX_UNCONFIRMED_MESSAGES_IN_CONFIRMATION_TX
 	}
 
-	fn get_or_init_data(&mut self) -> InboundLaneData<AccountIdOf<BridgedChainOf<T, I>>> {
+	fn data(&self) -> InboundLaneData<AccountIdOf<BridgedChainOf<T, I>>> {
 		self.cached_data.clone()
 	}
 
