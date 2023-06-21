@@ -30,6 +30,7 @@ use frame_support::{PalletError, RuntimeDebug};
 // Weight is reexported to avoid additional frame-support dependencies in related crates.
 pub use frame_support::weights::Weight;
 use scale_info::TypeInfo;
+use serde::{Deserialize, Serialize};
 use source_chain::RelayersRewards;
 use sp_core::TypeId;
 use sp_std::{collections::vec_deque::VecDeque, ops::RangeInclusive, prelude::*};
@@ -124,8 +125,19 @@ where
 }
 
 /// Messages pallet operating mode.
-#[derive(Encode, Decode, Clone, Copy, PartialEq, Eq, RuntimeDebug, TypeInfo, MaxEncodedLen)]
-#[cfg_attr(feature = "std", derive(serde::Serialize, serde::Deserialize))]
+#[derive(
+	Encode,
+	Decode,
+	Clone,
+	Copy,
+	PartialEq,
+	Eq,
+	RuntimeDebug,
+	TypeInfo,
+	MaxEncodedLen,
+	Serialize,
+	Deserialize,
+)]
 pub enum MessagesOperatingMode {
 	/// Basic operating mode (Normal/Halted)
 	Basic(BasicOperatingMode),
@@ -156,9 +168,20 @@ impl OperatingMode for MessagesOperatingMode {
 
 /// Lane id which implements `TypeId`.
 #[derive(
-	Clone, Copy, Decode, Default, Encode, Eq, Ord, PartialOrd, PartialEq, TypeInfo, MaxEncodedLen,
+	Clone,
+	Copy,
+	Decode,
+	Default,
+	Encode,
+	Eq,
+	Ord,
+	PartialOrd,
+	PartialEq,
+	TypeInfo,
+	MaxEncodedLen,
+	Serialize,
+	Deserialize,
 )]
-#[cfg_attr(feature = "std", derive(serde::Serialize, serde::Deserialize))]
 pub struct LaneId(pub [u8; 4]);
 
 impl core::fmt::Debug for LaneId {
