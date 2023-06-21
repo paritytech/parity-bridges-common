@@ -31,10 +31,6 @@ xcm = { git = "https://github.com/paritytech/polkadot", branch = "master", defau
 xcm-builder = { git = "https://github.com/paritytech/polkadot", branch = "master", default-features = false }
 xcm-executor = { git = "https://github.com/paritytech/polkadot", branch = "master", default-features = false }
 
-# Cumulus Dependencies
-
-cumulus-pallet-xcm = { git = "https://github.com/paritytech/cumulus", branch = "master", default-features = false }
-
 [features]
 default = ["std"]
 std = [

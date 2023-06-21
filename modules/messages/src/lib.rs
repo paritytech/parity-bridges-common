@@ -576,14 +576,14 @@ pub mod pallet {
 		/// Creates new inbound and outbound lane with given id. Returns `Err(())` if the
 		/// lane already exists.
 		///
-		/// Lane is created in closed state.
+		/// Lane is created in opened state.
 		pub fn create_lane(lane_id: LaneId) -> Result<(), ()> {
 			OutboundLanes::<T, I>::try_mutate(
 				lane_id,
 				|lane| match lane {
 					Some(_) => Err(()),
 					None => Ok(OutboundLaneData {
-						state: LaneState::Closed,
+						state: LaneState::Opened,
 						..Default::default()
 					}),
 				},
@@ -593,7 +593,7 @@ pub mod pallet {
 				|lane| match lane {
 					Some(_) => Err(()),
 					None => Ok(InboundLaneData::<AccountIdOf<BridgedChainOf<T, I>>> {
-						state: LaneState::Closed,
+						state: LaneState::Opened,
 						..Default::default()
 					}),
 				},
