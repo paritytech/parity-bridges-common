@@ -94,7 +94,7 @@ mod tests {
 		let storage_key = message_key("BridgeMessages", &LaneId::new(1, 2), 42).0;
 		assert_eq!(
 			storage_key,
-			hex!("dd16c784ebd3390a9bc0357c7511ed018a395e6242c6813b196ca31ed0547ea7e080d37cade26cf313c314e7c680645b6087240931c736c98ccb5748ffe8b0a946fb1bb382db195ad826ec3e060db3d82a00000000000000").to_vec(),
+			hex!("dd16c784ebd3390a9bc0357c7511ed018a395e6242c6813b196ca31ed0547ea70e9bdb8f50c68d12f06eabb57759ee5eb1d3dccd8b3c3a012afe265f3e3c4432129b8aee50c9dcf87f9793be208e5ea02a00000000000000").to_vec(),
 			"Unexpected storage key: {}",
 			hex::encode(&storage_key),
 		);
@@ -107,7 +107,7 @@ mod tests {
 		let storage_key = outbound_lane_data_key("BridgeMessages", &LaneId::new(1, 2)).0;
 		assert_eq!(
 			storage_key,
-			hex!("dd16c784ebd3390a9bc0357c7511ed0196c246acb9b55077390e3ca723a0ca1ff7772b7662d2eff2d10eafdd52b507bc6087240931c736c98ccb5748ffe8b0a946fb1bb382db195ad826ec3e060db3d8").to_vec(),
+			hex!("dd16c784ebd3390a9bc0357c7511ed0196c246acb9b55077390e3ca723a0ca1fd3bef8b00df8ca7b01813b5e2741950db1d3dccd8b3c3a012afe265f3e3c4432129b8aee50c9dcf87f9793be208e5ea0").to_vec(),
 			"Unexpected storage key: {}",
 			hex::encode(&storage_key),
 		);
@@ -120,7 +120,7 @@ mod tests {
 		let storage_key = inbound_lane_data_key("BridgeMessages", &LaneId::new(1, 2)).0;
 		assert_eq!(
 			storage_key,
-			hex!("dd16c784ebd3390a9bc0357c7511ed01e5f83cf83f2127eb47afdc35d6e43fabf7772b7662d2eff2d10eafdd52b507bc6087240931c736c98ccb5748ffe8b0a946fb1bb382db195ad826ec3e060db3d8").to_vec(),
+			hex!("dd16c784ebd3390a9bc0357c7511ed01e5f83cf83f2127eb47afdc35d6e43fabd3bef8b00df8ca7b01813b5e2741950db1d3dccd8b3c3a012afe265f3e3c4432129b8aee50c9dcf87f9793be208e5ea0").to_vec(),
 			"Unexpected storage key: {}",
 			hex::encode(&storage_key),
 		);

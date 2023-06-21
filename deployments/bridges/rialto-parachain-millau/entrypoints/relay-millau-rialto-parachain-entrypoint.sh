@@ -9,7 +9,7 @@ RIALTO_PARACHAIN_RELAY_ACCOUNT=${EXT_RIALTO_PARACHAIN_RELAY_ACCOUNT:-//Millau.He
 
 # see `rialto_parachain_millau_bridge_identifier_does_not_changed` test in `millau-runtime` crate for
 # details on how this lane is computed
-MESSAGE_LANE="5b442a96565071264d3509869d1b89dbe2de301511db9ad8a6662e73037d8802"
+MESSAGE_LANE="6aa61bff567db6b5d5f0cb815ee6d8f5ac630e222a95700cb3d594134e3805de"
 
 /home/user/substrate-relay init-bridge millau-to-rialto-parachain \
 	--source-host millau-node-alice \

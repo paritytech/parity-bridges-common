@@ -143,7 +143,7 @@ mod tests {
 		// all deployments scripts, alerts and so on
 		assert_eq!(
 			*ToRialtoParachainXcmBlobHauler::xcm_lane().as_ref(),
-			hex_literal::hex!("5b442a96565071264d3509869d1b89dbe2de301511db9ad8a6662e73037d8802")
+			hex_literal::hex!("6aa61bff567db6b5d5f0cb815ee6d8f5ac630e222a95700cb3d594134e3805de")
 				.into(),
 		);
 	}

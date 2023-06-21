@@ -57,9 +57,12 @@ pub enum RewardsAccountOwner {
 /// parameters to identify the account that pays a reward to the relayer.
 #[derive(Copy, Clone, Debug, Decode, Encode, Eq, PartialEq, TypeInfo, MaxEncodedLen)]
 pub struct RewardsAccountParams {
-	lane_id: LaneId,
-	bridged_chain_id: ChainId,
+	// **IMPORTANT NOTE**: the order of fields here matters - we are using
+	// `into_account_truncating` and lane id is already `32` byte, so if other fields are encoded
+	// after it, they're simply dropped. So lane id shall be the last field.
 	owner: RewardsAccountOwner,
+	bridged_chain_id: ChainId,
+	lane_id: LaneId,
 }
 
 impl RewardsAccountParams {
@@ -166,7 +169,7 @@ mod tests {
 				*b"test",
 				RewardsAccountOwner::ThisChain
 			)),
-			hex_literal::hex!("627261706087240931c736c98ccb5748ffe8b0a946fb1bb382db195ad826ec3e")
+			hex_literal::hex!("627261700074657374b1d3dccd8b3c3a012afe265f3e3c4432129b8aee50c9dc")
 				.into(),
 		);
 
@@ -176,7 +179,7 @@ mod tests {
 				*b"test",
 				RewardsAccountOwner::ThisChain
 			)),
-			hex_literal::hex!("62726170660195d2685fa2f4dd552ca4cc3478730588512e95a2544df0174e81")
+			hex_literal::hex!("627261700074657374a43e8951aa302c133beb5f85821a21645f07b487270ef3")
 				.into(),
 		);
 	}
@@ -189,7 +192,7 @@ mod tests {
 				*b"test",
 				RewardsAccountOwner::ThisChain
 			)),
-			hex_literal::hex!("627261706087240931c736c98ccb5748ffe8b0a946fb1bb382db195ad826ec3e")
+			hex_literal::hex!("627261700074657374b1d3dccd8b3c3a012afe265f3e3c4432129b8aee50c9dc")
 				.into(),
 		);
 
@@ -199,7 +202,7 @@ mod tests {
 				*b"test",
 				RewardsAccountOwner::BridgedChain
 			)),
-			hex_literal::hex!("627261706087240931c736c98ccb5748ffe8b0a946fb1bb382db195ad826ec3e")
+			hex_literal::hex!("627261700174657374b1d3dccd8b3c3a012afe265f3e3c4432129b8aee50c9dc")
 				.into(),
 		);
 	}

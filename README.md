@@ -189,7 +189,7 @@ You will also see the message lane relayers listening for new messages.
 
 ```
 # Message Relayer Logs
-[Millau_to_Rialto_MessageLane_0x17b6b4a8072ca3b1aee7b6fae09ac69a77c2b81bc6385b3c02798df2f64546f6] [date] DEBUG bridge Asking Millau::ReceivingConfirmationsDelivery about best message nonces
+[Millau_to_Rialto_MessageLane_0x52011894c856c0c613a2ad2395dfbb509090f6b7a6aef9359adb75aa26a586c7] [date] DEBUG bridge Asking Millau::ReceivingConfirmationsDelivery about best message nonces
 [...] [date] INFO bridge Synced Some(2) of Some(3) nonces in Millau::MessagesDelivery -> Rialto::MessagesDelivery race
 [...] [date] DEBUG bridge Asking Millau::MessagesDelivery about message nonces
 [...] [date] DEBUG bridge Received best nonces from Millau::ReceivingConfirmationsDelivery: TargetClientNonces { latest_nonce: 0, nonces_data: () }

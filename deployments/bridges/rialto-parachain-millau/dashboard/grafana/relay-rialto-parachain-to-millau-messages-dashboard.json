@@ -63,14 +63,14 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "RialtoParachain_to_Millau_MessageLane_0x5b442a96565071264d3509869d1b89dbe2de301511db9ad8a6662e73037d8802_best_target_block_number{instance=\"relay-millau-rialto-parachain-1:9616\"}",
+          "expr": "RialtoParachain_to_Millau_MessageLane_0x6aa61bff567db6b5d5f0cb815ee6d8f5ac630e222a95700cb3d594134e3805de_best_target_block_number{instance=\"relay-millau-rialto-parachain-1:9616\"}",
           "instant": false,
           "interval": "",
           "legendFormat": "At Millau",
           "refId": "A"
         },
         {
-          "expr": "RialtoParachain_to_Millau_MessageLane_0x5b442a96565071264d3509869d1b89dbe2de301511db9ad8a6662e73037d8802_best_target_at_source_block_number{instance=\"relay-millau-rialto-parachain-1:9616\"}",
+          "expr": "RialtoParachain_to_Millau_MessageLane_0x6aa61bff567db6b5d5f0cb815ee6d8f5ac630e222a95700cb3d594134e3805de_best_target_at_source_block_number{instance=\"relay-millau-rialto-parachain-1:9616\"}",
           "instant": false,
           "interval": "",
           "legendFormat": "At RialtoParachain",
@@ -164,13 +164,13 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "RialtoParachain_to_Millau_MessageLane_0x5b442a96565071264d3509869d1b89dbe2de301511db9ad8a6662e73037d8802_best_source_block_number{instance=\"relay-millau-rialto-parachain-1:9616\"}",
+          "expr": "RialtoParachain_to_Millau_MessageLane_0x6aa61bff567db6b5d5f0cb815ee6d8f5ac630e222a95700cb3d594134e3805de_best_source_block_number{instance=\"relay-millau-rialto-parachain-1:9616\"}",
           "interval": "",
           "legendFormat": "At RialtoParachain",
           "refId": "A"
         },
         {
-          "expr": "RialtoParachain_to_Millau_MessageLane_0x5b442a96565071264d3509869d1b89dbe2de301511db9ad8a6662e73037d8802_best_source_at_target_block_number{instance=\"relay-millau-rialto-parachain-1:9616\"}",
+          "expr": "RialtoParachain_to_Millau_MessageLane_0x6aa61bff567db6b5d5f0cb815ee6d8f5ac630e222a95700cb3d594134e3805de_best_source_at_target_block_number{instance=\"relay-millau-rialto-parachain-1:9616\"}",
           "interval": "",
           "legendFormat": "At Millau",
           "refId": "B"
@@ -298,13 +298,13 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "label_replace(label_replace(RialtoParachain_to_Millau_MessageLane_0x5b442a96565071264d3509869d1b89dbe2de301511db9ad8a6662e73037d8802_lane_state_nonces{instance=\"relay-millau-rialto-parachain-1:9616\",type=~\"source_latest_generated|target_latest_received\"}, \"type\", \"Latest message sent from Millau\", \"type\", \"source_latest_generated\"), \"type\", \"Latest Millau message received by RialtoParachain\", \"type\", \"target_latest_received\")",
+          "expr": "label_replace(label_replace(RialtoParachain_to_Millau_MessageLane_0x6aa61bff567db6b5d5f0cb815ee6d8f5ac630e222a95700cb3d594134e3805de_lane_state_nonces{instance=\"relay-millau-rialto-parachain-1:9616\",type=~\"source_latest_generated|target_latest_received\"}, \"type\", \"Latest message sent from Millau\", \"type\", \"source_latest_generated\"), \"type\", \"Latest Millau message received by RialtoParachain\", \"type\", \"target_latest_received\")",
           "interval": "",
           "legendFormat": "{{type}}",
           "refId": "A"
         },
         {
-          "expr": "increase(RialtoParachain_to_Millau_MessageLane_0x5b442a96565071264d3509869d1b89dbe2de301511db9ad8a6662e73037d8802_lane_state_nonces{instance=\"relay-millau-rialto-parachain-1:9616\",type=\"source_latest_generated\"}[10m]) OR on() vector(0)",
+          "expr": "increase(RialtoParachain_to_Millau_MessageLane_0x6aa61bff567db6b5d5f0cb815ee6d8f5ac630e222a95700cb3d594134e3805de_lane_state_nonces{instance=\"relay-millau-rialto-parachain-1:9616\",type=\"source_latest_generated\"}[10m]) OR on() vector(0)",
           "hide": true,
           "interval": "",
           "legendFormat": "Messages generated in last 5 minutes (RialtoParachain -> Millau)",
@@ -406,7 +406,7 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "label_replace(label_replace(RialtoParachain_to_Millau_MessageLane_0x5b442a96565071264d3509869d1b89dbe2de301511db9ad8a6662e73037d8802_lane_state_nonces{instance=\"relay-millau-rialto-parachain-1:9616\",type=~\"source_latest_confirmed|target_latest_received\"}, \"type\", \"Latest message confirmed by Millau to RialtoParachain\", \"type\", \"source_latest_confirmed\"), \"type\", \"Latest Millau message received by RialtoParachain\", \"type\", \"target_latest_received\")",
+          "expr": "label_replace(label_replace(RialtoParachain_to_Millau_MessageLane_0x6aa61bff567db6b5d5f0cb815ee6d8f5ac630e222a95700cb3d594134e3805de_lane_state_nonces{instance=\"relay-millau-rialto-parachain-1:9616\",type=~\"source_latest_confirmed|target_latest_received\"}, \"type\", \"Latest message confirmed by Millau to RialtoParachain\", \"type\", \"source_latest_confirmed\"), \"type\", \"Latest Millau message received by RialtoParachain\", \"type\", \"target_latest_received\")",
           "interval": "",
           "legendFormat": "{{type}}",
           "refId": "A"
@@ -534,7 +534,7 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "scalar(max_over_time(RialtoParachain_to_Millau_MessageLane_0x5b442a96565071264d3509869d1b89dbe2de301511db9ad8a6662e73037d8802_lane_state_nonces{instance=\"relay-millau-rialto-parachain-1:9616\",type=\"source_latest_generated\"}[2m])) - scalar(max_over_time(RialtoParachain_to_Millau_MessageLane_0x5b442a96565071264d3509869d1b89dbe2de301511db9ad8a6662e73037d8802_lane_state_nonces{instance=\"relay-millau-rialto-parachain-1:9616\",type=\"target_latest_received\"}[2m]))",
+          "expr": "scalar(max_over_time(RialtoParachain_to_Millau_MessageLane_0x6aa61bff567db6b5d5f0cb815ee6d8f5ac630e222a95700cb3d594134e3805de_lane_state_nonces{instance=\"relay-millau-rialto-parachain-1:9616\",type=\"source_latest_generated\"}[2m])) - scalar(max_over_time(RialtoParachain_to_Millau_MessageLane_0x6aa61bff567db6b5d5f0cb815ee6d8f5ac630e222a95700cb3d594134e3805de_lane_state_nonces{instance=\"relay-millau-rialto-parachain-1:9616\",type=\"target_latest_received\"}[2m]))",
           "format": "time_series",
           "instant": false,
           "interval": "",
@@ -542,7 +542,7 @@
           "refId": "A"
         },
         {
-          "expr": "increase(RialtoParachain_to_Millau_MessageLane_0x5b442a96565071264d3509869d1b89dbe2de301511db9ad8a6662e73037d8802_lane_state_nonces{instance=\"relay-millau-rialto-parachain-1:9616\",type=\"target_latest_received\"}[5m]) OR on() vector(0)",
+          "expr": "increase(RialtoParachain_to_Millau_MessageLane_0x6aa61bff567db6b5d5f0cb815ee6d8f5ac630e222a95700cb3d594134e3805de_lane_state_nonces{instance=\"relay-millau-rialto-parachain-1:9616\",type=\"target_latest_received\"}[5m]) OR on() vector(0)",
           "interval": "",
           "legendFormat": "RialtoParachain Messages delivered to Millau in last 5m",
           "refId": "B"
@@ -678,7 +678,7 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "scalar(max_over_time(RialtoParachain_to_Millau_MessageLane_0x5b442a96565071264d3509869d1b89dbe2de301511db9ad8a6662e73037d8802_lane_state_nonces{instance=\"relay-millau-rialto-parachain-1:9616\",type=\"target_latest_received\"}[2m]) OR on() vector(0)) - scalar(max_over_time(RialtoParachain_to_Millau_MessageLane_0x5b442a96565071264d3509869d1b89dbe2de301511db9ad8a6662e73037d8802_lane_state_nonces{instance=\"relay-millau-rialto-parachain-1:9616\",type=\"source_latest_confirmed\"}[2m]) OR on() vector(0))",
+          "expr": "scalar(max_over_time(RialtoParachain_to_Millau_MessageLane_0x6aa61bff567db6b5d5f0cb815ee6d8f5ac630e222a95700cb3d594134e3805de_lane_state_nonces{instance=\"relay-millau-rialto-parachain-1:9616\",type=\"target_latest_received\"}[2m]) OR on() vector(0)) - scalar(max_over_time(RialtoParachain_to_Millau_MessageLane_0x6aa61bff567db6b5d5f0cb815ee6d8f5ac630e222a95700cb3d594134e3805de_lane_state_nonces{instance=\"relay-millau-rialto-parachain-1:9616\",type=\"source_latest_confirmed\"}[2m]) OR on() vector(0))",
           "interval": "",
           "legendFormat": "Unconfirmed messages at RialtoParachain",
           "refId": "A"
@@ -814,13 +814,13 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "scalar(max_over_time(RialtoParachain_to_Millau_MessageLane_0x5b442a96565071264d3509869d1b89dbe2de301511db9ad8a6662e73037d8802_lane_state_nonces{instance=\"relay-millau-rialto-parachain-1:9616\",type=\"source_latest_confirmed\"}[2m])) - scalar(max_over_time(RialtoParachain_to_Millau_MessageLane_0x5b442a96565071264d3509869d1b89dbe2de301511db9ad8a6662e73037d8802_lane_state_nonces{instance=\"relay-millau-rialto-parachain-1:9616\",type=\"target_latest_confirmed\"}[2m]))",
+          "expr": "scalar(max_over_time(RialtoParachain_to_Millau_MessageLane_0x6aa61bff567db6b5d5f0cb815ee6d8f5ac630e222a95700cb3d594134e3805de_lane_state_nonces{instance=\"relay-millau-rialto-parachain-1:9616\",type=\"source_latest_confirmed\"}[2m])) - scalar(max_over_time(RialtoParachain_to_Millau_MessageLane_0x6aa61bff567db6b5d5f0cb815ee6d8f5ac630e222a95700cb3d594134e3805de_lane_state_nonces{instance=\"relay-millau-rialto-parachain-1:9616\",type=\"target_latest_confirmed\"}[2m]))",
           "interval": "",
           "legendFormat": "Unconfirmed rewards at Millau",
           "refId": "A"
         },
         {
-          "expr": "(scalar(max_over_time(RialtoParachain_to_Millau_MessageLane_0x5b442a96565071264d3509869d1b89dbe2de301511db9ad8a6662e73037d8802_lane_state_nonces{instance=\"relay-millau-rialto-parachain-1:9616\",type=\"source_latest_confirmed\"}[2m]) OR on() vector(0)) - scalar(max_over_time(RialtoParachain_to_Millau_MessageLane_0x5b442a96565071264d3509869d1b89dbe2de301511db9ad8a6662e73037d8802_lane_state_nonces{instance=\"relay-millau-rialto-parachain-1:9616\",type=\"target_latest_confirmed\"}[2m]) OR on() vector(0))) * (max_over_time(RialtoParachain_to_Millau_MessageLane_0x5b442a96565071264d3509869d1b89dbe2de301511db9ad8a6662e73037d8802_lane_state_nonces{instance=\"relay-millau-rialto-parachain-1:9616\",type=\"target_latest_received\"}[2m]) > bool min_over_time(RialtoParachain_to_Millau_MessageLane_0x5b442a96565071264d3509869d1b89dbe2de301511db9ad8a6662e73037d8802_lane_state_nonces{instance=\"relay-millau-rialto-parachain-1:9616\",type=\"target_latest_received\"}[2m]))",
+          "expr": "(scalar(max_over_time(RialtoParachain_to_Millau_MessageLane_0x6aa61bff567db6b5d5f0cb815ee6d8f5ac630e222a95700cb3d594134e3805de_lane_state_nonces{instance=\"relay-millau-rialto-parachain-1:9616\",type=\"source_latest_confirmed\"}[2m]) OR on() vector(0)) - scalar(max_over_time(RialtoParachain_to_Millau_MessageLane_0x6aa61bff567db6b5d5f0cb815ee6d8f5ac630e222a95700cb3d594134e3805de_lane_state_nonces{instance=\"relay-millau-rialto-parachain-1:9616\",type=\"target_latest_confirmed\"}[2m]) OR on() vector(0))) * (max_over_time(RialtoParachain_to_Millau_MessageLane_0x6aa61bff567db6b5d5f0cb815ee6d8f5ac630e222a95700cb3d594134e3805de_lane_state_nonces{instance=\"relay-millau-rialto-parachain-1:9616\",type=\"target_latest_received\"}[2m]) > bool min_over_time(RialtoParachain_to_Millau_MessageLane_0x6aa61bff567db6b5d5f0cb815ee6d8f5ac630e222a95700cb3d594134e3805de_lane_state_nonces{instance=\"relay-millau-rialto-parachain-1:9616\",type=\"target_latest_received\"}[2m]))",
           "interval": "",
           "legendFormat": "Unconfirmed rewards at Millau (zero if messages are not being delivered to Millau)",
           "refId": "B"
