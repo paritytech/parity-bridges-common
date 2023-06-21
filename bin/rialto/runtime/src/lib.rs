@@ -969,11 +969,10 @@ mod tests {
 			core::mem::size_of::<pallet_bridge_grandpa::Call<Runtime>>() <=
 				BRIDGES_PALLETS_MAX_CALL_SIZE
 		);
-		// TODO
-		//assert!(
-		//	core::mem::size_of::<pallet_bridge_messages::Call<Runtime>>() <=
-		//		BRIDGES_PALLETS_MAX_CALL_SIZE
-		//);
+		assert!(
+			core::mem::size_of::<pallet_bridge_messages::Call<Runtime>>() <=
+				BRIDGES_PALLETS_MAX_CALL_SIZE
+		);
 		// Largest inner Call is `pallet_session::Call` with a size of 224 bytes. This size is a
 		// result of large `SessionKeys` struct.
 		// Total size of Rialto runtime Call is 232.
