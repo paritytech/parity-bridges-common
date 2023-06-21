@@ -97,25 +97,21 @@ pub mod pallet {
 			T::NativeCurrency::reserve(&sibling_account, payment.clone())
 				.map_err(|_| Error::<T, I>::FailedToReserveBridgePayment)?;
 
-			// insert new lane in the waiting status
-			// TODO: replace the lane_id with the ordered (MultiLocation, MultiLocation) pair
-			// to avoid collisions
-			let bridge_id = OrderedLocationKey::new(sibling_location, remote_destination);
-			let lane_id = Self::generate_lane_id(bridge_id);
-			pallet_bridge_messages::Pallet::<T, T::BridgeMessagesPalletInstance>::create_lane(lane_id)
-				.map_err(|_| Error::<T, I>::LaneAlreadyRegistered)?;
-
 			// save lane metadata
-			BridgeMetdata::<T, I>::try_mutate(
-				bridge_id,
+			LaneMetadata::<T, I>::try_mutate(
+				lane_id,
 				|meta| match meta {
 					Some(_) => Err(Error::<T, I>::LaneAlreadyRegistered),
 					None => Ok(LaneMetadata {
-						lane_id,
 						payment,
 					}),
 				},
 			)?;
+
+			// insert new lane in the waiting status
+			let lane_id = LaneId::new(sibling_location, remote_destination);
+			pallet_bridge_messages::Pallet::<T, T::BridgeMessagesPalletInstance>::create_lane(lane_id)
+				.map_err(|_| Error::<T, I>::LaneAlreadyRegistered)?;
 
 			Ok(())
 		}
@@ -131,6 +127,27 @@ pub mod pallet {
 		FailedToReserveBridgePayment,
 		/// The lane is already registered.
 		LaneAlreadyRegistered,
+	}
+
+	#[pallet::genesis_config]
+	#[derive(DefaultNoBound)]
+	pub struct GenesisConfig<T: Config<I>, I: 'static = ()> {
+		/// Opened lanes.
+		///
+		/// The same set of lanes must be duplicated in the genesis config of the associated
+		/// messages pallet. The lanes are "opened" with zero payment registered.
+		pub opened_lanes: Vec<LaneId>,
+	}
+
+	#[pallet::genesis_build]
+	impl<T: Config<I>, I: 'static> GenesisBuild<T, I> for GenesisConfig<T, I> {
+		fn build(&self) {
+			for lane_id in &self.opened_lanes {
+				LaneMetadata::<T, I>::insert(lane_id, LaneMetadata {
+					payment: Zero::zero(),
+				});
+			}
+		}
 	}
 }
 

@@ -219,15 +219,6 @@ pub struct Message {
 	pub payload: MessagePayload,
 }
 
-/// Lane state.
-#[derive(Encode, Decode, Clone, MaxEncodedLen, RuntimeDebug, PartialEq, Eq, TypeInfo)]
-pub enum LaneState {
-	/// Lane is closed.
-	Closed,
-	/// Lane is opened.
-	Opened,
-}
-
 /// Inbound lane data.
 #[derive(Encode, Decode, Clone, RuntimeDebug, PartialEq, Eq, TypeInfo)]
 pub struct InboundLaneData<RelayerId> {

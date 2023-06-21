@@ -592,7 +592,7 @@ pub mod pallet {
 				lane_id,
 				|lane| match lane {
 					Some(_) => Err(()),
-					None => Ok(InboundLaneData {
+					None => Ok(InboundLaneData::<AccountIdOf<BridgedChainOf<T, I>>> {
 						state: LaneState::Closed,
 						..Default::default()
 					}),
