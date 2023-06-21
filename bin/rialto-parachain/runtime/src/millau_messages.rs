@@ -113,7 +113,7 @@ mod tests {
 	}
 
 	#[test]
-	fn rialto_parachain_millau_bridge_identifier_does_not_changed() {
+	fn rialto_parachain_millau_bridge_identifier_did_not_changed() {
 		// there's nothing criminal if it is changed, but then thou need to fix it across
 		// all deployments scripts, alerts and so on
 		assert_eq!(

@@ -3,7 +3,7 @@ set -xeu
 
 sleep 15
 
-# see `rialto_millau_bridge_identifier_does_not_changed` test in `millau-runtime` crate for
+# see `rialto_millau_bridge_identifier_did_not_changed` test in `millau-runtime` crate for
 # details on how this lane is computed
 MESSAGE_LANE="52011894c856c0c613a2ad2395dfbb509090f6b7a6aef9359adb75aa26a586c7"
 
