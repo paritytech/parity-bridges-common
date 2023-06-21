@@ -42,7 +42,6 @@ use sp_runtime::{
 use sp_std::prelude::*;
 use sp_trie::{LayoutV0, LayoutV1, TrieConfiguration};
 
-#[cfg(feature = "std")]
 use serde::{Deserialize, Serialize};
 use sp_runtime::traits::Keccak256;
 
@@ -211,8 +210,7 @@ impl ChainWithMessages for Millau {
 }
 
 /// Millau Hasher (Blake2-256 ++ Keccak-256) implementation.
-#[derive(PartialEq, Eq, Clone, Copy, RuntimeDebug, TypeInfo)]
-#[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
+#[derive(PartialEq, Eq, Clone, Copy, RuntimeDebug, TypeInfo, Serialize, Deserialize)]
 pub struct BlakeTwoAndKeccak256;
 
 impl sp_core::Hasher for BlakeTwoAndKeccak256 {

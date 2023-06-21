@@ -137,6 +137,7 @@ impl xcm_executor::Config for XcmConfig {
 	type UniversalAliases = Nothing;
 	type CallDispatcher = RuntimeCall;
 	type SafeCallFilter = Everything;
+	type Aliasers = Nothing;
 }
 
 /// Type to convert an `Origin` type value into a `MultiLocation` value which represents an interior

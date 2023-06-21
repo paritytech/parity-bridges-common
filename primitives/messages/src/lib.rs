@@ -30,6 +30,7 @@ use frame_support::{PalletError, RuntimeDebug};
 // Weight is reexported to avoid additional frame-support dependencies in related crates.
 pub use frame_support::weights::Weight;
 use scale_info::TypeInfo;
+use serde::{Deserialize, Serialize};
 use source_chain::RelayersRewards;
 use sp_core::{TypeId, H256};
 use sp_io::hashing::blake2_256;
@@ -125,8 +126,19 @@ where
 }
 
 /// Messages pallet operating mode.
-#[derive(Encode, Decode, Clone, Copy, PartialEq, Eq, RuntimeDebug, TypeInfo, MaxEncodedLen)]
-#[cfg_attr(feature = "std", derive(serde::Serialize, serde::Deserialize))]
+#[derive(
+	Encode,
+	Decode,
+	Clone,
+	Copy,
+	PartialEq,
+	Eq,
+	RuntimeDebug,
+	TypeInfo,
+	MaxEncodedLen,
+	Serialize,
+	Deserialize,
+)]
 pub enum MessagesOperatingMode {
 	/// Basic operating mode (Normal/Halted)
 	Basic(BasicOperatingMode),
@@ -173,8 +185,21 @@ impl OperatingMode for MessagesOperatingMode {
 ///     (endpoint2, VALUES_SEPARATOR, endpoint1)
 /// }.using_encoded(blake2_256);
 /// ```
-#[derive(Clone, Copy, Decode, Encode, Eq, Ord, PartialOrd, PartialEq, TypeInfo, MaxEncodedLen)]
-#[cfg_attr(feature = "std", derive(serde::Serialize, serde::Deserialize))]
+#[derive(
+	Clone,
+	Copy,
+	Decode,
+	Default,
+	Encode,
+	Eq,
+	Ord,
+	PartialOrd,
+	PartialEq,
+	TypeInfo,
+	MaxEncodedLen,
+	Serialize,
+	Deserialize,
+)]
 pub struct LaneId(H256);
 
 impl LaneId {

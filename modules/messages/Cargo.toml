@@ -29,6 +29,7 @@ sp-std = { git = "https://github.com/paritytech/substrate", branch = "master", d
 sp-trie = { git = "https://github.com/paritytech/substrate", branch = "master", default-features = false, optional = true }
 
 [dev-dependencies]
+bp-runtime = { path = "../../primitives/runtime", features = ["test-helpers"] }
 bp-test-utils = { path = "../../primitives/test-utils" }
 pallet-balances = { git = "https://github.com/paritytech/substrate", branch = "master" }
 pallet-bridge-grandpa = { path = "../grandpa" }
@@ -62,4 +63,5 @@ try-runtime = [
 ]
 test-helpers = [
 	"sp-trie",
+	"bp-runtime/test-helpers"
 ]
