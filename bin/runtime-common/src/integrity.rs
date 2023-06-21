@@ -167,12 +167,6 @@ where
 	MI: 'static,
 {
 	assert!(
-		!R::ActiveOutboundLanes::get().is_empty(),
-		"ActiveOutboundLanes ({:?}) must not be empty",
-		R::ActiveOutboundLanes::get(),
-	);
-
-	assert!(
 		pallet_bridge_messages::BridgedChainOf::<R, MI>::MAX_UNREWARDED_RELAYERS_IN_CONFIRMATION_TX
 			<= pallet_bridge_messages::BridgedChainOf::<R, MI>::MAX_UNCONFIRMED_MESSAGES_IN_CONFIRMATION_TX,
 		"MAX_UNREWARDED_RELAYERS_IN_CONFIRMATION_TX ({}) of {:?} is larger than \
@@ -293,6 +287,12 @@ pub fn check_message_lane_weights<
 
 	// check basic weight assumptions
 	pallet_bridge_messages::ensure_weights_are_correct::<Weights<T, MessagesPalletInstance>>();
+
+	// check that the maximal message dispatch weight is below hardcoded limit
+	pallet_bridge_messages::ensure_maximal_message_dispatch::<Weights<T, MessagesPalletInstance>>(
+		C::maximal_incoming_message_size(),
+		C::maximal_incoming_message_dispatch_weight(),
+	);
 
 	// check that weights allow us to receive messages
 	let max_incoming_message_proof_size =

@@ -277,6 +277,7 @@ fn testnet_genesis(
 		paras: Default::default(),
 		bridge_millau_messages: BridgeMillauMessagesConfig {
 			owner: Some(get_account_id_from_seed::<sr25519::Public>(MILLAU_MESSAGES_PALLET_OWNER)),
+			opened_lanes: vec![bp_messages::LaneId::default()],
 			..Default::default()
 		},
 		xcm_pallet: Default::default(),

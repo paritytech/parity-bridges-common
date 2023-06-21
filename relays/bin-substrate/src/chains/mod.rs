@@ -47,10 +47,12 @@ mod tests {
 
 	#[test]
 	fn maximal_size_remark_to_rialto_is_generated_correctly() {
-		assert!(
-			bp_rialto::Rialto::maximal_incoming_message_size() > bp_millau::Millau::max_extrinsic_size(),
-			"We can't actually send maximal messages to Rialto from Millau, because Millau extrinsics can't be that large",
-		)
+		let maximal_message_size = encode_message::compute_maximal_message_size(
+			bp_millau::Millau::max_extrinsic_size(),
+			bp_rialto::Rialto::max_extrinsic_size(),
+		);
+
+		assert_eq!(maximal_message_size, bp_rialto::Rialto::maximal_incoming_message_size());
 	}
 
 	#[test]

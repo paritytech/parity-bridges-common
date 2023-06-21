@@ -242,7 +242,7 @@ mod tests {
 	};
 	use bp_messages::{
 		target_chain::{DispatchMessage, DispatchMessageData, MessageDispatch},
-		LaneId, MessageKey,
+		LaneId, MessageKey, OutboundLaneData,
 	};
 	use bridge_runtime_common::messages_xcm_extension::XcmBlobMessageDispatchResult;
 	use codec::Encode;
@@ -268,10 +268,15 @@ mod tests {
 	fn xcm_messages_to_rialto_are_sent_using_bridge_exporter() {
 		new_test_ext().execute_with(|| {
 			// ensure that the there are no messages queued
+			OutboundLanes::<Runtime, WithRialtoMessagesInstance>::insert(
+				crate::rialto_messages::XCM_LANE,
+				OutboundLaneData::opened(),
+			);
 			assert_eq!(
 				OutboundLanes::<Runtime, WithRialtoMessagesInstance>::get(
 					crate::rialto_messages::XCM_LANE
 				)
+				.unwrap()
 				.latest_generated_nonce,
 				0,
 			);
@@ -292,6 +297,7 @@ mod tests {
 				OutboundLanes::<Runtime, WithRialtoMessagesInstance>::get(
 					crate::rialto_messages::XCM_LANE
 				)
+				.unwrap()
 				.latest_generated_nonce,
 				1,
 			);
@@ -302,10 +308,15 @@ mod tests {
 	fn xcm_messages_to_rialto_parachain_are_sent_using_bridge_exporter() {
 		new_test_ext().execute_with(|| {
 			// ensure that the there are no messages queued
+			OutboundLanes::<Runtime, WithRialtoParachainMessagesInstance>::insert(
+				crate::rialto_parachain_messages::XCM_LANE,
+				OutboundLaneData::opened(),
+			);
 			assert_eq!(
 				OutboundLanes::<Runtime, WithRialtoParachainMessagesInstance>::get(
 					crate::rialto_parachain_messages::XCM_LANE
 				)
+				.unwrap()
 				.latest_generated_nonce,
 				0,
 			);
@@ -326,6 +337,7 @@ mod tests {
 				OutboundLanes::<Runtime, WithRialtoParachainMessagesInstance>::get(
 					crate::rialto_parachain_messages::XCM_LANE
 				)
+				.unwrap()
 				.latest_generated_nonce,
 				1,
 			);

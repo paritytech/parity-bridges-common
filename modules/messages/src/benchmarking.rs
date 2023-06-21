@@ -19,14 +19,14 @@
 #![cfg(feature = "runtime-benchmarks")]
 
 use crate::{
-	inbound_lane::InboundLaneStorage, outbound_lane, weights_ext::EXPECTED_DEFAULT_MESSAGE_LENGTH,
-	BridgedChainOf, Call, OutboundLanes, RuntimeInboundLaneStorage,
+	outbound_lane, weights_ext::EXPECTED_DEFAULT_MESSAGE_LENGTH, BridgedChainOf, Call,
+	InboundLanes, OutboundLanes,
 };
 
 use bp_messages::{
 	source_chain::FromBridgedChainMessagesDeliveryProof,
 	target_chain::FromBridgedChainMessagesProof, ChainWithMessages, DeliveredMessages,
-	InboundLaneData, LaneId, MessageNonce, OutboundLaneData, UnrewardedRelayer,
+	InboundLaneData, LaneId, LaneState, MessageNonce, OutboundLaneData, UnrewardedRelayer,
 	UnrewardedRelayersState,
 };
 use bp_runtime::{AccountIdOf, HashOf, StorageProofSize};
@@ -113,22 +113,32 @@ pub trait Config<I: 'static>: crate::Config<I> {
 }
 
 fn send_regular_message<T: Config<I>, I: 'static>() {
-	let mut outbound_lane = outbound_lane::<T, I>(T::bench_lane_id());
+	OutboundLanes::<T, I>::insert(
+		T::bench_lane_id(),
+		OutboundLaneData {
+			state: LaneState::Opened,
+			latest_generated_nonce: 1,
+			..Default::default()
+		},
+	);
+
+	let mut outbound_lane = outbound_lane::<T, I>(T::bench_lane_id()).unwrap();
 	outbound_lane.send_message(vec![]).expect("We craft valid messages");
 }
 
 fn receive_messages<T: Config<I>, I: 'static>(nonce: MessageNonce) {
-	let mut inbound_lane_storage =
-		RuntimeInboundLaneStorage::<T, I>::from_lane_id(T::bench_lane_id());
-	inbound_lane_storage.set_data(InboundLaneData {
-		relayers: vec![UnrewardedRelayer {
-			relayer: T::bridged_relayer_id(),
-			messages: DeliveredMessages::new(nonce),
-		}]
-		.into_iter()
-		.collect(),
-		last_confirmed_nonce: 0,
-	});
+	InboundLanes::<T, I>::insert(
+		T::bench_lane_id(),
+		InboundLaneData {
+			state: LaneState::Opened,
+			relayers: vec![UnrewardedRelayer {
+				relayer: T::bridged_relayer_id(),
+				messages: DeliveredMessages::new(nonce),
+			}]
+			.into(),
+			last_confirmed_nonce: 0,
+		},
+	);
 }
 
 struct ReceiveMessagesProofSetup<T: Config<I>, I: 'static> {
@@ -173,8 +183,8 @@ impl<T: Config<I>, I: 'static> ReceiveMessagesProofSetup<T, I> {
 
 	fn check_last_nonce(&self) {
 		assert_eq!(
-			crate::InboundLanes::<T, I>::get(&T::bench_lane_id()).last_delivered_nonce(),
-			self.last_nonce(),
+			crate::InboundLanes::<T, I>::get(&T::bench_lane_id()).map(|d| d.last_delivered_nonce()),
+			Some(self.last_nonce()),
 		);
 	}
 }
@@ -214,7 +224,7 @@ mod benchmarks {
 		receive_messages_proof(
 			RawOrigin::Signed(setup.relayer_id_on_tgt()),
 			setup.relayer_id_on_src(),
-			proof,
+			Box::new(proof),
 			setup.msgs_count,
 			dispatch_weight,
 		);
@@ -245,7 +255,7 @@ mod benchmarks {
 		receive_messages_proof(
 			RawOrigin::Signed(setup.relayer_id_on_tgt()),
 			setup.relayer_id_on_src(),
-			proof,
+			Box::new(proof),
 			setup.msgs_count,
 			dispatch_weight,
 		);
@@ -273,6 +283,7 @@ mod benchmarks {
 			lane: T::bench_lane_id(),
 			message_nonces: setup.nonces(),
 			outbound_lane_data: Some(OutboundLaneData {
+				state: LaneState::Opened,
 				oldest_unpruned_nonce: setup.last_nonce(),
 				latest_received_nonce: ReceiveMessagesProofSetup::<T, I>::LATEST_RECEIVED_NONCE,
 				latest_generated_nonce: setup.last_nonce(),
@@ -285,7 +296,7 @@ mod benchmarks {
 		receive_messages_proof(
 			RawOrigin::Signed(setup.relayer_id_on_tgt()),
 			setup.relayer_id_on_src(),
-			proof,
+			Box::new(proof),
 			setup.msgs_count,
 			dispatch_weight,
 		);
@@ -302,9 +313,9 @@ mod benchmarks {
 	// * message is dispatched (reminder: dispatch weight should be minimal);
 	// * message requires all heavy checks done by dispatcher.
 	#[benchmark]
-	fn receive_single_message_n_kb_proof(
+	fn receive_single_message_n_bytes_proof(
 		/// Proof size in KB
-		n: Linear<1, 16>,
+		n: Linear<1, { 16 * 1024 }>,
 	) {
 		// setup code
 		let setup = ReceiveMessagesProofSetup::<T, I>::new(1);
@@ -313,14 +324,14 @@ mod benchmarks {
 			message_nonces: setup.nonces(),
 			outbound_lane_data: None,
 			is_successful_dispatch_expected: false,
-			size: StorageProofSize::Minimal(n * 1024),
+			size: StorageProofSize::Minimal(n),
 		});
 
 		#[extrinsic_call]
 		receive_messages_proof(
 			RawOrigin::Signed(setup.relayer_id_on_tgt()),
 			setup.relayer_id_on_src(),
-			proof,
+			Box::new(proof),
 			setup.msgs_count,
 			dispatch_weight,
 		);
@@ -350,6 +361,7 @@ mod benchmarks {
 		let proof = T::prepare_message_delivery_proof(MessageDeliveryProofParams {
 			lane: T::bench_lane_id(),
 			inbound_lane_data: InboundLaneData {
+				state: LaneState::Opened,
 				relayers: vec![UnrewardedRelayer {
 					relayer: relayer_id.clone(),
 					messages: DeliveredMessages::new(1),
@@ -368,7 +380,10 @@ mod benchmarks {
 			relayers_state,
 		);
 
-		assert_eq!(OutboundLanes::<T, I>::get(T::bench_lane_id()).latest_received_nonce, 1);
+		assert_eq!(
+			OutboundLanes::<T, I>::get(T::bench_lane_id()).map(|s| s.latest_received_nonce),
+			Some(1)
+		);
 		assert!(T::is_relayer_rewarded(&relayer_id));
 	}
 
@@ -398,6 +413,7 @@ mod benchmarks {
 		let proof = T::prepare_message_delivery_proof(MessageDeliveryProofParams {
 			lane: T::bench_lane_id(),
 			inbound_lane_data: InboundLaneData {
+				state: LaneState::Opened,
 				relayers: vec![UnrewardedRelayer {
 					relayer: relayer_id.clone(),
 					messages: delivered_messages,
@@ -416,7 +432,10 @@ mod benchmarks {
 			relayers_state,
 		);
 
-		assert_eq!(OutboundLanes::<T, I>::get(T::bench_lane_id()).latest_received_nonce, 2);
+		assert_eq!(
+			OutboundLanes::<T, I>::get(T::bench_lane_id()).map(|s| s.latest_received_nonce),
+			Some(2)
+		);
 		assert!(T::is_relayer_rewarded(&relayer_id));
 	}
 
@@ -445,6 +464,7 @@ mod benchmarks {
 		let proof = T::prepare_message_delivery_proof(MessageDeliveryProofParams {
 			lane: T::bench_lane_id(),
 			inbound_lane_data: InboundLaneData {
+				state: LaneState::Opened,
 				relayers: vec![
 					UnrewardedRelayer {
 						relayer: relayer1_id.clone(),
@@ -469,7 +489,10 @@ mod benchmarks {
 			relayers_state,
 		);
 
-		assert_eq!(OutboundLanes::<T, I>::get(T::bench_lane_id()).latest_received_nonce, 2);
+		assert_eq!(
+			OutboundLanes::<T, I>::get(T::bench_lane_id()).map(|s| s.latest_received_nonce),
+			Some(2)
+		);
 		assert!(T::is_relayer_rewarded(&relayer1_id));
 		assert!(T::is_relayer_rewarded(&relayer2_id));
 	}
@@ -491,8 +514,8 @@ mod benchmarks {
 	// #[benchmark(extra)]
 	#[benchmark]
 	fn receive_single_message_n_bytes_proof_with_dispatch(
-		/// Proof size in bytes
-		n: Linear<EXPECTED_DEFAULT_MESSAGE_LENGTH, { EXPECTED_DEFAULT_MESSAGE_LENGTH * 16 }>,
+		/// Proof size in KB
+		n: Linear<1, { 16 * 1024 }>,
 	) {
 		// setup code
 		let setup = ReceiveMessagesProofSetup::<T, I>::new(1);
@@ -508,7 +531,7 @@ mod benchmarks {
 		receive_messages_proof(
 			RawOrigin::Signed(setup.relayer_id_on_tgt()),
 			setup.relayer_id_on_src(),
-			proof,
+			Box::new(proof),
 			setup.msgs_count,
 			dispatch_weight,
 		);
