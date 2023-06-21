@@ -29,7 +29,7 @@ use bp_messages::{
 	InboundLaneData, LaneId, LaneState, MessageNonce, OutboundLaneData, UnrewardedRelayer,
 	UnrewardedRelayersState,
 };
-use bp_runtime::{AccountIdOf, HashOf, StorageProofSize};
+use bp_runtime::{AccountIdOf, HashOf, StorageSize};
 use codec::Decode;
 use frame_benchmarking::{account, v2::*};
 use frame_support::weights::Weight;
@@ -57,7 +57,7 @@ pub struct MessageProofParams {
 	/// return `true` from the `is_message_successfully_dispatched`.
 	pub is_successful_dispatch_expected: bool,
 	/// Proof size requirements.
-	pub size: StorageProofSize,
+	pub size: StorageSize,
 }
 
 /// Benchmark-specific message delivery proof parameters.
@@ -68,7 +68,7 @@ pub struct MessageDeliveryProofParams<ThisChainAccountId> {
 	/// The proof needs to include this inbound lane data.
 	pub inbound_lane_data: InboundLaneData<ThisChainAccountId>,
 	/// Proof size requirements.
-	pub size: StorageProofSize,
+	pub size: StorageSize,
 }
 
 /// Trait that must be implemented by runtime.
@@ -215,7 +215,7 @@ mod benchmarks {
 			message_nonces: setup.nonces(),
 			outbound_lane_data: None,
 			is_successful_dispatch_expected: false,
-			size: StorageProofSize::Minimal(EXPECTED_DEFAULT_MESSAGE_LENGTH),
+			size: StorageSize::Minimal(EXPECTED_DEFAULT_MESSAGE_LENGTH),
 		});
 
 		#[extrinsic_call]
@@ -246,7 +246,7 @@ mod benchmarks {
 			message_nonces: setup.nonces(),
 			outbound_lane_data: None,
 			is_successful_dispatch_expected: false,
-			size: StorageProofSize::Minimal(EXPECTED_DEFAULT_MESSAGE_LENGTH),
+			size: StorageSize::Minimal(EXPECTED_DEFAULT_MESSAGE_LENGTH),
 		});
 
 		#[extrinsic_call]
@@ -287,7 +287,7 @@ mod benchmarks {
 				latest_generated_nonce: setup.last_nonce(),
 			}),
 			is_successful_dispatch_expected: false,
-			size: StorageProofSize::Minimal(EXPECTED_DEFAULT_MESSAGE_LENGTH),
+			size: StorageSize::Minimal(EXPECTED_DEFAULT_MESSAGE_LENGTH),
 		});
 
 		#[extrinsic_call]
@@ -322,7 +322,7 @@ mod benchmarks {
 			message_nonces: setup.nonces(),
 			outbound_lane_data: None,
 			is_successful_dispatch_expected: false,
-			size: StorageProofSize::Minimal(n),
+			size: StorageSize::Minimal(n),
 		});
 
 		#[extrinsic_call]
@@ -368,7 +368,7 @@ mod benchmarks {
 				.collect(),
 				last_confirmed_nonce: 0,
 			},
-			size: StorageProofSize::Minimal(0),
+			size: StorageSize::Minimal(0),
 		});
 
 		#[extrinsic_call]
@@ -420,7 +420,7 @@ mod benchmarks {
 				.collect(),
 				last_confirmed_nonce: 0,
 			},
-			size: StorageProofSize::Minimal(0),
+			size: StorageSize::Minimal(0),
 		});
 
 		#[extrinsic_call]
@@ -477,7 +477,7 @@ mod benchmarks {
 				.collect(),
 				last_confirmed_nonce: 0,
 			},
-			size: StorageProofSize::Minimal(0),
+			size: StorageSize::Minimal(0),
 		});
 
 		#[extrinsic_call]
@@ -522,7 +522,7 @@ mod benchmarks {
 			message_nonces: setup.nonces(),
 			outbound_lane_data: None,
 			is_successful_dispatch_expected: true,
-			size: StorageProofSize::Minimal(n),
+			size: StorageSize::Minimal(n),
 		});
 
 		#[extrinsic_call]

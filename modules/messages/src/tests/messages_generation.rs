@@ -21,7 +21,7 @@ use bp_messages::{
 	MessagePayload, OutboundLaneData,
 };
 use bp_runtime::{
-	grow_storage_value, AccountIdOf, Chain, HashOf, HasherOf, RangeInclusiveExt, StorageProofSize,
+	grow_storage_value, AccountIdOf, Chain, HashOf, HasherOf, RangeInclusiveExt, StorageSize,
 	UnverifiedStorageProof,
 };
 use codec::Encode;
@@ -50,7 +50,7 @@ pub fn prepare_messages_storage_proof<BridgedChain: Chain, ThisChain: ChainWithM
 	lane: LaneId,
 	message_nonces: RangeInclusive<MessageNonce>,
 	outbound_lane_data: Option<OutboundLaneData>,
-	size: StorageProofSize,
+	size: StorageSize,
 	generate_message: impl Fn(MessageNonce) -> MessagePayload,
 	encode_message: impl Fn(MessageNonce, &MessagePayload) -> Option<Vec<u8>>,
 	encode_outbound_lane_data: impl Fn(&OutboundLaneData) -> Vec<u8>,
@@ -98,7 +98,7 @@ where
 pub fn prepare_message_delivery_storage_proof<BridgedChain: Chain, ThisChain: ChainWithMessages>(
 	lane: LaneId,
 	inbound_lane_data: InboundLaneData<AccountIdOf<ThisChain>>,
-	size: StorageProofSize,
+	size: StorageSize,
 ) -> (HashOf<BridgedChain>, UnverifiedStorageProof)
 where
 	HashOf<BridgedChain>: Copy + Default,
@@ -125,7 +125,7 @@ fn do_prepare_messages_storage_proof<BridgedChain: Chain, ThisChain: ChainWithMe
 	lane: LaneId,
 	message_nonces: RangeInclusive<MessageNonce>,
 	outbound_lane_data: Option<OutboundLaneData>,
-	size: StorageProofSize,
+	size: StorageSize,
 	generate_message: impl Fn(MessageNonce) -> MessagePayload,
 	encode_message: impl Fn(MessageNonce, &MessagePayload) -> Option<Vec<u8>>,
 	encode_outbound_lane_data: impl Fn(&OutboundLaneData) -> Vec<u8>,
@@ -210,7 +210,7 @@ where
 fn do_prepare_message_delivery_storage_proof<BridgedChain: Chain, ThisChain: ChainWithMessages, L>(
 	lane: LaneId,
 	inbound_lane_data: InboundLaneData<AccountIdOf<ThisChain>>,
-	size: StorageProofSize,
+	size: StorageSize,
 ) -> (HashOf<BridgedChain>, UnverifiedStorageProof)
 where
 	L: TrieConfiguration<Hash = HasherOf<BridgedChain>>,
