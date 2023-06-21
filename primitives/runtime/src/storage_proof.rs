@@ -21,14 +21,13 @@ use sp_core::{storage::TrackedStorageKey, RuntimeDebug};
 use sp_runtime::SaturatedConversion;
 use sp_std::{collections::btree_set::BTreeSet, default::Default, vec, vec::Vec};
 use sp_trie::{
-	generate_trie_proof, verify_trie_proof, LayoutV0, LayoutV1, MemoryDB, StorageProof,
-	TrieDBBuilder, TrieHash,
+	generate_trie_proof, verify_trie_proof, LayoutV0, LayoutV1, StorageProof, TrieDBBuilder,
+	TrieHash,
 };
 
-use codec::{Codec, Decode, Encode};
+use codec::{Decode, Encode};
 use hash_db::Hasher;
 use scale_info::TypeInfo;
-use sp_state_machine::TrieBackend;
 use trie_db::{DBValue, Recorder, Trie};
 
 use crate::Size;
@@ -102,12 +101,15 @@ impl UnverifiedStorageProof {
 		entries: &[(RawStorageKey, Option<DBValue>)],
 	) -> Result<(H::Out, UnverifiedStorageProof), StorageProofError>
 	where
-		H::Out: Codec,
+		H::Out: codec::Codec,
 	{
 		let keys: Vec<_> = entries.iter().map(|(key, _)| key.clone()).collect();
 		let entries: Vec<_> =
 			entries.iter().cloned().map(|(key, val)| (None, vec![(key, val)])).collect();
-		let backend = TrieBackend::<MemoryDB<H>, H>::from((entries, state_version));
+		let backend = sp_state_machine::TrieBackend::<sp_trie::MemoryDB<H>, H>::from((
+			entries,
+			state_version,
+		));
 		let root = *backend.root();
 
 		Ok((root, UnverifiedStorageProof::try_from_db(backend.backend_storage(), root, keys)?))
