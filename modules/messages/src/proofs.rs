@@ -187,7 +187,7 @@ mod tests {
 			test_lane_id(),
 			1..=nonces_end,
 			outbound_lane_data,
-			bp_runtime::StorageProofSize::Minimal(0),
+			bp_runtime::UnverifiedStorageProofParams::default(),
 			generate_dummy_message,
 			encode_message,
 			encode_outbound_lane_data,
