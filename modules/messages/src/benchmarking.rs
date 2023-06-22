@@ -311,7 +311,7 @@ mod benchmarks {
 	// * message is dispatched (reminder: dispatch weight should be minimal);
 	// * message requires all heavy checks done by dispatcher.
 	#[benchmark]
-	fn receive_single_message_n_bytes_proof(
+	fn receive_single_n_bytes_message_proof(
 		/// Proof size in KB
 		n: Linear<1, { 16 * 1024 }>,
 	) {
@@ -511,7 +511,7 @@ mod benchmarks {
 	// * message requires all heavy checks done by dispatcher.
 	// #[benchmark(extra)]
 	#[benchmark]
-	fn receive_single_message_n_bytes_proof_with_dispatch(
+	fn receive_single_n_bytes_message_proof_with_dispatch(
 		/// Proof size in KB
 		n: Linear<1, { 16 * 1024 }>,
 	) {
