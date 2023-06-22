@@ -19,13 +19,14 @@
 use crate::{Runtime, WithRialtoParachainMessagesInstance};
 
 use bp_messages::LaneId;
-use bridge_runtime_common::messages_xcm_extension::{XcmBlobHauler, XcmBlobHaulerAdapter};
+use bridge_runtime_common::messages_xcm_extension::{
+	LaneIdFromChainId, XcmBlobHauler, XcmBlobHaulerAdapter,
+};
 use frame_support::{parameter_types, weights::Weight};
 use pallet_bridge_relayers::WeightInfoExt as _;
+use sp_core::Get;
 use xcm_builder::HaulBlobExporter;
 
-/// Default lane that is used to send messages to Rialto parachain.
-pub const XCM_LANE: LaneId = LaneId([0, 0, 0, 0]);
 /// Weight of 2 XCM instructions is for simple `Trap(42)` program, coming through bridge
 /// (it is prepended with `UniversalOrigin` instruction). It is used just for simplest manual
 /// tests, confirming that we don't break encoding somewhere between.
@@ -61,7 +62,7 @@ impl XcmBlobHauler for ToRialtoParachainXcmBlobHauler {
 		pallet_bridge_messages::Pallet<Runtime, WithRialtoParachainMessagesInstance>;
 
 	fn xcm_lane() -> LaneId {
-		XCM_LANE
+		LaneIdFromChainId::<Runtime, WithRialtoParachainMessagesInstance>::get()
 	}
 }
 
@@ -83,6 +84,7 @@ impl pallet_bridge_messages::WeightInfoExt
 
 #[cfg(test)]
 mod tests {
+	use super::*;
 	use crate::{
 		PriorityBoostPerMessage, RialtoGrandpaInstance, Runtime,
 		WithRialtoParachainMessagesInstance,
@@ -138,5 +140,16 @@ mod tests {
 			WithRialtoParachainMessagesInstance,
 			PriorityBoostPerMessage,
 		>(1_000_000);
+	}
+
+	#[test]
+	fn rialto_parachain_millau_bridge_identifier_did_not_changed() {
+		// there's nothing criminal if it is changed, but then thou need to fix it across
+		// all deployments scripts, alerts and so on
+		assert_eq!(
+			*ToRialtoParachainXcmBlobHauler::xcm_lane().as_ref(),
+			hex_literal::hex!("6aa61bff567db6b5d5f0cb815ee6d8f5ac630e222a95700cb3d594134e3805de")
+				.into(),
+		);
 	}
 }

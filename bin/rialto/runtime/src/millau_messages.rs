@@ -19,12 +19,13 @@
 use crate::{Runtime, WithMillauMessagesInstance};
 
 use bp_messages::LaneId;
-use bridge_runtime_common::messages_xcm_extension::{XcmBlobHauler, XcmBlobHaulerAdapter};
+use bridge_runtime_common::messages_xcm_extension::{
+	LaneIdFromChainId, XcmBlobHauler, XcmBlobHaulerAdapter,
+};
 use frame_support::{parameter_types, weights::Weight};
+use sp_core::Get;
 use xcm_builder::HaulBlobExporter;
 
-/// Lane that is used for XCM messages exchange.
-pub const XCM_LANE: LaneId = LaneId([0, 0, 0, 0]);
 /// Weight of 2 XCM instructions is for simple `Trap(42)` program, coming through bridge
 /// (it is prepended with `UniversalOrigin` instruction). It is used just for simplest manual
 /// tests, confirming that we don't break encoding somewhere between.
@@ -59,12 +60,13 @@ impl XcmBlobHauler for ToMillauXcmBlobHauler {
 	type MessageSender = pallet_bridge_messages::Pallet<Runtime, WithMillauMessagesInstance>;
 
 	fn xcm_lane() -> LaneId {
-		XCM_LANE
+		LaneIdFromChainId::<Runtime, WithMillauMessagesInstance>::get()
 	}
 }
 
 #[cfg(test)]
 mod tests {
+	use super::*;
 	use crate::{MillauGrandpaInstance, Runtime, WithMillauMessagesInstance};
 	use bridge_runtime_common::{
 		assert_complete_bridge_types,
@@ -110,5 +112,16 @@ mod tests {
 					bp_millau::WITH_MILLAU_MESSAGES_PALLET_NAME,
 			},
 		});
+	}
+
+	#[test]
+	fn rialto_millau_bridge_identifier_did_not_changed() {
+		// there's nothing criminal if it is changed, but then thou need to fix it across
+		// all deployments scripts, alerts and so on
+		assert_eq!(
+			*ToMillauXcmBlobHauler::xcm_lane().as_ref(),
+			hex_literal::hex!("52011894c856c0c613a2ad2395dfbb509090f6b7a6aef9359adb75aa26a586c7")
+				.into(),
+		);
 	}
 }

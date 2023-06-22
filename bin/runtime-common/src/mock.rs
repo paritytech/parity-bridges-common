@@ -36,6 +36,7 @@ use frame_support::{
 	StateVersion,
 };
 use pallet_transaction_payment::Multiplier;
+use sp_core::Get;
 use sp_runtime::{
 	testing::H256,
 	traits::{BlakeTwo256, ConstU32, ConstU64, ConstU8, IdentityLookup},
@@ -90,7 +91,10 @@ pub type TestStakeAndSlash = pallet_bridge_relayers::StakeAndSlashNamed<
 >;
 
 /// Message lane used in tests.
-pub const TEST_LANE_ID: LaneId = LaneId([0, 0, 0, 0]);
+pub fn test_lane_id() -> LaneId {
+	crate::messages_xcm_extension::LaneIdFromChainId::<TestRuntime, ()>::get()
+}
+
 /// Bridged chain id used in tests.
 pub const TEST_BRIDGED_CHAIN_ID: ChainId = *b"brdg";
 /// Maximal extrinsic size at the `BridgedChain`.

@@ -84,7 +84,7 @@ use substrate_relay_helper::{
 #[derive(Debug, PartialEq, StructOpt)]
 pub struct HeadersAndMessagesSharedParams {
 	/// Hex-encoded lane identifiers that should be served by the complex relay.
-	#[structopt(long, default_value = "00000000")]
+	#[structopt(long)]
 	pub lane: Vec<HexLaneId>,
 	/// If passed, only mandatory headers (headers that are changing the GRANDPA authorities set)
 	/// are relayed.
@@ -550,6 +550,7 @@ impl RelayHeadersAndMessages {
 #[cfg(test)]
 mod tests {
 	use super::*;
+	use sp_core::H256;
 
 	#[test]
 	fn should_parse_relay_to_relay_options() {
@@ -574,9 +575,9 @@ mod tests {
 			"--rialto-transactions-mortality",
 			"64",
 			"--lane",
-			"00000000",
+			"0000000000000000000000000000000000000000000000000000000000000000",
 			"--lane",
-			"73776170",
+			"1111111111111111111111111111111111111111111111111111111111111111",
 			"--prometheus-host",
 			"0.0.0.0",
 		]);
@@ -587,8 +588,8 @@ mod tests {
 			RelayHeadersAndMessages::MillauRialto(MillauRialtoHeadersAndMessages {
 				shared: HeadersAndMessagesSharedParams {
 					lane: vec![
-						HexLaneId([0x00, 0x00, 0x00, 0x00]),
-						HexLaneId([0x73, 0x77, 0x61, 0x70])
+						HexLaneId(H256::from([0x00u8; 32])),
+						HexLaneId(H256::from([0x11u8; 32]))
 					],
 					only_mandatory_headers: false,
 					prometheus_params: PrometheusParams {
@@ -678,7 +679,7 @@ mod tests {
 			"--rialto-port",
 			"9944",
 			"--lane",
-			"00000000",
+			"0000000000000000000000000000000000000000000000000000000000000000",
 			"--prometheus-host",
 			"0.0.0.0",
 		]);
@@ -689,7 +690,7 @@ mod tests {
 			RelayHeadersAndMessages::MillauRialtoParachain(
 				MillauRialtoParachainHeadersAndMessages {
 					shared: HeadersAndMessagesSharedParams {
-						lane: vec![HexLaneId([0x00, 0x00, 0x00, 0x00])],
+						lane: vec![HexLaneId(H256::from([0x00u8; 32]))],
 						only_mandatory_headers: false,
 						prometheus_params: PrometheusParams {
 							no_prometheus: false,
