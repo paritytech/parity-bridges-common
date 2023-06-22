@@ -200,7 +200,7 @@ pub mod pallet {
 						bridge.state = LaneState::Closing(may_close_at);
 						Ok(bridge)
 					},
-					None => Err(Error::<T, I>:UnknownBridge),
+					None => Err(Error::<T, I>::UnknownBridge),
 				}
 			)?;
 

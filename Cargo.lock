@@ -7610,7 +7610,6 @@ version = "0.1.0"
 dependencies = [
  "bp-messages",
  "bp-runtime",
- "cumulus-pallet-xcm",
  "frame-support",
  "frame-system",
  "log",

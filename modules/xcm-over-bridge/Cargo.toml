@@ -37,7 +37,6 @@ std = [
 	"bp-messages/std",
 	"bp-runtime/std",
 	"codec/std",
-	"cumulus-pallet-xcm/std",
 	"frame-support/std",
 	"frame-system/std",
 	"log/std",
