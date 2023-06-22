@@ -548,7 +548,7 @@ where
 				FromBridgedChainMessagesProof {
 					bridged_header_hash: Default::default(),
 					storage: Default::default(),
-					lane: Default::default(),
+					lane: LaneId::new(1, 2),
 					nonces_start: 1,
 					nonces_end: messages as u64,
 				},

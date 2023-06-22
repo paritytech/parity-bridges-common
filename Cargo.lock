@@ -944,6 +944,7 @@ dependencies = [
  "scale-info",
  "serde",
  "sp-core",
+ "sp-io",
  "sp-std 8.0.0 (git+https://github.com/paritytech/substrate?branch=master)",
 ]
 
@@ -5816,6 +5817,7 @@ name = "millau-bridge-node"
 version = "0.1.0"
 dependencies = [
  "bp-messages",
+ "bridge-runtime-common",
  "clap 4.3.4",
  "frame-benchmarking",
  "frame-benchmarking-cli",
@@ -10121,6 +10123,7 @@ name = "rialto-bridge-node"
 version = "0.1.0"
 dependencies = [
  "bp-messages",
+ "bridge-runtime-common",
  "clap 4.3.4",
  "frame-benchmarking",
  "frame-benchmarking-cli",
@@ -10149,6 +10152,7 @@ name = "rialto-parachain-collator"
 version = "0.1.0"
 dependencies = [
  "bp-messages",
+ "bridge-runtime-common",
  "clap 4.3.4",
  "cumulus-client-cli",
  "cumulus-client-consensus-aura",
@@ -10271,6 +10275,7 @@ dependencies = [
  "frame-support",
  "frame-system",
  "frame-system-rpc-runtime-api",
+ "hex-literal 0.4.1",
  "pallet-authority-discovery",
  "pallet-babe",
  "pallet-balances",
@@ -13468,6 +13473,7 @@ dependencies = [
  "relay-wococo-client",
  "rialto-parachain-runtime",
  "rialto-runtime",
+ "rustc-hex",
  "signal-hook",
  "signal-hook-async-std",
  "sp-core",

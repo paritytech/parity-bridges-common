@@ -14,6 +14,7 @@
 // You should have received a copy of the GNU General Public License
 // along with Parity Bridges Common.  If not, see <http://www.gnu.org/licenses/>.
 
+use bridge_runtime_common::messages_xcm_extension::XcmBlobHauler;
 use polkadot_primitives::v5::{AssignmentId, ValidatorId};
 use rialto_runtime::{
 	AccountId, BabeConfig, BalancesConfig, BeefyConfig, BridgeMillauMessagesConfig,
@@ -277,7 +278,7 @@ fn testnet_genesis(
 		paras: Default::default(),
 		bridge_millau_messages: BridgeMillauMessagesConfig {
 			owner: Some(get_account_id_from_seed::<sr25519::Public>(MILLAU_MESSAGES_PALLET_OWNER)),
-			opened_lanes: vec![bp_messages::LaneId::default()],
+			opened_lanes: vec![rialto_runtime::millau_messages::ToMillauXcmBlobHauler::xcm_lane()],
 			..Default::default()
 		},
 		xcm_pallet: Default::default(),
