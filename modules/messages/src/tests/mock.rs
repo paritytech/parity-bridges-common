@@ -500,7 +500,7 @@ pub fn prepare_messages_proof(
 		lane,
 		nonces_start..=nonces_end,
 		outbound_lane_data,
-		UnverifiedStorageProofParams::Minimal(0),
+		UnverifiedStorageProofParams::default(),
 		|nonce| messages[(nonce - nonces_start) as usize].payload.clone(),
 		encode_all_messages,
 		encode_lane_data,
@@ -538,7 +538,7 @@ pub fn prepare_messages_delivery_proof(
 		prepare_message_delivery_storage_proof::<BridgedChain, ThisChain>(
 			lane,
 			inbound_lane_data,
-			UnverifiedStorageProofParams::Minimal(0),
+			UnverifiedStorageProofParams::default(),
 		);
 
 	// let's now insert bridged chain header into the storage
