@@ -21,8 +21,8 @@ use bp_messages::{
 	MessagePayload, OutboundLaneData,
 };
 use bp_runtime::{
-	grow_storage_value, AccountIdOf, Chain, HashOf, HasherOf, RangeInclusiveExt, StorageSize,
-	UnverifiedStorageProof,
+	grow_storage_value, AccountIdOf, Chain, HashOf, HasherOf, RangeInclusiveExt,
+	UnverifiedStorageProof, UnverifiedStorageProofParams,
 };
 use codec::Encode;
 use frame_support::StateVersion;
@@ -50,7 +50,7 @@ pub fn prepare_messages_storage_proof<BridgedChain: Chain, ThisChain: ChainWithM
 	lane: LaneId,
 	message_nonces: RangeInclusive<MessageNonce>,
 	outbound_lane_data: Option<OutboundLaneData>,
-	size: StorageSize,
+	proof_params: UnverifiedStorageProofParams,
 	generate_message: impl Fn(MessageNonce) -> MessagePayload,
 	encode_message: impl Fn(MessageNonce, &MessagePayload) -> Option<Vec<u8>>,
 	encode_outbound_lane_data: impl Fn(&OutboundLaneData) -> Vec<u8>,
@@ -69,7 +69,7 @@ where
 			lane,
 			message_nonces,
 			outbound_lane_data,
-			size,
+			proof_params,
 			generate_message,
 			encode_message,
 			encode_outbound_lane_data,
@@ -84,7 +84,7 @@ where
 			lane,
 			message_nonces,
 			outbound_lane_data,
-			size,
+			proof_params,
 			generate_message,
 			encode_message,
 			encode_outbound_lane_data,
@@ -98,7 +98,7 @@ where
 pub fn prepare_message_delivery_storage_proof<BridgedChain: Chain, ThisChain: ChainWithMessages>(
 	lane: LaneId,
 	inbound_lane_data: InboundLaneData<AccountIdOf<ThisChain>>,
-	size: StorageSize,
+	proof_params: UnverifiedStorageProofParams,
 ) -> (HashOf<BridgedChain>, UnverifiedStorageProof)
 where
 	HashOf<BridgedChain>: Copy + Default,
@@ -108,12 +108,12 @@ where
 			BridgedChain,
 			ThisChain,
 			LayoutV0<HasherOf<BridgedChain>>,
-		>(lane, inbound_lane_data, size),
+		>(lane, inbound_lane_data, proof_params),
 		StateVersion::V1 => do_prepare_message_delivery_storage_proof::<
 			BridgedChain,
 			ThisChain,
 			LayoutV1<HasherOf<BridgedChain>>,
-		>(lane, inbound_lane_data, size),
+		>(lane, inbound_lane_data, proof_params),
 	}
 }
 
@@ -125,7 +125,7 @@ fn do_prepare_messages_storage_proof<BridgedChain: Chain, ThisChain: ChainWithMe
 	lane: LaneId,
 	message_nonces: RangeInclusive<MessageNonce>,
 	outbound_lane_data: Option<OutboundLaneData>,
-	size: StorageSize,
+	proof_params: UnverifiedStorageProofParams,
 	generate_message: impl Fn(MessageNonce) -> MessagePayload,
 	encode_message: impl Fn(MessageNonce, &MessagePayload) -> Option<Vec<u8>>,
 	encode_outbound_lane_data: impl Fn(&OutboundLaneData) -> Vec<u8>,
@@ -150,7 +150,7 @@ where
 			let message_payload = match encode_message(nonce, &generate_message(nonce)) {
 				Some(message_payload) =>
 					if i == 0 {
-						grow_storage_value(message_payload, size)
+						grow_storage_value(message_payload, &proof_params)
 					} else {
 						message_payload
 					},
@@ -210,7 +210,7 @@ where
 fn do_prepare_message_delivery_storage_proof<BridgedChain: Chain, ThisChain: ChainWithMessages, L>(
 	lane: LaneId,
 	inbound_lane_data: InboundLaneData<AccountIdOf<ThisChain>>,
-	size: StorageSize,
+	proof_params: UnverifiedStorageProofParams,
 ) -> (HashOf<BridgedChain>, UnverifiedStorageProof)
 where
 	L: TrieConfiguration<Hash = HasherOf<BridgedChain>>,
@@ -223,7 +223,7 @@ where
 	let mut mdb = MemoryDB::default();
 	{
 		let mut trie = TrieDBMutBuilder::<L>::new(&mut mdb, &mut root).build();
-		let inbound_lane_data = grow_storage_value(inbound_lane_data.encode(), size);
+		let inbound_lane_data = grow_storage_value(inbound_lane_data.encode(), &proof_params);
 		trie.insert(&storage_key, &inbound_lane_data)
 			.map_err(|_| "TrieMut::insert has failed")
 			.expect("TrieMut::insert should not fail in benchmarks");

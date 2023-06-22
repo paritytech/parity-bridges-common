@@ -259,7 +259,7 @@ impl pallet_bridge_parachains::benchmarking::Config<()> for TestRuntime {
 	fn prepare_parachain_heads_proof(
 		parachains: &[ParaId],
 		_parachain_head_size: u32,
-		_storage_size: bp_runtime::StorageSize,
+		_proof_params: bp_runtime::UnverifiedStorageProofParams,
 	) -> (
 		crate::RelayBlockNumber,
 		crate::RelayBlockHash,

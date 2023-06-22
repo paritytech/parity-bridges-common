@@ -1077,7 +1077,7 @@ impl_runtime_apis! {
 				fn prepare_parachain_heads_proof(
 					parachains: &[bp_polkadot_core::parachains::ParaId],
 					parachain_head_size: u32,
-					storage_size: bp_runtime::StorageSize,
+					proof_params: bp_runtime::UnverifiedStorageProofParams,
 				) -> (
 					pallet_bridge_parachains::RelayBlockNumber,
 					pallet_bridge_parachains::RelayBlockHash,
@@ -1090,7 +1090,7 @@ impl_runtime_apis! {
 					>(
 						parachains,
 						parachain_head_size,
-						storage_size,
+						proof_params,
 					)
 				}
 			}

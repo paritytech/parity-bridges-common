@@ -36,7 +36,9 @@ use bp_messages::{
 	ChainWithMessages, DeliveredMessages, InboundLaneData, LaneId, LaneState, Message, MessageKey,
 	MessageNonce, MessagePayload, OutboundLaneData, UnrewardedRelayer, UnrewardedRelayersState,
 };
-use bp_runtime::{messages::MessageDispatchResult, Chain, ChainId, Size, StorageSize};
+use bp_runtime::{
+	messages::MessageDispatchResult, Chain, ChainId, Size, UnverifiedStorageProofParams,
+};
 use codec::{Decode, Encode};
 use frame_support::{
 	parameter_types,
@@ -498,7 +500,7 @@ pub fn prepare_messages_proof(
 		lane,
 		nonces_start..=nonces_end,
 		outbound_lane_data,
-		StorageSize::Minimal(0),
+		UnverifiedStorageProofParams::Minimal(0),
 		|nonce| messages[(nonce - nonces_start) as usize].payload.clone(),
 		encode_all_messages,
 		encode_lane_data,
@@ -532,10 +534,12 @@ pub fn prepare_messages_delivery_proof(
 	inbound_lane_data: InboundLaneData<AccountId>,
 ) -> FromBridgedChainMessagesDeliveryProof<BridgedHeaderHash> {
 	// first - let's generate storage proof
-	let (storage_root, storage_proof) = prepare_message_delivery_storage_proof::<
-		BridgedChain,
-		ThisChain,
-	>(lane, inbound_lane_data, StorageSize::Minimal(0));
+	let (storage_root, storage_proof) =
+		prepare_message_delivery_storage_proof::<BridgedChain, ThisChain>(
+			lane,
+			inbound_lane_data,
+			UnverifiedStorageProofParams::Minimal(0),
+		);
 
 	// let's now insert bridged chain header into the storage
 	let bridged_header_hash = Default::default();
