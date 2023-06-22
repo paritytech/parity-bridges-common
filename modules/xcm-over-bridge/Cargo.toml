@@ -15,6 +15,7 @@ scale-info = { version = "2.7.0", default-features = false, features = ["derive"
 
 bp-messages = { path = "../../primitives/messages", default-features = false }
 bp-runtime = { path = "../../primitives/runtime", default-features = false }
+bp-xcm-over-bridge = { path = "../../primitives/xcm-over-bridge", default-features = false }
 pallet-bridge-messages = { path = "../messages", default-features = false }
 
 # Substrate Dependencies

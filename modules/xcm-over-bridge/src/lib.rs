@@ -26,10 +26,10 @@
 //! 1) the sibling parachain opens a XCMP channel with this bridge hub;
 //!
 //! 2) the sibling parachain funds its sovereign parachain account at this bridge hub. It
-//!    shall hold enough funds to pay for the bridge (see `BridgePayment`);
+//!    shall hold enough funds to pay for the bridge (see `BridgeReserve`);
 //!
 //! 3) the sibling parachain opens the bridge by sending XCM `Transact` instruction
-//!    with the `open_bridge` call. The `BridgePayment` amount is reserved
+//!    with the `open_bridge` call. The `BridgeReserve` amount is reserved
 //!    on the sovereign account of sibling parachain;
 //!
 //! 4) at the other side of the bridge, the same thing (1, 2, 3) happens. Parachains that
@@ -39,9 +39,8 @@
 //! 5) when the bridge is opened, anyone can watch for bridge rules (TODO!!!) violations.
 //!    If something goes wrong with the bridge, he may call the `report_misbehavior` method.
 //     During the call, the outbound lane is immediately `Closed`. The bridge itself switched
-//!    to the `Closing` state. A `PenaltyPayment` portion of reserved funds is paid to the
-//!    reporter. After `BridgeCloseDelay`, the caller may call the `close_bridge` to get his
-//!    funds back;
+//!    to the `Closing` state. A `Penalty` is paid (out of reserved funds) to the reporter. After
+//!    `BridgeCloseDelay`, the caller may call the `close_bridge` to get his funds back;
 //!
 //! 6) when either side wants to close the bridge, it sends the XCM `Transact` instruction
 //!    with the `request_bridge_closure` call. The bridge stays opened for `BridgeCloseDelay`
@@ -53,10 +52,13 @@
 
 #![cfg_attr(not(feature = "std"), no_std)]
 
-use bp_runtime::BalanceOf;
-use frame_support::traits::ReservableCurrency;
+use bp_messages::{LaneId, LaneState, MessageNonce};
+use bp_runtime::{AccountIdOf, BalanceOf, BlockNumberOf, RangeInclusiveExt};
+use bp_xcm_over_bridge::{Bridge, BridgeLimits, BridgeMisbehavior, BridgeState};
+use frame_support::traits::{tokens::BalanceStatus, Currency, ReservableCurrency};
 use frame_system::Config as SystemConfig;
-use pallet_bridge_messages::{Config as BridgeMessagesConfig, ThisChainOf};
+use pallet_bridge_messages::{Config as BridgeMessagesConfig, LanesManagerError};
+use sp_runtime::{traits::Zero, Saturating};
 use xcm::prelude::*;
 use xcm_builder::ensure_is_remote;
 use xcm_executor::traits::ConvertLocation;
@@ -84,35 +86,59 @@ pub mod pallet {
 
 		/// A set of XCM locations within local consensus system that are allowed to open
 		/// bridges with remote destinations.
-		type AllowedOpenBridgeOrigin: EnsureOrigin<<Self as SystemConfig>::RuntimeOrigin, Success = MultiLocation>;
+		type AllowedOpenBridgeOrigin: EnsureOrigin<
+			<Self as SystemConfig>::RuntimeOrigin,
+			Success = MultiLocation,
+		>;
 		/// A converter between a multi-location and a sovereign account.
 		type BridgeOriginAccountIdConverter: ConvertLocation<Self::AccountId>;
 
 		/// Amount of this chain native tokens that is reserved on the sibling parachain account
 		/// when bridge open request is registered.
-		type BridgePayment: Get<BalanceOf<ThisChainOf<Self, Self::BridgeMessagesPalletInstance>>>;
+		type BridgeReserve: Get<BalanceOf<ThisChainOf<Self, I>>>;
 		/// Currency used to paid for bridge registration.
-		type NativeCurrency: ReservableCurrency;
+		type NativeCurrency: ReservableCurrency<Self::AccountId>;
 
 		/// Delay before bridge is closed.
 		type BridgeCloseDelay: Get<Self::BlockNumber>;
+
+		/// Bridge limits that the refular bridge must not exceed.
+		type BridgeLimits: Get<BridgeLimits>;
+		/// The penality (in chain native tokens) that is paid from the bridge reserve to the bridge
+		/// misbehavior reporter.
+		type Penalty: Get<BalanceOf<ThisChainOf<Self, I>>>;
 	}
 
-	/// An alias for the associated messages pallet.
-	type MessagesPalletOf<T, I> = pallet_bridge_messages::Pallet::<T, <T as Config<I>>::BridgeMessagesPalletInstance>;
+	/// An alias for the bridge metadata.
+	type BridgeOf<T, I> = Bridge<ThisChainOf<T, I>>;
+	/// An alias for the bridge state.
+	type BridgeStateOf<T, I> = BridgeState<BlockNumberOf<ThisChainOf<T, I>>>;
+	/// An alias for the this chain.
+	type ThisChainOf<T, I> =
+		pallet_bridge_messages::ThisChainOf<T, <T as Config<I>>::BridgeMessagesPalletInstance>;
+	/// An alias for the associated lanes manager.
+	type LanesManagerOf<T, I> =
+		pallet_bridge_messages::LanesManager<T, <T as Config<I>>::BridgeMessagesPalletInstance>;
 
 	#[pallet::pallet]
 	pub struct Pallet<T, I = ()>(PhantomData<(T, I)>);
 
 	#[pallet::call]
-	impl<T: Config<I>, I: 'static> Pallet<T, I> {
+	impl<T: Config<I>, I: 'static> Pallet<T, I>
+	where
+		T: frame_system::Config<
+			AccountId = AccountIdOf<ThisChainOf<T, I>>,
+			BlockNumber = BlockNumberOf<ThisChainOf<T, I>>,
+		>,
+		T::NativeCurrency: Currency<T::AccountId, Balance = BalanceOf<ThisChainOf<T, I>>>,
+	{
 		/// Open a bridge between two locations.
 		///
-		/// The caller must be within the `AllowedOpenBridgeOrigin` filter (presumably: a sibling
+		/// The caller must be within the `T::AllowedOpenBridgeOrigin` filter (presumably: a sibling
 		/// parachain or a parent relay chain). The `bridge_destination_location` must be a
 		/// destination within the consensus of the `T::BridgedNetworkId` network.
 		///
-		/// The `BridgePayment` amount is reserved on the caller account. This reserve
+		/// The `BridgeReserve` amount is reserved on the caller account. This reserve
 		/// is unreserved after bridge is closed.
 		///
 		/// The states after this call: bridge is `Opened`, outbound lane is `Opened`, inbound lane
@@ -124,44 +150,48 @@ pub mod pallet {
 			bridge_destination_location: Box<MultiLocation>, // TODO: versioned?
 		) -> DispatchResult {
 			// check that the origin is able to open bridges
-			let bridge_origin_location = T::UniversalLocation::get()
-				.within_global(AllowedOpenBridgeOrigin::ensure_origin(origin)?);
+			let this_location = T::UniversalLocation::get();
+			let bridge_origin_location = this_location
+				.within_global(T::AllowedOpenBridgeOrigin::ensure_origin(origin)?)
+				.map(|interior| MultiLocation::new(0, interior))
+				.map_err(|_| Error::<T, I>::InvalidBridgeOrigin)?;
 
 			// ensure that we support the remote destination
 			let (remote_network, _) = ensure_is_remote(this_location, *bridge_destination_location)
-				.map_err(|_| Error::<T, I>::LocalDestination)?;
+				.map_err(|_| Error::<T, I>::CannotBridgeWithLocalDestination)?;
 			ensure!(
 				remote_network == T::BridgedNetworkId::get(),
-				Error::<T, I>::InvalidRemoteDestination
+				Error::<T, I>::UnreachableRemoteDestination
 			);
 
 			// reserve balance on the parachain sovereign account
-			let bridge_origin_account = T::BridgeOriginAccountIdConverter::convert_location(&bridge_origin_location);
-			let payment = T::BridgePayment::get();
-			T::NativeCurrency::reserve(&bridge_origin_account, payment.clone())
-				.map_err(|_| Error::<T, I>::FailedToReserveBridgePayment)?;
+			let bridge_owner_account =
+				T::BridgeOriginAccountIdConverter::convert_location(&bridge_origin_location)
+					.ok_or(Error::<T, I>::InvalidBridgeOriginAccount)?;
+			let reserve = T::BridgeReserve::get();
+			T::NativeCurrency::reserve(&bridge_owner_account, reserve.clone())
+				.map_err(|_| Error::<T, I>::FailedToReserveBridgeReserve)?;
 
 			// we know that the `bridge_destination_location` starts from the `GlobalConsensus`
 			// (see `ensure_is_remote`) and we know that the `UniversalLocation` is also within the
-			// `GlobalConsensus` (given the proper pallet configuration). So we know that the lane id
-			// will be the same on both ends of the bridge
-			let lane_id = LaneId::new(bridge_origin_location, bridge_destination_location);
+			// `GlobalConsensus` (given the proper pallet configuration). So we know that the lane
+			// id will be the same on both ends of the bridge
+			let lane_id = LaneId::new(bridge_origin_location, *bridge_destination_location);
 
 			// save bridge metadata
-			Bridges::<T, I>::try_mutate(
-				lane_id,
-				|bridge| match bridge {
-					Some(_) => Err(Error::<T, I>::BridgeAlreadyRegistered),
-					None => Ok(Bridge { state: BridgeState::Opened, payment }),
-				},
-			)?;
+			Bridges::<T, I>::try_mutate(lane_id, |bridge| match bridge {
+				Some(_) => Err(Error::<T, I>::BridgeAlreadyExists),
+				None => Ok(BridgeOf::<T, I> {
+					state: BridgeStateOf::<T, I>::Opened,
+					bridge_owner_account,
+					reserve,
+				}),
+			})?;
 
-			// insert new lane in the opened status. Hopefully, we'll never see the `*LaneAlreadyRegistered`
-			// error - it'll mean that the storage is corrupted in some way.
-			MessagesPalletOf::<T, I>::create_inbound_lane(lane_id, LaneState::Opened)
-				.map_err(|_| Error::<T, I>::InboundLaneAlreadyRegistered)?;
-			MessagesPalletOf::<T, I>::create_outbound_lane(lane_id, LaneState::Opened)
-				.map_err(|_| Error::<T, I>::OutboundLaneAlreadyRegistered)?;
+			// create new lanes. Under normal circumstances, following calls shall never fail
+			let lanes_manager = LanesManagerOf::<T, I>::new();
+			lanes_manager.create_inbound_lane(lane_id).map_err(Into::<Error<T, I>>::into)?;
+			lanes_manager.create_outbound_lane(lane_id).map_err(Into::<Error<T, I>>::into)?;
 
 			Ok(())
 		}
@@ -171,8 +201,8 @@ pub mod pallet {
 		/// Can only be called by the "owner" of this side of the bridge. Both inbound and outbound
 		/// lanes at this side of the bridge are immediately switched to `Closing` state. Lanes may
 		/// still send/receive new messages, however this state is reported to the other side of
-		/// the bridge, given that relays are active. When this happens, lanes at the other side also
-		/// switching their state to `Closing`.
+		/// the bridge, given that relays are active. When this happens, lanes at the other side
+		/// also switching their state to `Closing`.
 		///
 		/// After `T::BridgeCloseDelay` blocks, the caller may issue the `close_bridge` call to
 		/// actually close the bridge and claim reserved funds.
@@ -187,34 +217,13 @@ pub mod pallet {
 		) -> DispatchResult {
 			// check that the origin is able to close bridge
 			let bridge_origin_location = T::UniversalLocation::get()
-				.within_global(AllowedOpenBridgeOrigin::ensure_origin(origin)?);
+				.within_global(T::AllowedOpenBridgeOrigin::ensure_origin(origin)?)
+				.map(|interior| MultiLocation::new(0, interior))
+				.map_err(|_| Error::<T, I>::InvalidBridgeOrigin)?;
 
 			// update bridge metadata
-			let lane_id = LaneId::new(bridge_origin_location, bridge_destination_location);
-			let bridge = BridgeMetadata::<T, I>::try_mutate_exists(
-				lane_id,
-				|bridge| match bridge {
-					Some(bridge) if bridge.state != BridgeState::Opened => Err(Error::<T, I>::AlreadyClosedBridge),
-					Some(mut bridge) => {
-						let may_close_at = T::block_number().saturating_add(T::BridgeCloseDelay::get());
-						bridge.state = LaneState::Closing(may_close_at);
-						Ok(bridge)
-					},
-					None => Err(Error::<T, I>::UnknownBridge),
-				}
-			)?;
-
-			// update lanes state. Under normal circumstances, following calls shall never fail
-			MessagesPalletOf::<T, I>::update_inbound_lane_state(lane_id, Some(LaneState::Opened), LaneState::Closing)
-				.map_err(|lane_state| match lane_state {
-					Some(_) => Error::<T, I>::InboundLaneAlreadyClosed,
-					None => Error::<T, I>::UnknownInboundLane,
-				})?;
-			MessagesPalletOf::<T, I>::update_outbound_lane_state(lane_id, Some(LaneState::Opened), LaneState::Closing)
-				.map_err(|lane_state| match lane_state {
-					Some(_) => Error::<T, I>::OutboundLaneAlreadyClosed,
-					None => Error::<T, I>::UnknownOutboundLane,
-				})?;
+			let lane_id = LaneId::new(bridge_origin_location, *bridge_destination_location);
+			Self::start_closing_the_bridge(lane_id, false, LaneState::Closing)?;
 
 			Ok(())
 		}
@@ -240,66 +249,71 @@ pub mod pallet {
 		#[pallet::weight(Weight::zero())]
 		pub fn close_bridge(
 			origin: OriginFor<T>,
-			sibling_location: Box<MultiLocation>, // TODO: versioned?
-			remote_destination: Box<MultiLocation>, // TODO: versioned?
+			bridge_destination_location: Box<MultiLocation>, // TODO: versioned?
 			mut may_prune_messages: MessageNonce,
 		) -> DispatchResult {
 			// check that the origin is able to close bridge
 			let bridge_origin_location = T::UniversalLocation::get()
-				.within_global(AllowedOpenBridgeOrigin::ensure_origin(origin)?);
+				.within_global(T::AllowedOpenBridgeOrigin::ensure_origin(origin)?)
+				.map(|interior| MultiLocation::new(0, interior))
+				.map_err(|_| Error::<T, I>::InvalidBridgeOrigin)?;
 
-			// TODO: may do refund here, if bridge/lanes are already closed + for messages that are not pruned
+			// TODO: may do refund here, if bridge/lanes are already closed + for messages that are
+			// not pruned
 
 			// update bridge metadata - this also guarantees that the bridge is in the proper state
-			let lane_id = LaneId::new(bridge_origin_location, bridge_destination_location);
-			let bridge = BridgeMetadata::<T, I>::try_mutate_exists(
-				lane_id,
-				|bridge| match bridge {
-					Some(bridge) if bridge.state == BridgeState::Opened => Err(Error::<T, I>::CannotCloseOpenedBridge),
-					Some(bridge) => {
-						bridge.state = BridgeState::Closed;
-						Ok(bridge)
-					},
-					None => Err(Error::<T, I>:UnknownBridge),
-				}
-			)?;
+			let lane_id = LaneId::new(bridge_origin_location, *bridge_destination_location);
+			let bridge = Bridges::<T, I>::try_mutate_exists(lane_id, |bridge| match bridge {
+				Some(bridge) if bridge.state == BridgeState::Opened =>
+					Err(Error::<T, I>::CannotCloseOpenedBridge),
+				Some(bridge) => {
+					bridge.state = BridgeState::Closed;
+					Ok(bridge.clone())
+				},
+				None => Err(Error::<T, I>::UnknownBridge),
+			})?;
 
 			// now prune queued messages
-			let mut outbound_lane = MessagesPalletOf::<T, I>::outbound_lane(lane_id);
+			let lanes_manager = LanesManagerOf::<T, I>::new();
+			let mut outbound_lane = lanes_manager
+				.any_state_outbound_lane(lane_id)
+				.map_err(Into::<Error<T, I>>::into)?;
 			ensure!(
-				matches!(outbound_lane.state(), LaneState::Closing || LaneState::Closed),
+				matches!(outbound_lane.state(), LaneState::Closing | LaneState::Closed),
 				Error::<T, I>::CannotCloseOpenedLane,
 			);
 			for message_nonce in outbound_lane.queued_messages() {
 				if may_prune_messages == 0 {
-					break;
+					break
 				}
 
-				outbound_lane.remove_message(&message_nonce);
+				outbound_lane.remove_message(message_nonce);
 				may_prune_messages -= 1;
 			}
 
 			// if there are outbound messages in the queue, just update states and early exit
 			if !outbound_lane.queued_messages().is_empty() {
 				// update lanes state. Under normal circumstances, following calls shall never fail
-				MessagesPalletOf::<T, I>::update_inbound_lane_state(lane_id, None, LaneState::Closed)
-					.map_err(|_| Error::<T, I>::UnknownInboundLane)?;
-				MessagesPalletOf::<T, I>::update_outbound_lane_state(lane_id, None, LaneState::Closed)
-					.map_err(|_| Error::<T, I>::UnknownOutboundLane)?;
+				lanes_manager
+					.any_state_inbound_lane(lane_id)
+					.map_err(Into::<Error<T, I>>::into)?
+					.set_state(LaneState::Closed);
+				outbound_lane.set_state(LaneState::Closed);
 
-				return Ok(());
+				return Ok(())
 			}
 
 			// else we have pruned all messages, so lanes and the bridge itself may gone
-			MessagesPalletOf::<T, I>::remove_inbound_lane(lane_id)
-				.map_err(|_| Error::<T, I>::UnknownInboundLane)?;
-			MessagesPalletOf::<T, I>::remove_outbound_lane(lane_id)
-				.map_err(|_| Error::<T, I>::UnknownOutboundLane)?;
-			BridgeMetadata::<T, I>::remove(lane_id);
+			lanes_manager
+				.any_state_inbound_lane(lane_id)
+				.map_err(Into::<Error<T, I>>::into)?
+				.purge();
+			outbound_lane.purge();
+			Bridges::<T, I>::remove(lane_id);
 
 			// unreserve remaining amount
-			let bridge_origin_account = T::BridgeOriginAccountIdConverter::convert_location(&bridge_origin_location);
-			let failed_to_unreserve = T::NativeCurrency::reserve(&bridge_origin_account, bridge.payment);
+			let failed_to_unreserve =
+				T::NativeCurrency::unreserve(&bridge.bridge_owner_account, bridge.reserve);
 			if !failed_to_unreserve.is_zero() {
 				// TODO: log
 			}
@@ -315,63 +329,148 @@ pub mod pallet {
 			lane_id: LaneId,
 			misbehavior: BridgeMisbehavior,
 		) -> DispatchResult {
-			let reporter = ensure_signed(origin);
+			let reporter = ensure_signed(origin)?;
+			let lanes_manager = LanesManagerOf::<T, I>::new();
 
+			// check report
 			match misbehavior {
-				BridgeMisbehavior::TooManyQueuedMessages => {
-					let outbound_lane = MessagesPalletOf::<T, I>::outbound_lane(lane_id);
-					let queued_messages = outbound_lane.queued_messages().checked_len().unwrap_or(0);
-					let max_queued_messages = T::MisbehaviorConfig::get().max_queued_messages;
-					if queued_messages > max_queued_messages {
-						Self::on_misbehavior(reporter, lane_id);
+				BridgeMisbehavior::TooManyQueuedOutboundMessages => {
+					let outbound_lane =
+						lanes_manager.outbound_lane(lane_id).map_err(Into::<Error<T, I>>::into)?;
+					let queued_messages =
+						outbound_lane.queued_messages().checked_len().unwrap_or(0);
+					let max_queued_messages = T::BridgeLimits::get().max_queued_outbound_messages;
+					if queued_messages <= max_queued_messages {
+						return Err(Error::<T, I>::InvalidMisbehaviorReport.into())
 					}
-				}
+				},
 			}
+
+			// fine bridge owner and close the bridge
+			Self::on_misbehavior(reporter, lane_id)?;
+
+			Ok(())
 		}
 	}
 
+	impl<T: Config<I>, I: 'static> Pallet<T, I>
+	where
+		T: frame_system::Config<
+			AccountId = AccountIdOf<ThisChainOf<T, I>>,
+			BlockNumber = BlockNumberOf<ThisChainOf<T, I>>,
+		>,
+		T::NativeCurrency: Currency<T::AccountId, Balance = BalanceOf<ThisChainOf<T, I>>>,
+	{
+		/// Start closing the bridge.
+		fn start_closing_the_bridge(
+			lane_id: LaneId,
+			allow_closing_bridges: bool,
+			outbound_lane_state: LaneState,
+		) -> Result<(), Error<T, I>> {
+			// update bridge metadata
+			Bridges::<T, I>::try_mutate_exists(lane_id, |bridge| match bridge {
+				Some(bridge) if bridge.state == BridgeState::Opened => {
+					let may_close_at = frame_system::Pallet::<T>::block_number()
+						.saturating_add(T::BridgeCloseDelay::get());
+					bridge.state = BridgeState::Closing(may_close_at);
+					Ok(())
+				},
+				Some(bridge)
+					if matches!(bridge.state, BridgeState::Closing(_)) &&
+						!allow_closing_bridges =>
+					Err(Error::<T, I>::BridgeAlreadyClosed),
+				Some(bridge) if bridge.state == BridgeState::Closed =>
+					Err(Error::<T, I>::BridgeAlreadyClosed),
+				Some(_) => Ok(()),
+				None => Err(Error::<T, I>::UnknownBridge),
+			})?;
+
+			// update lanes state. Under normal circumstances, following calls shall never fail
+			let lanes_manager = LanesManagerOf::<T, I>::new();
+			lanes_manager
+				.inbound_lane(lane_id)
+				.map_err(Into::<Error<T, I>>::into)?
+				.set_state(LaneState::Closing);
+			lanes_manager
+				.outbound_lane(lane_id)
+				.map_err(Into::<Error<T, I>>::into)?
+				.set_state(outbound_lane_state);
+
+			Ok(())
+		}
+
+		/// Actions when misbehavior is detected.
+		fn on_misbehavior(reporter: T::AccountId, lane_id: LaneId) -> Result<(), Error<T, I>> {
+			// transfer penalty to the reporter
+			let bridge = Bridges::<T, I>::get(lane_id).ok_or(Error::<T, I>::UnknownBridge)?;
+			T::NativeCurrency::repatriate_reserved(
+				&bridge.bridge_owner_account,
+				&reporter,
+				T::Penalty::get(),
+				BalanceStatus::Free,
+			); // TODO: process result
+
+			// start closing the bridge
+			Self::start_closing_the_bridge(lane_id, true, LaneState::Closed)
+		}
+	}
+
+	#[pallet::storage]
+	pub type Bridges<T: Config<I>, I: 'static = ()> =
+		StorageMap<_, Identity, LaneId, BridgeOf<T, I>>;
+
 	#[pallet::error]
 	pub enum Error<T, I = ()> {
+		/// Invalid local bridge origin.
+		InvalidBridgeOrigin,
+		/// Invalid local bridge origin account.
+		InvalidBridgeOriginAccount,
 		/// Remote bridge destination is local to this consensus.
 		CannotBridgeWithLocalDestination,
 		/// Remote bridge destination is unreachable via this pallet instance.
-		UnreachableBridgeDestination,
-		/// The bridge origin can't pay the required amount for opening the bridge.
-		FailedToReserveBridgePayment,
+		UnreachableRemoteDestination,
 		/// The bridge is already registered in this pallet.
-		BridgeAlreadyRegistered,
+		BridgeAlreadyExists,
+		/// Trying to close already closed bridge.
+		BridgeAlreadyClosed,
 		/// The inbound lane is already registered in the associated messages pallet.
-		InboundLaneAlreadyRegistered,
+		InboundLaneAlreadyExists,
 		/// The outbound lane is already registered in the associated messages pallet.
-		OutboundLaneAlreadyRegistered,
+		OutboundLaneAlreadyExists,
+		/// The inbound lane is missing from the associated messages pallet storage.
+		UnknownInboundLane,
+		/// The outbound lane is missing from the associated messages pallet storage.
+		UnknownOutboundLane,
+		/// The inbound lane is already closed at the associated messages pallet.
+		ClosedInboundLane,
+		/// The outbound lane is already closed at the associated messages pallet.
+		ClosedOutboundLane,
 		/// Trying to access unknown bridge.
 		UnknownBridge,
-		/// Trying to close already closed bridge.
-		AlreadyClosedBridge,
+		/// The bridge origin can't pay the required amount for opening the bridge.
+		FailedToReserveBridgeReserve,
+		/// Cannot close opened bridge. It should be switched to `Closing` state first.
+		CannotCloseOpenedBridge,
+		/// Cannot close opened lane. It should be switched to `Closing` state first.
+		CannotCloseOpenedLane,
+		/// Invalid misbehavior report has been submitted.
+		InvalidMisbehaviorReport,
 	}
 
-	#[pallet::genesis_config]
-	#[derive(DefaultNoBound)]
-	pub struct GenesisConfig<T: Config<I>, I: 'static = ()> {
-		/// Opened lanes.
-		///
-		/// The same set of lanes must be duplicated in the genesis config of the associated
-		/// messages pallet. The lanes are "opened" with zero payment registered.
-		pub opened_lanes: Vec<LaneId>,
-	}
-
-	#[pallet::genesis_build]
-	impl<T: Config<I>, I: 'static> GenesisBuild<T, I> for GenesisConfig<T, I> {
-		fn build(&self) {
-			for lane_id in &self.opened_lanes {
-				LaneMetadata::<T, I>::insert(lane_id, LaneMetadata {
-					payment: Zero::zero(),
-				});
+	impl<T: Config<I>, I: 'static> From<LanesManagerError> for Error<T, I> {
+		fn from(e: LanesManagerError) -> Self {
+			match e {
+				LanesManagerError::InboundLaneAlreadyExists => Error::InboundLaneAlreadyExists,
+				LanesManagerError::OutboundLaneAlreadyExists => Error::OutboundLaneAlreadyExists,
+				LanesManagerError::UnknownInboundLane => Error::UnknownInboundLane,
+				LanesManagerError::UnknownOutboundLane => Error::UnknownOutboundLane,
+				LanesManagerError::ClosedInboundLane => Error::ClosedInboundLane,
+				LanesManagerError::ClosedOutboundLane => Error::ClosedOutboundLane,
 			}
 		}
 	}
 }
-
+/*
 #[cfg(test)]
 mod tests {
 	use super::*;
@@ -379,3 +478,4 @@ mod tests {
 	#[test]
 	fn my_test() {}
 }
+*/

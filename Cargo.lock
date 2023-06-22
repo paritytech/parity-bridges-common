@@ -1140,6 +1140,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "bp-xcm-over-bridge"
+version = "0.1.0"
+dependencies = [
+ "bp-messages",
+ "bp-runtime",
+ "frame-support",
+ "parity-scale-codec",
+ "scale-info",
+ "serde",
+]
+
+[[package]]
 name = "bridge-runtime-common"
 version = "0.1.0"
 dependencies = [
@@ -7627,6 +7639,7 @@ version = "0.1.0"
 dependencies = [
  "bp-messages",
  "bp-runtime",
+ "bp-xcm-over-bridge",
  "frame-support",
  "frame-system",
  "log",
