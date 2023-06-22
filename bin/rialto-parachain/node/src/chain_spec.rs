@@ -14,6 +14,7 @@
 // You should have received a copy of the GNU General Public License
 // along with Parity Bridges Common.  If not, see <http://www.gnu.org/licenses/>.
 
+use bridge_runtime_common::messages_xcm_extension::XcmBlobHauler;
 use cumulus_primitives_core::ParaId;
 use rialto_parachain_runtime::{AccountId, AuraId, BridgeMillauMessagesConfig, Signature};
 use sc_chain_spec::{ChainSpecExtension, ChainSpecGroup};
@@ -35,7 +36,7 @@ const MILLAU_MESSAGES_PALLET_OWNER: &str = "Millau.MessagesOwner";
 
 /// Specialized `ChainSpec` for the normal parachain runtime.
 pub type ChainSpec =
-	sc_service::GenericChainSpec<rialto_parachain_runtime::GenesisConfig, Extensions>;
+	sc_service::GenericChainSpec<rialto_parachain_runtime::RuntimeGenesisConfig, Extensions>;
 
 /// Helper function to generate a crypto pair from seed
 pub fn get_from_seed<TPublic: Public>(seed: &str) -> <TPublic::Pair as Pair>::Public {
@@ -176,8 +177,8 @@ fn testnet_genesis(
 	initial_authorities: Vec<AuraId>,
 	endowed_accounts: Vec<AccountId>,
 	id: ParaId,
-) -> rialto_parachain_runtime::GenesisConfig {
-	rialto_parachain_runtime::GenesisConfig {
+) -> rialto_parachain_runtime::RuntimeGenesisConfig {
+	rialto_parachain_runtime::RuntimeGenesisConfig {
 		system: rialto_parachain_runtime::SystemConfig {
 			code: rialto_parachain_runtime::WASM_BINARY
 				.expect("WASM binary was not build, please build it!")
@@ -192,7 +193,9 @@ fn testnet_genesis(
 		aura_ext: Default::default(),
 		bridge_millau_messages: BridgeMillauMessagesConfig {
 			owner: Some(get_account_id_from_seed::<sr25519::Public>(MILLAU_MESSAGES_PALLET_OWNER)),
-			opened_lanes: vec![bp_messages::LaneId::default()],
+			opened_lanes: vec![
+				rialto_parachain_runtime::millau_messages::ToMillauXcmBlobHauler::xcm_lane(),
+			],
 			..Default::default()
 		},
 	}

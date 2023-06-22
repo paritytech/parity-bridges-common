@@ -137,6 +137,7 @@ impl xcm_executor::Config for XcmConfig {
 	type UniversalAliases = Nothing;
 	type CallDispatcher = RuntimeCall;
 	type SafeCallFilter = Everything;
+	type Aliasers = Nothing;
 }
 
 /// Type to convert an `Origin` type value into a `MultiLocation` value which represents an interior
@@ -191,15 +192,14 @@ impl pallet_xcm::Config for Runtime {
 #[cfg(test)]
 mod tests {
 	use super::*;
-	use crate::{
-		millau_messages::{FromMillauMessageDispatch, XCM_LANE},
-		WithMillauMessagesInstance,
-	};
+	use crate::{millau_messages::FromMillauMessageDispatch, WithMillauMessagesInstance};
 	use bp_messages::{
 		target_chain::{DispatchMessage, DispatchMessageData, MessageDispatch},
-		LaneId, MessageKey, OutboundLaneData,
+		MessageKey, OutboundLaneData,
 	};
-	use bridge_runtime_common::messages_xcm_extension::XcmBlobMessageDispatchResult;
+	use bridge_runtime_common::messages_xcm_extension::{
+		XcmBlobHauler, XcmBlobMessageDispatchResult,
+	};
 	use codec::Encode;
 	use pallet_bridge_messages::OutboundLanes;
 	use xcm_executor::XcmExecutor;
@@ -223,12 +223,13 @@ mod tests {
 	fn xcm_messages_to_millau_are_sent_using_bridge_exporter() {
 		new_test_ext().execute_with(|| {
 			// ensure that the there are no messages queued
+			let lane_id = crate::millau_messages::ToMillauXcmBlobHauler::xcm_lane();
 			OutboundLanes::<Runtime, WithMillauMessagesInstance>::insert(
-				XCM_LANE,
+				lane_id,
 				OutboundLaneData::opened(),
 			);
 			assert_eq!(
-				OutboundLanes::<Runtime, WithMillauMessagesInstance>::get(XCM_LANE)
+				OutboundLanes::<Runtime, WithMillauMessagesInstance>::get(lane_id)
 					.unwrap()
 					.latest_generated_nonce,
 				0,
@@ -247,7 +248,7 @@ mod tests {
 
 			// ensure that the message has been queued
 			assert_eq!(
-				OutboundLanes::<Runtime, WithMillauMessagesInstance>::get(XCM_LANE)
+				OutboundLanes::<Runtime, WithMillauMessagesInstance>::get(lane_id)
 					.unwrap()
 					.latest_generated_nonce,
 				1,
@@ -262,8 +263,9 @@ mod tests {
 		// this is the `BridgeMessage` from polkadot xcm builder, but it has no constructor
 		// or public fields, so just tuple
 		let bridge_message = (location, xcm).encode();
+		let lane_id = crate::millau_messages::ToMillauXcmBlobHauler::xcm_lane();
 		DispatchMessage {
-			key: MessageKey { lane_id: LaneId([0, 0, 0, 0]), nonce: 1 },
+			key: MessageKey { lane_id, nonce: 1 },
 			data: DispatchMessageData { payload: Ok(bridge_message) },
 		}
 	}

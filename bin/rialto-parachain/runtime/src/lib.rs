@@ -31,7 +31,7 @@ use codec::{Decode, Encode};
 use cumulus_pallet_parachain_system::AnyRelayNumber;
 use scale_info::TypeInfo;
 use sp_api::impl_runtime_apis;
-use sp_core::{crypto::KeyTypeId, OpaqueMetadata};
+use sp_core::{crypto::KeyTypeId, ConstBool, OpaqueMetadata};
 use sp_runtime::{
 	create_runtime_str, generic, impl_opaque_keys,
 	traits::{AccountIdLookup, Block as BlockT, DispatchInfoOf, SignedExtension},
@@ -461,6 +461,7 @@ impl Config for XcmConfig {
 	type UniversalAliases = Nothing;
 	type CallDispatcher = RuntimeCall;
 	type SafeCallFilter = Everything;
+	type Aliasers = Nothing;
 }
 
 /// No local origins on this chain are allowed to dispatch XCM sends/executions.
@@ -529,6 +530,7 @@ impl pallet_aura::Config for Runtime {
 	type AuthorityId = AuraId;
 	type DisabledValidators = ();
 	type MaxAuthorities = MaxAuthorities;
+	type AllowMultipleBlocksPerSlot = ConstBool<false>;
 }
 
 impl pallet_bridge_relayers::Config for Runtime {
@@ -839,14 +841,15 @@ cumulus_pallet_parachain_system::register_validate_block!(
 #[cfg(test)]
 mod tests {
 	use super::*;
-	use crate::millau_messages::{FromMillauMessageDispatch, XCM_LANE};
+	use crate::millau_messages::FromMillauMessageDispatch;
 	use bp_messages::{
 		target_chain::{DispatchMessage, DispatchMessageData, MessageDispatch},
-		LaneId, MessageKey, OutboundLaneData,
+		MessageKey, OutboundLaneData,
 	};
 	use bp_runtime::Chain;
 	use bridge_runtime_common::{
-		integrity::check_additional_signed, messages_xcm_extension::XcmBlobMessageDispatchResult,
+		integrity::check_additional_signed,
+		messages_xcm_extension::{XcmBlobHauler, XcmBlobMessageDispatchResult},
 	};
 	use codec::Encode;
 	use pallet_bridge_messages::OutboundLanes;
@@ -880,12 +883,13 @@ mod tests {
 	fn xcm_messages_to_millau_are_sent_using_bridge_exporter() {
 		new_test_ext().execute_with(|| {
 			// ensure that the there are no messages queued
+			let lane_id = crate::millau_messages::ToMillauXcmBlobHauler::xcm_lane();
 			OutboundLanes::<Runtime, WithMillauMessagesInstance>::insert(
-				XCM_LANE,
+				lane_id,
 				OutboundLaneData::opened(),
 			);
 			assert_eq!(
-				OutboundLanes::<Runtime, WithMillauMessagesInstance>::get(XCM_LANE)
+				OutboundLanes::<Runtime, WithMillauMessagesInstance>::get(lane_id)
 					.unwrap()
 					.latest_generated_nonce,
 				0,
@@ -904,7 +908,7 @@ mod tests {
 
 			// ensure that the message has been queued
 			assert_eq!(
-				OutboundLanes::<Runtime, WithMillauMessagesInstance>::get(XCM_LANE)
+				OutboundLanes::<Runtime, WithMillauMessagesInstance>::get(lane_id)
 					.unwrap()
 					.latest_generated_nonce,
 				1,
@@ -918,9 +922,10 @@ mod tests {
 			xcm::VersionedInteriorMultiLocation::V3(X1(GlobalConsensus(ThisNetwork::get())));
 		// this is the `BridgeMessage` from polkadot xcm builder, but it has no constructor
 		// or public fields, so just tuple
+		let xcm_lane = crate::millau_messages::ToMillauXcmBlobHauler::xcm_lane();
 		let bridge_message = (location, xcm).encode();
 		DispatchMessage {
-			key: MessageKey { lane_id: LaneId([0, 0, 0, 0]), nonce: 1 },
+			key: MessageKey { lane_id: xcm_lane, nonce: 1 },
 			data: DispatchMessageData { payload: Ok(bridge_message) },
 		}
 	}

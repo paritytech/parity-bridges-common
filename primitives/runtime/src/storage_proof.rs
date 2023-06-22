@@ -19,17 +19,18 @@
 use frame_support::{PalletError, StateVersion};
 use sp_core::{storage::TrackedStorageKey, RuntimeDebug};
 use sp_runtime::SaturatedConversion;
-use sp_std::{collections::btree_set::BTreeSet, default::Default, vec, vec::Vec};
+use sp_std::{default::Default, vec, vec::Vec};
 use sp_trie::{
-	generate_trie_proof, verify_trie_proof, LayoutV0, LayoutV1, MemoryDB, StorageProof,
-	TrieDBBuilder, TrieHash,
+	generate_trie_proof, verify_trie_proof, LayoutV0, LayoutV1, StorageProof, TrieDBBuilder,
+	TrieHash,
 };
 
-use codec::{Codec, Decode, Encode};
+use codec::{Decode, Encode};
 use hash_db::Hasher;
 use scale_info::TypeInfo;
-use sp_state_machine::TrieBackend;
-use trie_db::{DBValue, Recorder, Trie};
+use trie_db::{DBValue, Trie};
+#[cfg(feature = "test-helpers")]
+use trie_db::{TrieConfiguration, TrieDBMut};
 
 use crate::Size;
 
@@ -96,18 +97,21 @@ impl UnverifiedStorageProof {
 	/// Creates a new instance of `UnverifiedStorageProof` from the provided entries.
 	///
 	/// **This function is used only in tests and benchmarks.**
-	#[cfg(feature = "std")]
+	#[cfg(any(all(feature = "std", feature = "test-helpers"), test))]
 	pub fn try_from_entries<H: Hasher>(
 		state_version: StateVersion,
 		entries: &[(RawStorageKey, Option<DBValue>)],
 	) -> Result<(H::Out, UnverifiedStorageProof), StorageProofError>
 	where
-		H::Out: Codec,
+		H::Out: codec::Codec,
 	{
 		let keys: Vec<_> = entries.iter().map(|(key, _)| key.clone()).collect();
 		let entries: Vec<_> =
 			entries.iter().cloned().map(|(key, val)| (None, vec![(key, val)])).collect();
-		let backend = TrieBackend::<MemoryDB<H>, H>::from((entries, state_version));
+		let backend = sp_state_machine::TrieBackend::<sp_trie::MemoryDB<H>, H>::from((
+			entries,
+			state_version,
+		));
 		let root = *backend.root();
 
 		Ok((root, UnverifiedStorageProof::try_from_db(backend.backend_storage(), root, keys)?))
@@ -116,6 +120,7 @@ impl UnverifiedStorageProof {
 	/// Creates a new instance of `UnverifiedStorageProof` from the provided db.
 	///
 	/// **This function is used only in tests and benchmarks.**
+	#[cfg(any(feature = "test-helpers", test))]
 	pub fn try_from_db<H: Hasher, DB>(
 		db: &DB,
 		root: H::Out,
@@ -124,6 +129,9 @@ impl UnverifiedStorageProof {
 	where
 		DB: hash_db::HashDBRef<H, DBValue>,
 	{
+		use sp_std::collections::btree_set::BTreeSet;
+		use trie_db::Recorder;
+
 		let mut recorder = Recorder::<LayoutV1<H>>::new();
 		let trie = TrieDBBuilder::<LayoutV1<H>>::new(db, &root)
 			.with_recorder(&mut recorder)
@@ -249,6 +257,7 @@ impl VerifiedStorageProof {
 /// Storage proof size requirements.
 ///
 /// This is currently used by benchmarks when generating storage proofs.
+#[cfg(feature = "test-helpers")]
 #[derive(Clone, Copy, Debug)]
 pub enum StorageProofSize {
 	/// The storage proof is expected to be minimal. If value size may be changed, then it is
@@ -260,6 +269,7 @@ pub enum StorageProofSize {
 }
 
 /// Add extra data to the storage value so that it'll be of given size.
+#[cfg(feature = "test-helpers")]
 pub fn grow_storage_value(mut value: Vec<u8>, size: StorageProofSize) -> Vec<u8> {
 	match size {
 		StorageProofSize::Minimal(_) => (),
@@ -269,6 +279,57 @@ pub fn grow_storage_value(mut value: Vec<u8>, size: StorageProofSize) -> Vec<u8>
 		StorageProofSize::HasLargeLeaf(_) => (),
 	}
 	value
+}
+
+/// Insert values in the provided trie at common-prefix keys in order to inflate the resulting
+/// storage proof.
+///
+/// This function can add at most 15 common-prefix keys per prefix nibble (4 bits).
+/// Each such key adds about 33 bytes (a node) to the proof.
+#[cfg(feature = "test-helpers")]
+pub fn grow_storage_proof<L: TrieConfiguration>(
+	trie: &mut TrieDBMut<L>,
+	prefix: Vec<u8>,
+	num_extra_nodes: usize,
+) {
+	use sp_trie::TrieMut;
+
+	let mut added_nodes = 0;
+	for i in 0..prefix.len() {
+		let mut prefix = prefix[0..=i].to_vec();
+		// 1 byte has 2 nibbles (4 bits each)
+		let first_nibble = (prefix[i] & 0xf0) >> 4;
+		let second_nibble = prefix[i] & 0x0f;
+
+		// create branches at the 1st nibble
+		for branch in 1..=15 {
+			if added_nodes >= num_extra_nodes {
+				return
+			}
+
+			// create branches at the 1st nibble
+			prefix[i] = (first_nibble.wrapping_add(branch) % 16) << 4;
+			trie.insert(&prefix, &[0; 32])
+				.map_err(|_| "TrieMut::insert has failed")
+				.expect("TrieMut::insert should not fail in benchmarks");
+			added_nodes += 1;
+		}
+
+		// create branches at the 2nd nibble
+		for branch in 1..=15 {
+			if added_nodes >= num_extra_nodes {
+				return
+			}
+
+			prefix[i] = (first_nibble << 4) | (second_nibble.wrapping_add(branch) % 16);
+			trie.insert(&prefix, &[0; 32])
+				.map_err(|_| "TrieMut::insert has failed")
+				.expect("TrieMut::insert should not fail in benchmarks");
+			added_nodes += 1;
+		}
+	}
+
+	assert_eq!(added_nodes, num_extra_nodes)
 }
 
 #[cfg(test)]

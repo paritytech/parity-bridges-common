@@ -141,6 +141,7 @@ impl xcm_executor::Config for XcmConfig {
 	type UniversalAliases = Nothing;
 	type CallDispatcher = RuntimeCall;
 	type SafeCallFilter = Everything;
+	type Aliasers = Nothing;
 }
 
 /// Type to convert an `Origin` type value into a `MultiLocation` value which represents an interior
@@ -244,7 +245,9 @@ mod tests {
 		target_chain::{DispatchMessage, DispatchMessageData, MessageDispatch},
 		LaneId, MessageKey, OutboundLaneData,
 	};
-	use bridge_runtime_common::messages_xcm_extension::XcmBlobMessageDispatchResult;
+	use bridge_runtime_common::messages_xcm_extension::{
+		XcmBlobHauler, XcmBlobMessageDispatchResult,
+	};
 	use codec::Encode;
 	use pallet_bridge_messages::OutboundLanes;
 	use xcm_executor::XcmExecutor;
@@ -268,16 +271,15 @@ mod tests {
 	fn xcm_messages_to_rialto_are_sent_using_bridge_exporter() {
 		new_test_ext().execute_with(|| {
 			// ensure that the there are no messages queued
+			let lane_id = crate::rialto_messages::ToRialtoXcmBlobHauler::xcm_lane();
 			OutboundLanes::<Runtime, WithRialtoMessagesInstance>::insert(
-				crate::rialto_messages::XCM_LANE,
+				lane_id,
 				OutboundLaneData::opened(),
 			);
 			assert_eq!(
-				OutboundLanes::<Runtime, WithRialtoMessagesInstance>::get(
-					crate::rialto_messages::XCM_LANE
-				)
-				.unwrap()
-				.latest_generated_nonce,
+				OutboundLanes::<Runtime, WithRialtoMessagesInstance>::get(lane_id)
+					.unwrap()
+					.latest_generated_nonce,
 				0,
 			);
 
@@ -294,11 +296,9 @@ mod tests {
 
 			// ensure that the message has been queued
 			assert_eq!(
-				OutboundLanes::<Runtime, WithRialtoMessagesInstance>::get(
-					crate::rialto_messages::XCM_LANE
-				)
-				.unwrap()
-				.latest_generated_nonce,
+				OutboundLanes::<Runtime, WithRialtoMessagesInstance>::get(lane_id)
+					.unwrap()
+					.latest_generated_nonce,
 				1,
 			);
 		})
@@ -308,16 +308,16 @@ mod tests {
 	fn xcm_messages_to_rialto_parachain_are_sent_using_bridge_exporter() {
 		new_test_ext().execute_with(|| {
 			// ensure that the there are no messages queued
+			let lane_id =
+				crate::rialto_parachain_messages::ToRialtoParachainXcmBlobHauler::xcm_lane();
 			OutboundLanes::<Runtime, WithRialtoParachainMessagesInstance>::insert(
-				crate::rialto_parachain_messages::XCM_LANE,
+				lane_id,
 				OutboundLaneData::opened(),
 			);
 			assert_eq!(
-				OutboundLanes::<Runtime, WithRialtoParachainMessagesInstance>::get(
-					crate::rialto_parachain_messages::XCM_LANE
-				)
-				.unwrap()
-				.latest_generated_nonce,
+				OutboundLanes::<Runtime, WithRialtoParachainMessagesInstance>::get(lane_id)
+					.unwrap()
+					.latest_generated_nonce,
 				0,
 			);
 
@@ -334,17 +334,15 @@ mod tests {
 
 			// ensure that the message has been queued
 			assert_eq!(
-				OutboundLanes::<Runtime, WithRialtoParachainMessagesInstance>::get(
-					crate::rialto_parachain_messages::XCM_LANE
-				)
-				.unwrap()
-				.latest_generated_nonce,
+				OutboundLanes::<Runtime, WithRialtoParachainMessagesInstance>::get(lane_id)
+					.unwrap()
+					.latest_generated_nonce,
 				1,
 			);
 		})
 	}
 
-	fn prepare_inbound_bridge_message() -> DispatchMessage<Vec<u8>> {
+	fn prepare_inbound_bridge_message(lane_id: LaneId) -> DispatchMessage<Vec<u8>> {
 		let xcm = xcm::VersionedXcm::<RuntimeCall>::V3(vec![Instruction::Trap(42)].into());
 		let location =
 			xcm::VersionedInteriorMultiLocation::V3(X1(GlobalConsensus(ThisNetwork::get())));
@@ -352,14 +350,16 @@ mod tests {
 		// or public fields, so just tuple
 		let bridge_message = (location, xcm).encode();
 		DispatchMessage {
-			key: MessageKey { lane_id: LaneId([0, 0, 0, 0]), nonce: 1 },
+			key: MessageKey { lane_id, nonce: 1 },
 			data: DispatchMessageData { payload: Ok(bridge_message) },
 		}
 	}
 
 	#[test]
 	fn xcm_messages_from_rialto_are_dispatched() {
-		let incoming_message = prepare_inbound_bridge_message();
+		let incoming_message = prepare_inbound_bridge_message(
+			crate::rialto_messages::ToRialtoXcmBlobHauler::xcm_lane(),
+		);
 
 		// we care only about handing message to the XCM dispatcher, so we don't care about its
 		// actual dispatch
@@ -372,7 +372,9 @@ mod tests {
 
 	#[test]
 	fn xcm_messages_from_rialto_parachain_are_dispatched() {
-		let incoming_message = prepare_inbound_bridge_message();
+		let incoming_message = prepare_inbound_bridge_message(
+			crate::rialto_parachain_messages::ToRialtoParachainXcmBlobHauler::xcm_lane(),
+		);
 
 		// we care only about handing message to the XCM dispatcher, so we don't care about its
 		// actual dispatch

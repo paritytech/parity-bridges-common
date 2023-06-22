@@ -14,10 +14,12 @@
 // You should have received a copy of the GNU General Public License
 // along with Parity Bridges Common.  If not, see <http://www.gnu.org/licenses/>.
 
+use bridge_runtime_common::messages_xcm_extension::XcmBlobHauler;
 use millau_runtime::{
 	AccountId, AuraConfig, BalancesConfig, BeefyConfig, BridgeRialtoMessagesConfig,
-	BridgeRialtoParachainMessagesConfig, BridgeWestendGrandpaConfig, GenesisConfig, GrandpaConfig,
-	SessionConfig, SessionKeys, Signature, SudoConfig, SystemConfig, WASM_BINARY,
+	BridgeRialtoParachainMessagesConfig, BridgeWestendGrandpaConfig, GrandpaConfig,
+	RuntimeGenesisConfig, SessionConfig, SessionKeys, Signature, SudoConfig, SystemConfig,
+	WASM_BINARY,
 };
 use sp_consensus_aura::sr25519::AuthorityId as AuraId;
 use sp_consensus_beefy::crypto::AuthorityId as BeefyId;
@@ -41,7 +43,7 @@ const RIALTO_MESSAGES_PALLET_OWNER: &str = "Rialto.MessagesOwner";
 const RIALTO_PARACHAIN_MESSAGES_PALLET_OWNER: &str = "RialtoParachain.MessagesOwner";
 
 /// Specialized `ChainSpec`. This is a specialization of the general Substrate ChainSpec type.
-pub type ChainSpec = sc_service::GenericChainSpec<GenesisConfig>;
+pub type ChainSpec = sc_service::GenericChainSpec<RuntimeGenesisConfig>;
 
 /// The chain specification option. This is expected to come in from the CLI and
 /// is little more than one of a number of alternatives which can easily be converted
@@ -193,8 +195,8 @@ fn testnet_genesis(
 	root_key: AccountId,
 	endowed_accounts: Vec<AccountId>,
 	_enable_println: bool,
-) -> GenesisConfig {
-	GenesisConfig {
+) -> RuntimeGenesisConfig {
+	RuntimeGenesisConfig {
 		system: SystemConfig {
 			code: WASM_BINARY.expect("Millau development WASM not available").to_vec(),
 		},
@@ -222,14 +224,17 @@ fn testnet_genesis(
 		},
 		bridge_rialto_messages: BridgeRialtoMessagesConfig {
 			owner: Some(get_account_id_from_seed::<sr25519::Public>(RIALTO_MESSAGES_PALLET_OWNER)),
-			opened_lanes: vec![bp_messages::LaneId::default()],
+			opened_lanes: vec![millau_runtime::rialto_messages::ToRialtoXcmBlobHauler::xcm_lane()],
 			..Default::default()
 		},
 		bridge_rialto_parachain_messages: BridgeRialtoParachainMessagesConfig {
 			owner: Some(get_account_id_from_seed::<sr25519::Public>(
 				RIALTO_PARACHAIN_MESSAGES_PALLET_OWNER,
 			)),
-			opened_lanes: vec![bp_messages::LaneId::default()],
+			opened_lanes: vec![
+				millau_runtime::rialto_parachain_messages::ToRialtoParachainXcmBlobHauler::xcm_lane(
+				),
+			],
 			..Default::default()
 		},
 		xcm_pallet: Default::default(),
