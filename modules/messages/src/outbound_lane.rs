@@ -107,7 +107,7 @@ impl<S: OutboundLaneStorage> OutboundLane<S> {
 		self.storage.set_data(data);
 	}
 
-	/// Return nonces of queued messages.
+	/// Return nonces of all currently queued messages.
 	pub fn queued_messages(&self) -> RangeInclusive<MessageNonce> {
 		let data = self.storage.data();
 		data.oldest_unpruned_nonce..=data.latest_generated_nonce
@@ -177,9 +177,12 @@ impl<S: OutboundLaneStorage> OutboundLane<S> {
 		Ok(Some(confirmed_messages))
 	}
 
-	/// Remove message from the storage.
-	pub fn remove_message(&mut self, nonce: MessageNonce) {
-		self.storage.remove_message(&nonce);
+	/// Remove message from the storage. Doesn't perform any checks.
+	pub fn remove_oldest_unpruned_message(&mut self) {
+		let mut data = self.storage.data();
+		self.storage.remove_message(&data.oldest_unpruned_nonce);
+		data.oldest_unpruned_nonce += 1;
+		self.storage.set_data(data);
 	}
 
 	/// Purge lane state from the storage.
