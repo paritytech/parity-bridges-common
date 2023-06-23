@@ -17,10 +17,10 @@
 //! Pallet-level tests.
 
 use crate::{
-	outbound_lane, outbound_lane::ReceivalConfirmationError, send_message, tests::mock::*,
+	lanes_manager::RuntimeInboundLaneStorage, outbound_lane,
+	outbound_lane::ReceivalConfirmationError, send_message, tests::mock::*,
 	weights_ext::WeightInfoExt, Call, Config, Error, Event, InboundLanes, OutboundLanes,
-	OutboundMessages, Pallet, PalletOperatingMode, PalletOwner, RuntimeInboundLaneStorage,
-	StoredInboundLaneData,
+	OutboundMessages, Pallet, PalletOperatingMode, PalletOwner, StoredInboundLaneData,
 };
 
 use bp_messages::{
