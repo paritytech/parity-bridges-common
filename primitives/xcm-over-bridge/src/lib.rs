@@ -21,7 +21,7 @@
 use bp_messages::MessageNonce;
 use bp_runtime::{AccountIdOf, BalanceOf, BlockNumberOf, Chain};
 use codec::{Decode, Encode, MaxEncodedLen};
-use frame_support::{CloneNoBound, RuntimeDebug};
+use frame_support::{CloneNoBound, PartialEqNoBound, RuntimeDebug, RuntimeDebugNoBound};
 use scale_info::TypeInfo;
 use serde::{Deserialize, Serialize};
 
@@ -40,7 +40,9 @@ pub enum BridgeState<BlockNumber> {
 }
 
 /// Bridge metadata.
-#[derive(CloneNoBound, Decode, Encode, Eq, PartialEq, TypeInfo, MaxEncodedLen, RuntimeDebug)]
+#[derive(
+	CloneNoBound, Decode, Encode, Eq, PartialEqNoBound, TypeInfo, MaxEncodedLen, RuntimeDebugNoBound,
+)]
 #[scale_info(skip_type_params(ThisChain))]
 pub struct Bridge<ThisChain: Chain> {
 	/// Current bridge state.

@@ -26,10 +26,11 @@ use bp_messages::{
 };
 use bp_runtime::AccountIdOf;
 use codec::MaxEncodedLen;
-use frame_support::ensure;
+use frame_support::{ensure, RuntimeDebug};
 use sp_std::marker::PhantomData;
 
 /// Lanes manager errors.
+#[derive(RuntimeDebug, PartialEq, Eq)]
 pub enum LanesManagerError {
 	/// Inbound lane already exists.
 	InboundLaneAlreadyExists,
