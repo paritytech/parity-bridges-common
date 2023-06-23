@@ -128,6 +128,7 @@ impl pallet_bridge_messages::Config for TestRuntime {
 parameter_types! {
 	pub const RelayNetwork: NetworkId = NetworkId::Kusama;
 	pub const BridgedRelayNetwork: NetworkId = NetworkId::Polkadot;
+	pub const NonBridgedRelayNetwork: NetworkId = NetworkId::Rococo;
 	pub const BridgeReserve: Balance = 100_000;
 	pub UniversalLocation: InteriorMultiLocation = X2(
 		GlobalConsensus(RelayNetwork::get()),
@@ -155,10 +156,26 @@ impl AllowedOpenBridgeOrigin {
 		RuntimeOrigin::signed([0u8; 32].into())
 	}
 
+	pub fn parent_relay_chain_universal_origin() -> RuntimeOrigin {
+		RuntimeOrigin::signed([1u8; 32].into())
+	}
+
 	pub fn sibling_parachain_origin() -> RuntimeOrigin {
 		let mut account = [0u8; 32];
 		account[..4].copy_from_slice(&SIBLING_ASSET_HUB_ID.encode()[..4]);
 		RuntimeOrigin::signed(account.into())
+	}
+
+	pub fn sibling_parachain_universal_origin() -> RuntimeOrigin {
+		RuntimeOrigin::signed([2u8; 32].into())
+	}
+
+	pub fn origin_without_sovereign_account() -> RuntimeOrigin {
+		RuntimeOrigin::signed([3u8; 32].into())
+	}
+
+	pub fn disallowed_origin() -> RuntimeOrigin {
+		RuntimeOrigin::signed([42u8; 32].into())
 	}
 }
 
@@ -169,6 +186,21 @@ impl EnsureOrigin<RuntimeOrigin> for AllowedOpenBridgeOrigin {
 		let signer = o.clone().into_signer();
 		if signer == Some([0u8; 32].into()) {
 			return Ok(MultiLocation { parents: 1, interior: Here })
+		} else if signer == Some([1u8; 32].into()) {
+			return Ok(MultiLocation {
+				parents: 2,
+				interior: X1(GlobalConsensus(RelayNetwork::get())),
+			})
+		} else if signer == Some([2u8; 32].into()) {
+			return Ok(MultiLocation {
+				parents: 2,
+				interior: X2(GlobalConsensus(RelayNetwork::get()), Parachain(SIBLING_ASSET_HUB_ID)),
+			})
+		} else if signer == Some([3u8; 32].into()) {
+			return Ok(MultiLocation {
+				parents: 1,
+				interior: X2(Parachain(SIBLING_ASSET_HUB_ID), OnlyChild),
+			})
 		}
 
 		let mut sibling_account = [0u8; 32];

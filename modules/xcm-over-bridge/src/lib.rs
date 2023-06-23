@@ -67,6 +67,9 @@ pub use pallet::*;
 
 mod mock;
 
+/// The target that will be used when publishing logs related to this pallet.
+pub const LOG_TARGET: &str = "runtime::bridge-xcm";
+
 #[frame_support::pallet]
 pub mod pallet {
 	use super::*;
@@ -493,12 +496,49 @@ pub mod pallet {
 		) -> Result<BlockNumberOf<ThisChainOf<T, I>>, Error<T, I>> {
 			// transfer penalty to the reporter
 			let bridge = Bridges::<T, I>::get(lane_id).ok_or(Error::<T, I>::UnknownBridge)?;
-			T::NativeCurrency::repatriate_reserved(
+			let penalty = T::Penalty::get();
+			let result = T::NativeCurrency::repatriate_reserved(
 				&bridge.bridge_owner_account,
 				&reporter,
-				T::Penalty::get(),
+				penalty,
 				BalanceStatus::Free,
-			); // TODO: process result
+			);
+			match result {
+				Ok(failed_penalty) if failed_penalty.is_zero() => {
+					log::trace!(
+						target: LOG_TARGET,
+						"Bridge owner account {:?} has been slashed for {:?}. Funds were deposited to {:?}",
+						bridge.bridge_owner_account,
+						penalty,
+						reporter,
+					);
+				},
+				Ok(failed_penalty) => {
+					log::trace!(
+						target: LOG_TARGET,
+						"Bridge onwer account {:?} has been partially slashed for {:?}. Funds were deposited to {:?}. \
+						Failed to slash: {:?}",
+						bridge.bridge_owner_account,
+						penalty,
+						reporter,
+						failed_penalty,
+					);
+				},
+				Err(e) => {
+					// it may fail if there's no beneficiary account. But since we're in the call
+					// that is signed by the `reporter`, it should never happen in practice
+					log::debug!(
+						target: LOG_TARGET,
+						"Failed to slash bridge onwer account {:?}: {:?}. Maybe reporter account doesn't exist? \
+						Reporter: {:?}, amount: {:?}, failed to slash: {:?}",
+						bridge.bridge_owner_account,
+						e,
+						reporter,
+						penalty,
+						penalty,
+					);
+				},
+			}
 
 			// start closing the bridge
 			Self::start_closing_the_bridge(lane_id, true, LaneState::Closed)
@@ -610,8 +650,177 @@ mod tests {
 	use super::*;
 	use mock::*;
 
-	use frame_support::{assert_ok, traits::fungible::Mutate};
+	use frame_support::{assert_noop, assert_ok, traits::fungible::Mutate};
 	use frame_system::{EventRecord, Phase};
+
+	fn fund_origin_sovereign_account(locations: &BridgeLocations, balance: Balance) -> AccountId {
+		let bridge_owner_account =
+			LocationToAccountId::convert_location(&locations.bridge_origin_relative_location)
+				.unwrap();
+		Balances::mint_into(&bridge_owner_account, balance).unwrap();
+		bridge_owner_account
+	}
+
+	#[test]
+	fn open_bridge_fails_if_origin_is_not_allowed() {
+		run_test(|| {
+			assert_noop!(
+				XcmOverBridge::open_bridge(
+					AllowedOpenBridgeOrigin::disallowed_origin(),
+					Box::new(bridged_asset_hub_location()),
+				),
+				sp_runtime::DispatchError::BadOrigin,
+			);
+		})
+	}
+
+	#[test]
+	fn open_bridge_fails_if_origin_is_not_relative() {
+		run_test(|| {
+			assert_noop!(
+				XcmOverBridge::open_bridge(
+					AllowedOpenBridgeOrigin::parent_relay_chain_universal_origin(),
+					Box::new(bridged_asset_hub_location()),
+				),
+				Error::<TestRuntime, ()>::InvalidBridgeOrigin,
+			);
+
+			assert_noop!(
+				XcmOverBridge::open_bridge(
+					AllowedOpenBridgeOrigin::sibling_parachain_universal_origin(),
+					Box::new(bridged_asset_hub_location()),
+				),
+				Error::<TestRuntime, ()>::InvalidBridgeOrigin,
+			);
+		})
+	}
+
+	#[test]
+	fn open_bridge_fails_if_destination_is_not_remote() {
+		run_test(|| {
+			assert_noop!(
+				XcmOverBridge::open_bridge(
+					AllowedOpenBridgeOrigin::parent_relay_chain_origin(),
+					Box::new(MultiLocation {
+						parents: 2,
+						interior: X2(
+							GlobalConsensus(RelayNetwork::get()),
+							Parachain(BRIDGED_ASSET_HUB_ID)
+						)
+					}),
+				),
+				Error::<TestRuntime, ()>::CannotBridgeWithLocalDestination,
+			);
+		});
+	}
+
+	#[test]
+	fn open_bridge_fails_if_outside_of_bridged_consensus() {
+		run_test(|| {
+			assert_noop!(
+				XcmOverBridge::open_bridge(
+					AllowedOpenBridgeOrigin::parent_relay_chain_origin(),
+					Box::new(MultiLocation {
+						parents: 2,
+						interior: X2(
+							GlobalConsensus(NonBridgedRelayNetwork::get()),
+							Parachain(BRIDGED_ASSET_HUB_ID)
+						)
+					}),
+				),
+				Error::<TestRuntime, ()>::UnreachableRemoteDestination,
+			);
+		});
+	}
+
+	#[test]
+	fn open_bridge_fails_if_origin_has_no_sovereign_account() {
+		run_test(|| {
+			assert_noop!(
+				XcmOverBridge::open_bridge(
+					AllowedOpenBridgeOrigin::origin_without_sovereign_account(),
+					Box::new(bridged_asset_hub_location()),
+				),
+				Error::<TestRuntime, ()>::InvalidBridgeOriginAccount,
+			);
+		});
+	}
+
+	#[test]
+	fn open_bridge_fails_if_origin_sovereign_account_has_no_enough_funds() {
+		run_test(|| {
+			assert_noop!(
+				XcmOverBridge::open_bridge(
+					AllowedOpenBridgeOrigin::parent_relay_chain_origin(),
+					Box::new(bridged_asset_hub_location()),
+				),
+				Error::<TestRuntime, ()>::FailedToReserveBridgeReserve,
+			);
+		});
+	}
+
+	#[test]
+	fn open_bridge_fails_if_it_already_exists() {
+		run_test(|| {
+			let origin = AllowedOpenBridgeOrigin::parent_relay_chain_origin();
+			let locations = XcmOverBridge::bridge_locations(
+				origin.clone(),
+				Box::new(bridged_asset_hub_location()),
+				false,
+			)
+			.unwrap();
+			fund_origin_sovereign_account(
+				&locations,
+				BridgeReserve::get() + ExistentialDeposit::get(),
+			);
+
+			Bridges::<TestRuntime, ()>::insert(
+				locations.lane_id,
+				Bridge {
+					state: BridgeState::Opened,
+					bridge_owner_account: [0u8; 32].into(),
+					reserve: 0,
+				},
+			);
+
+			assert_noop!(
+				XcmOverBridge::open_bridge(origin, Box::new(bridged_asset_hub_location()),),
+				Error::<TestRuntime, ()>::BridgeAlreadyExists,
+			);
+		})
+	}
+
+	#[test]
+	fn open_bridge_fails_if_its_lanes_already_exists() {
+		run_test(|| {
+			let origin = AllowedOpenBridgeOrigin::parent_relay_chain_origin();
+			let locations = XcmOverBridge::bridge_locations(
+				origin.clone(),
+				Box::new(bridged_asset_hub_location()),
+				false,
+			)
+			.unwrap();
+			fund_origin_sovereign_account(
+				&locations,
+				BridgeReserve::get() + ExistentialDeposit::get(),
+			);
+
+			let lanes_manager = LanesManagerOf::<TestRuntime, ()>::new();
+
+			lanes_manager.create_inbound_lane(locations.lane_id).unwrap();
+			assert_noop!(
+				XcmOverBridge::open_bridge(origin.clone(), Box::new(bridged_asset_hub_location()),),
+				Error::<TestRuntime, ()>::InboundLaneAlreadyExists,
+			);
+
+			lanes_manager.inbound_lane(locations.lane_id).unwrap().purge();
+			lanes_manager.create_outbound_lane(locations.lane_id).unwrap();
+			assert_noop!(
+				XcmOverBridge::open_bridge(origin, Box::new(bridged_asset_hub_location()),),
+				Error::<TestRuntime, ()>::OutboundLaneAlreadyExists,
+			);
+		})
+	}
 
 	#[test]
 	fn open_bridge_works() {
@@ -652,12 +861,10 @@ mod tests {
 				);
 
 				// give enough funds to the sovereign account of the bridge origin
-				let bridge_owner_account = LocationToAccountId::convert_location(
-					&locations.bridge_origin_relative_location,
-				)
-				.unwrap();
-				Balances::mint_into(&bridge_owner_account, expected_reserve + existential_deposit)
-					.unwrap();
+				let bridge_owner_account = fund_origin_sovereign_account(
+					&locations,
+					expected_reserve + existential_deposit,
+				);
 				assert_eq!(
 					Balances::free_balance(&bridge_owner_account),
 					expected_reserve + existential_deposit
