@@ -137,6 +137,7 @@ parameter_types! {
 	pub TestBridgeLimits: BridgeLimits = BridgeLimits {
 		max_queued_outbound_messages: 100,
 	};
+	pub BridgeCloseDelay: BlockNumber = 1_000;
 }
 
 /// Type for specifying how a `MultiLocation` can be converted into an `AccountId`. This is used
@@ -226,7 +227,7 @@ impl pallet_xcm_over_bridge::Config for TestRuntime {
 	type BridgeReserve = BridgeReserve;
 	type NativeCurrency = Balances;
 
-	type BridgeCloseDelay = ConstU64<1_000>;
+	type BridgeCloseDelay = BridgeCloseDelay;
 
 	type BridgeLimits = TestBridgeLimits;
 	type Penalty = ConstU64<1_000>;

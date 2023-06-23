@@ -661,6 +661,27 @@ mod tests {
 		bridge_owner_account
 	}
 
+	fn mock_open_bridge_from(
+		origin: RuntimeOrigin,
+	) -> (BridgeOf<TestRuntime, ()>, BridgeLocations) {
+		let reserve = BridgeReserve::get();
+		let locations =
+			XcmOverBridge::bridge_locations(origin, Box::new(bridged_asset_hub_location()), false)
+				.unwrap();
+		let bridge_owner_account =
+			fund_origin_sovereign_account(&locations, reserve + ExistentialDeposit::get());
+		Balances::reserve(&bridge_owner_account, reserve).unwrap();
+
+		let bridge = Bridge { state: BridgeState::Opened, bridge_owner_account, reserve };
+		Bridges::<TestRuntime, ()>::insert(locations.lane_id, bridge.clone());
+
+		let lanes_manager = LanesManagerOf::<TestRuntime, ()>::new();
+		lanes_manager.create_inbound_lane(locations.lane_id).unwrap();
+		lanes_manager.create_outbound_lane(locations.lane_id).unwrap();
+
+		(bridge, locations)
+	}
+
 	#[test]
 	fn open_bridge_fails_if_origin_is_not_allowed() {
 		run_test(|| {
@@ -897,7 +918,7 @@ mod tests {
 				assert_eq!(Balances::free_balance(&bridge_owner_account), existential_deposit);
 				assert_eq!(Balances::reserved_balance(&bridge_owner_account), expected_reserve);
 
-				// ensure that teh proper event is deposited
+				// ensure that the proper event is deposited
 				assert_eq!(
 					System::events().last(),
 					Some(&EventRecord {
@@ -911,6 +932,198 @@ mod tests {
 					}),
 				);
 			}
+		});
+	}
+
+	#[test]
+	fn request_bridge_closure_fails_if_origin_is_not_allowed() {
+		run_test(|| {
+			assert_noop!(
+				XcmOverBridge::request_bridge_closure(
+					AllowedOpenBridgeOrigin::disallowed_origin(),
+					Box::new(bridged_asset_hub_location()),
+				),
+				sp_runtime::DispatchError::BadOrigin,
+			);
+		})
+	}
+
+	#[test]
+	fn request_bridge_closure_fails_if_origin_is_not_relative() {
+		run_test(|| {
+			assert_noop!(
+				XcmOverBridge::request_bridge_closure(
+					AllowedOpenBridgeOrigin::parent_relay_chain_universal_origin(),
+					Box::new(bridged_asset_hub_location()),
+				),
+				Error::<TestRuntime, ()>::InvalidBridgeOrigin,
+			);
+
+			assert_noop!(
+				XcmOverBridge::request_bridge_closure(
+					AllowedOpenBridgeOrigin::sibling_parachain_universal_origin(),
+					Box::new(bridged_asset_hub_location()),
+				),
+				Error::<TestRuntime, ()>::InvalidBridgeOrigin,
+			);
+		})
+	}
+
+	#[test]
+	fn request_bridge_closure_fails_if_bridge_is_already_closing() {
+		run_test(|| {
+			let origin = AllowedOpenBridgeOrigin::parent_relay_chain_origin();
+			let (_, locations) = mock_open_bridge_from(origin.clone());
+
+			Bridges::<TestRuntime, ()>::mutate_extant(locations.lane_id, |bridge| {
+				bridge.state = BridgeState::Closing(0xFFFF);
+			});
+
+			assert_noop!(
+				XcmOverBridge::request_bridge_closure(
+					origin,
+					locations.bridge_destination_universal_location,
+				),
+				Error::<TestRuntime, ()>::BridgeAlreadyClosed,
+			);
+		})
+	}
+
+	#[test]
+	fn request_bridge_closure_fails_if_bridge_is_already_closed() {
+		run_test(|| {
+			let origin = AllowedOpenBridgeOrigin::parent_relay_chain_origin();
+			let (_, locations) = mock_open_bridge_from(origin.clone());
+
+			Bridges::<TestRuntime, ()>::mutate_extant(locations.lane_id, |bridge| {
+				bridge.state = BridgeState::Closed;
+			});
+
+			assert_noop!(
+				XcmOverBridge::request_bridge_closure(
+					origin,
+					locations.bridge_destination_universal_location,
+				),
+				Error::<TestRuntime, ()>::BridgeAlreadyClosed,
+			);
+		})
+	}
+
+	#[test]
+	fn request_bridge_closure_fails_if_its_lanes_are_missing() {
+		run_test(|| {
+			let origin = AllowedOpenBridgeOrigin::parent_relay_chain_origin();
+			let (_, locations) = mock_open_bridge_from(origin.clone());
+
+			let lanes_manager = LanesManagerOf::<TestRuntime, ()>::new();
+			lanes_manager.inbound_lane(locations.lane_id).unwrap().purge();
+			assert_noop!(
+				XcmOverBridge::request_bridge_closure(
+					origin.clone(),
+					locations.bridge_destination_universal_location,
+				),
+				Error::<TestRuntime, ()>::UnknownInboundLane,
+			);
+
+			lanes_manager.outbound_lane(locations.lane_id).unwrap().purge();
+			let (_, locations) = mock_open_bridge_from(origin.clone());
+			lanes_manager.outbound_lane(locations.lane_id).unwrap().purge();
+			assert_noop!(
+				XcmOverBridge::request_bridge_closure(
+					origin.clone(),
+					locations.bridge_destination_universal_location,
+				),
+				Error::<TestRuntime, ()>::UnknownOutboundLane,
+			);
+		})
+	}
+
+	#[test]
+	fn request_bridge_closure_fails_if_its_lanes_are_closed() {
+		run_test(|| {
+			let origin = AllowedOpenBridgeOrigin::parent_relay_chain_origin();
+			let (_, locations) = mock_open_bridge_from(origin.clone());
+
+			let lanes_manager = LanesManagerOf::<TestRuntime, ()>::new();
+			lanes_manager
+				.inbound_lane(locations.lane_id)
+				.unwrap()
+				.set_state(LaneState::Closed);
+			assert_noop!(
+				XcmOverBridge::request_bridge_closure(
+					origin.clone(),
+					locations.bridge_destination_universal_location.clone(),
+				),
+				Error::<TestRuntime, ()>::ClosedInboundLane,
+			);
+			lanes_manager
+				.any_state_inbound_lane(locations.lane_id)
+				.unwrap()
+				.set_state(LaneState::Opened);
+
+			lanes_manager
+				.outbound_lane(locations.lane_id)
+				.unwrap()
+				.set_state(LaneState::Closed);
+			assert_noop!(
+				XcmOverBridge::request_bridge_closure(
+					origin.clone(),
+					locations.bridge_destination_universal_location,
+				),
+				Error::<TestRuntime, ()>::ClosedOutboundLane,
+			);
+		});
+	}
+
+	#[test]
+	fn request_bridge_closure_works() {
+		run_test(|| {
+			let origin = AllowedOpenBridgeOrigin::parent_relay_chain_origin();
+			let (bridge, locations) = mock_open_bridge_from(origin.clone());
+			System::set_block_number(1);
+
+			// remember owner balances
+			let free_balance = Balances::free_balance(&bridge.bridge_owner_account);
+			let reserved_balance = Balances::reserved_balance(&bridge.bridge_owner_account);
+
+			// start closing the bridge
+			assert_ok!(XcmOverBridge::request_bridge_closure(
+				origin.clone(),
+				locations.bridge_destination_universal_location.clone(),
+			),);
+
+			// check that state of the bridge and its lanes have changed
+			let lanes_manager = LanesManagerOf::<TestRuntime, ()>::new();
+			let may_close_at = 1 + BridgeCloseDelay::get();
+			assert_eq!(
+				Bridges::<TestRuntime, ()>::get(locations.lane_id).map(|b| b.state),
+				Some(BridgeState::Closing(may_close_at))
+			);
+			assert_eq!(
+				lanes_manager.inbound_lane(locations.lane_id).unwrap().state(),
+				LaneState::Closing
+			);
+			assert_eq!(
+				lanes_manager.outbound_lane(locations.lane_id).unwrap().state(),
+				LaneState::Closing
+			);
+
+			// check that balances have not changed
+			assert_eq!(Balances::free_balance(&bridge.bridge_owner_account), free_balance);
+			assert_eq!(Balances::reserved_balance(&bridge.bridge_owner_account), reserved_balance);
+
+			// finally - check runtime events
+			assert_eq!(
+				System::events().last(),
+				Some(&EventRecord {
+					phase: Phase::Initialization,
+					event: RuntimeEvent::XcmOverBridge(Event::BridgeClosureRequested {
+						lane_id: locations.lane_id,
+						may_close_at,
+					}),
+					topics: vec![],
+				}),
+			);
 		});
 	}
 }
