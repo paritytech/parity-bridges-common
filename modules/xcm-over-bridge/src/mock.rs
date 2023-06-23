@@ -29,7 +29,7 @@ use frame_support::{
 	StateVersion,
 };
 use polkadot_parachain::primitives::Sibling;
-use sp_core::{ConstU64, H256};
+use sp_core::H256;
 use sp_runtime::{
 	testing::Header as SubstrateHeader,
 	traits::{BlakeTwo256, ConstU32, IdentityLookup},
@@ -135,9 +135,10 @@ parameter_types! {
 		Parachain(THIS_BRIDGE_HUB_ID),
 	);
 	pub TestBridgeLimits: BridgeLimits = BridgeLimits {
-		max_queued_outbound_messages: 100,
+		max_queued_outbound_messages: 50,
 	};
-	pub BridgeCloseDelay: BlockNumber = 1_000;
+	pub const BridgeCloseDelay: BlockNumber = 1_000;
+	pub const Penalty: Balance = 1_000;
 }
 
 /// Type for specifying how a `MultiLocation` can be converted into an `AccountId`. This is used
@@ -230,7 +231,7 @@ impl pallet_xcm_over_bridge::Config for TestRuntime {
 	type BridgeCloseDelay = BridgeCloseDelay;
 
 	type BridgeLimits = TestBridgeLimits;
-	type Penalty = ConstU64<1_000>;
+	type Penalty = Penalty;
 }
 
 pub struct ThisChain;

@@ -514,7 +514,7 @@ pub mod pallet {
 				penalty,
 				BalanceStatus::Free,
 			);
-			match result {
+			let updated_reserve = match result {
 				Ok(failed_penalty) if failed_penalty.is_zero() => {
 					log::trace!(
 						target: LOG_TARGET,
@@ -523,6 +523,7 @@ pub mod pallet {
 						penalty,
 						reporter,
 					);
+					bridge.reserve.saturating_sub(penalty)
 				},
 				Ok(failed_penalty) => {
 					log::trace!(
@@ -534,6 +535,7 @@ pub mod pallet {
 						reporter,
 						failed_penalty,
 					);
+					bridge.reserve.saturating_sub(penalty.saturating_sub(failed_penalty))
 				},
 				Err(e) => {
 					// it may fail if there's no beneficiary account. But since we're in the call
@@ -548,8 +550,15 @@ pub mod pallet {
 						penalty,
 						penalty,
 					);
+					bridge.reserve
 				},
-			}
+			};
+
+			// update bridge metadata (we know it exists, because it has been read at the beginning
+			// of this method)
+			Bridges::<T, I>::mutate_extant(lane_id, |bridge| {
+				bridge.reserve = updated_reserve;
+			});
 
 			// start closing the bridge
 			Self::start_closing_the_bridge(lane_id, true, LaneState::Closed)
@@ -1448,4 +1457,260 @@ mod tests {
 			);
 		});
 	}
+
+	#[test]
+	fn report_misbehavior_fails_if_origin_is_not_signed() {
+		run_test(|| {
+			assert_noop!(
+				XcmOverBridge::report_misbehavior(
+					RuntimeOrigin::root(),
+					LaneId::new(1, 2),
+					BridgeMisbehavior::TooManyQueuedOutboundMessages,
+				),
+				sp_runtime::DispatchError::BadOrigin,
+			);
+		})
+	}
+
+	#[test]
+	fn report_misbehavior_fails_for_unknown_bridge() {
+		run_test(|| {
+			let origin = AllowedOpenBridgeOrigin::parent_relay_chain_origin();
+			let (_, locations) = mock_open_bridge_from(origin.clone());
+
+			// report valid misbehavior fails, because the bridge is not registered
+			for _ in 0..=TestBridgeLimits::get().max_queued_outbound_messages {
+				enqueue_message(locations.lane_id);
+			}
+
+			Bridges::<TestRuntime, ()>::remove(locations.lane_id);
+			assert_noop!(
+				XcmOverBridge::report_misbehavior(
+					RuntimeOrigin::signed([128u8; 32].into()),
+					locations.lane_id,
+					BridgeMisbehavior::TooManyQueuedOutboundMessages,
+				),
+				Error::<TestRuntime, ()>::UnknownBridge,
+			);
+		});
+	}
+
+	#[test]
+	fn report_misbehavior_fails_for_closed_bridge() {
+		run_test(|| {
+			let origin = AllowedOpenBridgeOrigin::parent_relay_chain_origin();
+			let (_, locations) = mock_open_bridge_from(origin.clone());
+
+			// report valid misbehavior fails, because the bridge is not registered
+			for _ in 0..=TestBridgeLimits::get().max_queued_outbound_messages {
+				enqueue_message(locations.lane_id);
+			}
+
+			Bridges::<TestRuntime, ()>::mutate_extant(locations.lane_id, |bridge| {
+				bridge.state = BridgeState::Closed;
+			});
+			assert_noop!(
+				XcmOverBridge::report_misbehavior(
+					RuntimeOrigin::signed([128u8; 32].into()),
+					locations.lane_id,
+					BridgeMisbehavior::TooManyQueuedOutboundMessages,
+				),
+				Error::<TestRuntime, ()>::BridgeAlreadyClosed,
+			);
+		});
+	}
+
+	#[test]
+	fn report_misbehavior_allowrd_for_closing_bridges() {
+		run_test(|| {
+			let origin = AllowedOpenBridgeOrigin::parent_relay_chain_origin();
+			let (_, locations) = mock_open_bridge_from(origin.clone());
+
+			// report valid misbehavior fails, because the bridge is not registered
+			for _ in 0..=TestBridgeLimits::get().max_queued_outbound_messages {
+				enqueue_message(locations.lane_id);
+			}
+
+			Bridges::<TestRuntime, ()>::mutate_extant(locations.lane_id, |bridge| {
+				bridge.state = BridgeState::Closing(100);
+			});
+			assert_ok!(XcmOverBridge::report_misbehavior(
+				RuntimeOrigin::signed([128u8; 32].into()),
+				locations.lane_id,
+				BridgeMisbehavior::TooManyQueuedOutboundMessages,
+			),);
+		});
+	}
+
+	#[test]
+	fn report_misbehavior_fails_for_unknown_outbound_lane() {
+		run_test(|| {
+			let origin = AllowedOpenBridgeOrigin::parent_relay_chain_origin();
+			let (_, locations) = mock_open_bridge_from(origin.clone());
+
+			// report valid misbehavior fails, because the outbound lane is not registered
+			for _ in 0..=TestBridgeLimits::get().max_queued_outbound_messages {
+				enqueue_message(locations.lane_id);
+			}
+
+			LanesManagerOf::<TestRuntime, ()>::new()
+				.outbound_lane(locations.lane_id)
+				.unwrap()
+				.purge();
+			assert_noop!(
+				XcmOverBridge::report_misbehavior(
+					RuntimeOrigin::signed([128u8; 32].into()),
+					locations.lane_id,
+					BridgeMisbehavior::TooManyQueuedOutboundMessages,
+				),
+				Error::<TestRuntime, ()>::UnknownOutboundLane,
+			);
+		});
+	}
+
+	#[test]
+	fn report_misbehavior_fails_for_closed_outbound_lane() {
+		run_test(|| {
+			let origin = AllowedOpenBridgeOrigin::parent_relay_chain_origin();
+			let (_, locations) = mock_open_bridge_from(origin.clone());
+
+			// report valid misbehavior fails, because the outbound lane is closed
+			for _ in 0..=TestBridgeLimits::get().max_queued_outbound_messages {
+				enqueue_message(locations.lane_id);
+			}
+
+			LanesManagerOf::<TestRuntime, ()>::new()
+				.outbound_lane(locations.lane_id)
+				.unwrap()
+				.set_state(LaneState::Closed);
+			assert_noop!(
+				XcmOverBridge::report_misbehavior(
+					RuntimeOrigin::signed([128u8; 32].into()),
+					locations.lane_id,
+					BridgeMisbehavior::TooManyQueuedOutboundMessages,
+				),
+				Error::<TestRuntime, ()>::ClosedOutboundLane,
+			);
+		});
+	}
+
+	#[test]
+	fn report_too_many_queued_outbound_messages_fails() {
+		run_test(|| {
+			let origin = AllowedOpenBridgeOrigin::parent_relay_chain_origin();
+			let (_, locations) = mock_open_bridge_from(origin.clone());
+
+			for _ in 0..TestBridgeLimits::get().max_queued_outbound_messages {
+				enqueue_message(locations.lane_id);
+				assert_noop!(
+					XcmOverBridge::report_misbehavior(
+						RuntimeOrigin::signed([128u8; 32].into()),
+						locations.lane_id,
+						BridgeMisbehavior::TooManyQueuedOutboundMessages,
+					),
+					Error::<TestRuntime, ()>::InvalidMisbehaviorReport,
+				);
+			}
+		})
+	}
+
+	#[test]
+	fn report_too_many_queued_outbound_messages_works() {
+		run_test(|| {
+			let origin = AllowedOpenBridgeOrigin::parent_relay_chain_origin();
+			let (bridge, locations) = mock_open_bridge_from(origin.clone());
+			System::set_block_number(1);
+
+			// remember owner and reporter balances
+			let reporter: AccountId = [128u8; 32].into();
+			let free_balance = Balances::free_balance(&bridge.bridge_owner_account);
+			let reserved_balance = Balances::reserved_balance(&bridge.bridge_owner_account);
+			Balances::mint_into(&reporter, ExistentialDeposit::get()).unwrap();
+
+			// enqueue enough messages to get penalized
+			for _ in 0..=TestBridgeLimits::get().max_queued_outbound_messages {
+				enqueue_message(locations.lane_id);
+			}
+
+			// report misbehavior
+			assert_ok!(XcmOverBridge::report_misbehavior(
+				RuntimeOrigin::signed(reporter.clone()),
+				locations.lane_id,
+				BridgeMisbehavior::TooManyQueuedOutboundMessages,
+			),);
+
+			// check that the bridge and its lanes are in the Closing/Closed state
+			let lanes_manager = LanesManagerOf::<TestRuntime, ()>::new();
+			let may_close_at = 1 + BridgeCloseDelay::get();
+			assert_eq!(
+				Bridges::<TestRuntime, ()>::get(locations.lane_id).map(|b| b.state),
+				Some(BridgeState::Closing(may_close_at))
+			);
+			assert_eq!(
+				lanes_manager.inbound_lane(locations.lane_id).unwrap().state(),
+				LaneState::Closing
+			);
+			assert_eq!(
+				lanes_manager.any_state_outbound_lane(locations.lane_id).unwrap().state(),
+				LaneState::Closed
+			);
+
+			// check that reporter balance is increased, bridge owner balance is decreased and
+			// we have saved this fact in the bridge meta
+			assert_eq!(Balances::free_balance(&bridge.bridge_owner_account), free_balance);
+			assert_eq!(
+				Balances::reserved_balance(&bridge.bridge_owner_account),
+				reserved_balance - Penalty::get()
+			);
+			assert_eq!(
+				Balances::free_balance(&reporter),
+				ExistentialDeposit::get() + Penalty::get()
+			);
+			assert_eq!(Balances::reserved_balance(&reporter), 0);
+			assert_eq!(
+				Bridges::<TestRuntime, ()>::get(locations.lane_id).map(|b| b.reserve),
+				Some(reserved_balance - Penalty::get())
+			);
+		})
+	}
 }
+/*
+		/// Report bridge misbehavior.
+		#[pallet::call_index(3)]
+		#[pallet::weight(Weight::zero())]
+		pub fn report_misbehavior(
+			origin: OriginFor<T>,
+			lane_id: LaneId,
+			misbehavior: BridgeMisbehavior,
+		) -> DispatchResult {
+			let reporter = ensure_signed(origin)?;
+			let lanes_manager = LanesManagerOf::<T, I>::new();
+
+			// check report
+			match misbehavior {
+				BridgeMisbehavior::TooManyQueuedOutboundMessages => {
+					let outbound_lane =
+						lanes_manager.outbound_lane(lane_id).map_err(Into::<Error<T, I>>::into)?;
+					let queued_messages =
+						outbound_lane.queued_messages().checked_len().unwrap_or(0);
+					let max_queued_messages = T::BridgeLimits::get().max_queued_outbound_messages;
+					if queued_messages <= max_queued_messages {
+						return Err(Error::<T, I>::InvalidMisbehaviorReport.into())
+					}
+				},
+			}
+
+			// fine bridge owner and close the bridge
+			let may_close_at = Self::on_misbehavior(reporter, lane_id)?;
+
+			// deposit the `BridgeMisbehaving` event
+			Self::deposit_event(Event::<T, I>::BridgeMisbehaving {
+				lane_id,
+				misbehavior,
+				may_close_at,
+			});
+
+			Ok(())
+		}
+	}
+*/
