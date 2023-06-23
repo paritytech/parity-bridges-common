@@ -65,6 +65,8 @@ use xcm_executor::traits::ConvertLocation;
 
 pub use pallet::*;
 
+mod mock;
+
 #[frame_support::pallet]
 pub mod pallet {
 	use super::*;
@@ -76,6 +78,10 @@ pub mod pallet {
 	pub trait Config<I: 'static = ()>:
 		BridgeMessagesConfig<Self::BridgeMessagesPalletInstance>
 	{
+		/// The overarching event type.
+		type RuntimeEvent: From<Event<Self, I>>
+			+ IsType<<Self as frame_system::Config>::RuntimeEvent>;
+
 		/// Runtime's universal location.
 		type UniversalLocation: Get<InteriorMultiLocation>;
 		/// Bridged network id.
@@ -86,6 +92,9 @@ pub mod pallet {
 
 		/// A set of XCM locations within local consensus system that are allowed to open
 		/// bridges with remote destinations.
+		// TODO: there's only one impl of `EnsureOrigin<Success = MultiLocation>` -
+		// `EnsureXcmOrigin`, but it doesn't do what we need. Is there some other way to check
+		// `Origin` and get matching `MultiLocation`???
 		type AllowedOpenBridgeOrigin: EnsureOrigin<
 			<Self as SystemConfig>::RuntimeOrigin,
 			Success = MultiLocation,
@@ -151,8 +160,10 @@ pub mod pallet {
 		) -> DispatchResult {
 			// check that the origin is able to open bridges
 			let this_location = T::UniversalLocation::get();
-			let bridge_origin_location = this_location
-				.within_global(T::AllowedOpenBridgeOrigin::ensure_origin(origin)?)
+			let bridge_origin_relative_location =
+				T::AllowedOpenBridgeOrigin::ensure_origin(origin)?;
+			let bridge_origin_universal_location = this_location
+				.within_global(bridge_origin_relative_location)
 				.map(|interior| MultiLocation::new(0, interior))
 				.map_err(|_| Error::<T, I>::InvalidBridgeOrigin)?;
 
@@ -165,9 +176,10 @@ pub mod pallet {
 			);
 
 			// reserve balance on the parachain sovereign account
-			let bridge_owner_account =
-				T::BridgeOriginAccountIdConverter::convert_location(&bridge_origin_location)
-					.ok_or(Error::<T, I>::InvalidBridgeOriginAccount)?;
+			let bridge_owner_account = T::BridgeOriginAccountIdConverter::convert_location(
+				&bridge_origin_relative_location,
+			)
+			.ok_or(Error::<T, I>::InvalidBridgeOriginAccount)?;
 			let reserve = T::BridgeReserve::get();
 			T::NativeCurrency::reserve(&bridge_owner_account, reserve.clone())
 				.map_err(|_| Error::<T, I>::FailedToReserveBridgeReserve)?;
@@ -176,7 +188,8 @@ pub mod pallet {
 			// (see `ensure_is_remote`) and we know that the `UniversalLocation` is also within the
 			// `GlobalConsensus` (given the proper pallet configuration). So we know that the lane
 			// id will be the same on both ends of the bridge
-			let lane_id = LaneId::new(bridge_origin_location, *bridge_destination_location);
+			let lane_id =
+				LaneId::new(bridge_origin_universal_location, *bridge_destination_location);
 
 			// save bridge metadata
 			Bridges::<T, I>::try_mutate(lane_id, |bridge| match bridge {
@@ -216,13 +229,14 @@ pub mod pallet {
 			bridge_destination_location: Box<MultiLocation>, // TODO: versioned?
 		) -> DispatchResult {
 			// check that the origin is able to close bridge
-			let bridge_origin_location = T::UniversalLocation::get()
+			let bridge_origin_universal_location = T::UniversalLocation::get()
 				.within_global(T::AllowedOpenBridgeOrigin::ensure_origin(origin)?)
 				.map(|interior| MultiLocation::new(0, interior))
 				.map_err(|_| Error::<T, I>::InvalidBridgeOrigin)?;
 
 			// update bridge metadata
-			let lane_id = LaneId::new(bridge_origin_location, *bridge_destination_location);
+			let lane_id =
+				LaneId::new(bridge_origin_universal_location, *bridge_destination_location);
 			Self::start_closing_the_bridge(lane_id, false, LaneState::Closing)?;
 
 			Ok(())
@@ -253,7 +267,7 @@ pub mod pallet {
 			mut may_prune_messages: MessageNonce,
 		) -> DispatchResult {
 			// check that the origin is able to close bridge
-			let bridge_origin_location = T::UniversalLocation::get()
+			let bridge_origin_universal_location = T::UniversalLocation::get()
 				.within_global(T::AllowedOpenBridgeOrigin::ensure_origin(origin)?)
 				.map(|interior| MultiLocation::new(0, interior))
 				.map_err(|_| Error::<T, I>::InvalidBridgeOrigin)?;
@@ -262,7 +276,8 @@ pub mod pallet {
 			// not pruned
 
 			// update bridge metadata - this also guarantees that the bridge is in the proper state
-			let lane_id = LaneId::new(bridge_origin_location, *bridge_destination_location);
+			let lane_id =
+				LaneId::new(bridge_origin_universal_location, *bridge_destination_location);
 			let bridge = Bridges::<T, I>::try_mutate_exists(lane_id, |bridge| match bridge {
 				Some(bridge) if bridge.state == BridgeState::Opened =>
 					Err(Error::<T, I>::CannotCloseOpenedBridge),
@@ -415,9 +430,43 @@ pub mod pallet {
 		}
 	}
 
+	/// All registered bridges.
 	#[pallet::storage]
 	pub type Bridges<T: Config<I>, I: 'static = ()> =
 		StorageMap<_, Identity, LaneId, BridgeOf<T, I>>;
+
+	#[pallet::event]
+	#[pallet::generate_deposit(pub(super) fn deposit_event)]
+	pub enum Event<T: Config<I>, I: 'static = ()> {
+		/// The bridge between two locations has been opened.
+		BridgeOpened {
+			/// Bridge and its lane identifier.
+			lane_id: LaneId,
+			/// Bridge endpoint location within local consensus.
+			local_endpoint: MultiLocation,
+			/// Bridge endpoint location within remote consensus.
+			remote_endpoint: MultiLocation,
+		},
+		/// Bridge closure has been requested.
+		BridgeClosureRequested {
+			/// Bridge and its lane identifier.
+			lane_id: LaneId,
+			/// Block where the bridge may be actually closed.
+			closes_at: T::BlockNumber,
+		},
+		/// Bridge has been closed.
+		BridgeClosed {
+			/// Bridge and its lane identifier.
+			lane_id: LaneId,
+		},
+		/// Bridge is misbehaving.
+		BridgeMisbehaving {
+			/// Bridge and its lane identifier.
+			lane_id: LaneId,
+			/// Bridge misbehavior type.
+			misbehavior: BridgeMisbehavior,
+		},
+	}
 
 	#[pallet::error]
 	pub enum Error<T, I = ()> {
@@ -470,12 +519,62 @@ pub mod pallet {
 		}
 	}
 }
-/*
+
 #[cfg(test)]
 mod tests {
 	use super::*;
+	use mock::*;
+
+	use frame_support::{
+		assert_ok,
+		traits::{fungible::Mutate, EnsureOrigin},
+	};
 
 	#[test]
-	fn my_test() {}
+	fn open_bridge_by_parent_relay_chain_works() {
+		run_test(|| {
+			let parent_relay_chain_origin = AllowedOpenBridgeOrigin::parent_relay_chain_origin();
+			let bridge_destination_location = bridged_asset_hub_location();
+
+			// give enough funds to the sovereign account of the parent relay chain
+			let parent_relay_chain_location =
+				AllowedOpenBridgeOrigin::try_origin(parent_relay_chain_origin.clone()).unwrap();
+			let parent_relay_chain_overeign_account =
+				LocationToAccountId::convert_location(&parent_relay_chain_location).unwrap();
+			Balances::mint_into(
+				&parent_relay_chain_overeign_account,
+				BridgeReserve::get() + ExistentialDeposit::get(),
+			)
+			.unwrap();
+
+			assert_ok!(XcmOverBridge::open_bridge(
+				parent_relay_chain_origin,
+				Box::new(bridge_destination_location)
+			));
+		});
+	}
+
+	#[test]
+	fn open_bridge_by_sibling_parachain_works() {
+		run_test(|| {
+			let sibling_parachain_origin = AllowedOpenBridgeOrigin::sibling_parachain_origin();
+			let bridge_destination_location = bridged_asset_hub_location();
+
+			// give enough funds to the sovereign account of the parent relay chain
+			let sibling_parachain_location =
+				AllowedOpenBridgeOrigin::try_origin(sibling_parachain_origin.clone()).unwrap();
+			let sibling_parachain_sovereign_account =
+				LocationToAccountId::convert_location(&sibling_parachain_location).unwrap();
+			Balances::mint_into(
+				&sibling_parachain_sovereign_account,
+				BridgeReserve::get() + ExistentialDeposit::get(),
+			)
+			.unwrap();
+
+			assert_ok!(XcmOverBridge::open_bridge(
+				sibling_parachain_origin,
+				Box::new(bridge_destination_location)
+			));
+		});
+	}
 }
-*/

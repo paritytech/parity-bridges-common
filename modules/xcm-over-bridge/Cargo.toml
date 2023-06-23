@@ -32,6 +32,11 @@ xcm = { git = "https://github.com/paritytech/polkadot", branch = "master", defau
 xcm-builder = { git = "https://github.com/paritytech/polkadot", branch = "master", default-features = false }
 xcm-executor = { git = "https://github.com/paritytech/polkadot", branch = "master", default-features = false }
 
+[dev-dependencies]
+pallet-balances = { git = "https://github.com/paritytech/substrate", branch = "master" }
+polkadot-parachain = { git = "https://github.com/paritytech/polkadot", branch = "master" }
+sp-io = { git = "https://github.com/paritytech/substrate", branch = "master" }
+
 [features]
 default = ["std"]
 std = [
