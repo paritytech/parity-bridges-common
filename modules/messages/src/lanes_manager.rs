@@ -62,6 +62,12 @@ impl<T, I> From<LanesManagerError> for Error<T, I> {
 /// Message lanes manager.
 pub struct LanesManager<T, I>(PhantomData<(T, I)>);
 
+impl<T: Config<I>, I: 'static> Default for LanesManager<T, I> {
+	fn default() -> Self {
+		Self::new()
+	}
+}
+
 impl<T: Config<I>, I: 'static> LanesManager<T, I> {
 	/// Create new lanes manager.
 	pub fn new() -> Self {
@@ -75,10 +81,13 @@ impl<T: Config<I>, I: 'static> LanesManager<T, I> {
 	) -> Result<InboundLane<RuntimeInboundLaneStorage<T, I>>, LanesManagerError> {
 		InboundLanes::<T, I>::try_mutate(lane_id, |lane| match lane {
 			Some(_) => Err(LanesManagerError::InboundLaneAlreadyExists),
-			None => Ok(*lane = Some(StoredInboundLaneData(InboundLaneData {
-				state: LaneState::Opened,
-				..Default::default()
-			}))),
+			None => {
+				*lane = Some(StoredInboundLaneData(InboundLaneData {
+					state: LaneState::Opened,
+					..Default::default()
+				}));
+				Ok(())
+			},
 		})?;
 
 		self.inbound_lane(lane_id)
