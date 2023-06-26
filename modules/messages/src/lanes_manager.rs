@@ -100,9 +100,10 @@ impl<T: Config<I>, I: 'static> LanesManager<T, I> {
 	) -> Result<OutboundLane<RuntimeOutboundLaneStorage<T, I>>, LanesManagerError> {
 		OutboundLanes::<T, I>::try_mutate(lane_id, |lane| match lane {
 			Some(_) => Err(LanesManagerError::OutboundLaneAlreadyExists),
-			None =>
-				Ok(*lane =
-					Some(OutboundLaneData { state: LaneState::Opened, ..Default::default() })),
+			None => {
+				*lane = Some(OutboundLaneData { state: LaneState::Opened, ..Default::default() });
+				Ok(())
+			},
 		})?;
 
 		self.outbound_lane(lane_id)
