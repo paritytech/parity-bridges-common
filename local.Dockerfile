@@ -11,7 +11,8 @@
 # You may use `scripts/build-containers.sh` to build all binaries and images at once.
 
 # This image needs to be binary compatible with the host machine (where images are built).
-FROM docker.io/library/ubuntu:20.04 as runtime
+ARG UBUNTU_RELEASE=20.04
+FROM docker.io/library/ubuntu:${UBUNTU_RELEASE} as runtime
 
 USER root
 WORKDIR /home/root
