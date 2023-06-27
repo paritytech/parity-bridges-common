@@ -23,10 +23,10 @@
 
 use bp_messages::{
 	source_chain::MessagesBridge,
-	target_chain::{DispatchMessage, MessageDispatch},
-	LaneId,
+	target_chain::{DispatchMessage, MessageDispatch, MessageDispatchResult},
+	DispatcherState, LaneId,
 };
-use bp_runtime::{messages::MessageDispatchResult, Chain};
+use bp_runtime::Chain;
 use codec::{Decode, Encode};
 use frame_support::{dispatch::Weight, CloneNoBound, EqNoBound, PartialEqNoBound};
 use pallet_bridge_messages::WeightInfoExt as MessagesPalletWeights;
@@ -123,6 +123,10 @@ impl<BlobDispatcher: DispatchBlob, Weights: MessagesPalletWeights> MessageDispat
 			},
 		};
 		MessageDispatchResult { unspent_weight: Weight::zero(), dispatch_level_result }
+	}
+
+	fn state() -> DispatcherState {
+		unimplemented!("TODO")
 	}
 }
 

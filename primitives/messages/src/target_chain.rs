@@ -16,10 +16,12 @@
 
 //! Primitives of messages module, that are used on the target chain.
 
-use crate::{LaneId, Message, MessageKey, MessageNonce, MessagePayload, OutboundLaneData};
+use crate::{
+	DispatcherState, LaneId, Message, MessageKey, MessageNonce, MessagePayload, OutboundLaneData,
+};
 
-use bp_runtime::{messages::MessageDispatchResult, Size, UnverifiedStorageProof};
-use codec::{Decode, Encode, Error as CodecError};
+use bp_runtime::{Size, UnverifiedStorageProof};
+use codec::{Decode, Encode, Error as CodecError, MaxEncodedLen};
 use frame_support::{weights::Weight, RuntimeDebug};
 use scale_info::TypeInfo;
 use sp_std::{collections::btree_map::BTreeMap, fmt::Debug, marker::PhantomData, prelude::*};
@@ -84,6 +86,20 @@ pub struct DispatchMessage<DispatchPayload> {
 	pub data: DispatchMessageData<DispatchPayload>,
 }
 
+/// Message dispatch result.
+#[derive(Encode, Decode, RuntimeDebug, Clone, PartialEq, Eq, TypeInfo, MaxEncodedLen)]
+pub struct MessageDispatchResult<DispatchLevelResult> {
+	/// Unspent dispatch weight. This weight that will be deducted from total delivery transaction
+	/// weight, thus reducing the transaction cost. This shall not be zero in (at least) two cases:
+	///
+	/// 1) if message has been dispatched successfully, but post-dispatch weight is less than
+	///    the weight, declared by the message sender;
+	/// 2) if message has not been dispatched at all.
+	pub unspent_weight: Weight,
+	/// Fine-grained result of single message dispatch (for better diagnostic purposes)
+	pub dispatch_level_result: DispatchLevelResult,
+}
+
 /// Called when inbound message is received.
 pub trait MessageDispatch {
 	/// Decoded message payload type. Valid message may contain invalid payload. In this case
@@ -108,6 +124,9 @@ pub trait MessageDispatch {
 	fn dispatch(
 		message: DispatchMessage<Self::DispatchPayload>,
 	) -> MessageDispatchResult<Self::DispatchLevelResult>;
+
+	/// Return message dispatcher state.
+	fn state() -> DispatcherState;
 }
 
 /// Manages payments that are happening at the target chain during message delivery transaction.
@@ -180,5 +199,9 @@ impl<MessagesProof, DispatchPayload: Decode> MessageDispatch
 		_: DispatchMessage<Self::DispatchPayload>,
 	) -> MessageDispatchResult<Self::DispatchLevelResult> {
 		MessageDispatchResult { unspent_weight: Weight::zero(), dispatch_level_result: () }
+	}
+
+	fn state() -> DispatcherState {
+		DispatcherState::default()
 	}
 }

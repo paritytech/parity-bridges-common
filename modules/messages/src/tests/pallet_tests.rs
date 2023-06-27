@@ -26,8 +26,8 @@ use crate::{
 use bp_messages::{
 	source_chain::FromBridgedChainMessagesDeliveryProof,
 	target_chain::FromBridgedChainMessagesProof, BridgeMessagesCall, ChainWithMessages,
-	DeliveredMessages, InboundLaneData, InboundMessageDetails, LaneId, LaneState, MessageKey,
-	MessageNonce, MessagesOperatingMode, OutboundLaneData, OutboundMessageDetails,
+	DeliveredMessages, DispatcherState, InboundLaneData, InboundMessageDetails, LaneId, LaneState,
+	MessageKey, MessageNonce, MessagesOperatingMode, OutboundLaneData, OutboundMessageDetails,
 	UnrewardedRelayer, UnrewardedRelayersState, VerificationError,
 };
 use bp_runtime::{BasicOperatingMode, PreComputedSize, Size};
@@ -88,6 +88,7 @@ fn receive_messages_delivery_proof() {
 					messages: DeliveredMessages::new(1),
 				}]
 				.into(),
+				dispatcher_state: DispatcherState::default(),
 			},
 		),
 		UnrewardedRelayersState {
@@ -144,6 +145,7 @@ fn pallet_rejects_transactions_if_halted() {
 				state: LaneState::Opened,
 				last_confirmed_nonce: 1,
 				relayers: vec![unrewarded_relayer(1, 1, TEST_RELAYER_A)].into(),
+				dispatcher_state: DispatcherState::default(),
 			},
 		);
 		assert_noop!(
@@ -193,6 +195,7 @@ fn pallet_rejects_new_messages_in_rejecting_outbound_messages_operating_mode() {
 					state: LaneState::Opened,
 					last_confirmed_nonce: 1,
 					relayers: vec![unrewarded_relayer(1, 1, TEST_RELAYER_A)].into(),
+					dispatcher_state: DispatcherState::default(),
 				},
 			),
 			UnrewardedRelayersState {
@@ -273,6 +276,7 @@ fn receive_messages_proof_updates_confirmed_message_nonce() {
 					unrewarded_relayer(10, 10, TEST_RELAYER_B),
 				]
 				.into(),
+				dispatcher_state: DispatcherState::default(),
 			},
 		);
 		assert_eq!(
@@ -307,6 +311,7 @@ fn receive_messages_proof_updates_confirmed_message_nonce() {
 					unrewarded_relayer(11, 11, TEST_RELAYER_A)
 				]
 				.into(),
+				dispatcher_state: DispatcherState::default(),
 			},
 		);
 		assert_eq!(
@@ -736,6 +741,7 @@ fn proof_size_refund_from_receive_messages_proof_works() {
 				]
 				.into(),
 				last_confirmed_nonce: 0,
+				dispatcher_state: DispatcherState::default(),
 			}),
 		);
 		let post_dispatch_weight = Pallet::<TestRuntime>::receive_messages_proof(
@@ -765,6 +771,7 @@ fn proof_size_refund_from_receive_messages_proof_works() {
 				]
 				.into(),
 				last_confirmed_nonce: 0,
+				dispatcher_state: DispatcherState::default(),
 			}),
 		);
 		let post_dispatch_weight = Pallet::<TestRuntime>::receive_messages_proof(
@@ -805,6 +812,7 @@ fn receive_messages_delivery_proof_rejects_proof_if_trying_to_confirm_more_messa
 				state: LaneState::Opened,
 				last_confirmed_nonce: 1,
 				relayers: Default::default(),
+				dispatcher_state: DispatcherState::default(),
 			},
 		);
 		assert_noop!(
@@ -875,6 +883,7 @@ fn test_bridge_messages_call_is_correctly_defined() {
 					messages: DeliveredMessages::new(1),
 				}]
 				.into(),
+				dispatcher_state: DispatcherState::default(),
 			},
 		);
 		let unrewarded_relayer_state = UnrewardedRelayersState {
@@ -943,6 +952,7 @@ fn inbound_storage_extra_proof_size_bytes_works() {
 				state: LaneState::Opened,
 				relayers: vec![relayer_entry(); relayer_entries].into(),
 				last_confirmed_nonce: 0,
+				dispatcher_state: DispatcherState::default(),
 			},
 			_phantom: Default::default(),
 		}
@@ -1031,6 +1041,7 @@ fn receive_messages_delivery_proof_fails_if_outbound_lane_is_unknown() {
 						messages: DeliveredMessages::new(1),
 					}]
 					.into(),
+					dispatcher_state: DispatcherState::default(),
 				},
 			)
 		};

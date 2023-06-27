@@ -366,6 +366,7 @@ mod tests {
 				state: LaneState::Opened,
 				relayers: Default::default(),
 				last_confirmed_nonce: 10,
+				dispatcher_state: Default::default(),
 			},
 		);
 	}
@@ -496,6 +497,7 @@ mod tests {
 				oldest_unpruned_nonce: 0,
 				latest_received_nonce: 10,
 				latest_generated_nonce: 10,
+				bridged_dispatcher_state: None,
 			},
 		);
 	}

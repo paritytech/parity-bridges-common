@@ -31,14 +31,13 @@ use bp_messages::{
 	source_chain::{DeliveryConfirmationPayments, FromBridgedChainMessagesDeliveryProof},
 	target_chain::{
 		DeliveryPayments, DispatchMessage, DispatchMessageData, FromBridgedChainMessagesProof,
-		MessageDispatch,
+		MessageDispatch, MessageDispatchResult,
 	},
-	ChainWithMessages, DeliveredMessages, InboundLaneData, LaneId, LaneState, Message, MessageKey,
-	MessageNonce, MessagePayload, OutboundLaneData, UnrewardedRelayer, UnrewardedRelayersState,
+	ChainWithMessages, DeliveredMessages, DispatcherState, InboundLaneData, LaneId, LaneState,
+	Message, MessageKey, MessageNonce, MessagePayload, OutboundLaneData, UnrewardedRelayer,
+	UnrewardedRelayersState,
 };
-use bp_runtime::{
-	messages::MessageDispatchResult, Chain, ChainId, Size, UnverifiedStorageProofParams,
-};
+use bp_runtime::{Chain, ChainId, Size, UnverifiedStorageProofParams};
 use codec::{Decode, Encode};
 use frame_support::{
 	parameter_types,
@@ -404,6 +403,10 @@ impl MessageDispatch for TestMessageDispatch {
 			Ok(payload) => payload.dispatch_result.clone(),
 			Err(_) => dispatch_result(0),
 		}
+	}
+
+	fn state() -> DispatcherState {
+		DispatcherState::default()
 	}
 }
 

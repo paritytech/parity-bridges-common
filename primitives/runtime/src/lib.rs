@@ -43,7 +43,6 @@ pub use storage_proof::{StorageProofError, UnverifiedStorageProof, VerifiedStora
 pub use storage_types::BoundedStorageValue;
 
 pub mod extensions;
-pub mod messages;
 
 mod chain;
 mod storage_proof;
