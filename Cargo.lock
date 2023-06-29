@@ -1140,6 +1140,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "bp-xcm-over-bridge-fee"
+version = "0.1.0"
+dependencies = [
+ "bp-messages",
+ "parity-scale-codec",
+ "scale-info",
+ "serde",
+]
+
+[[package]]
 name = "bridge-runtime-common"
 version = "0.1.0"
 dependencies = [
@@ -7641,6 +7651,17 @@ dependencies = [
  "xcm",
  "xcm-builder",
  "xcm-executor",
+]
+
+[[package]]
+name = "pallet-xcm-over-bridge-fee"
+version = "0.1.0"
+dependencies = [
+ "bp-xcm-over-bridge-fee",
+ "frame-support",
+ "frame-system",
+ "parity-scale-codec",
+ "sp-std 8.0.0 (git+https://github.com/paritytech/substrate?branch=master)",
 ]
 
 [[package]]
