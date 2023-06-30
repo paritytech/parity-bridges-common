@@ -123,6 +123,9 @@ impl AtBridgeHubBridgeQueuesState {
 
 /// Current state of bridge with the remote deestination.
 pub struct Bridge<BlockNumber> {
+	/// If true, the bridge is currently in "relieving" state, where we are decreasing
+	/// the fee factor at every block.
+	pub is_relieving: bool,
 	/// The number to multiply the base message delivery fee by. We will increase this
 	/// value exponentially when we the bridge throughput decreases and decrease after
 	/// it is back to normal. 
@@ -143,9 +146,10 @@ pub struct Bridge<BlockNumber> {
 	pub last_report_request_block: Option<BlockNumber>,
 }
 
-impl<BlockNumber: Zero> Default for BridgeState<BlockNumber> {
+impl<BlockNumber: Zero> Default for Bridge<BlockNumber> {
 	fn default() -> Self {
-		BridgeState {
+		Bridge {
+			is_relieving: false,
 			fee_factor: FixedU128::from_u32(1),
 			total_enqueued_messages: 0,
 			last_report_block: Zero::zero(),

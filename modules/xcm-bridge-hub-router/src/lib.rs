@@ -50,47 +50,17 @@ pub mod pallet {
 	#[pallet::hooks]
 	impl<T: Config<I>, I: 'static> Hooks<BlockNumberFor<T>> for Pallet<T, I> {
 		fn on_initialize(_n: BlockNumberFor<T>) -> Weight {
-			// TODO: since this pallet now supports dynamic bridges, we need to move this code
-			// to e.g. deliver or at least schedule everything required from there
+			RelievingBridges::<T, I>::mutate(|relieving_bridges| {
+				relieving_bridges.retain(|lane_id| {
+					Bridges::<T, I>::mutate_extant(|lane_id|, |bridge| {
+						bridge.fee_factor = FixedU128::one().max(bridge.fee_factor / EXPONENTIAL_FEE_BASE);
+						bridge.fee_factor != FixedU128::one()
+					})
+				});
 
-			// if we have never sent bridge state report request or have sent it more than
-			// `bridge_state_report_delay` blocks ago and haven't yet received a response, we
-			// need to increase fee factor
-			let limits = T::BridgeLimits::get();
-			let current_block = frame_system::Pallet<T>::block_number();
-			let request_sent_at = Self::report_bridge_state_request_sent_at::get();
-			let missing_bridge_state_report = request_sent_at
-				.map(|request_sent_at| {
-					let expected_report_delay = limits.bridge_state_report_delay;
-					current_block.saturating_sub(request_sent_at) > expected_report_delay
-				})
-				.unwrap_or(false);
+			})
 
-			// if we believe there are more enqueued messages than during regular bridge operations,
-			// we need to increase fee factor
-			let queues_state = Self::bridge_queues_state().unwrap_or_default();
-			let total_enqueued_messages = queues_state.total_enqueued_messages();
-			let too_many_enqueued_messages = total_enqueued_messages > limits.increase_fee_factor_threshold;
-
-			// remember that we need to increase fee factor or decrease it
-			if missing_bridge_state_report || too_many_enqueued_messages {
-				IncreaseFeeFactorOnSend::<T, I>::set(true);
-			} else {
-				Self::decrease_fee_factor();
-			}
-
-			// now it's time to decide whether we want to send bridge state report request. We want
-			// to send it when we believe number of enqueued messages is close to increase-fee-factor
-			// threshold AND we don't have an active request
-			let close_to_too_many_enqueued_messages = total_enqueued_messages > limits.send_report_bridge_state_threshold;
-			if request_sent_at.is_none() && close_to_too_many_enqueued_messages {
-				// TODO: even if `ReportBridgeStateRequestSentAt` is `None`, we may want to delay next
-				// request to avoid being too frequent
-				T::ReportBridgeStateRequestSender::send(current_block);
-				ReportBridgeStateRequestSentAt::set(current_block);
-			}
-
-			// TODO: use benchmarks
+			// TODO: use benchmarks for that
 			Weight::zero()
 		}
 
@@ -114,6 +84,7 @@ pub mod pallet {
 			// TODO: we shall only accept response for our last request - i.e. if something
 			//       will go wrong and controller wil use forced report BUT then some old
 			//       report will come, then we need to avoid it
+			// TODO: start decreasing fee factor at every on_initialize
 
 			// we have receoved state report and may kill the `ReportBridgeStateRequestSentAt` value.
 			// This means that at the next block we may send another report request and hopefully bridge
@@ -122,20 +93,12 @@ pub mod pallet {
 		}
 	}
 
-	impl<T: Config<I>, I: 'static> Pallet<T, I> {
-		/// Decrement fee factor, making messages cheaper. This is called by the pallet itself
-		/// at the beginning of every block.
-		fn decrement_fee_factor() -> FixedU128 {
-			FeeFactor::<T, I>::mutate(|f| {
-				*f = InitialFeeFactor::get().max(*f / EXPONENTIAL_FEE_BASE);
-				*f
-			})
-		}
-	}
-
 	/// All registered bridges.
 	#[pallet::storage]
-	pub type Bridges<T: Config<I>, I: 'static = ()> = StorageMap<_, Identity, LaneId, BridgeOf<T, I>>;
+	pub type Bridges<T: Config<I>, I: 'static = ()> = StorageMap<_, Identity, LaneId, BridgeOf<T, I>, OptionQuery>;
+
+	/// Bridges that are currently in the relieving phase.
+	pub type RelievingBridges<T: Config<I>, I: 'static = ()> = StorageValue<_, Vec<LaneId>, ValueQuery>;
 }
 
 /// We'll be using `SovereignPaidRemoteExporter` to send remote messages over the sibling/child bridge hub.
@@ -150,7 +113,7 @@ type ViaBridgeHubExporter<T, I> = SovereignPaidRemoteExporter<
 impl<T: Config<I>, I: 'static> ExporterFor for Pallet<T, I> {
 	fn exporter_for(
 		network: &NetworkId,
-		_: &InteriorMultiLocation,
+		remote_location: &InteriorMultiLocation,
 		message: &Xcm<()>,
 	) -> Option<(MultiLocation, Option<MultiAsset>)> {
 		// ensure that the message is sent to the expected bridged network
@@ -159,11 +122,12 @@ impl<T: Config<I>, I: 'static> ExporterFor for Pallet<T, I> {
 		}
 
 		// compute fee amount
-		let bridge = Bridges::<T, I>::get();
+		let lane_id = bridge_lane_id(network, remote_location, T::UniversalLocation::get());
+		let bridge = Bridges::<T, I>::get(lane_id)?;
 		let mesage_size = message.encoded_size();
 		let message_fee = (mesage_size as u128).saturating_mul(T::MessageByteFee::get());
 		let fee_sum = T::MessageBaseFee::get().saturating_add(message_fee);
-		let fee = fee_factor.saturating_mul_int(fee_sum);
+		let fee = bridge_fee_factor.saturating_mul_int(fee_sum);
 
 		Some((T::LocalBridgeHubLocation::get(), (T::FeeAsset::get(), fee).into()))
 	}
@@ -181,7 +145,7 @@ impl<T: Config<I>, I: 'static> SendXcm for Pallet<T, I> {
 	) -> SendResult<Router::Ticket> {
 		// just use exporter to validate destination and insert instructions to pay message fee
 		// at the sibling/child bridge hub
-		let lane_id = LaneId::new(UniversalLocation::get(), <TODO: universal location of the destination chain>);
+		let lane_id = bridge_lane_id(<TODO>);
 		let message_size = xcm.as_ref().map(|xcm| xcm.encoded_size());
 		ViaBridgeHubExporter::<T, I>::validate(dest, xcm).map(|ticket| (lane_id, message_size, ticket))
 	}
@@ -195,19 +159,26 @@ impl<T: Config<I>, I: 'static> SendXcm for Pallet<T, I> {
 		// let's check if we need to increase fee for the further messages
 		let limits = T::BridgeLimits::get();
 		let current_block = frame_system::Pallet<T>::block_number();
-		let state = BridgeState::<T, I>::get(lane_id);
+		let mut bridge = Bridges::<T, I>::get(lane_id).ok_or_else(SendError::Unroutable)?;
 		let limits = BridgeLimits::get();
-		if is_fee_increment_required(current_block, &state, &limits) {
+		if is_fee_increment_required(current_block, &bridge, &limits) {
+			// remove bridge from relieving set
+			if bridge.is_relieving {
+				RelievingBridges::<T, I>::mutate(|v| {
+					v.remove(&lane_id);
+				});
+			}
+			bridge.is_relieving = false;
+
+			// update fee factor
 			let message_size_factor = FixedU128::from_u32(message_size.saturating_div(1024) as u32)
 				.saturating_mul(MESSAGE_SIZE_FEE_BASE);
-			FeeFactor::<T, I>::mutate(|f| {
-				*f = f.saturating_mul(EXPONENTIAL_FEE_BASE + message_size_factor);
-			});
+			bridge.fee_factor = bridge.fee_factor.saturating_mul(EXPONENTIAL_FEE_BASE + message_size_factor);
 		}
 
 		// let's check if we need to send bridge state report request
-		if is_state_report_required(current_block, &state, &limits) {
-			ScheduledStateReportRequests::<T, I>::append(lane_id);
+		if is_state_report_required(current_block, &bridge, &limits) {
+			unimplemented!("TODO: implement me");
 		}
 
 		Ok(xcm_hash)
@@ -219,16 +190,16 @@ impl<T: Config<I>, I: 'static> SendXcm for Pallet<T, I> {
 /// are sent over the bridge to avoid further throughput drops.
 fn is_fee_increment_required<BlockNumber: Ord>(
 	current_block: BlockNumber,
-	state: &BridgeState<BlockNumber>,
+	bridge: &Bridge<BlockNumber>,
 	limits: &BridgeLimits<BlockNumber>,
 ) -> bool {
 	// if there are more messages than we expect, we need to increase fee
-	if state.total_enqueued_messages > limits.increase_fee_factor_threshold {
+	if bridge.total_enqueued_messages > limits.increase_fee_factor_threshold {
 		return true;
 	}
 
 	// if we are waiting for the report for too long, we need to increase fee
-	let current_delay = state.last_report_request_block.map(|b| b.saturating_sub(current_block)).unwrap_or_else(Zero::zero);
+	let current_delay = bridge.last_report_request_block.map(|b| b.saturating_sub(current_block)).unwrap_or_else(Zero::zero);
 	if current_delay > limits.maximal_bridge_state_report_delay {
 		return true;
 	}
@@ -239,21 +210,21 @@ fn is_fee_increment_required<BlockNumber: Ord>(
 /// Returns `true` if we need new status report from the bridge hub.
 fn is_state_report_required<BlockNumber: Ord>(
 	current_block: BlockNumber,
-	state: &BridgeState<BlockNumber>,
+	bridge: &Bridge<BlockNumber>,
 	limits: &BridgeLimits<BlockNumber>,
 ) -> bool {
 	// we never issue multiple report requests
-	if state.last_report_request_block.is_some() {
+	if bridge.last_report_request_block.is_some() {
 		return false;
 	}
 
 	// we don't need new request if we believe there aren't much messages in the queue
-	if state.total_enqueued_messages <= limits.send_report_bridge_state_threshold {
+	if bridge.total_enqueued_messages <= limits.send_report_bridge_state_threshold {
 		return false;
 	}
 
 	// we don't need new request if we have received report recently
-	if current_block.saturating_sub(state.last_report_block) < limits.minimal_bridge_state_request_delay {
+	if current_block.saturating_sub(bridge.last_report_block) < limits.minimal_bridge_state_request_delay {
 		return false
 	}
 
