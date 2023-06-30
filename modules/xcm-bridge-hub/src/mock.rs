@@ -16,11 +16,11 @@
 
 #![cfg(test)]
 
-use crate as pallet_xcm_over_bridge;
+use crate as pallet_xcm_bridge_hub;
 
 use bp_messages::{target_chain::ForbidInboundMessages, ChainWithMessages, MessageNonce};
 use bp_runtime::{Chain, ChainId};
-use bp_xcm_over_bridge::BridgeLimits;
+use bp_xcm_bridge_hub::BridgeLimits;
 use codec::Encode;
 use frame_support::{
 	parameter_types,
@@ -58,7 +58,7 @@ frame_support::construct_runtime! {
 		System: frame_system::{Pallet, Call, Config, Storage, Event<T>},
 		Balances: pallet_balances::{Pallet, Event<T>},
 		Messages: pallet_bridge_messages::{Pallet, Call, Event<T>},
-		XcmOverBridge: pallet_xcm_over_bridge::{Pallet, Call, Event<T>},
+		XcmOverBridge: pallet_xcm_bridge_hub::{Pallet, Call, Event<T>},
 	}
 }
 
@@ -215,7 +215,7 @@ impl EnsureOrigin<RuntimeOrigin> for AllowedOpenBridgeOrigin {
 	}
 }
 
-impl pallet_xcm_over_bridge::Config for TestRuntime {
+impl pallet_xcm_bridge_hub::Config for TestRuntime {
 	type RuntimeEvent = RuntimeEvent;
 
 	type UniversalLocation = UniversalLocation;

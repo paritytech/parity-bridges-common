@@ -1140,7 +1140,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "bp-xcm-over-bridge"
+name = "bp-xcm-bridge-hub"
 version = "0.1.0"
 dependencies = [
  "bp-messages",
@@ -7634,12 +7634,12 @@ dependencies = [
 ]
 
 [[package]]
-name = "pallet-xcm-over-bridge"
+name = "pallet-xcm-bridge-hub"
 version = "0.1.0"
 dependencies = [
  "bp-messages",
  "bp-runtime",
- "bp-xcm-over-bridge",
+ "bp-xcm-bridge-hub",
  "frame-support",
  "frame-system",
  "log",

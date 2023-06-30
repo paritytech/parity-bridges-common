@@ -1,6 +1,6 @@
 [package]
-name = "bp-xcm-over-bridge"
-description = "Primitives of the xcm-over-bridge pallet."
+name = "bp-xcm-bridge-hub"
+description = "Primitives of the xcm-bridge-hub pallet."
 version = "0.1.0"
 authors = ["Parity Technologies <admin@parity.io>"]
 edition = "2018"

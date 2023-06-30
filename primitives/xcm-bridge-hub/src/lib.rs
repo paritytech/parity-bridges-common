@@ -14,7 +14,7 @@
 // You should have received a copy of the GNU General Public License
 // along with Parity Bridges Common.  If not, see <http://www.gnu.org/licenses/>.
 
-//! Primitives of the xcm-over-bridge pallet.
+//! Primitives of the xcm-bridge-hub pallet.
 
 #![cfg_attr(not(feature = "std"), no_std)]
 

@@ -1,6 +1,6 @@
 [package]
-name = "pallet-xcm-over-bridge"
-description = "Module that allows bridge pallets to be used as a transport for XCM."
+name = "pallet-xcm-bridge-hub"
+description = "Module that adds dynamic bridges/lanes support to XCM infrastucture at the bridge hub."
 version = "0.1.0"
 authors = ["Parity Technologies <admin@parity.io>"]
 edition = "2021"
@@ -15,7 +15,7 @@ scale-info = { version = "2.7.0", default-features = false, features = ["derive"
 
 bp-messages = { path = "../../primitives/messages", default-features = false }
 bp-runtime = { path = "../../primitives/runtime", default-features = false }
-bp-xcm-over-bridge = { path = "../../primitives/xcm-over-bridge", default-features = false }
+bp-xcm-bridge-hub = { path = "../../primitives/xcm-bridge-hub", default-features = false }
 pallet-bridge-messages = { path = "../messages", default-features = false }
 
 # Substrate Dependencies

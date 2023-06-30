@@ -54,7 +54,7 @@
 
 use bp_messages::{LaneId, LaneState, MessageNonce};
 use bp_runtime::{AccountIdOf, BalanceOf, BlockNumberOf, RangeInclusiveExt};
-use bp_xcm_over_bridge::{Bridge, BridgeLimits, BridgeMisbehavior, BridgeState};
+use bp_xcm_bridge_hub::{Bridge, BridgeLimits, BridgeMisbehavior, BridgeState};
 use frame_support::traits::{tokens::BalanceStatus, Currency, ReservableCurrency};
 use frame_system::Config as SystemConfig;
 use pallet_bridge_messages::{Config as BridgeMessagesConfig, LanesManagerError};
