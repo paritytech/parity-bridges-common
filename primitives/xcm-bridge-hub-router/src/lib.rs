@@ -30,7 +30,9 @@ pub struct BridgeLimits<BlockNumber> {
 	/// issued request `bridge_state_report_delay + 1` blocks ago and still have not received
 	/// report, we consider that something is wrong with the pipeline and start increasing
 	/// message fee.
-	pub bridge_state_report_delay: BlockNumber,
+	pub maximal_bridge_state_report_delay: BlockNumber,
+	/// Minimal delay in blocks between our state report requests.
+	pub minimal_bridge_state_request_delay: BlockNumber,
 	/// Maximal allowed number of queued messages across all bridge queues. If number of messages
 	/// is larger than this threshold, every following message will lead to fee increase.
 	pub increase_fee_factor_threshold: MessageNonce,
@@ -71,6 +73,7 @@ impl BridgeQueuesState {
 	}
 }
 
+// TODO: this should be moved to `bp-xcm-bridge-hub`.
 /// All bridge queues state.
 #[derive(
 	Clone,
@@ -115,5 +118,38 @@ impl AtBridgeHubBridgeQueuesState {
 			.saturating_add(self.outbound_at_sibling)
 			.saturating_add(self.outbound_at_bridged)
 			.saturating_add(self.inbound_at_destination)
+	}
+}
+
+/// Current state of bridge with the remote deestination.
+pub struct Bridge<BlockNumber> {
+	/// The number to multiply the base message delivery fee by. We will increase this
+	/// value exponentially when we the bridge throughput decreases and decrease after
+	/// it is back to normal. 
+	pub fee_factor: FixedU128,
+	/// Count of undelivered bridge messages as we see it. The actual number may be lower
+	/// if some messages are already delivered, but we have not yet received a report.
+	/// The actual number may be higher e.g. if previous report estimation was incorrect
+	/// or if some messages have not yet been accounted by the report.
+	///
+	/// This field is incremented by one every time we send a message. This field is changed
+	/// to the reported number every time we receive a state report.
+	pub total_enqueued_messages: MessageNonce,
+	/// The number of block, at which we have received last bridge state report. If we have
+	/// never received a report, it is set to zero.
+	pub last_report_block: BlockNumber,
+	/// The number of block, at which we have sent our last bridge state report request. Set
+	/// to `None` if we have no active report request.
+	pub last_report_request_block: Option<BlockNumber>,
+}
+
+impl<BlockNumber: Zero> Default for BridgeState<BlockNumber> {
+	fn default() -> Self {
+		BridgeState {
+			fee_factor: FixedU128::from_u32(1),
+			total_enqueued_messages: 0,
+			last_report_block: Zero::zero(),
+			last_report_request_block: None,
+		}
 	}
 }

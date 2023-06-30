@@ -36,10 +36,6 @@ pub mod pallet {
 		#[pallet::constant]
 		type BridgeLimits: Get<BridgeLimits>;
 
-		/// Initial `FeeFactor` value.
-		#[pallet::type_value]
-		pub fn InitialFeeFactor() -> FixedU128 { FixedU128::from_u32(1) }
-
 		/// Child/sibling bridge hub configuration.
 		type BridgeHub: BridgeHub;
 
@@ -54,6 +50,9 @@ pub mod pallet {
 	#[pallet::hooks]
 	impl<T: Config<I>, I: 'static> Hooks<BlockNumberFor<T>> for Pallet<T, I> {
 		fn on_initialize(_n: BlockNumberFor<T>) -> Weight {
+			// TODO: since this pallet now supports dynamic bridges, we need to move this code
+			// to e.g. deliver or at least schedule everything required from there
+
 			// if we have never sent bridge state report request or have sent it more than
 			// `bridge_state_report_delay` blocks ago and haven't yet received a response, we
 			// need to increase fee factor
@@ -134,34 +133,9 @@ pub mod pallet {
 		}
 	}
 
-	// TODO: what's the chance that this parachain will have bridges with multiple chains at the bridged
-	// side? This can be handled either by converting `StorageValue` below to `StorageMap`s or by adding
-	// another instances of this pallet. The latter looks more clear, but if that will be a usual case,
-	// the maps option is dynamic-friendly.
-	//
-	// We need to use single pallet for dynamic bridges and for dynamic fee support at source parachains. 
-
-	/// Ephemeral value that is set to true when we need to increase fee factor when sending message
-	/// over the bridge.
+	/// All registered bridges.
 	#[pallet::storage]
-	#[pallet::whitelist_storage]
-	#[pallet::getter(fn increase_fee_factor_on_send)]
-	pub type IncreaseFeeFactorOnSend<T: Config<I>, I: 'static = ()> = StorageValue<_, bool, ValueQuery>;
-
-	/// The number to multiply the base delivery fee by.
-	#[pallet::storage]
-	#[pallet::getter(fn fee_factor)]
-	pub type FeeFactor<T: Config<I>, I: 'static = ()> = StorageValue<_, T::Balance, ValueQuery, InitialFactor>;
-
-	/// Last known bridge queues state.
-	#[pallet::storage]
-	#[pallet::getter(fn bridge_queues_state)]
-	pub type BridgeQueuesState<T: Config<I>, I: 'static = ()> = StorageValue<_, BridgeQueuesState, OptionQuery>;
-
-	/// The block at which we have sent request for new bridge queues state.
-	#[pallet::storage]
-	#[pallet::getter(fn report_bridge_state_request_sent_at)]
-	pub type ReportBrReportBridgeStateRequestSentAtidgeStateRequestSentAt<T: Config<I>, I: 'static = ()> = StorageValue<_, T::BlockNumber, OptionQuery>;
+	pub type Bridges<T: Config<I>, I: 'static = ()> = StorageMap<_, Identity, LaneId, BridgeOf<T, I>>;
 }
 
 /// We'll be using `SovereignPaidRemoteExporter` to send remote messages over the sibling/child bridge hub.
@@ -171,6 +145,8 @@ type ViaBridgeHubExporter<T, I> = SovereignPaidRemoteExporter<
 	T as Config<I>>::UniversalLocation,
 >;
 
+// This pallet acts as the `ExporterFor` for the `SovereignPaidRemoteExporter` to compute
+// message fee using fee factor.
 impl<T: Config<I>, I: 'static> ExporterFor for Pallet<T, I> {
 	fn exporter_for(
 		network: &NetworkId,
@@ -183,6 +159,7 @@ impl<T: Config<I>, I: 'static> ExporterFor for Pallet<T, I> {
 		}
 
 		// compute fee amount
+		let bridge = Bridges::<T, I>::get();
 		let mesage_size = message.encoded_size();
 		let message_fee = (mesage_size as u128).saturating_mul(T::MessageByteFee::get());
 		let fee_sum = T::MessageBaseFee::get().saturating_add(message_fee);
@@ -192,8 +169,11 @@ impl<T: Config<I>, I: 'static> ExporterFor for Pallet<T, I> {
 	}
 }
 
+// This pallet acts as the `SendXcm` to the sibling/child bridge hub instead of regular
+// XCMP/DMP transport. This allows injecting dynamic message fees into XCM programs that
+// are going to the bridged network.
 impl<T: Config<I>, I: 'static> SendXcm for Pallet<T, I> {
-	type Ticket = (u32, T::ToBridgeHubSender::Ticket);
+	type Ticket = (LaneId, u32, T::ToBridgeHubSender::Ticket);
 
 	fn validate(
 		dest: &mut Option<MultiLocation>,
@@ -201,26 +181,96 @@ impl<T: Config<I>, I: 'static> SendXcm for Pallet<T, I> {
 	) -> SendResult<Router::Ticket> {
 		// just use exporter to validate destination and insert instructions to pay message fee
 		// at the sibling/child bridge hub
+		let lane_id = LaneId::new(UniversalLocation::get(), <TODO: universal location of the destination chain>);
 		let message_size = xcm.as_ref().map(|xcm| xcm.encoded_size());
-		ViaBridgeHubExporter::<T, I>::validate(dest, xcm).map(|ticket| (message_size, ticket))
+		ViaBridgeHubExporter::<T, I>::validate(dest, xcm).map(|ticket| (lane_id, message_size, ticket))
 	}
 
 	fn deliver(ticket: (u32, Router::Ticket)) -> Result<XcmHash, SendError> {
 		// use router to enqueue message to the sibling/child bridge hub. This also should handle
 		// payment for passing through this queue.
-		let (message_size, ticket) = ticket;
+		let (lane_id, message_size, ticket) = ticket;
 		let xcm_hash = T::ToBridgeHubSender::deliver(ticket)?;
 
-		// the message has been validated by us, so we know that it heads to the remote network.
-		// So we may increase our fee factor here, if required.
-		if IncreaseFeeFactorOnSend::<T, I>::get() {
+		// let's check if we need to increase fee for the further messages
+		let limits = T::BridgeLimits::get();
+		let current_block = frame_system::Pallet<T>::block_number();
+		let state = BridgeState::<T, I>::get(lane_id);
+		let limits = BridgeLimits::get();
+		if is_fee_increment_required(current_block, &state, &limits) {
 			let message_size_factor = FixedU128::from_u32(message_size.saturating_div(1024) as u32)
 				.saturating_mul(MESSAGE_SIZE_FEE_BASE);
 			FeeFactor::<T, I>::mutate(|f| {
 				*f = f.saturating_mul(EXPONENTIAL_FEE_BASE + message_size_factor);
 			});
 		}
+
+		// let's check if we need to send bridge state report request
+		if is_state_report_required(current_block, &state, &limits) {
+			ScheduledStateReportRequests::<T, I>::append(lane_id);
+		}
+
+		Ok(xcm_hash)
 	}
 }
 
-// TODO: what about dynamic bridges - will bridge hub have some logic (barrier) to only allow paid execution?
+/// Returns `true` if bridge has exceeded its limits and operates with a lower than
+/// expected performance. It means that we need to set higher fee for messages that
+/// are sent over the bridge to avoid further throughput drops.
+fn is_fee_increment_required<BlockNumber: Ord>(
+	current_block: BlockNumber,
+	state: &BridgeState<BlockNumber>,
+	limits: &BridgeLimits<BlockNumber>,
+) -> bool {
+	// if there are more messages than we expect, we need to increase fee
+	if state.total_enqueued_messages > limits.increase_fee_factor_threshold {
+		return true;
+	}
+
+	// if we are waiting for the report for too long, we need to increase fee
+	let current_delay = state.last_report_request_block.map(|b| b.saturating_sub(current_block)).unwrap_or_else(Zero::zero);
+	if current_delay > limits.maximal_bridge_state_report_delay {
+		return true;
+	}
+
+	false
+}
+
+/// Returns `true` if we need new status report from the bridge hub.
+fn is_state_report_required<BlockNumber: Ord>(
+	current_block: BlockNumber,
+	state: &BridgeState<BlockNumber>,
+	limits: &BridgeLimits<BlockNumber>,
+) -> bool {
+	// we never issue multiple report requests
+	if state.last_report_request_block.is_some() {
+		return false;
+	}
+
+	// we don't need new request if we believe there aren't much messages in the queue
+	if state.total_enqueued_messages <= limits.send_report_bridge_state_threshold {
+		return false;
+	}
+
+	// we don't need new request if we have received report recently
+	if current_block.saturating_sub(state.last_report_block) < limits.minimal_bridge_state_request_delay {
+		return false
+	}
+
+	true
+}
+
+// TODO: move this function to the bp-messages or bp-runtime - there's similar function in the pallet-xcm-bridge-hub.
+/// Given remote (bridged) network id and interior location within that network, return
+/// lane identifier that will be used to bridge with local `local_universal_location`.
+///
+/// We will assume that remote location is either relay chain network, or its parachain.
+/// All lower-level junctions (accounts, pallets and so on) are dropped, because they
+/// will be handled by the XCM router at selected remote relay/para -chain.
+pub fn bridge_lane_id(
+	_bridged_network: NetworkId,
+	_bridged_location: InteriorMultiLocation,
+	_local_universal_location: MultiLocation,
+) -> LaneId {
+	unimplemented!("TODO: reuse function from the pallet-xcm-bridge-hub")
+}
