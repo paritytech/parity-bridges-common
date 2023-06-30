@@ -1,6 +1,6 @@
 [package]
-name = "pallet-xcm-over-bridge-fee"
-description = "Module that is able to adjust bridge message fee based on the bridge queues state."
+name = "pallet-xcm-bridge-hub-router"
+description = "Module that supports dynamic bridges over sibling/child bridge hub."
 version = "0.1.0"
 authors = ["Parity Technologies <admin@parity.io>"]
 edition = "2021"
@@ -11,7 +11,7 @@ codec = { package = "parity-scale-codec", version = "3.1.5", default-features = 
 
 # Bridge dependencies
 
-bp-xcm-over-bridge-fee = { path = "../../primitives/xcm-over-bridge-fee", default-features = false }
+bp-xcm-bridge-hub-router = { path = "../../primitives/xcm-bridge-hub-router", default-features = false }
 
 # Substrate Dependencies
 
@@ -22,7 +22,7 @@ sp-std = { git = "https://github.com/paritytech/substrate", branch = "master", d
 [features]
 default = ["std"]
 std = [
-	"bp-xcm-over-bridge-fee/std",
+	"bp-xcm-bridge-hub-router/std",
 	"codec/std",
 	"frame-support/std",
 	"frame-system/std",

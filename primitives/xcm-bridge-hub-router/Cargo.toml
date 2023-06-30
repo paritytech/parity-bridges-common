@@ -1,6 +1,6 @@
 [package]
-name = "bp-xcm-over-bridge-fee"
-description = "Primitives of the xcm-over-bridge fee pallet."
+name = "bp-xcm-bridge-hub-router"
+description = "Primitives of the xcm-bridge-hub fee pallet."
 version = "0.1.0"
 authors = ["Parity Technologies <admin@parity.io>"]
 edition = "2021"
