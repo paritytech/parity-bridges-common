@@ -24,6 +24,7 @@ use scale_info::TypeInfo;
 use serde::{Deserialize, Serialize};
 
 /// Bridge limits.
+#[derive(Clone, RuntimeDebug)]
 pub struct BridgeLimits<BlockNumber> {
 	/// Maximal delay in blocks before we expect to receive bridge state report. If we have
 	/// issued request `bridge_state_report_delay + 1` blocks ago and still have not received
@@ -31,9 +32,9 @@ pub struct BridgeLimits<BlockNumber> {
 	/// message fee.
 	pub bridge_state_report_delay: BlockNumber,
 	/// Maximal allowed number of queued messages across all bridge queues. If number of messages
-	/// is larger than this threshold, every following message
+	/// is larger than this threshold, every following message will lead to fee increase.
 	pub increase_fee_factor_threshold: MessageNonce,
-	///
+	/// Maximal number of queued messages before we will start
 	pub send_report_bridge_state_threshold: MessageNonce,
 }
 
@@ -48,10 +49,12 @@ pub struct BridgeLimits<BlockNumber> {
 	Ord,
 	PartialOrd,
 	PartialEq,
+	RuntimeDebug,
 	TypeInfo,
 	MaxEncodedLen,
 )]
 pub struct BridgeQueuesState {
+	/// Total number of messages that have been sent since last bridge state
 	/// Number of messages queued at this (source) chain' outbound queue.
 	///
 	/// That's the only field that is filled at this chain, because sibling (source)
@@ -79,6 +82,7 @@ impl BridgeQueuesState {
 	Ord,
 	PartialOrd,
 	PartialEq,
+	RuntimeDebug,
 	TypeInfo,
 	MaxEncodedLen,
 	Serialize,

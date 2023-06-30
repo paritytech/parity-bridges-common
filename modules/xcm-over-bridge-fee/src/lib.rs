@@ -40,11 +40,6 @@ pub mod pallet {
 
 		/// A way to send report requests to the sibling/child bridge hub.
 		type ReportBridgeStateRequestSender: ReportBridgeStateRequestSender;
-/*		/// Expected delay (in blocks) before we get bridge state response after
-		/// sending request. After this delay has passed, we consider request lost.
-		/// This eventually will result in unbounded message fee raise and can
-		/// be stopped only by the pallet controller.
-		type BridgeStateReportDelay: Get<Self::BlockNumber>;*/
 	}
 
 	#[pallet::pallet]
@@ -84,8 +79,9 @@ pub mod pallet {
 			// threshold AND we don't have an active request
 			let close_to_too_many_enqueued_messages = total_enqueued_messages > limits.send_report_bridge_state_threshold;
 			if request_sent_at.is_none() && close_to_too_many_enqueued_messages {
-				// TODO: even if `ReportBridgeStateRequestSentAt` is `None`, we may want to 
-				T::ReportBridgeStateRequestSender::send();
+				// TODO: even if `ReportBridgeStateRequestSentAt` is `None`, we may want to delay next
+				// request to avoid being too frequent
+				T::ReportBridgeStateRequestSender::send(current_block);
 				ReportBridgeStateRequestSentAt::set(current_block);
 			}
 
@@ -104,11 +100,15 @@ pub mod pallet {
 		#[pallet::weight(Weight::zero())]
 		pub fn receive_bridge_state_report(
 			_origin: OriginFor<T>,
+			_request_sent_at: T::BlockNumber,
 			_at_bridge_hub_queues_state: AtBridgeHubBridgeQueuesState,
 		) -> DispatchResultWithPostInfo {
 			// TODO: check origin - it must be either parachain, or some controller account
 			// TODO: convert `at_bridge_hub_queues_state` to `BridgeQueuesState`
 			// TODO: kill `ReportBridgeStateRequestSentAt`
+			// TODO: we shall only accept response for our last request - i.e. if something
+			//       will go wrong and controller wil use forced report BUT then some old
+			//       report will come, then we need to avoid it
 
 			// we have receoved state report and may kill the `ReportBridgeStateRequestSentAt` value.
 			// This means that at the next block we may send another report request and hopefully bridge
@@ -176,5 +176,13 @@ pub mod pallet {
 	/// The block at which we have sent request for new bridge queues state.
 	#[pallet::storage]
 	#[pallet::getter(fn report_bridge_state_request_sent_at)]
-	pub type ReportBridgeStateRequestSentAt<T: Config<I>, I: 'static = ()> = StorageValue<_, T::BlockNumber, OptionQuery>;
+	pub type ReportBrReportBridgeStateRequestSentAtidgeStateRequestSentAt<T: Config<I>, I: 'static = ()> = StorageValue<_, T::BlockNumber, OptionQuery>;
 }
+
+// TODO: ideally, we need to update fee factor when the message is actually sent. This is the `SendXcm`. But for
+// bridges there's `ExporterFor`, which shall return fee. But it is detached from the sending process (and result).
+// Possible solution is to implement both `ExporterFor` and `SendXcm` for this pallet and place if **before**
+// regular XCMP in the router configuration - then we will be able to increase fee only when the message is
+// actually sent.
+
+// TODO: what about dynamic bridges - will bridge hub have some logic (barrier) to only allow paid execution?
