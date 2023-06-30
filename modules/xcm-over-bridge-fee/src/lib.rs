@@ -14,9 +14,11 @@
 // You should have received a copy of the GNU General Public License
 // along with Parity Bridges Common.  If not, see <http://www.gnu.org/licenses/>.
 
-//! Pallet that is able to compute over-bridge XCM message fee and automatically adjusts
-//! it using bridge queues state. The pallet needs to be deployed at the sending chain,
-//! sibling/parent to the bridge hub.
+//! Pallet that may be used instead of `SovereignPaidRemoteExporter` in the XCM router
+//! configuration. The main thing that the pallet offers is the dynamic message fee,
+//! that is computed based on the bridge queues state. It starts exponentially increasing
+//! if there are too many messages stuck across all bridge queues. When situation is
+//! back to normal, the fee starts decreasing.
 
 #![cfg_attr(not(feature = "std"), no_std)]
 
@@ -38,8 +40,12 @@ pub mod pallet {
 		#[pallet::type_value]
 		pub fn InitialFeeFactor() -> FixedU128 { FixedU128::from_u32(1) }
 
-		/// A way to send report requests to the sibling/child bridge hub.
-		type ReportBridgeStateRequestSender: ReportBridgeStateRequestSender;
+		/// Child/sibling bridge hub configuration.
+		type BridgeHub: BridgeHub;
+
+		/// Underlying transport (XCMP or DMP) which allows sending messages to the child/sibling
+		/// bridge hub.
+		type ToBridgeHubSender: SendXcm;
 	}
 
 	#[pallet::pallet]
@@ -118,29 +124,6 @@ pub mod pallet {
 	}
 
 	impl<T: Config<I>, I: 'static> Pallet<T, I> {
-		/// Returns fee that needs to be paid for sending message of given size.
-		///
-		/// This function also increases the fee factor if there's a lof ot enqueued messages
-		/// across all bridge queues.
-		pub fn price_for_message_delivery(message_size: u32) -> FixedU128 {
-			let fee_factor = if IncreaseFeeFactorOnSend::get() {
-				let message_size_factor = FixedU128::from_u32(message_size.saturating_div(1024) as u32)
-					.saturating_mul(MESSAGE_SIZE_FEE_BASE);
-				FeeFactor::<T, I>::mutate(|f| {
-					*f = f.saturating_mul(EXPONENTIAL_FEE_BASE + message_size_factor);
-					*f
-				})
-			} else {
-				FeeFactor::<T, I>::get()
-			};
-
-			let message_fee = (mesage_size as u128).saturating_mul(T::MessageByteFee::get());
-			let fee_sum = T::MessageBaseFee::get().saturating_add(message_fee);
-			let price = fee_factor.saturating_mul_int(fee_sum);
-
-			price
-		}
-
 		/// Decrement fee factor, making messages cheaper. This is called by the pallet itself
 		/// at the beginning of every block.
 		fn decrement_fee_factor() -> FixedU128 {
@@ -155,6 +138,8 @@ pub mod pallet {
 	// side? This can be handled either by converting `StorageValue` below to `StorageMap`s or by adding
 	// another instances of this pallet. The latter looks more clear, but if that will be a usual case,
 	// the maps option is dynamic-friendly.
+	//
+	// We need to use single pallet for dynamic bridges and for dynamic fee support at source parachains. 
 
 	/// Ephemeral value that is set to true when we need to increase fee factor when sending message
 	/// over the bridge.
@@ -179,10 +164,63 @@ pub mod pallet {
 	pub type ReportBrReportBridgeStateRequestSentAtidgeStateRequestSentAt<T: Config<I>, I: 'static = ()> = StorageValue<_, T::BlockNumber, OptionQuery>;
 }
 
-// TODO: ideally, we need to update fee factor when the message is actually sent. This is the `SendXcm`. But for
-// bridges there's `ExporterFor`, which shall return fee. But it is detached from the sending process (and result).
-// Possible solution is to implement both `ExporterFor` and `SendXcm` for this pallet and place if **before**
-// regular XCMP in the router configuration - then we will be able to increase fee only when the message is
-// actually sent.
+/// We'll be using `SovereignPaidRemoteExporter` to send remote messages over the sibling/child bridge hub.
+type ViaBridgeHubExporter<T, I> = SovereignPaidRemoteExporter<
+	Pallet<T, I>,
+	<T as Config<I>>::ToBridgeHubSender,
+	T as Config<I>>::UniversalLocation,
+>;
+
+impl<T: Config<I>, I: 'static> ExporterFor for Pallet<T, I> {
+	fn exporter_for(
+		network: &NetworkId,
+		_: &InteriorMultiLocation,
+		message: &Xcm<()>,
+	) -> Option<(MultiLocation, Option<MultiAsset>)> {
+		// ensure that the message is sent to the expected bridged network
+		if *network != T::BridgedNetworkId::get() {
+			return None;
+		}
+
+		// compute fee amount
+		let mesage_size = message.encoded_size();
+		let message_fee = (mesage_size as u128).saturating_mul(T::MessageByteFee::get());
+		let fee_sum = T::MessageBaseFee::get().saturating_add(message_fee);
+		let fee = fee_factor.saturating_mul_int(fee_sum);
+
+		Some((T::LocalBridgeHubLocation::get(), (T::FeeAsset::get(), fee).into()))
+	}
+}
+
+impl<T: Config<I>, I: 'static> SendXcm for Pallet<T, I> {
+	type Ticket = (u32, T::ToBridgeHubSender::Ticket);
+
+	fn validate(
+		dest: &mut Option<MultiLocation>,
+		xcm: &mut Option<Xcm<()>>,
+	) -> SendResult<Router::Ticket> {
+		// just use exporter to validate destination and insert instructions to pay message fee
+		// at the sibling/child bridge hub
+		let message_size = xcm.as_ref().map(|xcm| xcm.encoded_size());
+		ViaBridgeHubExporter::<T, I>::validate(dest, xcm).map(|ticket| (message_size, ticket))
+	}
+
+	fn deliver(ticket: (u32, Router::Ticket)) -> Result<XcmHash, SendError> {
+		// use router to enqueue message to the sibling/child bridge hub. This also should handle
+		// payment for passing through this queue.
+		let (message_size, ticket) = ticket;
+		let xcm_hash = T::ToBridgeHubSender::deliver(ticket)?;
+
+		// the message has been validated by us, so we know that it heads to the remote network.
+		// So we may increase our fee factor here, if required.
+		if IncreaseFeeFactorOnSend::<T, I>::get() {
+			let message_size_factor = FixedU128::from_u32(message_size.saturating_div(1024) as u32)
+				.saturating_mul(MESSAGE_SIZE_FEE_BASE);
+			FeeFactor::<T, I>::mutate(|f| {
+				*f = f.saturating_mul(EXPONENTIAL_FEE_BASE + message_size_factor);
+			});
+		}
+	}
+}
 
 // TODO: what about dynamic bridges - will bridge hub have some logic (barrier) to only allow paid execution?
