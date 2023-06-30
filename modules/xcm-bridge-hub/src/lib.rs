@@ -416,6 +416,15 @@ pub mod pallet {
 			bridge_destination_universal_location: Box<MultiLocation>,
 			is_open_bridge_request: bool,
 		) -> Result<BridgeLocations, sp_runtime::DispatchError> {
+			// TODO: move this function to primitives, because we will want the same function
+			//       at the sibling/parent chain in the `pallet-xcm-bridge-hub-router` pallet
+			// TODO: update this function to drop everything below the parachain level from
+			//       `bridge_destination_universal_location` - i.e. bridge with
+			//       `X3(GlobalConsensus(Kusama), Parachain(1000), AccountId32([0u8; 32])`
+			//       must use the same lane as `X2(GlobalConsensus(Kusama), Parachain(1000)`.
+			//       The router at the target chain will handle that.
+
+
 			// get locations of endpoint, located at this side of the bridge
 			let this_location = T::UniversalLocation::get();
 			let bridge_origin_relative_location =
