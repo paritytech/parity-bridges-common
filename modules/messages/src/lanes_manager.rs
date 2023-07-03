@@ -15,7 +15,7 @@
 // along with Parity Bridges Common.  If not, see <http://www.gnu.org/licenses/>.
 
 use crate::{
-	BridgedChainOf, Config, Error, InboundLane, InboundLaneStorage, InboundLanes, OutboundLane,
+	BridgedChainOf, Config, InboundLane, InboundLaneStorage, InboundLanes, OutboundLane,
 	OutboundLaneStorage, OutboundLanes, OutboundMessages, StoredInboundLaneData,
 	StoredMessagePayload,
 };
@@ -25,12 +25,13 @@ use bp_messages::{
 	MessagePayload, OutboundLaneData, VerificationError,
 };
 use bp_runtime::AccountIdOf;
-use codec::MaxEncodedLen;
-use frame_support::{ensure, RuntimeDebug};
+use codec::{Decode, Encode, MaxEncodedLen};
+use frame_support::{ensure, PalletError, RuntimeDebug};
+use scale_info::TypeInfo;
 use sp_std::marker::PhantomData;
 
 /// Lanes manager errors.
-#[derive(RuntimeDebug, PartialEq, Eq)]
+#[derive(Encode, Decode, RuntimeDebug, PartialEq, Eq, PalletError, TypeInfo)]
 pub enum LanesManagerError {
 	/// Inbound lane already exists.
 	InboundLaneAlreadyExists,
@@ -44,19 +45,6 @@ pub enum LanesManagerError {
 	ClosedInboundLane,
 	/// Outbound lane with given id is closed.
 	ClosedOutboundLane,
-}
-
-impl<T, I> From<LanesManagerError> for Error<T, I> {
-	fn from(e: LanesManagerError) -> Self {
-		match e {
-			LanesManagerError::InboundLaneAlreadyExists => Error::InboundLaneAlreadyExists,
-			LanesManagerError::OutboundLaneAlreadyExists => Error::OutboundLaneAlreadyExists,
-			LanesManagerError::UnknownInboundLane => Error::UnknownInboundLane,
-			LanesManagerError::UnknownOutboundLane => Error::UnknownOutboundLane,
-			LanesManagerError::ClosedInboundLane => Error::ClosedInboundLane,
-			LanesManagerError::ClosedOutboundLane => Error::ClosedOutboundLane,
-		}
-	}
 }
 
 /// Message lanes manager.

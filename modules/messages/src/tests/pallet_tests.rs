@@ -19,8 +19,9 @@
 use crate::{
 	lanes_manager::RuntimeInboundLaneStorage, outbound_lane,
 	outbound_lane::ReceivalConfirmationError, send_message, tests::mock::*,
-	weights_ext::WeightInfoExt, Call, Config, Error, Event, InboundLanes, OutboundLanes,
-	OutboundMessages, Pallet, PalletOperatingMode, PalletOwner, StoredInboundLaneData,
+	weights_ext::WeightInfoExt, Call, Config, Error, Event, InboundLanes, LanesManagerError,
+	OutboundLanes, OutboundMessages, Pallet, PalletOperatingMode, PalletOwner,
+	StoredInboundLaneData,
 };
 
 use bp_messages::{
@@ -794,11 +795,11 @@ fn receive_messages_delivery_proof_rejects_proof_if_trying_to_confirm_more_messa
 		send_regular_message();
 
 		// 1) InboundLaneData declares that the `last_confirmed_nonce` is 1;
-		// 2) InboundLaneData has no entries => `InboundLaneData::last_delivered_nonce()`
-		//    returns `last_confirmed_nonce`;
+		// 2) InboundLaneData has no entries => `InboundLaneData::last_delivered_nonce()` returns
+		//    `last_confirmed_nonce`;
 		// 3) it means that we're going to confirm delivery of messages 1..=1;
-		// 4) so the number of declared messages (see `UnrewardedRelayersState`) is `0` and
-		//    numer of actually confirmed messages is `1`.
+		// 4) so the number of declared messages (see `UnrewardedRelayersState`) is `0` and numer of
+		//    actually confirmed messages is `1`.
 		let proof = prepare_messages_delivery_proof(
 			test_lane_id(),
 			InboundLaneData {
@@ -973,12 +974,12 @@ fn send_messages_fails_if_outbound_lane_is_not_opened() {
 	run_test(|| {
 		assert_noop!(
 			send_message::<TestRuntime, ()>(unknown_lane_id(), REGULAR_PAYLOAD),
-			Error::<TestRuntime, ()>::UnknownOutboundLane,
+			Error::<TestRuntime, ()>::LanesManager(LanesManagerError::UnknownOutboundLane),
 		);
 
 		assert_noop!(
 			send_message::<TestRuntime, ()>(closed_lane_id(), REGULAR_PAYLOAD),
-			Error::<TestRuntime, ()>::ClosedOutboundLane,
+			Error::<TestRuntime, ()>::LanesManager(LanesManagerError::ClosedOutboundLane),
 		);
 	});
 }
@@ -998,7 +999,7 @@ fn receive_messages_proof_fails_if_inbound_lane_is_not_opened() {
 				1,
 				REGULAR_PAYLOAD.declared_weight,
 			),
-			Error::<TestRuntime, ()>::UnknownInboundLane,
+			Error::<TestRuntime, ()>::LanesManager(LanesManagerError::UnknownInboundLane),
 		);
 
 		message.key.lane_id = closed_lane_id();
@@ -1012,7 +1013,7 @@ fn receive_messages_proof_fails_if_inbound_lane_is_not_opened() {
 				1,
 				REGULAR_PAYLOAD.declared_weight,
 			),
-			Error::<TestRuntime, ()>::ClosedInboundLane,
+			Error::<TestRuntime, ()>::LanesManager(LanesManagerError::ClosedInboundLane),
 		);
 	});
 }
@@ -1047,7 +1048,7 @@ fn receive_messages_delivery_proof_fails_if_outbound_lane_is_unknown() {
 					last_delivered_nonce: 1,
 				},
 			),
-			Error::<TestRuntime, ()>::UnknownOutboundLane,
+			Error::<TestRuntime, ()>::LanesManager(LanesManagerError::UnknownOutboundLane),
 		);
 
 		let proof = make_proof(closed_lane_id());
@@ -1062,7 +1063,7 @@ fn receive_messages_delivery_proof_fails_if_outbound_lane_is_unknown() {
 					last_delivered_nonce: 1,
 				},
 			),
-			Error::<TestRuntime, ()>::ClosedOutboundLane,
+			Error::<TestRuntime, ()>::LanesManager(LanesManagerError::ClosedOutboundLane),
 		);
 	});
 }
