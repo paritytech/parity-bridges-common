@@ -36,11 +36,15 @@ pub mod pallet {
 		#[pallet::constant]
 		type BridgeLimits: Get<BridgeLimits>;
 
+		/// Bridge hub origin.
+		type BridgeHubOrigin: EnsureOrigin<<Self as frame_system::Config>::RuntimeOrigin>;
+
 		/// Child/sibling bridge hub configuration.
 		type BridgeHub: BridgeHub;
 
 		/// Underlying transport (XCMP or DMP) which allows sending messages to the child/sibling
-		/// bridge hub.
+		/// bridge hub. We assume this channel satisfies all XCM requirements - we rely on the
+		/// fact that it guarantees ordered delivery.
 		type ToBridgeHubSender: SendXcm;
 	}
 
@@ -52,12 +56,34 @@ pub mod pallet {
 		fn on_initialize(_n: BlockNumberFor<T>) -> Weight {
 			RelievingBridges::<T, I>::mutate(|relieving_bridges| {
 				relieving_bridges.retain(|lane_id| {
-					Bridges::<T, I>::mutate_extant(|lane_id|, |bridge| {
+					let result = Bridges::<T, I>::try_mutate_exists(|lane_id|, |stored_bridge| {
+						// remove deleted bridge from the `RelievingBridges` set
+						let bridge = match stored_bridge.take() {
+							Some(bridge) => bridge,
+							None => return Err(false),
+						};
+
+						// remove bridge from the `RelievingBridges` set if it isn't relieving anymore
+						if !bridge.is_relieving {
+							return Err(false);
+						}
+
+						// decrease fee factor
 						bridge.fee_factor = FixedU128::one().max(bridge.fee_factor / EXPONENTIAL_FEE_BASE);
-						bridge.fee_factor != FixedU128::one()
-					})
+
+						// stop relieveing if fee factor is `1`
+						let keep_relieving = bridge.fee_factor != FixedU128::one();
+						if !keep_relieving {
+							bridge.is_relieving = false;
+						}
+
+						*stored_bridge = Some(bridge);
+						Ok(bridge.is_relieving)
+					});
 				});
 
+				// remove from the set if bridge is no longer relieving
+				result == Ok(true)
 			})
 
 			// TODO: use benchmarks for that
@@ -71,25 +97,52 @@ pub mod pallet {
 
 	#[pallet::call]
 	impl<T: Config<I>, I: 'static> Pallet<T, I> {
+
+
 		#[pallet::call_index(0)]
 		#[pallet::weight(Weight::zero())]
 		pub fn receive_bridge_state_report(
-			_origin: OriginFor<T>,
-			_request_sent_at: T::BlockNumber,
-			_at_bridge_hub_queues_state: AtBridgeHubBridgeQueuesState,
+			origin: OriginFor<T>,
+			lane_id: LaneId,
+			request_sent_at: T::BlockNumber,
+			at_bridge_hub_queues_state: AtBridgeHubBridgeQueuesState,
 		) -> DispatchResultWithPostInfo {
-			// TODO: check origin - it must be either parachain, or some controller account
-			// TODO: convert `at_bridge_hub_queues_state` to `BridgeQueuesState`
-			// TODO: kill `ReportBridgeStateRequestSentAt`
-			// TODO: we shall only accept response for our last request - i.e. if something
-			//       will go wrong and controller wil use forced report BUT then some old
-			//       report will come, then we need to avoid it
-			// TODO: start decreasing fee factor at every on_initialize
+			// we only accept reports from the bridge hub
+			T::BridgeHubOrigin::ensure_origin(origin)?;
 
-			// we have receoved state report and may kill the `ReportBridgeStateRequestSentAt` value.
-			// This means that at the next block we may send another report request and hopefully bridge
-			// will
-			ReportBridgeStateRequestSentAt::<T, I>::kill();
+			Bridges::<T, I>::try_mutate_exists(lane_id, |stored_bridge| {
+				// fail reports for unknown bridges
+				let mut bridge = match stored_bridge.take() {
+					Some(stored_bridge) => stored_bridge,
+					None => fail!(Error::<T, I>::UnknownBridge),
+				};
+
+				// we only accept report for the latest request
+				let last_report_request = match bridge.last_report_request.take() {
+					Some(last_report_request) if last_report_request.at_block == request_sent_at => last_report_request,
+					_ => fail!(Error::<T, I>::UnexpectedReport),
+				};
+
+				// update total number of enqueued messages. To compute numnber of enqueued messages in
+				// `outbound_here` and `inbound_at_sibling` queues we use our own counter because we can't
+				// rely on the information from the sibling/child bridge hub - it is processed with a delay
+				// and during that delay any number of messages may be sent over the bridge.
+ 				bridge.total_enqueued_messages = last_report_request.messages_sent_after_request
+					.saturating_add(at_bridge_hub_queues_state.total_enqueued_messages());
+
+
+				// if we need to start decreasing fee factor - let's remember that
+				let old_is_relieving = bridge.is_relieving;
+				bridge.is_relieving = is_relief_required(&bridge);
+				if bridge.is_relieving && !old_is_relieving {
+					RelievingBridges::<T, I>::append(lane_id);
+				}
+
+				stored_bridge = Some(bridge);
+				Ok(())
+			});
+
+			Ok(())
 		}
 	}
 
@@ -176,10 +229,20 @@ impl<T: Config<I>, I: 'static> SendXcm for Pallet<T, I> {
 			bridge.fee_factor = bridge.fee_factor.saturating_mul(EXPONENTIAL_FEE_BASE + message_size_factor);
 		}
 
+		// increment number of enqueued messages that we think are in all bridge queues now
+		bridge.total_enqueued_messages.saturating_inc();
+
 		// let's check if we need to send bridge state report request
 		if is_state_report_required(current_block, &bridge, &limits) {
 			unimplemented!("TODO: implement me");
 		}
+
+		// also increment number of messages that are sent **after** our last report request
+		if let Some(ref mut last_report_request) = bridge.last_report_request {
+			last_report_request.messages_sent_after_request.saturating_inc();
+		}
+
+		// TODO: update bridge in the storage
 
 		Ok(xcm_hash)
 	}
@@ -214,9 +277,10 @@ fn is_state_report_required<BlockNumber: Ord>(
 	limits: &BridgeLimits<BlockNumber>,
 ) -> bool {
 	// we never issue multiple report requests
-	if bridge.last_report_request_block.is_some() {
-		return false;
-	}
+	let last_report_request = match bridge.last_report_request {
+		Some(last_report_request) => last_report_request,
+		None => return false,
+	};
 
 	// we don't need new request if we believe there aren't much messages in the queue
 	if bridge.total_enqueued_messages <= limits.send_report_bridge_state_threshold {
@@ -224,7 +288,7 @@ fn is_state_report_required<BlockNumber: Ord>(
 	}
 
 	// we don't need new request if we have received report recently
-	if current_block.saturating_sub(bridge.last_report_block) < limits.minimal_bridge_state_request_delay {
+	if current_block.saturating_sub(last_report_request.sent_at) < limits.minimal_bridge_state_request_delay {
 		return false
 	}
 

@@ -40,39 +40,6 @@ pub struct BridgeLimits<BlockNumber> {
 	pub send_report_bridge_state_threshold: MessageNonce,
 }
 
-/// All bridge queues state.
-#[derive(
-	Clone,
-	Copy,
-	Decode,
-	Default,
-	Encode,
-	Eq,
-	Ord,
-	PartialOrd,
-	PartialEq,
-	RuntimeDebug,
-	TypeInfo,
-	MaxEncodedLen,
-)]
-pub struct BridgeQueuesState {
-	/// Total number of messages that have been sent since last bridge state
-	/// Number of messages queued at this (source) chain' outbound queue.
-	///
-	/// That's the only field that is filled at this chain, because sibling (source)
-	/// bridge hub doesn't have an access to our queue.
-	pub outbound_here: MessageNonce,
-	/// Status of queues, that we have received from the bridge hub.
-	pub at_bridge_hub: AtBridgeHubBridgeQueuesState,
-}
-
-impl BridgeQueuesState {
-	/// Return total number of messsages that we assume are currently in the bridges queue.
-	pub fn total_enqueued_messages(&self) -> MessageNonce {
-		self.outbound_here.saturating_add(self.at_bridge_hub.total_enqueued_messages())
-	}
-}
-
 // TODO: this should be moved to `bp-xcm-bridge-hub`.
 /// All bridge queues state.
 #[derive(
@@ -92,8 +59,6 @@ impl BridgeQueuesState {
 	Deserialize,
 )]
 pub struct AtBridgeHubBridgeQueuesState {
-	/// Number of messages queued at sibling (source) bridge hub inbound queue.
-	pub inbound_at_sibling: MessageNonce,
 	/// Number of messages queued at sibling (source) bridge hub outbound queue.
 	pub outbound_at_sibling: MessageNonce,
 	/// Number of messages queued at bridged (target) bridge hub outbound queue.
@@ -114,11 +79,18 @@ pub struct AtBridgeHubBridgeQueuesState {
 impl AtBridgeHubBridgeQueuesState {
 	/// Return total number of messsages that we assume are currently in the bridges queue.
 	pub fn total_enqueued_messages(&self) -> MessageNonce {
-		self.inbound_at_sibling
-			.saturating_add(self.outbound_at_sibling)
+		self.outbound_at_sibling
 			.saturating_add(self.outbound_at_bridged)
 			.saturating_add(self.inbound_at_destination)
 	}
+}
+
+/// State of the last bridge state report request;
+pub struct ReportRequestState<BlockNumber> {
+	/// The number of block, at which we have sent our last bridge state report request.
+	pub sent_at: Option<BlockNumber>,
+	/// The number of messages that were sent after we have issued our report request.
+	pub messages_sent_after_request: MessageNonce,
 }
 
 /// Current state of bridge with the remote deestination.
@@ -141,9 +113,9 @@ pub struct Bridge<BlockNumber> {
 	/// The number of block, at which we have received last bridge state report. If we have
 	/// never received a report, it is set to zero.
 	pub last_report_block: BlockNumber,
-	/// The number of block, at which we have sent our last bridge state report request. Set
-	/// to `None` if we have no active report request.
-	pub last_report_request_block: Option<BlockNumber>,
+	/// Status of the last bridge state report request. If `None`, then there are no active
+	/// report request.
+	pub last_report_request: Option<ReportRequestState<BlockNumber>>,
 }
 
 impl<BlockNumber: Zero> Default for Bridge<BlockNumber> {
@@ -153,7 +125,7 @@ impl<BlockNumber: Zero> Default for Bridge<BlockNumber> {
 			fee_factor: FixedU128::from_u32(1),
 			total_enqueued_messages: 0,
 			last_report_block: Zero::zero(),
-			last_report_request_block: None,
+			last_report_request: None,
 		}
 	}
 }
