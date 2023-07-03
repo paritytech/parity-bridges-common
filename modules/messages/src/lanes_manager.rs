@@ -78,7 +78,7 @@ impl<T: Config<I>, I: 'static> LanesManager<T, I> {
 			},
 		})?;
 
-		self.inbound_lane(lane_id)
+		self.active_inbound_lane(lane_id)
 	}
 
 	/// Create new outbound lane in `Opened` state.
@@ -94,11 +94,11 @@ impl<T: Config<I>, I: 'static> LanesManager<T, I> {
 			},
 		})?;
 
-		self.outbound_lane(lane_id)
+		self.active_outbound_lane(lane_id)
 	}
 
 	/// Get existing inbound lane, checking that it is in usable state.
-	pub fn inbound_lane(
+	pub fn active_inbound_lane(
 		&self,
 		lane_id: LaneId,
 	) -> Result<InboundLane<RuntimeInboundLaneStorage<T, I>>, LanesManagerError> {
@@ -106,7 +106,7 @@ impl<T: Config<I>, I: 'static> LanesManager<T, I> {
 	}
 
 	/// Get existing outbound lane, checking that it is in usable state.
-	pub fn outbound_lane(
+	pub fn active_outbound_lane(
 		&self,
 		lane_id: LaneId,
 	) -> Result<OutboundLane<RuntimeOutboundLaneStorage<T, I>>, LanesManagerError> {
