@@ -25,30 +25,29 @@
 //!
 //! 1) the sibling parachain opens a XCMP channel with this bridge hub;
 //!
-//! 2) the sibling parachain funds its sovereign parachain account at this bridge hub. It
-//!    shall hold enough funds to pay for the bridge (see `BridgeReserve`);
+//! 2) the sibling parachain funds its sovereign parachain account at this bridge hub. It shall hold
+//!    enough funds to pay for the bridge (see `BridgeReserve`);
 //!
-//! 3) the sibling parachain opens the bridge by sending XCM `Transact` instruction
-//!    with the `open_bridge` call. The `BridgeReserve` amount is reserved
-//!    on the sovereign account of sibling parachain;
+//! 3) the sibling parachain opens the bridge by sending XCM `Transact` instruction with the
+//!    `open_bridge` call. The `BridgeReserve` amount is reserved on the sovereign account of
+//!    sibling parachain;
 //!
-//! 4) at the other side of the bridge, the same thing (1, 2, 3) happens. Parachains that
-//!    need to connect over the bridge need to coordinate the moment when they start sending
-//!    messages over the bridge. Otherwise they may lose funds and/or messages;
+//! 4) at the other side of the bridge, the same thing (1, 2, 3) happens. Parachains that need to
+//!    connect over the bridge need to coordinate the moment when they start sending messages over
+//!    the bridge. Otherwise they may lose funds and/or messages;
 //!
-//! 5) when the bridge is opened, anyone can watch for bridge rules (TODO!!!) violations.
-//!    If something goes wrong with the bridge, he may call the `report_misbehavior` method.
+//! 5) when the bridge is opened, anyone can watch for bridge rules (TODO!!!) violations. If
+//!    something goes wrong with the bridge, he may call the `report_misbehavior` method.
 //     During the call, the outbound lane is immediately `Closed`. The bridge itself switched
 //!    to the `Closing` state. A `Penalty` is paid (out of reserved funds) to the reporter. After
 //!    `BridgeCloseDelay`, the caller may call the `close_bridge` to get his funds back;
 //!
-//! 6) when either side wants to close the bridge, it sends the XCM `Transact` instruction
-//!    with the `request_bridge_closure` call. The bridge stays opened for `BridgeCloseDelay`
-//!    blocks. This delay exists to give both chain users enough time to properly close
-//!    their bridge - e.g. withdraw funds from the bridged chain and so on. After this
-//!    delay passes, either side may send another XCM `Transact` instruction with the
-//!    `close_bridge` call to actually close the bridge (at its side) and get its reserved
-//!    funds back.
+//! 6) when either side wants to close the bridge, it sends the XCM `Transact` instruction with the
+//!    `request_bridge_closure` call. The bridge stays opened for `BridgeCloseDelay` blocks. This
+//!    delay exists to give both chain users enough time to properly close their bridge - e.g.
+//!    withdraw funds from the bridged chain and so on. After this delay passes, either side may
+//!    send another XCM `Transact` instruction with the `close_bridge` call to actually close the
+//!    bridge (at its side) and get its reserved funds back.
 
 #![cfg_attr(not(feature = "std"), no_std)]
 
@@ -364,6 +363,10 @@ pub mod pallet {
 		}
 
 		/// Report bridge misbehavior.
+		///
+		/// The origin must be signed. If mesbihavior is confirmed, some (`Penalty`) portion of
+		/// bridge reserve is transferred to the reporter. The outbound lane of the bridge is
+		/// immediately closed and the bridge itself switches to closing mode.
 		#[pallet::call_index(3)]
 		#[pallet::weight(Weight::zero())]
 		pub fn report_misbehavior(
@@ -400,6 +403,29 @@ pub mod pallet {
 
 			Ok(())
 		}
+
+		/// Report reachable bridge queues state.
+		///
+		/// The origin must pass the `AllowedOpenBridgeOrigin` filter. The pallet prepares
+		/// the bridge queues state structure and sends it back to the caller.
+		#[pallet::call_index(4)]
+		#[pallet::weight(Weight::zero())]
+		pub fn report_bridge_queues_state(
+			_origin: OriginFor<T>,
+			_lane_id: LaneId,
+			_encoded_call_prefix: Vec<u8>,
+			_encoded_call_suffix: Vec<u8>,
+		) -> DispatchResult {
+			// TODO: implement me in https://github.com/paritytech/parity-bridges-common/pull/2233
+			// Something like:
+			//
+			// let bridge_origin_relative_location =
+			// Box::new(T::AllowedOpenBridgeOrigin::ensure_origin(origin)?); let state =
+			// BridgeQueuesState { .. }; let encoded_call = encoded_call_prefix ++ state.encode() ++
+			// encoded_call_suffix; T::ToBridgeOriginSender::send(bridge_origin_relative_location,
+			// vec![Xcm::Transact { call: encoded_call }]);
+			unimplemented!("")
+		}
 	}
 
 	impl<T: Config<I>, I: 'static> Pallet<T, I>
@@ -423,7 +449,6 @@ pub mod pallet {
 			//       `X3(GlobalConsensus(Kusama), Parachain(1000), AccountId32([0u8; 32])`
 			//       must use the same lane as `X2(GlobalConsensus(Kusama), Parachain(1000)`.
 			//       The router at the target chain will handle that.
-
 
 			// get locations of endpoint, located at this side of the bridge
 			let this_location = T::UniversalLocation::get();
