@@ -418,7 +418,7 @@ pub mod pallet {
 					});
 
 				// we're refunding weight if update has not happened and if pruning has not happened
-				let is_update_happened = matches!(update_result, Ok(_));
+				let is_update_happened = update_result.is_ok();
 				if !is_update_happened {
 					actual_weight = actual_weight.saturating_sub(
 						WeightInfoOf::<T, I>::parachain_head_storage_write_weight(
