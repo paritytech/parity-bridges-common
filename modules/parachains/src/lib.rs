@@ -1594,8 +1594,8 @@ pub(crate) mod tests {
 				Pallet::<TestRuntime>::submit_parachain_heads(
 					RuntimeOrigin::root(),
 					(0, test_relay_header(0, state_root).hash()),
-					parachains.clone(),
-					proof.clone(),
+					parachains,
+					proof,
 				),
 				DispatchError::BadOrigin
 			);
