@@ -234,7 +234,7 @@ impl pallet_bridge_messages::Config for TestRuntime {
 		ConstU64<100_000>,
 	>;
 
-	type MessageDispatch = ForbidInboundMessages<(), Vec<u8>>;
+	type MessageDispatch = ForbidInboundMessages<Vec<u8>>;
 	type ThisChain = ThisUnderlyingChain;
 	type BridgedChain = BridgedUnderlyingChain;
 	type BridgedHeaderChain = BridgeGrandpa;
