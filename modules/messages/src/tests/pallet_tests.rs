@@ -794,11 +794,11 @@ fn receive_messages_delivery_proof_rejects_proof_if_trying_to_confirm_more_messa
 		send_regular_message();
 
 		// 1) InboundLaneData declares that the `last_confirmed_nonce` is 1;
-		// 2) InboundLaneData has no entries => `InboundLaneData::last_delivered_nonce()`
-		//    returns `last_confirmed_nonce`;
+		// 2) InboundLaneData has no entries => `InboundLaneData::last_delivered_nonce()` returns
+		//    `last_confirmed_nonce`;
 		// 3) it means that we're going to confirm delivery of messages 1..=1;
-		// 4) so the number of declared messages (see `UnrewardedRelayersState`) is `0` and
-		//    numer of actually confirmed messages is `1`.
+		// 4) so the number of declared messages (see `UnrewardedRelayersState`) is `0` and numer of
+		//    actually confirmed messages is `1`.
 		let proof = prepare_messages_delivery_proof(
 			test_lane_id(),
 			InboundLaneData {
