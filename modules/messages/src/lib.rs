@@ -637,14 +637,18 @@ fn ensure_normal_operating_mode<T: Config<I>, I: 'static>() -> Result<(), Error<
 fn inbound_lane<T: Config<I>, I: 'static>(
 	lane_id: LaneId,
 ) -> Result<InboundLane<RuntimeInboundLaneStorage<T, I>>, Error<T, I>> {
-	LanesManager::<T, I>::new().active_inbound_lane(lane_id).map_err(Error::LanesManager)
+	LanesManager::<T, I>::new()
+		.active_inbound_lane(lane_id)
+		.map_err(Error::LanesManager)
 }
 
 /// Creates new outbound lane object, backed by runtime storage.
 fn outbound_lane<T: Config<I>, I: 'static>(
 	lane_id: LaneId,
 ) -> Result<OutboundLane<RuntimeOutboundLaneStorage<T, I>>, Error<T, I>> {
-	LanesManager::<T, I>::new().active_outbound_lane(lane_id).map_err(Error::LanesManager)
+	LanesManager::<T, I>::new()
+		.active_outbound_lane(lane_id)
+		.map_err(Error::LanesManager)
 }
 
 /// Verify messages proof and return proved messages with decoded payload.
