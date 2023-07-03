@@ -1140,13 +1140,15 @@ dependencies = [
 ]
 
 [[package]]
-name = "bp-xcm-over-bridge-fee"
+name = "bp-xcm-bridge-hub-router"
 version = "0.1.0"
 dependencies = [
  "bp-messages",
+ "frame-support",
  "parity-scale-codec",
  "scale-info",
  "serde",
+ "sp-runtime",
 ]
 
 [[package]]
@@ -7654,14 +7656,19 @@ dependencies = [
 ]
 
 [[package]]
-name = "pallet-xcm-over-bridge-fee"
+name = "pallet-xcm-bridge-hub-router"
 version = "0.1.0"
 dependencies = [
- "bp-xcm-over-bridge-fee",
+ "bp-messages",
+ "bp-xcm-bridge-hub-router",
  "frame-support",
  "frame-system",
  "parity-scale-codec",
+ "scale-info",
+ "sp-runtime",
  "sp-std 8.0.0 (git+https://github.com/paritytech/substrate?branch=master)",
+ "xcm",
+ "xcm-builder",
 ]
 
 [[package]]

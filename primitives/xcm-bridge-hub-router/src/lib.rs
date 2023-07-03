@@ -20,8 +20,10 @@
 
 use bp_messages::MessageNonce;
 use codec::{Decode, Encode, MaxEncodedLen};
+use frame_support::RuntimeDebug;
 use scale_info::TypeInfo;
 use serde::{Deserialize, Serialize};
+use sp_runtime::{traits::Zero, FixedU128};
 
 /// Bridge limits.
 #[derive(Clone, RuntimeDebug)]
@@ -100,7 +102,7 @@ pub struct Bridge<BlockNumber> {
 	pub is_relieving: bool,
 	/// The number to multiply the base message delivery fee by. We will increase this
 	/// value exponentially when we the bridge throughput decreases and decrease after
-	/// it is back to normal. 
+	/// it is back to normal.
 	pub fee_factor: FixedU128,
 	/// Count of undelivered bridge messages as we see it. The actual number may be lower
 	/// if some messages are already delivered, but we have not yet received a report.

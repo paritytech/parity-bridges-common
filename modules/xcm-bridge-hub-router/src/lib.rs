@@ -22,7 +22,20 @@
 
 #![cfg_attr(not(feature = "std"), no_std)]
 
+use bp_messages::LaneId;
+use bp_xcm_bridge_hub_router::{AtBridgeHubBridgeQueuesState, Bridge, BridgeLimits};
+use frame_support::fail;
+use sp_runtime::{traits::Zero, FixedU128};
+use xcm::prelude::*;
+use xcm_builder::{ensure_is_remote, ExporterFor, SovereignPaidRemoteExporter};
+
 pub use pallet::*;
+
+/// The factor that is used to increase current message fee factor when bridge experiencing
+/// some lags.
+const EXPONENTIAL_FEE_BASE: FixedU128 = FixedU128::from_rational(105, 100); // 1.05
+/// The factor that is used to increase current message fee factor for every sent kilobyte.
+const MESSAGE_SIZE_FEE_BASE: FixedU128 = FixedU128::from_rational(1, 1000); // 0.001
 
 #[frame_support::pallet]
 pub mod pallet {
@@ -34,19 +47,27 @@ pub mod pallet {
 	pub trait Config<I: 'static = ()>: frame_system::Config {
 		/// Bridge limits.
 		#[pallet::constant]
-		type BridgeLimits: Get<BridgeLimits>;
+		type BridgeLimits: Get<BridgeLimits<BlockNumberOf<Self>>>;
+
+		/// Runtime's universal location.
+		type UniversalLocation: Get<InteriorMultiLocation>;
 
 		/// Bridge hub origin.
 		type BridgeHubOrigin: EnsureOrigin<<Self as frame_system::Config>::RuntimeOrigin>;
 
 		/// Child/sibling bridge hub configuration.
-		type BridgeHub: BridgeHub;
+		// type BridgeHub: BridgeHub;
 
 		/// Underlying transport (XCMP or DMP) which allows sending messages to the child/sibling
 		/// bridge hub. We assume this channel satisfies all XCM requirements - we rely on the
 		/// fact that it guarantees ordered delivery.
 		type ToBridgeHubSender: SendXcm;
 	}
+
+	/// Shortcut for the BlockNumber used by our chain.
+	type BlockNumberOf<T> = <T as frame_system::Config>::BlockNumber;
+	/// Shortcut for the `Bridge` structure used by the pallet.
+	type BridgeOf<T> = Bridge<BlockNumberOf<T>>;
 
 	#[pallet::pallet]
 	pub struct Pallet<T, I = ()>(PhantomData<(T, I)>);
@@ -56,20 +77,22 @@ pub mod pallet {
 		fn on_initialize(_n: BlockNumberFor<T>) -> Weight {
 			RelievingBridges::<T, I>::mutate(|relieving_bridges| {
 				relieving_bridges.retain(|lane_id| {
-					let result = Bridges::<T, I>::try_mutate_exists(|lane_id|, |stored_bridge| {
+					let result = Bridges::<T, I>::try_mutate_exists(lane_id, |stored_bridge| {
 						// remove deleted bridge from the `RelievingBridges` set
 						let bridge = match stored_bridge.take() {
 							Some(bridge) => bridge,
 							None => return Err(false),
 						};
 
-						// remove bridge from the `RelievingBridges` set if it isn't relieving anymore
+						// remove bridge from the `RelievingBridges` set if it isn't relieving
+						// anymore
 						if !bridge.is_relieving {
-							return Err(false);
+							return Err(false)
 						}
 
 						// decrease fee factor
-						bridge.fee_factor = FixedU128::one().max(bridge.fee_factor / EXPONENTIAL_FEE_BASE);
+						bridge.fee_factor =
+							FixedU128::one().max(bridge.fee_factor / EXPONENTIAL_FEE_BASE);
 
 						// stop relieveing if fee factor is `1`
 						let keep_relieving = bridge.fee_factor != FixedU128::one();
@@ -80,31 +103,25 @@ pub mod pallet {
 						*stored_bridge = Some(bridge);
 						Ok(bridge.is_relieving)
 					});
-				});
 
-				// remove from the set if bridge is no longer relieving
-				result == Ok(true)
-			})
+					// remove from the set if bridge is no longer relieving
+					result == Ok(true)
+				});
+			});
 
 			// TODO: use benchmarks for that
 			Weight::zero()
-		}
-
-		fn on_finalize(_n: BlockNumberFor<T>) {
-			IncreaseFeeFactorOnSend::<T, I>::kill();
 		}
 	}
 
 	#[pallet::call]
 	impl<T: Config<I>, I: 'static> Pallet<T, I> {
-
-
 		#[pallet::call_index(0)]
 		#[pallet::weight(Weight::zero())]
 		pub fn receive_bridge_state_report(
 			origin: OriginFor<T>,
 			lane_id: LaneId,
-			request_sent_at: T::BlockNumber,
+			request_sent_at: BlockNumberOf<T>,
 			at_bridge_hub_queues_state: AtBridgeHubBridgeQueuesState,
 		) -> DispatchResultWithPostInfo {
 			// we only accept reports from the bridge hub
@@ -119,17 +136,20 @@ pub mod pallet {
 
 				// we only accept report for the latest request
 				let last_report_request = match bridge.last_report_request.take() {
-					Some(last_report_request) if last_report_request.at_block == request_sent_at => last_report_request,
+					Some(last_report_request)
+						if last_report_request.at_block == request_sent_at =>
+						last_report_request,
 					_ => fail!(Error::<T, I>::UnexpectedReport),
 				};
 
-				// update total number of enqueued messages. To compute numnber of enqueued messages in
-				// `outbound_here` and `inbound_at_sibling` queues we use our own counter because we can't
-				// rely on the information from the sibling/child bridge hub - it is processed with a delay
-				// and during that delay any number of messages may be sent over the bridge.
- 				bridge.total_enqueued_messages = last_report_request.messages_sent_after_request
+				// update total number of enqueued messages. To compute numnber of enqueued messages
+				// in `outbound_here` and `inbound_at_sibling` queues we use our own counter because
+				// we can't rely on the information from the sibling/child bridge hub - it is
+				// processed with a delay and during that delay any number of messages may be sent
+				// over the bridge.
+				bridge.total_enqueued_messages = last_report_request
+					.messages_sent_after_request
 					.saturating_add(at_bridge_hub_queues_state.total_enqueued_messages());
-
 
 				// if we need to start decreasing fee factor - let's remember that
 				let old_is_relieving = bridge.is_relieving;
@@ -148,17 +168,29 @@ pub mod pallet {
 
 	/// All registered bridges.
 	#[pallet::storage]
-	pub type Bridges<T: Config<I>, I: 'static = ()> = StorageMap<_, Identity, LaneId, BridgeOf<T, I>, OptionQuery>;
+	pub type Bridges<T: Config<I>, I: 'static = ()> =
+		StorageMap<_, Identity, LaneId, BridgeOf<T>, OptionQuery>;
 
 	/// Bridges that are currently in the relieving phase.
-	pub type RelievingBridges<T: Config<I>, I: 'static = ()> = StorageValue<_, Vec<LaneId>, ValueQuery>;
+	#[pallet::storage]
+	pub type RelievingBridges<T: Config<I>, I: 'static = ()> =
+		StorageValue<_, Vec<LaneId>, ValueQuery>;
+
+	#[pallet::error]
+	pub enum Error<T, I = ()> {
+		/// Trying to access unknown bridge.
+		UnknownBridge,
+		/// The bridge queues state report is unexpected at the moment.
+		UnexpectedReport,
+	}
 }
 
-/// We'll be using `SovereignPaidRemoteExporter` to send remote messages over the sibling/child bridge hub.
+/// We'll be using `SovereignPaidRemoteExporter` to send remote messages over the sibling/child
+/// bridge hub.
 type ViaBridgeHubExporter<T, I> = SovereignPaidRemoteExporter<
 	Pallet<T, I>,
 	<T as Config<I>>::ToBridgeHubSender,
-	T as Config<I>>::UniversalLocation,
+	<T as Config<I>>::UniversalLocation,
 >;
 
 // This pallet acts as the `ExporterFor` for the `SovereignPaidRemoteExporter` to compute
@@ -171,7 +203,7 @@ impl<T: Config<I>, I: 'static> ExporterFor for Pallet<T, I> {
 	) -> Option<(MultiLocation, Option<MultiAsset>)> {
 		// ensure that the message is sent to the expected bridged network
 		if *network != T::BridgedNetworkId::get() {
-			return None;
+			return None
 		}
 
 		// compute fee amount
@@ -180,7 +212,7 @@ impl<T: Config<I>, I: 'static> ExporterFor for Pallet<T, I> {
 		let mesage_size = message.encoded_size();
 		let message_fee = (mesage_size as u128).saturating_mul(T::MessageByteFee::get());
 		let fee_sum = T::MessageBaseFee::get().saturating_add(message_fee);
-		let fee = bridge_fee_factor.saturating_mul_int(fee_sum);
+		let fee = bridge.fee_factor.saturating_mul_int(fee_sum);
 
 		Some((T::LocalBridgeHubLocation::get(), (T::FeeAsset::get(), fee).into()))
 	}
@@ -190,20 +222,29 @@ impl<T: Config<I>, I: 'static> ExporterFor for Pallet<T, I> {
 // XCMP/DMP transport. This allows injecting dynamic message fees into XCM programs that
 // are going to the bridged network.
 impl<T: Config<I>, I: 'static> SendXcm for Pallet<T, I> {
-	type Ticket = (LaneId, u32, T::ToBridgeHubSender::Ticket);
+	type Ticket = (LaneId, u32, <T::ToBridgeHubSender as SendXcm>::Ticket);
 
 	fn validate(
 		dest: &mut Option<MultiLocation>,
 		xcm: &mut Option<Xcm<()>>,
-	) -> SendResult<Router::Ticket> {
+	) -> SendResult<Self::Ticket> {
+		// we won't have an access to `dest` and `xcm` in the `delvier` method, so precompute
+		// everything required here
+		let (remote_network, remote_location) = ensure_is_remote(
+			T::UniversalLocation::get(),
+			*dest.as_ref().ok_or(SendError::MissingArgument)?,
+		)
+		.map_err(|_| SendError::NotApplicable)?;
+		let lane_id = bridge_lane_id(remote_network, remote_location, T::UniversalLocation::get());
+		let message_size = xcm.as_ref().map(|xcm| xcm.encoded_size());
+
 		// just use exporter to validate destination and insert instructions to pay message fee
 		// at the sibling/child bridge hub
-		let lane_id = bridge_lane_id(<TODO>);
-		let message_size = xcm.as_ref().map(|xcm| xcm.encoded_size());
-		ViaBridgeHubExporter::<T, I>::validate(dest, xcm).map(|ticket| (lane_id, message_size, ticket))
+		ViaBridgeHubExporter::<T, I>::validate(dest, xcm)
+			.map(|ticket| (lane_id, message_size, ticket))
 	}
 
-	fn deliver(ticket: (u32, Router::Ticket)) -> Result<XcmHash, SendError> {
+	fn deliver(ticket: Self::Ticket) -> Result<XcmHash, SendError> {
 		// use router to enqueue message to the sibling/child bridge hub. This also should handle
 		// payment for passing through this queue.
 		let (lane_id, message_size, ticket) = ticket;
@@ -211,7 +252,7 @@ impl<T: Config<I>, I: 'static> SendXcm for Pallet<T, I> {
 
 		// let's check if we need to increase fee for the further messages
 		let limits = T::BridgeLimits::get();
-		let current_block = frame_system::Pallet<T>::block_number();
+		let current_block = frame_system::Pallet::<T>::block_number();
 		let mut bridge = Bridges::<T, I>::get(lane_id).ok_or_else(SendError::Unroutable)?;
 		let limits = BridgeLimits::get();
 		if is_fee_increment_required(current_block, &bridge, &limits) {
@@ -226,7 +267,8 @@ impl<T: Config<I>, I: 'static> SendXcm for Pallet<T, I> {
 			// update fee factor
 			let message_size_factor = FixedU128::from_u32(message_size.saturating_div(1024) as u32)
 				.saturating_mul(MESSAGE_SIZE_FEE_BASE);
-			bridge.fee_factor = bridge.fee_factor.saturating_mul(EXPONENTIAL_FEE_BASE + message_size_factor);
+			bridge.fee_factor =
+				bridge.fee_factor.saturating_mul(EXPONENTIAL_FEE_BASE + message_size_factor);
 		}
 
 		// increment number of enqueued messages that we think are in all bridge queues now
@@ -258,13 +300,16 @@ fn is_fee_increment_required<BlockNumber: Ord>(
 ) -> bool {
 	// if there are more messages than we expect, we need to increase fee
 	if bridge.total_enqueued_messages > limits.increase_fee_factor_threshold {
-		return true;
+		return true
 	}
 
 	// if we are waiting for the report for too long, we need to increase fee
-	let current_delay = bridge.last_report_request_block.map(|b| b.saturating_sub(current_block)).unwrap_or_else(Zero::zero);
+	let current_delay = bridge
+		.last_report_request_block
+		.map(|b| b.saturating_sub(current_block))
+		.unwrap_or_else(Zero::zero);
 	if current_delay > limits.maximal_bridge_state_report_delay {
-		return true;
+		return true
 	}
 
 	false
@@ -284,18 +329,41 @@ fn is_state_report_required<BlockNumber: Ord>(
 
 	// we don't need new request if we believe there aren't much messages in the queue
 	if bridge.total_enqueued_messages <= limits.send_report_bridge_state_threshold {
-		return false;
+		return false
 	}
 
 	// we don't need new request if we have received report recently
-	if current_block.saturating_sub(last_report_request.sent_at) < limits.minimal_bridge_state_request_delay {
+	if current_block.saturating_sub(last_report_request.sent_at) <
+		limits.minimal_bridge_state_request_delay
+	{
 		return false
 	}
 
 	true
 }
 
-// TODO: move this function to the bp-messages or bp-runtime - there's similar function in the pallet-xcm-bridge-hub.
+/// Returns `true` if we need to start relieving the bridge fee factor.
+fn is_relief_required<BlockNumber: Ord>(
+	current_block: BlockNumber,
+	bridge: &Bridge<BlockNumber>,
+	limits: &BridgeLimits<BlockNumber>,
+) -> bool {
+	// if we already relieving - no need to restart
+	if bridge.is_relieving {
+		return false
+	}
+
+	// if bridge fee factor is alreadt minimal, no need to relieve
+	if bridge.fee_factor <= FixedU128::one() {
+		return false
+	}
+
+	// else - make sure that we are not increasing the factor
+	!is_fee_increment_required(current_block, bridge, limits)
+}
+
+// TODO: move this function to the bp-messages or bp-runtime - there's similar function in the
+// pallet-xcm-bridge-hub.
 /// Given remote (bridged) network id and interior location within that network, return
 /// lane identifier that will be used to bridge with local `local_universal_location`.
 ///

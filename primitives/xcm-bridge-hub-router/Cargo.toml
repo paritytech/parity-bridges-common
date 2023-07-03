@@ -17,9 +17,10 @@ bp-messages = { path = "../messages", default-features = false }
 
 # Substrate Dependencies
 
-#frame-support = { git = "https://github.com/paritytech/substrate", branch = "master", default-features = false }
+frame-support = { git = "https://github.com/paritytech/substrate", branch = "master", default-features = false }
 #sp-core = { git = "https://github.com/paritytech/substrate", branch = "master", default-features = false }
 #sp-io = { git = "https://github.com/paritytech/substrate", branch = "master", default-features = false }
+sp-runtime = { git = "https://github.com/paritytech/substrate", branch = "master", default-features = false }
 #sp-std = { git = "https://github.com/paritytech/substrate", branch = "master", default-features = false }
 
 [features]
@@ -28,10 +29,11 @@ std = [
 	"bp-messages/std",
 #	"bp-header-chain/std",
 	"codec/std",
-#	"frame-support/std",
+	"frame-support/std",
 	"scale-info/std",
 	"serde/std",
 #	"sp-core/std",
 #	"sp-io/std",
-#	"sp-std/std"
+#	"sp-std/std",
+	"sp-runtime/std",
 ]
