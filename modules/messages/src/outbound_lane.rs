@@ -19,13 +19,13 @@
 use crate::{Config, LOG_TARGET};
 
 use bp_messages::{
-	ChainWithMessages, DeliveredMessages, LaneId, MessageNonce, MessagePayload, OutboundLaneData,
-	UnrewardedRelayer, VerificationError,
+	ChainWithMessages, DeliveredMessages, LaneId, LaneState, MessageNonce, MessagePayload,
+	OutboundLaneData, UnrewardedRelayer, VerificationError,
 };
 use codec::{Decode, Encode};
 use frame_support::{traits::Get, BoundedVec, PalletError, RuntimeDebug};
 use scale_info::TypeInfo;
-use sp_std::{collections::vec_deque::VecDeque, marker::PhantomData};
+use sp_std::{collections::vec_deque::VecDeque, marker::PhantomData, ops::RangeInclusive};
 
 /// Outbound lane storage.
 pub trait OutboundLaneStorage {
@@ -46,6 +46,8 @@ pub trait OutboundLaneStorage {
 	) -> Result<(), VerificationError>;
 	/// Remove outbound message from the storage.
 	fn remove_message(&mut self, nonce: &MessageNonce);
+	/// Purge lane data from the storage.
+	fn purge(self);
 }
 
 /// Limit for the `StoredMessagePayload` vector.
@@ -91,6 +93,24 @@ impl<S: OutboundLaneStorage> OutboundLane<S> {
 	#[cfg(test)]
 	pub fn data(&self) -> OutboundLaneData {
 		self.storage.data()
+	}
+
+	/// Get lane state.
+	pub fn state(&self) -> LaneState {
+		self.storage.data().state
+	}
+
+	/// Set lane state.
+	pub fn set_state(&mut self, state: LaneState) {
+		let mut data = self.storage.data();
+		data.state = state;
+		self.storage.set_data(data);
+	}
+
+	/// Return nonces of all currently queued messages.
+	pub fn queued_messages(&self) -> RangeInclusive<MessageNonce> {
+		let data = self.storage.data();
+		data.oldest_unpruned_nonce..=data.latest_generated_nonce
 	}
 
 	/// Send message over lane.
@@ -155,6 +175,19 @@ impl<S: OutboundLaneStorage> OutboundLane<S> {
 		self.storage.set_data(data);
 
 		Ok(Some(confirmed_messages))
+	}
+
+	/// Remove message from the storage. Doesn't perform any checks.
+	pub fn remove_oldest_unpruned_message(&mut self) {
+		let mut data = self.storage.data();
+		self.storage.remove_message(&data.oldest_unpruned_nonce);
+		data.oldest_unpruned_nonce += 1;
+		self.storage.set_data(data);
+	}
+
+	/// Purge lane state from the storage.
+	pub fn purge(self) {
+		self.storage.purge()
 	}
 }
 
