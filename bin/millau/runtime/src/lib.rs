@@ -581,7 +581,7 @@ generate_bridge_reject_obsolete_headers_and_messages! {
 
 bp_runtime::generate_static_str_provider!(BridgeRefundRialtoPara2000Lane0Msgs);
 /// Signed extension that refunds relayers that are delivering messages from the Rialto parachain.
-pub type PriorityBoostPerMessage = ConstU64<327_319_648>;
+pub type PriorityBoostPerMessage = ConstU64<351_343_108>;
 pub type BridgeRefundRialtoParachainMessages = RefundBridgedParachainMessages<
 	Runtime,
 	RefundableParachain<WithRialtoParachainsInstance, bp_rialto_parachain::RialtoParachain>,
@@ -1077,7 +1077,7 @@ impl_runtime_apis! {
 				fn prepare_parachain_heads_proof(
 					parachains: &[bp_polkadot_core::parachains::ParaId],
 					parachain_head_size: u32,
-					proof_size: bp_runtime::StorageProofSize,
+					proof_params: bp_runtime::UnverifiedStorageProofParams,
 				) -> (
 					pallet_bridge_parachains::RelayBlockNumber,
 					pallet_bridge_parachains::RelayBlockHash,
@@ -1090,7 +1090,7 @@ impl_runtime_apis! {
 					>(
 						parachains,
 						parachain_head_size,
-						proof_size,
+						proof_params,
 					)
 				}
 			}

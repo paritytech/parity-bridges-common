@@ -380,8 +380,9 @@ pub mod pallet {
 			// check report
 			match misbehavior {
 				BridgeMisbehavior::TooManyQueuedOutboundMessages => {
-					let outbound_lane =
-						lanes_manager.outbound_lane(lane_id).map_err(Into::<Error<T, I>>::into)?;
+					let outbound_lane = lanes_manager
+						.active_outbound_lane(lane_id)
+						.map_err(Into::<Error<T, I>>::into)?;
 					let queued_messages =
 						outbound_lane.queued_messages().checked_len().unwrap_or(0);
 					let max_queued_messages = T::BridgeLimits::get().max_queued_outbound_messages;
@@ -523,11 +524,11 @@ pub mod pallet {
 			// update lanes state. Under normal circumstances, following calls shall never fail
 			let lanes_manager = LanesManagerOf::<T, I>::new();
 			lanes_manager
-				.inbound_lane(lane_id)
+				.active_inbound_lane(lane_id)
 				.map_err(Into::<Error<T, I>>::into)?
 				.set_state(LaneState::Closing);
 			lanes_manager
-				.outbound_lane(lane_id)
+				.active_outbound_lane(lane_id)
 				.map_err(Into::<Error<T, I>>::into)?
 				.set_state(outbound_lane_state);
 
@@ -749,11 +750,11 @@ mod tests {
 
 		let lanes_manager = LanesManagerOf::<TestRuntime, ()>::new();
 		lanes_manager
-			.inbound_lane(locations.lane_id)
+			.active_inbound_lane(locations.lane_id)
 			.unwrap()
 			.set_state(LaneState::Closing);
 		lanes_manager
-			.outbound_lane(locations.lane_id)
+			.active_outbound_lane(locations.lane_id)
 			.unwrap()
 			.set_state(LaneState::Closing);
 
@@ -762,7 +763,11 @@ mod tests {
 
 	fn enqueue_message(lane: LaneId) {
 		let lanes_manager = LanesManagerOf::<TestRuntime, ()>::new();
-		lanes_manager.outbound_lane(lane).unwrap().send_message(vec![42]).unwrap();
+		lanes_manager
+			.active_outbound_lane(lane)
+			.unwrap()
+			.send_message(vec![42])
+			.unwrap();
 	}
 
 	#[test]
@@ -917,7 +922,7 @@ mod tests {
 				Error::<TestRuntime, ()>::InboundLaneAlreadyExists,
 			);
 
-			lanes_manager.inbound_lane(locations.lane_id).unwrap().purge();
+			lanes_manager.active_inbound_lane(locations.lane_id).unwrap().purge();
 			lanes_manager.create_outbound_lane(locations.lane_id).unwrap();
 			assert_noop!(
 				XcmOverBridge::open_bridge(origin, Box::new(bridged_asset_hub_location()),),
@@ -956,11 +961,11 @@ mod tests {
 				// ensure that there's no bridge and lanes in the storage
 				assert_eq!(Bridges::<TestRuntime, ()>::get(locations.lane_id), None);
 				assert_eq!(
-					lanes_manager.inbound_lane(locations.lane_id).map(drop),
+					lanes_manager.active_inbound_lane(locations.lane_id).map(drop),
 					Err(LanesManagerError::UnknownInboundLane)
 				);
 				assert_eq!(
-					lanes_manager.outbound_lane(locations.lane_id).map(drop),
+					lanes_manager.active_outbound_lane(locations.lane_id).map(drop),
 					Err(LanesManagerError::UnknownOutboundLane)
 				);
 
@@ -991,11 +996,11 @@ mod tests {
 					}),
 				);
 				assert_eq!(
-					lanes_manager.inbound_lane(locations.lane_id).map(|l| l.state()),
+					lanes_manager.active_inbound_lane(locations.lane_id).map(|l| l.state()),
 					Ok(LaneState::Opened)
 				);
 				assert_eq!(
-					lanes_manager.outbound_lane(locations.lane_id).map(|l| l.state()),
+					lanes_manager.active_outbound_lane(locations.lane_id).map(|l| l.state()),
 					Ok(LaneState::Opened)
 				);
 				assert_eq!(Balances::free_balance(&bridge_owner_account), existential_deposit);
@@ -1099,7 +1104,7 @@ mod tests {
 			let (_, locations) = mock_open_bridge_from(origin.clone());
 
 			let lanes_manager = LanesManagerOf::<TestRuntime, ()>::new();
-			lanes_manager.inbound_lane(locations.lane_id).unwrap().purge();
+			lanes_manager.active_inbound_lane(locations.lane_id).unwrap().purge();
 			assert_noop!(
 				XcmOverBridge::request_bridge_closure(
 					origin.clone(),
@@ -1108,9 +1113,9 @@ mod tests {
 				Error::<TestRuntime, ()>::UnknownInboundLane,
 			);
 
-			lanes_manager.outbound_lane(locations.lane_id).unwrap().purge();
+			lanes_manager.active_outbound_lane(locations.lane_id).unwrap().purge();
 			let (_, locations) = mock_open_bridge_from(origin.clone());
-			lanes_manager.outbound_lane(locations.lane_id).unwrap().purge();
+			lanes_manager.active_outbound_lane(locations.lane_id).unwrap().purge();
 			assert_noop!(
 				XcmOverBridge::request_bridge_closure(
 					origin.clone(),
@@ -1129,7 +1134,7 @@ mod tests {
 
 			let lanes_manager = LanesManagerOf::<TestRuntime, ()>::new();
 			lanes_manager
-				.inbound_lane(locations.lane_id)
+				.active_inbound_lane(locations.lane_id)
 				.unwrap()
 				.set_state(LaneState::Closed);
 			assert_noop!(
@@ -1145,7 +1150,7 @@ mod tests {
 				.set_state(LaneState::Opened);
 
 			lanes_manager
-				.outbound_lane(locations.lane_id)
+				.active_outbound_lane(locations.lane_id)
 				.unwrap()
 				.set_state(LaneState::Closed);
 			assert_noop!(
@@ -1183,11 +1188,11 @@ mod tests {
 				Some(BridgeState::Closing(may_close_at))
 			);
 			assert_eq!(
-				lanes_manager.inbound_lane(locations.lane_id).unwrap().state(),
+				lanes_manager.active_inbound_lane(locations.lane_id).unwrap().state(),
 				LaneState::Closing
 			);
 			assert_eq!(
-				lanes_manager.outbound_lane(locations.lane_id).unwrap().state(),
+				lanes_manager.active_outbound_lane(locations.lane_id).unwrap().state(),
 				LaneState::Closing
 			);
 
@@ -1588,7 +1593,7 @@ mod tests {
 			}
 
 			LanesManagerOf::<TestRuntime, ()>::new()
-				.outbound_lane(locations.lane_id)
+				.active_outbound_lane(locations.lane_id)
 				.unwrap()
 				.purge();
 			assert_noop!(
@@ -1614,7 +1619,7 @@ mod tests {
 			}
 
 			LanesManagerOf::<TestRuntime, ()>::new()
-				.outbound_lane(locations.lane_id)
+				.active_outbound_lane(locations.lane_id)
 				.unwrap()
 				.set_state(LaneState::Closed);
 			assert_noop!(
@@ -1681,7 +1686,7 @@ mod tests {
 				Some(BridgeState::Closing(may_close_at))
 			);
 			assert_eq!(
-				lanes_manager.inbound_lane(locations.lane_id).unwrap().state(),
+				lanes_manager.active_inbound_lane(locations.lane_id).unwrap().state(),
 				LaneState::Closing
 			);
 			assert_eq!(

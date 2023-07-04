@@ -15,7 +15,7 @@
 // along with Parity Bridges Common.  If not, see <http://www.gnu.org/licenses/>.
 
 use crate::{
-	BridgedChainOf, Config, Error, InboundLane, InboundLaneStorage, InboundLanes, OutboundLane,
+	BridgedChainOf, Config, InboundLane, InboundLaneStorage, InboundLanes, OutboundLane,
 	OutboundLaneStorage, OutboundLanes, OutboundMessages, StoredInboundLaneData,
 	StoredMessagePayload,
 };
@@ -25,12 +25,13 @@ use bp_messages::{
 	MessagePayload, OutboundLaneData, VerificationError,
 };
 use bp_runtime::AccountIdOf;
-use codec::MaxEncodedLen;
-use frame_support::{ensure, RuntimeDebug};
+use codec::{Decode, Encode, MaxEncodedLen};
+use frame_support::{ensure, PalletError, RuntimeDebug};
+use scale_info::TypeInfo;
 use sp_std::marker::PhantomData;
 
 /// Lanes manager errors.
-#[derive(RuntimeDebug, PartialEq, Eq)]
+#[derive(Encode, Decode, RuntimeDebug, PartialEq, Eq, PalletError, TypeInfo)]
 pub enum LanesManagerError {
 	/// Inbound lane already exists.
 	InboundLaneAlreadyExists,
@@ -46,21 +47,14 @@ pub enum LanesManagerError {
 	ClosedOutboundLane,
 }
 
-impl<T, I> From<LanesManagerError> for Error<T, I> {
-	fn from(e: LanesManagerError) -> Self {
-		match e {
-			LanesManagerError::InboundLaneAlreadyExists => Error::InboundLaneAlreadyExists,
-			LanesManagerError::OutboundLaneAlreadyExists => Error::OutboundLaneAlreadyExists,
-			LanesManagerError::UnknownInboundLane => Error::UnknownInboundLane,
-			LanesManagerError::UnknownOutboundLane => Error::UnknownOutboundLane,
-			LanesManagerError::ClosedInboundLane => Error::ClosedInboundLane,
-			LanesManagerError::ClosedOutboundLane => Error::ClosedOutboundLane,
-		}
-	}
-}
-
 /// Message lanes manager.
 pub struct LanesManager<T, I>(PhantomData<(T, I)>);
+
+impl<T: Config<I>, I: 'static> Default for LanesManager<T, I> {
+	fn default() -> Self {
+		Self::new()
+	}
+}
 
 impl<T: Config<I>, I: 'static> LanesManager<T, I> {
 	/// Create new lanes manager.
@@ -75,13 +69,16 @@ impl<T: Config<I>, I: 'static> LanesManager<T, I> {
 	) -> Result<InboundLane<RuntimeInboundLaneStorage<T, I>>, LanesManagerError> {
 		InboundLanes::<T, I>::try_mutate(lane_id, |lane| match lane {
 			Some(_) => Err(LanesManagerError::InboundLaneAlreadyExists),
-			None => Ok(*lane = Some(StoredInboundLaneData(InboundLaneData {
-				state: LaneState::Opened,
-				..Default::default()
-			}))),
+			None => {
+				*lane = Some(StoredInboundLaneData(InboundLaneData {
+					state: LaneState::Opened,
+					..Default::default()
+				}));
+				Ok(())
+			},
 		})?;
 
-		self.inbound_lane(lane_id)
+		self.active_inbound_lane(lane_id)
 	}
 
 	/// Create new outbound lane in `Opened` state.
@@ -91,16 +88,17 @@ impl<T: Config<I>, I: 'static> LanesManager<T, I> {
 	) -> Result<OutboundLane<RuntimeOutboundLaneStorage<T, I>>, LanesManagerError> {
 		OutboundLanes::<T, I>::try_mutate(lane_id, |lane| match lane {
 			Some(_) => Err(LanesManagerError::OutboundLaneAlreadyExists),
-			None =>
-				Ok(*lane =
-					Some(OutboundLaneData { state: LaneState::Opened, ..Default::default() })),
+			None => {
+				*lane = Some(OutboundLaneData { state: LaneState::Opened, ..Default::default() });
+				Ok(())
+			},
 		})?;
 
-		self.outbound_lane(lane_id)
+		self.active_outbound_lane(lane_id)
 	}
 
 	/// Get existing inbound lane, checking that it is in usable state.
-	pub fn inbound_lane(
+	pub fn active_inbound_lane(
 		&self,
 		lane_id: LaneId,
 	) -> Result<InboundLane<RuntimeInboundLaneStorage<T, I>>, LanesManagerError> {
@@ -108,7 +106,7 @@ impl<T: Config<I>, I: 'static> LanesManager<T, I> {
 	}
 
 	/// Get existing outbound lane, checking that it is in usable state.
-	pub fn outbound_lane(
+	pub fn active_outbound_lane(
 		&self,
 		lane_id: LaneId,
 	) -> Result<OutboundLane<RuntimeOutboundLaneStorage<T, I>>, LanesManagerError> {
@@ -157,9 +155,6 @@ impl<T: Config<I>, I: 'static> RuntimeInboundLaneStorage<T, I> {
 			_phantom: Default::default(),
 		})
 	}
-}
-
-impl<T: Config<I>, I: 'static> RuntimeInboundLaneStorage<T, I> {
 	/// Returns number of bytes that may be subtracted from the PoV component of
 	/// `receive_messages_proof` call, because the actual inbound lane state is smaller than the
 	/// maximal configured.

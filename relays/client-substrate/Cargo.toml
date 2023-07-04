@@ -15,8 +15,8 @@ log = "0.4.19"
 num-traits = "0.2"
 quick_cache = "0.3"
 rand = "0.8"
-scale-info = { version = "2.6.0", features = ["derive"] }
-tokio = { version = "1.28", features = ["rt-multi-thread"] }
+scale-info = { version = "2.8.0", features = ["derive"] }
+tokio = { version = "1.29", features = ["rt-multi-thread"] }
 thiserror = "1.0.40"
 
 # Bridge dependencies
