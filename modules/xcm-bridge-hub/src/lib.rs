@@ -385,7 +385,14 @@ pub mod pallet {
 			let failed_to_unreserve =
 				T::NativeCurrency::unreserve(&bridge.bridge_owner_account, bridge.reserve);
 			if !failed_to_unreserve.is_zero() {
-				// TODO: log
+				// we can't do anything here - looks like funds have been (partially) unreserved
+				// before by someone else. Let's not fail, though - it'll be worse for the caller
+				log::trace!(
+					target: LOG_TARGET,
+					"Failed to unreserve {:?} during ridge {:?} closure",
+					failed_to_unreserve,
+					locations.lane_id,
+				);
 			}
 
 			// write something to log
