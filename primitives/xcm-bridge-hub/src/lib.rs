@@ -115,15 +115,15 @@ pub struct BridgeQueuesState {
 	pub outbound_here: MessageNonce,
 	/// Number of messages queued at the outbound queue of the bridged bridge hub. This
 	/// queue connects bridged bridge hub and remote bridge destination. In most cases
-	/// it will be the XCMP (HRMP) or DMP queue.
+	/// it will be the XCMP (HRMP) or `DMP` queue.
 	pub outbound_at_bridged: MessageNonce,
 	/// Number of messages queued at the destination inbound queue. This queue connects
 	/// bridged bridge hub and remote bridge destination. In most cases it will be the XCMP
-	/// (HRMP) or DMP queue.
+	/// (HRMP) or `DMP` queue.
 	///
 	/// Bridged (target) bridge hub doesn't have an access to the exact value of
 	/// this metric. But it may get an estimation, depending on the channel
-	/// state. The channel between target brige hub and desination is suspended
+	/// state. The channel between target bridge hub and destination is suspended
 	/// when there are more than `N` unprocessed messages at the destination inbound
 	/// queue. So if we see the suspended channel state at the target bridge hub,
 	/// we: (1) assume that there's at least `N` queued messages at the inbound

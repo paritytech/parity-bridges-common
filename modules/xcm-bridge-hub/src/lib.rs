@@ -40,8 +40,8 @@
 //!    [`bp_xcm_bridge_hub::BridgeMisbehavior`] for details) violations. If something goes wrong
 //!    with the bridge, he may call the `report_misbehavior` method. During the call, the outbound
 //!    lane is immediately `Closed`. The bridge itself switched to the `Closing` state. A `Penalty`
-//!    is paid (out of reserved funds) to the reporter. After BridgeCloseDelay`, the caller may call
-//!    the `close_bridge` to get his funds back;
+//!    is paid (out of reserved funds) to the reporter. After `BridgeCloseDelay`, the caller may
+//!    call the `close_bridge` to get his funds back;
 //!
 //! 6) when either side wants to close the bridge, it sends the XCM `Transact` instruction with the
 //!    `request_bridge_closure` call. The bridge stays opened for `BridgeCloseDelay` blocks. This
@@ -119,9 +119,9 @@ pub mod pallet {
 		/// Delay before bridge is closed.
 		type BridgeCloseDelay: Get<Self::BlockNumber>;
 
-		/// Bridge limits that the refular bridge must not exceed.
+		/// Bridge limits that the regular bridge must not exceed.
 		type BridgeLimits: Get<BridgeLimits>;
-		/// The penality (in chain native tokens) that is paid from the bridge reserve to the bridge
+		/// The penalty (in chain native tokens) that is paid from the bridge reserve to the bridge
 		/// misbehavior reporter.
 		type Penalty: Get<BalanceOf<ThisChainOf<Self, I>>>;
 	}
@@ -175,17 +175,20 @@ pub mod pallet {
 				&locations.bridge_origin_relative_location,
 			)
 			.ok_or(Error::<T, I>::InvalidBridgeOriginAccount)?;
-			T::NativeCurrency::reserve(&bridge_owner_account, reserve.clone())
+			T::NativeCurrency::reserve(&bridge_owner_account, reserve)
 				.map_err(|_| Error::<T, I>::FailedToReserveBridgeReserve)?;
 
 			// save bridge metadata
 			Bridges::<T, I>::try_mutate(locations.lane_id, |bridge| match bridge {
 				Some(_) => Err(Error::<T, I>::BridgeAlreadyExists),
-				None => Ok(*bridge = Some(BridgeOf::<T, I> {
-					state: BridgeStateOf::<T, I>::Opened,
-					bridge_owner_account,
-					reserve,
-				})),
+				None => {
+					*bridge = Some(BridgeOf::<T, I> {
+						state: BridgeStateOf::<T, I>::Opened,
+						bridge_owner_account,
+						reserve,
+					});
+					Ok(())
+				},
 			})?;
 
 			// create new lanes. Under normal circumstances, following calls shall never fail
@@ -209,8 +212,8 @@ pub mod pallet {
 			// deposit `BridgeOpened` event
 			Self::deposit_event(Event::<T, I>::BridgeOpened {
 				lane_id: locations.lane_id,
-				local_endpoint: locations.bridge_origin_universal_location,
-				remote_endpoint: locations.bridge_destination_universal_location,
+				local_endpoint: Box::new(locations.bridge_origin_universal_location),
+				remote_endpoint: Box::new(locations.bridge_destination_universal_location),
 			});
 
 			Ok(())
@@ -402,7 +405,7 @@ pub mod pallet {
 
 		/// Report bridge misbehavior.
 		///
-		/// The origin must be signed. If mesbihavior is confirmed, some (`Penalty`) portion of
+		/// The origin must be signed. If misbehavior is confirmed, some (`Penalty`) portion of
 		/// bridge reserve is transferred to the reporter. The outbound lane of the bridge is
 		/// immediately closed and the bridge itself switches to closing mode.
 		#[pallet::call_index(3)]
@@ -614,9 +617,9 @@ pub mod pallet {
 		/// The bridge between two locations has been opened.
 		BridgeOpened {
 			/// Universal location of local bridge endpoint.
-			local_endpoint: InteriorMultiLocation,
+			local_endpoint: Box<InteriorMultiLocation>,
 			/// Universal location of remote bridge endpoint.
-			remote_endpoint: InteriorMultiLocation,
+			remote_endpoint: Box<InteriorMultiLocation>,
 			/// Bridge and its lane identifier.
 			lane_id: LaneId,
 		},
@@ -1010,8 +1013,10 @@ mod tests {
 						phase: Phase::Initialization,
 						event: RuntimeEvent::XcmOverBridge(Event::BridgeOpened {
 							lane_id: locations.lane_id,
-							local_endpoint: locations.bridge_origin_universal_location,
-							remote_endpoint: locations.bridge_destination_universal_location,
+							local_endpoint: Box::new(locations.bridge_origin_universal_location),
+							remote_endpoint: Box::new(
+								locations.bridge_destination_universal_location
+							),
 						}),
 						topics: vec![],
 					}),
@@ -1119,7 +1124,7 @@ mod tests {
 			lanes_manager.active_outbound_lane(locations.lane_id).unwrap().purge();
 			assert_noop!(
 				XcmOverBridge::request_bridge_closure(
-					origin.clone(),
+					origin,
 					locations.bridge_destination_relative_location,
 				),
 				Error::<TestRuntime, ()>::UnknownOutboundLane,
@@ -1156,7 +1161,7 @@ mod tests {
 				.set_state(LaneState::Closed);
 			assert_noop!(
 				XcmOverBridge::request_bridge_closure(
-					origin.clone(),
+					origin,
 					locations.bridge_destination_relative_location,
 				),
 				Error::<TestRuntime, ()>::ClosedOutboundLane,
@@ -1177,7 +1182,7 @@ mod tests {
 
 			// start closing the bridge
 			assert_ok!(XcmOverBridge::request_bridge_closure(
-				origin.clone(),
+				origin,
 				locations.bridge_destination_relative_location,
 			),);
 
@@ -1470,7 +1475,7 @@ mod tests {
 			// now call the `close_bridge` again that will prune all remaining messages and the
 			// bridge
 			assert_ok!(XcmOverBridge::close_bridge(
-				origin.clone(),
+				origin,
 				locations.bridge_destination_relative_location,
 				9,
 			),);
@@ -1522,7 +1527,7 @@ mod tests {
 	fn report_misbehavior_fails_for_unknown_bridge() {
 		run_test(|| {
 			let origin = AllowedOpenBridgeOrigin::parent_relay_chain_origin();
-			let (_, locations) = mock_open_bridge_from(origin.clone());
+			let (_, locations) = mock_open_bridge_from(origin);
 
 			// report valid misbehavior fails, because the bridge is not registered
 			for _ in 0..=TestBridgeLimits::get().max_queued_outbound_messages {
@@ -1545,7 +1550,7 @@ mod tests {
 	fn report_misbehavior_fails_for_closed_bridge() {
 		run_test(|| {
 			let origin = AllowedOpenBridgeOrigin::parent_relay_chain_origin();
-			let (_, locations) = mock_open_bridge_from(origin.clone());
+			let (_, locations) = mock_open_bridge_from(origin);
 
 			// report valid misbehavior fails, because the bridge is not registered
 			for _ in 0..=TestBridgeLimits::get().max_queued_outbound_messages {
@@ -1570,7 +1575,7 @@ mod tests {
 	fn report_misbehavior_allowrd_for_closing_bridges() {
 		run_test(|| {
 			let origin = AllowedOpenBridgeOrigin::parent_relay_chain_origin();
-			let (_, locations) = mock_open_bridge_from(origin.clone());
+			let (_, locations) = mock_open_bridge_from(origin);
 
 			// report valid misbehavior fails, because the bridge is not registered
 			for _ in 0..=TestBridgeLimits::get().max_queued_outbound_messages {
@@ -1592,7 +1597,7 @@ mod tests {
 	fn report_misbehavior_fails_for_unknown_outbound_lane() {
 		run_test(|| {
 			let origin = AllowedOpenBridgeOrigin::parent_relay_chain_origin();
-			let (_, locations) = mock_open_bridge_from(origin.clone());
+			let (_, locations) = mock_open_bridge_from(origin);
 
 			// report valid misbehavior fails, because the outbound lane is not registered
 			for _ in 0..=TestBridgeLimits::get().max_queued_outbound_messages {
@@ -1618,7 +1623,7 @@ mod tests {
 	fn report_misbehavior_fails_for_closed_outbound_lane() {
 		run_test(|| {
 			let origin = AllowedOpenBridgeOrigin::parent_relay_chain_origin();
-			let (_, locations) = mock_open_bridge_from(origin.clone());
+			let (_, locations) = mock_open_bridge_from(origin);
 
 			// report valid misbehavior fails, because the outbound lane is closed
 			for _ in 0..=TestBridgeLimits::get().max_queued_outbound_messages {
@@ -1644,7 +1649,7 @@ mod tests {
 	fn report_too_many_queued_outbound_messages_fails() {
 		run_test(|| {
 			let origin = AllowedOpenBridgeOrigin::parent_relay_chain_origin();
-			let (_, locations) = mock_open_bridge_from(origin.clone());
+			let (_, locations) = mock_open_bridge_from(origin);
 
 			for _ in 0..TestBridgeLimits::get().max_queued_outbound_messages {
 				enqueue_message(locations.lane_id);
@@ -1664,7 +1669,7 @@ mod tests {
 	fn report_too_many_queued_outbound_messages_works() {
 		run_test(|| {
 			let origin = AllowedOpenBridgeOrigin::parent_relay_chain_origin();
-			let (bridge, locations) = mock_open_bridge_from(origin.clone());
+			let (bridge, locations) = mock_open_bridge_from(origin);
 			System::set_block_number(1);
 
 			// remember owner and reporter balances
