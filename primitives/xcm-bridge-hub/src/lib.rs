@@ -68,10 +68,12 @@ pub struct BridgeLimits {
 	/// This limit must be selected with care - it should account possible delays because of
 	/// runtime upgrades, spamming queues, finality lags and so on.
 	pub max_queued_outbound_messages: MessageNonce,
-	// TODO: limit to detect relayer activity - i.e. if there are 10 queued messages, but they
-	// are not delivered for 14 days => misbehavior
+	// TODO: https://github.com/paritytech/parity-bridges-common/issues/1760 - limit to detect
+	// relayer activity - i.e. if there are 10 queued messages, but they are not delivered for
+	// 14 days => misbehavior
 
-	// TODO: too low funds on the relayers-fund account?
+	// TODO: https://github.com/paritytech/parity-bridges-common/issues/1760 - too low funds on
+	// the relayers-fund account?
 }
 
 /// Bridge misbehavior.
