@@ -34,13 +34,14 @@
 //!
 //! 4) at the other side of the bridge, the same thing (1, 2, 3) happens. Parachains that need to
 //!    connect over the bridge need to coordinate the moment when they start sending messages over
-//!    the bridge. Otherwise they may lose funds and/or messages;
+//!    the bridge. Otherwise they may lose messages and/or bundled assets;
 //!
-//! 5) when the bridge is opened, anyone can watch for bridge rules (TODO!!!) violations. If
-//!    something goes wrong with the bridge, he may call the `report_misbehavior` method.
-//     During the call, the outbound lane is immediately `Closed`. The bridge itself switched
-//!    to the `Closing` state. A `Penalty` is paid (out of reserved funds) to the reporter. After
-//!    `BridgeCloseDelay`, the caller may call the `close_bridge` to get his funds back;
+//! 5) when the bridge is opened, anyone can watch for bridge rules (see
+//!    [`bp_xcm_bridge_hub::BridgeMisbehavior`] for details) violations. If something goes wrong
+//!    with the bridge, he may call the `report_misbehavior` method. During the call, the outbound
+//!    lane is immediately `Closed`. The bridge itself switched to the `Closing` state. A `Penalty`
+//!    is paid (out of reserved funds) to the reporter. After BridgeCloseDelay`, the caller may call
+//!    the `close_bridge` to get his funds back;
 //!
 //! 6) when either side wants to close the bridge, it sends the XCM `Transact` instruction with the
 //!    `request_bridge_closure` call. The bridge stays opened for `BridgeCloseDelay` blocks. This
@@ -86,8 +87,11 @@ pub mod pallet {
 
 		/// Runtime's universal location.
 		type UniversalLocation: Get<InteriorMultiLocation>;
+		// TODO: https://github.com/paritytech/parity-bridges-common/issues/1666 remove `ChainId` and
+		// replace it with the `NetworkId` - then we'll be able to use
+		// `T as pallet_bridge_messages::Config<T::BridgeMessagesPalletInstance>::BridgedChain::NetworkId`
 		/// Bridged network id.
-		type BridgedNetworkId: Get<NetworkId>; // TODO: it must be a part of header chain instead of `ChainId`
+		type BridgedNetworkId: Get<NetworkId>;
 		/// Associated messages pallet instance that bridges us with the
 		/// `BridgedNetworkId` consensus.
 		type BridgeMessagesPalletInstance: 'static;
@@ -204,6 +208,15 @@ pub mod pallet {
 				.create_outbound_lane(locations.lane_id)
 				.map_err(Into::<Error<T, I>>::into)?;
 
+			// write something to log
+			log::trace!(
+				target: LOG_TARGET,
+				"Bridge {:?} between {:?} and {:?} has been opened",
+				locations.lane_id,
+				locations.bridge_origin_universal_location,
+				locations.bridge_destination_universal_location,
+			);
+
 			// deposit `BridgeOpened` event
 			Self::deposit_event(Event::<T, I>::BridgeOpened {
 				lane_id: locations.lane_id,
@@ -240,6 +253,16 @@ pub mod pallet {
 			// update bridge metadata
 			let may_close_at =
 				Self::start_closing_the_bridge(locations.lane_id, false, LaneState::Closing)?;
+
+			// write something to log
+			log::trace!(
+				target: LOG_TARGET,
+				"Bridge {:?} between {:?} and {:?} is closing. May be closed at: {:?}",
+				locations.lane_id,
+				locations.bridge_origin_universal_location,
+				locations.bridge_destination_universal_location,
+				may_close_at,
+			);
 
 			// deposit the `BridgeClosureRequested` event
 			Self::deposit_event(Event::<T, I>::BridgeClosureRequested {
@@ -332,10 +355,22 @@ pub mod pallet {
 				inbound_lane.set_state(LaneState::Closed);
 				outbound_lane.set_state(LaneState::Closed);
 
+				// write something to log
+				let enqueued_messages = outbound_lane.queued_messages().checked_len().unwrap_or(0);
+				log::trace!(
+					target: LOG_TARGET,
+					"Bridge {:?} between {:?} and {:?} is closing. {} messages remaining",
+					locations.lane_id,
+					locations.bridge_origin_universal_location,
+					locations.bridge_destination_universal_location,
+					enqueued_messages,
+				);
+
 				// deposit the `ClosingBridge` event
 				Self::deposit_event(Event::<T, I>::ClosingBridge {
 					lane_id: locations.lane_id,
 					pruned_messages,
+					enqueued_messages,
 				});
 
 				return Ok(())
@@ -352,6 +387,15 @@ pub mod pallet {
 			if !failed_to_unreserve.is_zero() {
 				// TODO: log
 			}
+
+			// write something to log
+			log::trace!(
+				target: LOG_TARGET,
+				"Bridge {:?} between {:?} and {:?} has been closed",
+				locations.lane_id,
+				locations.bridge_origin_universal_location,
+				locations.bridge_destination_universal_location,
+			);
 
 			// deposit the `BridgePruned` event
 			Self::deposit_event(Event::<T, I>::BridgePruned {
@@ -394,6 +438,9 @@ pub mod pallet {
 
 			// fine bridge owner and close the bridge
 			let may_close_at = Self::on_misbehavior(reporter, lane_id)?;
+
+			// write something to log
+			log::trace!(target: LOG_TARGET, "Bridge {:?} is misbehaving: {:?}", lane_id, misbehavior);
 
 			// deposit the `BridgeMisbehaving` event
 			Self::deposit_event(Event::<T, I>::BridgeMisbehaving {
@@ -630,6 +677,8 @@ pub mod pallet {
 			lane_id: LaneId,
 			/// Number of pruned messages during the close call.
 			pruned_messages: MessageNonce,
+			/// Number of enqueued messages that need to be pruned in follow up calls.
+			enqueued_messages: MessageNonce,
 		},
 		/// Bridge has been closed and pruned from the runtime storage. It now may be reopened
 		/// again by any participant.
@@ -1413,6 +1462,7 @@ mod tests {
 					event: RuntimeEvent::XcmOverBridge(Event::ClosingBridge {
 						lane_id: locations.lane_id,
 						pruned_messages: 16,
+						enqueued_messages: 16,
 					}),
 					topics: vec![],
 				}),
@@ -1455,6 +1505,7 @@ mod tests {
 					event: RuntimeEvent::XcmOverBridge(Event::ClosingBridge {
 						lane_id: locations.lane_id,
 						pruned_messages: 8,
+						enqueued_messages: 8,
 					}),
 					topics: vec![],
 				}),
