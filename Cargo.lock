@@ -5509,9 +5509,9 @@ dependencies = [
 
 [[package]]
 name = "log"
-version = "0.4.18"
+version = "0.4.19"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "518ef76f2f87365916b142844c16d8fefd85039bc5699050210a7778ee1cd1de"
+checksum = "b06a4cde4c0f271a446782e3eff8de789548ce57dbc8eca9292c27f4a42004b4"
 dependencies = [
  "value-bag",
 ]
@@ -11811,9 +11811,9 @@ dependencies = [
 
 [[package]]
 name = "scale-info"
-version = "2.7.0"
+version = "2.9.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b569c32c806ec3abdf3b5869fb8bf1e0d275a7c1c9b0b05603d9464632649edf"
+checksum = "35c0a159d0c45c12b20c5a844feb1fe4bea86e28f17b92a5f0c42193634d3782"
 dependencies = [
  "bitvec",
  "cfg-if 1.0.0",
@@ -11825,9 +11825,9 @@ dependencies = [
 
 [[package]]
 name = "scale-info-derive"
-version = "2.6.0"
+version = "2.9.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "53012eae69e5aa5c14671942a5dd47de59d4cdcff8532a6dd0e081faf1119482"
+checksum = "912e55f6d20e0e80d63733872b40e1227c0bce1e1ab81ba67d696339bfd7fd29"
 dependencies = [
  "proc-macro-crate",
  "proc-macro2 1.0.59",
@@ -14316,7 +14316,7 @@ version = "1.6.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "97fee6b57c6a41524a810daee9286c02d7752c4253064d0b05472833a438f675"
 dependencies = [
- "cfg-if 0.1.10",
+ "cfg-if 1.0.0",
  "digest 0.10.6",
  "rand 0.8.5",
  "static_assertions",
