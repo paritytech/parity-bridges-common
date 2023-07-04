@@ -213,6 +213,11 @@ impl EnsureOrigin<RuntimeOrigin> for AllowedOpenBridgeOrigin {
 
 		Err(o)
 	}
+
+	#[cfg(feature = "runtime-benchmarks")]
+	fn try_successful_origin() -> Result<RuntimeOrigin, ()> {
+		Ok(Self::parent_relay_chain_origin())
+	}
 }
 
 impl pallet_xcm_bridge_hub::Config for TestRuntime {
