@@ -161,7 +161,7 @@ pub mod pallet {
 		/// The states after this call: bridge is `Opened`, outbound lane is `Opened`, inbound lane
 		/// is `Opened`.
 		#[pallet::call_index(0)]
-		#[pallet::weight(Weight::zero())] // TODO: weights
+		#[pallet::weight(Weight::zero())] // TODO: https://github.com/paritytech/parity-bridges-common/issues/1760 - weights
 		pub fn open_bridge(
 			origin: OriginFor<T>,
 			bridge_destination_relative_location: MultiLocation, // TODO: versioned?
@@ -230,7 +230,7 @@ pub mod pallet {
 		/// The states after this call: bridge is `Closing` in `BridgeCloseDelay` blocks, outbound
 		/// lane is `Closing`, inbound lane is `Closing`.
 		#[pallet::call_index(1)]
-		#[pallet::weight(Weight::zero())] // TODO: weights
+		#[pallet::weight(Weight::zero())] // TODO: https://github.com/paritytech/parity-bridges-common/issues/1760 - weights
 		pub fn request_bridge_closure(
 			origin: OriginFor<T>,
 			bridge_destination_relative_location: MultiLocation, // TODO: versioned?
@@ -279,7 +279,7 @@ pub mod pallet {
 		/// The states after this call: everything is either `Closed`, or pruned from the
 		/// runtime storage..
 		#[pallet::call_index(2)]
-		#[pallet::weight(Weight::zero())] // TODO: weights
+		#[pallet::weight(Weight::zero())] // TODO: https://github.com/paritytech/parity-bridges-common/issues/1760 - weights
 		pub fn close_bridge(
 			origin: OriginFor<T>,
 			bridge_destination_relative_location: MultiLocation, // TODO: versioned?
@@ -288,8 +288,8 @@ pub mod pallet {
 			// compute required bridge locations
 			let locations = Self::bridge_locations(origin, bridge_destination_relative_location)?;
 
-			// TODO: may do refund here, if bridge/lanes are already closed + for messages that are
-			// not pruned
+			// TODO: https://github.com/paritytech/parity-bridges-common/issues/1760 - may do refund here, if
+			// bridge/lanes are already closed + for messages that are not pruned
 
 			// update bridge metadata - this also guarantees that the bridge is in the proper state
 			let bridge =
@@ -406,7 +406,7 @@ pub mod pallet {
 		/// bridge reserve is transferred to the reporter. The outbound lane of the bridge is
 		/// immediately closed and the bridge itself switches to closing mode.
 		#[pallet::call_index(3)]
-		#[pallet::weight(Weight::zero())] // TODO: weights
+		#[pallet::weight(Weight::zero())] // TODO: https://github.com/paritytech/parity-bridges-common/issues/1760 - weights
 		pub fn report_misbehavior(
 			origin: OriginFor<T>,
 			lane_id: LaneId,
@@ -451,7 +451,7 @@ pub mod pallet {
 		/// The origin must pass the `AllowedOpenBridgeOrigin` filter. The pallet prepares
 		/// the bridge queues state structure and sends it back to the caller.
 		#[pallet::call_index(4)]
-		#[pallet::weight(Weight::zero())] // TODO: weights
+		#[pallet::weight(Weight::zero())] // TODO: https://github.com/paritytech/parity-bridges-common/issues/1760 - weights
 		pub fn report_bridge_queues_state(
 			_origin: OriginFor<T>,
 			_lane_id: LaneId,
