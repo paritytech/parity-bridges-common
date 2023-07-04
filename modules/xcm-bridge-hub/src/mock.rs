@@ -186,19 +186,19 @@ impl EnsureOrigin<RuntimeOrigin> for AllowedOpenBridgeOrigin {
 
 	fn try_origin(o: RuntimeOrigin) -> Result<Self::Success, RuntimeOrigin> {
 		let signer = o.clone().into_signer();
-		if signer == Some([0u8; 32].into()) {
+		if signer == Self::parent_relay_chain_origin().into_signer() {
 			return Ok(MultiLocation { parents: 1, interior: Here })
-		} else if signer == Some([1u8; 32].into()) {
+		} else if signer == Self::parent_relay_chain_universal_origin().into_signer() {
 			return Ok(MultiLocation {
 				parents: 2,
 				interior: X1(GlobalConsensus(RelayNetwork::get())),
 			})
-		} else if signer == Some([2u8; 32].into()) {
+		} else if signer == Self::sibling_parachain_universal_origin().into_signer() {
 			return Ok(MultiLocation {
 				parents: 2,
 				interior: X2(GlobalConsensus(RelayNetwork::get()), Parachain(SIBLING_ASSET_HUB_ID)),
 			})
-		} else if signer == Some([3u8; 32].into()) {
+		} else if signer == Self::origin_without_sovereign_account().into_signer() {
 			return Ok(MultiLocation {
 				parents: 1,
 				interior: X2(Parachain(SIBLING_ASSET_HUB_ID), OnlyChild),

@@ -54,13 +54,15 @@
 
 use bp_messages::{LaneId, LaneState, MessageNonce};
 use bp_runtime::{AccountIdOf, BalanceOf, BlockNumberOf, RangeInclusiveExt};
-use bp_xcm_bridge_hub::{Bridge, BridgeLimits, BridgeMisbehavior, BridgeState};
+use bp_xcm_bridge_hub::{
+	bridge_locations, Bridge, BridgeLimits, BridgeLocations, BridgeLocationsError,
+	BridgeMisbehavior, BridgeState,
+};
 use frame_support::traits::{tokens::BalanceStatus, Currency, ReservableCurrency};
 use frame_system::Config as SystemConfig;
 use pallet_bridge_messages::{Config as BridgeMessagesConfig, LanesManagerError};
 use sp_runtime::{traits::Zero, Saturating};
 use xcm::prelude::*;
-use xcm_builder::ensure_is_remote;
 use xcm_executor::traits::ConvertLocation;
 
 pub use pallet::*;
@@ -135,18 +137,6 @@ pub mod pallet {
 	pub type LanesManagerOf<T, I> =
 		pallet_bridge_messages::LanesManager<T, <T as Config<I>>::BridgeMessagesPalletInstance>;
 
-	/// Locations of bridge endpoints at both sides of the bridge.
-	pub struct BridgeLocations {
-		/// Relative location of this side of the bridge.
-		pub bridge_origin_relative_location: Box<MultiLocation>,
-		/// Universal (unique) location of this side of the bridge.
-		pub bridge_origin_universal_location: Box<MultiLocation>,
-		/// Universal (unique) location of other side of the bridge.
-		pub bridge_destination_universal_location: Box<MultiLocation>,
-		/// An identifier of the dedicated bridge message lane.
-		pub lane_id: LaneId,
-	}
-
 	#[pallet::pallet]
 	pub struct Pallet<T, I = ()>(PhantomData<(T, I)>);
 
@@ -162,8 +152,8 @@ pub mod pallet {
 		/// Open a bridge between two locations.
 		///
 		/// The caller must be within the `T::AllowedOpenBridgeOrigin` filter (presumably: a sibling
-		/// parachain or a parent relay chain). The `bridge_destination_universal_location` must be
-		/// a destination within the consensus of the `T::BridgedNetworkId` network.
+		/// parachain or a parent relay chain). The `bridge_destination_relative_location` must be a
+		/// destination within the consensus of the `T::BridgedNetworkId` network.
 		///
 		/// The `BridgeReserve` amount is reserved on the caller account. This reserve
 		/// is unreserved after bridge is closed.
@@ -174,11 +164,10 @@ pub mod pallet {
 		#[pallet::weight(Weight::zero())]
 		pub fn open_bridge(
 			origin: OriginFor<T>,
-			bridge_destination_universal_location: Box<MultiLocation>, // TODO: versioned?
+			bridge_destination_relative_location: MultiLocation, // TODO: versioned?
 		) -> DispatchResult {
 			// check and compute required bridge locations
-			let locations =
-				Self::bridge_locations(origin, bridge_destination_universal_location, true)?;
+			let locations = Self::bridge_locations(origin, bridge_destination_relative_location)?;
 
 			// reserve balance on the parachain sovereign account
 			let reserve = T::BridgeReserve::get();
@@ -244,11 +233,10 @@ pub mod pallet {
 		#[pallet::weight(Weight::zero())]
 		pub fn request_bridge_closure(
 			origin: OriginFor<T>,
-			bridge_destination_universal_location: Box<MultiLocation>, // TODO: versioned?
+			bridge_destination_relative_location: MultiLocation, // TODO: versioned?
 		) -> DispatchResult {
 			// compute required bridge locations
-			let locations =
-				Self::bridge_locations(origin, bridge_destination_universal_location, false)?;
+			let locations = Self::bridge_locations(origin, bridge_destination_relative_location)?;
 
 			// update bridge metadata
 			let may_close_at =
@@ -294,12 +282,11 @@ pub mod pallet {
 		#[pallet::weight(Weight::zero())]
 		pub fn close_bridge(
 			origin: OriginFor<T>,
-			bridge_destination_universal_location: Box<MultiLocation>, // TODO: versioned?
+			bridge_destination_relative_location: MultiLocation, // TODO: versioned?
 			may_prune_messages: MessageNonce,
 		) -> DispatchResult {
 			// compute required bridge locations
-			let locations =
-				Self::bridge_locations(origin, bridge_destination_universal_location, false)?;
+			let locations = Self::bridge_locations(origin, bridge_destination_relative_location)?;
 
 			// TODO: may do refund here, if bridge/lanes are already closed + for messages that are
 			// not pruned
@@ -474,11 +461,15 @@ pub mod pallet {
 			// TODO: implement me in https://github.com/paritytech/parity-bridges-common/pull/2233
 			// Something like:
 			//
-			// let bridge_origin_relative_location =
-			// Box::new(T::AllowedOpenBridgeOrigin::ensure_origin(origin)?); let state =
-			// BridgeQueuesState { .. }; let encoded_call = encoded_call_prefix ++ state.encode() ++
-			// encoded_call_suffix; T::ToBridgeOriginSender::send(bridge_origin_relative_location,
-			// vec![Xcm::Transact { call: encoded_call }]);
+			// ```nocompile
+			// let bridge_origin_relative_location = T::AllowedOpenBridgeOrigin::ensure_origin(origin)?;
+			// ...
+			// let state = BridgeQueuesState { .. };
+			//  let encoded_call = encoded_call_prefix ++ state.encode() ++ encoded_call_suffix;
+			// T::ToBridgeOriginSender::send(
+			//     bridge_origin_relative_location,
+			//     vec![Xcm::Transact { call: encoded_call }],
+			// );
 			unimplemented!("")
 		}
 	}
@@ -494,57 +485,15 @@ pub mod pallet {
 		/// Return bridge endpoint locations and dedicated lane identifier.
 		pub fn bridge_locations(
 			origin: OriginFor<T>,
-			bridge_destination_universal_location: Box<MultiLocation>,
-			is_open_bridge_request: bool,
+			bridge_destination_relative_location: MultiLocation,
 		) -> Result<BridgeLocations, sp_runtime::DispatchError> {
-			// TODO: move this function to primitives, because we will want the same function
-			//       at the sibling/parent chain in the `pallet-xcm-bridge-hub-router` pallet
-			// TODO: update this function to drop everything below the parachain level from
-			//       `bridge_destination_universal_location` - i.e. bridge with
-			//       `X3(GlobalConsensus(Kusama), Parachain(1000), AccountId32([0u8; 32])`
-			//       must use the same lane as `X2(GlobalConsensus(Kusama), Parachain(1000)`.
-			//       The router at the target chain will handle that.
-
-			// get locations of endpoint, located at this side of the bridge
-			let this_location = T::UniversalLocation::get();
-			let bridge_origin_relative_location =
-				Box::new(T::AllowedOpenBridgeOrigin::ensure_origin(origin)?);
-			let bridge_origin_universal_location = Box::new(
-				this_location
-					.within_global(*bridge_origin_relative_location)
-					.map(|interior| MultiLocation::new(0, interior))
-					.map_err(|_| Error::<T, I>::InvalidBridgeOrigin)?,
-			);
-
-			// if we are jsut opening the bridge, let's ensure that the
-			// `bridge_destination_universal_location` is correct and is within bridged consensus.
-			// We can ignore this check if bridge is already closed, because lane is already opened
-			// and all checks have happened during opening
-			if is_open_bridge_request {
-				let (remote_network, _) =
-					ensure_is_remote(this_location, *bridge_destination_universal_location)
-						.map_err(|_| Error::<T, I>::CannotBridgeWithLocalDestination)?;
-				ensure!(
-					remote_network == T::BridgedNetworkId::get(),
-					Error::<T, I>::UnreachableRemoteDestination
-				);
-			}
-
-			// we know that the `bridge_destination_universal_location` starts from the
-			// `GlobalConsensus` (see `ensure_is_remote`) and we know that the `UniversalLocation`
-			// is also within the `GlobalConsensus` (given the proper pallet configuration). So we
-			// know that the lane id will be the same on both ends of the bridge
-			let lane_id = LaneId::new(
-				*bridge_origin_universal_location,
-				*bridge_destination_universal_location,
-			);
-
-			Ok(BridgeLocations {
-				bridge_origin_relative_location,
-				bridge_origin_universal_location,
-				bridge_destination_universal_location,
-				lane_id,
-			})
+			bridge_locations(
+				T::UniversalLocation::get(),
+				T::AllowedOpenBridgeOrigin::ensure_origin(origin)?,
+				bridge_destination_relative_location,
+				T::BridgedNetworkId::get(),
+			)
+			.map_err(|e| Error::<T, I>::BridgeLocations(e).into())
 		}
 
 		/// Start closing the bridge. Returns block at which bridge can be actually closed.
@@ -664,12 +613,12 @@ pub mod pallet {
 	pub enum Event<T: Config<I>, I: 'static = ()> {
 		/// The bridge between two locations has been opened.
 		BridgeOpened {
+			/// Universal location of local bridge endpoint.
+			local_endpoint: InteriorMultiLocation,
+			/// Universal location of remote bridge endpoint.
+			remote_endpoint: InteriorMultiLocation,
 			/// Bridge and its lane identifier.
 			lane_id: LaneId,
-			/// Bridge endpoint location within local consensus.
-			local_endpoint: Box<MultiLocation>,
-			/// Bridge endpoint location within remote consensus.
-			remote_endpoint: Box<MultiLocation>,
 		},
 		/// Bridge closure has been requested.
 		BridgeClosureRequested {
@@ -708,14 +657,10 @@ pub mod pallet {
 
 	#[pallet::error]
 	pub enum Error<T, I = ()> {
-		/// Invalid local bridge origin.
-		InvalidBridgeOrigin,
+		/// Bridge locations error.
+		BridgeLocations(BridgeLocationsError),
 		/// Invalid local bridge origin account.
 		InvalidBridgeOriginAccount,
-		/// Remote bridge destination is local to this consensus.
-		CannotBridgeWithLocalDestination,
-		/// Remote bridge destination is unreachable via this pallet instance.
-		UnreachableRemoteDestination,
 		/// The bridge is already registered in this pallet.
 		BridgeAlreadyExists,
 		/// Trying to close already closed bridge.
@@ -779,8 +724,7 @@ mod tests {
 	) -> (BridgeOf<TestRuntime, ()>, BridgeLocations) {
 		let reserve = BridgeReserve::get();
 		let locations =
-			XcmOverBridge::bridge_locations(origin, Box::new(bridged_asset_hub_location()), false)
-				.unwrap();
+			XcmOverBridge::bridge_locations(origin, bridged_asset_hub_location()).unwrap();
 		let bridge_owner_account =
 			fund_origin_sovereign_account(&locations, reserve + ExistentialDeposit::get());
 		Balances::reserve(&bridge_owner_account, reserve).unwrap();
@@ -832,7 +776,7 @@ mod tests {
 			assert_noop!(
 				XcmOverBridge::open_bridge(
 					AllowedOpenBridgeOrigin::disallowed_origin(),
-					Box::new(bridged_asset_hub_location()),
+					bridged_asset_hub_location(),
 				),
 				sp_runtime::DispatchError::BadOrigin,
 			);
@@ -845,17 +789,21 @@ mod tests {
 			assert_noop!(
 				XcmOverBridge::open_bridge(
 					AllowedOpenBridgeOrigin::parent_relay_chain_universal_origin(),
-					Box::new(bridged_asset_hub_location()),
+					bridged_asset_hub_location(),
 				),
-				Error::<TestRuntime, ()>::InvalidBridgeOrigin,
+				Error::<TestRuntime, ()>::BridgeLocations(
+					BridgeLocationsError::InvalidBridgeOrigin
+				),
 			);
 
 			assert_noop!(
 				XcmOverBridge::open_bridge(
 					AllowedOpenBridgeOrigin::sibling_parachain_universal_origin(),
-					Box::new(bridged_asset_hub_location()),
+					bridged_asset_hub_location(),
 				),
-				Error::<TestRuntime, ()>::InvalidBridgeOrigin,
+				Error::<TestRuntime, ()>::BridgeLocations(
+					BridgeLocationsError::InvalidBridgeOrigin
+				),
 			);
 		})
 	}
@@ -866,15 +814,15 @@ mod tests {
 			assert_noop!(
 				XcmOverBridge::open_bridge(
 					AllowedOpenBridgeOrigin::parent_relay_chain_origin(),
-					Box::new(MultiLocation {
+					MultiLocation {
 						parents: 2,
 						interior: X2(
 							GlobalConsensus(RelayNetwork::get()),
 							Parachain(BRIDGED_ASSET_HUB_ID)
 						)
-					}),
+					},
 				),
-				Error::<TestRuntime, ()>::CannotBridgeWithLocalDestination,
+				Error::<TestRuntime, ()>::BridgeLocations(BridgeLocationsError::DestinationIsLocal),
 			);
 		});
 	}
@@ -885,15 +833,17 @@ mod tests {
 			assert_noop!(
 				XcmOverBridge::open_bridge(
 					AllowedOpenBridgeOrigin::parent_relay_chain_origin(),
-					Box::new(MultiLocation {
+					MultiLocation {
 						parents: 2,
 						interior: X2(
 							GlobalConsensus(NonBridgedRelayNetwork::get()),
 							Parachain(BRIDGED_ASSET_HUB_ID)
 						)
-					}),
+					},
 				),
-				Error::<TestRuntime, ()>::UnreachableRemoteDestination,
+				Error::<TestRuntime, ()>::BridgeLocations(
+					BridgeLocationsError::UnreachableDestination
+				),
 			);
 		});
 	}
@@ -904,7 +854,7 @@ mod tests {
 			assert_noop!(
 				XcmOverBridge::open_bridge(
 					AllowedOpenBridgeOrigin::origin_without_sovereign_account(),
-					Box::new(bridged_asset_hub_location()),
+					bridged_asset_hub_location(),
 				),
 				Error::<TestRuntime, ()>::InvalidBridgeOriginAccount,
 			);
@@ -917,7 +867,7 @@ mod tests {
 			assert_noop!(
 				XcmOverBridge::open_bridge(
 					AllowedOpenBridgeOrigin::parent_relay_chain_origin(),
-					Box::new(bridged_asset_hub_location()),
+					bridged_asset_hub_location(),
 				),
 				Error::<TestRuntime, ()>::FailedToReserveBridgeReserve,
 			);
@@ -928,12 +878,9 @@ mod tests {
 	fn open_bridge_fails_if_it_already_exists() {
 		run_test(|| {
 			let origin = AllowedOpenBridgeOrigin::parent_relay_chain_origin();
-			let locations = XcmOverBridge::bridge_locations(
-				origin.clone(),
-				Box::new(bridged_asset_hub_location()),
-				false,
-			)
-			.unwrap();
+			let locations =
+				XcmOverBridge::bridge_locations(origin.clone(), bridged_asset_hub_location())
+					.unwrap();
 			fund_origin_sovereign_account(
 				&locations,
 				BridgeReserve::get() + ExistentialDeposit::get(),
@@ -949,7 +896,7 @@ mod tests {
 			);
 
 			assert_noop!(
-				XcmOverBridge::open_bridge(origin, Box::new(bridged_asset_hub_location()),),
+				XcmOverBridge::open_bridge(origin, bridged_asset_hub_location(),),
 				Error::<TestRuntime, ()>::BridgeAlreadyExists,
 			);
 		})
@@ -959,12 +906,9 @@ mod tests {
 	fn open_bridge_fails_if_its_lanes_already_exists() {
 		run_test(|| {
 			let origin = AllowedOpenBridgeOrigin::parent_relay_chain_origin();
-			let locations = XcmOverBridge::bridge_locations(
-				origin.clone(),
-				Box::new(bridged_asset_hub_location()),
-				false,
-			)
-			.unwrap();
+			let locations =
+				XcmOverBridge::bridge_locations(origin.clone(), bridged_asset_hub_location())
+					.unwrap();
 			fund_origin_sovereign_account(
 				&locations,
 				BridgeReserve::get() + ExistentialDeposit::get(),
@@ -974,14 +918,14 @@ mod tests {
 
 			lanes_manager.create_inbound_lane(locations.lane_id).unwrap();
 			assert_noop!(
-				XcmOverBridge::open_bridge(origin.clone(), Box::new(bridged_asset_hub_location()),),
+				XcmOverBridge::open_bridge(origin.clone(), bridged_asset_hub_location(),),
 				Error::<TestRuntime, ()>::InboundLaneAlreadyExists,
 			);
 
 			lanes_manager.active_inbound_lane(locations.lane_id).unwrap().purge();
 			lanes_manager.create_outbound_lane(locations.lane_id).unwrap();
 			assert_noop!(
-				XcmOverBridge::open_bridge(origin, Box::new(bridged_asset_hub_location()),),
+				XcmOverBridge::open_bridge(origin, bridged_asset_hub_location(),),
 				Error::<TestRuntime, ()>::OutboundLaneAlreadyExists,
 			);
 		})
@@ -1007,12 +951,9 @@ mod tests {
 				System::reset_events();
 
 				// compute all other locations
-				let locations = XcmOverBridge::bridge_locations(
-					origin.clone(),
-					Box::new(bridged_asset_hub_location()),
-					false,
-				)
-				.unwrap();
+				let locations =
+					XcmOverBridge::bridge_locations(origin.clone(), bridged_asset_hub_location())
+						.unwrap();
 
 				// ensure that there's no bridge and lanes in the storage
 				assert_eq!(Bridges::<TestRuntime, ()>::get(locations.lane_id), None);
@@ -1039,7 +980,7 @@ mod tests {
 				// now open the bridge
 				assert_ok!(XcmOverBridge::open_bridge(
 					origin,
-					locations.bridge_destination_universal_location.clone(),
+					locations.bridge_destination_relative_location,
 				));
 
 				// ensure that everything has been set up in the runtime storage
@@ -1085,7 +1026,7 @@ mod tests {
 			assert_noop!(
 				XcmOverBridge::request_bridge_closure(
 					AllowedOpenBridgeOrigin::disallowed_origin(),
-					Box::new(bridged_asset_hub_location()),
+					bridged_asset_hub_location(),
 				),
 				sp_runtime::DispatchError::BadOrigin,
 			);
@@ -1098,17 +1039,21 @@ mod tests {
 			assert_noop!(
 				XcmOverBridge::request_bridge_closure(
 					AllowedOpenBridgeOrigin::parent_relay_chain_universal_origin(),
-					Box::new(bridged_asset_hub_location()),
+					bridged_asset_hub_location(),
 				),
-				Error::<TestRuntime, ()>::InvalidBridgeOrigin,
+				Error::<TestRuntime, ()>::BridgeLocations(
+					BridgeLocationsError::InvalidBridgeOrigin
+				),
 			);
 
 			assert_noop!(
 				XcmOverBridge::request_bridge_closure(
 					AllowedOpenBridgeOrigin::sibling_parachain_universal_origin(),
-					Box::new(bridged_asset_hub_location()),
+					bridged_asset_hub_location(),
 				),
-				Error::<TestRuntime, ()>::InvalidBridgeOrigin,
+				Error::<TestRuntime, ()>::BridgeLocations(
+					BridgeLocationsError::InvalidBridgeOrigin
+				),
 			);
 		})
 	}
@@ -1126,7 +1071,7 @@ mod tests {
 			assert_noop!(
 				XcmOverBridge::request_bridge_closure(
 					origin,
-					locations.bridge_destination_universal_location,
+					locations.bridge_destination_relative_location,
 				),
 				Error::<TestRuntime, ()>::BridgeAlreadyClosed,
 			);
@@ -1146,7 +1091,7 @@ mod tests {
 			assert_noop!(
 				XcmOverBridge::request_bridge_closure(
 					origin,
-					locations.bridge_destination_universal_location,
+					locations.bridge_destination_relative_location,
 				),
 				Error::<TestRuntime, ()>::BridgeAlreadyClosed,
 			);
@@ -1164,7 +1109,7 @@ mod tests {
 			assert_noop!(
 				XcmOverBridge::request_bridge_closure(
 					origin.clone(),
-					locations.bridge_destination_universal_location,
+					locations.bridge_destination_relative_location,
 				),
 				Error::<TestRuntime, ()>::UnknownInboundLane,
 			);
@@ -1175,7 +1120,7 @@ mod tests {
 			assert_noop!(
 				XcmOverBridge::request_bridge_closure(
 					origin.clone(),
-					locations.bridge_destination_universal_location,
+					locations.bridge_destination_relative_location,
 				),
 				Error::<TestRuntime, ()>::UnknownOutboundLane,
 			);
@@ -1196,7 +1141,7 @@ mod tests {
 			assert_noop!(
 				XcmOverBridge::request_bridge_closure(
 					origin.clone(),
-					locations.bridge_destination_universal_location.clone(),
+					locations.bridge_destination_relative_location,
 				),
 				Error::<TestRuntime, ()>::ClosedInboundLane,
 			);
@@ -1212,7 +1157,7 @@ mod tests {
 			assert_noop!(
 				XcmOverBridge::request_bridge_closure(
 					origin.clone(),
-					locations.bridge_destination_universal_location,
+					locations.bridge_destination_relative_location,
 				),
 				Error::<TestRuntime, ()>::ClosedOutboundLane,
 			);
@@ -1233,7 +1178,7 @@ mod tests {
 			// start closing the bridge
 			assert_ok!(XcmOverBridge::request_bridge_closure(
 				origin.clone(),
-				locations.bridge_destination_universal_location.clone(),
+				locations.bridge_destination_relative_location,
 			),);
 
 			// check that state of the bridge and its lanes have changed
@@ -1277,7 +1222,7 @@ mod tests {
 			assert_noop!(
 				XcmOverBridge::close_bridge(
 					AllowedOpenBridgeOrigin::disallowed_origin(),
-					Box::new(bridged_asset_hub_location()),
+					bridged_asset_hub_location(),
 					0,
 				),
 				sp_runtime::DispatchError::BadOrigin,
@@ -1291,19 +1236,23 @@ mod tests {
 			assert_noop!(
 				XcmOverBridge::close_bridge(
 					AllowedOpenBridgeOrigin::parent_relay_chain_universal_origin(),
-					Box::new(bridged_asset_hub_location()),
+					bridged_asset_hub_location(),
 					0,
 				),
-				Error::<TestRuntime, ()>::InvalidBridgeOrigin,
+				Error::<TestRuntime, ()>::BridgeLocations(
+					BridgeLocationsError::InvalidBridgeOrigin
+				),
 			);
 
 			assert_noop!(
 				XcmOverBridge::close_bridge(
 					AllowedOpenBridgeOrigin::sibling_parachain_universal_origin(),
-					Box::new(bridged_asset_hub_location()),
+					bridged_asset_hub_location(),
 					0,
 				),
-				Error::<TestRuntime, ()>::InvalidBridgeOrigin,
+				Error::<TestRuntime, ()>::BridgeLocations(
+					BridgeLocationsError::InvalidBridgeOrigin
+				),
 			);
 		})
 	}
@@ -1317,7 +1266,7 @@ mod tests {
 			assert_noop!(
 				XcmOverBridge::close_bridge(
 					origin,
-					locations.bridge_destination_universal_location,
+					locations.bridge_destination_relative_location,
 					0,
 				),
 				Error::<TestRuntime, ()>::CannotCloseOpenedBridge,
@@ -1334,7 +1283,7 @@ mod tests {
 			assert_noop!(
 				XcmOverBridge::close_bridge(
 					origin,
-					locations.bridge_destination_universal_location,
+					locations.bridge_destination_relative_location,
 					0,
 				),
 				Error::<TestRuntime, ()>::CannotCloseOpenedBridge,
@@ -1354,7 +1303,7 @@ mod tests {
 			assert_noop!(
 				XcmOverBridge::close_bridge(
 					origin.clone(),
-					locations.bridge_destination_universal_location,
+					locations.bridge_destination_relative_location,
 					0,
 				),
 				Error::<TestRuntime, ()>::UnknownInboundLane,
@@ -1366,7 +1315,7 @@ mod tests {
 			assert_noop!(
 				XcmOverBridge::close_bridge(
 					origin,
-					locations.bridge_destination_universal_location,
+					locations.bridge_destination_relative_location,
 					0,
 				),
 				Error::<TestRuntime, ()>::UnknownOutboundLane,
@@ -1389,7 +1338,7 @@ mod tests {
 			assert_noop!(
 				XcmOverBridge::close_bridge(
 					origin.clone(),
-					locations.bridge_destination_universal_location.clone(),
+					locations.bridge_destination_relative_location,
 					0,
 				),
 				Error::<TestRuntime, ()>::CannotCloseOpenedLane,
@@ -1406,7 +1355,7 @@ mod tests {
 			assert_noop!(
 				XcmOverBridge::close_bridge(
 					origin,
-					locations.bridge_destination_universal_location,
+					locations.bridge_destination_relative_location,
 					0,
 				),
 				Error::<TestRuntime, ()>::CannotCloseOpenedLane,
@@ -1433,7 +1382,7 @@ mod tests {
 			// now call the `close_bridge`, which will only partially prune messages
 			assert_ok!(XcmOverBridge::close_bridge(
 				origin.clone(),
-				locations.bridge_destination_universal_location.clone(),
+				locations.bridge_destination_relative_location,
 				16,
 			),);
 
@@ -1478,7 +1427,7 @@ mod tests {
 			// now call the `close_bridge` again, which will only partially prune messages
 			assert_ok!(XcmOverBridge::close_bridge(
 				origin.clone(),
-				locations.bridge_destination_universal_location.clone(),
+				locations.bridge_destination_relative_location,
 				8,
 			),);
 
@@ -1522,7 +1471,7 @@ mod tests {
 			// bridge
 			assert_ok!(XcmOverBridge::close_bridge(
 				origin.clone(),
-				locations.bridge_destination_universal_location.clone(),
+				locations.bridge_destination_relative_location,
 				9,
 			),);
 
@@ -1771,43 +1720,3 @@ mod tests {
 		})
 	}
 }
-/*
-		/// Report bridge misbehavior.
-		#[pallet::call_index(3)]
-		#[pallet::weight(Weight::zero())]
-		pub fn report_misbehavior(
-			origin: OriginFor<T>,
-			lane_id: LaneId,
-			misbehavior: BridgeMisbehavior,
-		) -> DispatchResult {
-			let reporter = ensure_signed(origin)?;
-			let lanes_manager = LanesManagerOf::<T, I>::new();
-
-			// check report
-			match misbehavior {
-				BridgeMisbehavior::TooManyQueuedOutboundMessages => {
-					let outbound_lane =
-						lanes_manager.outbound_lane(lane_id).map_err(Into::<Error<T, I>>::into)?;
-					let queued_messages =
-						outbound_lane.queued_messages().checked_len().unwrap_or(0);
-					let max_queued_messages = T::BridgeLimits::get().max_queued_outbound_messages;
-					if queued_messages <= max_queued_messages {
-						return Err(Error::<T, I>::InvalidMisbehaviorReport.into())
-					}
-				},
-			}
-
-			// fine bridge owner and close the bridge
-			let may_close_at = Self::on_misbehavior(reporter, lane_id)?;
-
-			// deposit the `BridgeMisbehaving` event
-			Self::deposit_event(Event::<T, I>::BridgeMisbehaving {
-				lane_id,
-				misbehavior,
-				may_close_at,
-			});
-
-			Ok(())
-		}
-	}
-*/

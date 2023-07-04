@@ -16,9 +16,14 @@ serde = { version = "1.0", default-features = false, features = ["alloc", "deriv
 bp-messages = { path = "../messages", default-features = false }
 bp-runtime = { path = "../runtime", default-features = false }
 
-# Substrate dependencies
+# Substrate Dependencies
 
 frame-support = { git = "https://github.com/paritytech/substrate", branch = "master", default-features = false }
+sp-std = { git = "https://github.com/paritytech/substrate", branch = "master", default-features = false }
+
+# Polkadot Dependencies
+
+xcm = { git = "https://github.com/paritytech/polkadot", branch = "master", default-features = false }
 
 [features]
 default = ["std"]
@@ -29,4 +34,6 @@ std = [
 	"frame-support/std",
 	"scale-info/std",
 	"serde/std",
+	"sp-std/std",
+	"xcm/std",
 ]
