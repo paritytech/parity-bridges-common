@@ -78,6 +78,14 @@ pub trait Client<C: Chain>: 'static + Send + Sync + Clone + Debug {
 	async fn subscribe_grandpa_finality_justifications(&self) -> Result<Subscription<Bytes>>
 	where
 		C: ChainWithGrandpa;
+	/// Generates a proof of key ownership for the given authority in the given set.
+	async fn generate_grandpa_key_ownership_proof(
+		&self,
+		at: HashOf<C>,
+		set_id: sp_consensus_grandpa::SetId,
+		authority_id: sp_consensus_grandpa::AuthorityId,
+	) -> Result<Option<sp_consensus_grandpa::OpaqueKeyOwnershipProof>>;
+
 	/// Subscribe to BEEFY finality justifications.
 	async fn subscribe_beefy_finality_justifications(&self) -> Result<Subscription<Bytes>>;
 
