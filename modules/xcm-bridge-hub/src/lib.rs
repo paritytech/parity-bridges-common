@@ -242,7 +242,7 @@ pub mod pallet {
 			let locations = Self::bridge_locations(origin, bridge_destination_relative_location)?;
 
 			// update bridge metadata
-			let may_close_at = Self::start_closing_the_bridge(locations.lane_id, false)?;
+			let may_close_at = Self::start_closing_bridge(locations.lane_id, false)?;
 
 			// write something to log
 			log::trace!(
@@ -499,7 +499,7 @@ pub mod pallet {
 		}
 
 		/// Start closing the bridge. Returns block at which bridge can be actually closed.
-		fn start_closing_the_bridge(
+		fn start_closing_bridge(
 			lane_id: LaneId,
 			force_close_bridge: bool,
 		) -> Result<BlockNumberOf<ThisChainOf<T, I>>, Error<T, I>> {
@@ -600,7 +600,7 @@ pub mod pallet {
 			});
 
 			// start closing the bridge
-			Self::start_closing_the_bridge(lane_id, true)
+			Self::start_closing_bridge(lane_id, true)
 		}
 	}
 
