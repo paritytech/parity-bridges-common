@@ -242,8 +242,7 @@ pub mod pallet {
 			let locations = Self::bridge_locations(origin, bridge_destination_relative_location)?;
 
 			// update bridge metadata
-			let may_close_at =
-				Self::start_closing_the_bridge(locations.lane_id, false, LaneState::Closing)?;
+			let may_close_at = Self::start_closing_the_bridge(locations.lane_id, false)?;
 
 			// write something to log
 			log::trace!(
@@ -502,8 +501,7 @@ pub mod pallet {
 		/// Start closing the bridge. Returns block at which bridge can be actually closed.
 		fn start_closing_the_bridge(
 			lane_id: LaneId,
-			allow_closing_bridges: bool,
-			outbound_lane_state: LaneState,
+			force_close_bridge: bool,
 		) -> Result<BlockNumberOf<ThisChainOf<T, I>>, Error<T, I>> {
 			// update bridge metadata
 			let may_close_at =
@@ -516,7 +514,7 @@ pub mod pallet {
 							Ok(may_close_at)
 						},
 						BridgeState::Closing(may_close_at) => {
-							if !allow_closing_bridges {
+							if !force_close_bridge {
 								return Err(Error::<T, I>::BridgeAlreadyClosed)
 							}
 
@@ -536,7 +534,7 @@ pub mod pallet {
 			lanes_manager
 				.active_outbound_lane(lane_id)
 				.map_err(Into::<Error<T, I>>::into)?
-				.set_state(outbound_lane_state);
+				.set_state(if force_close_bridge { LaneState::Closed } else { LaneState::Closing });
 
 			Ok(may_close_at)
 		}
@@ -602,7 +600,7 @@ pub mod pallet {
 			});
 
 			// start closing the bridge
-			Self::start_closing_the_bridge(lane_id, true, LaneState::Closed)
+			Self::start_closing_the_bridge(lane_id, true)
 		}
 	}
 
