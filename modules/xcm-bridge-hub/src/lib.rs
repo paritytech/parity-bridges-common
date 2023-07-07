@@ -113,7 +113,7 @@ pub mod pallet {
 		/// Amount of this chain native tokens that is reserved on the sibling parachain account
 		/// when bridge open request is registered.
 		type BridgeReserve: Get<BalanceOf<ThisChainOf<Self, I>>>;
-		/// Currency used to paid for bridge registration.
+		/// Currency used to pay for bridge registration.
 		type NativeCurrency: ReservableCurrency<Self::AccountId>;
 
 		/// Delay before bridge is closed.
