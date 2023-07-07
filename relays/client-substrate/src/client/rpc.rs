@@ -60,6 +60,8 @@ const MAX_SUBSCRIPTION_CAPACITY: usize = 4096;
 
 const SUB_API_TXPOOL_VALIDATE_TRANSACTION: &str = "TaggedTransactionQueue_validate_transaction";
 const SUB_API_TX_PAYMENT_QUERY_INFO: &str = "TransactionPaymentApi_query_info";
+const SUB_API_GRANDPA_GENERATE_KEY_OWNERSHIP_PROOF: &str =
+	"GrandpaApi_generate_key_ownership_proof";
 
 /// Client implementation that connects to the Substrate node over `ws`/`wss` connection
 /// and is using RPC methods to get required data and submit transactions.
@@ -307,6 +309,20 @@ impl<C: Chain> Client<C> for RpcClient<C> {
 		self.subscribe_finality_justifications("GRANDPA", move |client| async move {
 			SubstrateGrandpaClient::<C>::subscribe_justifications(&*client).await
 		})
+		.await
+	}
+
+	async fn generate_grandpa_key_ownership_proof(
+		&self,
+		at: HashOf<C>,
+		set_id: sp_consensus_grandpa::SetId,
+		authority_id: sp_consensus_grandpa::AuthorityId,
+	) -> Result<Option<sp_consensus_grandpa::OpaqueKeyOwnershipProof>> {
+		self.state_call(
+			at,
+			SUB_API_GRANDPA_GENERATE_KEY_OWNERSHIP_PROOF.into(),
+			(set_id, authority_id),
+		)
 		.await
 	}
 
