@@ -9975,6 +9975,7 @@ dependencies = [
  "sc-rpc-api",
  "sc-transaction-pool-api",
  "scale-info",
+ "sp-consensus-grandpa",
  "sp-core",
  "sp-rpc",
  "sp-runtime",
