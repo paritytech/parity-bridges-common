@@ -785,7 +785,7 @@ mod tests {
 	use super::*;
 	use mock::*;
 
-	use frame_support::{BoundedVec, assert_noop, assert_ok, traits::fungible::Mutate};
+	use frame_support::{assert_noop, assert_ok, traits::fungible::Mutate, BoundedVec};
 	use frame_system::{EventRecord, Phase};
 
 	fn fund_origin_sovereign_account(locations: &BridgeLocations, balance: Balance) -> AccountId {
@@ -813,6 +813,10 @@ mod tests {
 			reserve,
 		};
 		Bridges::<TestRuntime, ()>::insert(locations.lane_id, bridge.clone());
+		BridgesByLocalOrigin::<TestRuntime, ()>::insert(
+			locations.bridge_origin_universal_location,
+			BoundedVec::<_, _>::try_from(vec![locations.lane_id]).unwrap(),
+		);
 
 		let lanes_manager = LanesManagerOf::<TestRuntime, ()>::new();
 		lanes_manager.create_inbound_lane(locations.lane_id).unwrap();
@@ -948,7 +952,11 @@ mod tests {
 
 			BridgesByLocalOrigin::<TestRuntime, ()>::insert(
 				locations.bridge_origin_universal_location,
-				BoundedVec::<_, _>::try_from(vec![LaneId::new(1, 2); MaxBridgesPerLocalOrigin::get() as usize]).unwrap(),
+				BoundedVec::<_, _>::try_from(vec![
+					LaneId::new(1, 2);
+					MaxBridgesPerLocalOrigin::get() as usize
+				])
+				.unwrap(),
 			);
 
 			assert_noop!(
@@ -1072,7 +1080,10 @@ mod tests {
 
 				// ensure that everything has been set up in the runtime storage
 				assert_eq!(
-					BridgesByLocalOrigin::<TestRuntime, ()>::get(locations.bridge_origin_universal_location).to_vec(),
+					BridgesByLocalOrigin::<TestRuntime, ()>::get(
+						locations.bridge_origin_universal_location
+					)
+					.to_vec(),
 					vec![locations.lane_id],
 				);
 				assert_eq!(
@@ -1112,6 +1123,26 @@ mod tests {
 				);
 			}
 		});
+	}
+
+	#[test]
+	fn close_bridge_fails_if_bridge_is_misbehaving() {
+		run_test(|| {
+			let origin = AllowedOpenBridgeOrigin::parent_relay_chain_origin();
+			let (_, locations) = mock_open_bridge_from(origin.clone());
+
+			Bridges::<TestRuntime, ()>::mutate(locations.lane_id, |bridge| {
+				*bridge = bridge.take().map(|mut b| {
+					b.state = BridgeState::Misbehaving;
+					b
+				});
+			});
+
+			assert_noop!(
+				XcmOverBridge::close_bridge(origin, bridged_asset_hub_location(), 0,),
+				Error::<TestRuntime, ()>::CannotCloseMisbehavingBridge,
+			);
+		})
 	}
 
 	#[test]
@@ -1213,6 +1244,13 @@ mod tests {
 			// are pruned, but funds are not unreserved
 			let lanes_manager = LanesManagerOf::<TestRuntime, ()>::new();
 			assert_eq!(
+				BridgesByLocalOrigin::<TestRuntime, ()>::get(
+					locations.bridge_origin_universal_location
+				)
+				.to_vec(),
+				vec![locations.lane_id]
+			);
+			assert_eq!(
 				Bridges::<TestRuntime, ()>::get(locations.lane_id).map(|b| b.state),
 				Some(BridgeState::Closed)
 			);
@@ -1255,6 +1293,13 @@ mod tests {
 			),);
 
 			// nothing is changed (apart from the pruned messages)
+			assert_eq!(
+				BridgesByLocalOrigin::<TestRuntime, ()>::get(
+					locations.bridge_origin_universal_location
+				)
+				.to_vec(),
+				vec![locations.lane_id]
+			);
 			assert_eq!(
 				Bridges::<TestRuntime, ()>::get(locations.lane_id).map(|b| b.state),
 				Some(BridgeState::Closed)
@@ -1299,6 +1344,13 @@ mod tests {
 			),);
 
 			// there's no traces of bridge in the runtime storage and funds are unreserved
+			assert_eq!(
+				BridgesByLocalOrigin::<TestRuntime, ()>::get(
+					locations.bridge_origin_universal_location
+				)
+				.to_vec(),
+				vec![]
+			);
 			assert_eq!(Bridges::<TestRuntime, ()>::get(locations.lane_id).map(|b| b.state), None);
 			assert_eq!(
 				lanes_manager.any_state_inbound_lane(locations.lane_id).map(drop),
