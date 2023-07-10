@@ -19,7 +19,7 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
 use bp_messages::{LaneId, MessageNonce};
-use bp_runtime::{AccountIdOf, BalanceOf, BlockNumberOf, Chain};
+use bp_runtime::{AccountIdOf, BalanceOf, Chain};
 use codec::{Decode, Encode, MaxEncodedLen};
 use frame_support::{
 	ensure, CloneNoBound, PalletError, PartialEqNoBound, RuntimeDebug, RuntimeDebugNoBound,
@@ -31,13 +31,9 @@ use xcm::latest::prelude::*;
 
 /// Bridge state.
 #[derive(Clone, Copy, Decode, Encode, Eq, PartialEq, TypeInfo, MaxEncodedLen, RuntimeDebug)]
-pub enum BridgeState<BlockNumber> {
+pub enum BridgeState {
 	/// Bridge is opened. Associated lanes are also opened.
 	Opened,
-	/// Bridge is closing. It will switch to closed state at given block.
-	/// Outbound lane is either closed (if bridged is closing because of misbehavior), or it
-	/// is closing. Inbound lane is in closing state.
-	Closing(BlockNumber),
 	/// Bridge is closed. Associated lanes are also closed.
 	/// After all outbound messages will be pruned, the bridge will vanish without any traces.
 	Closed,
@@ -50,7 +46,7 @@ pub enum BridgeState<BlockNumber> {
 #[scale_info(skip_type_params(ThisChain))]
 pub struct Bridge<ThisChain: Chain> {
 	/// Current bridge state.
-	pub state: BridgeState<BlockNumberOf<ThisChain>>,
+	pub state: BridgeState,
 	/// Account with the reserved funds.
 	pub bridge_owner_account: AccountIdOf<ThisChain>,
 	/// Reserved amount on the sovereign account of the sibling bridge origin.
@@ -66,7 +62,10 @@ pub struct BridgeLimits {
 	/// keep piling up, which will lead to trie growth, which we don't want.
 	///
 	/// This limit must be selected with care - it should account possible delays because of
-	/// runtime upgrades, spamming queues, finality lags and so on.
+	/// runtime upgrades, spamming queues, finality lags and so on. The cost of sending
+	/// the `max_queued_outbound_messages` must be enormously high guven that the proper rate
+	/// limiter is used by the sending chain. Otherwise any malicious account may force bridge
+	/// closure by spending some funds on that.
 	pub max_queued_outbound_messages: MessageNonce,
 	// TODO: https://github.com/paritytech/parity-bridges-common/issues/1760 - limit to detect
 	// relayer activity - i.e. if there are 10 queued messages, but they are not delivered for

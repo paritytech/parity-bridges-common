@@ -38,17 +38,29 @@
 //!
 //! 5) when the bridge is opened, anyone can watch for bridge rules (see
 //!    [`bp_xcm_bridge_hub::BridgeMisbehavior`] for details) violations. If something goes wrong
-//!    with the bridge, he may call the `report_misbehavior` method. During the call, the outbound
-//!    lane is immediately `Closed`. The bridge itself switched to the `Closing` state. A `Penalty`
-//!    is paid (out of reserved funds) to the reporter. After `BridgeCloseDelay`, the caller may
-//!    call the `close_bridge` to get his funds back;
+//!    with the bridge, he may call the `report_misbehavior` method. If the report is confirmed, the
+//!    bridge is immediately closed and the is paid (out of reserved funds) to the reporter. The
+//!    owner may get the reserve remainder back, but he'll need to prune all queued messages first;
 //!
-//! 6) when either side wants to close the bridge, it sends the XCM `Transact` instruction with the
-//!    `request_bridge_closure` call. The bridge stays opened for `BridgeCloseDelay` blocks. This
-//!    delay exists to give both chain users enough time to properly close their bridge - e.g.
-//!    withdraw funds from the bridged chain and so on. After this delay passes, either side may
-//!    send another XCM `Transact` instruction with the `close_bridge` call to actually close the
-//!    bridge (at its side) and get its reserved funds back.
+//! 6) when either side wants to close the bridge, it sends the XCM `Transact` with the
+//!    `close_bridge` call. The bridge is closed immediately if there are no queued messages.
+//!    Otherwise, the owner must repeat the `close_bridge` call untto prune all queued messages
+//!    first.
+//!
+//! The pallet doesn't provide any mechanism for graceful closure, because it always involves
+//! some contract between two connected chains and the bridge hub knows nothing about that. It
+//! is the task for the connected chains to make sure that all required actions are completed
+//! before the closure. In the end, the bridge hub can't even guarantee that all messages that
+//! are delivered to the destination, are processed in the way their sender expects. So if we
+//! can't guarantee that, we shall not care about more complex procedures and leave it to the
+//! participating parties.
+//!
+//! There's other way to cause bridge closure - it is what we call a "misbehavior". That's a
+//! situation when the bridge owner/maintainer have violated contract between its chain and the
+//! bridge bub. This contract is quite simple - we want to see there's a running relayer, serving
+//! the bridge lane and that the number of messages in all bridge queues stays below some hard
+//! limit. The latter requirement may be achieved using some rate limiter at the sending chain.
+//! We have an example implementation in the `pallet-xcm-bridge-hub-router` pallet.
 
 #![cfg_attr(not(feature = "std"), no_std)]
 
@@ -112,6 +124,13 @@ pub mod pallet {
 
 		/// Amount of this chain native tokens that is reserved on the sibling parachain account
 		/// when bridge open request is registered.
+		///
+		/// This value must be selected using following in mind: part of this amount
+		/// (`Self::Penalty`) may go to misbehavior reporter, but still the remainder must be large
+		/// enough to cover cost of remaining `close_bridge` transactions and make it profitable for
+		/// bridge owner to submit those transactions and actually close the bridge. If it will be
+		/// small enough and won't cover those costs, the owner will have no reason to close the
+		/// bridge.
 		type BridgeReserve: Get<BalanceOf<ThisChainOf<Self, I>>>;
 		/// Currency used to pay for bridge registration.
 		type NativeCurrency: ReservableCurrency<Self::AccountId>;
@@ -128,8 +147,6 @@ pub mod pallet {
 
 	/// An alias for the bridge metadata.
 	pub type BridgeOf<T, I> = Bridge<ThisChainOf<T, I>>;
-	/// An alias for the bridge state.
-	pub type BridgeStateOf<T, I> = BridgeState<BlockNumberOf<ThisChainOf<T, I>>>;
 	/// An alias for the this chain.
 	pub type ThisChainOf<T, I> =
 		pallet_bridge_messages::ThisChainOf<T, <T as Config<I>>::BridgeMessagesPalletInstance>;
@@ -183,7 +200,7 @@ pub mod pallet {
 				Some(_) => Err(Error::<T, I>::BridgeAlreadyExists),
 				None => {
 					*bridge = Some(BridgeOf::<T, I> {
-						state: BridgeStateOf::<T, I>::Opened,
+						state: BridgeState::Opened,
 						bridge_owner_account,
 						reserve,
 					});
@@ -219,54 +236,9 @@ pub mod pallet {
 			Ok(())
 		}
 
-		/// Request previously opened bridge closure.
-		///
-		/// Can only be called by the "owner" of this side of the bridge. Both inbound and outbound
-		/// lanes at this side of the bridge are immediately switched to `Closing` state. Lanes may
-		/// still send/receive new messages, however this state is reported to the other side of
-		/// the bridge, given that relays are active. When this happens, lanes at the other side
-		/// also switching their state to `Closing`.
-		///
-		/// After `T::BridgeCloseDelay` blocks, the caller may issue the `close_bridge` call to
-		/// actually close the bridge and claim reserved funds.
-		///
-		/// The states after this call: bridge is `Closing` in `BridgeCloseDelay` blocks, outbound
-		/// lane is `Closing`, inbound lane is `Closing`.
-		#[pallet::call_index(1)]
-		#[pallet::weight(Weight::zero())] // TODO: https://github.com/paritytech/parity-bridges-common/issues/1760 - weights
-		pub fn request_bridge_closure(
-			origin: OriginFor<T>,
-			bridge_destination_relative_location: MultiLocation, // TODO: versioned?
-		) -> DispatchResult {
-			// compute required bridge locations
-			let locations = Self::bridge_locations(origin, bridge_destination_relative_location)?;
-
-			// update bridge metadata
-			let may_close_at = Self::start_closing_bridge(locations.lane_id, false)?;
-
-			// write something to log
-			log::trace!(
-				target: LOG_TARGET,
-				"Bridge {:?} between {:?} and {:?} is closing. May be closed at: {:?}",
-				locations.lane_id,
-				locations.bridge_origin_universal_location,
-				locations.bridge_destination_universal_location,
-				may_close_at,
-			);
-
-			// deposit the `BridgeClosureRequested` event
-			Self::deposit_event(Event::<T, I>::BridgeClosureRequested {
-				lane_id: locations.lane_id,
-				may_close_at,
-			});
-
-			Ok(())
-		}
-
 		/// Try to close the bridge.
 		///
-		/// Can only be called by the "owner" of this side of the bridge. Can only be called if
-		/// bridge has switched to `Closing` state at least `T::BridgeCloseDelay` blocks ago.
+		/// Can only be called by the "owner" of this side of the bridge.
 		///
 		/// Closed bridge is a bridge without any traces in the runtime storage. So this method
 		/// first tries to prune all queued messages at the outbound lane. When there are no
@@ -279,7 +251,7 @@ pub mod pallet {
 		/// until outbound queue is depleted and get his funds back.
 		///
 		/// The states after this call: everything is either `Closed`, or pruned from the
-		/// runtime storage..
+		/// runtime storage.
 		#[pallet::call_index(2)]
 		#[pallet::weight(Weight::zero())] // TODO: https://github.com/paritytech/parity-bridges-common/issues/1760 - weights
 		pub fn close_bridge(
@@ -296,36 +268,21 @@ pub mod pallet {
 			// update bridge metadata - this also guarantees that the bridge is in the proper state
 			let bridge =
 				Bridges::<T, I>::try_mutate_exists(locations.lane_id, |bridge| match bridge {
-					Some(bridge) => match bridge.state {
-						BridgeState::Opened => Err(Error::<T, I>::CannotCloseOpenedBridge),
-						BridgeState::Closed => Ok(bridge.clone()),
-						BridgeState::Closing(may_close_at)
-							if frame_system::Pallet::<T>::block_number() >= may_close_at =>
-						{
-							bridge.state = BridgeState::Closed;
-							Ok(bridge.clone())
-						},
-						BridgeState::Closing(_) => Err(Error::<T, I>::CannotCloseOpenedBridge),
+					Some(bridge) => {
+						bridge.state = BridgeState::Closed;
+						Ok(bridge.clone())
 					},
 					None => Err(Error::<T, I>::UnknownBridge),
 				})?;
 
-			// ensure that bridge lanes are either closing or closed
+			// close inbound and outbound lanes
 			let lanes_manager = LanesManagerOf::<T, I>::new();
 			let mut inbound_lane = lanes_manager
 				.any_state_inbound_lane(locations.lane_id)
 				.map_err(Into::<Error<T, I>>::into)?;
-			ensure!(
-				matches!(inbound_lane.state(), LaneState::Closing | LaneState::Closed),
-				Error::<T, I>::CannotCloseOpenedLane,
-			);
 			let mut outbound_lane = lanes_manager
 				.any_state_outbound_lane(locations.lane_id)
 				.map_err(Into::<Error<T, I>>::into)?;
-			ensure!(
-				matches!(outbound_lane.state(), LaneState::Closing | LaneState::Closed),
-				Error::<T, I>::CannotCloseOpenedLane,
-			);
 
 			// now prune queued messages
 			let mut pruned_messages = 0;
@@ -433,17 +390,13 @@ pub mod pallet {
 			}
 
 			// fine bridge owner and close the bridge
-			let may_close_at = Self::on_misbehavior(reporter, lane_id)?;
+			Self::on_misbehavior(reporter, lane_id)?;
 
 			// write something to log
 			log::trace!(target: LOG_TARGET, "Bridge {:?} is misbehaving: {:?}", lane_id, misbehavior);
 
 			// deposit the `BridgeMisbehaving` event
-			Self::deposit_event(Event::<T, I>::BridgeMisbehaving {
-				lane_id,
-				misbehavior,
-				may_close_at,
-			});
+			Self::deposit_event(Event::<T, I>::BridgeMisbehaving { lane_id, misbehavior });
 
 			Ok(())
 		}
@@ -498,52 +451,8 @@ pub mod pallet {
 			.map_err(|e| Error::<T, I>::BridgeLocations(e).into())
 		}
 
-		/// Start closing the bridge. Returns block at which bridge can be actually closed.
-		fn start_closing_bridge(
-			lane_id: LaneId,
-			force_close_bridge: bool,
-		) -> Result<BlockNumberOf<ThisChainOf<T, I>>, Error<T, I>> {
-			// update bridge metadata
-			let may_close_at =
-				Bridges::<T, I>::try_mutate_exists(lane_id, |bridge| match bridge {
-					Some(bridge) => match bridge.state {
-						BridgeState::Opened => {
-							let may_close_at = frame_system::Pallet::<T>::block_number()
-								.saturating_add(T::BridgeCloseDelay::get());
-							bridge.state = BridgeState::Closing(may_close_at);
-							Ok(may_close_at)
-						},
-						BridgeState::Closing(may_close_at) => {
-							if !force_close_bridge {
-								return Err(Error::<T, I>::BridgeAlreadyClosed)
-							}
-
-							Ok(may_close_at)
-						},
-						BridgeState::Closed => Err(Error::<T, I>::BridgeAlreadyClosed),
-					},
-					None => Err(Error::<T, I>::UnknownBridge),
-				})?;
-
-			// update lanes state. Under normal circumstances, following calls shall never fail
-			let lanes_manager = LanesManagerOf::<T, I>::new();
-			lanes_manager
-				.active_inbound_lane(lane_id)
-				.map_err(Into::<Error<T, I>>::into)?
-				.set_state(LaneState::Closing);
-			lanes_manager
-				.active_outbound_lane(lane_id)
-				.map_err(Into::<Error<T, I>>::into)?
-				.set_state(if force_close_bridge { LaneState::Closed } else { LaneState::Closing });
-
-			Ok(may_close_at)
-		}
-
 		/// Actions when misbehavior is detected.
-		fn on_misbehavior(
-			reporter: T::AccountId,
-			lane_id: LaneId,
-		) -> Result<BlockNumberOf<ThisChainOf<T, I>>, Error<T, I>> {
+		fn on_misbehavior(reporter: T::AccountId, lane_id: LaneId) -> Result<(), Error<T, I>> {
 			// transfer penalty to the reporter
 			let bridge = Bridges::<T, I>::get(lane_id).ok_or(Error::<T, I>::UnknownBridge)?;
 			let penalty = T::Penalty::get();
@@ -597,10 +506,21 @@ pub mod pallet {
 			// of this method)
 			Bridges::<T, I>::mutate_extant(lane_id, |bridge| {
 				bridge.reserve = updated_reserve;
+				bridge.state = BridgeState::Closed;
 			});
 
-			// start closing the bridge
-			Self::start_closing_bridge(lane_id, true)
+			// update lanes state. Under normal circumstances, following calls shall never fail
+			let lanes_manager = LanesManagerOf::<T, I>::new();
+			lanes_manager
+				.active_inbound_lane(lane_id)
+				.map_err(Into::<Error<T, I>>::into)?
+				.set_state(LaneState::Closed);
+			lanes_manager
+				.active_outbound_lane(lane_id)
+				.map_err(Into::<Error<T, I>>::into)?
+				.set_state(LaneState::Closed);
+
+			Ok(())
 		}
 	}
 
@@ -620,13 +540,6 @@ pub mod pallet {
 			remote_endpoint: Box<InteriorMultiLocation>,
 			/// Bridge and its lane identifier.
 			lane_id: LaneId,
-		},
-		/// Bridge closure has been requested.
-		BridgeClosureRequested {
-			/// Bridge and its lane identifier.
-			lane_id: LaneId,
-			/// Block where the bridge may be actually closed.
-			may_close_at: T::BlockNumber,
 		},
 		/// Bridge is going to be closed, but not yet fully pruned from the runtime storage.
 		ClosingBridge {
@@ -651,8 +564,6 @@ pub mod pallet {
 			lane_id: LaneId,
 			/// Bridge misbehavior type.
 			misbehavior: BridgeMisbehavior,
-			/// Block where the bridge may be actually closed.
-			may_close_at: T::BlockNumber,
 		},
 	}
 
@@ -682,10 +593,6 @@ pub mod pallet {
 		UnknownBridge,
 		/// The bridge origin can't pay the required amount for opening the bridge.
 		FailedToReserveBridgeReserve,
-		/// Cannot close opened bridge. It should be switched to `Closing` state first.
-		CannotCloseOpenedBridge,
-		/// Cannot close opened lane. It should be switched to `Closing` state first.
-		CannotCloseOpenedLane,
 		/// Invalid misbehavior report has been submitted.
 		InvalidMisbehaviorReport,
 	}
@@ -738,28 +645,6 @@ mod tests {
 		lanes_manager.create_outbound_lane(locations.lane_id).unwrap();
 
 		(bridge, locations)
-	}
-
-	fn mock_closing_bridge_from(
-		origin: RuntimeOrigin,
-	) -> (BridgeOf<TestRuntime, ()>, BridgeLocations, BlockNumber) {
-		let (mut bridge, locations) = mock_open_bridge_from(origin);
-
-		let may_close_at = 1 + BridgeCloseDelay::get();
-		bridge.state = BridgeState::Closing(may_close_at);
-		Bridges::<TestRuntime, ()>::insert(locations.lane_id, bridge.clone());
-
-		let lanes_manager = LanesManagerOf::<TestRuntime, ()>::new();
-		lanes_manager
-			.active_inbound_lane(locations.lane_id)
-			.unwrap()
-			.set_state(LaneState::Closing);
-		lanes_manager
-			.active_outbound_lane(locations.lane_id)
-			.unwrap()
-			.set_state(LaneState::Closing);
-
-		(bridge, locations, may_close_at)
 	}
 
 	fn enqueue_message(lane: LaneId) {
@@ -1024,202 +909,6 @@ mod tests {
 	}
 
 	#[test]
-	fn request_bridge_closure_fails_if_origin_is_not_allowed() {
-		run_test(|| {
-			assert_noop!(
-				XcmOverBridge::request_bridge_closure(
-					AllowedOpenBridgeOrigin::disallowed_origin(),
-					bridged_asset_hub_location(),
-				),
-				sp_runtime::DispatchError::BadOrigin,
-			);
-		})
-	}
-
-	#[test]
-	fn request_bridge_closure_fails_if_origin_is_not_relative() {
-		run_test(|| {
-			assert_noop!(
-				XcmOverBridge::request_bridge_closure(
-					AllowedOpenBridgeOrigin::parent_relay_chain_universal_origin(),
-					bridged_asset_hub_location(),
-				),
-				Error::<TestRuntime, ()>::BridgeLocations(
-					BridgeLocationsError::InvalidBridgeOrigin
-				),
-			);
-
-			assert_noop!(
-				XcmOverBridge::request_bridge_closure(
-					AllowedOpenBridgeOrigin::sibling_parachain_universal_origin(),
-					bridged_asset_hub_location(),
-				),
-				Error::<TestRuntime, ()>::BridgeLocations(
-					BridgeLocationsError::InvalidBridgeOrigin
-				),
-			);
-		})
-	}
-
-	#[test]
-	fn request_bridge_closure_fails_if_bridge_is_already_closing() {
-		run_test(|| {
-			let origin = AllowedOpenBridgeOrigin::parent_relay_chain_origin();
-			let (_, locations) = mock_open_bridge_from(origin.clone());
-
-			Bridges::<TestRuntime, ()>::mutate_extant(locations.lane_id, |bridge| {
-				bridge.state = BridgeState::Closing(0xFFFF);
-			});
-
-			assert_noop!(
-				XcmOverBridge::request_bridge_closure(
-					origin,
-					locations.bridge_destination_relative_location,
-				),
-				Error::<TestRuntime, ()>::BridgeAlreadyClosed,
-			);
-		})
-	}
-
-	#[test]
-	fn request_bridge_closure_fails_if_bridge_is_already_closed() {
-		run_test(|| {
-			let origin = AllowedOpenBridgeOrigin::parent_relay_chain_origin();
-			let (_, locations) = mock_open_bridge_from(origin.clone());
-
-			Bridges::<TestRuntime, ()>::mutate_extant(locations.lane_id, |bridge| {
-				bridge.state = BridgeState::Closed;
-			});
-
-			assert_noop!(
-				XcmOverBridge::request_bridge_closure(
-					origin,
-					locations.bridge_destination_relative_location,
-				),
-				Error::<TestRuntime, ()>::BridgeAlreadyClosed,
-			);
-		})
-	}
-
-	#[test]
-	fn request_bridge_closure_fails_if_its_lanes_are_missing() {
-		run_test(|| {
-			let origin = AllowedOpenBridgeOrigin::parent_relay_chain_origin();
-			let (_, locations) = mock_open_bridge_from(origin.clone());
-
-			let lanes_manager = LanesManagerOf::<TestRuntime, ()>::new();
-			lanes_manager.active_inbound_lane(locations.lane_id).unwrap().purge();
-			assert_noop!(
-				XcmOverBridge::request_bridge_closure(
-					origin.clone(),
-					locations.bridge_destination_relative_location,
-				),
-				Error::<TestRuntime, ()>::UnknownInboundLane,
-			);
-
-			lanes_manager.active_outbound_lane(locations.lane_id).unwrap().purge();
-			let (_, locations) = mock_open_bridge_from(origin.clone());
-			lanes_manager.active_outbound_lane(locations.lane_id).unwrap().purge();
-			assert_noop!(
-				XcmOverBridge::request_bridge_closure(
-					origin,
-					locations.bridge_destination_relative_location,
-				),
-				Error::<TestRuntime, ()>::UnknownOutboundLane,
-			);
-		})
-	}
-
-	#[test]
-	fn request_bridge_closure_fails_if_its_lanes_are_closed() {
-		run_test(|| {
-			let origin = AllowedOpenBridgeOrigin::parent_relay_chain_origin();
-			let (_, locations) = mock_open_bridge_from(origin.clone());
-
-			let lanes_manager = LanesManagerOf::<TestRuntime, ()>::new();
-			lanes_manager
-				.active_inbound_lane(locations.lane_id)
-				.unwrap()
-				.set_state(LaneState::Closed);
-			assert_noop!(
-				XcmOverBridge::request_bridge_closure(
-					origin.clone(),
-					locations.bridge_destination_relative_location,
-				),
-				Error::<TestRuntime, ()>::ClosedInboundLane,
-			);
-			lanes_manager
-				.any_state_inbound_lane(locations.lane_id)
-				.unwrap()
-				.set_state(LaneState::Opened);
-
-			lanes_manager
-				.active_outbound_lane(locations.lane_id)
-				.unwrap()
-				.set_state(LaneState::Closed);
-			assert_noop!(
-				XcmOverBridge::request_bridge_closure(
-					origin,
-					locations.bridge_destination_relative_location,
-				),
-				Error::<TestRuntime, ()>::ClosedOutboundLane,
-			);
-		});
-	}
-
-	#[test]
-	fn request_bridge_closure_works() {
-		run_test(|| {
-			let origin = AllowedOpenBridgeOrigin::parent_relay_chain_origin();
-			let (bridge, locations) = mock_open_bridge_from(origin.clone());
-			System::set_block_number(1);
-
-			// remember owner balances
-			let free_balance = Balances::free_balance(&bridge.bridge_owner_account);
-			let reserved_balance = Balances::reserved_balance(&bridge.bridge_owner_account);
-
-			// start closing the bridge
-			assert_ok!(XcmOverBridge::request_bridge_closure(
-				origin,
-				locations.bridge_destination_relative_location,
-			),);
-
-			// check that state of the bridge and its lanes have changed
-			let lanes_manager = LanesManagerOf::<TestRuntime, ()>::new();
-			let may_close_at = 1 + BridgeCloseDelay::get();
-			assert_eq!(
-				Bridges::<TestRuntime, ()>::get(locations.lane_id).map(|b| b.state),
-				Some(BridgeState::Closing(may_close_at))
-			);
-			assert_eq!(
-				lanes_manager.active_inbound_lane(locations.lane_id).unwrap().state(),
-				LaneState::Closing
-			);
-			assert_eq!(
-				lanes_manager.active_outbound_lane(locations.lane_id).unwrap().state(),
-				LaneState::Closing
-			);
-
-			// check that balances have not changed
-			assert_eq!(Balances::free_balance(&bridge.bridge_owner_account), free_balance);
-			assert_eq!(Balances::reserved_balance(&bridge.bridge_owner_account), reserved_balance);
-
-			// finally - check runtime events
-			assert_eq!(
-				System::events().last(),
-				Some(&EventRecord {
-					phase: Phase::Initialization,
-					event: RuntimeEvent::XcmOverBridge(Event::BridgeClosureRequested {
-						lane_id: locations.lane_id,
-						may_close_at,
-					}),
-					topics: vec![],
-				}),
-			);
-		});
-	}
-
-	#[test]
 	fn close_bridge_fails_if_origin_is_not_allowed() {
 		run_test(|| {
 			assert_noop!(
@@ -1261,45 +950,10 @@ mod tests {
 	}
 
 	#[test]
-	fn close_bridge_fails_if_bridge_is_opened() {
-		run_test(|| {
-			let origin = AllowedOpenBridgeOrigin::parent_relay_chain_origin();
-			let (_, locations) = mock_open_bridge_from(origin.clone());
-
-			assert_noop!(
-				XcmOverBridge::close_bridge(
-					origin,
-					locations.bridge_destination_relative_location,
-					0,
-				),
-				Error::<TestRuntime, ()>::CannotCloseOpenedBridge,
-			);
-		});
-	}
-
-	#[test]
-	fn close_bridge_fails_if_bridge_is_still_closing() {
-		run_test(|| {
-			let origin = AllowedOpenBridgeOrigin::parent_relay_chain_origin();
-			let (_, locations, _) = mock_closing_bridge_from(origin.clone());
-
-			assert_noop!(
-				XcmOverBridge::close_bridge(
-					origin,
-					locations.bridge_destination_relative_location,
-					0,
-				),
-				Error::<TestRuntime, ()>::CannotCloseOpenedBridge,
-			);
-		});
-	}
-
-	#[test]
 	fn close_bridge_fails_if_its_lanes_are_unknown() {
 		run_test(|| {
 			let origin = AllowedOpenBridgeOrigin::parent_relay_chain_origin();
-			let (_, locations, may_close_at) = mock_closing_bridge_from(origin.clone());
-			System::set_block_number(may_close_at);
+			let (_, locations) = mock_open_bridge_from(origin.clone());
 
 			let lanes_manager = LanesManagerOf::<TestRuntime, ()>::new();
 			lanes_manager.any_state_inbound_lane(locations.lane_id).unwrap().purge();
@@ -1313,7 +967,7 @@ mod tests {
 			);
 			lanes_manager.any_state_outbound_lane(locations.lane_id).unwrap().purge();
 
-			let (_, locations, _) = mock_closing_bridge_from(origin.clone());
+			let (_, locations) = mock_open_bridge_from(origin.clone());
 			lanes_manager.any_state_outbound_lane(locations.lane_id).unwrap().purge();
 			assert_noop!(
 				XcmOverBridge::close_bridge(
@@ -1327,51 +981,11 @@ mod tests {
 	}
 
 	#[test]
-	fn close_bridge_fails_if_its_lanes_are_opened() {
-		run_test(|| {
-			let origin = AllowedOpenBridgeOrigin::parent_relay_chain_origin();
-			let (_, locations, may_close_at) = mock_closing_bridge_from(origin.clone());
-			System::set_block_number(may_close_at);
-
-			let lanes_manager = LanesManagerOf::<TestRuntime, ()>::new();
-			lanes_manager
-				.any_state_inbound_lane(locations.lane_id)
-				.unwrap()
-				.set_state(LaneState::Opened);
-			assert_noop!(
-				XcmOverBridge::close_bridge(
-					origin.clone(),
-					locations.bridge_destination_relative_location,
-					0,
-				),
-				Error::<TestRuntime, ()>::CannotCloseOpenedLane,
-			);
-			lanes_manager
-				.any_state_inbound_lane(locations.lane_id)
-				.unwrap()
-				.set_state(LaneState::Closing);
-
-			lanes_manager
-				.any_state_outbound_lane(locations.lane_id)
-				.unwrap()
-				.set_state(LaneState::Opened);
-			assert_noop!(
-				XcmOverBridge::close_bridge(
-					origin,
-					locations.bridge_destination_relative_location,
-					0,
-				),
-				Error::<TestRuntime, ()>::CannotCloseOpenedLane,
-			);
-		});
-	}
-
-	#[test]
 	fn close_bridge_works() {
 		run_test(|| {
 			let origin = AllowedOpenBridgeOrigin::parent_relay_chain_origin();
-			let (bridge, locations, may_close_at) = mock_closing_bridge_from(origin.clone());
-			System::set_block_number(may_close_at);
+			let (bridge, locations) = mock_open_bridge_from(origin.clone());
+			System::set_block_number(1);
 
 			// remember owner balances
 			let free_balance = Balances::free_balance(&bridge.bridge_owner_account);
@@ -1545,7 +1159,7 @@ mod tests {
 	}
 
 	#[test]
-	fn report_misbehavior_fails_for_closed_bridge() {
+	fn report_misbehavior_allowed_for_closed_bridges() {
 		run_test(|| {
 			let origin = AllowedOpenBridgeOrigin::parent_relay_chain_origin();
 			let (_, locations) = mock_open_bridge_from(origin);
@@ -1557,31 +1171,6 @@ mod tests {
 
 			Bridges::<TestRuntime, ()>::mutate_extant(locations.lane_id, |bridge| {
 				bridge.state = BridgeState::Closed;
-			});
-			assert_noop!(
-				XcmOverBridge::report_misbehavior(
-					RuntimeOrigin::signed([128u8; 32].into()),
-					locations.lane_id,
-					BridgeMisbehavior::TooManyQueuedOutboundMessages,
-				),
-				Error::<TestRuntime, ()>::BridgeAlreadyClosed,
-			);
-		});
-	}
-
-	#[test]
-	fn report_misbehavior_allowrd_for_closing_bridges() {
-		run_test(|| {
-			let origin = AllowedOpenBridgeOrigin::parent_relay_chain_origin();
-			let (_, locations) = mock_open_bridge_from(origin);
-
-			// report valid misbehavior fails, because the bridge is not registered
-			for _ in 0..=TestBridgeLimits::get().max_queued_outbound_messages {
-				enqueue_message(locations.lane_id);
-			}
-
-			Bridges::<TestRuntime, ()>::mutate_extant(locations.lane_id, |bridge| {
-				bridge.state = BridgeState::Closing(100);
 			});
 			assert_ok!(XcmOverBridge::report_misbehavior(
 				RuntimeOrigin::signed([128u8; 32].into()),
@@ -1688,16 +1277,15 @@ mod tests {
 				BridgeMisbehavior::TooManyQueuedOutboundMessages,
 			),);
 
-			// check that the bridge and its lanes are in the Closing/Closed state
+			// check that the bridge and its lanes are in the Closed state
 			let lanes_manager = LanesManagerOf::<TestRuntime, ()>::new();
-			let may_close_at = 1 + BridgeCloseDelay::get();
 			assert_eq!(
 				Bridges::<TestRuntime, ()>::get(locations.lane_id).map(|b| b.state),
-				Some(BridgeState::Closing(may_close_at))
+				Some(BridgeState::Closed)
 			);
 			assert_eq!(
-				lanes_manager.active_inbound_lane(locations.lane_id).unwrap().state(),
-				LaneState::Closing
+				lanes_manager.any_state_inbound_lane(locations.lane_id).unwrap().state(),
+				LaneState::Closed
 			);
 			assert_eq!(
 				lanes_manager.any_state_outbound_lane(locations.lane_id).unwrap().state(),
