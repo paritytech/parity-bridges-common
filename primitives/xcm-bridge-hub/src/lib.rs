@@ -86,6 +86,9 @@ impl LocalChannelManager for () {
 pub enum BridgeState {
 	/// Bridge is opened. Associated lanes are also opened.
 	Opened,
+	/// The bridge is misbehaving. Associated outbound lane is closed and the inbound
+	/// channel with the bridge owner is suspended.
+	Misbehaving,
 	/// Bridge is closed. Associated lanes are also closed.
 	/// After all outbound messages will be pruned, the bridge will vanish without any traces.
 	Closed,
@@ -127,6 +130,9 @@ pub struct BridgeLimits {
 
 	// TODO: https://github.com/paritytech/parity-bridges-common/issues/1760 - too low funds on
 	// the relayers-fund account?
+
+	// TODO: https://github.com/paritytech/parity-bridges-common/issues/1760 - too many queued
+	// messages at the bridged bridge hub?
 }
 
 /// Bridge misbehavior.
@@ -151,11 +157,16 @@ pub enum BridgeMisbehavior {
 	///
 	/// The only way when it could happen (apart from the misconfiguration) is when the owner
 	/// has several opened bridges. Then, if one bridge is "misbehaving", the channel is suspended
-	/// during the `report_misbehavior` call. But the bridge owner may immediately resume it
+	/// during the `report_misbehavior` call. But the bridge owner may open the other bridge it
 	/// (without resolving misbehavior) by calling the `resume_bridge` on other bridge. Since
 	/// there's just one channel between owner and the bridge hub (utilized by multiple bridges),
 	/// the owner unblocks the misbehaving bridge, which is another misbehavior.
-	UnsuspendedChannelWithMisbehavingOwner,
+	///
+	/// This misbehavior muste be reported
+	UnsuspendedChannelWithMisbehavingOwner {
+		/// The identifier of misbehaving bridge of the same owner.
+		misbehaving_bridge_id: LaneId,
+	},
 }
 
 /// The state of all (reachable) queues as they seen from the bridge hub.

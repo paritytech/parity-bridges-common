@@ -226,6 +226,8 @@ impl pallet_xcm_bridge_hub::Config for TestRuntime {
 	type BridgedNetworkId = BridgedRelayNetwork;
 	type BridgeMessagesPalletInstance = ();
 
+	type MaxBridgesPerLocalOrigin = ConstU32<2>;
+
 	type AllowedOpenBridgeOrigin = AllowedOpenBridgeOrigin;
 	type BridgeOriginAccountIdConverter = LocationToAccountId;
 
