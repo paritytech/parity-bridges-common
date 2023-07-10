@@ -255,6 +255,10 @@ impl<T: Config<I>, I: 'static> SendXcm for Pallet<T, I> {
 		let current_block = frame_system::Pallet::<T>::block_number();
 		let mut bridge = Bridges::<T, I>::get(lane_id).ok_or_else(SendError::Unroutable)?;
 		let limits = BridgeLimits::get();
+
+		// TODO: what if number of messages in the queues is close to the limit (see `BridgeLimits`)?
+		// maybe we should temporary close the router?
+
 		if is_fee_increment_required(current_block, &bridge, &limits) {
 			// remove bridge from relieving set
 			if bridge.is_relieving {
