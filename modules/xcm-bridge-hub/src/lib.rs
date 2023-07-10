@@ -796,12 +796,12 @@ mod tests {
 		bridge_owner_account
 	}
 
-	fn mock_open_bridge_from(
+	fn mock_open_bridge_from_with(
 		origin: RuntimeOrigin,
+		with: MultiLocation,
 	) -> (BridgeOf<TestRuntime, ()>, BridgeLocations) {
 		let reserve = BridgeReserve::get();
-		let locations =
-			XcmOverBridge::bridge_locations(origin, bridged_asset_hub_location()).unwrap();
+		let locations = XcmOverBridge::bridge_locations(origin, with).unwrap();
 		let bridge_owner_account =
 			fund_origin_sovereign_account(&locations, reserve + ExistentialDeposit::get());
 		Balances::reserve(&bridge_owner_account, reserve).unwrap();
@@ -813,9 +813,13 @@ mod tests {
 			reserve,
 		};
 		Bridges::<TestRuntime, ()>::insert(locations.lane_id, bridge.clone());
-		BridgesByLocalOrigin::<TestRuntime, ()>::insert(
+		BridgesByLocalOrigin::<TestRuntime, ()>::mutate(
 			locations.bridge_origin_universal_location,
-			BoundedVec::<_, _>::try_from(vec![locations.lane_id]).unwrap(),
+			|storage_bridges| {
+				let mut bridges = storage_bridges.to_vec();
+				bridges.push(locations.lane_id);
+				*storage_bridges = BoundedVec::try_from(bridges).unwrap();
+			},
 		);
 
 		let lanes_manager = LanesManagerOf::<TestRuntime, ()>::new();
@@ -825,6 +829,12 @@ mod tests {
 		(bridge, locations)
 	}
 
+	fn mock_open_bridge_from(
+		origin: RuntimeOrigin,
+	) -> (BridgeOf<TestRuntime, ()>, BridgeLocations) {
+		mock_open_bridge_from_with(origin, bridged_asset_hub_location())
+	}
+
 	fn enqueue_message(lane: LaneId) {
 		let lanes_manager = LanesManagerOf::<TestRuntime, ()>::new();
 		lanes_manager
@@ -832,6 +842,48 @@ mod tests {
 			.unwrap()
 			.send_message(vec![42])
 			.unwrap();
+	}
+
+	fn ensure_misbehavior_state(
+		reporter: AccountId,
+		locations: BridgeLocations,
+		free_balance: Balance,
+		reserved_balance: Balance,
+		total_reward: Balance,
+	) {
+		// check that the bridge and its lanes are in the Closed state
+		let lanes_manager = LanesManagerOf::<TestRuntime, ()>::new();
+		assert_eq!(
+			Bridges::<TestRuntime, ()>::get(locations.lane_id).map(|b| b.state),
+			Some(BridgeState::Misbehaving)
+		);
+		assert_eq!(
+			lanes_manager.any_state_inbound_lane(locations.lane_id).unwrap().state(),
+			LaneState::Opened
+		);
+		assert_eq!(
+			lanes_manager.any_state_outbound_lane(locations.lane_id).unwrap().state(),
+			LaneState::Closed
+		);
+
+		// check that reporter balance is increased, bridge owner balance is decreased and
+		// we have saved this fact in the bridge meta
+		let bridge = Bridges::<TestRuntime, ()>::get(locations.lane_id).unwrap();
+		assert_eq!(Balances::free_balance(&bridge.bridge_owner_account), free_balance);
+		assert_eq!(
+			Balances::reserved_balance(&bridge.bridge_owner_account),
+			reserved_balance - Penalty::get()
+		);
+		assert_eq!(Balances::free_balance(&reporter), ExistentialDeposit::get() + total_reward);
+		assert_eq!(Balances::reserved_balance(&reporter), 0);
+		assert_eq!(
+			Bridges::<TestRuntime, ()>::get(locations.lane_id).map(|b| b.reserve),
+			Some(BridgeReserve::get() - Penalty::get())
+		);
+
+		assert!(TestLocalChannelManager::is_inbound_channel_suspended(
+			locations.bridge_origin_relative_location
+		));
 	}
 
 	#[test]
@@ -952,7 +1004,7 @@ mod tests {
 
 			BridgesByLocalOrigin::<TestRuntime, ()>::insert(
 				locations.bridge_origin_universal_location,
-				BoundedVec::<_, _>::try_from(vec![
+				BoundedVec::try_from(vec![
 					LaneId::new(1, 2);
 					MaxBridgesPerLocalOrigin::get() as usize
 				])
@@ -1131,11 +1183,8 @@ mod tests {
 			let origin = AllowedOpenBridgeOrigin::parent_relay_chain_origin();
 			let (_, locations) = mock_open_bridge_from(origin.clone());
 
-			Bridges::<TestRuntime, ()>::mutate(locations.lane_id, |bridge| {
-				*bridge = bridge.take().map(|mut b| {
-					b.state = BridgeState::Misbehaving;
-					b
-				});
+			Bridges::<TestRuntime, ()>::mutate_extant(locations.lane_id, |bridge| {
+				bridge.state = BridgeState::Misbehaving;
 			});
 
 			assert_noop!(
@@ -1417,6 +1466,31 @@ mod tests {
 	}
 
 	#[test]
+	fn report_misbehavior_fails_for_misbehaving_bridge() {
+		run_test(|| {
+			let origin = AllowedOpenBridgeOrigin::parent_relay_chain_origin();
+			let (_, locations) = mock_open_bridge_from(origin);
+
+			// report valid misbehavior fails, because the bridge is not registered
+			for _ in 0..=TestBridgeLimits::get().max_queued_outbound_messages {
+				enqueue_message(locations.lane_id);
+			}
+
+			Bridges::<TestRuntime, ()>::mutate_extant(locations.lane_id, |bridge| {
+				bridge.state = BridgeState::Misbehaving;
+			});
+			assert_noop!(
+				XcmOverBridge::report_misbehavior(
+					RuntimeOrigin::signed([128u8; 32].into()),
+					locations.lane_id,
+					BridgeMisbehavior::TooManyQueuedOutboundMessages,
+				),
+				Error::<TestRuntime, ()>::AlreadyMisbehaving,
+			);
+		});
+	}
+
+	#[test]
 	fn report_misbehavior_allowed_for_closed_bridges() {
 		run_test(|| {
 			let origin = AllowedOpenBridgeOrigin::parent_relay_chain_origin();
@@ -1535,36 +1609,187 @@ mod tests {
 				BridgeMisbehavior::TooManyQueuedOutboundMessages,
 			),);
 
-			// check that the bridge and its lanes are in the Closed state
-			let lanes_manager = LanesManagerOf::<TestRuntime, ()>::new();
-			assert_eq!(
-				Bridges::<TestRuntime, ()>::get(locations.lane_id).map(|b| b.state),
-				Some(BridgeState::Misbehaving)
-			);
-			assert_eq!(
-				lanes_manager.any_state_inbound_lane(locations.lane_id).unwrap().state(),
-				LaneState::Opened
-			);
-			assert_eq!(
-				lanes_manager.any_state_outbound_lane(locations.lane_id).unwrap().state(),
-				LaneState::Closed
+			// ensure that the bridge is in the proper state
+			ensure_misbehavior_state(
+				reporter,
+				locations.clone(),
+				free_balance,
+				reserved_balance,
+				Penalty::get(),
 			);
 
-			// check that reporter balance is increased, bridge owner balance is decreased and
-			// we have saved this fact in the bridge meta
-			assert_eq!(Balances::free_balance(&bridge.bridge_owner_account), free_balance);
+			// ensure that the proper event is deposited
 			assert_eq!(
-				Balances::reserved_balance(&bridge.bridge_owner_account),
-				reserved_balance - Penalty::get()
+				System::events().last(),
+				Some(&EventRecord {
+					phase: Phase::Initialization,
+					event: RuntimeEvent::XcmOverBridge(Event::BridgeMisbehaving {
+						lane_id: locations.lane_id,
+						misbehavior: BridgeMisbehavior::TooManyQueuedOutboundMessages,
+					}),
+					topics: vec![],
+				}),
 			);
-			assert_eq!(
-				Balances::free_balance(&reporter),
-				ExistentialDeposit::get() + Penalty::get()
+		})
+	}
+
+	#[test]
+	fn report_unsuspended_channel_with_misbehaving_owner_fails_if_bridge_is_not_misbehaving() {
+		run_test(|| {
+			let origin = AllowedOpenBridgeOrigin::parent_relay_chain_origin();
+			let (_, locations1) = mock_open_bridge_from(origin.clone());
+			let (_, locations2) = mock_open_bridge_from_with(origin, bridged_parachain_location());
+
+			// resume the channel with the local bridge origin
+			TestLocalChannelManager::resume_inbound_channel(
+				locations1.bridge_origin_relative_location,
+			)
+			.unwrap();
+
+			// try to report the `UnsuspendedChannelWithMisbehavingOwner` misbehavior
+			// => it'll fail because the `misbehaving_bridge_id` is not actually misbehaving
+			assert_noop!(
+				XcmOverBridge::report_misbehavior(
+					RuntimeOrigin::signed([128u8; 32].into()),
+					locations2.lane_id,
+					BridgeMisbehavior::UnsuspendedChannelWithMisbehavingOwner {
+						misbehaving_bridge_id: locations1.lane_id,
+					},
+				),
+				Error::<TestRuntime, ()>::InvalidMisbehaviorReport,
 			);
-			assert_eq!(Balances::reserved_balance(&reporter), 0);
+		});
+	}
+
+	#[test]
+	fn report_unsuspended_channel_with_misbehaving_owner_fails_if_owner_is_different() {
+		run_test(|| {
+			let origin1 = AllowedOpenBridgeOrigin::parent_relay_chain_origin();
+			let origin2 = AllowedOpenBridgeOrigin::sibling_parachain_origin();
+			let (_, locations1) = mock_open_bridge_from(origin1.clone());
+			let (_, locations2) = mock_open_bridge_from_with(origin2, bridged_parachain_location());
+
+			// set the bridge1 state to misbehaving
+			Bridges::<TestRuntime, ()>::mutate_extant(locations1.lane_id, |bridge| {
+				bridge.state = BridgeState::Misbehaving;
+			});
+			// resume the channel with the local bridge origin
+			TestLocalChannelManager::resume_inbound_channel(
+				locations1.bridge_origin_relative_location,
+			)
+			.unwrap();
+
+			// try to report the `UnsuspendedChannelWithMisbehavingOwner` misbehavior
+			// => it'll fail because the `misbehaving_bridge_id` is owned by another origin
+			assert_noop!(
+				XcmOverBridge::report_misbehavior(
+					RuntimeOrigin::signed([128u8; 32].into()),
+					locations2.lane_id,
+					BridgeMisbehavior::UnsuspendedChannelWithMisbehavingOwner {
+						misbehaving_bridge_id: locations1.lane_id,
+					},
+				),
+				Error::<TestRuntime, ()>::InvalidMisbehaviorReport,
+			);
+		});
+	}
+
+	#[test]
+	fn report_unsuspended_channel_with_misbehaving_owner_fails_if_channel_is_closed() {
+		run_test(|| {
+			let origin1 = AllowedOpenBridgeOrigin::parent_relay_chain_origin();
+			let origin2 = AllowedOpenBridgeOrigin::sibling_parachain_origin();
+			let (_, locations1) = mock_open_bridge_from(origin1.clone());
+			let (_, locations2) = mock_open_bridge_from_with(origin2, bridged_parachain_location());
+
+			// set the bridge1 state to misbehaving
+			Bridges::<TestRuntime, ()>::mutate_extant(locations1.lane_id, |bridge| {
+				bridge.state = BridgeState::Misbehaving;
+			});
+
+			// try to report the `UnsuspendedChannelWithMisbehavingOwner` misbehavior
+			// => it'll fail because the channel is actually closed
+			assert_noop!(
+				XcmOverBridge::report_misbehavior(
+					RuntimeOrigin::signed([128u8; 32].into()),
+					locations2.lane_id,
+					BridgeMisbehavior::UnsuspendedChannelWithMisbehavingOwner {
+						misbehaving_bridge_id: locations1.lane_id,
+					},
+				),
+				Error::<TestRuntime, ()>::InvalidMisbehaviorReport,
+			);
+		});
+	}
+
+	#[test]
+	fn report_unsuspended_channel_with_misbehaving_owner_works() {
+		run_test(|| {
+			let origin = AllowedOpenBridgeOrigin::parent_relay_chain_origin();
+			let (bridge1, locations1) = mock_open_bridge_from(origin.clone());
+			let (_, locations2) = mock_open_bridge_from_with(origin, bridged_parachain_location());
+			System::set_block_number(1);
+
+			// remember owner and reporter balances
+			let reporter: AccountId = [128u8; 32].into();
+			let free_balance = Balances::free_balance(&bridge1.bridge_owner_account);
+			let reserved_balance = Balances::reserved_balance(&bridge1.bridge_owner_account);
+			Balances::mint_into(&reporter, ExistentialDeposit::get()).unwrap();
+
+			// enqueue enough messages to bridge1 to get penalized
+			for _ in 0..=TestBridgeLimits::get().max_queued_outbound_messages {
+				enqueue_message(locations1.lane_id);
+			}
+			assert_ok!(XcmOverBridge::report_misbehavior(
+				RuntimeOrigin::signed(reporter.clone()),
+				locations1.lane_id,
+				BridgeMisbehavior::TooManyQueuedOutboundMessages,
+			),);
+			ensure_misbehavior_state(
+				reporter.clone(),
+				locations1.clone(),
+				free_balance,
+				reserved_balance,
+				Penalty::get(),
+			);
+
+			// now resume the channel with the local bridge origin
+			TestLocalChannelManager::resume_inbound_channel(
+				locations1.bridge_origin_relative_location,
+			)
+			.unwrap();
+
+			// and report the `UnsuspendedChannelWithMisbehavingOwner` misbehavior
+			assert_ok!(XcmOverBridge::report_misbehavior(
+				RuntimeOrigin::signed(reporter.clone()),
+				locations2.lane_id,
+				BridgeMisbehavior::UnsuspendedChannelWithMisbehavingOwner {
+					misbehaving_bridge_id: locations1.lane_id,
+				},
+			),);
+
+			// ensure that the bridge is in the proper state
+			ensure_misbehavior_state(
+				reporter,
+				locations2.clone(),
+				free_balance,
+				reserved_balance - Penalty::get(),
+				Penalty::get() * 2,
+			);
+
+			// ensure that the proper event is deposited
 			assert_eq!(
-				Bridges::<TestRuntime, ()>::get(locations.lane_id).map(|b| b.reserve),
-				Some(reserved_balance - Penalty::get())
+				System::events().last(),
+				Some(&EventRecord {
+					phase: Phase::Initialization,
+					event: RuntimeEvent::XcmOverBridge(Event::BridgeMisbehaving {
+						lane_id: locations2.lane_id,
+						misbehavior: BridgeMisbehavior::UnsuspendedChannelWithMisbehavingOwner {
+							misbehaving_bridge_id: locations1.lane_id,
+						},
+					}),
+					topics: vec![],
+				}),
 			);
 		})
 	}

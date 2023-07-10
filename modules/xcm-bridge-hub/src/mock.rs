@@ -20,7 +20,7 @@ use crate as pallet_xcm_bridge_hub;
 
 use bp_messages::{target_chain::ForbidInboundMessages, ChainWithMessages, MessageNonce};
 use bp_runtime::{Chain, ChainId};
-use bp_xcm_bridge_hub::BridgeLimits;
+use bp_xcm_bridge_hub::{BridgeLimits, LocalChannelManager};
 use codec::Encode;
 use frame_support::{
 	parameter_types,
@@ -48,6 +48,7 @@ type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<TestRunt
 pub const SIBLING_ASSET_HUB_ID: u32 = 2001;
 pub const THIS_BRIDGE_HUB_ID: u32 = 2002;
 pub const BRIDGED_ASSET_HUB_ID: u32 = 1001;
+pub const BRIDGED_PARACHAIN_ID: u32 = 1002;
 
 frame_support::construct_runtime! {
 	pub enum TestRuntime where
@@ -237,7 +238,32 @@ impl pallet_xcm_bridge_hub::Config for TestRuntime {
 
 	type BridgeLimits = TestBridgeLimits;
 	type Penalty = Penalty;
-	type LocalChannelManager = ();
+	type LocalChannelManager = TestLocalChannelManager;
+}
+
+pub struct TestLocalChannelManager;
+
+impl LocalChannelManager for TestLocalChannelManager {
+	fn is_inbound_channel_suspended(owner: MultiLocation) -> bool {
+		let key = (b"LocalChannelManager.inbound_channel_suspended", owner).encode();
+		frame_support::storage::unhashed::get(&key).unwrap_or(false)
+	}
+
+	fn suspend_inbound_channel(owner: MultiLocation) -> Result<(), ()> {
+		let key = (b"LocalChannelManager.inbound_channel_suspended", owner).encode();
+		frame_support::storage::unhashed::put(&key, &true);
+		Ok(())
+	}
+
+	fn resume_inbound_channel(owner: MultiLocation) -> Result<(), ()> {
+		let key = (b"LocalChannelManager.inbound_channel_suspended", owner).encode();
+		frame_support::storage::unhashed::put(&key, &false);
+		Ok(())
+	}
+
+	fn send_xcm(_owner: MultiLocation, _message: Xcm<()>) -> Result<(), SendError> {
+		Err(SendError::Unroutable)
+	}
 }
 
 pub struct ThisChain;
@@ -308,6 +334,14 @@ pub fn bridged_asset_hub_location() -> MultiLocation {
 	MultiLocation::new(
 		2,
 		X2(GlobalConsensus(BridgedRelayNetwork::get()), Parachain(BRIDGED_ASSET_HUB_ID)),
+	)
+}
+
+/// Location of some other bridged parachain.
+pub fn bridged_parachain_location() -> MultiLocation {
+	MultiLocation::new(
+		2,
+		X2(GlobalConsensus(BridgedRelayNetwork::get()), Parachain(BRIDGED_PARACHAIN_ID)),
 	)
 }
 
