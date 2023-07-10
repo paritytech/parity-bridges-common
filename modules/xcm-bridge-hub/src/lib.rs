@@ -44,8 +44,7 @@
 //!
 //! 6) when either side wants to close the bridge, it sends the XCM `Transact` with the
 //!    `close_bridge` call. The bridge is closed immediately if there are no queued messages.
-//!    Otherwise, the owner must repeat the `close_bridge` call untto prune all queued messages
-//!    first.
+//!    Otherwise, the owner must repeat the `close_bridge` call to prune all queued messages first.
 //!
 //! The pallet doesn't provide any mechanism for graceful closure, because it always involves
 //! some contract between two connected chains and the bridge hub knows nothing about that. It
