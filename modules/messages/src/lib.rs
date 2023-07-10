@@ -369,7 +369,7 @@ pub mod pallet {
 			);
 
 			// mark messages as delivered
-			let mut lane = outbound_lane::<T, I>(lane_id)?;
+			let mut lane = outbound_lane::<T, I>(lane_id)?; // TODO: use any_state_outbound_lane here
 			let last_delivered_nonce = lane_data.last_delivered_nonce();
 			let confirmed_messages = lane
 				.confirm_delivery(

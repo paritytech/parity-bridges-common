@@ -1793,4 +1793,36 @@ mod tests {
 			);
 		})
 	}
+
+	#[test]
+	fn resume_misbehaving_bridges_fails_if_origin_is_not_signed() {
+	}
+
+	#[test]
+	fn resume_misbehaving_bridges_fails_if_bridge_is_unknown() {
+	}
+
+	#[test]
+	fn resume_misbehaving_bridges_fails_if_outbound_lane_is_unknown() {
+	}
+
+	#[test]
+	fn resume_misbehaving_bridges_fails_if_there_are_no_misbehaving_bridges() {
+	}
+
+	#[test]
+	fn resume_misbehaving_bridges_fails_if_reporter_fails_to_replenish_owner_account() {
+	}
+
+	#[test]
+	fn resume_misbehaving_bridges_fails_if_it_fails_to_reopen_local_channel_with_owner() {
+	}
+
+	#[test]
+	fn resume_misbehaving_bridges_works_with_single_misbehaving_bridge() {
+	}
+
+	#[test]
+	fn resume_misbehaving_bridges_works_with_multiple_misbehaving_bridges() {
+	}
 }
