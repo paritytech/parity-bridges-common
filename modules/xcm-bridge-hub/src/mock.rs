@@ -137,6 +137,7 @@ parameter_types! {
 	pub TestBridgeLimits: BridgeLimits = BridgeLimits {
 		max_queued_outbound_messages: 50,
 	};
+	pub const MaxBridgesPerLocalOrigin: u32 = 2;
 	pub const Penalty: Balance = 1_000;
 }
 
@@ -226,7 +227,7 @@ impl pallet_xcm_bridge_hub::Config for TestRuntime {
 	type BridgedNetworkId = BridgedRelayNetwork;
 	type BridgeMessagesPalletInstance = ();
 
-	type MaxBridgesPerLocalOrigin = ConstU32<2>;
+	type MaxBridgesPerLocalOrigin = MaxBridgesPerLocalOrigin;
 
 	type AllowedOpenBridgeOrigin = AllowedOpenBridgeOrigin;
 	type BridgeOriginAccountIdConverter = LocationToAccountId;

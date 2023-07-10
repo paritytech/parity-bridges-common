@@ -785,7 +785,7 @@ mod tests {
 	use super::*;
 	use mock::*;
 
-	use frame_support::{assert_noop, assert_ok, traits::fungible::Mutate};
+	use frame_support::{BoundedVec, assert_noop, assert_ok, traits::fungible::Mutate};
 	use frame_system::{EventRecord, Phase};
 
 	fn fund_origin_sovereign_account(locations: &BridgeLocations, balance: Balance) -> AccountId {
@@ -935,6 +935,30 @@ mod tests {
 	}
 
 	#[test]
+	fn open_bridge_fails_if_origin_has_reached_bridges_limit() {
+		run_test(|| {
+			let origin = AllowedOpenBridgeOrigin::parent_relay_chain_origin();
+			let locations =
+				XcmOverBridge::bridge_locations(origin.clone(), bridged_asset_hub_location())
+					.unwrap();
+			fund_origin_sovereign_account(
+				&locations,
+				BridgeReserve::get() + ExistentialDeposit::get(),
+			);
+
+			BridgesByLocalOrigin::<TestRuntime, ()>::insert(
+				locations.bridge_origin_universal_location,
+				BoundedVec::<_, _>::try_from(vec![LaneId::new(1, 2); MaxBridgesPerLocalOrigin::get() as usize]).unwrap(),
+			);
+
+			assert_noop!(
+				XcmOverBridge::open_bridge(origin, bridged_asset_hub_location(),),
+				Error::<TestRuntime, ()>::TooManyBridgesForLocalOrigin,
+			);
+		})
+	}
+
+	#[test]
 	fn open_bridge_fails_if_it_already_exists() {
 		run_test(|| {
 			let origin = AllowedOpenBridgeOrigin::parent_relay_chain_origin();
@@ -1047,6 +1071,10 @@ mod tests {
 				));
 
 				// ensure that everything has been set up in the runtime storage
+				assert_eq!(
+					BridgesByLocalOrigin::<TestRuntime, ()>::get(locations.bridge_origin_universal_location).to_vec(),
+					vec![locations.lane_id],
+				);
 				assert_eq!(
 					Bridges::<TestRuntime, ()>::get(locations.lane_id),
 					Some(Bridge {
