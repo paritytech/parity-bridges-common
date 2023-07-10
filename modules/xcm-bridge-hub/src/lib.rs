@@ -39,8 +39,13 @@
 //! 5) when the bridge is opened, anyone can watch for bridge rules (see
 //!    [`bp_xcm_bridge_hub::BridgeMisbehavior`] for details) violations. If something goes wrong
 //!    with the bridge, he may call the `report_misbehavior` method. If the report is confirmed, the
-//!    bridge is immediately closed and the is paid (out of reserved funds) to the reporter. The
-//!    owner may get the reserve remainder back, but he'll need to prune all queued messages first;
+//!    inbound channel with the parent/sibling sending chain is suspended and the `Penalty` is paid
+//!    (out of reserved funds) to the reporter;
+//!
+//! 6) if the bridge owner has managed to resolve misbehavior reason, it may resume the regular
+//!    bridge operations by calling the `resume_bridge` method. This method will succeed if there
+//!    are no longer outbound messages in the bridge queue. The bridge owner must have enough funds
+//!    to replenish his bridge reserve to the `BridgeReserve` level;
 //!
 //! 6) when either side wants to close the bridge, it sends the XCM `Transact` with the
 //!    `close_bridge` call. The bridge is closed immediately if there are no queued messages.
@@ -54,11 +59,11 @@
 //! can't guarantee that, we shall not care about more complex procedures and leave it to the
 //! participating parties.
 //!
-//! There's other way to cause bridge closure - it is what we call a "misbehavior". That's a
-//! situation when the bridge owner/maintainer have violated contract between its chain and the
-//! bridge bub. This contract is quite simple - we want to see there's a running relayer, serving
-//! the bridge lane and that the number of messages in all bridge queues stays below some hard
-//! limit. The latter requirement may be achieved using some rate limiter at the sending chain.
+//! There's other way to cause pauses in bridge operations - it is what we call a "misbehavior".
+//! That's a situation when the bridge owner/maintainer have violated contract between its chain and
+//! the bridge bub. This contract is quite simple - we want to see there's a running relayer,
+//! serving the bridge lane and that the number of messages in all bridge queues stays below some
+//! hard limit. The latter requirement may be achieved using some rate limiter at the sending chain.
 //! We have an example implementation in the `pallet-xcm-bridge-hub-router` pallet.
 
 #![cfg_attr(not(feature = "std"), no_std)]
@@ -67,7 +72,7 @@ use bp_messages::{LaneId, LaneState, MessageNonce};
 use bp_runtime::{AccountIdOf, BalanceOf, BlockNumberOf, RangeInclusiveExt};
 use bp_xcm_bridge_hub::{
 	bridge_locations, Bridge, BridgeLimits, BridgeLocations, BridgeLocationsError,
-	BridgeMisbehavior, BridgeState,
+	BridgeMisbehavior, BridgeState, LocalChannelManager,
 };
 use frame_support::traits::{tokens::BalanceStatus, Currency, ReservableCurrency};
 use frame_system::Config as SystemConfig;
@@ -134,14 +139,17 @@ pub mod pallet {
 		/// Currency used to pay for bridge registration.
 		type NativeCurrency: ReservableCurrency<Self::AccountId>;
 
-		/// Delay before bridge is closed.
-		type BridgeCloseDelay: Get<Self::BlockNumber>;
-
 		/// Bridge limits that the regular bridge must not exceed.
 		type BridgeLimits: Get<BridgeLimits>;
 		/// The penalty (in chain native tokens) that is paid from the bridge reserve to the bridge
 		/// misbehavior reporter.
 		type Penalty: Get<BalanceOf<ThisChainOf<Self, I>>>;
+		/// A way to interact with parent/sibling chains that are participating in the bridge.
+		///
+		/// We need to be able to suspend/resume the channel with the bridge origin chains when
+		/// we receive a misbehavior reports. We also need a way to send bridge queues state report
+		/// to those chains.
+		type LocalChannelManager: LocalChannelManager;
 	}
 
 	/// An alias for the bridge metadata.
@@ -199,6 +207,7 @@ pub mod pallet {
 				Some(_) => Err(Error::<T, I>::BridgeAlreadyExists),
 				None => {
 					*bridge = Some(BridgeOf::<T, I> {
+						bridge_origin_relative_location: locations.bridge_origin_relative_location,
 						state: BridgeState::Opened,
 						bridge_owner_account,
 						reserve,
@@ -211,10 +220,10 @@ pub mod pallet {
 			let lanes_manager = LanesManagerOf::<T, I>::new();
 			lanes_manager
 				.create_inbound_lane(locations.lane_id)
-				.map_err(Into::<Error<T, I>>::into)?;
+				.map_err(Error::<T, I>::LanesManager)?;
 			lanes_manager
 				.create_outbound_lane(locations.lane_id)
-				.map_err(Into::<Error<T, I>>::into)?;
+				.map_err(Error::<T, I>::LanesManager)?;
 
 			// write something to log
 			log::trace!(
@@ -251,7 +260,7 @@ pub mod pallet {
 		///
 		/// The states after this call: everything is either `Closed`, or pruned from the
 		/// runtime storage.
-		#[pallet::call_index(2)]
+		#[pallet::call_index(1)]
 		#[pallet::weight(Weight::zero())] // TODO: https://github.com/paritytech/parity-bridges-common/issues/1760 - weights
 		pub fn close_bridge(
 			origin: OriginFor<T>,
@@ -278,10 +287,10 @@ pub mod pallet {
 			let lanes_manager = LanesManagerOf::<T, I>::new();
 			let mut inbound_lane = lanes_manager
 				.any_state_inbound_lane(locations.lane_id)
-				.map_err(Into::<Error<T, I>>::into)?;
+				.map_err(Error::<T, I>::LanesManager)?;
 			let mut outbound_lane = lanes_manager
 				.any_state_outbound_lane(locations.lane_id)
-				.map_err(Into::<Error<T, I>>::into)?;
+				.map_err(Error::<T, I>::LanesManager)?;
 
 			// now prune queued messages
 			let mut pruned_messages = 0;
@@ -363,7 +372,7 @@ pub mod pallet {
 		/// The origin must be signed. If misbehavior is confirmed, some (`Penalty`) portion of
 		/// bridge reserve is transferred to the reporter. The outbound lane of the bridge is
 		/// immediately closed and the bridge itself switches to closing mode.
-		#[pallet::call_index(3)]
+		#[pallet::call_index(2)]
 		#[pallet::weight(Weight::zero())] // TODO: https://github.com/paritytech/parity-bridges-common/issues/1760 - weights
 		pub fn report_misbehavior(
 			origin: OriginFor<T>,
@@ -371,18 +380,28 @@ pub mod pallet {
 			misbehavior: BridgeMisbehavior,
 		) -> DispatchResult {
 			let reporter = ensure_signed(origin)?;
-			let lanes_manager = LanesManagerOf::<T, I>::new();
 
 			// check report
 			match misbehavior {
 				BridgeMisbehavior::TooManyQueuedOutboundMessages => {
-					let outbound_lane = lanes_manager
+					let outbound_lane = LanesManagerOf::<T, I>::new()
 						.active_outbound_lane(lane_id)
-						.map_err(Into::<Error<T, I>>::into)?;
+						.map_err(Error::<T, I>::LanesManager)?;
 					let queued_messages =
 						outbound_lane.queued_messages().checked_len().unwrap_or(0);
 					let max_queued_messages = T::BridgeLimits::get().max_queued_outbound_messages;
 					if queued_messages <= max_queued_messages {
+						return Err(Error::<T, I>::InvalidMisbehaviorReport.into())
+					}
+				},
+				BridgeMisbehavior::UnsuspendedChannelWithMisbehavingOwner => {
+					let bridge =
+						Bridges::<T, I>::get(lane_id).ok_or(Error::<T, I>::UnknownBridge)?;
+					let is_inbound_channel_suspended =
+						T::LocalChannelManager::is_inbound_channel_suspended(
+							bridge.bridge_origin_relative_location,
+						);
+					if is_inbound_channel_suspended {
 						return Err(Error::<T, I>::InvalidMisbehaviorReport.into())
 					}
 				},
@@ -398,6 +417,26 @@ pub mod pallet {
 			Self::deposit_event(Event::<T, I>::BridgeMisbehaving { lane_id, misbehavior });
 
 			Ok(())
+		}
+
+		/// Resume misbehaving bridge operations.
+		///
+		/// Can only be called by the "owner" of this side of the bridge.
+		///
+		/// This call acts as a confirmation that the previously reported misbehavior has been
+		/// fixed. The method only checks that the outbound bridge queue is empty.
+		///
+		/// The inbound channel with the owner (parent/sibling chain) is reopened during this call.
+		/// The owner must be careful if it maintains multiple bridges. If one of bridges is still
+		/// in misbehaving state, anyone can report that and the owner will be fined for that.
+		#[pallet::call_index(3)]
+		#[pallet::weight(Weight::zero())] // TODO: https://github.com/paritytech/parity-bridges-common/issues/1760 - weights
+		pub fn resume_bridge(
+			_origin: OriginFor<T>,
+			_lane_id: LaneId,
+			_misbehavior: BridgeMisbehavior,
+		) -> DispatchResult {
+			unimplemented!("TODO")
 		}
 
 		/// Report reachable bridge queues state.
@@ -501,22 +540,27 @@ pub mod pallet {
 				},
 			};
 
+			// suspend the inbound channel between bridge hub and the bridge owner. This shall
+			// guarantee that no more incoming XCM messages will be handled by the bridge hub until
+			// misbehavior is resolved
+			T::LocalChannelManager::suspend_inbound_channel(bridge.bridge_origin_relative_location)
+				.map_err(|_| Error::<T, I>::FailedToSuspendInboundChannel)?;
+
 			// update bridge metadata (we know it exists, because it has been read at the beginning
 			// of this method)
 			Bridges::<T, I>::mutate_extant(lane_id, |bridge| {
 				bridge.reserve = updated_reserve;
-				bridge.state = BridgeState::Closed;
 			});
 
-			// update lanes state. Under normal circumstances, following calls shall never fail
+			// update outlanes state. Under normal circumstances, following calls shall never fail
 			let lanes_manager = LanesManagerOf::<T, I>::new();
 			lanes_manager
 				.active_inbound_lane(lane_id)
-				.map_err(Into::<Error<T, I>>::into)?
+				.map_err(Error::<T, I>::LanesManager)?
 				.set_state(LaneState::Closed);
 			lanes_manager
 				.active_outbound_lane(lane_id)
-				.map_err(Into::<Error<T, I>>::into)?
+				.map_err(Error::<T, I>::LanesManager)?
 				.set_state(LaneState::Closed);
 
 			Ok(())
@@ -576,6 +620,8 @@ pub mod pallet {
 		BridgeAlreadyExists,
 		/// Trying to close already closed bridge.
 		BridgeAlreadyClosed,
+		/// Lanes manager error.
+		LanesManager(LanesManagerError),
 		/// The inbound lane is already registered in the associated messages pallet.
 		InboundLaneAlreadyExists,
 		/// The outbound lane is already registered in the associated messages pallet.
@@ -594,19 +640,8 @@ pub mod pallet {
 		FailedToReserveBridgeReserve,
 		/// Invalid misbehavior report has been submitted.
 		InvalidMisbehaviorReport,
-	}
-
-	impl<T: Config<I>, I: 'static> From<LanesManagerError> for Error<T, I> {
-		fn from(e: LanesManagerError) -> Self {
-			match e {
-				LanesManagerError::InboundLaneAlreadyExists => Error::InboundLaneAlreadyExists,
-				LanesManagerError::OutboundLaneAlreadyExists => Error::OutboundLaneAlreadyExists,
-				LanesManagerError::UnknownInboundLane => Error::UnknownInboundLane,
-				LanesManagerError::UnknownOutboundLane => Error::UnknownOutboundLane,
-				LanesManagerError::ClosedInboundLane => Error::ClosedInboundLane,
-				LanesManagerError::ClosedOutboundLane => Error::ClosedOutboundLane,
-			}
-		}
+		/// Failed to suspend the inbound channel with the parent/sibling bridge origin.
+		FailedToSuspendInboundChannel,
 	}
 }
 
@@ -636,7 +671,12 @@ mod tests {
 			fund_origin_sovereign_account(&locations, reserve + ExistentialDeposit::get());
 		Balances::reserve(&bridge_owner_account, reserve).unwrap();
 
-		let bridge = Bridge { state: BridgeState::Opened, bridge_owner_account, reserve };
+		let bridge = Bridge {
+			bridge_origin_relative_location: locations.bridge_origin_relative_location,
+			state: BridgeState::Opened,
+			bridge_owner_account,
+			reserve,
+		};
 		Bridges::<TestRuntime, ()>::insert(locations.lane_id, bridge.clone());
 
 		let lanes_manager = LanesManagerOf::<TestRuntime, ()>::new();
@@ -774,6 +814,7 @@ mod tests {
 			Bridges::<TestRuntime, ()>::insert(
 				locations.lane_id,
 				Bridge {
+					bridge_origin_relative_location: locations.bridge_origin_relative_location,
 					state: BridgeState::Opened,
 					bridge_owner_account: [0u8; 32].into(),
 					reserve: 0,
@@ -872,6 +913,7 @@ mod tests {
 				assert_eq!(
 					Bridges::<TestRuntime, ()>::get(locations.lane_id),
 					Some(Bridge {
+						bridge_origin_relative_location: locations.bridge_origin_relative_location,
 						state: BridgeState::Opened,
 						bridge_owner_account: bridge_owner_account.clone(),
 						reserve: expected_reserve,

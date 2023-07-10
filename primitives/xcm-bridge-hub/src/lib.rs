@@ -29,6 +29,58 @@ use serde::{Deserialize, Serialize};
 use sp_std::convert::TryInto;
 use xcm::latest::prelude::*;
 
+/// A manager of communication channels between bridge hub and parent/sibling chains that
+/// have opened bridges at this bridge hub.
+pub trait LocalChannelManager {
+	/// Returns `true` if the inboiund channel with given bridge `owner` is currently suspended.
+	fn is_inbound_channel_suspended(owner: MultiLocation) -> bool;
+
+	/// Stop handling new incoming XCM messages from given bridge `owner` (parent/sibling chain).
+	///
+	/// This method will be called if we detect a misbehavior in one of bridges, owned by
+	/// the `owner`. We expect that:
+	///
+	/// - no more incoming XCM messages from the `owner` will be processed until further
+	///  `resume_inbound_channel` call;
+	///
+	/// - soon after the call, the channel will switch to the state when incoming messages are
+	///   piling up at the sending chain, not at the bridge hub.
+	///
+	/// This method shall not fail if the channel is already suspended.
+	fn suspend_inbound_channel(owner: MultiLocation) -> Result<(), ()>;
+
+	/// Start handling incoming messages from from given bridge `owner` (parent/sibling chain)
+	/// again.
+	///
+	/// This method is called when the `owner` tries to resume bridge operations after
+	/// resolving "misbehavior" issues. The channel is assumed to be suspended by the previous
+	/// `suspend_inbound_channel` call, however we don't check it anywhere.
+	///
+	/// This method shall not fail if the channel is already resumed.
+	fn resume_inbound_channel(owner: MultiLocation) -> Result<(), ()>;
+
+	/// Send XCM message to the given bridge `owner` (parent/sibling chain).
+	fn send_xcm(owner: MultiLocation, message: Xcm<()>) -> Result<(), SendError>;
+}
+
+impl LocalChannelManager for () {
+	fn is_inbound_channel_suspended(_owner: MultiLocation) -> bool {
+		true
+	}
+
+	fn suspend_inbound_channel(_owner: MultiLocation) -> Result<(), ()> {
+		Ok(())
+	}
+
+	fn resume_inbound_channel(_owner: MultiLocation) -> Result<(), ()> {
+		Err(())
+	}
+
+	fn send_xcm(_owner: MultiLocation, _message: Xcm<()>) -> Result<(), SendError> {
+		Err(SendError::Unroutable)
+	}
+}
+
 /// Bridge state.
 #[derive(Clone, Copy, Decode, Encode, Eq, PartialEq, TypeInfo, MaxEncodedLen, RuntimeDebug)]
 pub enum BridgeState {
@@ -45,6 +97,8 @@ pub enum BridgeState {
 )]
 #[scale_info(skip_type_params(ThisChain))]
 pub struct Bridge<ThisChain: Chain> {
+	/// Relative location of the bridge origin chain.
+	pub bridge_origin_relative_location: MultiLocation, // TODO: versioned + boxed?
 	/// Current bridge state.
 	pub state: BridgeState,
 	/// Account with the reserved funds.
@@ -92,6 +146,16 @@ pub struct BridgeLimits {
 pub enum BridgeMisbehavior {
 	/// The number of messages in the outbound queue is larger than the limit.
 	TooManyQueuedOutboundMessages,
+	/// The channel between bridge owner and the bridge hub is not suspended, when the misbehavior
+	/// caused by this owner is not yet resolved.
+	///
+	/// The only way when it could happen (apart from the misconfiguration) is when the owner
+	/// has several opened bridges. Then, if one bridge is "misbehaving", the channel is suspended
+	/// during the `report_misbehavior` call. But the bridge owner may immediately resume it
+	/// (without resolving misbehavior) by calling the `resume_bridge` on other bridge. Since
+	/// there's just one channel between owner and the bridge hub (utilized by multiple bridges),
+	/// the owner unblocks the misbehaving bridge, which is another misbehavior.
+	UnsuspendedChannelWithMisbehavingOwner,
 }
 
 /// The state of all (reachable) queues as they seen from the bridge hub.

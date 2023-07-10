@@ -137,7 +137,6 @@ parameter_types! {
 	pub TestBridgeLimits: BridgeLimits = BridgeLimits {
 		max_queued_outbound_messages: 50,
 	};
-	pub const BridgeCloseDelay: BlockNumber = 1_000;
 	pub const Penalty: Balance = 1_000;
 }
 
@@ -233,10 +232,9 @@ impl pallet_xcm_bridge_hub::Config for TestRuntime {
 	type BridgeReserve = BridgeReserve;
 	type NativeCurrency = Balances;
 
-	type BridgeCloseDelay = BridgeCloseDelay;
-
 	type BridgeLimits = TestBridgeLimits;
 	type Penalty = Penalty;
+	type LocalChannelManager = ();
 }
 
 pub struct ThisChain;
