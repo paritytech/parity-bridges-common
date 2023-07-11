@@ -17,7 +17,7 @@
 //! Pallet-level tests.
 
 use crate::{
-	lanes_manager::RuntimeInboundLaneStorage, outbound_lane,
+	active_outbound_lane, lanes_manager::RuntimeInboundLaneStorage,
 	outbound_lane::ReceivalConfirmationError, send_message, tests::mock::*,
 	weights_ext::WeightInfoExt, Call, Config, Error, Event, InboundLanes, LanesManagerError,
 	OutboundLanes, OutboundMessages, Pallet, PalletOperatingMode, PalletOwner,
@@ -51,7 +51,7 @@ fn get_ready_for_events() {
 fn send_regular_message() {
 	get_ready_for_events();
 
-	let message_nonce = outbound_lane::<TestRuntime, ()>(test_lane_id())
+	let message_nonce = active_outbound_lane::<TestRuntime, ()>(test_lane_id())
 		.unwrap()
 		.data()
 		.latest_generated_nonce +
@@ -386,6 +386,24 @@ fn receive_messages_proof_rejects_proof_with_too_many_messages() {
 fn receive_messages_delivery_proof_works() {
 	run_test(|| {
 		send_regular_message();
+		receive_messages_delivery_proof();
+
+		assert_eq!(
+			OutboundLanes::<TestRuntime, ()>::get(test_lane_id())
+				.unwrap()
+				.latest_received_nonce,
+			1,
+		);
+	});
+}
+
+#[test]
+fn receive_messages_delivery_proof_works_on_closed_outbound_lanes() {
+	run_test(|| {
+		send_regular_message();
+		active_outbound_lane::<TestRuntime, ()>(test_lane_id())
+			.unwrap()
+			.set_state(LaneState::Closed);
 		receive_messages_delivery_proof();
 
 		assert_eq!(
@@ -1049,21 +1067,6 @@ fn receive_messages_delivery_proof_fails_if_outbound_lane_is_unknown() {
 				},
 			),
 			Error::<TestRuntime, ()>::LanesManager(LanesManagerError::UnknownOutboundLane),
-		);
-
-		let proof = make_proof(closed_lane_id());
-		assert_noop!(
-			Pallet::<TestRuntime>::receive_messages_delivery_proof(
-				RuntimeOrigin::signed(1),
-				proof,
-				UnrewardedRelayersState {
-					unrewarded_relayer_entries: 1,
-					messages_in_oldest_entry: 1,
-					total_messages: 1,
-					last_delivered_nonce: 1,
-				},
-			),
-			Error::<TestRuntime, ()>::LanesManager(LanesManagerError::ClosedOutboundLane),
 		);
 	});
 }
