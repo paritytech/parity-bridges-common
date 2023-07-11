@@ -133,7 +133,7 @@ fn justification_with_invalid_commit_rejected() {
 			&voter_set(),
 			&justification,
 		),
-		Err(Error::ExtraHeadersInVotesAncestries),
+		Err(Error::TooLowCumulativeWeight),
 	);
 }
 
@@ -166,7 +166,7 @@ fn justification_with_invalid_precommit_ancestry() {
 			&voter_set(),
 			&justification,
 		),
-		Err(Error::ExtraHeadersInVotesAncestries),
+		Err(Error::RedundantVotesAncestries),
 	);
 }
 
@@ -197,14 +197,14 @@ fn justification_is_invalid_if_we_dont_meet_threshold() {
 
 #[test]
 fn optimizer_does_noting_with_minimal_justification() {
-	let justification = make_default_justification::<TestHeader>(&test_header(1));
+	let mut justification = make_default_justification::<TestHeader>(&test_header(1));
 
 	let num_precommits_before = justification.commit.precommits.len();
-	let justification = verify_and_optimize_justification::<TestHeader>(
+	verify_and_optimize_justification::<TestHeader>(
 		header_id::<TestHeader>(1),
 		TEST_GRANDPA_SET_ID,
 		&voter_set(),
-		justification,
+		&mut justification,
 	)
 	.unwrap();
 	let num_precommits_after = justification.commit.precommits.len();
@@ -223,11 +223,11 @@ fn unknown_authority_votes_are_removed_by_optimizer() {
 	));
 
 	let num_precommits_before = justification.commit.precommits.len();
-	let justification = verify_and_optimize_justification::<TestHeader>(
+	verify_and_optimize_justification::<TestHeader>(
 		header_id::<TestHeader>(1),
 		TEST_GRANDPA_SET_ID,
 		&voter_set(),
-		justification,
+		&mut justification,
 	)
 	.unwrap();
 	let num_precommits_after = justification.commit.precommits.len();
@@ -244,11 +244,11 @@ fn duplicate_authority_votes_are_removed_by_optimizer() {
 		.push(justification.commit.precommits.first().cloned().unwrap());
 
 	let num_precommits_before = justification.commit.precommits.len();
-	let justification = verify_and_optimize_justification::<TestHeader>(
+	verify_and_optimize_justification::<TestHeader>(
 		header_id::<TestHeader>(1),
 		TEST_GRANDPA_SET_ID,
 		&voter_set(),
-		justification,
+		&mut justification,
 	)
 	.unwrap();
 	let num_precommits_after = justification.commit.precommits.len();
@@ -267,11 +267,11 @@ fn redundant_authority_votes_are_removed_by_optimizer() {
 	));
 
 	let num_precommits_before = justification.commit.precommits.len();
-	let justification = verify_and_optimize_justification::<TestHeader>(
+	verify_and_optimize_justification::<TestHeader>(
 		header_id::<TestHeader>(1),
 		TEST_GRANDPA_SET_ID,
 		&voter_set(),
-		justification,
+		&mut justification,
 	)
 	.unwrap();
 	let num_precommits_after = justification.commit.precommits.len();
