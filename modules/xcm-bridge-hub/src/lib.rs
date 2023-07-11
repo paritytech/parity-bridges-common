@@ -787,6 +787,7 @@ mod tests {
 
 	use frame_support::{assert_noop, assert_ok, traits::fungible::Mutate, BoundedVec};
 	use frame_system::{EventRecord, Phase};
+	use sp_runtime::{DispatchError, TokenError};
 
 	fn fund_origin_sovereign_account(locations: &BridgeLocations, balance: Balance) -> AccountId {
 		let bridge_owner_account =
@@ -1796,33 +1797,250 @@ mod tests {
 
 	#[test]
 	fn resume_misbehaving_bridges_fails_if_origin_is_not_signed() {
+		run_test(|| {
+			assert_noop!(
+				XcmOverBridge::resume_misbehaving_bridges(
+					RuntimeOrigin::root(),
+					parent_relay_chain_universal_location(),
+				),
+				sp_runtime::DispatchError::BadOrigin,
+			);
+		})
 	}
 
 	#[test]
 	fn resume_misbehaving_bridges_fails_if_bridge_is_unknown() {
+		run_test(|| {
+			BridgesByLocalOrigin::<TestRuntime, ()>::insert(
+				parent_relay_chain_universal_location(),
+				BoundedVec::try_from(vec![LaneId::new(1, 2)]).unwrap(),
+			);
+
+			assert_noop!(
+				XcmOverBridge::resume_misbehaving_bridges(
+					RuntimeOrigin::signed([42u8; 32].into()),
+					parent_relay_chain_universal_location(),
+				),
+				Error::<TestRuntime, ()>::UnknownBridge,
+			);
+		})
 	}
 
 	#[test]
 	fn resume_misbehaving_bridges_fails_if_outbound_lane_is_unknown() {
+		run_test(|| {
+			let (_, locations) =
+				mock_open_bridge_from(AllowedOpenBridgeOrigin::parent_relay_chain_origin());
+			Bridges::<TestRuntime, ()>::mutate_extant(locations.lane_id, |bridge| {
+				bridge.state = BridgeState::Misbehaving;
+			});
+
+			let lanes_manager = LanesManagerOf::<TestRuntime, ()>::new();
+			lanes_manager.active_outbound_lane(locations.lane_id).unwrap().purge();
+
+			assert_noop!(
+				XcmOverBridge::resume_misbehaving_bridges(
+					RuntimeOrigin::signed([42u8; 32].into()),
+					parent_relay_chain_universal_location(),
+				),
+				Error::<TestRuntime, ()>::LanesManager(LanesManagerError::UnknownOutboundLane),
+			);
+		})
 	}
 
 	#[test]
 	fn resume_misbehaving_bridges_fails_if_there_are_no_misbehaving_bridges() {
+		run_test(|| {
+			let (_, _) =
+				mock_open_bridge_from(AllowedOpenBridgeOrigin::parent_relay_chain_origin());
+			assert_noop!(
+				XcmOverBridge::resume_misbehaving_bridges(
+					RuntimeOrigin::signed([42u8; 32].into()),
+					parent_relay_chain_universal_location(),
+				),
+				Error::<TestRuntime, ()>::NoMisbehavingBridges,
+			);
+		})
 	}
 
 	#[test]
 	fn resume_misbehaving_bridges_fails_if_reporter_fails_to_replenish_owner_account() {
+		run_test(|| {
+			let (_, locations) =
+				mock_open_bridge_from(AllowedOpenBridgeOrigin::parent_relay_chain_origin());
+			Bridges::<TestRuntime, ()>::mutate_extant(locations.lane_id, |bridge| {
+				bridge.state = BridgeState::Misbehaving;
+			});
+
+			assert_noop!(
+				XcmOverBridge::resume_misbehaving_bridges(
+					RuntimeOrigin::signed([42u8; 32].into()),
+					parent_relay_chain_universal_location(),
+				),
+				DispatchError::Token(TokenError::FundsUnavailable),
+			);
+		})
 	}
 
 	#[test]
 	fn resume_misbehaving_bridges_fails_if_it_fails_to_reopen_local_channel_with_owner() {
+		// no way to actually test that, but following (successful) tests show that funds
+		// are actually reserved on the bridge owner account
 	}
 
 	#[test]
 	fn resume_misbehaving_bridges_works_with_single_misbehaving_bridge() {
+		run_test(|| {
+			let origin = AllowedOpenBridgeOrigin::parent_relay_chain_origin();
+			let (_, locations) =
+				mock_open_bridge_from_with(origin.clone(), bridged_parachain_location());
+			let (misbehaving_bridge, misbehaving_locations) = mock_open_bridge_from(origin);
+			Bridges::<TestRuntime, ()>::mutate_extant(misbehaving_locations.lane_id, |bridge| {
+				bridge.state = BridgeState::Misbehaving;
+			});
+			let lanes_manager = LanesManagerOf::<TestRuntime, ()>::new();
+			lanes_manager
+				.active_outbound_lane(misbehaving_locations.lane_id)
+				.unwrap()
+				.set_state(LaneState::Closed);
+
+			let associated_owner_account: AccountId = [42u8; 32].into();
+			Balances::mint_into(
+				&associated_owner_account,
+				ExistentialDeposit::get() + Penalty::get(),
+			)
+			.unwrap();
+
+			let pre_free_funds_on_owner =
+				Balances::free_balance(&misbehaving_bridge.bridge_owner_account);
+			let pre_reserved_funds_on_owner =
+				Balances::reserved_balance(&misbehaving_bridge.bridge_owner_account);
+			let pre_free_funds_on_associated = Balances::free_balance(&associated_owner_account);
+			let pre_reserved_funds_on_associated =
+				Balances::reserved_balance(&associated_owner_account);
+
+			assert_ok!(XcmOverBridge::resume_misbehaving_bridges(
+				RuntimeOrigin::signed(associated_owner_account.clone()),
+				parent_relay_chain_universal_location(),
+			),);
+
+			// ensure that the bridge and accounts are in the proper state
+			assert_eq!(
+				Bridges::<TestRuntime, ()>::get(locations.lane_id).map(|b| b.state),
+				Some(BridgeState::Opened)
+			);
+			assert_eq!(
+				lanes_manager.any_state_outbound_lane(locations.lane_id).unwrap().state(),
+				LaneState::Opened
+			);
+			assert_eq!(
+				Bridges::<TestRuntime, ()>::get(misbehaving_locations.lane_id).map(|b| b.state),
+				Some(BridgeState::Opened)
+			);
+			assert_eq!(
+				lanes_manager
+					.any_state_outbound_lane(misbehaving_locations.lane_id)
+					.unwrap()
+					.state(),
+				LaneState::Opened
+			);
+			assert_eq!(
+				Balances::free_balance(&misbehaving_bridge.bridge_owner_account),
+				pre_free_funds_on_owner
+			);
+			assert_eq!(
+				Balances::reserved_balance(&misbehaving_bridge.bridge_owner_account),
+				pre_reserved_funds_on_owner + Penalty::get()
+			);
+			assert_eq!(
+				Balances::free_balance(&associated_owner_account),
+				pre_free_funds_on_associated - Penalty::get()
+			);
+			assert_eq!(
+				Balances::reserved_balance(&associated_owner_account),
+				pre_reserved_funds_on_associated
+			);
+		})
 	}
 
 	#[test]
 	fn resume_misbehaving_bridges_works_with_multiple_misbehaving_bridges() {
+		run_test(|| {
+			let origin = AllowedOpenBridgeOrigin::parent_relay_chain_origin();
+			let (bridge1, locations1) =
+				mock_open_bridge_from_with(origin.clone(), bridged_parachain_location());
+			let (bridge2, locations2) = mock_open_bridge_from(origin);
+			assert_eq!(bridge1.bridge_owner_account, bridge2.bridge_owner_account);
+			assert_ne!(locations1.lane_id, locations2.lane_id);
+
+			Bridges::<TestRuntime, ()>::mutate_extant(locations1.lane_id, |bridge| {
+				bridge.state = BridgeState::Misbehaving;
+			});
+			Bridges::<TestRuntime, ()>::mutate_extant(locations2.lane_id, |bridge| {
+				bridge.state = BridgeState::Misbehaving;
+			});
+			let lanes_manager = LanesManagerOf::<TestRuntime, ()>::new();
+			lanes_manager
+				.active_outbound_lane(locations1.lane_id)
+				.unwrap()
+				.set_state(LaneState::Closed);
+			lanes_manager
+				.active_outbound_lane(locations2.lane_id)
+				.unwrap()
+				.set_state(LaneState::Closed);
+
+			let associated_owner_account: AccountId = [42u8; 32].into();
+			Balances::mint_into(
+				&associated_owner_account,
+				ExistentialDeposit::get() + 2 * Penalty::get(),
+			)
+			.unwrap();
+
+			let pre_free_funds_on_owner = Balances::free_balance(&bridge1.bridge_owner_account);
+			let pre_reserved_funds_on_owner =
+				Balances::reserved_balance(&bridge1.bridge_owner_account);
+			let pre_free_funds_on_associated = Balances::free_balance(&associated_owner_account);
+			let pre_reserved_funds_on_associated =
+				Balances::reserved_balance(&associated_owner_account);
+
+			assert_ok!(XcmOverBridge::resume_misbehaving_bridges(
+				RuntimeOrigin::signed(associated_owner_account.clone()),
+				parent_relay_chain_universal_location(),
+			),);
+
+			// ensure that the bridge and accounts are in the proper state
+			assert_eq!(
+				Bridges::<TestRuntime, ()>::get(locations1.lane_id).map(|b| b.state),
+				Some(BridgeState::Opened)
+			);
+			assert_eq!(
+				lanes_manager.any_state_outbound_lane(locations1.lane_id).unwrap().state(),
+				LaneState::Opened
+			);
+			assert_eq!(
+				Bridges::<TestRuntime, ()>::get(locations2.lane_id).map(|b| b.state),
+				Some(BridgeState::Opened)
+			);
+			assert_eq!(
+				lanes_manager.any_state_outbound_lane(locations2.lane_id).unwrap().state(),
+				LaneState::Opened
+			);
+			assert_eq!(
+				Balances::free_balance(&bridge1.bridge_owner_account),
+				pre_free_funds_on_owner
+			);
+			assert_eq!(
+				Balances::reserved_balance(&bridge1.bridge_owner_account),
+				pre_reserved_funds_on_owner + 2 * Penalty::get()
+			);
+			assert_eq!(
+				Balances::free_balance(&associated_owner_account),
+				pre_free_funds_on_associated - 2 * Penalty::get()
+			);
+			assert_eq!(
+				Balances::reserved_balance(&associated_owner_account),
+				pre_reserved_funds_on_associated
+			);
+		})
 	}
 }

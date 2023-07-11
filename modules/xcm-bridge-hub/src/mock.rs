@@ -345,6 +345,11 @@ pub fn bridged_parachain_location() -> MultiLocation {
 	)
 }
 
+/// Universal location of the parent relay chain.
+pub fn parent_relay_chain_universal_location() -> InteriorMultiLocation {
+	X1(GlobalConsensus(RelayNetwork::get()))
+}
+
 /// Run pallet test.
 pub fn run_test<T>(test: impl FnOnce() -> T) -> T {
 	sp_io::TestExternalities::new(
