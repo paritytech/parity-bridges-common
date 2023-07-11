@@ -31,6 +31,7 @@ use xcm::latest::prelude::*;
 
 /// A manager of communication channels between bridge hub and parent/sibling chains that
 /// have opened bridges at this bridge hub.
+#[allow(clippy::result_unit_err)] // XCM uses `Result<(), ()>` everywhere
 pub trait LocalChannelManager {
 	/// Returns `true` if the inbound channel with given bridge `owner` is currently suspended.
 	fn is_inbound_channel_suspended(owner: MultiLocation) -> bool;
