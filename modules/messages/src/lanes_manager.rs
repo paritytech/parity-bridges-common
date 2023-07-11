@@ -155,6 +155,7 @@ impl<T: Config<I>, I: 'static> RuntimeInboundLaneStorage<T, I> {
 			_phantom: Default::default(),
 		})
 	}
+
 	/// Returns number of bytes that may be subtracted from the PoV component of
 	/// `receive_messages_proof` call, because the actual inbound lane state is smaller than the
 	/// maximal configured.
