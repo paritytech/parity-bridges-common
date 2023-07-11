@@ -427,15 +427,15 @@ pub mod pallet {
 		) -> DispatchResult {
 			// the `reporter` may be associated with the bridge owner, so in theory `owner` may
 			// report his own misbehavior and he won't actually get penalized. But:
-			// 1) the bridge stops working normally && no messages are enqueued until misbehavior
-			//    is resolved. So we have achieved what we wanted to, except that the owner haven't
+			// 1) the bridge stops working normally && no messages are enqueued until misbehavior is
+			//    resolved. So we have achieved what we wanted to, except that the owner haven't
 			//    paid anything for that;
-			// 2) the owner still has to deal with a risk that someone else will submit report before
-			//    his own.
+			// 2) the owner still has to deal with a risk that someone else will submit report
+			//    before his own.
 			//
 			// We may have a smart "altruistic" reporter, who will do `resume_misbehaving_bridges` +
-			// `report_misbehavior` in one batch for this case. In this case he'll pay `Penalty`, but
-			// it will be reported in a next call. So he only loses the transaction fee.
+			// `report_misbehavior` in one batch for this case. In this case he'll pay `Penalty`,
+			// but it will be reported in a next call. So he only loses the transaction fee.
 			let reporter = ensure_signed(origin)?;
 
 			// check report

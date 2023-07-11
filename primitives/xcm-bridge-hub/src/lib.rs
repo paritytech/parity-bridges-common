@@ -39,10 +39,9 @@ pub trait LocalChannelManager {
 	// TODO: https://github.com/paritytech/parity-bridges-common/issues/2255
 	// check following assumptions. They are important at least for following cases:
 	// 1) we now close the associated outbound lane when misbehavior is reported. If we'll keep
-	//    handling inbound XCM messages after the `suspend_inbound_channel`, they will be
-	//    dropped
-	// 2) the sender will be able to enqueue message to othe lanes if we won't stop handling
-	//    inbound XCM immediately. He even may open additional bridges
+	//    handling inbound XCM messages after the `suspend_inbound_channel`, they will be dropped
+	// 2) the sender will be able to enqueue message to othe lanes if we won't stop handling inbound
+	//    XCM immediately. He even may open additional bridges
 
 	/// Stop handling new incoming XCM messages from given bridge `owner` (parent/sibling chain).
 	///
