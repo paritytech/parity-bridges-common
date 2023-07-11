@@ -26,8 +26,8 @@ use frame_support::{
 };
 use scale_info::TypeInfo;
 use serde::{Deserialize, Serialize};
-use sp_std::convert::TryInto;
-use xcm::latest::prelude::*;
+use sp_std::{boxed::Box, convert::TryInto};
+use xcm::{latest::prelude::*, VersionedMultiLocation};
 
 /// A manager of communication channels between bridge hub and parent/sibling chains that
 /// have opened bridges at this bridge hub.
@@ -114,7 +114,7 @@ pub enum BridgeState {
 #[scale_info(skip_type_params(ThisChain))]
 pub struct Bridge<ThisChain: Chain> {
 	/// Relative location of the bridge origin chain.
-	pub bridge_origin_relative_location: MultiLocation, // TODO: versioned + boxed?
+	pub bridge_origin_relative_location: Box<VersionedMultiLocation>,
 	/// Current bridge state.
 	pub state: BridgeState,
 	/// Account with the reserved funds.
@@ -267,11 +267,11 @@ pub enum BridgeLocationsError {
 /// Returns error if `bridge_origin_relative_location` is outside of `here_universal_location`
 /// local consensus OR if `bridge_destination_universal_location` is not a universal location.
 pub fn bridge_locations(
-	here_universal_location: InteriorMultiLocation,
-	bridge_origin_relative_location: MultiLocation,
-	bridge_destination_relative_location: MultiLocation,
+	here_universal_location: Box<InteriorMultiLocation>,
+	bridge_origin_relative_location: Box<MultiLocation>,
+	bridge_destination_relative_location: Box<MultiLocation>,
 	expected_remote_network: NetworkId,
-) -> Result<BridgeLocations, BridgeLocationsError> {
+) -> Result<Box<BridgeLocations>, BridgeLocationsError> {
 	fn strip_low_level_junctions(
 		location: InteriorMultiLocation,
 	) -> Result<InteriorMultiLocation, BridgeLocationsError> {
@@ -304,7 +304,7 @@ pub fn bridge_locations(
 	// get bridge destination universal location
 	let bridge_destination_universal_location: InteriorMultiLocation = here_universal_location
 		.into_location()
-		.appended_with(bridge_destination_relative_location)
+		.appended_with(*bridge_destination_relative_location)
 		.map_err(|_| BridgeLocationsError::InvalidBridgeDestination)?
 		.try_into()
 		.map_err(|_| BridgeLocationsError::InvalidBridgeDestination)?;
@@ -325,7 +325,7 @@ pub fn bridge_locations(
 
 	// get universal location of endpoint, located at this side of the bridge
 	let bridge_origin_universal_location = here_universal_location
-		.within_global(bridge_origin_relative_location)
+		.within_global(*bridge_origin_relative_location)
 		.map_err(|_| BridgeLocationsError::InvalidBridgeOrigin)?;
 	// strip low-level junctions within universal locations
 	let bridge_origin_universal_location =
@@ -340,13 +340,13 @@ pub fn bridge_locations(
 	let lane_id =
 		LaneId::new(bridge_origin_universal_location, bridge_destination_universal_location);
 
-	Ok(BridgeLocations {
-		bridge_origin_relative_location,
+	Ok(Box::new(BridgeLocations {
+		bridge_origin_relative_location: *bridge_origin_relative_location,
 		bridge_origin_universal_location,
-		bridge_destination_relative_location,
+		bridge_destination_relative_location: *bridge_destination_relative_location,
 		bridge_destination_universal_location,
 		lane_id,
-	})
+	}))
 }
 
 #[cfg(test)]
@@ -371,14 +371,14 @@ mod tests {
 
 	fn run_successful_test(test: SuccessfulTest) -> BridgeLocations {
 		let locations = bridge_locations(
-			test.here_universal_location,
-			test.bridge_origin_relative_location,
-			test.bridge_destination_relative_location,
+			Box::new(test.here_universal_location),
+			Box::new(test.bridge_origin_relative_location),
+			Box::new(test.bridge_destination_relative_location),
 			REMOTE_NETWORK,
 		);
 		assert_eq!(
 			locations,
-			Ok(BridgeLocations {
+			Ok(Box::new(BridgeLocations {
 				bridge_origin_relative_location: test.bridge_origin_relative_location,
 				bridge_origin_universal_location: test.bridge_origin_universal_location,
 				bridge_destination_relative_location: test.bridge_destination_relative_location,
@@ -387,10 +387,10 @@ mod tests {
 					test.bridge_origin_universal_location,
 					test.bridge_destination_universal_location,
 				),
-			}),
+			})),
 		);
 
-		locations.unwrap()
+		*locations.unwrap()
 	}
 
 	// successful tests that with various origins and destinations
@@ -612,17 +612,24 @@ mod tests {
 	fn bridge_locations_fails_when_we_fail_to_compute_destination_universal_location() {
 		assert_eq!(
 			bridge_locations(
-				X6(
+				Box::new(X6(
 					GlobalConsensus(LOCAL_NETWORK),
 					Parachain(1000),
 					OnlyChild,
 					OnlyChild,
 					OnlyChild,
 					OnlyChild
+				)),
+				Box::new(Here.into()),
+				Box::new(
+					ParentThen(X4(
+						GlobalConsensus(REMOTE_NETWORK),
+						OnlyChild,
+						OnlyChild,
+						OnlyChild
+					))
+					.into()
 				),
-				Here.into(),
-				ParentThen(X4(GlobalConsensus(REMOTE_NETWORK), OnlyChild, OnlyChild, OnlyChild))
-					.into(),
 				REMOTE_NETWORK,
 			),
 			Err(BridgeLocationsError::InvalidBridgeDestination),
@@ -633,9 +640,9 @@ mod tests {
 	fn bridge_locations_fails_when_here_is_not_universal_location() {
 		assert_eq!(
 			bridge_locations(
-				X1(Parachain(1000)),
-				Here.into(),
-				ParentThen(X1(GlobalConsensus(REMOTE_NETWORK))).into(),
+				Box::new(X1(Parachain(1000))),
+				Box::new(Here.into()),
+				Box::new(ParentThen(X1(GlobalConsensus(REMOTE_NETWORK))).into()),
 				REMOTE_NETWORK,
 			),
 			Err(BridgeLocationsError::NonUniversalLocation),
@@ -646,9 +653,9 @@ mod tests {
 	fn bridge_locations_fails_when_computed_destination_is_not_universal_location() {
 		assert_eq!(
 			bridge_locations(
-				X1(GlobalConsensus(LOCAL_NETWORK)),
-				Here.into(),
-				ParentThen(X1(OnlyChild)).into(),
+				Box::new(X1(GlobalConsensus(LOCAL_NETWORK))),
+				Box::new(Here.into()),
+				Box::new(ParentThen(X1(OnlyChild)).into()),
 				REMOTE_NETWORK,
 			),
 			Err(BridgeLocationsError::NonUniversalLocation),
@@ -659,9 +666,9 @@ mod tests {
 	fn bridge_locations_fails_when_computed_destination_is_local() {
 		assert_eq!(
 			bridge_locations(
-				X1(GlobalConsensus(LOCAL_NETWORK)),
-				Here.into(),
-				X1(OnlyChild).into(),
+				Box::new(X1(GlobalConsensus(LOCAL_NETWORK))),
+				Box::new(Here.into()),
+				Box::new(X1(OnlyChild).into()),
 				REMOTE_NETWORK,
 			),
 			Err(BridgeLocationsError::DestinationIsLocal),
@@ -672,9 +679,9 @@ mod tests {
 	fn bridge_locations_fails_when_computed_destination_is_unreachable() {
 		assert_eq!(
 			bridge_locations(
-				X1(GlobalConsensus(LOCAL_NETWORK)),
-				Here.into(),
-				ParentThen(X1(GlobalConsensus(UNREACHABLE_NETWORK))).into(),
+				Box::new(X1(GlobalConsensus(LOCAL_NETWORK))),
+				Box::new(Here.into()),
+				Box::new(ParentThen(X1(GlobalConsensus(UNREACHABLE_NETWORK))).into()),
 				REMOTE_NETWORK,
 			),
 			Err(BridgeLocationsError::UnreachableDestination),
