@@ -680,7 +680,7 @@ pub mod pallet {
 			Ok(())
 		}
 
-		/// Convert versioned xcm struct into latest known XCM version.
+		/// Convert versioned XCM struct into latest known XCM version.
 		fn xcm_into_latest<V: TryInto<U, Error = ()>, U>(versioned: V) -> Result<U, Error<T, I>> {
 			versioned.try_into().map_err(|_| Error::UnsupportedXcmVersion)
 		}
@@ -693,7 +693,7 @@ pub mod pallet {
 
 	/// All bridges opened by given local origin' universal location.
 	///
-	/// We're using versioned interior multi location here, but since we only allow write to this
+	/// We're using `VersionedInteriorMultiLocation` here, but since we only allow write to this
 	/// map from local calls AND we'll upgrade this map during migration to new XCM version, it
 	/// shall not allow multiple bridges between the same locations.
 	#[pallet::storage]
