@@ -32,10 +32,15 @@ use xcm::latest::prelude::*;
 /// A manager of communication channels between bridge hub and parent/sibling chains that
 /// have opened bridges at this bridge hub.
 pub trait LocalChannelManager {
-	/// Returns `true` if the inboiund channel with given bridge `owner` is currently suspended.
+	/// Returns `true` if the inbound channel with given bridge `owner` is currently suspended.
 	fn is_inbound_channel_suspended(owner: MultiLocation) -> bool;
 
 	/// Stop handling new incoming XCM messages from given bridge `owner` (parent/sibling chain).
+	///
+	/// We assume that the channel will be suspended immediately, but we don't mind if inbound
+	/// messages will keep piling up here for some time. Once this is communicated to the
+	/// `owner` chain (in any form), we expect it to stop sending messages to us and queue
+	/// messages at that `owner` chain instead.
 	///
 	/// This method will be called if we detect a misbehavior in one of bridges, owned by
 	/// the `owner`. We expect that:
@@ -152,21 +157,6 @@ pub struct BridgeLimits {
 pub enum BridgeMisbehavior {
 	/// The number of messages in the outbound queue is larger than the limit.
 	TooManyQueuedOutboundMessages,
-	/// The channel between bridge owner and the bridge hub is not suspended, when the misbehavior
-	/// caused by this owner is not yet resolved.
-	///
-	/// The only way when it could happen (apart from the misconfiguration) is when the owner
-	/// has several opened bridges. Then, if one bridge is "misbehaving", the channel is suspended
-	/// during the `report_misbehavior` call. But the bridge owner may open the other bridge it
-	/// (without resolving misbehavior) by calling the `resume_bridge` on other bridge. Since
-	/// there's just one channel between owner and the bridge hub (utilized by multiple bridges),
-	/// the owner unblocks the misbehaving bridge, which is another misbehavior.
-	///
-	/// This misbehavior muste be reported
-	UnsuspendedChannelWithMisbehavingOwner {
-		/// The identifier of misbehaving bridge of the same owner.
-		misbehaving_bridge_id: LaneId,
-	},
 }
 
 /// The state of all (reachable) queues as they seen from the bridge hub.
