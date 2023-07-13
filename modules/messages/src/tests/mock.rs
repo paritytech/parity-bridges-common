@@ -225,11 +225,6 @@ impl pallet_bridge_grandpa::Config for TestRuntime {
 	type WeightInfo = pallet_bridge_grandpa::weights::BridgeWeight<TestRuntime>;
 }
 
-parameter_types! {
-	pub const MaxMessagesToPruneAtOnce: u64 = 10;
-	pub const TestBridgedChainId: bp_runtime::ChainId = *b"test";
-}
-
 /// weights of messages pallet calls we use in tests.
 pub type TestWeightInfo = ();
 
@@ -386,9 +381,22 @@ impl DeliveryConfirmationPayments<AccountId> for TestDeliveryConfirmationPayment
 #[derive(Debug)]
 pub struct TestMessageDispatch;
 
+impl TestMessageDispatch {
+	pub fn emulate_enqueued_message() {
+		let dispatched =
+			frame_support::storage::unhashed::get_or_default::<MessageNonce>(&b"dispatched"[..]);
+		frame_support::storage::unhashed::put(&b"dispatched"[..], &(dispatched + 1));
+	}
+}
+
 impl MessageDispatch for TestMessageDispatch {
 	type DispatchPayload = TestPayload;
 	type DispatchLevelResult = TestDispatchLevelResult;
+
+	fn is_active() -> bool {
+		frame_support::storage::unhashed::get_or_default::<MessageNonce>(&b"dispatched"[..]) <=
+			BridgedChain::MAX_UNCONFIRMED_MESSAGES_IN_CONFIRMATION_TX
+	}
 
 	fn dispatch_weight(message: &mut DispatchMessage<TestPayload>) -> Weight {
 		match message.data.payload.as_ref() {
@@ -401,7 +409,10 @@ impl MessageDispatch for TestMessageDispatch {
 		message: DispatchMessage<TestPayload>,
 	) -> MessageDispatchResult<TestDispatchLevelResult> {
 		match message.data.payload.as_ref() {
-			Ok(payload) => payload.dispatch_result.clone(),
+			Ok(payload) => {
+				Self::emulate_enqueued_message();
+				payload.dispatch_result.clone()
+			},
 			Err(_) => dispatch_result(0),
 		}
 	}

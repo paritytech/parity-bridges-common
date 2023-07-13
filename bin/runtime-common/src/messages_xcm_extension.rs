@@ -76,6 +76,12 @@ impl<BlobDispatcher: DispatchBlob, Weights: MessagesPalletWeights> MessageDispat
 	type DispatchPayload = XcmAsPlainPayload;
 	type DispatchLevelResult = XcmBlobMessageDispatchResult;
 
+	fn is_active() -> bool {
+		// TODO: extend blob dispatcher with some queue-related methods + emulate queue
+		// at Rialto/Millau + proper implementation for HRMP/UMP queues
+		true
+	}
+
 	fn dispatch_weight(message: &mut DispatchMessage<Self::DispatchPayload>) -> Weight {
 		match message.data.payload {
 			Ok(ref payload) => {

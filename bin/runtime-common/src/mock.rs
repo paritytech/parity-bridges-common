@@ -26,10 +26,13 @@
 use crate::messages_xcm_extension::XcmAsPlainPayload;
 
 use bp_header_chain::ChainWithGrandpa;
-use bp_messages::{target_chain::ForbidInboundMessages, ChainWithMessages, LaneId, MessageNonce};
+use bp_messages::{
+	target_chain::{DispatchMessage, MessageDispatch},
+	ChainWithMessages, LaneId, MessageNonce,
+};
 use bp_parachains::SingleParaStoredHeaderDataBuilder;
 use bp_relayers::PayRewardFromAccount;
-use bp_runtime::{Chain, ChainId, Parachain};
+use bp_runtime::{messages::MessageDispatchResult, Chain, ChainId, Parachain};
 use frame_support::{
 	parameter_types,
 	weights::{ConstantMultiplier, IdentityFee, RuntimeDbWeight, Weight},
@@ -234,7 +237,7 @@ impl pallet_bridge_messages::Config for TestRuntime {
 		ConstU64<100_000>,
 	>;
 
-	type MessageDispatch = ForbidInboundMessages<Vec<u8>>;
+	type MessageDispatch = DummyMessageDispatch;
 	type ThisChain = ThisUnderlyingChain;
 	type BridgedChain = BridgedUnderlyingChain;
 	type BridgedHeaderChain = BridgeGrandpa;
@@ -246,6 +249,34 @@ impl pallet_bridge_relayers::Config for TestRuntime {
 	type PaymentProcedure = TestPaymentProcedure;
 	type StakeAndSlash = TestStakeAndSlash;
 	type WeightInfo = ();
+}
+
+/// Dummy message dispatcher.
+pub struct DummyMessageDispatch;
+
+impl DummyMessageDispatch {
+	pub fn deactivate() {
+		frame_support::storage::unhashed::put(&b"inactive"[..], &false);
+	}
+}
+
+impl MessageDispatch for DummyMessageDispatch {
+	type DispatchPayload = Vec<u8>;
+	type DispatchLevelResult = ();
+
+	fn is_active() -> bool {
+		frame_support::storage::unhashed::take::<bool>(&b"inactive"[..]) != Some(false)
+	}
+
+	fn dispatch_weight(_message: &mut DispatchMessage<Self::DispatchPayload>) -> Weight {
+		Weight::zero()
+	}
+
+	fn dispatch(
+		_: DispatchMessage<Self::DispatchPayload>,
+	) -> MessageDispatchResult<Self::DispatchLevelResult> {
+		MessageDispatchResult { unspent_weight: Weight::zero(), dispatch_level_result: () }
+	}
 }
 
 /// Underlying chain of `ThisChain`.
