@@ -29,13 +29,10 @@ use serde::{Deserialize, Serialize};
 use sp_std::{boxed::Box, convert::TryInto};
 use xcm::{latest::prelude::*, VersionedMultiLocation};
 
-/// A manager of communication channels between bridge hub and parent/sibling chains that
-/// have opened bridges at this bridge hub.
+/// A manager of XCM communication channels between the bridge hub and parent/sibling chains
+/// that have opened bridges at this bridge hub.
 #[allow(clippy::result_unit_err)] // XCM uses `Result<(), ()>` everywhere
-pub trait LocalChannelManager {
-	/// Returns `true` if the inbound channel with given bridge `owner` is currently suspended.
-	fn is_inbound_channel_suspended(owner: MultiLocation) -> bool;
-
+pub trait LocalXcmChannelManager {
 	// TODO: https://github.com/paritytech/parity-bridges-common/issues/2255
 	// check following assumptions. They are important at least for following cases:
 	// 1) we now close the associated outbound lane when misbehavior is reported. If we'll keep
@@ -76,11 +73,7 @@ pub trait LocalChannelManager {
 	fn send_xcm(owner: MultiLocation, message: Xcm<()>) -> Result<(), SendError>;
 }
 
-impl LocalChannelManager for () {
-	fn is_inbound_channel_suspended(_owner: MultiLocation) -> bool {
-		true
-	}
-
+impl LocalXcmChannelManager for () {
 	fn suspend_inbound_channel(_owner: MultiLocation) -> Result<(), ()> {
 		Ok(())
 	}

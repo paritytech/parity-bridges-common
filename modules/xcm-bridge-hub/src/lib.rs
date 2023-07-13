@@ -72,7 +72,7 @@ use bp_messages::{LaneId, LaneState, MessageNonce};
 use bp_runtime::{AccountIdOf, BalanceOf, BlockNumberOf, RangeInclusiveExt};
 use bp_xcm_bridge_hub::{
 	bridge_locations, Bridge, BridgeLimits, BridgeLocations, BridgeLocationsError,
-	BridgeMisbehavior, BridgeState, LocalChannelManager,
+	BridgeMisbehavior, BridgeState, LocalXcmChannelManager,
 };
 use frame_support::traits::{
 	tokens::BalanceStatus, Currency, ExistenceRequirement, ReservableCurrency,
@@ -158,7 +158,7 @@ pub mod pallet {
 		/// We need to be able to suspend/resume the channel with the bridge origin chains when
 		/// we receive a misbehavior reports. We also need a way to send bridge queues state report
 		/// to those chains.
-		type LocalChannelManager: LocalChannelManager;
+		type LocalXcmChannelManager: LocalXcmChannelManager;
 	}
 
 	/// An alias for the bridge metadata.
@@ -539,7 +539,7 @@ pub mod pallet {
 				.map_err(|_| Error::<T, I>::FailedToReserveBridgeReserve)?;
 
 			// resume the inbound channel between bridge hub and the bridge origin
-			T::LocalChannelManager::resume_inbound_channel(Self::xcm_into_latest(
+			T::LocalXcmChannelManager::resume_inbound_channel(Self::xcm_into_latest(
 				*last_bridge.bridge_origin_relative_location,
 			)?)
 			.map_err(|_| Error::<T, I>::FailedToResumeInboundChannel)?;
@@ -654,7 +654,7 @@ pub mod pallet {
 			// suspend the inbound channel between bridge hub and the bridge owner. This shall
 			// guarantee that no more incoming XCM messages will be handled by the bridge hub until
 			// misbehavior is resolved
-			T::LocalChannelManager::suspend_inbound_channel(Self::xcm_into_latest(
+			T::LocalXcmChannelManager::suspend_inbound_channel(Self::xcm_into_latest(
 				*bridge.bridge_origin_relative_location,
 			)?)
 			.map_err(|_| Error::<T, I>::FailedToSuspendInboundChannel)?;
@@ -882,7 +882,7 @@ mod tests {
 			Some(BridgeReserve::get() - Penalty::get())
 		);
 
-		assert!(TestLocalChannelManager::is_inbound_channel_suspended(
+		assert!(TestLocalXcmChannelManager::is_inbound_channel_suspended(
 			locations.bridge_origin_relative_location
 		));
 	}

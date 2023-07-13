@@ -20,7 +20,7 @@ use crate as pallet_xcm_bridge_hub;
 
 use bp_messages::{target_chain::ForbidInboundMessages, ChainWithMessages, MessageNonce};
 use bp_runtime::{Chain, ChainId};
-use bp_xcm_bridge_hub::{BridgeLimits, LocalChannelManager};
+use bp_xcm_bridge_hub::{BridgeLimits, LocalXcmChannelManager};
 use codec::Encode;
 use frame_support::{
 	parameter_types,
@@ -238,25 +238,27 @@ impl pallet_xcm_bridge_hub::Config for TestRuntime {
 
 	type BridgeLimits = TestBridgeLimits;
 	type Penalty = Penalty;
-	type LocalChannelManager = TestLocalChannelManager;
+	type LocalXcmChannelManager = TestLocalXcmChannelManager;
 }
 
-pub struct TestLocalChannelManager;
+pub struct TestLocalXcmChannelManager;
 
-impl LocalChannelManager for TestLocalChannelManager {
-	fn is_inbound_channel_suspended(owner: MultiLocation) -> bool {
-		let key = (b"LocalChannelManager.inbound_channel_suspended", owner).encode();
+impl TestLocalXcmChannelManager {
+	pub fn is_inbound_channel_suspended(owner: MultiLocation) -> bool {
+		let key = (b"LocalXcmChannelManager.inbound_channel_suspended", owner).encode();
 		frame_support::storage::unhashed::get(&key).unwrap_or(false)
 	}
+}
 
+impl LocalXcmChannelManager for TestLocalXcmChannelManager {
 	fn suspend_inbound_channel(owner: MultiLocation) -> Result<(), ()> {
-		let key = (b"LocalChannelManager.inbound_channel_suspended", owner).encode();
+		let key = (b"LocalXcmChannelManager.inbound_channel_suspended", owner).encode();
 		frame_support::storage::unhashed::put(&key, &true);
 		Ok(())
 	}
 
 	fn resume_inbound_channel(owner: MultiLocation) -> Result<(), ()> {
-		let key = (b"LocalChannelManager.inbound_channel_suspended", owner).encode();
+		let key = (b"LocalXcmChannelManager.inbound_channel_suspended", owner).encode();
 		frame_support::storage::unhashed::put(&key, &false);
 		Ok(())
 	}
