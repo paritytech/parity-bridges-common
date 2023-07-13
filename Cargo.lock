@@ -1140,6 +1140,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "bp-xcm-bridge-hub"
+version = "0.1.0"
+dependencies = [
+ "xcm",
+]
+
+[[package]]
 name = "bridge-runtime-common"
 version = "0.1.0"
 dependencies = [
