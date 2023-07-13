@@ -219,6 +219,17 @@ impl<C: Chain, B: Client<C>> Client<C> for CachingClient<C, B> {
 		.await
 	}
 
+	async fn generate_grandpa_key_ownership_proof(
+		&self,
+		at: HashOf<C>,
+		set_id: sp_consensus_grandpa::SetId,
+		authority_id: sp_consensus_grandpa::AuthorityId,
+	) -> Result<Option<sp_consensus_grandpa::OpaqueKeyOwnershipProof>> {
+		self.backend
+			.generate_grandpa_key_ownership_proof(at, set_id, authority_id)
+			.await
+	}
+
 	async fn subscribe_beefy_finality_justifications(&self) -> Result<Subscription<Bytes>> {
 		self.subscribe_finality_justifications(
 			&self.data.beefy_justifications,

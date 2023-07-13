@@ -225,7 +225,7 @@ fn ensure_unrewarded_relayers_are_correct<RelayerId>(
 #[cfg(test)]
 mod tests {
 	use super::*;
-	use crate::{outbound_lane, tests::mock::*};
+	use crate::{active_outbound_lane, tests::mock::*};
 	use frame_support::assert_ok;
 	use sp_std::ops::RangeInclusive;
 
@@ -246,7 +246,7 @@ mod tests {
 		relayers: &VecDeque<UnrewardedRelayer<TestRelayer>>,
 	) -> Result<Option<DeliveredMessages>, ReceivalConfirmationError> {
 		run_test(|| {
-			let mut lane = outbound_lane::<TestRuntime, _>(test_lane_id()).unwrap();
+			let mut lane = active_outbound_lane::<TestRuntime, _>(test_lane_id()).unwrap();
 			assert_ok!(lane.send_message(outbound_message_data(REGULAR_PAYLOAD)));
 			assert_ok!(lane.send_message(outbound_message_data(REGULAR_PAYLOAD)));
 			assert_ok!(lane.send_message(outbound_message_data(REGULAR_PAYLOAD)));
@@ -262,7 +262,7 @@ mod tests {
 	#[test]
 	fn send_message_works() {
 		run_test(|| {
-			let mut lane = outbound_lane::<TestRuntime, _>(test_lane_id()).unwrap();
+			let mut lane = active_outbound_lane::<TestRuntime, _>(test_lane_id()).unwrap();
 			assert_eq!(lane.storage.data().latest_generated_nonce, 0);
 			assert_eq!(lane.send_message(outbound_message_data(REGULAR_PAYLOAD)), Ok(1));
 			assert!(lane.storage.message(&1).is_some());
@@ -273,7 +273,7 @@ mod tests {
 	#[test]
 	fn confirm_delivery_works() {
 		run_test(|| {
-			let mut lane = outbound_lane::<TestRuntime, _>(test_lane_id()).unwrap();
+			let mut lane = active_outbound_lane::<TestRuntime, _>(test_lane_id()).unwrap();
 			assert_eq!(lane.send_message(outbound_message_data(REGULAR_PAYLOAD)), Ok(1));
 			assert_eq!(lane.send_message(outbound_message_data(REGULAR_PAYLOAD)), Ok(2));
 			assert_eq!(lane.send_message(outbound_message_data(REGULAR_PAYLOAD)), Ok(3));
@@ -293,7 +293,7 @@ mod tests {
 	#[test]
 	fn confirm_partial_delivery_works() {
 		run_test(|| {
-			let mut lane = outbound_lane::<TestRuntime, _>(test_lane_id()).unwrap();
+			let mut lane = active_outbound_lane::<TestRuntime, _>(test_lane_id()).unwrap();
 			assert_eq!(lane.send_message(outbound_message_data(REGULAR_PAYLOAD)), Ok(1));
 			assert_eq!(lane.send_message(outbound_message_data(REGULAR_PAYLOAD)), Ok(2));
 			assert_eq!(lane.send_message(outbound_message_data(REGULAR_PAYLOAD)), Ok(3));
@@ -322,7 +322,7 @@ mod tests {
 	#[test]
 	fn confirm_delivery_rejects_nonce_lesser_than_latest_received() {
 		run_test(|| {
-			let mut lane = outbound_lane::<TestRuntime, _>(test_lane_id()).unwrap();
+			let mut lane = active_outbound_lane::<TestRuntime, _>(test_lane_id()).unwrap();
 			assert_ok!(lane.send_message(outbound_message_data(REGULAR_PAYLOAD)));
 			assert_ok!(lane.send_message(outbound_message_data(REGULAR_PAYLOAD)));
 			assert_ok!(lane.send_message(outbound_message_data(REGULAR_PAYLOAD)));
@@ -360,8 +360,8 @@ mod tests {
 				3,
 				&unrewarded_relayers(1..=1)
 					.into_iter()
-					.chain(unrewarded_relayers(2..=30).into_iter())
-					.chain(unrewarded_relayers(3..=3).into_iter())
+					.chain(unrewarded_relayers(2..=30))
+					.chain(unrewarded_relayers(3..=3))
 					.collect(),
 			),
 			Err(ReceivalConfirmationError::FailedToConfirmFutureMessages),
@@ -376,8 +376,8 @@ mod tests {
 				3,
 				&unrewarded_relayers(1..=1)
 					.into_iter()
-					.chain(unrewarded_relayers(2..=1).into_iter())
-					.chain(unrewarded_relayers(2..=3).into_iter())
+					.chain(unrewarded_relayers(2..=1))
+					.chain(unrewarded_relayers(2..=3))
 					.collect(),
 			),
 			Err(ReceivalConfirmationError::EmptyUnrewardedRelayerEntry),
@@ -391,8 +391,8 @@ mod tests {
 				3,
 				&unrewarded_relayers(1..=1)
 					.into_iter()
-					.chain(unrewarded_relayers(3..=3).into_iter())
-					.chain(unrewarded_relayers(2..=2).into_iter())
+					.chain(unrewarded_relayers(3..=3))
+					.chain(unrewarded_relayers(2..=2))
 					.collect(),
 			),
 			Err(ReceivalConfirmationError::NonConsecutiveUnrewardedRelayerEntries),
@@ -402,7 +402,7 @@ mod tests {
 	#[test]
 	fn confirm_delivery_detects_when_more_than_expected_messages_are_confirmed() {
 		run_test(|| {
-			let mut lane = outbound_lane::<TestRuntime, _>(test_lane_id()).unwrap();
+			let mut lane = active_outbound_lane::<TestRuntime, _>(test_lane_id()).unwrap();
 			assert_ok!(lane.send_message(outbound_message_data(REGULAR_PAYLOAD)));
 			assert_ok!(lane.send_message(outbound_message_data(REGULAR_PAYLOAD)));
 			assert_ok!(lane.send_message(outbound_message_data(REGULAR_PAYLOAD)));

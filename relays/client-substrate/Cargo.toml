@@ -15,7 +15,7 @@ log = "0.4.19"
 num-traits = "0.2"
 quick_cache = "0.3"
 rand = "0.8"
-scale-info = { version = "2.8.0", features = ["derive"] }
+scale-info = { version = "2.9.0", features = ["derive"] }
 tokio = { version = "1.29", features = ["rt-multi-thread"] }
 thiserror = "1.0.40"
 
@@ -40,6 +40,7 @@ pallet-utility = { git = "https://github.com/paritytech/substrate", branch = "ma
 sc-chain-spec = { git = "https://github.com/paritytech/substrate", branch = "master" }
 sc-rpc-api = { git = "https://github.com/paritytech/substrate", branch = "master" }
 sc-transaction-pool-api = { git = "https://github.com/paritytech/substrate", branch = "master" }
+sp-consensus-grandpa = { git = "https://github.com/paritytech/substrate", branch = "master" }
 sp-core = { git = "https://github.com/paritytech/substrate", branch = "master" }
 sp-rpc = { git = "https://github.com/paritytech/substrate", branch = "master" }
 sp-runtime = { git = "https://github.com/paritytech/substrate", branch = "master" }

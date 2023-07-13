@@ -93,8 +93,8 @@ pub trait Engine<C: Chain>: Send {
 	async fn optimize_proof<TargetChain: Chain>(
 		target_client: &impl Client<TargetChain>,
 		header: &C::Header,
-		proof: Self::FinalityProof,
-	) -> Result<Self::FinalityProof, SubstrateError>;
+		proof: &mut Self::FinalityProof,
+	) -> Result<(), SubstrateError>;
 
 	/// Prepare initialization data for the finality bridge pallet.
 	async fn prepare_initialization_data(
@@ -156,8 +156,8 @@ impl<C: ChainWithGrandpa> Engine<C> for Grandpa<C> {
 	async fn optimize_proof<TargetChain: Chain>(
 		target_client: &impl Client<TargetChain>,
 		header: &C::Header,
-		proof: Self::FinalityProof,
-	) -> Result<Self::FinalityProof, SubstrateError> {
+		proof: &mut Self::FinalityProof,
+	) -> Result<(), SubstrateError> {
 		let current_authority_set_key = bp_header_chain::storage_keys::current_authority_set_key(
 			C::WITH_CHAIN_GRANDPA_PALLET_NAME,
 		);
@@ -241,10 +241,9 @@ impl<C: ChainWithGrandpa> Engine<C> for Grandpa<C> {
 		// If initial header changes the GRANDPA authorities set, then we need previous authorities
 		// to verify justification.
 		let mut authorities_for_verification = initial_authorities_set.clone();
-		let scheduled_change =
-			GrandpaConsensusLogReader::<BlockNumberOf<C>>::find_authorities_change(
-				initial_header.digest(),
-			);
+		let scheduled_change = GrandpaConsensusLogReader::<BlockNumberOf<C>>::find_scheduled_change(
+			initial_header.digest(),
+		);
 		assert!(
 			scheduled_change.as_ref().map(|c| c.delay.is_zero()).unwrap_or(true),
 			"GRANDPA authorities change at {} scheduled to happen in {:?} blocks. We expect\
@@ -280,7 +279,7 @@ impl<C: ChainWithGrandpa> Engine<C> for Grandpa<C> {
 				(initial_header_hash, initial_header_number),
 				initial_authorities_set_id,
 				&authorities_for_verification,
-				justification.clone(),
+				&mut justification.clone(),
 			)
 			.is_ok();
 
