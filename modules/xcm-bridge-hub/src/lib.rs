@@ -546,33 +546,6 @@ pub mod pallet {
 
 			Ok(())
 		}
-
-		/// Report reachable bridge queues state.
-		///
-		/// The origin must pass the `AllowedOpenBridgeOrigin` filter. The pallet prepares
-		/// the bridge queues state structure and sends it back to the caller.
-		#[pallet::call_index(4)]
-		#[pallet::weight(Weight::zero())] // TODO: https://github.com/paritytech/parity-bridges-common/issues/1760 - weights
-		pub fn report_bridge_queues_state(
-			_origin: OriginFor<T>,
-			_lane_id: LaneId,
-			_encoded_call_prefix: Vec<u8>,
-			_encoded_call_suffix: Vec<u8>,
-		) -> DispatchResult {
-			// TODO: implement me in https://github.com/paritytech/parity-bridges-common/pull/2233
-			// Something like:
-			//
-			// ```nocompile
-			// let bridge_origin_relative_location = T::AllowedOpenBridgeOrigin::ensure_origin(origin)?;
-			// ...
-			// let state = BridgeQueuesState { .. };
-			//  let encoded_call = encoded_call_prefix ++ state.encode() ++ encoded_call_suffix;
-			// T::ToBridgeOriginSender::send(
-			//     bridge_origin_relative_location,
-			//     vec![Xcm::Transact { call: encoded_call }],
-			// );
-			unimplemented!("")
-		}
 	}
 
 	impl<T: Config<I>, I: 'static> Pallet<T, I>

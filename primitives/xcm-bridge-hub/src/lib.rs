@@ -160,54 +160,6 @@ pub enum BridgeMisbehavior {
 	TooManyQueuedOutboundMessages,
 }
 
-/// The state of all (reachable) queues as they seen from the bridge hub.
-#[derive(
-	Clone,
-	Copy,
-	Decode,
-	Default,
-	Encode,
-	Eq,
-	Ord,
-	PartialOrd,
-	PartialEq,
-	RuntimeDebug,
-	TypeInfo,
-	MaxEncodedLen,
-	Serialize,
-	Deserialize,
-)]
-pub struct BridgeQueuesState {
-	/// Number of messages queued at bridge hub outbound (`pallet-bridge-messages`) queue.
-	pub outbound_here: MessageNonce,
-	/// Number of messages queued at the outbound queue of the bridged bridge hub. This
-	/// queue connects bridged bridge hub and remote bridge destination. In most cases
-	/// it will be the XCMP (HRMP) or `DMP` queue.
-	pub outbound_at_bridged: MessageNonce,
-	/// Number of messages queued at the destination inbound queue. This queue connects
-	/// bridged bridge hub and remote bridge destination. In most cases it will be the XCMP
-	/// (HRMP) or `DMP` queue.
-	///
-	/// Bridged (target) bridge hub doesn't have an access to the exact value of
-	/// this metric. But it may get an estimation, depending on the channel
-	/// state. The channel between target bridge hub and destination is suspended
-	/// when there are more than `N` unprocessed messages at the destination inbound
-	/// queue. So if we see the suspended channel state at the target bridge hub,
-	/// we: (1) assume that there's at least `N` queued messages at the inbound
-	/// destination queue and (2) all further messages are now piling up at our
-	/// outbound queue (`outbound_at_bridged`), so we have exact count.
-	pub inbound_at_destination: MessageNonce,
-}
-
-impl BridgeQueuesState {
-	/// Return total number of messsages that we assume are currently in the bridges queue.
-	pub fn total_enqueued_messages(&self) -> MessageNonce {
-		self.outbound_here
-			.saturating_add(self.outbound_at_bridged)
-			.saturating_add(self.inbound_at_destination)
-	}
-}
-
 /// Locations of bridge endpoints at both sides of the bridge.
 #[derive(Clone, RuntimeDebug, PartialEq, Eq)]
 pub struct BridgeLocations {
