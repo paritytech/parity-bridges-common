@@ -248,7 +248,7 @@ impl<Header: HeaderT> OptimizationCallbacks<Header> {
 		if !self.redundant_votes_ancestries.is_empty() {
 			justification
 				.votes_ancestries
-				.retain(|header| self.redundant_votes_ancestries.get(&header.hash()).is_none())
+				.retain(|header| !self.redundant_votes_ancestries.contains(&header.hash()))
 		}
 	}
 }
@@ -332,7 +332,7 @@ where
 		// there's a lot of code in `validate_commit` and `import_precommit` functions inside
 		// `finality-grandpa` crate (mostly related to reporting equivocations). But the only thing
 		// that we care about is that only first vote from the authority is accepted
-		if !votes.insert(signed.id.clone()) {
+		if votes.contains(&signed.id) {
 			callbacks.on_duplicate_authority_vote(precommit_idx)?;
 			continue
 		}
@@ -360,9 +360,8 @@ where
 			continue
 		}
 
-		// since we know now that the precommit target is the descendant of the justification
-		// target, and that the signature is valid, we can mark the ancestry route as visited
-		// and increase the 'weight' of the justification target
+		// now we can count the vote since we know that it is valid
+		votes.insert(signed.id.clone());
 		chain.mark_route_as_visited(route);
 		cumulative_weight = cumulative_weight.saturating_add(authority_info.weight().get());
 	}
@@ -442,8 +441,8 @@ impl<Header: HeaderT> AncestryChain<Header> {
 		Some(route)
 	}
 
-	fn mark_route_as_visited(&mut self, mut route: Vec<Header::Hash>) {
-		for hash in route.drain(..) {
+	fn mark_route_as_visited(&mut self, route: Vec<Header::Hash>) {
+		for hash in route {
 			self.unvisited.remove(&hash);
 		}
 	}
