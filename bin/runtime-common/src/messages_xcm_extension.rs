@@ -227,6 +227,10 @@ impl<Origin, Inner> QueuePausedQuery<Origin> for LocalInboundXcmChannelSuspender
 		}
 
 		// TODO: if at least one bridge, owner by the `origin` has too many messages, return true
+
+		// TODO: where we should resume the channel? Two options: here OR from the `pallet-xcm-bridge`
+		// `on_initialize` (or `on_idle`?)
+
 		false
 	}
 }
