@@ -36,18 +36,7 @@
 //!    connect over the bridge need to coordinate the moment when they start sending messages over
 //!    the bridge. Otherwise they may lose messages and/or bundled assets;
 //!
-//! 5) when the bridge is opened, anyone can watch for bridge rules (see
-//!    [`bp_xcm_bridge_hub::BridgeMisbehavior`] for details) violations. If something goes wrong
-//!    with the bridge, he may call the `report_misbehavior` method. If the report is confirmed, the
-//!    inbound channel with the parent/sibling sending chain is suspended and the `Penalty` is paid
-//!    (out of reserved funds) to the reporter;
-//!
-//! 6) if the bridge owner has managed to resolve misbehavior reason, it may resume the regular
-//!    bridge operations by calling the `resume_misbehaving_bridges` method. This method doesn't
-//!    check that the misbehavior has been fixed. The bridge owner must have enough funds to
-//!    replenish his bridge reserve by the `Penalty` amount for every misbehaving bridge;
-//!
-//! 6) when either side wants to close the bridge, it sends the XCM `Transact` with the
+//! 5) when either side wants to close the bridge, it sends the XCM `Transact` with the
 //!    `close_bridge` call. The bridge is closed immediately if there are no queued messages.
 //!    Otherwise, the owner must repeat the `close_bridge` call to prune all queued messages first.
 //!
@@ -58,28 +47,18 @@
 //! are delivered to the destination, are processed in the way their sender expects. So if we
 //! can't guarantee that, we shall not care about more complex procedures and leave it to the
 //! participating parties.
-//!
-//! There's other way to cause pauses in bridge operations - it is what we call a "misbehavior".
-//! That's a situation when the bridge owner/maintainer have violated contract between its chain and
-//! the bridge bub. This contract is quite simple - we want to see there's a running relayer,
-//! serving the bridge lane and that the number of messages in all bridge queues stays below some
-//! hard limit. The latter requirement may be achieved using some rate limiter at the sending chain.
-//! We have an example implementation in the `pallet-xcm-bridge-hub-router` pallet.
 
 #![cfg_attr(not(feature = "std"), no_std)]
 
 use bp_messages::{LaneId, LaneState, MessageNonce};
 use bp_runtime::{AccountIdOf, BalanceOf, BlockNumberOf, RangeInclusiveExt};
 use bp_xcm_bridge_hub::{
-	bridge_locations, Bridge, BridgeLimits, BridgeLocations, BridgeLocationsError,
-	BridgeMisbehavior, BridgeState, LocalXcmChannelManager,
+	bridge_locations, Bridge, BridgeLocations, BridgeLocationsError, BridgeState,
 };
-use frame_support::traits::{
-	tokens::BalanceStatus, Currency, ExistenceRequirement, ReservableCurrency,
-};
+use frame_support::traits::{Currency, ReservableCurrency};
 use frame_system::Config as SystemConfig;
 use pallet_bridge_messages::{Config as BridgeMessagesConfig, LanesManagerError};
-use sp_runtime::{traits::Zero, Saturating};
+use sp_runtime::traits::Zero;
 use xcm::prelude::*;
 use xcm_executor::traits::ConvertLocation;
 
@@ -135,30 +114,10 @@ pub mod pallet {
 
 		/// Amount of this chain native tokens that is reserved on the sibling parachain account
 		/// when bridge open request is registered.
-		///
-		/// This value must be selected using following in mind: part of this amount
-		/// (`Self::Penalty`) may go to misbehavior reporter, but still the remainder must be large
-		/// enough to cover cost of remaining `close_bridge` transactions and make it profitable for
-		/// bridge owner to submit those transactions and actually close the bridge. If it will be
-		/// small enough and won't cover those costs, the owner will have no reason to close the
-		/// bridge.
 		#[pallet::constant]
 		type BridgeReserve: Get<BalanceOf<ThisChainOf<Self, I>>>;
 		/// Currency used to pay for bridge registration.
 		type NativeCurrency: ReservableCurrency<Self::AccountId>;
-
-		/// Bridge limits that the regular bridge must not exceed.
-		type BridgeLimits: Get<BridgeLimits>;
-		/// The penalty (in chain native tokens) that is paid from the bridge reserve to the bridge
-		/// misbehavior reporter.
-		#[pallet::constant]
-		type Penalty: Get<BalanceOf<ThisChainOf<Self, I>>>;
-		/// A way to interact with parent/sibling chains that are participating in the bridge.
-		///
-		/// We need to be able to suspend/resume the channel with the bridge origin chains when
-		/// we receive a misbehavior reports. We also need a way to send bridge queues state report
-		/// to those chains.
-		type LocalXcmChannelManager: LocalXcmChannelManager;
 	}
 
 	/// An alias for the bridge metadata.
@@ -271,8 +230,7 @@ pub mod pallet {
 		/// Try to close the bridge.
 		///
 		/// Can only be called by the "owner" of this side of the bridge, meaning that the
-		/// inbound XCM channel with the local origin chain is working. So the bridge can't
-		/// be in the misbehaving state.
+		/// inbound XCM channel with the local origin chain is working.
 		///
 		/// Closed bridge is a bridge without any traces in the runtime storage. So this method
 		/// first tries to prune all queued messages at the outbound lane. When there are no
@@ -303,12 +261,6 @@ pub mod pallet {
 			let bridge =
 				Bridges::<T, I>::try_mutate_exists(locations.lane_id, |bridge| match bridge {
 					Some(bridge) => {
-						// just double check - normally the inbound XCM channel will be closed for
-						// misbehaving bridge, so he won't be able to call the `close_bridge`
-						ensure!(
-							bridge.state != BridgeState::Misbehaving,
-							Error::<T, I>::CannotCloseMisbehavingBridge,
-						);
 						bridge.state = BridgeState::Closed;
 						Ok(bridge.clone())
 					},
@@ -409,143 +361,6 @@ pub mod pallet {
 
 			Ok(())
 		}
-
-		/// Report bridge misbehavior.
-		///
-		/// The origin must be signed. If misbehavior is confirmed, some (`Penalty`) portion of
-		/// bridge reserve is transferred to the reporter. The inbound XCM channel between local
-		/// origin chain and the bridge hub is suspended and the outbound lane of the bridge is
-		/// immediately closed.
-		///
-		/// The bridge owner must fix the misbehavior by processing the corresponding bridge queue.
-		/// After that, he may call (using some associated account) the `resume_misbehaving_bridges`
-		/// to return to regular bridge operations.
-		#[pallet::call_index(2)]
-		#[pallet::weight(Weight::zero())] // TODO: https://github.com/paritytech/parity-bridges-common/issues/1760 - weights
-		pub fn report_misbehavior(
-			origin: OriginFor<T>,
-			lane_id: LaneId,
-			misbehavior: BridgeMisbehavior,
-		) -> DispatchResult {
-			// the `reporter` may be associated with the bridge owner, so in theory `owner` may
-			// report his own misbehavior and he won't actually get penalized. But:
-			// 1) the bridge stops working normally && no messages are enqueued until misbehavior is
-			//    resolved. So we have achieved what we wanted to, except that the owner haven't
-			//    paid anything for that;
-			// 2) the owner still has to deal with a risk that someone else will submit report
-			//    before his own.
-			//
-			// We may have a smart "altruistic" reporter, who will do `resume_misbehaving_bridges` +
-			// `report_misbehavior` in one batch for this case. In this case he'll pay `Penalty`,
-			// but it will be reported in a next call. So he only loses the transaction fee.
-			let reporter = ensure_signed(origin)?;
-
-			// check report
-			match misbehavior {
-				BridgeMisbehavior::TooManyQueuedOutboundMessages => {
-					let outbound_lane = LanesManagerOf::<T, I>::new()
-						.active_outbound_lane(lane_id)
-						.map_err(Error::<T, I>::LanesManager)?;
-					let queued_messages =
-						outbound_lane.queued_messages().checked_len().unwrap_or(0);
-					let max_queued_messages = T::BridgeLimits::get().max_queued_outbound_messages;
-					ensure!(
-						queued_messages > max_queued_messages,
-						Error::<T, I>::InvalidMisbehaviorReport,
-					);
-				},
-			}
-
-			// fine bridge owner and switch bridge to msbehaving state
-			Self::on_misbehavior(reporter, lane_id)?;
-
-			// write something to log
-			log::trace!(target: LOG_TARGET, "Bridge {:?} is misbehaving: {:?}", lane_id, misbehavior);
-
-			// deposit the `BridgeMisbehaving` event
-			Self::deposit_event(Event::<T, I>::BridgeMisbehaving { lane_id, misbehavior });
-
-			Ok(())
-		}
-
-		/// Resume misbehaving bridge operations.
-		///
-		/// This call acts as a confirmation that the previously reported misbehavior for all
-		/// bridges, originated by the `bridge_origin_universal_location` are fixed.
-		///
-		/// The caller is assumed to be associated with the bridge owner, because the caller
-		/// must be able to send the `Penalty` amount (per every misbehaving bridge) to the bridge
-		/// owner account. We can't require calls from the bridge owner account itself, because
-		/// the inbound XCM channel is presumably closed and the parent/sibling chain can't control
-		/// this account.
-		///
-		/// The inbound channel with the owner (parent/sibling chain) is reopened during this call.
-		#[pallet::call_index(3)]
-		#[pallet::weight(Weight::zero())] // TODO: https://github.com/paritytech/parity-bridges-common/issues/1760 - weights
-		pub fn resume_misbehaving_bridges(
-			origin: OriginFor<T>,
-			bridge_origin_universal_location: Box<VersionedInteriorMultiLocation>,
-		) -> DispatchResult {
-			let associated_owner_account = ensure_signed(origin)?;
-
-			// get all bridges, owned by given origin
-			let owner_bridges = BridgesByLocalOrigin::<T, I>::get(bridge_origin_universal_location);
-
-			// iterate through all bridges and resume every misbehaving bridge
-			let to_replenish = T::Penalty::get();
-			let mut total_to_replenish: BalanceOf<ThisChainOf<T, I>> = Zero::zero();
-			let mut last_bridge = None;
-			for owner_bridge_id in owner_bridges {
-				let bridge =
-					Bridges::<T, I>::get(owner_bridge_id).ok_or(Error::<T, I>::UnknownBridge)?;
-				if bridge.state != BridgeState::Misbehaving {
-					continue
-				}
-
-				// update bridge metadata
-				Bridges::<T, I>::mutate_extant(owner_bridge_id, |bridge| {
-					// even though the the message misbehavior may have been reported during the
-					// closure, let's revert to the `Opened`
-					bridge.state = BridgeState::Opened;
-					bridge.reserve = bridge.reserve.saturating_add(to_replenish);
-
-					last_bridge = Some(bridge.clone());
-				});
-
-				// reopen outbound lane state
-				LanesManagerOf::<T, I>::new()
-					.any_state_outbound_lane(owner_bridge_id)
-					.map_err(Error::<T, I>::LanesManager)?
-					.set_state(LaneState::Opened);
-
-				// remember to actually replenish the owner account
-				total_to_replenish = total_to_replenish.saturating_add(to_replenish);
-			}
-
-			// if no bridges are misbehaving, that's an invalid call
-			let last_bridge =
-				last_bridge.map(Ok).unwrap_or(Err(Error::<T, I>::NoMisbehavingBridges))?;
-
-			// actually replenish the owner account
-			T::NativeCurrency::transfer(
-				&associated_owner_account,
-				&last_bridge.bridge_owner_account,
-				total_to_replenish,
-				ExistenceRequirement::AllowDeath,
-			)?;
-
-			// and reserve replenished amount on the bridge owner account
-			T::NativeCurrency::reserve(&last_bridge.bridge_owner_account, total_to_replenish)
-				.map_err(|_| Error::<T, I>::FailedToReserveBridgeReserve)?;
-
-			// resume the inbound channel between bridge hub and the bridge origin
-			T::LocalXcmChannelManager::resume_inbound_channel(Self::xcm_into_latest(
-				*last_bridge.bridge_origin_relative_location,
-			)?)
-			.map_err(|_| Error::<T, I>::FailedToResumeInboundChannel)?;
-
-			Ok(())
-		}
 	}
 
 	impl<T: Config<I>, I: 'static> Pallet<T, I>
@@ -568,89 +383,6 @@ pub mod pallet {
 				T::BridgedNetworkId::get(),
 			)
 			.map_err(|e| Error::<T, I>::BridgeLocations(e).into())
-		}
-
-		/// Actions when misbehavior is detected.
-		fn on_misbehavior(reporter: T::AccountId, lane_id: LaneId) -> Result<(), Error<T, I>> {
-			// check bridge state - we can't take penalty from already misbehaving bridge
-			let bridge = Bridges::<T, I>::get(lane_id).ok_or(Error::<T, I>::UnknownBridge)?;
-			ensure!(bridge.state != BridgeState::Misbehaving, Error::<T, I>::AlreadyMisbehaving);
-
-			// transfer penalty to the reporter
-			let penalty = T::Penalty::get();
-			let result = T::NativeCurrency::repatriate_reserved(
-				&bridge.bridge_owner_account,
-				&reporter,
-				penalty,
-				BalanceStatus::Free,
-			);
-			let updated_reserve = match result {
-				Ok(failed_penalty) if failed_penalty.is_zero() => {
-					log::trace!(
-						target: LOG_TARGET,
-						"Bridge owner account {:?} has been slashed for {:?}. Funds were deposited to {:?}",
-						bridge.bridge_owner_account,
-						penalty,
-						reporter,
-					);
-					bridge.reserve.saturating_sub(penalty)
-				},
-				Ok(failed_penalty) => {
-					log::trace!(
-						target: LOG_TARGET,
-						"Bridge onwer account {:?} has been partially slashed for {:?}. Funds were deposited to {:?}. \
-						Failed to slash: {:?}",
-						bridge.bridge_owner_account,
-						penalty,
-						reporter,
-						failed_penalty,
-					);
-					bridge.reserve.saturating_sub(penalty.saturating_sub(failed_penalty))
-				},
-				Err(e) => {
-					// it may fail if there's no beneficiary account. But since we're in the call
-					// that is signed by the `reporter`, it should never happen in practice
-					log::debug!(
-						target: LOG_TARGET,
-						"Failed to slash bridge onwer account {:?}: {:?}. Maybe reporter account doesn't exist? \
-						Reporter: {:?}, amount: {:?}, failed to slash: {:?}",
-						bridge.bridge_owner_account,
-						e,
-						reporter,
-						penalty,
-						penalty,
-					);
-					bridge.reserve
-				},
-			};
-
-			// suspend the inbound channel between bridge hub and the bridge owner. This shall
-			// guarantee that no more incoming XCM messages will be handled by the bridge hub until
-			// misbehavior is resolved
-			T::LocalXcmChannelManager::suspend_inbound_channel(Self::xcm_into_latest(
-				*bridge.bridge_origin_relative_location,
-			)?)
-			.map_err(|_| Error::<T, I>::FailedToSuspendInboundChannel)?;
-
-			// update bridge metadata (we know it exists, because it has been read at the beginning
-			// of this method)
-			Bridges::<T, I>::mutate_extant(lane_id, |bridge| {
-				bridge.state = BridgeState::Misbehaving;
-				bridge.reserve = updated_reserve;
-			});
-
-			// update outbound lane state. Under normal circumstances, following calls shall never
-			// fail. We don't close the inbound lane - if we do, the bridged side will be unable to
-			// unblock itself.
-			//
-			// No messages are dropped because of the closed lane, because the inbound channel has
-			// been closed (`suspend_inbound_channel` call above).
-			LanesManagerOf::<T, I>::new()
-				.active_outbound_lane(lane_id)
-				.map_err(Error::<T, I>::LanesManager)?
-				.set_state(LaneState::Closed);
-
-			Ok(())
 		}
 
 		/// Convert versioned XCM struct into latest known XCM version.
@@ -707,13 +439,6 @@ pub mod pallet {
 			/// Number of pruned messages during the close call.
 			pruned_messages: MessageNonce,
 		},
-		/// Bridge is misbehaving.
-		BridgeMisbehaving {
-			/// Bridge and its lane identifier.
-			lane_id: LaneId,
-			/// Bridge misbehavior type.
-			misbehavior: BridgeMisbehavior,
-		},
 	}
 
 	#[pallet::error]
@@ -728,24 +453,12 @@ pub mod pallet {
 		TooManyBridgesForLocalOrigin,
 		/// Trying to close already closed bridge.
 		BridgeAlreadyClosed,
-		/// Cannot close misbehaving bridge. The bridge owner should fix the misbehavior first.
-		CannotCloseMisbehavingBridge,
 		/// Lanes manager error.
 		LanesManager(LanesManagerError),
 		/// Trying to access unknown bridge.
 		UnknownBridge,
 		/// The bridge origin can't pay the required amount for opening the bridge.
 		FailedToReserveBridgeReserve,
-		/// Invalid misbehavior report has been submitted.
-		InvalidMisbehaviorReport,
-		/// The given bridge is already in the misbehaving state.
-		AlreadyMisbehaving,
-		/// Failed to suspend the inbound channel with the parent/sibling bridge origin.
-		FailedToSuspendInboundChannel,
-		/// There are no misbehaving bridges to be resumed.
-		NoMisbehavingBridges,
-		/// Failed to resume the inbound channel with the parent/sibling bridge origin.
-		FailedToResumeInboundChannel,
 		/// The version of XCM location argument is unsupported.
 		UnsupportedXcmVersion,
 	}
@@ -758,7 +471,6 @@ mod tests {
 
 	use frame_support::{assert_noop, assert_ok, traits::fungible::Mutate, BoundedVec};
 	use frame_system::{EventRecord, Phase};
-	use sp_runtime::{DispatchError, TokenError};
 
 	fn fund_origin_sovereign_account(locations: &BridgeLocations, balance: Balance) -> AccountId {
 		let bridge_owner_account =
@@ -816,48 +528,6 @@ mod tests {
 			.unwrap()
 			.send_message(vec![42])
 			.unwrap();
-	}
-
-	fn ensure_misbehavior_state(
-		reporter: AccountId,
-		locations: BridgeLocations,
-		free_balance: Balance,
-		reserved_balance: Balance,
-		total_reward: Balance,
-	) {
-		// check that the bridge and its lanes are in the Closed state
-		let lanes_manager = LanesManagerOf::<TestRuntime, ()>::new();
-		assert_eq!(
-			Bridges::<TestRuntime, ()>::get(locations.lane_id).map(|b| b.state),
-			Some(BridgeState::Misbehaving)
-		);
-		assert_eq!(
-			lanes_manager.any_state_inbound_lane(locations.lane_id).unwrap().state(),
-			LaneState::Opened
-		);
-		assert_eq!(
-			lanes_manager.any_state_outbound_lane(locations.lane_id).unwrap().state(),
-			LaneState::Closed
-		);
-
-		// check that reporter balance is increased, bridge owner balance is decreased and
-		// we have saved this fact in the bridge meta
-		let bridge = Bridges::<TestRuntime, ()>::get(locations.lane_id).unwrap();
-		assert_eq!(Balances::free_balance(&bridge.bridge_owner_account), free_balance);
-		assert_eq!(
-			Balances::reserved_balance(&bridge.bridge_owner_account),
-			reserved_balance - Penalty::get()
-		);
-		assert_eq!(Balances::free_balance(&reporter), ExistentialDeposit::get() + total_reward);
-		assert_eq!(Balances::reserved_balance(&reporter), 0);
-		assert_eq!(
-			Bridges::<TestRuntime, ()>::get(locations.lane_id).map(|b| b.reserve),
-			Some(BridgeReserve::get() - Penalty::get())
-		);
-
-		assert!(TestLocalXcmChannelManager::is_inbound_channel_suspended(
-			locations.bridge_origin_relative_location
-		));
 	}
 
 	#[test]
@@ -1173,27 +843,6 @@ mod tests {
 	}
 
 	#[test]
-	fn close_bridge_fails_if_bridge_is_misbehaving() {
-		run_test(|| {
-			let origin = AllowedOpenBridgeOrigin::parent_relay_chain_origin();
-			let (_, locations) = mock_open_bridge_from(origin.clone());
-
-			Bridges::<TestRuntime, ()>::mutate_extant(locations.lane_id, |bridge| {
-				bridge.state = BridgeState::Misbehaving;
-			});
-
-			assert_noop!(
-				XcmOverBridge::close_bridge(
-					origin,
-					Box::new(bridged_asset_hub_location().into()),
-					0,
-				),
-				Error::<TestRuntime, ()>::CannotCloseMisbehavingBridge,
-			);
-		})
-	}
-
-	#[test]
 	fn close_bridge_fails_if_origin_is_not_allowed() {
 		run_test(|| {
 			assert_noop!(
@@ -1425,459 +1074,5 @@ mod tests {
 				}),
 			);
 		});
-	}
-
-	#[test]
-	fn report_misbehavior_fails_if_origin_is_not_signed() {
-		run_test(|| {
-			assert_noop!(
-				XcmOverBridge::report_misbehavior(
-					RuntimeOrigin::root(),
-					LaneId::new(1, 2),
-					BridgeMisbehavior::TooManyQueuedOutboundMessages,
-				),
-				sp_runtime::DispatchError::BadOrigin,
-			);
-		})
-	}
-
-	#[test]
-	fn report_misbehavior_fails_for_unknown_bridge() {
-		run_test(|| {
-			let origin = AllowedOpenBridgeOrigin::parent_relay_chain_origin();
-			let (_, locations) = mock_open_bridge_from(origin);
-
-			// report valid misbehavior fails, because the bridge is not registered
-			for _ in 0..=TestBridgeLimits::get().max_queued_outbound_messages {
-				enqueue_message(locations.lane_id);
-			}
-
-			Bridges::<TestRuntime, ()>::remove(locations.lane_id);
-			assert_noop!(
-				XcmOverBridge::report_misbehavior(
-					RuntimeOrigin::signed([128u8; 32].into()),
-					locations.lane_id,
-					BridgeMisbehavior::TooManyQueuedOutboundMessages,
-				),
-				Error::<TestRuntime, ()>::UnknownBridge,
-			);
-		});
-	}
-
-	#[test]
-	fn report_misbehavior_fails_for_misbehaving_bridge() {
-		run_test(|| {
-			let origin = AllowedOpenBridgeOrigin::parent_relay_chain_origin();
-			let (_, locations) = mock_open_bridge_from(origin);
-
-			// report valid misbehavior fails, because the bridge is not registered
-			for _ in 0..=TestBridgeLimits::get().max_queued_outbound_messages {
-				enqueue_message(locations.lane_id);
-			}
-
-			Bridges::<TestRuntime, ()>::mutate_extant(locations.lane_id, |bridge| {
-				bridge.state = BridgeState::Misbehaving;
-			});
-			assert_noop!(
-				XcmOverBridge::report_misbehavior(
-					RuntimeOrigin::signed([128u8; 32].into()),
-					locations.lane_id,
-					BridgeMisbehavior::TooManyQueuedOutboundMessages,
-				),
-				Error::<TestRuntime, ()>::AlreadyMisbehaving,
-			);
-		});
-	}
-
-	#[test]
-	fn report_misbehavior_allowed_for_closed_bridges() {
-		run_test(|| {
-			let origin = AllowedOpenBridgeOrigin::parent_relay_chain_origin();
-			let (_, locations) = mock_open_bridge_from(origin);
-
-			// report valid misbehavior fails, because the bridge is not registered
-			for _ in 0..=TestBridgeLimits::get().max_queued_outbound_messages {
-				enqueue_message(locations.lane_id);
-			}
-
-			Bridges::<TestRuntime, ()>::mutate_extant(locations.lane_id, |bridge| {
-				bridge.state = BridgeState::Closed;
-			});
-			assert_ok!(XcmOverBridge::report_misbehavior(
-				RuntimeOrigin::signed([128u8; 32].into()),
-				locations.lane_id,
-				BridgeMisbehavior::TooManyQueuedOutboundMessages,
-			),);
-		});
-	}
-
-	#[test]
-	fn report_misbehavior_fails_for_unknown_outbound_lane() {
-		run_test(|| {
-			let origin = AllowedOpenBridgeOrigin::parent_relay_chain_origin();
-			let (_, locations) = mock_open_bridge_from(origin);
-
-			// report valid misbehavior fails, because the outbound lane is not registered
-			for _ in 0..=TestBridgeLimits::get().max_queued_outbound_messages {
-				enqueue_message(locations.lane_id);
-			}
-
-			LanesManagerOf::<TestRuntime, ()>::new()
-				.active_outbound_lane(locations.lane_id)
-				.unwrap()
-				.purge();
-			assert_noop!(
-				XcmOverBridge::report_misbehavior(
-					RuntimeOrigin::signed([128u8; 32].into()),
-					locations.lane_id,
-					BridgeMisbehavior::TooManyQueuedOutboundMessages,
-				),
-				Error::<TestRuntime, ()>::LanesManager(LanesManagerError::UnknownOutboundLane),
-			);
-		});
-	}
-
-	#[test]
-	fn report_misbehavior_fails_for_closed_outbound_lane() {
-		run_test(|| {
-			let origin = AllowedOpenBridgeOrigin::parent_relay_chain_origin();
-			let (_, locations) = mock_open_bridge_from(origin);
-
-			// report valid misbehavior fails, because the outbound lane is closed
-			for _ in 0..=TestBridgeLimits::get().max_queued_outbound_messages {
-				enqueue_message(locations.lane_id);
-			}
-
-			LanesManagerOf::<TestRuntime, ()>::new()
-				.active_outbound_lane(locations.lane_id)
-				.unwrap()
-				.set_state(LaneState::Closed);
-			assert_noop!(
-				XcmOverBridge::report_misbehavior(
-					RuntimeOrigin::signed([128u8; 32].into()),
-					locations.lane_id,
-					BridgeMisbehavior::TooManyQueuedOutboundMessages,
-				),
-				Error::<TestRuntime, ()>::LanesManager(LanesManagerError::ClosedOutboundLane),
-			);
-		});
-	}
-
-	#[test]
-	fn report_too_many_queued_outbound_messages_fails() {
-		run_test(|| {
-			let origin = AllowedOpenBridgeOrigin::parent_relay_chain_origin();
-			let (_, locations) = mock_open_bridge_from(origin);
-
-			for _ in 0..TestBridgeLimits::get().max_queued_outbound_messages {
-				enqueue_message(locations.lane_id);
-				assert_noop!(
-					XcmOverBridge::report_misbehavior(
-						RuntimeOrigin::signed([128u8; 32].into()),
-						locations.lane_id,
-						BridgeMisbehavior::TooManyQueuedOutboundMessages,
-					),
-					Error::<TestRuntime, ()>::InvalidMisbehaviorReport,
-				);
-			}
-		})
-	}
-
-	#[test]
-	fn report_too_many_queued_outbound_messages_works() {
-		run_test(|| {
-			let origin = AllowedOpenBridgeOrigin::parent_relay_chain_origin();
-			let (bridge, locations) = mock_open_bridge_from(origin);
-			System::set_block_number(1);
-
-			// remember owner and reporter balances
-			let reporter: AccountId = [128u8; 32].into();
-			let free_balance = Balances::free_balance(&bridge.bridge_owner_account);
-			let reserved_balance = Balances::reserved_balance(&bridge.bridge_owner_account);
-			Balances::mint_into(&reporter, ExistentialDeposit::get()).unwrap();
-
-			// enqueue enough messages to get penalized
-			for _ in 0..=TestBridgeLimits::get().max_queued_outbound_messages {
-				enqueue_message(locations.lane_id);
-			}
-
-			// report misbehavior
-			assert_ok!(XcmOverBridge::report_misbehavior(
-				RuntimeOrigin::signed(reporter.clone()),
-				locations.lane_id,
-				BridgeMisbehavior::TooManyQueuedOutboundMessages,
-			),);
-
-			// ensure that the bridge is in the proper state
-			ensure_misbehavior_state(
-				reporter,
-				locations.clone(),
-				free_balance,
-				reserved_balance,
-				Penalty::get(),
-			);
-
-			// ensure that the proper event is deposited
-			assert_eq!(
-				System::events().last(),
-				Some(&EventRecord {
-					phase: Phase::Initialization,
-					event: RuntimeEvent::XcmOverBridge(Event::BridgeMisbehaving {
-						lane_id: locations.lane_id,
-						misbehavior: BridgeMisbehavior::TooManyQueuedOutboundMessages,
-					}),
-					topics: vec![],
-				}),
-			);
-		})
-	}
-
-	#[test]
-	fn resume_misbehaving_bridges_fails_if_origin_is_not_signed() {
-		run_test(|| {
-			assert_noop!(
-				XcmOverBridge::resume_misbehaving_bridges(
-					RuntimeOrigin::root(),
-					Box::new(parent_relay_chain_universal_location().into()),
-				),
-				sp_runtime::DispatchError::BadOrigin,
-			);
-		})
-	}
-
-	#[test]
-	fn resume_misbehaving_bridges_fails_if_bridge_is_unknown() {
-		run_test(|| {
-			BridgesByLocalOrigin::<TestRuntime, ()>::insert(
-				VersionedInteriorMultiLocation::from(parent_relay_chain_universal_location()),
-				BoundedVec::try_from(vec![LaneId::new(1, 2)]).unwrap(),
-			);
-
-			assert_noop!(
-				XcmOverBridge::resume_misbehaving_bridges(
-					RuntimeOrigin::signed([42u8; 32].into()),
-					Box::new(parent_relay_chain_universal_location().into()),
-				),
-				Error::<TestRuntime, ()>::UnknownBridge,
-			);
-		})
-	}
-
-	#[test]
-	fn resume_misbehaving_bridges_fails_if_outbound_lane_is_unknown() {
-		run_test(|| {
-			let (_, locations) =
-				mock_open_bridge_from(AllowedOpenBridgeOrigin::parent_relay_chain_origin());
-			Bridges::<TestRuntime, ()>::mutate_extant(locations.lane_id, |bridge| {
-				bridge.state = BridgeState::Misbehaving;
-			});
-
-			let lanes_manager = LanesManagerOf::<TestRuntime, ()>::new();
-			lanes_manager.active_outbound_lane(locations.lane_id).unwrap().purge();
-
-			assert_noop!(
-				XcmOverBridge::resume_misbehaving_bridges(
-					RuntimeOrigin::signed([42u8; 32].into()),
-					Box::new(parent_relay_chain_universal_location().into()),
-				),
-				Error::<TestRuntime, ()>::LanesManager(LanesManagerError::UnknownOutboundLane),
-			);
-		})
-	}
-
-	#[test]
-	fn resume_misbehaving_bridges_fails_if_there_are_no_misbehaving_bridges() {
-		run_test(|| {
-			let (_, _) =
-				mock_open_bridge_from(AllowedOpenBridgeOrigin::parent_relay_chain_origin());
-			assert_noop!(
-				XcmOverBridge::resume_misbehaving_bridges(
-					RuntimeOrigin::signed([42u8; 32].into()),
-					Box::new(parent_relay_chain_universal_location().into()),
-				),
-				Error::<TestRuntime, ()>::NoMisbehavingBridges,
-			);
-		})
-	}
-
-	#[test]
-	fn resume_misbehaving_bridges_fails_if_reporter_fails_to_replenish_owner_account() {
-		run_test(|| {
-			let (_, locations) =
-				mock_open_bridge_from(AllowedOpenBridgeOrigin::parent_relay_chain_origin());
-			Bridges::<TestRuntime, ()>::mutate_extant(locations.lane_id, |bridge| {
-				bridge.state = BridgeState::Misbehaving;
-			});
-
-			assert_noop!(
-				XcmOverBridge::resume_misbehaving_bridges(
-					RuntimeOrigin::signed([42u8; 32].into()),
-					Box::new(parent_relay_chain_universal_location().into()),
-				),
-				DispatchError::Token(TokenError::FundsUnavailable),
-			);
-		})
-	}
-
-	#[test]
-	fn resume_misbehaving_bridges_fails_if_it_fails_to_reopen_local_channel_with_owner() {
-		// no way to actually test that, but following (successful) tests show that funds
-		// are actually reserved on the bridge owner account
-	}
-
-	#[test]
-	fn resume_misbehaving_bridges_works_with_single_misbehaving_bridge() {
-		run_test(|| {
-			let origin = AllowedOpenBridgeOrigin::parent_relay_chain_origin();
-			let (_, locations) =
-				mock_open_bridge_from_with(origin.clone(), bridged_parachain_location());
-			let (misbehaving_bridge, misbehaving_locations) = mock_open_bridge_from(origin);
-			Bridges::<TestRuntime, ()>::mutate_extant(misbehaving_locations.lane_id, |bridge| {
-				bridge.state = BridgeState::Misbehaving;
-			});
-			let lanes_manager = LanesManagerOf::<TestRuntime, ()>::new();
-			lanes_manager
-				.active_outbound_lane(misbehaving_locations.lane_id)
-				.unwrap()
-				.set_state(LaneState::Closed);
-
-			let associated_owner_account: AccountId = [42u8; 32].into();
-			Balances::mint_into(
-				&associated_owner_account,
-				ExistentialDeposit::get() + Penalty::get(),
-			)
-			.unwrap();
-
-			let pre_free_funds_on_owner =
-				Balances::free_balance(&misbehaving_bridge.bridge_owner_account);
-			let pre_reserved_funds_on_owner =
-				Balances::reserved_balance(&misbehaving_bridge.bridge_owner_account);
-			let pre_free_funds_on_associated = Balances::free_balance(&associated_owner_account);
-			let pre_reserved_funds_on_associated =
-				Balances::reserved_balance(&associated_owner_account);
-
-			assert_ok!(XcmOverBridge::resume_misbehaving_bridges(
-				RuntimeOrigin::signed(associated_owner_account.clone()),
-				Box::new(parent_relay_chain_universal_location().into()),
-			),);
-
-			// ensure that the bridge and accounts are in the proper state
-			assert_eq!(
-				Bridges::<TestRuntime, ()>::get(locations.lane_id).map(|b| b.state),
-				Some(BridgeState::Opened)
-			);
-			assert_eq!(
-				lanes_manager.any_state_outbound_lane(locations.lane_id).unwrap().state(),
-				LaneState::Opened
-			);
-			assert_eq!(
-				Bridges::<TestRuntime, ()>::get(misbehaving_locations.lane_id).map(|b| b.state),
-				Some(BridgeState::Opened)
-			);
-			assert_eq!(
-				lanes_manager
-					.any_state_outbound_lane(misbehaving_locations.lane_id)
-					.unwrap()
-					.state(),
-				LaneState::Opened
-			);
-			assert_eq!(
-				Balances::free_balance(&misbehaving_bridge.bridge_owner_account),
-				pre_free_funds_on_owner
-			);
-			assert_eq!(
-				Balances::reserved_balance(&misbehaving_bridge.bridge_owner_account),
-				pre_reserved_funds_on_owner + Penalty::get()
-			);
-			assert_eq!(
-				Balances::free_balance(&associated_owner_account),
-				pre_free_funds_on_associated - Penalty::get()
-			);
-			assert_eq!(
-				Balances::reserved_balance(&associated_owner_account),
-				pre_reserved_funds_on_associated
-			);
-		})
-	}
-
-	#[test]
-	fn resume_misbehaving_bridges_works_with_multiple_misbehaving_bridges() {
-		run_test(|| {
-			let origin = AllowedOpenBridgeOrigin::parent_relay_chain_origin();
-			let (bridge1, locations1) =
-				mock_open_bridge_from_with(origin.clone(), bridged_parachain_location());
-			let (bridge2, locations2) = mock_open_bridge_from(origin);
-			assert_eq!(bridge1.bridge_owner_account, bridge2.bridge_owner_account);
-			assert_ne!(locations1.lane_id, locations2.lane_id);
-
-			Bridges::<TestRuntime, ()>::mutate_extant(locations1.lane_id, |bridge| {
-				bridge.state = BridgeState::Misbehaving;
-			});
-			Bridges::<TestRuntime, ()>::mutate_extant(locations2.lane_id, |bridge| {
-				bridge.state = BridgeState::Misbehaving;
-			});
-			let lanes_manager = LanesManagerOf::<TestRuntime, ()>::new();
-			lanes_manager
-				.active_outbound_lane(locations1.lane_id)
-				.unwrap()
-				.set_state(LaneState::Closed);
-			lanes_manager
-				.active_outbound_lane(locations2.lane_id)
-				.unwrap()
-				.set_state(LaneState::Closed);
-
-			let associated_owner_account: AccountId = [42u8; 32].into();
-			Balances::mint_into(
-				&associated_owner_account,
-				ExistentialDeposit::get() + 2 * Penalty::get(),
-			)
-			.unwrap();
-
-			let pre_free_funds_on_owner = Balances::free_balance(&bridge1.bridge_owner_account);
-			let pre_reserved_funds_on_owner =
-				Balances::reserved_balance(&bridge1.bridge_owner_account);
-			let pre_free_funds_on_associated = Balances::free_balance(&associated_owner_account);
-			let pre_reserved_funds_on_associated =
-				Balances::reserved_balance(&associated_owner_account);
-
-			assert_ok!(XcmOverBridge::resume_misbehaving_bridges(
-				RuntimeOrigin::signed(associated_owner_account.clone()),
-				Box::new(parent_relay_chain_universal_location().into()),
-			),);
-
-			// ensure that the bridge and accounts are in the proper state
-			assert_eq!(
-				Bridges::<TestRuntime, ()>::get(locations1.lane_id).map(|b| b.state),
-				Some(BridgeState::Opened)
-			);
-			assert_eq!(
-				lanes_manager.any_state_outbound_lane(locations1.lane_id).unwrap().state(),
-				LaneState::Opened
-			);
-			assert_eq!(
-				Bridges::<TestRuntime, ()>::get(locations2.lane_id).map(|b| b.state),
-				Some(BridgeState::Opened)
-			);
-			assert_eq!(
-				lanes_manager.any_state_outbound_lane(locations2.lane_id).unwrap().state(),
-				LaneState::Opened
-			);
-			assert_eq!(
-				Balances::free_balance(&bridge1.bridge_owner_account),
-				pre_free_funds_on_owner
-			);
-			assert_eq!(
-				Balances::reserved_balance(&bridge1.bridge_owner_account),
-				pre_reserved_funds_on_owner + 2 * Penalty::get()
-			);
-			assert_eq!(
-				Balances::free_balance(&associated_owner_account),
-				pre_free_funds_on_associated - 2 * Penalty::get()
-			);
-			assert_eq!(
-				Balances::reserved_balance(&associated_owner_account),
-				pre_reserved_funds_on_associated
-			);
-		})
 	}
 }
