@@ -178,6 +178,9 @@ where
 				// XCM queue
 				let is_overloaded = artifacts.enqueued_messages > L::get();
 				if is_overloaded {
+					// TODO: save the fact that one of `sending_chain_location` bridges has too many
+					// enqueued messages - it'll be checked by the `LocalInboundXcmChannelSuspender`
+
 					let sending_chain_location = H::sending_chain_location();
 					let suspend_result = C::suspend_inbound_channel(sending_chain_location);
 					match suspend_result {
@@ -207,6 +210,26 @@ where
 			})
 	}
 }
+
+// TODO: it must be a part of `pallet-xcm-bridge-hub`
+pub struct LocalInboundXcmChannelSuspender<Origin, Inner, >(PhantomData<(Origin, Inner)>);
+
+impl<Origin, Inner> QueuePausedQuery<Origin> for LocalInboundXcmChannelSuspender where
+	Origin: Into<MultiLocation>,
+	Inner: QueuePausedQuery<Origin>,
+{
+	fn is_paused(origin: &Origin) -> bool {
+		// give priority to inner status
+		if Inner::is_paused(origin) {
+			return true
+		}
+
+		// TODO: if at least one bridge, owner by the `origin` has too many messages, return true
+		false
+	}
+}
+
+
 
 #[cfg(test)]
 mod tests {
