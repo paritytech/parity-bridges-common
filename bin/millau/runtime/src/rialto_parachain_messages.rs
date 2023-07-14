@@ -114,7 +114,7 @@ impl messages::BridgedChainWithMessages for RialtoParachain {}
 
 /// Export XCM messages to be relayed to Rialto.
 pub type ToRialtoParachainBlobExporter = HaulBlobExporter<
-	XcmBlobHaulerAdapter<ToRialtoParachainXcmBlobHauler>,
+	XcmBlobHaulerAdapter<ToRialtoParachainXcmBlobHauler, (), ConstU64<{ u64::MAX }>>,
 	crate::xcm_config::RialtoParachainNetwork,
 	(),
 >;
@@ -130,6 +130,10 @@ impl XcmBlobHauler for ToRialtoParachainXcmBlobHauler {
 	fn message_sender_origin() -> RuntimeOrigin {
 		pallet_xcm::Origin::from(MultiLocation::new(1, crate::xcm_config::UniversalLocation::get()))
 			.into()
+	}
+
+	fn sending_chain_location() -> MultiLocation {
+		Here.into()
 	}
 
 	fn xcm_lane() -> LaneId {

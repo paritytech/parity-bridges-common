@@ -113,7 +113,7 @@ impl messages::BridgedChainWithMessages for Millau {}
 
 /// Export XCM messages to be relayed to Millau.
 pub type ToMillauBlobExporter = HaulBlobExporter<
-	XcmBlobHaulerAdapter<ToMillauXcmBlobHauler>,
+	XcmBlobHaulerAdapter<ToMillauXcmBlobHauler, (), ConstU64<{ u64::MAX }>>,
 	crate::xcm_config::MillauNetwork,
 	(),
 >;
@@ -128,6 +128,10 @@ impl XcmBlobHauler for ToMillauXcmBlobHauler {
 	fn message_sender_origin() -> RuntimeOrigin {
 		pallet_xcm::Origin::from(MultiLocation::new(1, crate::xcm_config::UniversalLocation::get()))
 			.into()
+	}
+
+	fn sending_chain_location() -> MultiLocation {
+		Here.into()
 	}
 
 	fn xcm_lane() -> LaneId {
