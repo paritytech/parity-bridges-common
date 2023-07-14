@@ -211,8 +211,10 @@ where
 	}
 }
 
+// TODO: use following structures in the `pallet-message-queue` configuration
+
 // TODO: it must be a part of `pallet-xcm-bridge-hub`
-pub struct LocalInboundXcmChannelSuspender<Origin, Inner, >(PhantomData<(Origin, Inner)>);
+pub struct LocalInboundXcmChannelSuspender<Origin, Inner>(PhantomData<(Origin, Inner)>);
 
 impl<Origin, Inner> QueuePausedQuery<Origin> for LocalInboundXcmChannelSuspender where
 	Origin: Into<MultiLocation>,
@@ -229,7 +231,26 @@ impl<Origin, Inner> QueuePausedQuery<Origin> for LocalInboundXcmChannelSuspender
 	}
 }
 
+pub struct BridgeMessageProcessor<Origin, Inner>(PhantomData<(Origin, Inner)>);
 
+impl<Origin, Inner> ProcessMessage for BridgeMessageProcessor<Origin, Inner> where
+	Origin: Into<MultiLocation>,
+	Inner: ProcessMessage<Origin = Origin>,
+{
+	type Origin = Origin;
+
+	fn process_message(
+		message: &[u8],
+		origin: Self::Origin,
+		meter: &mut WeightMeter,
+		id: &mut [u8; 32],
+	) -> Result<bool, ProcessMessageError> {
+		// TODO: if at least one bridge, owner by the `origin` has too many messages, return Err(ProcessMessageError::Yield)
+
+		// else pass message to backed processor
+		Inner::process_message(message, origin, meter, id)
+	}
+}
 
 #[cfg(test)]
 mod tests {
