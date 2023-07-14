@@ -22,8 +22,9 @@ use bp_messages::LaneId;
 use bridge_runtime_common::messages_xcm_extension::{
 	LaneIdFromChainId, XcmBlobHauler, XcmBlobHaulerAdapter,
 };
-use frame_support::{parameter_types, weights::Weight};
+use frame_support::{parameter_types, traits::ConstU64, weights::Weight};
 use sp_core::Get;
+use xcm::prelude::*;
 use xcm_builder::HaulBlobExporter;
 
 /// Weight of 2 XCM instructions is for simple `Trap(42)` program, coming through bridge
@@ -48,7 +49,7 @@ pub type FromMillauMessageDispatch =
 
 /// Export XCM messages to be relayed to Millau.
 pub type ToMillauBlobExporter = HaulBlobExporter<
-	XcmBlobHaulerAdapter<ToMillauXcmBlobHauler>,
+	XcmBlobHaulerAdapter<ToMillauXcmBlobHauler, (), ConstU64<{ u64::MAX }>>,
 	crate::xcm_config::MillauNetwork,
 	(),
 >;
@@ -58,6 +59,10 @@ pub struct ToMillauXcmBlobHauler;
 
 impl XcmBlobHauler for ToMillauXcmBlobHauler {
 	type MessageSender = pallet_bridge_messages::Pallet<Runtime, WithMillauMessagesInstance>;
+
+	fn sending_chain_location() -> MultiLocation {
+		Here.into()
+	}
 
 	fn xcm_lane() -> LaneId {
 		LaneIdFromChainId::<Runtime, WithMillauMessagesInstance>::get()

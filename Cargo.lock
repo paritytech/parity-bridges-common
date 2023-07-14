@@ -1157,6 +1157,7 @@ dependencies = [
  "bp-relayers",
  "bp-runtime",
  "bp-test-utils",
+ "bp-xcm-bridge-hub",
  "frame-support",
  "frame-system",
  "hash-db",

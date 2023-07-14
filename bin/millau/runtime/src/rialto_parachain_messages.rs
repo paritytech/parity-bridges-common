@@ -22,9 +22,10 @@ use bp_messages::LaneId;
 use bridge_runtime_common::messages_xcm_extension::{
 	LaneIdFromChainId, XcmBlobHauler, XcmBlobHaulerAdapter,
 };
-use frame_support::{parameter_types, weights::Weight};
+use frame_support::{parameter_types, traits::ConstU64, weights::Weight};
 use pallet_bridge_relayers::WeightInfoExt as _;
 use sp_core::Get;
+use xcm::prelude::*;
 use xcm_builder::HaulBlobExporter;
 
 /// Weight of 2 XCM instructions is for simple `Trap(42)` program, coming through bridge
@@ -49,7 +50,7 @@ pub type FromRialtoParachainMessageDispatch =
 
 /// Export XCM messages to be relayed to Rialto.
 pub type ToRialtoParachainBlobExporter = HaulBlobExporter<
-	XcmBlobHaulerAdapter<ToRialtoParachainXcmBlobHauler>,
+	XcmBlobHaulerAdapter<ToRialtoParachainXcmBlobHauler, (), ConstU64<{ u64::MAX }>>,
 	crate::xcm_config::RialtoParachainNetwork,
 	(),
 >;
@@ -60,6 +61,10 @@ pub struct ToRialtoParachainXcmBlobHauler;
 impl XcmBlobHauler for ToRialtoParachainXcmBlobHauler {
 	type MessageSender =
 		pallet_bridge_messages::Pallet<Runtime, WithRialtoParachainMessagesInstance>;
+
+	fn sending_chain_location() -> MultiLocation {
+		Here.into()
+	}
 
 	fn xcm_lane() -> LaneId {
 		LaneIdFromChainId::<Runtime, WithRialtoParachainMessagesInstance>::get()

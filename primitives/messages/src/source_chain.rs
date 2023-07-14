@@ -96,6 +96,8 @@ impl<AccountId> DeliveryConfirmationPayments<AccountId> for () {
 pub struct SendMessageArtifacts {
 	/// Nonce of the message.
 	pub nonce: MessageNonce,
+	/// Number of enqueued messages at the lane, after the message is sent.
+	pub enqueued_messages: MessageNonce,
 }
 
 /// Messages bridge API to be used from other pallets.
@@ -117,7 +119,7 @@ impl<Payload> MessagesBridge<Payload> for NoopMessagesBridge {
 	type Error = &'static str;
 
 	fn send_message(_lane: LaneId, _message: Payload) -> Result<SendMessageArtifacts, Self::Error> {
-		Ok(SendMessageArtifacts { nonce: 0 })
+		Ok(SendMessageArtifacts { nonce: 0, enqueued_messages: 0 })
 	}
 }
 

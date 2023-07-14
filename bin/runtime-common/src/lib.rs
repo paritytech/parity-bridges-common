@@ -17,7 +17,6 @@
 //! Common types/functions that may be used by runtimes of all bridged chains.
 
 #![cfg_attr(not(feature = "std"), no_std)]
-#![recursion_limit = "1024"]
 
 use crate::messages_call_ext::MessagesCallSubType;
 use pallet_bridge_grandpa::CallSubType as GrandpaCallSubType;

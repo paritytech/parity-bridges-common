@@ -65,7 +65,8 @@ use bp_messages::{
 	OutboundMessageDetails, UnrewardedRelayersState, VerificationError,
 };
 use bp_runtime::{
-	AccountIdOf, BasicOperatingMode, HashOf, OwnedBridgeModule, PreComputedSize, Size,
+	AccountIdOf, BasicOperatingMode, HashOf, OwnedBridgeModule, PreComputedSize, RangeInclusiveExt,
+	Size,
 };
 use codec::{Decode, Encode};
 use frame_support::{dispatch::PostDispatchInfo, ensure, fail, traits::Get, DefaultNoBound};
@@ -606,6 +607,9 @@ fn send_message<T: Config<I>, I: 'static>(
 		.send_message(encoded_payload)
 		.map_err(Error::<T, I>::MessageRejectedByPallet)?;
 
+	// return number of messages in the queue to let sender know about its state
+	let enqueued_messages = lane.queued_messages().checked_len().unwrap_or(0);
+
 	log::trace!(
 		target: LOG_TARGET,
 		"Accepted message {} to lane {:?}. Message size: {:?}",
@@ -616,7 +620,7 @@ fn send_message<T: Config<I>, I: 'static>(
 
 	Pallet::<T, I>::deposit_event(Event::MessageAccepted { lane_id, nonce });
 
-	Ok(SendMessageArtifacts { nonce })
+	Ok(SendMessageArtifacts { nonce, enqueued_messages })
 }
 
 /// Ensure that the pallet is in normal operational mode.

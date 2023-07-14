@@ -24,9 +24,10 @@
 use bp_messages::{
 	source_chain::MessagesBridge,
 	target_chain::{DispatchMessage, MessageDispatch},
-	LaneId,
+	LaneId, MessageNonce,
 };
 use bp_runtime::{messages::MessageDispatchResult, Chain};
+use bp_xcm_bridge_hub::LocalXcmChannelManager;
 use codec::{Decode, Encode};
 use frame_support::{dispatch::Weight, CloneNoBound, EqNoBound, PartialEqNoBound};
 use pallet_bridge_messages::WeightInfoExt as MessagesPalletWeights;
@@ -34,6 +35,7 @@ use scale_info::TypeInfo;
 use sp_core::Get;
 use sp_runtime::SaturatedConversion;
 use sp_std::marker::PhantomData;
+use xcm::prelude::*;
 use xcm_builder::{DispatchBlob, DispatchBlobError, HaulBlob, HaulBlobError};
 
 /// Plain "XCM" payload, which we transfer through bridge
@@ -138,25 +140,61 @@ pub trait XcmBlobHauler {
 	/// Runtime message sender adapter.
 	type MessageSender: MessagesBridge<XcmAsPlainPayload>;
 
+	/// Returns the relative XCM location of the message sending chain.
+	fn sending_chain_location() -> MultiLocation;
 	/// Return message lane (as "point-to-point link") used to deliver XCM messages.
 	fn xcm_lane() -> LaneId;
 }
 
 /// XCM bridge adapter which connects [`XcmBlobHauler`] with [`XcmBlobHauler::MessageSender`] and
 /// makes sure that XCM blob is sent to the [`pallet_bridge_messages`] queue to be relayed.
-pub struct XcmBlobHaulerAdapter<XcmBlobHauler>(sp_std::marker::PhantomData<XcmBlobHauler>);
-impl<H: XcmBlobHauler> HaulBlob for XcmBlobHaulerAdapter<H> {
+/// When the [`XcmBlobHauler::MessageSender`] is in the overloaded state, the adapter will
+/// suspend the inbound XCM channel with [`XcmBlobHauler::MessageSender::sending_chain_location`]
+/// using the [`XcmChannelManager`].
+pub struct XcmBlobHaulerAdapter<XcmBlobHauler, XcmChannelManager, OverloadedLimit>(
+	PhantomData<(XcmBlobHauler, XcmChannelManager, OverloadedLimit)>,
+);
+
+impl<H, C, L> HaulBlob for XcmBlobHaulerAdapter<H, C, L>
+where
+	H: XcmBlobHauler,
+	C: LocalXcmChannelManager,
+	L: Get<MessageNonce>,
+{
 	fn haul_blob(blob: sp_std::prelude::Vec<u8>) -> Result<(), HaulBlobError> {
 		let lane = H::xcm_lane();
 		H::MessageSender::send_message(lane, blob)
-			.map(|artifacts| (lane, artifacts.nonce).using_encoded(sp_io::hashing::blake2_256))
-			.map(|result| {
+			.map(|artifacts| {
+				let msg_hash = (lane, artifacts.nonce).using_encoded(sp_io::hashing::blake2_256);
 				log::info!(
 					target: crate::LOG_TARGET_BRIDGE_DISPATCH,
 					"haul_blob result - ok: {:?} on lane: {:?}",
-					result,
+					msg_hash,
 					lane
-				)
+				);
+
+				// suspend the inbound XCM channel with the sender to avoid enqueueing more messages
+				// at the outbound bridge queue AND turn on internal backpressure mechanism of the
+				// XCM queue
+				let is_overloaded = artifacts.enqueued_messages > L::get();
+				if is_overloaded {
+					let sending_chain_location = H::sending_chain_location();
+					let suspend_result = C::suspend_inbound_channel(sending_chain_location);
+					match suspend_result {
+						Ok(_) => log::info!(
+							target: crate::LOG_TARGET_BRIDGE_DISPATCH,
+							"Suspended inbound XCM channel with {:?} to avoid overloading lane {:?}",
+							sending_chain_location,
+							lane,
+						),
+						Err(_) => log::info!(
+							target: crate::LOG_TARGET_BRIDGE_DISPATCH,
+							"Failed to suspend inbound XCM channel with {:?} to avoid overloading lane {:?}",
+							sending_chain_location,
+							lane,
+						),
+					}
+				}
 			})
 			.map_err(|error| {
 				log::error!(
@@ -167,5 +205,82 @@ impl<H: XcmBlobHauler> HaulBlob for XcmBlobHaulerAdapter<H> {
 				);
 				HaulBlobError::Transport("MessageSenderError")
 			})
+	}
+}
+
+#[cfg(test)]
+mod tests {
+	use super::*;
+	use crate::mock::run_test;
+
+	use bp_messages::source_chain::SendMessageArtifacts;
+	use frame_support::traits::{ConstU64, Get};
+
+	struct TestMessageSender;
+
+	impl MessagesBridge<Vec<u8>> for TestMessageSender {
+		type Error = ();
+
+		fn send_message(
+			_lane: LaneId,
+			message: Vec<u8>,
+		) -> Result<SendMessageArtifacts, Self::Error> {
+			let nonce = message[0] as _;
+			Ok(SendMessageArtifacts { nonce, enqueued_messages: nonce })
+		}
+	}
+
+	struct TestBlobHauler;
+
+	impl XcmBlobHauler for TestBlobHauler {
+		type MessageSender = TestMessageSender;
+
+		fn sending_chain_location() -> MultiLocation {
+			Here.into()
+		}
+
+		fn xcm_lane() -> LaneId {
+			LaneId::new(0, 0)
+		}
+	}
+
+	struct TestXcmChannelManager;
+
+	impl TestXcmChannelManager {
+		fn is_suspended(owner: MultiLocation) -> bool {
+			frame_support::storage::unhashed::take(&owner.encode()) == Some(42)
+		}
+	}
+
+	impl LocalXcmChannelManager for TestXcmChannelManager {
+		fn suspend_inbound_channel(owner: MultiLocation) -> Result<(), ()> {
+			frame_support::storage::unhashed::put(&owner.encode(), &42);
+			Ok(())
+		}
+
+		fn resume_inbound_channel(_owner: MultiLocation) -> Result<(), ()> {
+			unreachable!("")
+		}
+	}
+
+	type OverloadedLimit = ConstU64<8>;
+	type TestAdapter = XcmBlobHaulerAdapter<TestBlobHauler, TestXcmChannelManager, OverloadedLimit>;
+
+	#[test]
+	fn blob_haulder_adapter_suspends_inbound_xcm_channel_when_bridge_is_overloaded() {
+		run_test(|| {
+			// first `OverloadedLimit` messages => no suspension
+			for nonce in 1..=OverloadedLimit::get() {
+				TestAdapter::haul_blob(vec![nonce as u8]).unwrap();
+				assert!(!TestXcmChannelManager::is_suspended(
+					TestBlobHauler::sending_chain_location()
+				));
+			}
+
+			// next message => channel is suspended
+			let overloaded_nonce = <OverloadedLimit as Get<u64>>::get() + 1;
+			TestAdapter::haul_blob(vec![overloaded_nonce as u8]).unwrap();
+			assert!(TestXcmChannelManager::is_suspended(TestBlobHauler::sending_chain_location()));
+		});
 	}
 }
