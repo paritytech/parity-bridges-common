@@ -1148,6 +1148,7 @@ dependencies = [
  "frame-support",
  "parity-scale-codec",
  "scale-info",
+ "serde",
  "sp-std 8.0.0 (git+https://github.com/paritytech/substrate?branch=master)",
  "xcm",
 ]

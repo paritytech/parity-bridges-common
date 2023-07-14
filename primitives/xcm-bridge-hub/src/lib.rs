@@ -18,13 +18,14 @@
 
 #![cfg_attr(not(feature = "std"), no_std)]
 
-use bp_messages::LaneId;
+use bp_messages::{LaneId, MessageNonce};
 use bp_runtime::{AccountIdOf, BalanceOf, Chain};
 use codec::{Decode, Encode, MaxEncodedLen};
 use frame_support::{
 	ensure, CloneNoBound, PalletError, PartialEqNoBound, RuntimeDebug, RuntimeDebugNoBound,
 };
 use scale_info::TypeInfo;
+use serde::{Deserialize, Serialize};
 use sp_std::{boxed::Box, convert::TryInto};
 use xcm::{latest::prelude::*, VersionedMultiLocation};
 
@@ -46,7 +47,8 @@ pub trait LocalXcmChannelManager {
 	/// `owner` chain (in any form), we expect it to stop sending messages to us and queue
 	/// messages at that `owner` chain instead.
 	///
-	/// We expect that:
+	/// This method will be called if we detect a misbehavior in one of bridges, owned by
+	/// the `owner`. We expect that:
 	///
 	/// - no more incoming XCM messages from the `owner` will be processed until further
 	///  `resume_inbound_channel` call;
@@ -60,8 +62,9 @@ pub trait LocalXcmChannelManager {
 	/// Start handling incoming messages from from given bridge `owner` (parent/sibling chain)
 	/// again.
 	///
-	/// The channel is assumed to be suspended by the previous `suspend_inbound_channel` call,
-	/// however we don't check it anywhere.
+	/// This method is called when the `owner` tries to resume bridge operations after
+	/// resolving "misbehavior" issues. The channel is assumed to be suspended by the previous
+	/// `suspend_inbound_channel` call, however we don't check it anywhere.
 	///
 	/// This method shall not fail if the channel is already resumed.
 	fn resume_inbound_channel(owner: MultiLocation) -> Result<(), ()>;
@@ -89,6 +92,9 @@ impl LocalXcmChannelManager for () {
 pub enum BridgeState {
 	/// Bridge is opened. Associated lanes are also opened.
 	Opened,
+	/// The bridge is misbehaving. Associated outbound lane is closed and the inbound
+	/// channel with the bridge owner is suspended.
+	Misbehaving,
 	/// Bridge is closed. Associated lanes are also closed.
 	/// After all outbound messages will be pruned, the bridge will vanish without any traces.
 	Closed,
@@ -108,6 +114,50 @@ pub struct Bridge<ThisChain: Chain> {
 	pub bridge_owner_account: AccountIdOf<ThisChain>,
 	/// Reserved amount on the sovereign account of the sibling bridge origin.
 	pub reserve: BalanceOf<ThisChain>,
+}
+
+/// Bridge limits. Bridges that exceed those limits may be reported, fined and closed.
+#[derive(Clone, Copy, Decode, Encode, Eq, PartialEq, TypeInfo, MaxEncodedLen, RuntimeDebug)]
+pub struct BridgeLimits {
+	/// Maximal number of outbound messages that may be queued at the outbound lane at a time.
+	/// Normally a bridge maintainers must run at least one relayer that will deliver messages
+	/// to the bridged chain and confirm delivery. If there's no relayer running, messages will
+	/// keep piling up, which will lead to trie growth, which we don't want.
+	///
+	/// This limit must be selected with care - it should account possible delays because of
+	/// runtime upgrades, spamming queues, finality lags and so on. The cost of sending
+	/// the `max_queued_outbound_messages` must be enormously high guven that the proper rate
+	/// limiter is used by the sending chain. Otherwise any malicious account may force bridge
+	/// closure by spending some funds on that.
+	pub max_queued_outbound_messages: MessageNonce,
+	// TODO: https://github.com/paritytech/parity-bridges-common/issues/1760 - limit to detect
+	// relayer activity - i.e. if there are 10 queued messages, but they are not delivered for
+	// 14 days => misbehavior
+
+	// TODO: https://github.com/paritytech/parity-bridges-common/issues/1760 - too low funds on
+	// the relayers-fund account?
+
+	// TODO: https://github.com/paritytech/parity-bridges-common/issues/1760 - too many queued
+	// messages at the bridged bridge hub?
+}
+
+/// Bridge misbehavior.
+#[derive(
+	Clone,
+	Copy,
+	Decode,
+	Encode,
+	Eq,
+	PartialEq,
+	TypeInfo,
+	MaxEncodedLen,
+	RuntimeDebug,
+	Serialize,
+	Deserialize,
+)]
+pub enum BridgeMisbehavior {
+	/// The number of messages in the outbound queue is larger than the limit.
+	TooManyQueuedOutboundMessages,
 }
 
 /// Locations of bridge endpoints at both sides of the bridge.
