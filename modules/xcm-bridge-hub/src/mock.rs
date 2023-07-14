@@ -133,8 +133,6 @@ parameter_types! {
 		GlobalConsensus(RelayNetwork::get()),
 		Parachain(THIS_BRIDGE_HUB_ID),
 	);
-	pub const MaxBridgesPerLocalOrigin: u32 = 2;
-	pub const Penalty: Balance = 1_000;
 }
 
 /// Type for specifying how a `MultiLocation` can be converted into an `AccountId`. This is used
@@ -222,8 +220,6 @@ impl pallet_xcm_bridge_hub::Config for TestRuntime {
 	type UniversalLocation = UniversalLocation;
 	type BridgedNetworkId = BridgedRelayNetwork;
 	type BridgeMessagesPalletInstance = ();
-
-	type MaxBridgesPerLocalOrigin = MaxBridgesPerLocalOrigin;
 
 	type AllowedOpenBridgeOrigin = AllowedOpenBridgeOrigin;
 	type BridgeOriginAccountIdConverter = LocationToAccountId;
