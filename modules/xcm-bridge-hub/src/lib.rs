@@ -407,8 +407,6 @@ pub mod pallet {
 		InvalidBridgeOriginAccount,
 		/// The bridge is already registered in this pallet.
 		BridgeAlreadyExists,
-		/// The local origin already owns a maximal number of bridges.
-		TooManyBridgesForLocalOrigin,
 		/// Trying to close already closed bridge.
 		BridgeAlreadyClosed,
 		/// Lanes manager error.
