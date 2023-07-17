@@ -16,6 +16,7 @@
 
 //! Primitives of the xcm-bridge-hub pallet.
 
+#![warn(missing_docs)]
 #![cfg_attr(not(feature = "std"), no_std)]
 
 use bp_messages::LaneId;

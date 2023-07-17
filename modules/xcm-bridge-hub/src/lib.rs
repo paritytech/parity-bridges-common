@@ -48,6 +48,7 @@
 //! can't guarantee that, we shall not care about more complex procedures and leave it to the
 //! participating parties.
 
+#![warn(missing_docs)]
 #![cfg_attr(not(feature = "std"), no_std)]
 
 use bp_messages::{LaneId, LaneState, MessageNonce};
