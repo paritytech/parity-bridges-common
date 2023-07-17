@@ -37,19 +37,15 @@ pub type TestHeader = crate::BridgedHeader<TestRuntime, ()>;
 pub type TestNumber = crate::BridgedBlockNumber<TestRuntime, ()>;
 
 type Block = frame_system::mocking::MockBlock<TestRuntime>;
-type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<TestRuntime>;
 
 pub const MAX_BRIDGED_AUTHORITIES: u32 = 5;
 
 use crate as grandpa;
 
 construct_runtime! {
-	pub enum TestRuntime where
-		Block = Block,
-		NodeBlock = Block,
-		UncheckedExtrinsic = UncheckedExtrinsic,
+	pub enum TestRuntime
 	{
-		System: frame_system::{Pallet, Call, Config, Storage, Event<T>},
+		System: frame_system::{Pallet, Call, Config<T>, Storage, Event<T>},
 		Grandpa: grandpa::{Pallet, Call, Event<T>},
 	}
 }
@@ -62,14 +58,14 @@ parameter_types! {
 
 impl frame_system::Config for TestRuntime {
 	type RuntimeOrigin = RuntimeOrigin;
-	type Index = u64;
+	type Nonce = u64;
 	type RuntimeCall = RuntimeCall;
 	type BlockNumber = u64;
 	type Hash = H256;
 	type Hashing = BlakeTwo256;
 	type AccountId = AccountId;
 	type Lookup = IdentityLookup<Self::AccountId>;
-	type Header = Header;
+	type Block = Block;
 	type RuntimeEvent = RuntimeEvent;
 	type BlockHashCount = ConstU64<250>;
 	type Version = ();
@@ -115,7 +111,7 @@ impl Chain for TestBridgedChain {
 
 	type AccountId = AccountId;
 	type Balance = u64;
-	type Index = u64;
+	type Nonce = u64;
 	type Signature = Signature;
 
 	const STATE_VERSION: StateVersion = StateVersion::V1;

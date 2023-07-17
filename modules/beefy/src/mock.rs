@@ -63,12 +63,9 @@ type TestBlock = frame_system::mocking::MockBlock<TestRuntime>;
 type TestUncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<TestRuntime>;
 
 construct_runtime! {
-	pub enum TestRuntime where
-		Block = TestBlock,
-		NodeBlock = TestBlock,
-		UncheckedExtrinsic = TestUncheckedExtrinsic,
+	pub enum TestRuntime
 	{
-		System: frame_system::{Pallet, Call, Config, Storage, Event<T>},
+		System: frame_system::{Pallet, Call, Config<T>, Storage, Event<T>},
 		Beefy: beefy::{Pallet},
 	}
 }
@@ -81,14 +78,13 @@ parameter_types! {
 
 impl frame_system::Config for TestRuntime {
 	type RuntimeOrigin = RuntimeOrigin;
-	type Index = u64;
+	type Nonce = u64;
 	type RuntimeCall = RuntimeCall;
-	type BlockNumber = u64;
+	type Block = Block;
 	type Hash = H256;
 	type Hashing = BlakeTwo256;
 	type AccountId = TestAccountId;
 	type Lookup = IdentityLookup<Self::AccountId>;
-	type Header = Header;
 	type RuntimeEvent = ();
 	type BlockHashCount = ConstU64<250>;
 	type Version = ();
@@ -125,7 +121,7 @@ impl Chain for TestBridgedChain {
 
 	type AccountId = TestAccountId;
 	type Balance = u64;
-	type Index = u64;
+	type Nonce = u64;
 	type Signature = Signature;
 
 	const STATE_VERSION: StateVersion = StateVersion::V1;

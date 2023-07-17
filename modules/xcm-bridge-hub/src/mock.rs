@@ -68,14 +68,13 @@ parameter_types! {
 
 impl frame_system::Config for TestRuntime {
 	type RuntimeOrigin = RuntimeOrigin;
-	type Index = u64;
+	type Nonce = u64;
 	type RuntimeCall = RuntimeCall;
-	type BlockNumber = BlockNumber;
+	type Block = Block;
 	type Hash = H256;
 	type Hashing = BlakeTwo256;
 	type AccountId = AccountId;
 	type Lookup = IdentityLookup<Self::AccountId>;
-	type Header = SubstrateHeader;
 	type RuntimeEvent = RuntimeEvent;
 	type BlockHashCount = frame_support::traits::ConstU64<250>;
 	type Version = ();
@@ -239,7 +238,7 @@ impl Chain for ThisChain {
 	type Header = SubstrateHeader;
 	type AccountId = AccountId;
 	type Balance = Balance;
-	type Index = u64;
+	type Nonce = u64;
 	type Signature = sp_runtime::MultiSignature;
 	const STATE_VERSION: StateVersion = StateVersion::V1;
 
@@ -272,7 +271,7 @@ impl Chain for BridgedChain {
 	type Header = BridgedChainHeader;
 	type AccountId = AccountId;
 	type Balance = Balance;
-	type Index = u64;
+	type Nonce = u64;
 	type Signature = sp_runtime::MultiSignature;
 	const STATE_VERSION: StateVersion = StateVersion::V1;
 

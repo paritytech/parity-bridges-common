@@ -21,7 +21,7 @@ use frame_support::{
 	construct_runtime, parameter_types, traits::ConstU32, weights::Weight, StateVersion,
 };
 use sp_runtime::{
-	testing::{Header, H256},
+	testing::H256,
 	traits::{BlakeTwo256, Header as HeaderT, IdentityLookup},
 	MultiSignature, Perbill,
 };
@@ -59,7 +59,7 @@ impl Chain for Parachain1 {
 	type Header = RegularParachainHeader;
 	type AccountId = u64;
 	type Balance = u64;
-	type Index = u64;
+	type Nonce = u64;
 	type Signature = MultiSignature;
 
 	const STATE_VERSION: StateVersion = StateVersion::V1;
@@ -87,7 +87,7 @@ impl Chain for Parachain2 {
 	type Header = RegularParachainHeader;
 	type AccountId = u64;
 	type Balance = u64;
-	type Index = u64;
+	type Nonce = u64;
 	type Signature = MultiSignature;
 
 	const STATE_VERSION: StateVersion = StateVersion::V1;
@@ -115,7 +115,7 @@ impl Chain for Parachain3 {
 	type Header = RegularParachainHeader;
 	type AccountId = u64;
 	type Balance = u64;
-	type Index = u64;
+	type Nonce = u64;
 	type Signature = MultiSignature;
 
 	const STATE_VERSION: StateVersion = StateVersion::V1;
@@ -144,7 +144,7 @@ impl Chain for BigParachain {
 	type Header = BigParachainHeader;
 	type AccountId = u64;
 	type Balance = u64;
-	type Index = u64;
+	type Nonce = u64;
 	type Signature = MultiSignature;
 
 	const STATE_VERSION: StateVersion = StateVersion::V1;
@@ -162,12 +162,9 @@ impl Parachain for BigParachain {
 }
 
 construct_runtime! {
-	pub enum TestRuntime where
-		Block = Block,
-		NodeBlock = Block,
-		UncheckedExtrinsic = UncheckedExtrinsic,
+	pub enum TestRuntime
 	{
-		System: frame_system::{Pallet, Call, Config, Storage, Event<T>},
+		System: frame_system::{Pallet, Call, Config<T>, Storage, Event<T>},
 		Grandpa1: pallet_bridge_grandpa::<Instance1>::{Pallet, Event<T>},
 		Grandpa2: pallet_bridge_grandpa::<Instance2>::{Pallet, Event<T>},
 		Parachains: pallet_bridge_parachains::{Call, Pallet, Event<T>},
@@ -183,9 +180,9 @@ parameter_types! {
 
 impl frame_system::Config for TestRuntime {
 	type RuntimeOrigin = RuntimeOrigin;
-	type Index = u64;
+	type Nonce = u64;
 	type RuntimeCall = RuntimeCall;
-	type BlockNumber = TestNumber;
+	type Block = Block;
 	type Hash = H256;
 	type Hashing = RegularParachainHasher;
 	type AccountId = AccountId;
@@ -290,7 +287,7 @@ impl Chain for TestBridgedChain {
 
 	type AccountId = AccountId;
 	type Balance = u32;
-	type Index = u32;
+	type Nonce = u32;
 	type Signature = sp_runtime::testing::TestSignature;
 
 	const STATE_VERSION: StateVersion = StateVersion::V1;
@@ -325,7 +322,7 @@ impl Chain for OtherBridgedChain {
 
 	type AccountId = AccountId;
 	type Balance = u32;
-	type Index = u32;
+	type Nonce = u32;
 	type Signature = sp_runtime::testing::TestSignature;
 
 	const STATE_VERSION: StateVersion = StateVersion::V1;

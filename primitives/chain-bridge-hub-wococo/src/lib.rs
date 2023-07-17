@@ -42,7 +42,7 @@ impl Chain for BridgeHubWococo {
 
 	type AccountId = AccountId;
 	type Balance = Balance;
-	type Index = Index;
+	type Nonce = Nonce;
 	type Signature = Signature;
 
 	const STATE_VERSION: StateVersion = StateVersion::V1;

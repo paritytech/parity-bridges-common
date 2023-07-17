@@ -39,7 +39,7 @@ impl Chain for Westend {
 
 	type AccountId = AccountId;
 	type Balance = Balance;
-	type Index = Index;
+	type Nonce = Nonce;
 	type Signature = Signature;
 
 	const STATE_VERSION: StateVersion = StateVersion::V1;
@@ -78,7 +78,7 @@ impl Chain for Westmint {
 
 	type AccountId = AccountId;
 	type Balance = Balance;
-	type Index = Nonce;
+	type Nonce = Nonce;
 	type Signature = Signature;
 
 	const STATE_VERSION: StateVersion = StateVersion::V0;

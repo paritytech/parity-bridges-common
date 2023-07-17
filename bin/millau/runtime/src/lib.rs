@@ -111,8 +111,8 @@ pub type AccountIndex = u32;
 /// Balance of an account.
 pub type Balance = bp_millau::Balance;
 
-/// Index of a transaction in the chain.
-pub type Index = bp_millau::Index;
+/// Nonce of a transaction in the chain.
+pub type Nonce = bp_millau::Nonce;
 
 /// A hash of some data used by the chain.
 pub type Hash = bp_millau::Hash;
@@ -184,7 +184,7 @@ impl frame_system::Config for Runtime {
 	/// The lookup mechanism to get account ID from whatever is passed in dispatchers.
 	type Lookup = IdentityLookup<AccountId>;
 	/// The index type for storing how many extrinsics an account has signed.
-	type Index = Index;
+	type Nonce = Nonce;
 	/// The index type for blocks.
 	type BlockNumber = BlockNumber;
 	/// The type for hashing blocks and tries.
