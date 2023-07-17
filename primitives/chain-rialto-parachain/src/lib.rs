@@ -14,9 +14,10 @@
 // You should have received a copy of the GNU General Public License
 // along with Parity Bridges Common.  If not, see <http://www.gnu.org/licenses/>.
 
+//! Primitives of the Rialto parachain.
+
+#![warn(missing_docs)]
 #![cfg_attr(not(feature = "std"), no_std)]
-// RuntimeApi generated functions
-#![allow(clippy::too_many_arguments)]
 
 use bp_messages::{
 	ChainWithMessages, InboundMessageDetails, LaneId, MessageNonce, MessagePayload,
@@ -152,8 +153,10 @@ impl ChainWithMessages for RialtoParachain {
 pub use bp_bridge_hub_cumulus::SignedExtension;
 
 frame_support::parameter_types! {
+	/// Size limit of the Rialto parachain blocks.
 	pub BlockLength: limits::BlockLength =
 		limits::BlockLength::max_with_normal_ratio(5 * 1024 * 1024, NORMAL_DISPATCH_RATIO);
+	/// Weight limit of the Rialto parachain blocks.
 	pub BlockWeights: limits::BlockWeights =
 		limits::BlockWeights::with_sensible_defaults(MAXIMUM_BLOCK_WEIGHT, NORMAL_DISPATCH_RATIO);
 }

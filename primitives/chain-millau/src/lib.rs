@@ -14,9 +14,10 @@
 // You should have received a copy of the GNU General Public License
 // along with Parity Bridges Common.  If not, see <http://www.gnu.org/licenses/>.
 
+//! Primitives of the Millau chain.
+
+#![warn(missing_docs)]
 #![cfg_attr(not(feature = "std"), no_std)]
-// RuntimeApi generated functions
-#![allow(clippy::too_many_arguments)]
 
 mod millau_hash;
 
@@ -112,11 +113,16 @@ pub use time_units::*;
 pub mod time_units {
 	use super::BlockNumber;
 
+	/// Milliseconds between Millau chain blocks.
 	pub const MILLISECS_PER_BLOCK: u64 = 6000;
+	/// Slot duration in Millau chain consensus algorithms.
 	pub const SLOT_DURATION: u64 = MILLISECS_PER_BLOCK;
 
+	/// A minute, expressed in Millau chain blocks.
 	pub const MINUTES: BlockNumber = 60_000 / (MILLISECS_PER_BLOCK as BlockNumber);
+	/// A hour, expressed in Millau chain blocks.
 	pub const HOURS: BlockNumber = MINUTES * 60;
+	/// A day, expressed in Millau chain blocks.
 	pub const DAYS: BlockNumber = HOURS * 24;
 }
 
@@ -245,8 +251,10 @@ impl sp_runtime::traits::Hash for BlakeTwoAndKeccak256 {
 }
 
 frame_support::parameter_types! {
+	/// Size limit of the Millau blocks.
 	pub BlockLength: limits::BlockLength =
 		limits::BlockLength::max_with_normal_ratio(2 * 1024 * 1024, NORMAL_DISPATCH_RATIO);
+	/// Weight limit of the Millau blocks.
 	pub BlockWeights: limits::BlockWeights =
 		limits::BlockWeights::with_sensible_defaults(MAXIMUM_BLOCK_WEIGHT, NORMAL_DISPATCH_RATIO);
 }

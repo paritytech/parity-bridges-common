@@ -14,9 +14,10 @@
 // You should have received a copy of the GNU General Public License
 // along with Parity Bridges Common.  If not, see <http://www.gnu.org/licenses/>.
 
+//! Primitives of the Rialto chain.
+
+#![warn(missing_docs)]
 #![cfg_attr(not(feature = "std"), no_std)]
-// RuntimeApi generated functions
-#![allow(clippy::too_many_arguments)]
 
 use bp_header_chain::ChainWithGrandpa;
 use bp_messages::{
@@ -109,16 +110,22 @@ pub use time_units::*;
 pub mod time_units {
 	use super::{BlockNumber, SESSION_LENGTH};
 
+	/// Milliseconds between Rialto chain blocks.
 	pub const MILLISECS_PER_BLOCK: u64 = 6000;
+	/// Slot duration in Rialto chain consensus algorithms.
 	pub const SLOT_DURATION: u64 = MILLISECS_PER_BLOCK;
 
+	/// A minute, expressed in Rialto chain blocks.
 	pub const MINUTES: BlockNumber = 60_000 / (MILLISECS_PER_BLOCK as BlockNumber);
+	/// A hour, expressed in Rialto chain blocks.
 	pub const HOURS: BlockNumber = MINUTES * 60;
+	/// A day, expressed in Rialto chain blocks.
 	pub const DAYS: BlockNumber = HOURS * 24;
 
+	/// BABE epoch duration at Rialto.
 	pub const EPOCH_DURATION_IN_SLOTS: BlockNumber = SESSION_LENGTH;
 
-	// 1 in 4 blocks (on average, not counting collisions) will be primary babe blocks.
+	/// 1 in 4 blocks (on average, not counting collisions) will be primary babe blocks.
 	pub const PRIMARY_PROBABILITY: (u64, u64) = (1, 4);
 }
 
@@ -205,8 +212,10 @@ impl ChainWithMessages for Rialto {
 }
 
 frame_support::parameter_types! {
+	/// Size limit of the Rialto blocks.
 	pub BlockLength: limits::BlockLength =
 		limits::BlockLength::max_with_normal_ratio(5 * 1024 * 1024, NORMAL_DISPATCH_RATIO);
+	/// Weight limit of the Rialto blocks.
 	pub BlockWeights: limits::BlockWeights =
 		limits::BlockWeights::with_sensible_defaults(MAXIMUM_BLOCK_WEIGHT, NORMAL_DISPATCH_RATIO);
 }

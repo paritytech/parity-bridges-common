@@ -50,15 +50,6 @@ notice = "warn"
 ignore = [
     # time (origin: Substrate RPC + benchmarking crates)
     "RUSTSEC-2020-0071",
-    # ansi_term (The maintainer has adviced that this crate is deprecated and will not receive any maintenance.
-    # Once other crates will move to some alternative, we'll do that too)
-    "RUSTSEC-2021-0139",
-    # deprecated parity-wasm (origin: Substrate)
-    "RUSTSEC-2022-0061",
-    # atty (origin: Substrate, clap)
-    "RUSTSEC-2021-0145",
-    # wasmtime (origin: Substrate)
-    "RUSTSEC-2022-0076",
 ]
 # Threshold for security vulnerabilities, any vulnerability with a CVSS score
 # lower than the range specified will be ignored. Note that ignored advisories

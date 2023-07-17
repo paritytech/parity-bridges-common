@@ -118,7 +118,7 @@ where
 
 /// Refund calculator.
 pub trait RefundCalculator {
-	// The underlying integer type in which the refund is calculated.
+	/// The underlying integer type in which the refund is calculated.
 	type Balance;
 
 	/// Compute refund for given transaction.

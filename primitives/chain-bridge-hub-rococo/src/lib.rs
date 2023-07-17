@@ -17,6 +17,7 @@
 //! Module with configuration which reflects BridgeHubRococo runtime setup (AccountId, Headers,
 //! Hashes...)
 
+#![warn(missing_docs)]
 #![cfg_attr(not(feature = "std"), no_std)]
 
 pub use bp_bridge_hub_cumulus::*;
