@@ -35,7 +35,7 @@ pub trait SignedExtensionSchema: Encode + Decode + Debug + Eq + Clone + StaticTy
 	type AdditionalSigned: Encode + Debug + Eq + Clone + StaticTypeInfo;
 }
 
-// An implementation of `SignedExtensionSchema` using generic params.
+/// An implementation of `SignedExtensionSchema` using generic params.
 #[derive(Encode, Decode, Clone, Debug, PartialEq, Eq, TypeInfo)]
 pub struct GenericSignedExtensionSchema<P, S>(PhantomData<(P, S)>);
 
@@ -94,6 +94,7 @@ impl SignedExtensionSchema for Tuple {
 /// and signed payloads in the client code.
 #[derive(Encode, Decode, Debug, PartialEq, Eq, Clone, TypeInfo)]
 pub struct GenericSignedExtension<S: SignedExtensionSchema> {
+	/// A payload that is included in the transaction.
 	pub payload: S::Payload,
 	#[codec(skip)]
 	// It may be set to `None` if extensions are decoded. We are never reconstructing transactions
@@ -104,6 +105,7 @@ pub struct GenericSignedExtension<S: SignedExtensionSchema> {
 }
 
 impl<S: SignedExtensionSchema> GenericSignedExtension<S> {
+	/// Create new `GenericSignedExtension` object.
 	pub fn new(payload: S::Payload, additional_signed: Option<S::AdditionalSigned>) -> Self {
 		Self { payload, additional_signed }
 	}

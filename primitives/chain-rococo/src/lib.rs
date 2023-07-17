@@ -14,15 +14,16 @@
 // You should have received a copy of the GNU General Public License
 // along with Parity Bridges Common.  If not, see <http://www.gnu.org/licenses/>.
 
+//! Primitives of the Rococo chain.
+
+#![warn(missing_docs)]
 #![cfg_attr(not(feature = "std"), no_std)]
-// RuntimeApi generated functions
-#![allow(clippy::too_many_arguments)]
 
 pub use bp_polkadot_core::*;
 
 use bp_header_chain::ChainWithGrandpa;
 use bp_runtime::{decl_bridge_finality_runtime_apis, Chain, ChainId};
-use frame_support::{parameter_types, weights::Weight, StateVersion};
+use frame_support::{weights::Weight, StateVersion};
 
 /// Rococo Chain
 pub struct Rococo;
@@ -58,10 +59,6 @@ impl ChainWithGrandpa for Rococo {
 		REASONABLE_HEADERS_IN_JUSTIFICATON_ANCESTRY;
 	const MAX_HEADER_SIZE: u32 = MAX_HEADER_SIZE;
 	const AVERAGE_HEADER_SIZE_IN_JUSTIFICATION: u32 = AVERAGE_HEADER_SIZE_IN_JUSTIFICATION;
-}
-
-parameter_types! {
-	pub const SS58Prefix: u8 = 42;
 }
 
 /// Name of the parachains pallet in the Rococo runtime.
