@@ -16,8 +16,6 @@
 
 //! Deal with CLI args of substrate-to-substrate relay.
 
-#![allow(clippy::useless_vec)]
-
 use std::convert::TryInto;
 
 use async_std::prelude::*;
