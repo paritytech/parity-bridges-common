@@ -170,28 +170,21 @@ pub fn bridge_locations(
 	) -> Result<InteriorMultiLocation, BridgeLocationsError> {
 		let mut junctions = location.into_iter();
 
-		// we know that the first junction of the location is `GlobalConsensus`, so we don't check
-		// it (this also shall never fail, but let's be extra cautious)
-		let global_consensus =
-			junctions.next().ok_or(BridgeLocationsError::NonUniversalLocation)?;
+		let global_consensus = junctions
+			.next()
+			.filter(|junction| matches!(junction, GlobalConsensus(_)))
+			.ok_or(BridgeLocationsError::NonUniversalLocation)?;
 
-		// deal with the next junction
-		if let Some(next) = junctions.next() {
-			// we only expect `Parachain` junction here. There are other junctions that
-			// may need to be supported (like `GeneralKey` and `OnlyChild`), but now we
-			// only support bridges with relay and parachans
-			//
-			// if there's something other than parachain, let's strip it
-			if !matches!(next, Junction::Parachain(_)) {
-				Ok(X1(global_consensus))
-			} else {
-				// skip everything below this level
-				Ok(X2(global_consensus, next))
-			}
-		} else {
-			// if there's just one item in the location interior, no modifications required
-			Ok(X1(global_consensus))
-		}
+		// we only expect `Parachain` junction here. There are other junctions that
+		// may need to be supported (like `GeneralKey` and `OnlyChild`), but now we
+		// only support bridges with relay and parachans
+		//
+		// if there's something other than parachain, let's strip it
+		let maybe_parachain = junctions.next().filter(|junction| matches!(junction, Parachain(_)));
+		Ok(match maybe_parachain {
+			Some(parachain) => X2(global_consensus, parachain),
+			None => X1(global_consensus),
+		})
 	}
 
 	// ensure that the `here_universal_location` and `bridge_destination_universal_location`
