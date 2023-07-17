@@ -17,6 +17,7 @@
 //! Substrate session manager that selects 2/3 validators from initial set,
 //! starting from session 2.
 
+#![warn(missing_docs)]
 #![cfg_attr(not(feature = "std"), no_std)]
 
 use frame_support::traits::{ValidatorSet, ValidatorSetWithIdentification};

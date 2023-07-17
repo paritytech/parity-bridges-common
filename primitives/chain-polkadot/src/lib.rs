@@ -14,9 +14,10 @@
 // You should have received a copy of the GNU General Public License
 // along with Parity Bridges Common.  If not, see <http://www.gnu.org/licenses/>.
 
+//! Primitives of the Polkadot chain.
+
+#![warn(missing_docs)]
 #![cfg_attr(not(feature = "std"), no_std)]
-// RuntimeApi generated functions
-#![allow(clippy::too_many_arguments)]
 
 pub use bp_polkadot_core::*;
 use frame_support::StateVersion;
