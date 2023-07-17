@@ -30,6 +30,9 @@ use xcm::{latest::prelude::*, VersionedMultiLocation};
 
 /// A manager of XCM communication channels between the bridge hub and parent/sibling chains
 /// that have opened bridges at this bridge hub.
+///
+/// We use this interface to suspend and resume channels programmatically to implement backpressure
+/// mechanism for bridge queues.
 #[allow(clippy::result_unit_err)] // XCM uses `Result<(), ()>` everywhere
 pub trait LocalXcmChannelManager {
 	// TODO: https://github.com/paritytech/parity-bridges-common/issues/2255
@@ -65,9 +68,6 @@ pub trait LocalXcmChannelManager {
 	///
 	/// This method shall not fail if the channel is already resumed.
 	fn resume_inbound_channel(owner: MultiLocation) -> Result<(), ()>;
-
-	/// Send XCM message to the given bridge `owner` (parent/sibling chain).
-	fn send_xcm(owner: MultiLocation, message: Xcm<()>) -> Result<(), SendError>;
 }
 
 impl LocalXcmChannelManager for () {
@@ -77,10 +77,6 @@ impl LocalXcmChannelManager for () {
 
 	fn resume_inbound_channel(_owner: MultiLocation) -> Result<(), ()> {
 		Err(())
-	}
-
-	fn send_xcm(_owner: MultiLocation, _message: Xcm<()>) -> Result<(), SendError> {
-		Err(SendError::Unroutable)
 	}
 }
 
