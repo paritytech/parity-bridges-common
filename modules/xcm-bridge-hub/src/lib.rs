@@ -351,15 +351,14 @@ pub mod pallet {
 			bridge_locations(
 				Box::new(T::UniversalLocation::get()),
 				Box::new(T::OpenBridgeOrigin::ensure_origin(origin)?),
-				Box::new(Self::xcm_into_latest(*bridge_destination_universal_location)?),
+				Box::new(
+					(*bridge_destination_universal_location)
+						.try_into()
+						.map_err(|_| Error::<T, I>::UnsupportedXcmVersion)?,
+				),
 				T::BridgedNetworkId::get(),
 			)
 			.map_err(|e| Error::<T, I>::BridgeLocations(e).into())
-		}
-
-		/// Convert versioned XCM struct into latest known XCM version.
-		fn xcm_into_latest<V: TryInto<U, Error = ()>, U>(versioned: V) -> Result<U, Error<T, I>> {
-			versioned.try_into().map_err(|_| Error::UnsupportedXcmVersion)
 		}
 	}
 
