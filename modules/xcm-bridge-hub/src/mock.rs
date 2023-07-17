@@ -292,11 +292,8 @@ impl ChainWithMessages for BridgedChain {
 }
 
 /// Location of bridged asset hub.
-pub fn bridged_asset_hub_location() -> MultiLocation {
-	MultiLocation::new(
-		2,
-		X2(GlobalConsensus(BridgedRelayNetwork::get()), Parachain(BRIDGED_ASSET_HUB_ID)),
-	)
+pub fn bridged_asset_hub_location() -> InteriorMultiLocation {
+	X2(GlobalConsensus(BridgedRelayNetwork::get()), Parachain(BRIDGED_ASSET_HUB_ID)).into()
 }
 
 /// Run pallet test.

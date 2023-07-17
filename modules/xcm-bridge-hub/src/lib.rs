@@ -140,8 +140,8 @@ pub mod pallet {
 		/// Open a bridge between two locations.
 		///
 		/// The caller must be within the `T::OpenBridgeOrigin` filter (presumably: a sibling
-		/// parachain or a parent relay chain). The `bridge_destination_relative_location` must be a
-		/// destination within the consensus of the `T::BridgedNetworkId` network.
+		/// parachain or a parent relay chain). The `bridge_destination_universal_location` must be
+		/// a destination within the consensus of the `T::BridgedNetworkId` network.
 		///
 		/// The `BridgeReserve` amount is reserved on the caller account. This reserve
 		/// is unreserved after bridge is closed.
@@ -152,10 +152,10 @@ pub mod pallet {
 		#[pallet::weight(Weight::zero())] // TODO: https://github.com/paritytech/parity-bridges-common/issues/1760 - weights
 		pub fn open_bridge(
 			origin: OriginFor<T>,
-			bridge_destination_relative_location: Box<VersionedMultiLocation>,
+			bridge_destination_universal_location: Box<VersionedInteriorMultiLocation>,
 		) -> DispatchResult {
 			// check and compute required bridge locations
-			let locations = Self::bridge_locations(origin, bridge_destination_relative_location)?;
+			let locations = Self::bridge_locations(origin, bridge_destination_universal_location)?;
 
 			// reserve balance on the parachain sovereign account
 			let reserve = T::BridgeReserve::get();
@@ -231,11 +231,11 @@ pub mod pallet {
 		#[pallet::weight(Weight::zero())] // TODO: https://github.com/paritytech/parity-bridges-common/issues/1760 - weights
 		pub fn close_bridge(
 			origin: OriginFor<T>,
-			bridge_destination_relative_location: Box<VersionedMultiLocation>,
+			bridge_destination_universal_location: Box<VersionedInteriorMultiLocation>,
 			may_prune_messages: MessageNonce,
 		) -> DispatchResult {
 			// compute required bridge locations
-			let locations = Self::bridge_locations(origin, bridge_destination_relative_location)?;
+			let locations = Self::bridge_locations(origin, bridge_destination_universal_location)?;
 
 			// TODO: https://github.com/paritytech/parity-bridges-common/issues/1760 - may do refund here, if
 			// bridge/lanes are already closed + for messages that are not pruned
@@ -346,12 +346,12 @@ pub mod pallet {
 		/// Return bridge endpoint locations and dedicated lane identifier.
 		pub fn bridge_locations(
 			origin: OriginFor<T>,
-			bridge_destination_relative_location: Box<VersionedMultiLocation>,
+			bridge_destination_universal_location: Box<VersionedInteriorMultiLocation>,
 		) -> Result<Box<BridgeLocations>, sp_runtime::DispatchError> {
 			bridge_locations(
 				Box::new(T::UniversalLocation::get()),
 				Box::new(T::OpenBridgeOrigin::ensure_origin(origin)?),
-				Box::new(Self::xcm_into_latest(*bridge_destination_relative_location)?),
+				Box::new(Self::xcm_into_latest(*bridge_destination_universal_location)?),
 				T::BridgedNetworkId::get(),
 			)
 			.map_err(|e| Error::<T, I>::BridgeLocations(e).into())
@@ -438,7 +438,7 @@ mod tests {
 
 	fn mock_open_bridge_from_with(
 		origin: RuntimeOrigin,
-		with: MultiLocation,
+		with: InteriorMultiLocation,
 	) -> (BridgeOf<TestRuntime, ()>, BridgeLocations) {
 		let reserve = BridgeReserve::get();
 		let locations = XcmOverBridge::bridge_locations(origin, Box::new(with.into())).unwrap();
@@ -523,14 +523,8 @@ mod tests {
 				XcmOverBridge::open_bridge(
 					OpenBridgeOrigin::parent_relay_chain_origin(),
 					Box::new(
-						MultiLocation {
-							parents: 2,
-							interior: X2(
-								GlobalConsensus(RelayNetwork::get()),
-								Parachain(BRIDGED_ASSET_HUB_ID)
-							)
-						}
-						.into()
+						X2(GlobalConsensus(RelayNetwork::get()), Parachain(BRIDGED_ASSET_HUB_ID))
+							.into()
 					),
 				),
 				Error::<TestRuntime, ()>::BridgeLocations(BridgeLocationsError::DestinationIsLocal),
@@ -545,13 +539,10 @@ mod tests {
 				XcmOverBridge::open_bridge(
 					OpenBridgeOrigin::parent_relay_chain_origin(),
 					Box::new(
-						MultiLocation {
-							parents: 2,
-							interior: X2(
-								GlobalConsensus(NonBridgedRelayNetwork::get()),
-								Parachain(BRIDGED_ASSET_HUB_ID)
-							)
-						}
+						X2(
+							GlobalConsensus(NonBridgedRelayNetwork::get()),
+							Parachain(BRIDGED_ASSET_HUB_ID)
+						)
 						.into()
 					),
 				),
@@ -708,7 +699,7 @@ mod tests {
 				// now open the bridge
 				assert_ok!(XcmOverBridge::open_bridge(
 					origin,
-					Box::new(locations.bridge_destination_relative_location.into()),
+					Box::new(locations.bridge_destination_universal_location.into()),
 				));
 
 				// ensure that everything has been set up in the runtime storage
@@ -805,7 +796,7 @@ mod tests {
 			assert_noop!(
 				XcmOverBridge::close_bridge(
 					origin.clone(),
-					Box::new(locations.bridge_destination_relative_location.into()),
+					Box::new(locations.bridge_destination_universal_location.into()),
 					0,
 				),
 				Error::<TestRuntime, ()>::LanesManager(LanesManagerError::UnknownInboundLane),
@@ -817,7 +808,7 @@ mod tests {
 			assert_noop!(
 				XcmOverBridge::close_bridge(
 					origin,
-					Box::new(locations.bridge_destination_relative_location.into()),
+					Box::new(locations.bridge_destination_universal_location.into()),
 					0,
 				),
 				Error::<TestRuntime, ()>::LanesManager(LanesManagerError::UnknownOutboundLane),
@@ -844,7 +835,7 @@ mod tests {
 			// now call the `close_bridge`, which will only partially prune messages
 			assert_ok!(XcmOverBridge::close_bridge(
 				origin.clone(),
-				Box::new(locations.bridge_destination_relative_location.into()),
+				Box::new(locations.bridge_destination_universal_location.into()),
 				16,
 			),);
 
@@ -889,7 +880,7 @@ mod tests {
 			// now call the `close_bridge` again, which will only partially prune messages
 			assert_ok!(XcmOverBridge::close_bridge(
 				origin.clone(),
-				Box::new(locations.bridge_destination_relative_location.into()),
+				Box::new(locations.bridge_destination_universal_location.into()),
 				8,
 			),);
 
@@ -933,7 +924,7 @@ mod tests {
 			// bridge
 			assert_ok!(XcmOverBridge::close_bridge(
 				origin,
-				Box::new(locations.bridge_destination_relative_location.into()),
+				Box::new(locations.bridge_destination_universal_location.into()),
 				9,
 			),);
 

@@ -25,7 +25,7 @@ use frame_support::{
 	ensure, CloneNoBound, PalletError, PartialEqNoBound, RuntimeDebug, RuntimeDebugNoBound,
 };
 use scale_info::TypeInfo;
-use sp_std::{boxed::Box, convert::TryInto};
+use sp_std::boxed::Box;
 use xcm::{latest::prelude::*, VersionedMultiLocation};
 
 /// A manager of XCM communication channels between the bridge hub and parent/sibling chains
@@ -117,8 +117,6 @@ pub struct BridgeLocations {
 	pub bridge_origin_relative_location: MultiLocation,
 	/// Universal (unique) location of this side of the bridge.
 	pub bridge_origin_universal_location: InteriorMultiLocation,
-	/// Relative (to this bridge hub) location of the other side of the bridge.
-	pub bridge_destination_relative_location: MultiLocation,
 	/// Universal (unique) location of other side of the bridge.
 	pub bridge_destination_universal_location: InteriorMultiLocation,
 	/// An identifier of the dedicated bridge message lane.
@@ -164,7 +162,7 @@ pub enum BridgeLocationsError {
 pub fn bridge_locations(
 	here_universal_location: Box<InteriorMultiLocation>,
 	bridge_origin_relative_location: Box<MultiLocation>,
-	bridge_destination_relative_location: Box<MultiLocation>,
+	bridge_destination_universal_location: Box<InteriorMultiLocation>,
 	expected_remote_network: NetworkId,
 ) -> Result<Box<BridgeLocations>, BridgeLocationsError> {
 	fn strip_low_level_junctions(
@@ -196,14 +194,6 @@ pub fn bridge_locations(
 		}
 	}
 
-	// get bridge destination universal location
-	let bridge_destination_universal_location: InteriorMultiLocation = here_universal_location
-		.into_location()
-		.appended_with(*bridge_destination_relative_location)
-		.map_err(|_| BridgeLocationsError::InvalidBridgeDestination)?
-		.try_into()
-		.map_err(|_| BridgeLocationsError::InvalidBridgeDestination)?;
-
 	// ensure that the `here_universal_location` and `bridge_destination_universal_location`
 	// are universal locations within different consensus systems
 	let local_network = here_universal_location
@@ -226,7 +216,7 @@ pub fn bridge_locations(
 	let bridge_origin_universal_location =
 		strip_low_level_junctions(bridge_origin_universal_location)?;
 	let bridge_destination_universal_location =
-		strip_low_level_junctions(bridge_destination_universal_location)?;
+		strip_low_level_junctions(*bridge_destination_universal_location)?;
 
 	// we know that the `bridge_destination_universal_location` starts from the
 	// `GlobalConsensus` and we know that the `bridge_origin_universal_location`
@@ -238,7 +228,6 @@ pub fn bridge_locations(
 	Ok(Box::new(BridgeLocations {
 		bridge_origin_relative_location: *bridge_origin_relative_location,
 		bridge_origin_universal_location,
-		bridge_destination_relative_location: *bridge_destination_relative_location,
 		bridge_destination_universal_location,
 		lane_id,
 	}))
@@ -258,7 +247,6 @@ mod tests {
 	struct SuccessfulTest {
 		here_universal_location: InteriorMultiLocation,
 		bridge_origin_relative_location: MultiLocation,
-		bridge_destination_relative_location: MultiLocation,
 
 		bridge_origin_universal_location: InteriorMultiLocation,
 		bridge_destination_universal_location: InteriorMultiLocation,
@@ -268,7 +256,7 @@ mod tests {
 		let locations = bridge_locations(
 			Box::new(test.here_universal_location),
 			Box::new(test.bridge_origin_relative_location),
-			Box::new(test.bridge_destination_relative_location),
+			Box::new(test.bridge_destination_universal_location),
 			REMOTE_NETWORK,
 		);
 		assert_eq!(
@@ -276,7 +264,6 @@ mod tests {
 			Ok(Box::new(BridgeLocations {
 				bridge_origin_relative_location: test.bridge_origin_relative_location,
 				bridge_origin_universal_location: test.bridge_origin_universal_location,
-				bridge_destination_relative_location: test.bridge_destination_relative_location,
 				bridge_destination_universal_location: test.bridge_destination_universal_location,
 				lane_id: LaneId::new(
 					test.bridge_origin_universal_location,
@@ -295,8 +282,6 @@ mod tests {
 		run_successful_test(SuccessfulTest {
 			here_universal_location: X1(GlobalConsensus(LOCAL_NETWORK)),
 			bridge_origin_relative_location: Here.into(),
-			bridge_destination_relative_location: ParentThen(X1(GlobalConsensus(REMOTE_NETWORK)))
-				.into(),
 
 			bridge_origin_universal_location: X1(GlobalConsensus(LOCAL_NETWORK)),
 			bridge_destination_universal_location: X1(GlobalConsensus(REMOTE_NETWORK)),
@@ -308,8 +293,6 @@ mod tests {
 		run_successful_test(SuccessfulTest {
 			here_universal_location: X1(GlobalConsensus(LOCAL_NETWORK)),
 			bridge_origin_relative_location: X1(Parachain(SIBLING_PARACHAIN)).into(),
-			bridge_destination_relative_location: ParentThen(X1(GlobalConsensus(REMOTE_NETWORK)))
-				.into(),
 
 			bridge_origin_universal_location: X2(
 				GlobalConsensus(LOCAL_NETWORK),
@@ -324,11 +307,6 @@ mod tests {
 		run_successful_test(SuccessfulTest {
 			here_universal_location: X1(GlobalConsensus(LOCAL_NETWORK)),
 			bridge_origin_relative_location: Here.into(),
-			bridge_destination_relative_location: ParentThen(X2(
-				GlobalConsensus(REMOTE_NETWORK),
-				Parachain(REMOTE_PARACHAIN),
-			))
-			.into(),
 
 			bridge_origin_universal_location: X1(GlobalConsensus(LOCAL_NETWORK)),
 			bridge_destination_universal_location: X2(
@@ -343,11 +321,6 @@ mod tests {
 		run_successful_test(SuccessfulTest {
 			here_universal_location: X1(GlobalConsensus(LOCAL_NETWORK)),
 			bridge_origin_relative_location: X1(Parachain(SIBLING_PARACHAIN)).into(),
-			bridge_destination_relative_location: ParentThen(X2(
-				GlobalConsensus(REMOTE_NETWORK),
-				Parachain(REMOTE_PARACHAIN),
-			))
-			.into(),
 
 			bridge_origin_universal_location: X2(
 				GlobalConsensus(LOCAL_NETWORK),
@@ -368,11 +341,6 @@ mod tests {
 				Parachain(LOCAL_BRIDGE_HUB),
 			),
 			bridge_origin_relative_location: Parent.into(),
-			bridge_destination_relative_location: AncestorThen(
-				2,
-				X1(GlobalConsensus(REMOTE_NETWORK)),
-			)
-			.into(),
 
 			bridge_origin_universal_location: X1(GlobalConsensus(LOCAL_NETWORK)),
 			bridge_destination_universal_location: X1(GlobalConsensus(REMOTE_NETWORK)),
@@ -387,11 +355,6 @@ mod tests {
 				Parachain(LOCAL_BRIDGE_HUB),
 			),
 			bridge_origin_relative_location: ParentThen(X1(Parachain(SIBLING_PARACHAIN))).into(),
-			bridge_destination_relative_location: AncestorThen(
-				2,
-				X1(GlobalConsensus(REMOTE_NETWORK)),
-			)
-			.into(),
 
 			bridge_origin_universal_location: X2(
 				GlobalConsensus(LOCAL_NETWORK),
@@ -409,11 +372,6 @@ mod tests {
 				Parachain(LOCAL_BRIDGE_HUB),
 			),
 			bridge_origin_relative_location: Parent.into(),
-			bridge_destination_relative_location: AncestorThen(
-				2,
-				X2(GlobalConsensus(REMOTE_NETWORK), Parachain(REMOTE_PARACHAIN)),
-			)
-			.into(),
 
 			bridge_origin_universal_location: X1(GlobalConsensus(LOCAL_NETWORK)),
 			bridge_destination_universal_location: X2(
@@ -431,11 +389,6 @@ mod tests {
 				Parachain(LOCAL_BRIDGE_HUB),
 			),
 			bridge_origin_relative_location: ParentThen(X1(Parachain(SIBLING_PARACHAIN))).into(),
-			bridge_destination_relative_location: AncestorThen(
-				2,
-				X2(GlobalConsensus(REMOTE_NETWORK), Parachain(REMOTE_PARACHAIN)),
-			)
-			.into(),
 
 			bridge_origin_universal_location: X2(
 				GlobalConsensus(LOCAL_NETWORK),
@@ -455,8 +408,6 @@ mod tests {
 		let locations1 = run_successful_test(SuccessfulTest {
 			here_universal_location: X1(GlobalConsensus(LOCAL_NETWORK)),
 			bridge_origin_relative_location: Here.into(),
-			bridge_destination_relative_location: ParentThen(X1(GlobalConsensus(REMOTE_NETWORK)))
-				.into(),
 
 			bridge_origin_universal_location: X1(GlobalConsensus(LOCAL_NETWORK)),
 			bridge_destination_universal_location: X1(GlobalConsensus(REMOTE_NETWORK)),
@@ -464,8 +415,6 @@ mod tests {
 		let locations2 = run_successful_test(SuccessfulTest {
 			here_universal_location: X1(GlobalConsensus(LOCAL_NETWORK)),
 			bridge_origin_relative_location: X1(PalletInstance(0)).into(),
-			bridge_destination_relative_location: ParentThen(X1(GlobalConsensus(REMOTE_NETWORK)))
-				.into(),
 
 			bridge_origin_universal_location: X1(GlobalConsensus(LOCAL_NETWORK)),
 			bridge_destination_universal_location: X1(GlobalConsensus(REMOTE_NETWORK)),
@@ -479,8 +428,6 @@ mod tests {
 		let locations1 = run_successful_test(SuccessfulTest {
 			here_universal_location: X1(GlobalConsensus(LOCAL_NETWORK)),
 			bridge_origin_relative_location: Here.into(),
-			bridge_destination_relative_location: ParentThen(X1(GlobalConsensus(REMOTE_NETWORK)))
-				.into(),
 
 			bridge_origin_universal_location: X1(GlobalConsensus(LOCAL_NETWORK)),
 			bridge_destination_universal_location: X1(GlobalConsensus(REMOTE_NETWORK)),
@@ -488,11 +435,6 @@ mod tests {
 		let locations2 = run_successful_test(SuccessfulTest {
 			here_universal_location: X1(GlobalConsensus(LOCAL_NETWORK)),
 			bridge_origin_relative_location: Here.into(),
-			bridge_destination_relative_location: ParentThen(X2(
-				GlobalConsensus(REMOTE_NETWORK),
-				PalletInstance(0),
-			))
-			.into(),
 
 			bridge_origin_universal_location: X1(GlobalConsensus(LOCAL_NETWORK)),
 			bridge_destination_universal_location: X1(GlobalConsensus(REMOTE_NETWORK)),
@@ -504,40 +446,12 @@ mod tests {
 	// negative tests
 
 	#[test]
-	fn bridge_locations_fails_when_we_fail_to_compute_destination_universal_location() {
-		assert_eq!(
-			bridge_locations(
-				Box::new(X6(
-					GlobalConsensus(LOCAL_NETWORK),
-					Parachain(1000),
-					OnlyChild,
-					OnlyChild,
-					OnlyChild,
-					OnlyChild
-				)),
-				Box::new(Here.into()),
-				Box::new(
-					ParentThen(X4(
-						GlobalConsensus(REMOTE_NETWORK),
-						OnlyChild,
-						OnlyChild,
-						OnlyChild
-					))
-					.into()
-				),
-				REMOTE_NETWORK,
-			),
-			Err(BridgeLocationsError::InvalidBridgeDestination),
-		);
-	}
-
-	#[test]
 	fn bridge_locations_fails_when_here_is_not_universal_location() {
 		assert_eq!(
 			bridge_locations(
 				Box::new(X1(Parachain(1000))),
 				Box::new(Here.into()),
-				Box::new(ParentThen(X1(GlobalConsensus(REMOTE_NETWORK))).into()),
+				Box::new(X1(GlobalConsensus(REMOTE_NETWORK))),
 				REMOTE_NETWORK,
 			),
 			Err(BridgeLocationsError::NonUniversalLocation),
@@ -550,7 +464,7 @@ mod tests {
 			bridge_locations(
 				Box::new(X1(GlobalConsensus(LOCAL_NETWORK))),
 				Box::new(Here.into()),
-				Box::new(ParentThen(X1(OnlyChild)).into()),
+				Box::new(X1(OnlyChild)),
 				REMOTE_NETWORK,
 			),
 			Err(BridgeLocationsError::NonUniversalLocation),
@@ -563,7 +477,7 @@ mod tests {
 			bridge_locations(
 				Box::new(X1(GlobalConsensus(LOCAL_NETWORK))),
 				Box::new(Here.into()),
-				Box::new(X1(OnlyChild).into()),
+				Box::new(X2(GlobalConsensus(LOCAL_NETWORK), OnlyChild).into()),
 				REMOTE_NETWORK,
 			),
 			Err(BridgeLocationsError::DestinationIsLocal),
@@ -576,7 +490,7 @@ mod tests {
 			bridge_locations(
 				Box::new(X1(GlobalConsensus(LOCAL_NETWORK))),
 				Box::new(Here.into()),
-				Box::new(ParentThen(X1(GlobalConsensus(UNREACHABLE_NETWORK))).into()),
+				Box::new(X1(GlobalConsensus(UNREACHABLE_NETWORK))),
 				REMOTE_NETWORK,
 			),
 			Err(BridgeLocationsError::UnreachableDestination),
