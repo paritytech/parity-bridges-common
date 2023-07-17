@@ -14,6 +14,9 @@
 // You should have received a copy of the GNU General Public License
 // along with Parity Bridges Common.  If not, see <http://www.gnu.org/licenses/>.
 
+//! Primitives of the Polkadot-like chains.
+
+#![warn(missing_docs)]
 #![cfg_attr(not(feature = "std"), no_std)]
 
 use bp_messages::MessageNonce;
@@ -167,11 +170,16 @@ pub use time_units::*;
 pub mod time_units {
 	use super::BlockNumber;
 
+	/// Milliseconds between Polkadot-like chain blocks.
 	pub const MILLISECS_PER_BLOCK: u64 = 6000;
+	/// Slot duration in Polkadot-like chain consensus algorithms.
 	pub const SLOT_DURATION: u64 = MILLISECS_PER_BLOCK;
 
+	/// A minute, expressed in Polkadot-like chain blocks.
 	pub const MINUTES: BlockNumber = 60_000 / (MILLISECS_PER_BLOCK as BlockNumber);
+	/// A hour, expressed in Polkadot-like chain blocks.
 	pub const HOURS: BlockNumber = MINUTES * 60;
+	/// A day, expressed in Polkadot-like chain blocks.
 	pub const DAYS: BlockNumber = HOURS * 24;
 }
 
@@ -254,8 +262,10 @@ impl StorageMapKeyProvider for AccountInfoStorageMapKeyProvider {
 }
 
 impl AccountInfoStorageMapKeyProvider {
+	/// Name of the system pallet.
 	const PALLET_NAME: &'static str = "System";
 
+	/// Return storage key for given account data.
 	pub fn final_key(id: &AccountId) -> StorageKey {
 		<Self as StorageMapKeyProvider>::final_key(Self::PALLET_NAME, id)
 	}

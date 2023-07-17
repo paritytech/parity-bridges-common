@@ -16,6 +16,7 @@
 
 //! Primitives that may be used at (bridges) runtime level.
 
+#![warn(missing_docs)]
 #![cfg_attr(not(feature = "std"), no_std)]
 
 use codec::{Decode, Encode, FullCodec, MaxEncodedLen};
@@ -90,10 +91,10 @@ pub type HeaderIdOf<C> = HeaderId<HashOf<C>, BlockNumberOf<C>>;
 
 /// Generic header id provider.
 pub trait HeaderIdProvider<Header: HeaderT> {
-	// Get the header id.
+	/// Get the header id.
 	fn id(&self) -> HeaderId<Header::Hash, Header::Number>;
 
-	// Get the header id for the parent block.
+	/// Get the header id for the parent block.
 	fn parent_id(&self) -> Option<HeaderId<Header::Hash, Header::Number>>;
 }
 
@@ -326,7 +327,7 @@ pub enum OwnedBridgeModuleError {
 
 /// Operating mode for a bridge module.
 pub trait OperatingMode: Send + Copy + Debug + FullCodec {
-	// Returns true if the bridge module is halted.
+	/// Returns true if the bridge module is halted.
 	fn is_halted(&self) -> bool;
 }
 
@@ -368,8 +369,11 @@ pub trait OwnedBridgeModule<T: frame_system::Config> {
 	/// The target that will be used when publishing logs related to this module.
 	const LOG_TARGET: &'static str;
 
+	/// A storage entry that holds the module `Owner` account.
 	type OwnerStorage: StorageValue<T::AccountId, Query = Option<T::AccountId>>;
+	/// Operating mode type of the pallet.
 	type OperatingMode: OperatingMode;
+	/// A storage value that holds the pallet operating mode.
 	type OperatingModeStorage: StorageValue<Self::OperatingMode, Query = Self::OperatingMode>;
 
 	/// Check if the module is halted.
@@ -445,9 +449,11 @@ impl WeightExtraOps for Weight {
 
 /// Trait that provides a static `str`.
 pub trait StaticStrProvider {
+	/// Static string.
 	const STR: &'static str;
 }
 
+/// A macro that generates `StaticStrProvider` with the string set to its stringified argument.
 #[macro_export]
 macro_rules! generate_static_str_provider {
 	($str:expr) => {
@@ -459,37 +465,6 @@ macro_rules! generate_static_str_provider {
 			}
 		}
 	};
-}
-
-#[derive(Encode, Decode, Clone, Eq, PartialEq, PalletError, TypeInfo)]
-#[scale_info(skip_type_params(T))]
-pub struct StrippableError<T> {
-	_phantom_data: sp_std::marker::PhantomData<T>,
-	#[codec(skip)]
-	#[cfg(feature = "std")]
-	message: String,
-}
-
-impl<T: Debug> From<T> for StrippableError<T> {
-	fn from(_err: T) -> Self {
-		Self {
-			_phantom_data: Default::default(),
-			#[cfg(feature = "std")]
-			message: format!("{:?}", _err),
-		}
-	}
-}
-
-impl<T> Debug for StrippableError<T> {
-	#[cfg(feature = "std")]
-	fn fmt(&self, f: &mut sp_std::fmt::Formatter<'_>) -> sp_std::fmt::Result {
-		f.write_str(&self.message)
-	}
-
-	#[cfg(not(feature = "std"))]
-	fn fmt(&self, f: &mut sp_std::fmt::Formatter<'_>) -> sp_std::fmt::Result {
-		f.write_str("Stripped error")
-	}
 }
 
 /// A trait defining helper methods for `RangeInclusive` (start..=end)

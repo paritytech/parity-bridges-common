@@ -85,6 +85,7 @@ impl<H: HeaderT> GrandpaJustification<H> {
 			.saturating_add(max_expected_votes_ancestries_size)
 	}
 
+	/// Return identifier of header that this justification claims to finalize.
 	pub fn commit_target_id(&self) -> HeaderId<H::Hash, H::Number> {
 		HeaderId(self.commit.target_number, self.commit.target_hash)
 	}

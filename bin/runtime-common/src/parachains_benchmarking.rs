@@ -60,7 +60,7 @@ where
 	}
 }
 
-pub fn do_prepare_parachain_heads_proof<R, PI, L>(
+fn do_prepare_parachain_heads_proof<R, PI, L>(
 	parachains: &[ParaId],
 	parachain_head_size: u32,
 	proof_params: UnverifiedStorageProofParams,

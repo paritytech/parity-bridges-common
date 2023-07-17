@@ -17,6 +17,7 @@
 //! Defines traits which represent a common interface for Substrate pallets which want to
 //! incorporate bridge functionality.
 
+#![warn(missing_docs)]
 #![cfg_attr(not(feature = "std"), no_std)]
 
 use bp_runtime::{
@@ -153,6 +154,7 @@ pub trait ConsensusLogReader {
 pub struct GrandpaConsensusLogReader<Number>(sp_std::marker::PhantomData<Number>);
 
 impl<Number: Codec> GrandpaConsensusLogReader<Number> {
+	/// Find and return scheduled (regular) change digest item.
 	pub fn find_scheduled_change(
 		digest: &Digest,
 	) -> Option<sp_consensus_grandpa::ScheduledChange<Number>> {
@@ -166,6 +168,8 @@ impl<Number: Codec> GrandpaConsensusLogReader<Number> {
 			})
 	}
 
+	/// Find and return forced change digest item. Or light client can't do anything
+	/// with forced changes, so we can't accept header with the forced change digest.
 	pub fn find_forced_change(
 		digest: &Digest,
 	) -> Option<(Number, sp_consensus_grandpa::ScheduledChange<Number>)> {
@@ -193,12 +197,17 @@ pub enum BridgeGrandpaCall<Header: HeaderT> {
 	/// `pallet-bridge-grandpa::Call::submit_finality_proof`
 	#[codec(index = 0)]
 	submit_finality_proof {
+		/// The header that we are going to finalize.
 		finality_target: Box<Header>,
+		/// Finality justification for the `finality_target`.
 		justification: justification::GrandpaJustification<Header>,
 	},
 	/// `pallet-bridge-grandpa::Call::initialize`
 	#[codec(index = 1)]
-	initialize { init_data: InitializationData<Header> },
+	initialize {
+		/// All data, required to initialize the pallet.
+		init_data: InitializationData<Header>,
+	},
 }
 
 /// The `BridgeGrandpaCall` used by a chain.
