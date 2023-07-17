@@ -101,7 +101,7 @@ pub mod pallet {
 		// TODO: there's only one impl of `EnsureOrigin<Success = MultiLocation>` -
 		// `EnsureXcmOrigin`, but it doesn't do what we need. Is there some other way to check
 		// `Origin` and get matching `MultiLocation`???
-		type AllowedOpenBridgeOrigin: EnsureOrigin<
+		type OpenBridgeOrigin: EnsureOrigin<
 			<Self as SystemConfig>::RuntimeOrigin,
 			Success = MultiLocation,
 		>;
@@ -139,7 +139,7 @@ pub mod pallet {
 	{
 		/// Open a bridge between two locations.
 		///
-		/// The caller must be within the `T::AllowedOpenBridgeOrigin` filter (presumably: a sibling
+		/// The caller must be within the `T::OpenBridgeOrigin` filter (presumably: a sibling
 		/// parachain or a parent relay chain). The `bridge_destination_relative_location` must be a
 		/// destination within the consensus of the `T::BridgedNetworkId` network.
 		///
@@ -350,7 +350,7 @@ pub mod pallet {
 		) -> Result<Box<BridgeLocations>, sp_runtime::DispatchError> {
 			bridge_locations(
 				Box::new(T::UniversalLocation::get()),
-				Box::new(T::AllowedOpenBridgeOrigin::ensure_origin(origin)?),
+				Box::new(T::OpenBridgeOrigin::ensure_origin(origin)?),
 				Box::new(Self::xcm_into_latest(*bridge_destination_relative_location)?),
 				T::BridgedNetworkId::get(),
 			)
@@ -485,7 +485,7 @@ mod tests {
 		run_test(|| {
 			assert_noop!(
 				XcmOverBridge::open_bridge(
-					AllowedOpenBridgeOrigin::disallowed_origin(),
+					OpenBridgeOrigin::disallowed_origin(),
 					Box::new(bridged_asset_hub_location().into()),
 				),
 				sp_runtime::DispatchError::BadOrigin,
@@ -498,7 +498,7 @@ mod tests {
 		run_test(|| {
 			assert_noop!(
 				XcmOverBridge::open_bridge(
-					AllowedOpenBridgeOrigin::parent_relay_chain_universal_origin(),
+					OpenBridgeOrigin::parent_relay_chain_universal_origin(),
 					Box::new(bridged_asset_hub_location().into()),
 				),
 				Error::<TestRuntime, ()>::BridgeLocations(
@@ -508,7 +508,7 @@ mod tests {
 
 			assert_noop!(
 				XcmOverBridge::open_bridge(
-					AllowedOpenBridgeOrigin::sibling_parachain_universal_origin(),
+					OpenBridgeOrigin::sibling_parachain_universal_origin(),
 					Box::new(bridged_asset_hub_location().into()),
 				),
 				Error::<TestRuntime, ()>::BridgeLocations(
@@ -523,7 +523,7 @@ mod tests {
 		run_test(|| {
 			assert_noop!(
 				XcmOverBridge::open_bridge(
-					AllowedOpenBridgeOrigin::parent_relay_chain_origin(),
+					OpenBridgeOrigin::parent_relay_chain_origin(),
 					Box::new(
 						MultiLocation {
 							parents: 2,
@@ -545,7 +545,7 @@ mod tests {
 		run_test(|| {
 			assert_noop!(
 				XcmOverBridge::open_bridge(
-					AllowedOpenBridgeOrigin::parent_relay_chain_origin(),
+					OpenBridgeOrigin::parent_relay_chain_origin(),
 					Box::new(
 						MultiLocation {
 							parents: 2,
@@ -569,7 +569,7 @@ mod tests {
 		run_test(|| {
 			assert_noop!(
 				XcmOverBridge::open_bridge(
-					AllowedOpenBridgeOrigin::origin_without_sovereign_account(),
+					OpenBridgeOrigin::origin_without_sovereign_account(),
 					Box::new(bridged_asset_hub_location().into()),
 				),
 				Error::<TestRuntime, ()>::InvalidBridgeOriginAccount,
@@ -582,7 +582,7 @@ mod tests {
 		run_test(|| {
 			assert_noop!(
 				XcmOverBridge::open_bridge(
-					AllowedOpenBridgeOrigin::parent_relay_chain_origin(),
+					OpenBridgeOrigin::parent_relay_chain_origin(),
 					Box::new(bridged_asset_hub_location().into()),
 				),
 				Error::<TestRuntime, ()>::FailedToReserveBridgeReserve,
@@ -593,7 +593,7 @@ mod tests {
 	#[test]
 	fn open_bridge_fails_if_it_already_exists() {
 		run_test(|| {
-			let origin = AllowedOpenBridgeOrigin::parent_relay_chain_origin();
+			let origin = OpenBridgeOrigin::parent_relay_chain_origin();
 			let locations = XcmOverBridge::bridge_locations(
 				origin.clone(),
 				Box::new(bridged_asset_hub_location().into()),
@@ -626,7 +626,7 @@ mod tests {
 	#[test]
 	fn open_bridge_fails_if_its_lanes_already_exists() {
 		run_test(|| {
-			let origin = AllowedOpenBridgeOrigin::parent_relay_chain_origin();
+			let origin = OpenBridgeOrigin::parent_relay_chain_origin();
 			let locations = XcmOverBridge::bridge_locations(
 				origin.clone(),
 				Box::new(bridged_asset_hub_location().into()),
@@ -665,8 +665,8 @@ mod tests {
 			// in our test runtime, we expect that bridge may be opened by parent relay chain
 			// and any sibling parachain
 			let origins = [
-				AllowedOpenBridgeOrigin::parent_relay_chain_origin(),
-				AllowedOpenBridgeOrigin::sibling_parachain_origin(),
+				OpenBridgeOrigin::parent_relay_chain_origin(),
+				OpenBridgeOrigin::sibling_parachain_origin(),
 			];
 
 			// check that every origin may open the bridge
@@ -760,7 +760,7 @@ mod tests {
 		run_test(|| {
 			assert_noop!(
 				XcmOverBridge::close_bridge(
-					AllowedOpenBridgeOrigin::disallowed_origin(),
+					OpenBridgeOrigin::disallowed_origin(),
 					Box::new(bridged_asset_hub_location().into()),
 					0,
 				),
@@ -774,7 +774,7 @@ mod tests {
 		run_test(|| {
 			assert_noop!(
 				XcmOverBridge::close_bridge(
-					AllowedOpenBridgeOrigin::parent_relay_chain_universal_origin(),
+					OpenBridgeOrigin::parent_relay_chain_universal_origin(),
 					Box::new(bridged_asset_hub_location().into()),
 					0,
 				),
@@ -785,7 +785,7 @@ mod tests {
 
 			assert_noop!(
 				XcmOverBridge::close_bridge(
-					AllowedOpenBridgeOrigin::sibling_parachain_universal_origin(),
+					OpenBridgeOrigin::sibling_parachain_universal_origin(),
 					Box::new(bridged_asset_hub_location().into()),
 					0,
 				),
@@ -799,7 +799,7 @@ mod tests {
 	#[test]
 	fn close_bridge_fails_if_its_lanes_are_unknown() {
 		run_test(|| {
-			let origin = AllowedOpenBridgeOrigin::parent_relay_chain_origin();
+			let origin = OpenBridgeOrigin::parent_relay_chain_origin();
 			let (_, locations) = mock_open_bridge_from(origin.clone());
 
 			let lanes_manager = LanesManagerOf::<TestRuntime, ()>::new();
@@ -830,7 +830,7 @@ mod tests {
 	#[test]
 	fn close_bridge_works() {
 		run_test(|| {
-			let origin = AllowedOpenBridgeOrigin::parent_relay_chain_origin();
+			let origin = OpenBridgeOrigin::parent_relay_chain_origin();
 			let (bridge, locations) = mock_open_bridge_from(origin.clone());
 			System::set_block_number(1);
 

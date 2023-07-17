@@ -145,9 +145,9 @@ pub type LocationToAccountId = (
 	SiblingParachainConvertsVia<Sibling, AccountId>,
 );
 
-pub struct AllowedOpenBridgeOrigin;
+pub struct OpenBridgeOrigin;
 
-impl AllowedOpenBridgeOrigin {
+impl OpenBridgeOrigin {
 	pub fn parent_relay_chain_origin() -> RuntimeOrigin {
 		RuntimeOrigin::signed([0u8; 32].into())
 	}
@@ -175,7 +175,7 @@ impl AllowedOpenBridgeOrigin {
 	}
 }
 
-impl EnsureOrigin<RuntimeOrigin> for AllowedOpenBridgeOrigin {
+impl EnsureOrigin<RuntimeOrigin> for OpenBridgeOrigin {
 	type Success = MultiLocation;
 
 	fn try_origin(o: RuntimeOrigin) -> Result<Self::Success, RuntimeOrigin> {
@@ -221,7 +221,7 @@ impl pallet_xcm_bridge_hub::Config for TestRuntime {
 	type BridgedNetworkId = BridgedRelayNetwork;
 	type BridgeMessagesPalletInstance = ();
 
-	type AllowedOpenBridgeOrigin = AllowedOpenBridgeOrigin;
+	type OpenBridgeOrigin = OpenBridgeOrigin;
 	type BridgeOriginAccountIdConverter = LocationToAccountId;
 
 	type BridgeReserve = BridgeReserve;
