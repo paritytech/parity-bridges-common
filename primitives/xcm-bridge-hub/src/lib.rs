@@ -466,7 +466,7 @@ mod tests {
 			bridge_locations(
 				Box::new(X1(GlobalConsensus(LOCAL_NETWORK))),
 				Box::new(Here.into()),
-				Box::new(X2(GlobalConsensus(LOCAL_NETWORK), OnlyChild).into()),
+				Box::new(X2(GlobalConsensus(LOCAL_NETWORK), OnlyChild)),
 				REMOTE_NETWORK,
 			),
 			Err(BridgeLocationsError::DestinationIsLocal),
