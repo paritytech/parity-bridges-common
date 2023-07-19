@@ -26,6 +26,7 @@ use frame_support::{parameter_types, traits::fungible::Mutate, weights::RuntimeD
 use sp_core::H256;
 use sp_runtime::{
 	traits::{BlakeTwo256, ConstU32, IdentityLookup},
+	BuildStorage,
 };
 
 pub type AccountId = u64;
@@ -42,7 +43,6 @@ pub type TestStakeAndSlash = pallet_bridge_relayers::StakeAndSlashNamed<
 >;
 
 type Block = frame_system::mocking::MockBlock<TestRuntime>;
-type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<TestRuntime>;
 
 frame_support::construct_runtime! {
 	pub enum TestRuntime
@@ -70,7 +70,6 @@ impl frame_system::Config for TestRuntime {
 	type Hashing = BlakeTwo256;
 	type AccountId = AccountId;
 	type Lookup = IdentityLookup<Self::AccountId>;
-	type Header = SubstrateHeader;
 	type RuntimeEvent = RuntimeEvent;
 	type BlockHashCount = frame_support::traits::ConstU64<250>;
 	type Version = ();
@@ -167,7 +166,7 @@ pub fn test_reward_account_param() -> RewardsAccountParams {
 
 /// Return test externalities to use in tests.
 pub fn new_test_ext() -> sp_io::TestExternalities {
-	let t = frame_system::GenesisConfig::<TestRuntime>::default().build_storage::<TestRuntime>().unwrap();
+	let t = frame_system::GenesisConfig::<TestRuntime>::default().build_storage().unwrap();
 	sp_io::TestExternalities::new(t)
 }
 

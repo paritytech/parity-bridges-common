@@ -27,14 +27,14 @@ use frame_support::{
 };
 use sp_core::sr25519::Signature;
 use sp_runtime::{
-	testing::{Header, H256},
+	testing::H256,
 	traits::{BlakeTwo256, IdentityLookup},
 	Perbill,
 };
 
 pub type AccountId = u64;
-pub type TestHeader = crate::BridgedHeader<TestRuntime, ()>;
-pub type TestNumber = crate::BridgedBlockNumber<TestRuntime, ()>;
+pub type TestHeader = sp_runtime::testing::Header;
+pub type TestNumber = u64;
 
 type Block = frame_system::mocking::MockBlock<TestRuntime>;
 
@@ -60,7 +60,6 @@ impl frame_system::Config for TestRuntime {
 	type RuntimeOrigin = RuntimeOrigin;
 	type Nonce = u64;
 	type RuntimeCall = RuntimeCall;
-	type BlockNumber = u64;
 	type Hash = H256;
 	type Hashing = BlakeTwo256;
 	type AccountId = AccountId;
@@ -104,10 +103,10 @@ pub struct TestBridgedChain;
 impl Chain for TestBridgedChain {
 	const ID: ChainId = *b"tbch";
 
-	type BlockNumber = <TestRuntime as frame_system::Config>::BlockNumber;
+	type BlockNumber = TestNumber;
 	type Hash = <TestRuntime as frame_system::Config>::Hash;
 	type Hasher = <TestRuntime as frame_system::Config>::Hashing;
-	type Header = <TestRuntime as frame_system::Config>::Header;
+	type Header = TestHeader;
 
 	type AccountId = AccountId;
 	type Balance = u64;

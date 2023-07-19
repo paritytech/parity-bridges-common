@@ -59,8 +59,7 @@ pub type TestBridgedRawMmrLeaf = sp_consensus_beefy::mmr::MmrLeaf<
 >;
 pub type TestBridgedMmrNode = MmrDataOrHash<Keccak256, TestBridgedRawMmrLeaf>;
 
-type TestBlock = frame_system::mocking::MockBlock<TestRuntime>;
-type TestUncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<TestRuntime>;
+type Block = frame_system::mocking::MockBlock<TestRuntime>;
 
 construct_runtime! {
 	pub enum TestRuntime
@@ -117,7 +116,7 @@ impl Chain for TestBridgedChain {
 	type BlockNumber = TestBridgedBlockNumber;
 	type Hash = H256;
 	type Hasher = BlakeTwo256;
-	type Header = <TestRuntime as frame_system::Config>::Header;
+	type Header = sp_runtime::testing::Header;
 
 	type AccountId = TestAccountId;
 	type Balance = u64;
