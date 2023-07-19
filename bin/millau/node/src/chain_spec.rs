@@ -199,13 +199,14 @@ fn testnet_genesis(
 	RuntimeGenesisConfig {
 		system: SystemConfig {
 			code: WASM_BINARY.expect("Millau development WASM not available").to_vec(),
+			..Default::default()
 		},
 		balances: BalancesConfig {
 			balances: endowed_accounts.iter().cloned().map(|k| (k, 1 << 50)).collect(),
 		},
 		aura: AuraConfig { authorities: Vec::new() },
 		beefy: BeefyConfig::default(),
-		grandpa: GrandpaConfig { authorities: Vec::new() },
+		grandpa: GrandpaConfig { authorities: Vec::new(), ..Default::default() },
 		sudo: SudoConfig { key: Some(root_key) },
 		session: SessionConfig {
 			keys: initial_authorities

@@ -32,29 +32,23 @@ use sp_core::H256;
 use sp_runtime::{
 	testing::Header as SubstrateHeader,
 	traits::{BlakeTwo256, ConstU32, IdentityLookup},
-	AccountId32,
+	AccountId32, BuildStorage,
 };
 use xcm::prelude::*;
 use xcm_builder::{ParentIsPreset, SiblingParachainConvertsVia};
 
 pub type AccountId = AccountId32;
 pub type Balance = u64;
-pub type BlockNumber = u64;
 
 type Block = frame_system::mocking::MockBlock<TestRuntime>;
-type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<TestRuntime>;
 
 pub const SIBLING_ASSET_HUB_ID: u32 = 2001;
 pub const THIS_BRIDGE_HUB_ID: u32 = 2002;
 pub const BRIDGED_ASSET_HUB_ID: u32 = 1001;
 
 frame_support::construct_runtime! {
-	pub enum TestRuntime where
-		Block = Block,
-		NodeBlock = Block,
-		UncheckedExtrinsic = UncheckedExtrinsic,
-	{
-		System: frame_system::{Pallet, Call, Config, Storage, Event<T>},
+	pub enum TestRuntime {
+		System: frame_system::{Pallet, Call, Config<T>, Storage, Event<T>},
 		Balances: pallet_balances::{Pallet, Event<T>},
 		Messages: pallet_bridge_messages::{Pallet, Call, Event<T>},
 		XcmOverBridge: pallet_xcm_bridge_hub::{Pallet, Call, Event<T>},
@@ -68,14 +62,13 @@ parameter_types! {
 
 impl frame_system::Config for TestRuntime {
 	type RuntimeOrigin = RuntimeOrigin;
-	type Index = u64;
+	type Nonce = u64;
 	type RuntimeCall = RuntimeCall;
-	type BlockNumber = BlockNumber;
+	type Block = Block;
 	type Hash = H256;
 	type Hashing = BlakeTwo256;
 	type AccountId = AccountId;
 	type Lookup = IdentityLookup<Self::AccountId>;
-	type Header = SubstrateHeader;
 	type RuntimeEvent = RuntimeEvent;
 	type BlockHashCount = frame_support::traits::ConstU64<250>;
 	type Version = ();
@@ -239,7 +232,7 @@ impl Chain for ThisChain {
 	type Header = SubstrateHeader;
 	type AccountId = AccountId;
 	type Balance = Balance;
-	type Index = u64;
+	type Nonce = u64;
 	type Signature = sp_runtime::MultiSignature;
 	const STATE_VERSION: StateVersion = StateVersion::V1;
 
@@ -272,7 +265,7 @@ impl Chain for BridgedChain {
 	type Header = BridgedChainHeader;
 	type AccountId = AccountId;
 	type Balance = Balance;
-	type Index = u64;
+	type Nonce = u64;
 	type Signature = sp_runtime::MultiSignature;
 	const STATE_VERSION: StateVersion = StateVersion::V1;
 
@@ -299,7 +292,7 @@ pub fn bridged_asset_hub_location() -> InteriorMultiLocation {
 /// Run pallet test.
 pub fn run_test<T>(test: impl FnOnce() -> T) -> T {
 	sp_io::TestExternalities::new(
-		frame_system::GenesisConfig::default().build_storage::<TestRuntime>().unwrap(),
+		frame_system::GenesisConfig::<TestRuntime>::default().build_storage().unwrap(),
 	)
 	.execute_with(test)
 }

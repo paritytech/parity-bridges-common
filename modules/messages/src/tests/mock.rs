@@ -51,7 +51,7 @@ use sp_core::H256;
 use sp_runtime::{
 	testing::Header as SubstrateHeader,
 	traits::{BlakeTwo256, ConstU32, IdentityLookup},
-	Perbill,
+	BuildStorage, Perbill,
 };
 use std::{collections::VecDeque, ops::RangeInclusive};
 
@@ -86,7 +86,7 @@ impl Chain for ThisChain {
 	type Header = SubstrateHeader;
 	type AccountId = AccountId;
 	type Balance = Balance;
-	type Index = u64;
+	type Nonce = u64;
 	type Signature = sp_runtime::MultiSignature;
 	const STATE_VERSION: StateVersion = StateVersion::V1;
 
@@ -119,7 +119,7 @@ impl Chain for BridgedChain {
 	type Header = BridgedChainHeader;
 	type AccountId = TestRelayer;
 	type Balance = Balance;
-	type Index = u64;
+	type Nonce = u64;
 	type Signature = sp_runtime::MultiSignature;
 	const STATE_VERSION: StateVersion = StateVersion::V1;
 
@@ -147,18 +147,14 @@ impl ChainWithMessages for BridgedChain {
 }
 
 type Block = frame_system::mocking::MockBlock<TestRuntime>;
-type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<TestRuntime>;
 pub type TestEvent = RuntimeEvent;
 
 use crate as pallet_bridge_messages;
 
 frame_support::construct_runtime! {
-	pub enum TestRuntime where
-		Block = Block,
-		NodeBlock = Block,
-		UncheckedExtrinsic = UncheckedExtrinsic,
+	pub enum TestRuntime
 	{
-		System: frame_system::{Pallet, Call, Config, Storage, Event<T>},
+		System: frame_system::{Pallet, Call, Config<T>, Storage, Event<T>},
 		Balances: pallet_balances::{Pallet, Call, Event<T>},
 		BridgedChainGrandpa: pallet_bridge_grandpa::{Pallet, Call, Event<T>},
 		Messages: pallet_bridge_messages::{Pallet, Call, Event<T>},
@@ -176,14 +172,13 @@ pub type DbWeight = RocksDbWeight;
 
 impl frame_system::Config for TestRuntime {
 	type RuntimeOrigin = RuntimeOrigin;
-	type Index = u64;
+	type Nonce = u64;
 	type RuntimeCall = RuntimeCall;
-	type BlockNumber = u64;
 	type Hash = H256;
 	type Hashing = BlakeTwo256;
 	type AccountId = AccountId;
 	type Lookup = IdentityLookup<Self::AccountId>;
-	type Header = SubstrateHeader;
+	type Block = Block;
 	type RuntimeEvent = RuntimeEvent;
 	type BlockHashCount = ConstU64<250>;
 	type Version = ();
@@ -459,7 +454,7 @@ pub fn inbound_unrewarded_relayers_state(lane: bp_messages::LaneId) -> Unrewarde
 
 /// Return test externalities to use in tests.
 pub fn new_test_ext() -> sp_io::TestExternalities {
-	let mut t = frame_system::GenesisConfig::default().build_storage::<TestRuntime>().unwrap();
+	let mut t = frame_system::GenesisConfig::<TestRuntime>::default().build_storage().unwrap();
 	pallet_balances::GenesisConfig::<TestRuntime> { balances: vec![(ENDOWED_ACCOUNT, 1_000_000)] }
 		.assimilate_storage(&mut t)
 		.unwrap();
