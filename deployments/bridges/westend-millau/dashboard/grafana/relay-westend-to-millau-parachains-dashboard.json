@@ -50,7 +50,7 @@
           "for": "5m",
           "frequency": "1m",
           "handler": 1,
-          "name": "Too many Westmint headers are missing at Millau",
+          "name": "Too many AssetHubWestend headers are missing at Millau",
           "noDataState": "no_data",
           "notifications": []
         },
@@ -113,7 +113,7 @@
             "expr": "Westend_to_Millau_Parachains_1000_best_parachain_block_number_at_source - Westend_to_Millau_Parachains_1000_best_parachain_block_number_at_target",
             "hide": true,
             "interval": "",
-            "legendFormat": "Missing Westmint headers at Millau",
+            "legendFormat": "Missing AssetHubWestend headers at Millau",
             "refId": "C"
           }
         ],
@@ -129,7 +129,7 @@
         "timeFrom": null,
         "timeRegions": [],
         "timeShift": null,
-        "title": "Westmint headers",
+        "title": "AssetHubWestend headers",
         "tooltip": {
           "shared": true,
           "sort": 0,
