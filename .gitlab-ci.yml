@@ -178,7 +178,7 @@ deny-licenses:
   <<:                              *test-refs
   <<:                              *collect-artifacts
   script:
-    - cargo deny -L trace check licenses --hide-inclusion-graph
+    - cargo deny check licenses --hide-inclusion-graph
   after_script:
     - mkdir -p ./artifacts
     - echo "___Complete logs can be found in the artifacts___"
