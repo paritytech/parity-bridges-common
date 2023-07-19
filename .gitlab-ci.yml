@@ -44,6 +44,7 @@ default:
     - cargo --version
     - rustup +nightly show
     - cargo +nightly --version
+    - cargo install --list
   tags:
     - linux-docker-vm-c2
 
@@ -178,7 +179,6 @@ deny-licenses:
   <<:                              *test-refs
   <<:                              *collect-artifacts
   script:
-    - cargo install --list
     - cargo deny check licenses --hide-inclusion-graph
   after_script:
     - mkdir -p ./artifacts
