@@ -56,7 +56,7 @@ impl ChainWithGrandpa for Westend {
 	const AVERAGE_HEADER_SIZE_IN_JUSTIFICATION: u32 = AVERAGE_HEADER_SIZE_IN_JUSTIFICATION;
 }
 
-/// AssetHubWestend parachain definition
+/// `AssetHubWestend` parachain definition
 #[derive(Debug, Clone, Copy)]
 pub struct AssetHubWestend;
 
@@ -100,7 +100,7 @@ pub const WITH_WESTEND_BRIDGE_PARAS_PALLET_NAME: &str = "BridgeWestendParachains
 /// reserve.
 pub const MAX_NESTED_PARACHAIN_HEAD_DATA_SIZE: u32 = 128;
 
-/// Identifier of AssetHubWestend parachain at the Westend relay chain.
+/// Identifier of `AssetHubWestend` parachain at the Westend relay chain.
 pub const ASSET_HUB_WESTEND_PARACHAIN_ID: u32 = 1000;
 
 decl_bridge_finality_runtime_apis!(westend);

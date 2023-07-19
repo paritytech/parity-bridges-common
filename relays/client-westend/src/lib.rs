@@ -58,7 +58,7 @@ impl ChainWithBalances for Westend {
 	}
 }
 
-/// AssetHubWestend parachain definition
+/// `AssetHubWestend` parachain definition
 #[derive(Debug, Clone, Copy)]
 pub struct AssetHubWestend;
 
