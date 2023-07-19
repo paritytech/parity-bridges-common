@@ -238,6 +238,7 @@ impl pallet_beefy::Config for Runtime {
 	type WeightInfo = ();
 	type KeyOwnerProof = sp_core::Void;
 	type EquivocationReportSystem = ();
+	type MaxNominators = ConstU32<256>;
 }
 
 impl pallet_grandpa::Config for Runtime {
@@ -248,6 +249,7 @@ impl pallet_grandpa::Config for Runtime {
 	type MaxSetIdSessionEntries = ConstU64<0>;
 	type KeyOwnerProof = sp_core::Void;
 	type EquivocationReportSystem = ();
+	type MaxNominators = ConstU32<256>;
 }
 
 /// MMR helper types.

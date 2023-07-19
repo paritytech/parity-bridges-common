@@ -236,6 +236,8 @@ impl pallet_babe::Config for Runtime {
 	// equivocation related configuration - we don't expect any equivocations in our testnets
 	type KeyOwnerProof = sp_core::Void;
 	type EquivocationReportSystem = ();
+
+	type MaxNominators = ConstU32<256>;
 }
 
 impl pallet_beefy::Config for Runtime {
@@ -246,6 +248,7 @@ impl pallet_beefy::Config for Runtime {
 	type WeightInfo = ();
 	type KeyOwnerProof = sp_core::Void;
 	type EquivocationReportSystem = ();
+	type MaxNominators = ConstU32<256>;
 }
 
 impl pallet_grandpa::Config for Runtime {
@@ -256,6 +259,7 @@ impl pallet_grandpa::Config for Runtime {
 	type MaxSetIdSessionEntries = ConstU64<0>;
 	type KeyOwnerProof = sp_core::Void;
 	type EquivocationReportSystem = ();
+	type MaxNominators = ConstU32<256>;
 }
 
 impl pallet_mmr::Config for Runtime {
