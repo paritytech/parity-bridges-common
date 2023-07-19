@@ -189,9 +189,6 @@ pub type BlockNumber = u32;
 /// Hash type used in Polkadot-like chains.
 pub type Hash = <BlakeTwo256 as HasherT>::Out;
 
-/// Account Index (a.k.a. nonce).
-pub type Index = u32;
-
 /// Hashing type.
 pub type Hashing = BlakeTwo256;
 

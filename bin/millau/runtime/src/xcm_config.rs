@@ -110,6 +110,7 @@ pub type Barrier = (
 pub type OnMillauBlobDispatcher = xcm_builder::BridgeBlobDispatcher<
 	crate::xcm_config::XcmRouter,
 	crate::xcm_config::UniversalLocation,
+	(),
 >;
 
 /// XCM weigher type.
@@ -250,11 +251,12 @@ mod tests {
 	};
 	use codec::Encode;
 	use pallet_bridge_messages::OutboundLanes;
+	use sp_runtime::BuildStorage;
 	use xcm_executor::XcmExecutor;
 
 	fn new_test_ext() -> sp_io::TestExternalities {
 		sp_io::TestExternalities::new(
-			frame_system::GenesisConfig::default().build_storage::<Runtime>().unwrap(),
+			frame_system::GenesisConfig::<Runtime>::default().build_storage().unwrap(),
 		)
 	}
 

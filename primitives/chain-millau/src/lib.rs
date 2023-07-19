@@ -151,8 +151,8 @@ pub type AccountSigner = MultiSigner;
 /// Balance of an account.
 pub type Balance = u64;
 
-/// Index of a transaction in the chain.
-pub type Index = u32;
+/// Nonce of a transaction in the chain.
+pub type Nonce = u32;
 
 /// Weight-to-Fee type used by Millau.
 pub type WeightToFee = IdentityFee<Balance>;
@@ -171,7 +171,7 @@ impl Chain for Millau {
 
 	type AccountId = AccountId;
 	type Balance = Balance;
-	type Index = Index;
+	type Nonce = Nonce;
 	type Signature = Signature;
 
 	const STATE_VERSION: StateVersion = StateVersion::V0;

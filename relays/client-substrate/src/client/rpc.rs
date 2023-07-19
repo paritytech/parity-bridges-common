@@ -30,7 +30,7 @@ use crate::{
 	error::{Error, Result},
 	transaction_stall_timeout, AccountIdOf, AccountKeyPairOf, BalanceOf, BlockNumberOf, Chain,
 	ChainRuntimeVersion, ChainWithGrandpa, ChainWithTransactions, ConnectionParams, HashOf,
-	HeaderIdOf, HeaderOf, IndexOf, SignParam, SignedBlockOf, SimpleRuntimeVersion,
+	HeaderIdOf, HeaderOf, NonceOf, SignParam, SignedBlockOf, SimpleRuntimeVersion,
 	TransactionTracker, UnsignedTransaction,
 };
 
@@ -193,7 +193,7 @@ impl<C: Chain> RpcClient<C> {
 	}
 
 	/// Get the nonce of the given Substrate account.
-	pub async fn next_account_index(&self, account: AccountIdOf<C>) -> Result<IndexOf<C>> {
+	pub async fn next_account_index(&self, account: AccountIdOf<C>) -> Result<NonceOf<C>> {
 		self.jsonrpsee_execute(move |client| async move {
 			Ok(SubstrateFrameSystemClient::<C>::account_next_index(&*client, account).await?)
 		})
@@ -402,7 +402,7 @@ impl<C: Chain> Client<C> for RpcClient<C> {
 	async fn submit_signed_extrinsic(
 		&self,
 		signer: &AccountKeyPairOf<C>,
-		prepare_extrinsic: impl FnOnce(HeaderIdOf<C>, IndexOf<C>) -> Result<UnsignedTransaction<C>>
+		prepare_extrinsic: impl FnOnce(HeaderIdOf<C>, NonceOf<C>) -> Result<UnsignedTransaction<C>>
 			+ Send
 			+ 'static,
 	) -> Result<HashOf<C>>
@@ -430,7 +430,7 @@ impl<C: Chain> Client<C> for RpcClient<C> {
 	async fn submit_and_watch_signed_extrinsic(
 		&self,
 		signer: &AccountKeyPairOf<C>,
-		prepare_extrinsic: impl FnOnce(HeaderIdOf<C>, IndexOf<C>) -> Result<UnsignedTransaction<C>>
+		prepare_extrinsic: impl FnOnce(HeaderIdOf<C>, NonceOf<C>) -> Result<UnsignedTransaction<C>>
 			+ Send
 			+ 'static,
 	) -> Result<TransactionTracker<C, Self>>

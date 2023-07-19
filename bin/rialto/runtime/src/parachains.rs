@@ -68,6 +68,7 @@ impl parachains_dmp::Config for Runtime {}
 impl parachains_hrmp::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 	type RuntimeOrigin = RuntimeOrigin;
+	type ChannelManager = EnsureRoot<Self::AccountId>;
 	type Currency = Balances;
 	type WeightInfo = parachains_hrmp::TestWeightInfo;
 }
@@ -225,6 +226,7 @@ impl pallet_message_queue::Config for Runtime {
 		pallet_message_queue::mock_helpers::NoopMessageProcessor<AggregateMessageOrigin>;
 	type QueueChangeHandler = crate::Inclusion;
 	type WeightInfo = ();
+	type QueuePausedQuery = ();
 }
 
 // required onboarding pallets. We're not going to use auctions or crowdloans, so they're missing

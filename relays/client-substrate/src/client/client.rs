@@ -17,7 +17,7 @@
 use crate::{
 	error::{Error, Result},
 	AccountIdOf, AccountKeyPairOf, BlockNumberOf, Chain, ChainWithGrandpa, ChainWithTransactions,
-	HashOf, HeaderIdOf, HeaderOf, IndexOf, SignedBlockOf, SimpleRuntimeVersion, Subscription,
+	HashOf, HeaderIdOf, HeaderOf, NonceOf, SignedBlockOf, SimpleRuntimeVersion, Subscription,
 	TransactionTracker, UnsignedTransaction,
 };
 
@@ -165,7 +165,7 @@ pub trait Client<C: Chain>: 'static + Send + Sync + Clone + Debug {
 	async fn submit_signed_extrinsic(
 		&self,
 		signer: &AccountKeyPairOf<C>,
-		prepare_extrinsic: impl FnOnce(HeaderIdOf<C>, IndexOf<C>) -> Result<UnsignedTransaction<C>>
+		prepare_extrinsic: impl FnOnce(HeaderIdOf<C>, NonceOf<C>) -> Result<UnsignedTransaction<C>>
 			+ Send
 			+ 'static,
 	) -> Result<HashOf<C>>
@@ -177,7 +177,7 @@ pub trait Client<C: Chain>: 'static + Send + Sync + Clone + Debug {
 	async fn submit_and_watch_signed_extrinsic(
 		&self,
 		signer: &AccountKeyPairOf<C>,
-		prepare_extrinsic: impl FnOnce(HeaderIdOf<C>, IndexOf<C>) -> Result<UnsignedTransaction<C>>
+		prepare_extrinsic: impl FnOnce(HeaderIdOf<C>, NonceOf<C>) -> Result<UnsignedTransaction<C>>
 			+ Send
 			+ 'static,
 	) -> Result<TransactionTracker<C, Self>>

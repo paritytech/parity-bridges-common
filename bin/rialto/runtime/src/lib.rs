@@ -94,8 +94,8 @@ pub type AccountIndex = u32;
 /// Balance of an account.
 pub type Balance = bp_rialto::Balance;
 
-/// Index of a transaction in the chain.
-pub type Index = bp_rialto::Index;
+/// Nonce of a transaction in the chain.
+pub type Nonce = bp_rialto::Nonce;
 
 /// A hash of some data used by the chain.
 pub type Hash = bp_rialto::Hash;
@@ -170,15 +170,13 @@ impl frame_system::Config for Runtime {
 	/// The lookup mechanism to get account ID from whatever is passed in dispatchers.
 	type Lookup = AccountIdLookup<AccountId, ()>;
 	/// The index type for storing how many extrinsics an account has signed.
-	type Index = Index;
-	/// The index type for blocks.
-	type BlockNumber = BlockNumber;
+	type Nonce = Nonce;
 	/// The type for hashing blocks and tries.
 	type Hash = Hash;
 	/// The hashing algorithm used.
 	type Hashing = Hashing;
 	/// The header type.
-	type Header = generic::Header<BlockNumber, Hashing>;
+	type Block = Block;
 	/// The ubiquitous event type.
 	type RuntimeEvent = RuntimeEvent;
 	/// The ubiquitous origin type.
@@ -238,6 +236,8 @@ impl pallet_babe::Config for Runtime {
 	// equivocation related configuration - we don't expect any equivocations in our testnets
 	type KeyOwnerProof = sp_core::Void;
 	type EquivocationReportSystem = ();
+
+	type MaxNominators = ConstU32<256>;
 }
 
 impl pallet_beefy::Config for Runtime {
@@ -248,6 +248,7 @@ impl pallet_beefy::Config for Runtime {
 	type WeightInfo = ();
 	type KeyOwnerProof = sp_core::Void;
 	type EquivocationReportSystem = ();
+	type MaxNominators = ConstU32<256>;
 }
 
 impl pallet_grandpa::Config for Runtime {
@@ -258,6 +259,7 @@ impl pallet_grandpa::Config for Runtime {
 	type MaxSetIdSessionEntries = ConstU64<0>;
 	type KeyOwnerProof = sp_core::Void;
 	type EquivocationReportSystem = ();
+	type MaxNominators = ConstU32<256>;
 }
 
 impl pallet_mmr::Config for Runtime {
@@ -442,25 +444,21 @@ impl pallet_bridge_beefy::Config<MillauBeefyInstance> for Runtime {
 }
 
 construct_runtime!(
-	pub enum Runtime where
-		Block = Block,
-		NodeBlock = opaque::Block,
-		UncheckedExtrinsic = UncheckedExtrinsic
-	{
-		System: frame_system::{Pallet, Call, Config, Storage, Event<T>},
+	pub enum Runtime {
+		System: frame_system::{Pallet, Call, Config<T>, Storage, Event<T>},
 		Sudo: pallet_sudo::{Pallet, Call, Config<T>, Storage, Event<T>},
 
 		// Must be before session.
-		Babe: pallet_babe::{Pallet, Call, Storage, Config, ValidateUnsigned},
+		Babe: pallet_babe::{Pallet, Call, Storage, Config<T>, ValidateUnsigned},
 
 		Timestamp: pallet_timestamp::{Pallet, Call, Storage, Inherent},
 		Balances: pallet_balances::{Pallet, Call, Storage, Config<T>, Event<T>},
 		TransactionPayment: pallet_transaction_payment::{Pallet, Storage, Event<T>},
 
 		// Consensus support.
-		AuthorityDiscovery: pallet_authority_discovery::{Pallet, Config},
+		AuthorityDiscovery: pallet_authority_discovery::{Pallet, Config<T>},
 		Session: pallet_session::{Pallet, Call, Storage, Event, Config<T>},
-		Grandpa: pallet_grandpa::{Pallet, Call, Storage, Config, Event},
+		Grandpa: pallet_grandpa::{Pallet, Call, Storage, Config<T>, Event},
 		ShiftSessionManager: pallet_shift_session_manager::{Pallet},
 
 		// BEEFY Bridges support.
@@ -483,10 +481,10 @@ construct_runtime!(
 		Inclusion: polkadot_runtime_parachains::inclusion::{Pallet, Call, Storage, Event<T>},
 		ParasInherent: polkadot_runtime_parachains::paras_inherent::{Pallet, Call, Storage, Inherent},
 		Scheduler: polkadot_runtime_parachains::scheduler::{Pallet, Storage},
-		Paras: polkadot_runtime_parachains::paras::{Pallet, Call, Storage, Event, Config, ValidateUnsigned},
+		Paras: polkadot_runtime_parachains::paras::{Pallet, Call, Storage, Event, Config<T>, ValidateUnsigned},
 		Initializer: polkadot_runtime_parachains::initializer::{Pallet, Call, Storage},
 		Dmp: polkadot_runtime_parachains::dmp::{Pallet, Storage},
-		Hrmp: polkadot_runtime_parachains::hrmp::{Pallet, Call, Storage, Event<T>, Config},
+		Hrmp: polkadot_runtime_parachains::hrmp::{Pallet, Call, Storage, Event<T>, Config<T>},
 		SessionInfo: polkadot_runtime_parachains::session_info::{Pallet, Storage},
 		ParaSessionInfo: polkadot_runtime_parachains::session_info::{Pallet, Storage},
 		ParasDisputes: polkadot_runtime_parachains::disputes::{Pallet, Call, Storage, Event<T>},
@@ -499,7 +497,7 @@ construct_runtime!(
 		ParasSudoWrapper: polkadot_runtime_common::paras_sudo_wrapper::{Pallet, Call},
 
 		// Pallet for sending XCM.
-		XcmPallet: pallet_xcm::{Pallet, Call, Storage, Event<T>, Origin, Config} = 99,
+		XcmPallet: pallet_xcm::{Pallet, Call, Storage, Event<T>, Origin, Config<T>} = 99,
 	}
 );
 
@@ -600,8 +598,8 @@ impl_runtime_apis! {
 		}
 	}
 
-	impl frame_system_rpc_runtime_api::AccountNonceApi<Block, AccountId, Index> for Runtime {
-		fn account_nonce(account: AccountId) -> Index {
+	impl frame_system_rpc_runtime_api::AccountNonceApi<Block, AccountId, Nonce> for Runtime {
+		fn account_nonce(account: AccountId) -> Nonce {
 			System::account_nonce(account)
 		}
 	}

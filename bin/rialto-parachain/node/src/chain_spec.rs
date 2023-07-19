@@ -183,12 +183,16 @@ fn testnet_genesis(
 			code: rialto_parachain_runtime::WASM_BINARY
 				.expect("WASM binary was not build, please build it!")
 				.to_vec(),
+			..Default::default()
 		},
 		balances: rialto_parachain_runtime::BalancesConfig {
 			balances: endowed_accounts.iter().cloned().map(|k| (k, 1 << 60)).collect(),
 		},
 		sudo: rialto_parachain_runtime::SudoConfig { key: Some(root_key) },
-		parachain_info: rialto_parachain_runtime::ParachainInfoConfig { parachain_id: id },
+		parachain_info: rialto_parachain_runtime::ParachainInfoConfig {
+			parachain_id: id,
+			..Default::default()
+		},
 		aura: rialto_parachain_runtime::AuraConfig { authorities: initial_authorities },
 		aura_ext: Default::default(),
 		bridge_millau_messages: BridgeMillauMessagesConfig {

@@ -173,8 +173,8 @@ pub trait Chain: Send + Sync + 'static {
 		+ Zero
 		+ TryFrom<sp_core::U256>
 		+ MaxEncodedLen;
-	/// Index of a transaction used by the chain.
-	type Index: Parameter
+	/// Nonce of a transaction used by the chain.
+	type Nonce: Parameter
 		+ Member
 		+ MaybeSerialize
 		+ Debug
@@ -215,7 +215,7 @@ where
 	type Header = <T::Chain as Chain>::Header;
 	type AccountId = <T::Chain as Chain>::AccountId;
 	type Balance = <T::Chain as Chain>::Balance;
-	type Index = <T::Chain as Chain>::Index;
+	type Nonce = <T::Chain as Chain>::Nonce;
 	type Signature = <T::Chain as Chain>::Signature;
 
 	const STATE_VERSION: StateVersion = <T::Chain as Chain>::STATE_VERSION;
@@ -272,8 +272,8 @@ pub type AccountIdOf<C> = <C as Chain>::AccountId;
 /// Balance type used by the chain.
 pub type BalanceOf<C> = <C as Chain>::Balance;
 
-/// Transaction index type used by the chain.
-pub type IndexOf<C> = <C as Chain>::Index;
+/// Transaction nonce type used by the chain.
+pub type NonceOf<C> = <C as Chain>::Nonce;
 
 /// Signature type used by the chain.
 pub type SignatureOf<C> = <C as Chain>::Signature;
