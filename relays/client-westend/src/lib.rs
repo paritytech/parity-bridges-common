@@ -56,20 +56,20 @@ impl ChainWithBalances for Westend {
 	}
 }
 
-/// Westmint parachain definition
+/// AssetHubWestend parachain definition
 #[derive(Debug, Clone, Copy)]
-pub struct Westmint;
+pub struct AssetHubWestend;
 
-impl UnderlyingChainProvider for Westmint {
-	type Chain = bp_westend::Westmint;
+impl UnderlyingChainProvider for AssetHubWestend {
+	type Chain = bp_westend::AssetHubWestend;
 }
 
-// Westmint seems to use the same configuration as all Polkadot-like chains, so we'll use Westend
-// primitives here.
-impl Chain for Westmint {
-	const NAME: &'static str = "Westmint";
+// AssetHubWestend seems to use the same configuration as all Polkadot-like chains, so we'll use
+// Westend primitives here.
+impl Chain for AssetHubWestend {
+	const NAME: &'static str = "AssetHubWestend";
 	const BEST_FINALIZED_HEADER_ID_METHOD: &'static str =
-		bp_westend::BEST_FINALIZED_WESTMINT_HEADER_METHOD;
+		bp_westend::BEST_FINALIZED_ASSETHUBWESTEND_HEADER_METHOD;
 	const AVERAGE_BLOCK_INTERVAL: Duration = Duration::from_secs(6);
 
 	type SignedBlock = bp_westend::SignedBlock;
