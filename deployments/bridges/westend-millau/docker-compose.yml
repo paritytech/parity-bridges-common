@@ -46,7 +46,7 @@ services:
       - ./bridges/westend-millau/entrypoints:/entrypoints
     environment:
       RUST_LOG: rpc=trace,bridge=trace
-      EXT_RELAY_ACCOUNT: //Westend.WestmintHeaders2
+      EXT_RELAY_ACCOUNT: //Westend.AssetHubWestendHeaders2
     ports:
       - "10619:9616"
     depends_on:
