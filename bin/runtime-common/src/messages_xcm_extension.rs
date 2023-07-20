@@ -219,7 +219,8 @@ where
 // TODO: it must be a part of `pallet-xcm-bridge-hub`
 pub struct LocalInboundXcmChannelSuspender<Origin, Inner>(PhantomData<(Origin, Inner)>);
 
-impl<Origin, Inner> QueuePausedQuery<Origin> for LocalInboundXcmChannelSuspender where
+impl<Origin, Inner> QueuePausedQuery<Origin> for LocalInboundXcmChannelSuspender
+where
 	Origin: Into<MultiLocation>,
 	Inner: QueuePausedQuery<Origin>,
 {
@@ -231,8 +232,8 @@ impl<Origin, Inner> QueuePausedQuery<Origin> for LocalInboundXcmChannelSuspender
 
 		// TODO: if at least one bridge, owner by the `origin` has too many messages, return true
 
-		// TODO: where we should resume the channel? Two options: here OR from the `pallet-xcm-bridge`
-		// `on_initialize` (or `on_idle`?)
+		// TODO: where we should resume the channel? Two options: here OR from the
+		// `pallet-xcm-bridge` `on_initialize` (or `on_idle`?)
 
 		false
 	}
@@ -240,7 +241,8 @@ impl<Origin, Inner> QueuePausedQuery<Origin> for LocalInboundXcmChannelSuspender
 
 pub struct BridgeMessageProcessor<Origin, Inner>(PhantomData<(Origin, Inner)>);
 
-impl<Origin, Inner> ProcessMessage for BridgeMessageProcessor<Origin, Inner> where
+impl<Origin, Inner> ProcessMessage for BridgeMessageProcessor<Origin, Inner>
+where
 	Origin: Into<MultiLocation>,
 	Inner: ProcessMessage<Origin = Origin>,
 {
@@ -252,7 +254,8 @@ impl<Origin, Inner> ProcessMessage for BridgeMessageProcessor<Origin, Inner> whe
 		meter: &mut WeightMeter,
 		id: &mut [u8; 32],
 	) -> Result<bool, ProcessMessageError> {
-		// TODO: if at least one bridge, owner by the `origin` has too many messages, return Err(ProcessMessageError::Yield)
+		// TODO: if at least one bridge, owner by the `origin` has too many messages, return
+		// Err(ProcessMessageError::Yield)
 
 		// else pass message to backed processor
 		Inner::process_message(message, origin, meter, id)
