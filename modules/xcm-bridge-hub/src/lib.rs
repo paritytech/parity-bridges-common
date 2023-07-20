@@ -64,6 +64,7 @@ use xcm::prelude::*;
 use xcm_builder::DispatchBlob;
 use xcm_executor::traits::ConvertLocation;
 
+pub use backpressure::{LocalXcmQueueMessageProcessor, LocalXcmQueueSuspender};
 pub use dispatcher::XcmBlobMessageDispatchResult;
 pub use pallet::*;
 

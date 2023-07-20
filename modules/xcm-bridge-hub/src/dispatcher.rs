@@ -52,6 +52,11 @@ where
 	type DispatchPayload = XcmAsPlainPayload;
 	type DispatchLevelResult = XcmBlobMessageDispatchResult;
 
+	fn is_active() -> bool {
+		// TODO: `fn is_active() -> bool` obviously is not enough - it should be per-lane/per-destination
+		true
+	}
+
 	fn dispatch_weight(message: &mut DispatchMessage<Self::DispatchPayload>) -> Weight {
 		match message.data.payload {
 			Ok(ref payload) => {

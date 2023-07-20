@@ -26,7 +26,7 @@ use frame_support::{
 	ensure, CloneNoBound, PalletError, PartialEqNoBound, RuntimeDebug, RuntimeDebugNoBound,
 };
 use scale_info::TypeInfo;
-use sp_std::boxed::Box;
+use sp_std::{boxed::Box, vec::Vec};
 use xcm::{latest::prelude::*, VersionedMultiLocation};
 
 /// A manager of XCM communication channels between the bridge hub and parent/sibling chains
@@ -107,8 +107,9 @@ pub struct Bridge<ThisChain: Chain> {
 	pub reserve: BalanceOf<ThisChain>,
 }
 
-/// Short information on all bridges opened by the same "owner" (origin).
-pub struct OriginBridges {
+/// Short information on all bridges opened by the same local origin (sibling/parent chain).
+#[derive(Decode, Encode, Eq, PartialEqNoBound, TypeInfo, RuntimeDebugNoBound)]
+pub struct OriginBridges<MaxBridgesPerLocalOrigin> {
 	/// Identifiers of all currently opened bridges.
 	pub opened_bridges: Vec<LaneId>,
 	/// Identifiers of all currently overloaded bridges.
