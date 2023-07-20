@@ -60,8 +60,8 @@ impl ChainWithGrandpa for Westend {
 #[derive(Debug, Clone, Copy)]
 pub struct AssetHubWestend;
 
-// AssetHubWestend seems to use the same configuration as all Polkadot-like chains, so we'll use Westend
-// primitives here.
+// AssetHubWestend seems to use the same configuration as all Polkadot-like chains, so we'll use
+// Westend primitives here.
 impl Chain for AssetHubWestend {
 	type BlockNumber = BlockNumber;
 	type Hash = Hash;
