@@ -29,13 +29,13 @@ sp-std = { git = "https://github.com/paritytech/substrate", branch = "master", d
 # Polkadot Dependencies
 
 xcm = { git = "https://github.com/paritytech/polkadot", branch = "master", default-features = false }
+xcm-builder = { git = "https://github.com/paritytech/polkadot", branch = "master" }
 xcm-executor = { git = "https://github.com/paritytech/polkadot", branch = "master", default-features = false }
 
 [dev-dependencies]
 pallet-balances = { git = "https://github.com/paritytech/substrate", branch = "master" }
 polkadot-parachain = { git = "https://github.com/paritytech/polkadot", branch = "master" }
 sp-io = { git = "https://github.com/paritytech/substrate", branch = "master" }
-xcm-builder = { git = "https://github.com/paritytech/polkadot", branch = "master" }
 
 [features]
 default = ["std"]
@@ -52,6 +52,7 @@ std = [
 	"sp-runtime/std",
 	"sp-std/std",
 	"xcm/std",
+	"xcm-builder/std",
 	"xcm-executor/std",
 ]
 runtime-benchmarks = []

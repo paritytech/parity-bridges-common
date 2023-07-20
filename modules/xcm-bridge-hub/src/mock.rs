@@ -38,7 +38,7 @@ use sp_runtime::{
 	AccountId32, BuildStorage,
 };
 use xcm::prelude::*;
-use xcm_builder::{ParentIsPreset, SiblingParachainConvertsVia};
+use xcm_builder::{DispatchBlob, DispatchBlobError, ParentIsPreset, SiblingParachainConvertsVia};
 
 pub type AccountId = AccountId32;
 pub type Balance = u64;
@@ -225,6 +225,17 @@ impl pallet_xcm_bridge_hub::Config for TestRuntime {
 
 	type BridgeReserve = BridgeReserve;
 	type NativeCurrency = Balances;
+
+	type BlobDispatcher = TestBlobDispatcher;
+	type MessageExportPrice = ();
+}
+
+pub struct TestBlobDispatcher;
+
+impl DispatchBlob for TestBlobDispatcher {
+	fn dispatch_blob(_blob: Vec<u8>) -> Result<(), DispatchBlobError> {
+		Ok(())
+	}
 }
 
 pub struct ThisChain;
