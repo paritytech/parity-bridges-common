@@ -107,6 +107,16 @@ pub struct Bridge<ThisChain: Chain> {
 	pub reserve: BalanceOf<ThisChain>,
 }
 
+/// Short information on all bridges opened by the same "owner" (origin).
+pub struct OriginBridges {
+	/// Identifiers of all currently opened bridges.
+	pub opened_bridges: Vec<LaneId>,
+	/// Identifiers of all currently overloaded bridges.
+	pub overloaded_bridges: Vec<LaneId>,
+	/// Identifiers of all currently closing bridges.
+	pub closing_bridges: Vec<LaneId>,
+}
+
 /// Locations of bridge endpoints at both sides of the bridge.
 #[derive(Clone, RuntimeDebug, PartialEq, Eq)]
 pub struct BridgeLocations {

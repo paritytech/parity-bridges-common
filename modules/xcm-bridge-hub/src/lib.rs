@@ -65,6 +65,8 @@ use xcm_executor::traits::ConvertLocation;
 
 pub use pallet::*;
 
+pub mod backpressure;
+
 mod mock;
 
 /// The target that will be used when publishing logs related to this pallet.
