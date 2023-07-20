@@ -40,7 +40,7 @@ impl bp_runtime::Chain for TestChain {
 
 	type AccountId = u32;
 	type Balance = u32;
-	type Index = u32;
+	type Nonce = u32;
 	type Signature = sp_runtime::testing::TestSignature;
 
 	const STATE_VERSION: StateVersion = StateVersion::V1;
@@ -85,7 +85,7 @@ impl bp_runtime::Chain for TestParachainBase {
 
 	type AccountId = u32;
 	type Balance = u32;
-	type Index = u32;
+	type Nonce = u32;
 	type Signature = sp_runtime::testing::TestSignature;
 
 	const STATE_VERSION: StateVersion = StateVersion::V1;

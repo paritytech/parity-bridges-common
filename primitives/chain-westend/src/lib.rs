@@ -39,7 +39,7 @@ impl Chain for Westend {
 
 	type AccountId = AccountId;
 	type Balance = Balance;
-	type Index = Index;
+	type Nonce = Nonce;
 	type Signature = Signature;
 
 	const STATE_VERSION: StateVersion = StateVersion::V1;
@@ -62,14 +62,14 @@ impl ChainWithGrandpa for Westend {
 	const AVERAGE_HEADER_SIZE_IN_JUSTIFICATION: u32 = AVERAGE_HEADER_SIZE_IN_JUSTIFICATION;
 }
 
-/// Westmint parachain definition
+/// `AssetHubWestend` parachain definition
 #[derive(Debug, Clone, Copy)]
-pub struct Westmint;
+pub struct AssetHubWestend;
 
-// Westmint seems to use the same configuration as all Polkadot-like chains, so we'll use Westend
-// primitives here.
-impl Chain for Westmint {
-	const ID: ChainId = *b"wmnt";
+// AssetHubWestend seems to use the same configuration as all Polkadot-like chains, so we'll use
+// Westend primitives here.
+impl Chain for AssetHubWestend {
+	const ID: ChainId = *b"ahwe";
 
 	type BlockNumber = BlockNumber;
 	type Hash = Hash;
@@ -78,7 +78,7 @@ impl Chain for Westmint {
 
 	type AccountId = AccountId;
 	type Balance = Balance;
-	type Index = Nonce;
+	type Nonce = Nonce;
 	type Signature = Signature;
 
 	const STATE_VERSION: StateVersion = StateVersion::V0;
@@ -92,8 +92,8 @@ impl Chain for Westmint {
 	}
 }
 
-impl Parachain for Westmint {
-	const PARACHAIN_ID: u32 = WESTMINT_PARACHAIN_ID;
+impl Parachain for AssetHubWestend {
+	const PARACHAIN_ID: u32 = ASSET_HUB_WESTEND_PARACHAIN_ID;
 }
 
 /// Name of the parachains pallet at the Westend runtime.
@@ -110,9 +110,9 @@ pub const WITH_WESTEND_BRIDGE_PARAS_PALLET_NAME: &str = "BridgeWestendParachains
 /// reserve.
 pub const MAX_NESTED_PARACHAIN_HEAD_DATA_SIZE: u32 = 128;
 
-/// Identifier of Westmint parachain at the Westend relay chain.
-pub const WESTMINT_PARACHAIN_ID: u32 = 1000;
+/// Identifier of `AssetHubWestend` parachain at the Westend relay chain.
+pub const ASSET_HUB_WESTEND_PARACHAIN_ID: u32 = 1000;
 
 decl_bridge_finality_runtime_apis!(westend);
 
-decl_bridge_finality_runtime_apis!(westmint);
+decl_bridge_finality_runtime_apis!(AssetHubWestend);

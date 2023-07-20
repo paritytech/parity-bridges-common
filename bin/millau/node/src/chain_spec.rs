@@ -165,8 +165,8 @@ fn endowed_accounts() -> Vec<AccountId> {
 		get_account_id_from_seed::<sr25519::Public>(WESTEND_GRANDPA_PALLET_OWNER),
 		get_account_id_from_seed::<sr25519::Public>("Westend.HeadersRelay1"),
 		get_account_id_from_seed::<sr25519::Public>("Westend.HeadersRelay2"),
-		get_account_id_from_seed::<sr25519::Public>("Westend.WestmintHeaders1"),
-		get_account_id_from_seed::<sr25519::Public>("Westend.WestmintHeaders2"),
+		get_account_id_from_seed::<sr25519::Public>("Westend.AssetHubWestendHeaders1"),
+		get_account_id_from_seed::<sr25519::Public>("Westend.AssetHubWestendHeaders2"),
 		// Accounts, used by Rialto<>Millau bridge
 		get_account_id_from_seed::<sr25519::Public>(RIALTO_MESSAGES_PALLET_OWNER),
 		get_account_id_from_seed::<sr25519::Public>("Rialto.HeadersAndMessagesRelay"),
@@ -199,13 +199,14 @@ fn testnet_genesis(
 	RuntimeGenesisConfig {
 		system: SystemConfig {
 			code: WASM_BINARY.expect("Millau development WASM not available").to_vec(),
+			..Default::default()
 		},
 		balances: BalancesConfig {
 			balances: endowed_accounts.iter().cloned().map(|k| (k, 1 << 50)).collect(),
 		},
 		aura: AuraConfig { authorities: Vec::new() },
 		beefy: BeefyConfig::default(),
-		grandpa: GrandpaConfig { authorities: Vec::new() },
+		grandpa: GrandpaConfig { authorities: Vec::new(), ..Default::default() },
 		sudo: SudoConfig { key: Some(root_key) },
 		session: SessionConfig {
 			keys: initial_authorities

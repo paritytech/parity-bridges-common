@@ -98,8 +98,8 @@ pub type Balance = u128;
 /// An instant or duration in time.
 pub type Moment = u64;
 
-/// Index of a transaction in the parachain.
-pub type Index = u32;
+/// Nonce of a transaction in the parachain.
+pub type Nonce = u32;
 
 /// Weight-to-Fee type used by Rialto parachain.
 pub type WeightToFee = IdentityFee<Balance>;
@@ -118,7 +118,7 @@ impl Chain for RialtoParachain {
 
 	type AccountId = AccountId;
 	type Balance = Balance;
-	type Index = Index;
+	type Nonce = Nonce;
 	type Signature = Signature;
 
 	const STATE_VERSION: StateVersion = StateVersion::V0;

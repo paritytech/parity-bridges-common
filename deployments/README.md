@@ -131,7 +131,7 @@ Following accounts are used when `westend-millau` bridge is running:
 
 - Millau's `Westend.GrandpaOwner` is signing with-Westend GRANDPA pallet initialization transaction.
 - Millau's `Westend.HeadersRelay1` and `Westend.HeadersRelay2` are signing transactions with new Westend headers.
-- Millau's `Westend.WestmintHeaders1` and `Westend.WestmintHeaders2` is signing transactions with new Westming headers.
+- Millau's `Westend.AssetHubWestendHeaders1` and `Westend.AssetHubWestendHeaders2` is signing transactions with new Westming headers.
 
 Following accounts are used when `rialto-parachain-millau` bridge is running:
 

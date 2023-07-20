@@ -59,7 +59,7 @@ use bp_xcm_bridge_hub::{
 use frame_support::traits::{Currency, ReservableCurrency};
 use frame_system::Config as SystemConfig;
 use pallet_bridge_messages::{Config as BridgeMessagesConfig, LanesManagerError};
-use sp_runtime::traits::Zero;
+use sp_runtime::traits::{Header as HeaderT, HeaderProvider, Zero};
 use xcm::prelude::*;
 use xcm_executor::traits::ConvertLocation;
 
@@ -132,10 +132,9 @@ pub mod pallet {
 	#[pallet::call]
 	impl<T: Config<I>, I: 'static> Pallet<T, I>
 	where
-		T: frame_system::Config<
-			AccountId = AccountIdOf<ThisChainOf<T, I>>,
-			BlockNumber = BlockNumberOf<ThisChainOf<T, I>>,
-		>,
+		T: frame_system::Config<AccountId = AccountIdOf<ThisChainOf<T, I>>>,
+		<<T as frame_system::Config>::Block as HeaderProvider>::HeaderT:
+			HeaderT<Number = BlockNumberOf<ThisChainOf<T, I>>>,
 		T::NativeCurrency: Currency<T::AccountId, Balance = BalanceOf<ThisChainOf<T, I>>>,
 	{
 		/// Open a bridge between two locations.
@@ -338,10 +337,9 @@ pub mod pallet {
 
 	impl<T: Config<I>, I: 'static> Pallet<T, I>
 	where
-		T: frame_system::Config<
-			AccountId = AccountIdOf<ThisChainOf<T, I>>,
-			BlockNumber = BlockNumberOf<ThisChainOf<T, I>>,
-		>,
+		T: frame_system::Config<AccountId = AccountIdOf<ThisChainOf<T, I>>>,
+		<<T as frame_system::Config>::Block as HeaderProvider>::HeaderT:
+			HeaderT<Number = BlockNumberOf<ThisChainOf<T, I>>>,
 		T::NativeCurrency: Currency<T::AccountId, Balance = BalanceOf<ThisChainOf<T, I>>>,
 	{
 		/// Return bridge endpoint locations and dedicated lane identifier.
