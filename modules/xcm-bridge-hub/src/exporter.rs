@@ -127,7 +127,7 @@ where
 ///
 /// We are using `HaulBlobExporter`, which requires `HaulBlob` implementation. It assumes that
 /// there's a single channel between two bridge hubs - `HaulBlob` only accepts the blob and nothing
-/// else. But bridge messages pallet maye have a dedicated channel (lane) for every pair of bridged
+/// else. But bridge messages pallet may have a dedicated channel (lane) for every pair of bridged
 /// chains. So we are using our own `ExportXcm` implementation, but to utilize `HaulBlobExporter` we
 /// still need this `DummyHaulBlob`.
 struct DummyHaulBlob;
