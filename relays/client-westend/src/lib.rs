@@ -66,8 +66,6 @@ impl UnderlyingChainProvider for AssetHubWestend {
 	type Chain = bp_westend::AssetHubWestend;
 }
 
-
-
 // Westmint seems to use the same configuration as all Polkadot-like chains, so we'll use Westend
 // primitives here.
 impl Chain for AssetHubWestend {
