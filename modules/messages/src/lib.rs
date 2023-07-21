@@ -53,7 +53,8 @@ use crate::{
 
 use bp_messages::{
 	source_chain::{
-		DeliveryConfirmationPayments, LaneMessageVerifier, SendMessageArtifacts, TargetHeaderChain,
+		DeliveryConfirmationPayments, LaneMessageVerifier, OnMessagesDelivered,
+		SendMessageArtifacts, TargetHeaderChain,
 	},
 	target_chain::{
 		DeliveryPayments, DispatchMessage, MessageDispatch, ProvedLaneMessages, ProvedMessages,
@@ -158,6 +159,8 @@ pub mod pallet {
 		type LaneMessageVerifier: LaneMessageVerifier<Self::RuntimeOrigin, Self::OutboundPayload>;
 		/// Delivery confirmation payments.
 		type DeliveryConfirmationPayments: DeliveryConfirmationPayments<Self::AccountId>;
+		/// Delivery confirmation callback.
+		type OnMessagesDelivered: OnMessagesDelivered;
 
 		// Types that are used by inbound_lane (on target chain).
 
@@ -487,6 +490,12 @@ pub mod pallet {
 				"Received messages delivery proof up to (and including) {} at lane {:?}",
 				last_delivered_nonce,
 				lane_id,
+			);
+
+			// notify others about messages delivery
+			T::OnMessagesDelivered::on_messages_delivered(
+				lane_id,
+				lane.queued_messages().checked_len().unwrap_or(0),
 			);
 
 			// because of lags, the inbound lane state (`lane_data`) may have entries for

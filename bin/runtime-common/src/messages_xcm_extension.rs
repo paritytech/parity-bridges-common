@@ -22,7 +22,7 @@
 //! `XcmRouter` <- `MessageDispatch` <- `InboundMessageQueue`
 
 use bp_messages::{
-	source_chain::MessagesBridge,
+	source_chain::{MessagesBridge, OnMessagesDelivered},
 	target_chain::{DispatchMessage, MessageDispatch},
 	LaneId, MessageNonce,
 };
@@ -133,6 +133,7 @@ pub trait XcmBlobHauler {
 /// XCM bridge adapter which connects [`XcmBlobHauler`] with [`XcmBlobHauler::MessageSender`] and
 /// makes sure that XCM blob is sent to the [`pallet_bridge_messages`] queue to be relayed.
 pub struct XcmBlobHaulerAdapter<XcmBlobHauler>(sp_std::marker::PhantomData<XcmBlobHauler>);
+
 impl<HaulerOrigin, H: XcmBlobHauler<MessageSenderOrigin = HaulerOrigin>> HaulBlob
 	for XcmBlobHaulerAdapter<H>
 {
@@ -147,7 +148,7 @@ impl<HaulerOrigin, H: XcmBlobHauler<MessageSenderOrigin = HaulerOrigin>> HaulBlo
 					lane
 				);
 
-				// notify XCM queue manager about new message
+				// notify XCM queue manager about updated lane state
 				LocalXcmQueueManager::on_bridge_message_enqueued(
 					Box::new(H::sending_chain_location()),
 					lane,
@@ -163,6 +164,19 @@ impl<HaulerOrigin, H: XcmBlobHauler<MessageSenderOrigin = HaulerOrigin>> HaulBlo
 				);
 				HaulBlobError::Transport("MessageSenderError")
 			})
+	}
+}
+
+impl<HaulerOrigin, H: XcmBlobHauler<MessageSenderOrigin = HaulerOrigin>> OnMessagesDelivered
+	for XcmBlobHaulerAdapter<H>
+{
+	fn on_messages_delivered(lane: LaneId, enqueued_messages: MessageNonce) {
+		// notify XCM queue manager about updated lane state
+		LocalXcmQueueManager::on_bridge_messages_delivered(
+			Box::new(H::sending_chain_location()),
+			lane,
+			enqueued_messages,
+		);
 	}
 }
 
