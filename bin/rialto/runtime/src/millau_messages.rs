@@ -25,7 +25,7 @@ use bridge_runtime_common::{
 	},
 	messages_xcm_extension::{XcmBlobHauler, XcmBlobHaulerAdapter},
 };
-use frame_support::{parameter_types, weights::Weight, RuntimeDebug};
+use frame_support::{parameter_types, traits::ConstBool, weights::Weight, RuntimeDebug};
 use xcm::latest::prelude::*;
 use xcm_builder::HaulBlobExporter;
 
@@ -59,6 +59,7 @@ pub type FromMillauMessageDispatch =
 	bridge_runtime_common::messages_xcm_extension::XcmBlobMessageDispatch<
 		crate::xcm_config::OnRialtoBlobDispatcher,
 		(),
+		ConstBool<true>,
 	>;
 
 /// Messages proof for Millau -> Rialto messages.

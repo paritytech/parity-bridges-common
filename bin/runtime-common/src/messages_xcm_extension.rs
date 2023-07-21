@@ -30,7 +30,7 @@ use bp_runtime::messages::MessageDispatchResult;
 use codec::{Decode, Encode, FullCodec, MaxEncodedLen};
 use frame_support::{
 	dispatch::Weight,
-	traits::{ProcessMessage, ProcessMessageError, QueuePausedQuery},
+	traits::{Get, ProcessMessage, ProcessMessageError, QueuePausedQuery},
 	weights::WeightMeter,
 	CloneNoBound, EqNoBound, PartialEqNoBound,
 };
@@ -54,15 +54,31 @@ pub enum XcmBlobMessageDispatchResult {
 }
 
 /// [`XcmBlobMessageDispatch`] is responsible for dispatching received messages
-pub struct XcmBlobMessageDispatch<DispatchBlob, Weights> {
-	_marker: sp_std::marker::PhantomData<(DispatchBlob, Weights)>,
+pub struct XcmBlobMessageDispatch<DispatchBlob, Weights, IsChannelActive> {
+	_marker: sp_std::marker::PhantomData<(DispatchBlob, Weights, IsChannelActive)>,
 }
 
-impl<BlobDispatcher: DispatchBlob, Weights: MessagesPalletWeights> MessageDispatch
-	for XcmBlobMessageDispatch<BlobDispatcher, Weights>
+impl<BlobDispatcher: DispatchBlob, Weights: MessagesPalletWeights, IsChannelActive: Get<bool>>
+	MessageDispatch for XcmBlobMessageDispatch<BlobDispatcher, Weights, IsChannelActive>
 {
 	type DispatchPayload = XcmAsPlainPayload;
 	type DispatchLevelResult = XcmBlobMessageDispatchResult;
+
+	fn is_active() -> bool {
+		// TODO: we can only implement `IsChannelActive` in Cumulus. Assuming that all messages
+		// will only be sent to taget asset hub:
+		//
+		// ```rust
+		// pub struct IsChannelWithAssetHubActive;
+		//
+		// impl Get<bool> for IsChannelWithAssetHubActive {
+		//     fn get() -> bool {
+		//         !cumulus_pallet_xcmp_queue::InboundXcmpSuspended::get().contains(&SIBLNG_ASSET_HUB_PARA_ID)
+		//     }
+		// }
+		// ```
+		IsChannelActive::get()
+	}
 
 	fn dispatch_weight(message: &mut DispatchMessage<Self::DispatchPayload>) -> Weight {
 		match message.data.payload {

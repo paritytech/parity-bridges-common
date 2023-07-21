@@ -412,6 +412,10 @@ impl MessageDispatch for TestMessageDispatch {
 	type DispatchPayload = TestPayload;
 	type DispatchLevelResult = TestDispatchLevelResult;
 
+	fn is_active() -> bool {
+		true
+	}
+
 	fn dispatch_weight(message: &mut DispatchMessage<TestPayload>) -> Weight {
 		match message.data.payload.as_ref() {
 			Ok(payload) => payload.declared_weight,

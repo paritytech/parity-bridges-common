@@ -286,6 +286,9 @@ pub mod pallet {
 				Error::<T, I>::TooManyMessagesInTheProof
 			);
 
+			// if message dispatcher is currently inactive, we won't accept any messages
+			ensure!(T::MessageDispatch::is_active(), Error::<T, I>::MessageDispatchInactive);
+
 			// why do we need to know the weight of this (`receive_messages_proof`) call? Because
 			// we may want to return some funds for not-dispatching (or partially dispatching) some
 			// messages to the call origin (relayer). And this is done by returning actual weight
@@ -529,6 +532,8 @@ pub mod pallet {
 		NotOperatingNormally,
 		/// The outbound lane is inactive.
 		InactiveOutboundLane,
+		/// The inbound message dispatcher is inactive.
+		MessageDispatchInactive,
 		/// Message has been treated as invalid by chain verifier.
 		MessageRejectedByChainVerifier(VerificationError),
 		/// Message has been treated as invalid by lane verifier.
