@@ -63,7 +63,9 @@ use bp_messages::{
 	MessagePayload, MessagesOperatingMode, OutboundLaneData, OutboundMessageDetails,
 	UnrewardedRelayersState, VerificationError,
 };
-use bp_runtime::{BasicOperatingMode, ChainId, OwnedBridgeModule, PreComputedSize, Size};
+use bp_runtime::{
+	BasicOperatingMode, ChainId, OwnedBridgeModule, PreComputedSize, RangeInclusiveExt, Size,
+};
 use codec::{Decode, Encode, MaxEncodedLen};
 use frame_support::{dispatch::PostDispatchInfo, ensure, fail, traits::Get, DefaultNoBound};
 use sp_runtime::traits::UniqueSaturatedFrom;

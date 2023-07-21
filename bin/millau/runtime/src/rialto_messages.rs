@@ -114,7 +114,7 @@ impl messages::BridgedChainWithMessages for Rialto {}
 
 /// Export XCM messages to be relayed to Rialto.
 pub type ToRialtoBlobExporter = HaulBlobExporter<
-	XcmBlobHaulerAdapter<ToRialtoXcmBlobHauler, (), ConstU64<{ u64::MAX }>>,
+	XcmBlobHaulerAdapter<ToRialtoXcmBlobHauler>,
 	crate::xcm_config::RialtoNetwork,
 	(),
 >;

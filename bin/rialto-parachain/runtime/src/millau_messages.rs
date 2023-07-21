@@ -116,11 +116,8 @@ impl messages::UnderlyingChainProvider for Millau {
 impl messages::BridgedChainWithMessages for Millau {}
 
 /// Export XCM messages to be relayed to Millau.
-pub type ToMillauBlobExporter = HaulBlobExporter<
-	XcmBlobHaulerAdapter<ToMillauXcmBlobHauler, (), ConstU64<{ u64::MAX }>>,
-	crate::MillauNetwork,
-	(),
->;
+pub type ToMillauBlobExporter =
+	HaulBlobExporter<XcmBlobHaulerAdapter<ToMillauXcmBlobHauler>, crate::MillauNetwork, ()>;
 
 /// To-Millau XCM hauler.
 pub struct ToMillauXcmBlobHauler;
