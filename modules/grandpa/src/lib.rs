@@ -208,33 +208,33 @@ pub mod pallet {
 					*count = count.saturating_sub(1)
 				});
 			}
-			insert_header::<T, I>(*finality_target, hash);
-			log::info!(
-				target: LOG_TARGET,
-				"Successfully imported finalized header with hash {:?}!",
-				hash
-			);
-
 			// mandatory header is a header that changes authorities set. The pallet can't go
 			// further without importing this header. So every bridge MUST import mandatory headers.
 			//
 			// We don't want to charge extra costs for mandatory operations. So relayer is not
 			// paying fee for mandatory headers import transactions.
 			//
-			// If size/weight of the call is exceeds our estimated limits, the relayer still needs
+			// If size/weight of the call exceeds our estimated limits, the relayer still needs
 			// to pay for the transaction.
 			let pays_fee = if may_refund_call_fee { Pays::No } else { Pays::Yes };
 
-			// the proof size component of the call weight assumes that there are
-			// `MaxBridgedAuthorities` in the `CurrentAuthoritySet` (we use `MaxEncodedLen`
-			// estimation). But if their number is lower, then we may "refund" some `proof_size`,
-			// making proof smaller and leaving block space to other useful transactions
 			let pre_dispatch_weight = T::WeightInfo::submit_finality_proof(
 				justification.commit.precommits.len().saturated_into(),
 				justification.votes_ancestries.len().saturated_into(),
 			);
+			// the proof size component of the call weight assumes that there are
+			// `MaxBridgedAuthorities` in the `CurrentAuthoritySet` (we use `MaxEncodedLen`
+			// estimation). But if their number is lower, then we may "refund" some `proof_size`,
+			// making proof smaller and leaving block space to other useful transactions
 			let actual_weight = pre_dispatch_weight
 				.set_proof_size(pre_dispatch_weight.proof_size().saturating_sub(unused_proof_size));
+
+			insert_header::<T, I>(*finality_target, hash, Some(justification));
+			log::info!(
+				target: LOG_TARGET,
+				"Successfully imported finalized header with hash {:?}!",
+				hash
+			);
 
 			Self::deposit_event(Event::UpdatedBestFinalizedHeader { number, hash });
 
@@ -318,6 +318,16 @@ pub mod pallet {
 	#[pallet::getter(fn best_finalized)]
 	pub type BestFinalized<T: Config<I>, I: 'static = ()> =
 		StorageValue<_, BridgedBlockId<T, I>, OptionQuery>;
+
+	/// Justification of the best finalized header.
+	///
+	/// NOTE: This storage entry is only used by relayers to check for equivocations.
+	/// The item is unbound and should therefore never be read on chain.
+	/// It could otherwise inflate the PoV size of a block.
+	#[pallet::storage]
+	#[pallet::unbounded]
+	pub type BestJustification<T: Config<I>, I: 'static = ()> =
+		StorageValue<_, GrandpaJustification<BridgedHeader<T, I>>, OptionQuery>;
 
 	/// A ring buffer of imported hashes. Ordered by the insertion time.
 	#[pallet::storage]
@@ -525,10 +535,14 @@ pub mod pallet {
 	pub(crate) fn insert_header<T: Config<I>, I: 'static>(
 		header: BridgedHeader<T, I>,
 		hash: BridgedBlockHash<T, I>,
+		maybe_justification: Option<GrandpaJustification<BridgedHeader<T, I>>>,
 	) {
 		let index = <ImportedHashesPointer<T, I>>::get();
 		let pruning = <ImportedHashes<T, I>>::try_get(index);
 		<BestFinalized<T, I>>::put(HeaderId(*header.number(), hash));
+		if let Some(justification) = maybe_justification {
+			<BestJustification<T, I>>::put(justification)
+		}
 		<ImportedHeaders<T, I>>::insert(hash, header.build());
 		<ImportedHashes<T, I>>::insert(index, hash);
 
@@ -563,7 +577,7 @@ pub mod pallet {
 
 		<InitialHash<T, I>>::put(initial_hash);
 		<ImportedHashesPointer<T, I>>::put(0);
-		insert_header::<T, I>(*header, initial_hash);
+		insert_header::<T, I>(*header, initial_hash, None);
 
 		<CurrentAuthoritySet<T, I>>::put(authority_set);
 
@@ -604,13 +618,6 @@ pub mod pallet {
 	}
 }
 
-impl<T: Config<I>, I: 'static> Pallet<T, I> {
-	/// Get the best finalized block number.
-	pub fn best_finalized_number() -> Option<BridgedBlockNumber<T, I>> {
-		BestFinalized::<T, I>::get().map(|id| id.number())
-	}
-}
-
 /// Bridge GRANDPA pallet as header chain.
 pub type GrandpaChainHeaders<T, I> = Pallet<T, I>;
 
@@ -643,7 +650,7 @@ mod tests {
 		TestHeader, TestNumber, TestRuntime, MAX_BRIDGED_AUTHORITIES,
 	};
 	use bp_header_chain::BridgeGrandpaCall;
-	use bp_runtime::{BasicOperatingMode, UnverifiedStorageProof};
+	use bp_runtime::{BasicOperatingMode, HeaderIdProvider, UnverifiedStorageProof};
 	use bp_test_utils::{
 		authority_list, generate_owned_bridge_module_tests, make_default_justification,
 		make_justification_for_header, JustificationGeneratorParams, ALICE, BOB,
@@ -799,6 +806,7 @@ mod tests {
 	fn init_storage_entries_are_correctly_initialized() {
 		run_test(|| {
 			assert_eq!(BestFinalized::<TestRuntime>::get(), None,);
+			assert_eq!(BestJustification::<TestRuntime>::get(), None);
 			assert_eq!(Pallet::<TestRuntime>::best_finalized(), None);
 			assert_eq!(PalletOperatingMode::<TestRuntime>::try_get(), Err(()));
 
@@ -806,6 +814,7 @@ mod tests {
 
 			assert!(<ImportedHeaders<TestRuntime>>::contains_key(init_data.header.hash()));
 			assert_eq!(BestFinalized::<TestRuntime>::get().unwrap().1, init_data.header.hash());
+			assert_eq!(BestJustification::<TestRuntime>::get(), None);
 			assert_eq!(
 				CurrentAuthoritySet::<TestRuntime>::get().authorities,
 				init_data.authority_list
@@ -905,6 +914,8 @@ mod tests {
 
 			let header = test_header(1);
 			assert_eq!(<BestFinalized<TestRuntime>>::get().unwrap().1, header.hash());
+			assert_eq!(<BestJustification<TestRuntime>>::get().unwrap(), justification);
+			assert_eq!(header.id(), justification.commit_target_id());
 			assert!(<ImportedHeaders<TestRuntime>>::contains_key(header.hash()));
 
 			assert_eq!(
@@ -1023,13 +1034,15 @@ mod tests {
 			let result = Pallet::<TestRuntime>::submit_finality_proof(
 				RuntimeOrigin::signed(1),
 				Box::new(header.clone()),
-				justification,
+				justification.clone(),
 			);
 			assert_ok!(result);
 			assert_eq!(result.unwrap().pays_fee, frame_support::dispatch::Pays::No);
 
 			// Make sure that our header is the best finalized
 			assert_eq!(<BestFinalized<TestRuntime>>::get().unwrap().1, header.hash());
+			assert_eq!(<BestJustification<TestRuntime>>::get().unwrap(), justification);
+			assert_eq!(header.id(), justification.commit_target_id());
 			assert!(<ImportedHeaders<TestRuntime>>::contains_key(header.hash()));
 
 			// Make sure that the authority set actually changed upon importing our header
@@ -1057,13 +1070,15 @@ mod tests {
 			let result = Pallet::<TestRuntime>::submit_finality_proof(
 				RuntimeOrigin::signed(1),
 				Box::new(header.clone()),
-				justification,
+				justification.clone(),
 			);
 			assert_ok!(result);
 			assert_eq!(result.unwrap().pays_fee, frame_support::dispatch::Pays::Yes);
 
 			// Make sure that our header is the best finalized
 			assert_eq!(<BestFinalized<TestRuntime>>::get().unwrap().1, header.hash());
+			assert_eq!(<BestJustification<TestRuntime>>::get().unwrap(), justification);
+			assert_eq!(header.id(), justification.commit_target_id());
 			assert!(<ImportedHeaders<TestRuntime>>::contains_key(header.hash()));
 		})
 	}
@@ -1088,13 +1103,15 @@ mod tests {
 			let result = Pallet::<TestRuntime>::submit_finality_proof(
 				RuntimeOrigin::signed(1),
 				Box::new(header.clone()),
-				justification,
+				justification.clone(),
 			);
 			assert_ok!(result);
 			assert_eq!(result.unwrap().pays_fee, frame_support::dispatch::Pays::Yes);
 
 			// Make sure that our header is the best finalized
 			assert_eq!(<BestFinalized<TestRuntime>>::get().unwrap().1, header.hash());
+			assert_eq!(<BestJustification<TestRuntime>>::get().unwrap(), justification);
+			assert_eq!(header.id(), justification.commit_target_id());
 			assert!(<ImportedHeaders<TestRuntime>>::contains_key(header.hash()));
 		})
 	}
