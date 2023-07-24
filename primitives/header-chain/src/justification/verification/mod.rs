@@ -146,15 +146,6 @@ enum IterationFlow {
 	Skip,
 }
 
-macro_rules! call_action_hook {
-	($hook: expr) => {
-		let action = $hook;
-		if matches!(action, IterationFlow::Skip) {
-			continue
-		}
-	};
-}
-
 /// Verification callbacks.
 trait JustificationVerifier<Header: HeaderT> {
 	fn process_redundant_vote(
@@ -212,8 +203,10 @@ trait JustificationVerifier<Header: HeaderT> {
 
 		for (precommit_idx, signed) in justification.commit.precommits.iter().enumerate() {
 			if cumulative_weight >= threshold {
-				call_action_hook! {
-					self.process_redundant_vote(precommit_idx).map_err(Error::Precommit)?
+				let action =
+					self.process_redundant_vote(precommit_idx).map_err(Error::Precommit)?;
+				if matches!(action, IterationFlow::Skip) {
+					continue
 				}
 			}
 
@@ -222,9 +215,11 @@ trait JustificationVerifier<Header: HeaderT> {
 				Some(authority_info) => {
 					// The implementer may want to do extra checks here.
 					// For example to see if the authority has already voted in the same round.
-					call_action_hook! {
-						self.process_known_authority_vote(precommit_idx, signed)
-							.map_err(Error::Precommit)?
+					let action = self
+						.process_known_authority_vote(precommit_idx, signed)
+						.map_err(Error::Precommit)?;
+					if matches!(action, IterationFlow::Skip) {
+						continue
 					}
 
 					authority_info
@@ -239,8 +234,11 @@ trait JustificationVerifier<Header: HeaderT> {
 			let maybe_route =
 				chain.ancestry(&signed.precommit.target_hash, &signed.precommit.target_number);
 			if maybe_route.is_none() {
-				call_action_hook! {
-					self.process_unrelated_ancestry_vote(precommit_idx).map_err(Error::Precommit)?
+				let action = self
+					.process_unrelated_ancestry_vote(precommit_idx)
+					.map_err(Error::Precommit)?;
+				if matches!(action, IterationFlow::Skip) {
+					continue
 				}
 			}
 
