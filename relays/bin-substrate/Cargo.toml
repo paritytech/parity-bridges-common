@@ -74,5 +74,5 @@ xcm-executor = { git = "https://github.com/paritytech/polkadot", branch = "maste
 bp-test-utils = { path = "../../primitives/test-utils" }
 hex-literal = "0.4"
 sp-keyring = { git = "https://github.com/paritytech/substrate", branch = "master" }
-tempfile = "3.6"
+tempfile = "3.7"
 finality-grandpa = { version = "0.16.2" }
