@@ -54,6 +54,8 @@ pub enum XcmBlobMessageDispatchResult {
 }
 
 /// [`XcmBlobMessageDispatch`] is responsible for dispatching received messages
+///
+/// It needs to be used at the target bridge hub.
 pub struct XcmBlobMessageDispatch<DispatchBlob, Weights, IsChannelActive> {
 	_marker: sp_std::marker::PhantomData<(DispatchBlob, Weights, IsChannelActive)>,
 }
@@ -148,6 +150,8 @@ pub trait XcmBlobHauler {
 
 /// XCM bridge adapter which connects [`XcmBlobHauler`] with [`XcmBlobHauler::MessageSender`] and
 /// makes sure that XCM blob is sent to the [`pallet_bridge_messages`] queue to be relayed.
+///
+/// It needs to be used at the source bridge hub.
 pub struct XcmBlobHaulerAdapter<XcmBlobHauler>(sp_std::marker::PhantomData<XcmBlobHauler>);
 
 impl<HaulerOrigin, H: XcmBlobHauler<MessageSenderOrigin = HaulerOrigin>> HaulBlob
@@ -198,6 +202,8 @@ impl<HaulerOrigin, H: XcmBlobHauler<MessageSenderOrigin = HaulerOrigin>> OnMessa
 
 /// Manager of local XCM queues (and indirectly - underlying transport channels) that
 /// controls the queue state.
+///
+/// It needs to be used at the source bridge hub.
 pub struct LocalXcmQueueManager;
 
 /// Prefix for storage keys, written by the `LocalXcmQueueManager`.
@@ -212,6 +218,7 @@ const SUSPENDED_QUEUE_MAP_STORAGE_PREFIX: &[u8] = b"SuspendedQueues";
 
 /// Maximal number of messages in the outbound bridge queue. Once we reach this limit, we
 /// stop processing XCM messages from the sending chain (asset hub) that "owns" the lane.
+// TODO: should be some factor of `MaxUnconfirmedMessagesAtInboundLane` at bridged side?
 const MAX_ENQUEUED_MESSAGES_AT_OUTBOUND_LANE: MessageNonce = 300;
 
 impl LocalXcmQueueManager {
@@ -308,6 +315,8 @@ impl LocalXcmQueueManager {
 /// A structure that implements [`frame_support:traits::messages::ProcessMessage`] and may
 /// be used in the `pallet-message-queue` configuration to stop processing messages when the
 /// bridge queue is overloaded.
+///
+/// It needs to be used at the source bridge hub.
 pub struct LocalXcmQueueMessageProcessor<Origin, Inner>(PhantomData<(Origin, Inner)>);
 
 impl<Origin, Inner> ProcessMessage for LocalXcmQueueMessageProcessor<Origin, Inner>
@@ -344,6 +353,8 @@ where
 /// A structure that implements [`frame_support:traits::messages::QueuePausedQuery`] and may
 /// be used in the `pallet-message-queue` configuration to stop processing messages when the
 /// bridge queue is overloaded.
+///
+/// It needs to be used at the source bridge hub.
 pub struct LocalXcmQueueSuspender<Origin, Inner>(PhantomData<(Origin, Inner)>);
 
 impl<Origin, Inner> QueuePausedQuery<Origin> for LocalXcmQueueSuspender<Origin, Inner>
@@ -366,3 +377,150 @@ where
 		false
 	}
 }
+/*
+/// Local XCM queue
+pub trait LocalXcmQueue {
+	/// Returns true if the queue is currently overloaded.
+	fn is_overloaded() -> bool;
+}
+
+/// Configuration of the dynamic bridge fee mechanism at the sending chain (source asset hub).
+pub trait DynamicBridgeFeeConfig {
+	/// Universal location of this runtime.
+	type UniversalLocation: Get<InteriorMultiLocation>;
+	/// Relative location of the sibling bridge hub.
+	type SiblingBridgeHubLocation: Get<MultiLocation>;
+	/// The bridged network that this config is for.
+	type BridgedNetworkId: Get<NetworkId>;
+
+	/// Actual message sender to the sibling bridge hub location.
+	type ToBridgeHubSender: SendXcm + LocalXcmQueue;
+
+	/// Asset that is used to paid bridge fee.
+	type FeeAsset: Get<AssetId>;
+
+	/// Base bridge fee that is paid for every outbound message.
+	type BaseFee: Get<u128>;
+	/// Additional fee that is paid for every byte of the outbound message.
+	type ByteFee: Get<u128>;
+
+	/// How much every kb of the message sent affects the fee factor.
+	type FeeFactorIncreasePerKb: Get<u128>;
+}
+
+
+/// We'll be using `SovereignPaidRemoteExporter` internally to inject fee into messages
+/// sent over sibling bridge hub.
+type ViaBridgeHubExporter<Config> = SovereignPaidRemoteExporter<
+	ToSiblingBridgeHubRouter<Config>,
+	<Config as DynamicBridgeFeeConfig>::ToBridgeHubSender,
+	<Config as DynamicBridgeFeeConfig>::UniversalLocation,
+>;
+
+/// This structure must be used at the source asset hub for sending messages to the sibling
+/// bridge hub instead of XCMP pallet (which is `Config::ToBridgeHubSender` supposed to be). This
+/// allows us to inject dynamic fees into XCM messages going to the bridged network.
+///
+/// It works exactly as `SovereignPaidRemoteExporter` (actually it is used inside). So the sender
+/// pays the fee here and instructions to pay for the execution at the sibling bridge hub. In
+/// addition, it maintains the dynamic fee factor, which is increased and decreased when required.
+///
+/// It needs to be used at the source asset hub.
+pub struct ToSiblingBridgeHubRouter<Config>(PhantomData<Config>);
+
+impl<Config> ToSiblingBridgeHubRouter<Config> where
+	Config: DynamicBridgeFeeConfig,
+{
+	/// Called when new bridge message to the sibling bridge hub is enqueued.
+	fn on_bridge_message_sent(message_size: u32) {
+		// if outbound queue is not overloaded, do nothing
+		if !Config::ToBridgeHubSender::is_overloaded() {
+			return;
+		}
+
+		// ok - we need to increase the fee factor, let's do that
+		let message_size_factor = FixedU128::from_u32(message_size.saturating_div(1024))
+			.saturating_mul(Config::FeeFactorIncreasePerKb::get());
+		let total_factor = Config::FeeFactorExponentialBase::get().saturating_add(message_size_factor);
+		let fee_factor = Self::fee_factor().saturating_mul(total_factor);
+		Self::set_fee_factor(fee_factor);
+	}
+
+	/// Called from the block `on_initialize`.
+	fn on_bridge_queue_maybe_pruned() -> Weight {
+		// TODO: we don't have our pallets at asset hub (now), who will call it. Maybe
+		unimplemented!("TODO")
+	}
+
+	/// Return current fee factor used in fee computations.
+	fn fee_factor() -> FixedU128 {
+		unimplemented!("TODO")
+	}
+
+	/// Set fee factor value.
+	fn set_fee_factor(new_factor: FixedU128) {
+		unimplemented!("TODO")
+	}
+}
+
+impl<Config> ExporterFor for ToSiblingBridgeHubRouter<Config> where
+	Config: DynamicBridgeFeeConfig,
+{
+	fn exporter_for(
+		network: &NetworkId,
+		_remote_location: &InteriorMultiLocation,
+		message: &Xcm<()>,
+	) -> Option<(MultiLocation, Option<MultiAsset>)> {
+		// ensure that the message is sent to the expected bridged network
+		if *network != Config::BridgedNetworkId::get() {
+			return None
+		}
+
+		// compute fee amount
+		let mesage_size = message.encoded_size();
+		let message_fee = (mesage_size as u128).saturating_mul(Config::ByteFee::get());
+		let fee_sum = Config::BaseFee::get().saturating_add(message_fee);
+		let fee = Self::fee_factor().saturating_mul_int(fee_sum);
+
+		Some((Config::SiblingBridgeHubLocation::get(), Some((Config::FeeAsset::get(), fee).into())))
+	}
+}
+
+impl<Config> SendXcm for ToSiblingBridgeHubRouter<Config> where
+	Config: DynamicBridgeFeeConfig,
+{
+	type Ticket = (u32, <Config::ToBridgeHubSender as SendXcm>::Ticket);
+
+	fn validate(
+		dest: &mut Option<MultiLocation>,
+		xcm: &mut Option<Xcm<()>>,
+	) -> SendResult<Self::Ticket> {
+		// we won't have an access to `dest` and `xcm` in the `delvier` method, so precompute
+		// everything required here
+		let message_size = xcm.as_ref().map(|xcm| xcm.encoded_size() as _).ok_or(SendError::MissingArgument)?;
+
+		// TODO: we can reject large messages here (now they're just dropped at the bridge hub)!!!
+
+		// just use exporter to validate destination and insert instructions to pay message fee
+		// at the sibling/child bridge hub
+		//
+		// the cost will include both cost of: (1) to-sibling bridg hub delivery (returned by
+		// the `Config::ToBridgeHubSender`) and (2) to-bridged bridge hub delivery (returned by
+		// `Self::exporter_for`)
+		ViaBridgeHubExporter::<Config>::validate(dest, xcm)
+			.map(|(ticket, cost)| ((message_size, ticket), cost))
+	}
+
+	fn deliver(ticket: Self::Ticket) -> Result<XcmHash, SendError> {
+		// use router to enqueue message to the sibling/child bridge hub. This also should handle
+		// payment for passing through this queue.
+		let (message_size, ticket) = ticket;
+		let xcm_hash = Config::ToBridgeHubSender::deliver(ticket)?;
+
+		// TODO: increase fee factor if: (1) outbound channel is suspended AND/OR if (2) outbound
+		// channel has many queued messages
+
+		Ok(xcm_hash)
+	}
+}
+*/
