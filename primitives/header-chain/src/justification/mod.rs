@@ -81,10 +81,11 @@ impl<H: HeaderT> GrandpaJustification<H> {
 			.saturating_add(BlockNumberOf::<C>::max_encoded_len().saturated_into())
 			.saturating_add(HashOf::<C>::max_encoded_len().saturated_into());
 
-		// justification is a signed GRANDPA commit, `votes_ancestries` vector and round number
 		let max_expected_votes_ancestries_size = C::REASONABLE_HEADERS_IN_JUSTIFICATON_ANCESTRY
 			.saturating_mul(C::AVERAGE_HEADER_SIZE_IN_JUSTIFICATION);
 
+		// justification is round number (u64=8b), a signed GRANDPA commit and the
+		// `votes_ancestries` vector
 		8u32.saturating_add(max_expected_signed_commit_size)
 			.saturating_add(max_expected_votes_ancestries_size)
 	}
