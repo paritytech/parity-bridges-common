@@ -27,7 +27,9 @@ use bp_messages::{
 	ChainWithMessages, InboundMessageDetails, LaneId, MessageNonce, MessagePayload,
 	OutboundMessageDetails,
 };
-use bp_runtime::{decl_bridge_runtime_apis, Chain, ChainId};
+use bp_runtime::{
+	decl_bridge_grandpa_finality_runtime_apis, decl_bridge_runtime_apis, Chain, ChainId,
+};
 use frame_support::{
 	dispatch::DispatchClass,
 	weights::{constants::WEIGHT_REF_TIME_PER_SECOND, IdentityFee, Weight},
@@ -267,3 +269,4 @@ pub const WITH_MILLAU_MESSAGES_PALLET_NAME: &str = "BridgeMillauMessages";
 pub const TRANSACTION_PAYMENT_PALLET_NAME: &str = "TransactionPayment";
 
 decl_bridge_runtime_apis!(millau);
+decl_bridge_grandpa_finality_runtime_apis!(millau);

@@ -865,9 +865,23 @@ impl_runtime_apis! {
 		}
 	}
 
+	impl bp_rialto::RialtoGrandpaFinalityApi<Block> for Runtime {
+		fn justifications(
+		) -> Vec<bp_header_chain::justification::GrandpaJustification<bp_rialto::Header>> {
+			BridgeRialtoGrandpa::justifications()
+		}
+	}
+
 	impl bp_westend::WestendFinalityApi<Block> for Runtime {
 		fn best_finalized() -> Option<HeaderId<bp_westend::Hash, bp_westend::BlockNumber>> {
 			BridgeWestendGrandpa::best_finalized()
+		}
+	}
+
+	impl bp_westend::WestendGrandpaFinalityApi<Block> for Runtime {
+		fn justifications(
+		) -> Vec<bp_header_chain::justification::GrandpaJustification<bp_westend::Header>> {
+			BridgeWestendGrandpa::justifications()
 		}
 	}
 

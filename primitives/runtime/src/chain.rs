@@ -319,6 +319,43 @@ macro_rules! decl_bridge_finality_runtime_apis {
 	};
 }
 
+/// Convenience macro that declares bridge GRANDPA finality runtime apis and related constants
+/// for a chain.
+/// This includes:
+/// - chain-specific bridge runtime APIs:
+///     - `<ThisChain>GrandpaFinalityApi`
+/// - constants that are stringified names of runtime API methods:
+///     - `<THIS_CHAIN>_GRANDPA_JUSTIFICATIONS_METHOD`
+/// The name of the chain has to be specified in snake case (e.g. `rialto_parachain`).
+#[macro_export]
+macro_rules! decl_bridge_grandpa_finality_runtime_apis {
+	($chain: ident) => {
+		bp_runtime::paste::item! {
+			mod [<$chain _grandpa_finality_api>] {
+				use super::*;
+
+				/// Name of the `<ThisChain>FinalityApi::best_finalized` runtime method.
+				pub const [<$chain:upper _GRANDPA_JUSTIFICATIONS_METHOD>]: &str =
+					stringify!([<$chain:camel GrandpaFinalityApi_justifications>]);
+
+				sp_api::decl_runtime_apis! {
+					/// API for querying information about the finalized chain headers.
+					///
+					/// This API is implemented by runtimes that are receiving messages from this chain, not by this
+					/// chain's runtime itself.
+					pub trait [<$chain:camel GrandpaFinalityApi>] {
+						/// Returns the GRANDPA justifications accepted in the current block.
+						fn justifications(
+						) -> Vec<bp_header_chain::justification::GrandpaJustification<Header>>;
+					}
+				}
+			}
+
+			pub use [<$chain _grandpa_finality_api>]::*;
+		}
+	};
+}
+
 /// Convenience macro that declares bridge messages runtime apis and related constants for a chain.
 /// This includes:
 /// - chain-specific bridge runtime APIs:

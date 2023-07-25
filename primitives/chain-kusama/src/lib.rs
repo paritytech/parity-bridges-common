@@ -23,7 +23,9 @@ pub use bp_polkadot_core::*;
 use frame_support::StateVersion;
 
 use bp_header_chain::ChainWithGrandpa;
-use bp_runtime::{decl_bridge_finality_runtime_apis, Chain, ChainId};
+use bp_runtime::{
+	decl_bridge_finality_runtime_apis, decl_bridge_grandpa_finality_runtime_apis, Chain, ChainId,
+};
 use frame_support::weights::Weight;
 
 /// Kusama Chain
@@ -76,3 +78,4 @@ pub const WITH_KUSAMA_GRANDPA_PALLET_NAME: &str = "BridgeKusamaGrandpa";
 pub const MAX_NESTED_PARACHAIN_HEAD_DATA_SIZE: u32 = 128;
 
 decl_bridge_finality_runtime_apis!(kusama);
+decl_bridge_grandpa_finality_runtime_apis!(kusama);

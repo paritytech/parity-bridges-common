@@ -684,6 +684,13 @@ impl_runtime_apis! {
 		}
 	}
 
+	impl bp_millau::MillauGrandpaFinalityApi<Block> for Runtime {
+		fn justifications(
+		) -> Vec<bp_header_chain::justification::GrandpaJustification<bp_millau::Header>> {
+			BridgeMillauGrandpa::justifications()
+		}
+	}
+
 	impl sp_transaction_pool::runtime_api::TaggedTransactionQueue<Block> for Runtime {
 		fn validate_transaction(
 			source: TransactionSource,

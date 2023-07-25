@@ -5998,6 +5998,7 @@ dependencies = [
 name = "millau-runtime"
 version = "0.1.0"
 dependencies = [
+ "bp-header-chain",
  "bp-messages",
  "bp-millau",
  "bp-parachains",
@@ -10331,6 +10332,7 @@ dependencies = [
 name = "rialto-parachain-runtime"
 version = "0.1.0"
 dependencies = [
+ "bp-header-chain",
  "bp-messages",
  "bp-millau",
  "bp-relayers",
@@ -10388,6 +10390,7 @@ dependencies = [
 name = "rialto-runtime"
 version = "0.1.0"
 dependencies = [
+ "bp-header-chain",
  "bp-messages",
  "bp-millau",
  "bp-relayers",

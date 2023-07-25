@@ -736,6 +736,13 @@ impl_runtime_apis! {
 		}
 	}
 
+	impl bp_millau::MillauGrandpaFinalityApi<Block> for Runtime {
+		fn justifications(
+		) -> Vec<bp_header_chain::justification::GrandpaJustification<bp_millau::Header>> {
+			BridgeMillauGrandpa::justifications()
+		}
+	}
+
 	impl bp_millau::ToMillauOutboundLaneApi<Block> for Runtime {
 		fn message_details(
 			lane: bp_messages::LaneId,

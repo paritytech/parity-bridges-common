@@ -24,7 +24,9 @@ use bp_messages::{
 	ChainWithMessages, InboundMessageDetails, LaneId, MessageNonce, MessagePayload,
 	OutboundMessageDetails,
 };
-use bp_runtime::{decl_bridge_runtime_apis, Chain, ChainId};
+use bp_runtime::{
+	decl_bridge_grandpa_finality_runtime_apis, decl_bridge_runtime_apis, Chain, ChainId,
+};
 use frame_support::{
 	dispatch::DispatchClass,
 	weights::{constants::WEIGHT_REF_TIME_PER_SECOND, IdentityFee, Weight},
@@ -234,3 +236,4 @@ pub const PARAS_REGISTRAR_PALLET_NAME: &str = "Registrar";
 pub const PARAS_PALLET_NAME: &str = "Paras";
 
 decl_bridge_runtime_apis!(rialto);
+decl_bridge_grandpa_finality_runtime_apis!(rialto);
