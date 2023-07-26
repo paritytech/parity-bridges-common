@@ -866,9 +866,9 @@ impl_runtime_apis! {
 	}
 
 	impl bp_rialto::RialtoGrandpaFinalityApi<Block> for Runtime {
-		fn justifications(
+		fn accepted_finality_proofs(
 		) -> Vec<bp_header_chain::justification::GrandpaJustification<bp_rialto::Header>> {
-			BridgeRialtoGrandpa::justifications()
+			BridgeRialtoGrandpa::accepted_finality_proofs()
 		}
 	}
 
@@ -879,9 +879,9 @@ impl_runtime_apis! {
 	}
 
 	impl bp_westend::WestendGrandpaFinalityApi<Block> for Runtime {
-		fn justifications(
+		fn accepted_finality_proofs(
 		) -> Vec<bp_header_chain::justification::GrandpaJustification<bp_westend::Header>> {
-			BridgeWestendGrandpa::justifications()
+			BridgeWestendGrandpa::accepted_finality_proofs()
 		}
 	}
 

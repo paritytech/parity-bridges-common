@@ -134,7 +134,7 @@ impl Chain for BridgedChain {
 
 impl ChainWithGrandpa for BridgedChain {
 	const WITH_CHAIN_GRANDPA_PALLET_NAME: &'static str = "WithBridgedChainBridgeGrandpa";
-	const JUSTIFICATIONS_METHOD: &'static str = "";
+	const ACCEPTED_FINALITY_PROOFS_METHOD: &'static str = "";
 	const MAX_AUTHORITIES_COUNT: u32 = 16;
 	const REASONABLE_HEADERS_IN_JUSTIFICATON_ANCESTRY: u32 = 4;
 	const MAX_HEADER_SIZE: u32 = 4096;

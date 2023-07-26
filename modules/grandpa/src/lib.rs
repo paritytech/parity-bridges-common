@@ -611,7 +611,7 @@ where
 	<T as frame_system::Config>::RuntimeEvent: TryInto<Event<T, I>>,
 {
 	/// Get the GRANDPA justifications accepted in the current block.
-	pub fn justifications() -> Vec<GrandpaJustification<BridgedHeader<T, I>>> {
+	pub fn accepted_finality_proofs() -> Vec<GrandpaJustification<BridgedHeader<T, I>>> {
 		frame_system::Pallet::<T>::read_events_no_consensus()
 			.filter_map(|event| {
 				if let Event::<T, I>::UpdatedBestFinalizedHeader { justification, .. } =
@@ -933,7 +933,7 @@ mod tests {
 					topics: vec![],
 				}],
 			);
-			assert_eq!(Pallet::<TestRuntime>::justifications(), vec![justification]);
+			assert_eq!(Pallet::<TestRuntime>::accepted_finality_proofs(), vec![justification]);
 		})
 	}
 

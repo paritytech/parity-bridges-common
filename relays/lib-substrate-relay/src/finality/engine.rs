@@ -86,8 +86,8 @@ pub trait Engine<C: Chain>: Send {
 	}
 
 	/// A method to subscribe to encoded finality proofs, given source client.
-	async fn finality_proofs(
-		client: &impl Client<C>,
+	async fn source_finality_proofs(
+		source_client: &impl Client<C>,
 	) -> Result<Subscription<Bytes>, SubstrateError>;
 
 	/// Optimize finality proof before sending it to the target node.
@@ -152,10 +152,10 @@ impl<C: ChainWithGrandpa> Engine<C> for Grandpa<C> {
 		)
 	}
 
-	async fn finality_proofs(
-		client: &impl Client<C>,
+	async fn source_finality_proofs(
+		source_client: &impl Client<C>,
 	) -> Result<Subscription<Bytes>, SubstrateError> {
-		client.subscribe_grandpa_finality_justifications().await
+		source_client.subscribe_grandpa_finality_justifications().await
 	}
 
 	async fn optimize_proof<TargetChain: Chain>(
@@ -211,7 +211,7 @@ impl<C: ChainWithGrandpa> Engine<C> for Grandpa<C> {
 		// But now there are problems with this approach - `CurrentSetId` may return invalid value.
 		// So here we're waiting for the next justification, read the authorities set and then try
 		// to figure out the set id with bruteforce.
-		let mut justifications = Self::finality_proofs(&source_client)
+		let mut justifications = Self::source_finality_proofs(&source_client)
 			.await
 			.map_err(|err| Error::Subscribe(C::NAME, err))?;
 		// Read next justification - the header that it finalizes will be used as initial header.

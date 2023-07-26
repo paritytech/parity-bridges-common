@@ -685,9 +685,9 @@ impl_runtime_apis! {
 	}
 
 	impl bp_millau::MillauGrandpaFinalityApi<Block> for Runtime {
-		fn justifications(
+		fn accepted_finality_proofs(
 		) -> Vec<bp_header_chain::justification::GrandpaJustification<bp_millau::Header>> {
-			BridgeMillauGrandpa::justifications()
+			BridgeMillauGrandpa::accepted_finality_proofs()
 		}
 	}
 

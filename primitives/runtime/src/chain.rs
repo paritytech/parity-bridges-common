@@ -334,9 +334,10 @@ macro_rules! decl_bridge_grandpa_finality_runtime_apis {
 			mod [<$chain _grandpa_finality_api>] {
 				use super::*;
 
-				/// Name of the `<ThisChain>GrandpaFinalityApi::justifications` runtime method.
-				pub const [<$chain:upper _GRANDPA_JUSTIFICATIONS_METHOD>]: &str =
-					stringify!([<$chain:camel GrandpaFinalityApi_justifications>]);
+				/// Name of the `<ThisChain>GrandpaFinalityApi::accepted_finality_proofs`
+				/// runtime method.
+				pub const [<$chain:upper _ACCEPTED_GRANDPA_FINALITY_PROOFS_METHOD>]: &str =
+					stringify!([<$chain:camel GrandpaFinalityApi_accepted_finality_proofs>]);
 
 				sp_api::decl_runtime_apis! {
 					/// API for getting the justifications for the GRANDPA finalized
@@ -346,7 +347,7 @@ macro_rules! decl_bridge_grandpa_finality_runtime_apis {
 					/// this chain, not by this chain's runtime itself.
 					pub trait [<$chain:camel GrandpaFinalityApi>] {
 						/// Returns the GRANDPA justifications accepted in the current block.
-						fn justifications(
+						fn accepted_finality_proofs(
 						) -> Vec<bp_header_chain::justification::GrandpaJustification<Header>>;
 					}
 				}
