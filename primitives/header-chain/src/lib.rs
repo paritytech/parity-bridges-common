@@ -22,7 +22,7 @@
 
 use bp_runtime::{
 	BasicOperatingMode, Chain, HashOf, HasherOf, HeaderOf, StorageProofError,
-	UnverifiedStorageProof, VerifiedStorageProof,
+	UnderlyingChainProvider, UnverifiedStorageProof, VerifiedStorageProof,
 };
 use codec::{Codec, Decode, Encode, EncodeLike, MaxEncodedLen};
 use core::{clone::Clone, cmp::Eq, default::Default, fmt::Debug};
@@ -225,6 +225,13 @@ pub trait ChainWithGrandpa: Chain {
 	/// the same name.
 	const WITH_CHAIN_GRANDPA_PALLET_NAME: &'static str;
 
+	/// Name of the runtime API method that is returning the GRANDPA justifications accepted
+	/// in the queried block.
+	///
+	/// Keep in mind that this method is normally provided by the other chain, which is
+	/// bridged with this chain.
+	const JUSTIFICATIONS_METHOD: &'static str;
+
 	/// Max number of GRANDPA authorities at the chain.
 	///
 	/// This is a strict constant. If bridged chain will have more authorities than that,
@@ -256,4 +263,18 @@ pub trait ChainWithGrandpa: Chain {
 	/// ancestry and the pallet will accept the call. The limit is only used to compute maximal
 	/// refund amount and doing calls which exceed the limit, may be costly to submitter.
 	const AVERAGE_HEADER_SIZE_IN_JUSTIFICATION: u32;
+}
+
+/// A trait that provides the type of the underlying `ChainWithGrandpa`.
+pub trait UnderlyingChainWithGrandpaProvider: UnderlyingChainProvider {
+	/// Underlying `ChainWithGrandpa` type.
+	type ChainWithGrandpa: ChainWithGrandpa;
+}
+
+impl<T> UnderlyingChainWithGrandpaProvider for T
+where
+	T: UnderlyingChainProvider,
+	T::Chain: ChainWithGrandpa,
+{
+	type ChainWithGrandpa = T::Chain;
 }

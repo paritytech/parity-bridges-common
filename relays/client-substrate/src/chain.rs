@@ -16,6 +16,7 @@
 
 use crate::calls::UtilityCall;
 
+use bp_header_chain::UnderlyingChainWithGrandpaProvider;
 use bp_messages::ChainWithMessages as ChainWithMessagesBase;
 use bp_runtime::{
 	Chain as ChainBase, EncodedOrDecodedCall, HashOf, Parachain as ParachainBase, TransactionEra,
@@ -78,23 +79,9 @@ pub trait RelayChain: Chain {
 ///
 /// Keep in mind that parachains are relying on relay chain GRANDPA, so they should not implement
 /// this trait.
-pub trait ChainWithGrandpa: Chain {
-	/// Name of the bridge GRANDPA pallet (used in `construct_runtime` macro call) that is deployed
-	/// at some other chain to bridge with this `ChainWithGrandpa`.
-	///
-	/// We assume that all chains that are bridging with this `ChainWithGrandpa` are using
-	/// the same name.
-	const WITH_CHAIN_GRANDPA_PALLET_NAME: &'static str;
-}
+pub trait ChainWithGrandpa: Chain + UnderlyingChainWithGrandpaProvider {}
 
-impl<T> ChainWithGrandpa for T
-where
-	T: Chain + UnderlyingChainProvider,
-	T::Chain: bp_header_chain::ChainWithGrandpa,
-{
-	const WITH_CHAIN_GRANDPA_PALLET_NAME: &'static str =
-		<T::Chain as bp_header_chain::ChainWithGrandpa>::WITH_CHAIN_GRANDPA_PALLET_NAME;
-}
+impl<T> ChainWithGrandpa for T where T: Chain + UnderlyingChainWithGrandpaProvider {}
 
 /// Substrate-based parachain from minimal relay-client point of view.
 pub trait Parachain: Chain + ParachainBase {}
