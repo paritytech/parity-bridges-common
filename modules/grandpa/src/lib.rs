@@ -610,7 +610,7 @@ impl<T: Config<I>, I: 'static> Pallet<T, I>
 where
 	<T as frame_system::Config>::RuntimeEvent: TryInto<Event<T, I>>,
 {
-	/// Get the GRANDA justifications accepted in the current block.
+	/// Get the GRANDPA justifications accepted in the current block.
 	pub fn justifications() -> Vec<GrandpaJustification<BridgedHeader<T, I>>> {
 		frame_system::Pallet::<T>::read_events_no_consensus()
 			.filter_map(|event| {
