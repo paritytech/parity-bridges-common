@@ -225,13 +225,6 @@ pub trait ChainWithGrandpa: Chain {
 	/// the same name.
 	const WITH_CHAIN_GRANDPA_PALLET_NAME: &'static str;
 
-	/// Name of the runtime API method that is returning the GRANDPA justifications accepted
-	/// by the `submit_finality_proofs` extrinsic in the queried block.
-	///
-	/// Keep in mind that this method is normally provided by the other chain, which is
-	/// bridged with this chain.
-	const ACCEPTED_FINALITY_PROOFS_METHOD: &'static str;
-
 	/// Max number of GRANDPA authorities at the chain.
 	///
 	/// This is a strict constant. If bridged chain will have more authorities than that,

@@ -79,9 +79,14 @@ pub trait RelayChain: Chain {
 ///
 /// Keep in mind that parachains are relying on relay chain GRANDPA, so they should not implement
 /// this trait.
-pub trait ChainWithGrandpa: Chain + UnderlyingChainWithGrandpaProvider {}
-
-impl<T> ChainWithGrandpa for T where T: Chain + UnderlyingChainWithGrandpaProvider {}
+pub trait ChainWithGrandpa: Chain + UnderlyingChainWithGrandpaProvider {
+	/// Name of the runtime API method that is returning the GRANDPA justifications accepted
+	/// by the `submit_finality_proofs` extrinsic in the queried block.
+	///
+	/// Keep in mind that this method is normally provided by the other chain, which is
+	/// bridged with this chain.
+	const ACCEPTED_FINALITY_PROOFS_METHOD: &'static str;
+}
 
 /// Substrate-based parachain from minimal relay-client point of view.
 pub trait Parachain: Chain + ParachainBase {}
