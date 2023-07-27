@@ -31,7 +31,7 @@ use bp_xcm_bridge_hub_router::LocalXcmChannel;
 use codec::{Decode, Encode, FullCodec, MaxEncodedLen};
 use frame_support::{
 	dispatch::Weight,
-	traits::{Get, ProcessMessage, ProcessMessageError, QueuePausedQuery},
+	traits::{ProcessMessage, ProcessMessageError, QueuePausedQuery},
 	weights::WeightMeter,
 	CloneNoBound, EqNoBound, PartialEqNoBound,
 };
@@ -57,18 +57,18 @@ pub enum XcmBlobMessageDispatchResult {
 /// [`XcmBlobMessageDispatch`] is responsible for dispatching received messages
 ///
 /// It needs to be used at the target bridge hub.
-pub struct XcmBlobMessageDispatch<DispatchBlob, Weights, LocalXcmChannel> {
-	_marker: sp_std::marker::PhantomData<(DispatchBlob, Weights, LocalXcmChannel)>,
+pub struct XcmBlobMessageDispatch<DispatchBlob, Weights, Channel> {
+	_marker: sp_std::marker::PhantomData<(DispatchBlob, Weights, Channel)>,
 }
 
-impl<BlobDispatcher: DispatchBlob, Weights: MessagesPalletWeights, LocalXcmChannel: Get<bool>>
-	MessageDispatch for XcmBlobMessageDispatch<BlobDispatcher, Weights, LocalXcmChannel>
+impl<BlobDispatcher: DispatchBlob, Weights: MessagesPalletWeights, Channel: LocalXcmChannel>
+	MessageDispatch for XcmBlobMessageDispatch<BlobDispatcher, Weights, Channel>
 {
 	type DispatchPayload = XcmAsPlainPayload;
 	type DispatchLevelResult = XcmBlobMessageDispatchResult;
 
 	fn is_active() -> bool {
-		!LocalXcmChannel::is_congested()
+		!Channel::is_congested()
 	}
 
 	fn dispatch_weight(message: &mut DispatchMessage<Self::DispatchPayload>) -> Weight {
@@ -207,8 +207,10 @@ const SUSPENDED_QUEUE_MAP_STORAGE_PREFIX: &[u8] = b"SuspendedQueues";
 
 /// Maximal number of messages in the outbound bridge queue. Once we reach this limit, we
 /// stop processing XCM messages from the sending chain (asset hub) that "owns" the lane.
-// TODO: should be some factor of `MaxUnconfirmedMessagesAtInboundLane` at bridged side?
-const MAX_ENQUEUED_MESSAGES_AT_OUTBOUND_LANE: MessageNonce = 300;
+///
+/// The value is a maximal number of messages that can be delivered in a single message
+/// delivery transaction, used on initial bridge hubs.
+const MAX_ENQUEUED_MESSAGES_AT_OUTBOUND_LANE: MessageNonce = 4096;
 
 impl LocalXcmQueueManager {
 	/// Must be called whenever we push a message to the bridge lane.
@@ -220,14 +222,14 @@ impl LocalXcmQueueManager {
 		// suspend the inbound XCM queue with the sender to avoid queueing more messages
 		// at the outbound bridge queue AND turn on internal backpressure mechanism of the
 		// XCM queue
-		let is_overloaded = enqueued_messages > MAX_ENQUEUED_MESSAGES_AT_OUTBOUND_LANE;
-		if !is_overloaded {
+		let is_congested = enqueued_messages > MAX_ENQUEUED_MESSAGES_AT_OUTBOUND_LANE;
+		if !is_congested {
 			return
 		}
 
 		log::info!(
 			target: crate::LOG_TARGET_BRIDGE_DISPATCH,
-			"Suspending inbound XCM queue with {:?} to avoid overloading lane {:?}: there are\
+			"Suspending inbound XCM queue with {:?} to avoid congesting lane {:?}: there are\
 			{} messages queued at the bridge queue",
 			sending_chain_location,
 			lane,
@@ -244,9 +246,9 @@ impl LocalXcmQueueManager {
 		enqueued_messages: MessageNonce,
 	) {
 		// the queue before this call may be either suspended or not. If the lane is still
-		// overloaded, we win't need to do anything
-		let is_overloaded = enqueued_messages > MAX_ENQUEUED_MESSAGES_AT_OUTBOUND_LANE;
-		if is_overloaded {
+		// congested, we win't need to do anything
+		let is_congested = enqueued_messages > MAX_ENQUEUED_MESSAGES_AT_OUTBOUND_LANE;
+		if is_congested {
 			return
 		}
 
@@ -273,6 +275,9 @@ impl LocalXcmQueueManager {
 			with,
 		))
 	}
+
+	// since dynamic fees for v1 is a temporary solution, we're using direct storage writes here.
+	// In v2, the separate pallet (`palle-xcm-bridge-hub`) will store this data.
 
 	fn suspend_inbound_queue(with: Box<MultiLocation>) {
 		frame_support::storage::unhashed::put(&Self::suspended_queue_map_storage_key(with), &true);
@@ -303,7 +308,7 @@ impl LocalXcmQueueManager {
 
 /// A structure that implements [`frame_support:traits::messages::ProcessMessage`] and may
 /// be used in the `pallet-message-queue` configuration to stop processing messages when the
-/// bridge queue is overloaded.
+/// bridge queue is congested.
 ///
 /// It needs to be used at the source bridge hub.
 pub struct LocalXcmQueueMessageProcessor<Origin, Inner>(PhantomData<(Origin, Inner)>);
@@ -341,7 +346,7 @@ where
 
 /// A structure that implements [`frame_support:traits::messages::QueuePausedQuery`] and may
 /// be used in the `pallet-message-queue` configuration to stop processing messages when the
-/// bridge queue is overloaded.
+/// bridge queue is congested.
 ///
 /// It needs to be used at the source bridge hub.
 pub struct LocalXcmQueueSuspender<Origin, Inner>(PhantomData<(Origin, Inner)>);
@@ -364,5 +369,56 @@ where
 
 		// else process message
 		false
+	}
+}
+
+#[cfg(test)]
+mod tests {
+	use super::*;
+	use crate::mock::*;
+
+	use sp_runtime::traits::{ConstBool, Get};
+
+	struct TestInnerXcmQueueSuspender<IsSuspended>(PhantomData<IsSuspended>);
+	impl<IsSuspended: Get<bool>> QueuePausedQuery<MultiLocation>
+		for TestInnerXcmQueueSuspender<IsSuspended>
+	{
+		fn is_paused(_: &MultiLocation) -> bool {
+			IsSuspended::get()
+		}
+	}
+
+	type TestLocalXcmQueueSuspender =
+		LocalXcmQueueSuspender<MultiLocation, TestInnerXcmQueueSuspender<ConstBool<false>>>;
+
+	fn test_origin_location() -> MultiLocation {
+		Here.into()
+	}
+
+	fn test_origin() -> MultiLocation {
+		test_origin_location()
+	}
+
+	#[test]
+	fn local_xcm_queue_is_paused_when_inner_suspender_returns_paused() {
+		run_test(|| {
+			assert!(LocalXcmQueueSuspender::<
+				MultiLocation,
+				TestInnerXcmQueueSuspender<ConstBool<true>>,
+			>::is_paused(&test_origin()))
+		})
+	}
+
+	#[test]
+	fn local_xcm_queue_is_paused_when_bridge_queue_is_congested() {
+		run_test(|| {
+			LocalXcmQueueManager::suspend_inbound_queue(Box::new(test_origin_location()));
+			assert!(TestLocalXcmQueueSuspender::is_paused(&test_origin()))
+		});
+	}
+
+	#[test]
+	fn local_xcm_queue_is_not_paused_normally() {
+		run_test(|| assert!(!TestLocalXcmQueueSuspender::is_paused(&test_origin())));
 	}
 }
