@@ -23,3 +23,9 @@ pub trait LocalXcmChannel {
 	/// Returns true if the queue is currently congested.
 	fn is_congested() -> bool;
 }
+
+impl LocalXcmChannel for () {
+	fn is_congested() -> bool {
+		false
+	}
+}

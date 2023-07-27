@@ -62,7 +62,7 @@ pub type FromRialtoParachainMessageDispatch =
 	bridge_runtime_common::messages_xcm_extension::XcmBlobMessageDispatch<
 		crate::xcm_config::OnMillauBlobDispatcher,
 		(),
-		ConstBool<true>,
+		(),
 	>;
 
 /// Maximal outbound payload size of Millau -> RialtoParachain messages.

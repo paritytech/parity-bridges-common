@@ -59,7 +59,7 @@ pub type FromMillauMessageDispatch =
 	bridge_runtime_common::messages_xcm_extension::XcmBlobMessageDispatch<
 		crate::xcm_config::OnRialtoBlobDispatcher,
 		(),
-		ConstBool<true>,
+		(),
 	>;
 
 /// Messages proof for Millau -> Rialto messages.
