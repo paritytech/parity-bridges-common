@@ -715,12 +715,13 @@ pub(crate) mod tests {
 	use super::*;
 	use crate::mock::{
 		run_test, test_relay_header, BigParachainHeader, RegularParachainHasher,
-		RegularParachainHeader, RuntimeEvent as TestEvent, RuntimeOrigin, TestRuntime,
-		UNTRACKED_PARACHAIN_ID,
+		RegularParachainHeader, RelayBlockHeader, RuntimeEvent as TestEvent, RuntimeOrigin,
+		TestRuntime, UNTRACKED_PARACHAIN_ID,
 	};
 	use bp_test_utils::prepare_parachain_heads_proof;
 	use codec::Encode;
 
+	use bp_header_chain::justification::GrandpaJustification;
 	use bp_parachains::{
 		BestParaHeadHash, BridgeParachainCall, ImportedParaHeadsKeyProvider, ParasInfoKeyProvider,
 	};
@@ -764,7 +765,10 @@ pub(crate) mod tests {
 		test_relay_header(0, state_root).hash()
 	}
 
-	fn proceed(num: RelayBlockNumber, state_root: RelayBlockHash) -> ParaHash {
+	fn proceed(
+		num: RelayBlockNumber,
+		state_root: RelayBlockHash,
+	) -> (ParaHash, GrandpaJustification<RelayBlockHeader>) {
 		pallet_bridge_grandpa::Pallet::<TestRuntime, BridgesGrandpaPalletInstance>::on_initialize(
 			0,
 		);
@@ -776,11 +780,11 @@ pub(crate) mod tests {
 			pallet_bridge_grandpa::Pallet::<TestRuntime, BridgesGrandpaPalletInstance>::submit_finality_proof(
 				RuntimeOrigin::signed(1),
 				Box::new(header),
-				justification,
+				justification.clone(),
 			)
 		);
 
-		hash
+		(hash, justification)
 	}
 
 	fn initial_best_head(parachain: u32) -> ParaInfo {
@@ -1017,7 +1021,7 @@ pub(crate) mod tests {
 			);
 
 			// import head#10 of parachain#1 at relay block #1
-			let relay_1_hash = proceed(1, state_root_10);
+			let (relay_1_hash, justification) = proceed(1, state_root_10);
 			assert_ok!(import_parachain_1_head(1, state_root_10, parachains_10, proof_10));
 			assert_eq!(
 				ParasInfo::<TestRuntime>::get(ParaId(1)),
@@ -1056,6 +1060,7 @@ pub(crate) mod tests {
 							pallet_bridge_grandpa::Event::UpdatedBestFinalizedHeader {
 								number: 1,
 								hash: relay_1_hash,
+								justification
 							}
 						),
 						topics: vec![],
@@ -1173,7 +1178,7 @@ pub(crate) mod tests {
 
 			// try to import head#0 of parachain#1 at relay block#1
 			// => call succeeds, but nothing is changed
-			let relay_1_hash = proceed(1, state_root);
+			let (relay_1_hash, justification) = proceed(1, state_root);
 			assert_ok!(import_parachain_1_head(1, state_root, parachains, proof));
 			assert_eq!(ParasInfo::<TestRuntime>::get(ParaId(1)), Some(initial_best_head(1)));
 			assert_eq!(
@@ -1193,6 +1198,7 @@ pub(crate) mod tests {
 							pallet_bridge_grandpa::Event::UpdatedBestFinalizedHeader {
 								number: 1,
 								hash: relay_1_hash,
+								justification
 							}
 						),
 						topics: vec![],
@@ -1221,7 +1227,7 @@ pub(crate) mod tests {
 			initialize(state_root_5);
 
 			// head#10 of parachain#1 at relay block#1
-			let relay_1_hash = proceed(1, state_root_10);
+			let (relay_1_hash, justification) = proceed(1, state_root_10);
 			assert_ok!(import_parachain_1_head(1, state_root_10, parachains_10, proof_10));
 			assert_eq!(
 				ParasInfo::<TestRuntime>::get(ParaId(1)),
@@ -1242,6 +1248,7 @@ pub(crate) mod tests {
 							pallet_bridge_grandpa::Event::UpdatedBestFinalizedHeader {
 								number: 1,
 								hash: relay_1_hash,
+								justification: justification.clone()
 							}
 						),
 						topics: vec![],
@@ -1279,6 +1286,7 @@ pub(crate) mod tests {
 							pallet_bridge_grandpa::Event::UpdatedBestFinalizedHeader {
 								number: 1,
 								hash: relay_1_hash,
+								justification
 							}
 						),
 						topics: vec![],
