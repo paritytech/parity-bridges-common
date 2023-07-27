@@ -379,6 +379,20 @@ mod tests {
 
 	use sp_runtime::traits::{ConstBool, Get};
 
+	struct TestInnerXcmQueueMessageProcessor;
+	impl ProcessMessage for TestInnerXcmQueueMessageProcessor {
+		type Origin = MultiLocation;
+
+		fn process_message(
+			_message: &[u8],
+			_origin: Self::Origin,
+			_meter: &mut WeightMeter,
+			_id: &mut [u8; 32],
+		) -> Result<bool, ProcessMessageError> {
+			Ok(true)
+		}
+	}
+
 	struct TestInnerXcmQueueSuspender<IsSuspended>(PhantomData<IsSuspended>);
 	impl<IsSuspended: Get<bool>> QueuePausedQuery<MultiLocation>
 		for TestInnerXcmQueueSuspender<IsSuspended>
@@ -388,6 +402,8 @@ mod tests {
 		}
 	}
 
+	type TestLocalXcmQueueMessageProcessor =
+		LocalXcmQueueMessageProcessor<MultiLocation, TestInnerXcmQueueMessageProcessor>;
 	type TestLocalXcmQueueSuspender =
 		LocalXcmQueueSuspender<MultiLocation, TestInnerXcmQueueSuspender<ConstBool<false>>>;
 
@@ -397,6 +413,37 @@ mod tests {
 
 	fn test_origin() -> MultiLocation {
 		test_origin_location()
+	}
+
+	#[test]
+	fn inbound_xcm_message_from_sibling_is_not_processed_when_bridge_queue_is_congested() {
+		run_test(|| {
+			LocalXcmQueueManager::suspend_inbound_queue(Box::new(test_origin_location()));
+			assert_eq!(
+				TestLocalXcmQueueMessageProcessor::process_message(
+					&[42],
+					test_origin(),
+					&mut WeightMeter::max_limit(),
+					&mut [0u8; 32],
+				),
+				Err(ProcessMessageError::Yield),
+			);
+		})
+	}
+
+	#[test]
+	fn inbound_xcm_message_from_sibling_is_processed_normally() {
+		run_test(|| {
+			assert_eq!(
+				TestLocalXcmQueueMessageProcessor::process_message(
+					&[42],
+					test_origin(),
+					&mut WeightMeter::max_limit(),
+					&mut [0u8; 32],
+				),
+				Ok(true),
+			);
+		})
 	}
 
 	#[test]
