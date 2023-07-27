@@ -379,6 +379,24 @@ mod tests {
 
 	use sp_runtime::traits::{ConstBool, Get};
 
+	struct TestXcmBlobHauler;
+	impl XcmBlobHauler for TestXcmBlobHauler {
+		type MessageSender = BridgeMessages;
+		type MessageSenderOrigin = RuntimeOrigin;
+
+		fn message_sender_origin() -> Self::MessageSenderOrigin {
+			RuntimeOrigin::root()
+		}
+
+		fn sending_chain_location() -> MultiLocation {
+			ParentThen(X1(Parachain(1000))).into()
+		}
+
+		fn xcm_lane() -> LaneId {
+			TEST_LANE_ID
+		}
+	}
+
 	struct TestInnerXcmQueueMessageProcessor;
 	impl ProcessMessage for TestInnerXcmQueueMessageProcessor {
 		type Origin = MultiLocation;
@@ -402,6 +420,7 @@ mod tests {
 		}
 	}
 
+	type TestXcmBlobHaulerAdapter = XcmBlobHaulerAdapter<TestXcmBlobHauler>;
 	type TestLocalXcmQueueMessageProcessor =
 		LocalXcmQueueMessageProcessor<MultiLocation, TestInnerXcmQueueMessageProcessor>;
 	type TestLocalXcmQueueSuspender =
@@ -413,6 +432,48 @@ mod tests {
 
 	fn test_origin() -> MultiLocation {
 		test_origin_location()
+	}
+
+	#[test]
+	fn inbound_xcm_queue_with_sending_chain_is_managed_by_blob_hauler() {
+		run_test(|| {
+			// while we enqueue `MAX_ENQUEUED_MESSAGES_AT_OUTBOUND_LANE` messages to the bridge
+			// queue, the inbound channel with the sending chain stays opened
+			for _ in 0..MAX_ENQUEUED_MESSAGES_AT_OUTBOUND_LANE {
+				TestXcmBlobHaulerAdapter::haul_blob(vec![42]).unwrap();
+				assert!(!LocalXcmQueueManager::is_inbound_queue_suspended(Box::new(
+					TestXcmBlobHauler::sending_chain_location()
+				)));
+			}
+
+			// then when we enqueue more messages, we suspend inbound queue. Note that messages
+			// are not dropped - they're enqueued at the bridge queue
+			TestXcmBlobHaulerAdapter::haul_blob(vec![42]).unwrap();
+			assert!(LocalXcmQueueManager::is_inbound_queue_suspended(Box::new(
+				TestXcmBlobHauler::sending_chain_location()
+			)));
+
+			// okay - let's now emulate delivery confirmation. If we still have more than
+			// `MAX_ENQUEUED_MESSAGES_AT_OUTBOUND_LANE` in the bridge queue, the inbound
+			// channel stays suspended
+			TestXcmBlobHaulerAdapter::on_messages_delivered(
+				TEST_LANE_ID,
+				MAX_ENQUEUED_MESSAGES_AT_OUTBOUND_LANE + 1,
+			);
+			assert!(LocalXcmQueueManager::is_inbound_queue_suspended(Box::new(
+				TestXcmBlobHauler::sending_chain_location()
+			)));
+
+			// and when there's lte than `MAX_ENQUEUED_MESSAGES_AT_OUTBOUND_LANE` messages in the
+			// bridge queue, we resume the inbound channel
+			TestXcmBlobHaulerAdapter::on_messages_delivered(
+				TEST_LANE_ID,
+				MAX_ENQUEUED_MESSAGES_AT_OUTBOUND_LANE,
+			);
+			assert!(!LocalXcmQueueManager::is_inbound_queue_suspended(Box::new(
+				TestXcmBlobHauler::sending_chain_location()
+			)));
+		});
 	}
 
 	#[test]
