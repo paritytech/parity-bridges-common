@@ -39,7 +39,9 @@ use bp_messages::{
 };
 use bp_parachains::SingleParaStoredHeaderDataBuilder;
 use bp_relayers::PayRewardFromAccount;
-use bp_runtime::{messages::MessageDispatchResult, Chain, ChainId, Parachain, UnderlyingChainProvider};
+use bp_runtime::{
+	messages::MessageDispatchResult, Chain, ChainId, Parachain, UnderlyingChainProvider,
+};
 use codec::{Decode, Encode};
 use frame_support::{
 	parameter_types,

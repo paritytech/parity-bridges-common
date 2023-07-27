@@ -334,8 +334,8 @@ mod tests {
 		},
 		messages_call_ext::MessagesCallSubType,
 		mock::{
-			MaxUnconfirmedMessagesAtInboundLane, MaxUnrewardedRelayerEntriesAtInboundLane,
-			TestRuntime, ThisChainRuntimeCall,
+			DummyMessageDispatch, MaxUnconfirmedMessagesAtInboundLane,
+			MaxUnrewardedRelayerEntriesAtInboundLane, TestRuntime, ThisChainRuntimeCall,
 		},
 	};
 	use bp_messages::{DeliveredMessages, UnrewardedRelayer, UnrewardedRelayersState};
@@ -439,6 +439,18 @@ mod tests {
 			// 13..=15 => tx is rejected
 			deliver_message_10();
 			assert!(!validate_message_delivery(13, 15));
+		});
+	}
+
+	#[test]
+	fn extension_reject_call_when_dispatcher_is_inactive() {
+		sp_io::TestExternalities::new(Default::default()).execute_with(|| {
+			// when current best delivered is message#10 and we're trying to deliver message 11..=15
+			// => tx is accepted, but we have inactive dispatcher, so...
+			deliver_message_10();
+
+			DummyMessageDispatch::deactivate();
+			assert!(!validate_message_delivery(11, 15));
 		});
 	}
 
