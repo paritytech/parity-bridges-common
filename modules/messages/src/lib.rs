@@ -204,8 +204,8 @@ pub mod pallet {
 
 			// reject transactions that are declaring too many messages
 			ensure!(
-				MessageNonce::from(messages_count) <=
-					BridgedChainOf::<T, I>::MAX_UNCONFIRMED_MESSAGES_IN_CONFIRMATION_TX,
+				MessageNonce::from(messages_count)
+					<= BridgedChainOf::<T, I>::MAX_UNCONFIRMED_MESSAGES_IN_CONFIRMATION_TX,
 				Error::<T, I>::TooManyMessagesInTheProof
 			);
 
@@ -301,9 +301,9 @@ pub mod pallet {
 						valid_messages += 1;
 						dispatch_result.unspent_weight
 					},
-					ReceivalResult::InvalidNonce |
-					ReceivalResult::TooManyUnrewardedRelayers |
-					ReceivalResult::TooManyUnconfirmedMessages => message_dispatch_weight,
+					ReceivalResult::InvalidNonce
+					| ReceivalResult::TooManyUnrewardedRelayers
+					| ReceivalResult::TooManyUnconfirmedMessages => message_dispatch_weight,
 				};
 				messages_received_status.push(message.key.nonce, receival_result);
 
@@ -525,7 +525,7 @@ pub mod pallet {
 	}
 
 	#[pallet::genesis_build]
-	impl<T: Config<I>, I: 'static> BuildGenesisConfig for GenesisConfig<T, I> {
+	impl<T: Config<I>, I: 'static> GenesisBuild<T, I> for GenesisConfig<T, I> {
 		fn build(&self) {
 			PalletOperatingMode::<T, I>::put(self.operating_mode);
 			if let Some(ref owner) = self.owner {
@@ -631,10 +631,10 @@ fn send_message<T: Config<I>, I: 'static>(
 
 /// Ensure that the pallet is in normal operational mode.
 fn ensure_normal_operating_mode<T: Config<I>, I: 'static>() -> Result<(), Error<T, I>> {
-	if PalletOperatingMode::<T, I>::get() ==
-		MessagesOperatingMode::Basic(BasicOperatingMode::Normal)
+	if PalletOperatingMode::<T, I>::get()
+		== MessagesOperatingMode::Basic(BasicOperatingMode::Normal)
 	{
-		return Ok(())
+		return Ok(());
 	}
 
 	Err(Error::<T, I>::NotOperatingNormally)

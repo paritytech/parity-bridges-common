@@ -59,10 +59,9 @@ use bp_xcm_bridge_hub::{
 use frame_support::traits::{Currency, ReservableCurrency};
 use frame_system::Config as SystemConfig;
 use pallet_bridge_messages::{Config as BridgeMessagesConfig, LanesManagerError};
-use sp_runtime::traits::{Header as HeaderT, HeaderProvider, Zero};
+use sp_runtime::traits::Zero;
 use xcm::prelude::*;
 use xcm_builder::DispatchBlob;
-use xcm_executor::traits::ConvertLocation;
 
 pub use dispatcher::XcmBlobMessageDispatchResult;
 pub use pallet::*;
@@ -83,6 +82,7 @@ pub mod pallet {
 	use super::*;
 	use frame_support::pallet_prelude::*;
 	use frame_system::pallet_prelude::*;
+	use xcm_executor::traits::Convert;
 
 	#[pallet::config]
 	#[pallet::disable_frame_system_supertrait_check]
@@ -115,7 +115,7 @@ pub mod pallet {
 			Success = MultiLocation,
 		>;
 		/// A converter between a multi-location and a sovereign account.
-		type BridgeOriginAccountIdConverter: ConvertLocation<Self::AccountId>;
+		type BridgeOriginAccountIdConverter: Convert<MultiLocation, Self::AccountId>;
 
 		/// Amount of this chain native tokens that is reserved on the sibling parachain account
 		/// when bridge open request is registered.
@@ -146,8 +146,6 @@ pub mod pallet {
 	impl<T: Config<I>, I: 'static> Pallet<T, I>
 	where
 		T: frame_system::Config<AccountId = AccountIdOf<ThisChainOf<T, I>>>,
-		<<T as frame_system::Config>::Block as HeaderProvider>::HeaderT:
-			HeaderT<Number = BlockNumberOf<ThisChainOf<T, I>>>,
 		T::NativeCurrency: Currency<T::AccountId, Balance = BalanceOf<ThisChainOf<T, I>>>,
 	{
 		/// Open a bridge between two locations.
@@ -173,10 +171,10 @@ pub mod pallet {
 
 			// reserve balance on the parachain sovereign account
 			let reserve = T::BridgeReserve::get();
-			let bridge_owner_account = T::BridgeOriginAccountIdConverter::convert_location(
-				&locations.bridge_origin_relative_location,
+			let bridge_owner_account = T::BridgeOriginAccountIdConverter::convert(
+				locations.bridge_origin_relative_location.clone(),
 			)
-			.ok_or(Error::<T, I>::InvalidBridgeOriginAccount)?;
+			.map_err(|_| Error::<T, I>::InvalidBridgeOriginAccount)?;
 			T::NativeCurrency::reserve(&bridge_owner_account, reserve)
 				.map_err(|_| Error::<T, I>::FailedToReserveBridgeReserve)?;
 
@@ -278,7 +276,7 @@ pub mod pallet {
 			let mut pruned_messages = 0;
 			for _ in outbound_lane.queued_messages() {
 				if pruned_messages == may_prune_messages {
-					break
+					break;
 				}
 
 				outbound_lane.remove_oldest_unpruned_message();
@@ -309,7 +307,7 @@ pub mod pallet {
 					enqueued_messages,
 				});
 
-				return Ok(())
+				return Ok(());
 			}
 
 			// else we have pruned all messages, so lanes and the bridge itself may gone
@@ -450,8 +448,7 @@ mod tests {
 
 	fn fund_origin_sovereign_account(locations: &BridgeLocations, balance: Balance) -> AccountId {
 		let bridge_owner_account =
-			LocationToAccountId::convert_location(&locations.bridge_origin_relative_location)
-				.unwrap();
+			LocationToAccountId::convert(&locations.bridge_origin_relative_location).unwrap();
 		Balances::mint_into(&bridge_owner_account, balance).unwrap();
 		bridge_owner_account
 	}

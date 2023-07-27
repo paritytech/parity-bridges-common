@@ -133,7 +133,6 @@ pub mod pallet {
 	impl<T: Config<I>, I: 'static> Hooks<BlockNumberFor<T>> for Pallet<T, I> {
 		fn on_initialize(_n: BlockNumberFor<T>) -> frame_support::weights::Weight {
 			<RequestCount<T, I>>::mutate(|count| *count = count.saturating_sub(1));
-
 			Weight::from_parts(0, 0)
 				.saturating_add(T::DbWeight::get().reads(1))
 				.saturating_add(T::DbWeight::get().writes(1))
@@ -338,7 +337,7 @@ pub mod pallet {
 	}
 
 	#[pallet::genesis_build]
-	impl<T: Config<I>, I: 'static> BuildGenesisConfig for GenesisConfig<T, I> {
+	impl<T: Config<I>, I: 'static> GenesisBuild<T, I> for GenesisConfig<T, I> {
 		fn build(&self) {
 			if let Some(ref owner) = self.owner {
 				<PalletOwner<T, I>>::put(owner);
@@ -392,7 +391,7 @@ pub mod pallet {
 		init_data: InitializationDataOf<T, I>,
 	) -> Result<(), Error<T, I>> {
 		if init_data.authority_set.len == 0 {
-			return Err(Error::<T, I>::InvalidInitialAuthoritySet)
+			return Err(Error::<T, I>::InvalidInitialAuthoritySet);
 		}
 		CurrentAuthoritySetInfo::<T, I>::put(init_data.authority_set);
 

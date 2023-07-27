@@ -115,7 +115,7 @@ where
 					error,
 					lane_id,
 				);
-				return Err(SendError::Transport("BridgeSendError"))
+				return Err(SendError::Transport("BridgeSendError"));
 			},
 		}
 
