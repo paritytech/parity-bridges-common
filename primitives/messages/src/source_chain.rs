@@ -116,12 +116,11 @@ impl<AccountId> DeliveryConfirmationPayments<AccountId> for () {
 	}
 }
 
-/// Callback that is called at the source chain (bridge hub) when we get delivery confrimation
-/// for new messages.
+/// Callback that is called at the source chain (bridge hub) when we get new delivery confrimation.
 pub trait OnMessagesDelivered {
-	/// New messages delivery has been confimed.
+	/// Messages delivery has been confimed.
 	///
-	/// The only argument of the function is the number of yet undelivered messages
+	/// The only argument of the function is the number of yet undelivered messages.
 	fn on_messages_delivered(lane: LaneId, enqueued_messages: MessageNonce);
 }
 

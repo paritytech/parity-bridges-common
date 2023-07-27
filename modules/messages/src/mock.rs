@@ -21,7 +21,9 @@ use crate::Config;
 
 use bp_messages::{
 	calc_relayers_rewards,
-	source_chain::{DeliveryConfirmationPayments, LaneMessageVerifier, TargetHeaderChain},
+	source_chain::{
+		DeliveryConfirmationPayments, LaneMessageVerifier, OnMessagesDelivered, TargetHeaderChain,
+	},
 	target_chain::{
 		DeliveryPayments, DispatchMessage, DispatchMessageData, MessageDispatch,
 		ProvedLaneMessages, ProvedMessages, SourceHeaderChain,
@@ -161,7 +163,7 @@ impl Config for TestRuntime {
 	type TargetHeaderChain = TestTargetHeaderChain;
 	type LaneMessageVerifier = TestLaneMessageVerifier;
 	type DeliveryConfirmationPayments = TestDeliveryConfirmationPayments;
-	type OnMessagesDelivered = ();
+	type OnMessagesDelivered = TestOnMessagesDelivered;
 
 	type SourceHeaderChain = TestSourceHeaderChain;
 	type MessageDispatch = TestMessageDispatch;
@@ -404,16 +406,24 @@ impl SourceHeaderChain for TestSourceHeaderChain {
 	}
 }
 
-/// Source header chain that is used in tests.
+/// Test message dispatcher.
 #[derive(Debug)]
 pub struct TestMessageDispatch;
+
+impl TestMessageDispatch {
+	pub fn deactivate() {
+		frame_support::storage::unhashed::put(b"TestMessageDispatch.IsCongested", &true)
+	}
+}
 
 impl MessageDispatch for TestMessageDispatch {
 	type DispatchPayload = TestPayload;
 	type DispatchLevelResult = TestDispatchLevelResult;
 
 	fn is_active() -> bool {
-		true
+		!frame_support::storage::unhashed::get_or_default::<bool>(
+			b"TestMessageDispatch.IsCongested",
+		)
 	}
 
 	fn dispatch_weight(message: &mut DispatchMessage<TestPayload>) -> Weight {
@@ -430,6 +440,24 @@ impl MessageDispatch for TestMessageDispatch {
 			Ok(payload) => payload.dispatch_result.clone(),
 			Err(_) => dispatch_result(0),
 		}
+	}
+}
+
+/// Test callback, called during message delivery confirmation transaction.
+pub struct TestOnMessagesDelivered;
+
+impl TestOnMessagesDelivered {
+	pub fn call_arguments() -> Option<(LaneId, MessageNonce)> {
+		frame_support::storage::unhashed::get(b"TestOnMessagesDelivered.OnMessagesDelivered")
+	}
+}
+
+impl OnMessagesDelivered for TestOnMessagesDelivered {
+	fn on_messages_delivered(lane: LaneId, enqueued_messages: MessageNonce) {
+		frame_support::storage::unhashed::put(
+			b"TestOnMessagesDelivered.OnMessagesDelivered",
+			&(lane, enqueued_messages),
+		);
 	}
 }
 

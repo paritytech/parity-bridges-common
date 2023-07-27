@@ -905,8 +905,9 @@ mod tests {
 		mock::{
 			inbound_unrewarded_relayers_state, message, message_payload, run_test,
 			unrewarded_relayer, AccountId, DbWeight, RuntimeEvent as TestEvent, RuntimeOrigin,
-			TestDeliveryConfirmationPayments, TestDeliveryPayments, TestMessagesDeliveryProof,
-			TestMessagesProof, TestRelayer, TestRuntime, TestWeightInfo, MAX_OUTBOUND_PAYLOAD_SIZE,
+			TestDeliveryConfirmationPayments, TestDeliveryPayments, TestMessageDispatch,
+			TestMessagesDeliveryProof, TestMessagesProof, TestOnMessagesDelivered, TestRelayer,
+			TestRuntime, TestWeightInfo, MAX_OUTBOUND_PAYLOAD_SIZE,
 			PAYLOAD_REJECTED_BY_TARGET_CHAIN, REGULAR_PAYLOAD, TEST_LANE_ID, TEST_LANE_ID_2,
 			TEST_LANE_ID_3, TEST_RELAYER_A, TEST_RELAYER_B,
 		},
@@ -932,10 +933,16 @@ mod tests {
 	fn send_regular_message() {
 		get_ready_for_events();
 
-		let message_nonce =
-			outbound_lane::<TestRuntime, ()>(TEST_LANE_ID).data().latest_generated_nonce + 1;
-		send_message::<TestRuntime, ()>(RuntimeOrigin::signed(1), TEST_LANE_ID, REGULAR_PAYLOAD)
-			.expect("send_message has failed");
+		let outbound_lane = outbound_lane::<TestRuntime, ()>(TEST_LANE_ID);
+		let message_nonce = outbound_lane.data().latest_generated_nonce + 1;
+		let prev_enqueud_messages = outbound_lane.queued_messages().checked_len().unwrap_or(0);
+		let artifacts = send_message::<TestRuntime, ()>(
+			RuntimeOrigin::signed(1),
+			TEST_LANE_ID,
+			REGULAR_PAYLOAD,
+		)
+		.expect("send_message has failed");
+		assert_eq!(artifacts.enqueued_messages, prev_enqueud_messages + 1);
 
 		// check event with assigned nonce
 		assert_eq!(
@@ -976,6 +983,8 @@ mod tests {
 				last_delivered_nonce: 1,
 			},
 		));
+
+		assert_eq!(TestOnMessagesDelivered::call_arguments(), Some((TEST_LANE_ID, 0)));
 
 		assert_eq!(
 			System::<TestRuntime>::events(),
@@ -1246,6 +1255,23 @@ mod tests {
 	}
 
 	#[test]
+	fn receive_messages_fails_if_dispatcher_is_inactive() {
+		run_test(|| {
+			TestMessageDispatch::deactivate();
+			assert_noop!(
+				Pallet::<TestRuntime>::receive_messages_proof(
+					RuntimeOrigin::signed(1),
+					TEST_RELAYER_A,
+					Ok(vec![message(1, REGULAR_PAYLOAD)]).into(),
+					1,
+					REGULAR_PAYLOAD.declared_weight,
+				),
+				Error::<TestRuntime, ()>::MessageDispatchInactive,
+			);
+		});
+	}
+
+	#[test]
 	fn receive_messages_proof_does_not_accept_message_if_dispatch_weight_is_not_enough() {
 		run_test(|| {
 			let mut declared_weight = REGULAR_PAYLOAD.declared_weight;
@@ -1356,6 +1382,7 @@ mod tests {
 			);
 			assert!(TestDeliveryConfirmationPayments::is_reward_paid(TEST_RELAYER_A, 1));
 			assert!(!TestDeliveryConfirmationPayments::is_reward_paid(TEST_RELAYER_B, 1));
+			assert_eq!(TestOnMessagesDelivered::call_arguments(), Some((TEST_LANE_ID, 1)));
 
 			// this reports delivery of both message 1 and message 2 => reward is paid only to
 			// TEST_RELAYER_B
@@ -1398,6 +1425,7 @@ mod tests {
 			);
 			assert!(!TestDeliveryConfirmationPayments::is_reward_paid(TEST_RELAYER_A, 1));
 			assert!(TestDeliveryConfirmationPayments::is_reward_paid(TEST_RELAYER_B, 1));
+			assert_eq!(TestOnMessagesDelivered::call_arguments(), Some((TEST_LANE_ID, 0)));
 		});
 	}
 
