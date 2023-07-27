@@ -734,10 +734,8 @@ impl_runtime_apis! {
 		fn best_finalized() -> Option<HeaderId<bp_millau::Hash, bp_millau::BlockNumber>> {
 			BridgeMillauGrandpa::best_finalized()
 		}
-	}
 
-	impl bp_millau::MillauGrandpaFinalityApi<Block> for Runtime {
-		fn accepted_finality_proofs(
+		fn accepted_grandpa_finality_proofs(
 		) -> Vec<bp_header_chain::justification::GrandpaJustification<bp_millau::Header>> {
 			BridgeMillauGrandpa::accepted_finality_proofs()
 		}

@@ -290,10 +290,11 @@ pub type TransactionEraOf<C> = crate::TransactionEra<BlockNumberOf<C>, HashOf<C>
 ///     - `<ThisChain>FinalityApi`
 /// - constants that are stringified names of runtime API methods:
 ///     - `BEST_FINALIZED_<THIS_CHAIN>_HEADER_METHOD`
+///     - `<THIS_CHAIN>_ACCEPTED_<CONSENSUS>_FINALITY_PROOFS_METHOD`
 /// The name of the chain has to be specified in snake case (e.g. `rialto_parachain`).
 #[macro_export]
 macro_rules! decl_bridge_finality_runtime_apis {
-	($chain: ident) => {
+	($chain: ident $(, $consensus: ident => $justification_type: ty)?) => {
 		bp_runtime::paste::item! {
 			mod [<$chain _finality_api>] {
 				use super::*;
@@ -301,6 +302,13 @@ macro_rules! decl_bridge_finality_runtime_apis {
 				/// Name of the `<ThisChain>FinalityApi::best_finalized` runtime method.
 				pub const [<BEST_FINALIZED_ $chain:upper _HEADER_METHOD>]: &str =
 					stringify!([<$chain:camel FinalityApi_best_finalized>]);
+
+				$(
+					/// Name of the `<ThisChain>FinalityApi::accepted_<consensus>_finality_proofs`
+					/// runtime method.
+					pub const [<$chain:upper _ACCEPTED_ $consensus:upper _FINALITY_PROOFS_METHOD>]: &str =
+						stringify!([<$chain:camel FinalityApi_accepted_ $consensus:lower _finality_proofs>]);
+				)?
 
 				sp_api::decl_runtime_apis! {
 					/// API for querying information about the finalized chain headers.
@@ -310,6 +318,12 @@ macro_rules! decl_bridge_finality_runtime_apis {
 					pub trait [<$chain:camel FinalityApi>] {
 						/// Returns number and hash of the best finalized header known to the bridge module.
 						fn best_finalized() -> Option<bp_runtime::HeaderId<Hash, BlockNumber>>;
+
+						$(
+							/// Returns the justifications accepted in the current block.
+							fn [<accepted_ $consensus:lower _finality_proofs>](
+							) -> Vec<$justification_type>;
+						)?
 					}
 				}
 			}
@@ -317,44 +331,8 @@ macro_rules! decl_bridge_finality_runtime_apis {
 			pub use [<$chain _finality_api>]::*;
 		}
 	};
-}
-
-/// Convenience macro that declares bridge GRANDPA finality runtime apis and related constants
-/// for a chain.
-/// This includes:
-/// - chain-specific bridge runtime APIs:
-///     - `<ThisChain>GrandpaFinalityApi`
-/// - constants that are stringified names of runtime API methods:
-///     - `<THIS_CHAIN>_GRANDPA_JUSTIFICATIONS_METHOD`
-/// The name of the chain has to be specified in snake case (e.g. `rialto_parachain`).
-#[macro_export]
-macro_rules! decl_bridge_grandpa_finality_runtime_apis {
-	($chain: ident) => {
-		bp_runtime::paste::item! {
-			mod [<$chain _grandpa_finality_api>] {
-				use super::*;
-
-				/// Name of the `<ThisChain>GrandpaFinalityApi::accepted_finality_proofs`
-				/// runtime method.
-				pub const [<$chain:upper _ACCEPTED_GRANDPA_FINALITY_PROOFS_METHOD>]: &str =
-					stringify!([<$chain:camel GrandpaFinalityApi_accepted_finality_proofs>]);
-
-				sp_api::decl_runtime_apis! {
-					/// API for getting the justifications for the GRANDPA finalized
-					/// headers accepted in the queried block.
-					///
-					/// This API is implemented by runtimes that are receiving messages from
-					/// this chain, not by this chain's runtime itself.
-					pub trait [<$chain:camel GrandpaFinalityApi>] {
-						/// Returns the GRANDPA justifications accepted in the current block.
-						fn accepted_finality_proofs(
-						) -> Vec<bp_header_chain::justification::GrandpaJustification<Header>>;
-					}
-				}
-			}
-
-			pub use [<$chain _grandpa_finality_api>]::*;
-		}
+	($chain: ident, grandpa) => {
+		decl_bridge_finality_runtime_apis!($chain, grandpa => bp_header_chain::justification::GrandpaJustification<Header>);
 	};
 }
 
@@ -426,8 +404,8 @@ macro_rules! decl_bridge_messages_runtime_apis {
 /// The name of the chain has to be specified in snake case (e.g. `rialto_parachain`).
 #[macro_export]
 macro_rules! decl_bridge_runtime_apis {
-	($chain: ident) => {
-		bp_runtime::decl_bridge_finality_runtime_apis!($chain);
+	($chain: ident $(, $consensus: ident)?) => {
+		bp_runtime::decl_bridge_finality_runtime_apis!($chain $(, $consensus)?);
 		bp_runtime::decl_bridge_messages_runtime_apis!($chain);
 	};
 }

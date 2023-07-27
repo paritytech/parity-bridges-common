@@ -22,9 +22,7 @@
 pub use bp_polkadot_core::*;
 
 use bp_header_chain::ChainWithGrandpa;
-use bp_runtime::{
-	decl_bridge_finality_runtime_apis, decl_bridge_grandpa_finality_runtime_apis, Chain, ChainId,
-};
+use bp_runtime::{decl_bridge_finality_runtime_apis, Chain, ChainId};
 use frame_support::{weights::Weight, StateVersion};
 
 /// Rococo Chain
@@ -76,5 +74,4 @@ pub const WITH_ROCOCO_GRANDPA_PALLET_NAME: &str = "BridgeRococoGrandpa";
 /// reserve.
 pub const MAX_NESTED_PARACHAIN_HEAD_DATA_SIZE: u32 = 128;
 
-decl_bridge_finality_runtime_apis!(rococo);
-decl_bridge_grandpa_finality_runtime_apis!(rococo);
+decl_bridge_finality_runtime_apis!(rococo, grandpa);
