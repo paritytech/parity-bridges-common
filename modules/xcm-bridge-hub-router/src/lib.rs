@@ -72,7 +72,7 @@ pub mod pallet {
 		type SiblingBridgeHubLocation: Get<MultiLocation>;
 		/// The bridged network that this config is for.
 		type BridgedNetworkId: Get<NetworkId>;
-
+trigger CI
 		/// Actual message sender (`HRMP` or `DMP`) to the sibling bridge hub location.
 		type ToBridgeHubSender: SendXcm;
 		/// Underlying channel with the sibling bridge hub. It must match the channel, used
