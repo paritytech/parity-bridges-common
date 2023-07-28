@@ -53,8 +53,7 @@ use crate::{
 
 use bp_messages::{
 	source_chain::{
-		DeliveryConfirmationPayments, LaneMessageVerifier, OnMessagesDelivered,
-		SendMessageArtifacts, TargetHeaderChain,
+		DeliveryConfirmationPayments, LaneMessageVerifier, SendMessageArtifacts, TargetHeaderChain,
 	},
 	target_chain::{
 		DeliveryPayments, DispatchMessage, MessageDispatch, ProvedLaneMessages, ProvedMessages,
@@ -159,8 +158,6 @@ pub mod pallet {
 		type LaneMessageVerifier: LaneMessageVerifier<Self::RuntimeOrigin, Self::OutboundPayload>;
 		/// Delivery confirmation payments.
 		type DeliveryConfirmationPayments: DeliveryConfirmationPayments<Self::AccountId>;
-		/// Delivery confirmation callback.
-		type OnMessagesDelivered: OnMessagesDelivered;
 
 		// Types that are used by inbound_lane (on target chain).
 
@@ -495,12 +492,6 @@ pub mod pallet {
 				lane_id,
 			);
 
-			// notify others about messages delivery
-			T::OnMessagesDelivered::on_messages_delivered(
-				lane_id,
-				lane.queued_messages().checked_len().unwrap_or(0),
-			);
-
 			// because of lags, the inbound lane state (`lane_data`) may have entries for
 			// already rewarded relayers and messages (if all entries are duplicated, then
 			// this transaction must be filtered out by our signed extension)
@@ -643,6 +634,11 @@ pub mod pallet {
 			}
 		}
 
+		/// Return outbound lane data.
+		pub fn outbound_lane_data(lane: LaneId) -> OutboundLaneData {
+			OutboundLanes::<T, I>::get(lane)
+		}
+
 		/// Return inbound lane data.
 		pub fn inbound_lane_data(lane: LaneId) -> InboundLaneData<T::InboundRelayer> {
 			InboundLanes::<T, I>::get(lane).0
@@ -725,7 +721,7 @@ fn send_message<T: Config<I>, I: 'static>(
 		.map_err(Error::<T, I>::MessageRejectedByPallet)?;
 
 	// return number of messages in the queue to let sender know about its state
-	let enqueued_messages = lane.queued_messages().checked_len().unwrap_or(0);
+	let enqueued_messages = lane.data().queued_messages().checked_len().unwrap_or(0);
 
 	log::trace!(
 		target: LOG_TARGET,
@@ -906,10 +902,9 @@ mod tests {
 			inbound_unrewarded_relayers_state, message, message_payload, run_test,
 			unrewarded_relayer, AccountId, DbWeight, RuntimeEvent as TestEvent, RuntimeOrigin,
 			TestDeliveryConfirmationPayments, TestDeliveryPayments, TestMessageDispatch,
-			TestMessagesDeliveryProof, TestMessagesProof, TestOnMessagesDelivered, TestRelayer,
-			TestRuntime, TestWeightInfo, MAX_OUTBOUND_PAYLOAD_SIZE,
-			PAYLOAD_REJECTED_BY_TARGET_CHAIN, REGULAR_PAYLOAD, TEST_LANE_ID, TEST_LANE_ID_2,
-			TEST_LANE_ID_3, TEST_RELAYER_A, TEST_RELAYER_B,
+			TestMessagesDeliveryProof, TestMessagesProof, TestRelayer, TestRuntime, TestWeightInfo,
+			MAX_OUTBOUND_PAYLOAD_SIZE, PAYLOAD_REJECTED_BY_TARGET_CHAIN, REGULAR_PAYLOAD,
+			TEST_LANE_ID, TEST_LANE_ID_2, TEST_LANE_ID_3, TEST_RELAYER_A, TEST_RELAYER_B,
 		},
 		outbound_lane::ReceivalConfirmationError,
 	};
@@ -935,7 +930,8 @@ mod tests {
 
 		let outbound_lane = outbound_lane::<TestRuntime, ()>(TEST_LANE_ID);
 		let message_nonce = outbound_lane.data().latest_generated_nonce + 1;
-		let prev_enqueud_messages = outbound_lane.queued_messages().checked_len().unwrap_or(0);
+		let prev_enqueud_messages =
+			outbound_lane.data().queued_messages().checked_len().unwrap_or(0);
 		let artifacts = send_message::<TestRuntime, ()>(
 			RuntimeOrigin::signed(1),
 			TEST_LANE_ID,
@@ -983,8 +979,6 @@ mod tests {
 				last_delivered_nonce: 1,
 			},
 		));
-
-		assert_eq!(TestOnMessagesDelivered::call_arguments(), Some((TEST_LANE_ID, 0)));
 
 		assert_eq!(
 			System::<TestRuntime>::events(),
@@ -1382,7 +1376,6 @@ mod tests {
 			);
 			assert!(TestDeliveryConfirmationPayments::is_reward_paid(TEST_RELAYER_A, 1));
 			assert!(!TestDeliveryConfirmationPayments::is_reward_paid(TEST_RELAYER_B, 1));
-			assert_eq!(TestOnMessagesDelivered::call_arguments(), Some((TEST_LANE_ID, 1)));
 
 			// this reports delivery of both message 1 and message 2 => reward is paid only to
 			// TEST_RELAYER_B
@@ -1425,7 +1418,6 @@ mod tests {
 			);
 			assert!(!TestDeliveryConfirmationPayments::is_reward_paid(TEST_RELAYER_A, 1));
 			assert!(TestDeliveryConfirmationPayments::is_reward_paid(TEST_RELAYER_B, 1));
-			assert_eq!(TestOnMessagesDelivered::call_arguments(), Some((TEST_LANE_ID, 0)));
 		});
 	}
 

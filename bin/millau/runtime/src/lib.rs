@@ -464,7 +464,6 @@ impl pallet_bridge_messages::Config<WithRialtoMessagesInstance> for Runtime {
 		WithRialtoMessagesInstance,
 		frame_support::traits::ConstU64<100_000>,
 	>;
-	type OnMessagesDelivered = ();
 
 	type SourceHeaderChain = crate::rialto_messages::RialtoAsSourceHeaderChain;
 	type MessageDispatch = crate::rialto_messages::FromRialtoMessageDispatch;
@@ -496,7 +495,6 @@ impl pallet_bridge_messages::Config<WithRialtoParachainMessagesInstance> for Run
 		WithRialtoParachainMessagesInstance,
 		frame_support::traits::ConstU64<100_000>,
 	>;
-	type OnMessagesDelivered = ();
 
 	type SourceHeaderChain = crate::rialto_parachain_messages::RialtoParachainAsSourceHeaderChain;
 	type MessageDispatch = crate::rialto_parachain_messages::FromRialtoParachainMessageDispatch;

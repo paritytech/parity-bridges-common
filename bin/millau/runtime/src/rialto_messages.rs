@@ -23,7 +23,7 @@ use bridge_runtime_common::{
 	messages::{
 		self, source::TargetHeaderChainAdapter, target::SourceHeaderChainAdapter, MessageBridge,
 	},
-	messages_xcm_extension::{XcmBlobHauler, XcmBlobHaulerAdapter},
+	messages_xcm_extension::{SenderAndLane, XcmBlobHauler, XcmBlobHaulerAdapter},
 };
 use frame_support::{parameter_types, weights::Weight, RuntimeDebug};
 use pallet_bridge_relayers::WeightInfoExt as _;
@@ -43,6 +43,8 @@ parameter_types! {
 	/// 2 XCM instructions is for simple `Trap(42)` program, coming through bridge
 	/// (it is prepended with `UniversalOrigin` instruction).
 	pub const WeightCredit: Weight = BASE_XCM_WEIGHT_TWICE;
+	/// Lane used by the with-Rialto bridge.
+	pub RialtoSenderAndLane: SenderAndLane = SenderAndLane::new(Here.into(), XCM_LANE);
 }
 
 /// Message payload for Millau -> Rialto messages.
@@ -126,18 +128,11 @@ pub struct ToRialtoXcmBlobHauler;
 impl XcmBlobHauler for ToRialtoXcmBlobHauler {
 	type MessageSender = pallet_bridge_messages::Pallet<Runtime, WithRialtoMessagesInstance>;
 	type MessageSenderOrigin = RuntimeOrigin;
+	type SenderAndLane = RialtoSenderAndLane;
 
 	fn message_sender_origin() -> RuntimeOrigin {
 		pallet_xcm::Origin::from(MultiLocation::new(1, crate::xcm_config::UniversalLocation::get()))
 			.into()
-	}
-
-	fn sending_chain_location() -> MultiLocation {
-		Here.into()
-	}
-
-	fn xcm_lane() -> LaneId {
-		XCM_LANE
 	}
 }
 
