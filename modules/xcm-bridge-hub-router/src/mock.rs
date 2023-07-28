@@ -80,6 +80,8 @@ impl frame_system::Config for TestRuntime {
 }
 
 impl pallet_xcm_bridge_hub_router::Config<()> for TestRuntime {
+	type WeightInfo = ();
+
 	type UniversalLocation = UniversalLocation;
 	type SiblingBridgeHubLocation = SiblingBridgeHubLocation;
 	type BridgedNetworkId = BridgedNetworkId;

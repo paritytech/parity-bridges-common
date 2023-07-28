@@ -5955,6 +5955,7 @@ dependencies = [
  "bp-rialto-parachain",
  "bp-runtime",
  "bp-westend",
+ "bp-xcm-bridge-hub-router",
  "bridge-runtime-common",
  "env_logger",
  "frame-benchmarking",
@@ -5981,6 +5982,7 @@ dependencies = [
  "pallet-transaction-payment-rpc-runtime-api",
  "pallet-utility",
  "pallet-xcm",
+ "pallet-xcm-bridge-hub-router",
  "parity-scale-codec",
  "scale-info",
  "sp-api",
@@ -7697,6 +7699,7 @@ name = "pallet-xcm-bridge-hub-router"
 version = "0.1.0"
 dependencies = [
  "bp-xcm-bridge-hub-router",
+ "frame-benchmarking",
  "frame-support",
  "frame-system",
  "log",

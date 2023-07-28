@@ -42,6 +42,8 @@ parameter_types! {
 	/// chain, we make it synonymous with it and thus it is the `Here` location, which means "equivalent to
 	/// the context".
 	pub const TokenLocation: MultiLocation = Here.into_location();
+	/// Token asset identifier.
+	pub TokenAssetId: AssetId = TokenLocation::get().into();
 	/// The Millau network ID.
 	pub const ThisNetwork: NetworkId = CustomNetworkId::Millau.as_network_id();
 	/// The Rialto network ID.
@@ -232,6 +234,23 @@ impl ExportXcm for ToRialtoOrRialtoParachainSwitchExporter {
 		} else {
 			Err(SendError::Unroutable)
 		}
+	}
+}
+
+/// Emulating XCMP channel with sibling chain. We don't have required infra here, at Millau,
+/// so we have to provide at least something to be able to run benchmarks.
+pub struct EmulatedSiblingXcmpChannel;
+
+impl EmulatedSiblingXcmpChannel {
+	/// Start emulating congested channel.
+	pub fn make_congested() {
+		frame_support::storage::unhashed::put(b"EmulatedSiblingXcmpChannel.Congested", &true);
+	}
+}
+
+impl bp_xcm_bridge_hub_router::LocalXcmChannel for EmulatedSiblingXcmpChannel {
+	fn is_congested() -> bool {
+		frame_support::storage::unhashed::get_or_default(b"EmulatedSiblingXcmpChannel.Congested")
 	}
 }
 

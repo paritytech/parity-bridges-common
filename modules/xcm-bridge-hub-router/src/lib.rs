@@ -33,6 +33,10 @@ use xcm::prelude::*;
 use xcm_builder::{ExporterFor, SovereignPaidRemoteExporter};
 
 pub use pallet::*;
+pub use weights::WeightInfo;
+
+pub mod benchmarking;
+pub mod weights;
 
 mod mock;
 
@@ -59,6 +63,9 @@ pub mod pallet {
 
 	#[pallet::config]
 	pub trait Config<I: 'static = ()>: frame_system::Config {
+		/// Benchmarks results from runtime we're plugged into.
+		type WeightInfo: WeightInfo;
+
 		/// Universal location of this runtime.
 		type UniversalLocation: Get<InteriorMultiLocation>;
 		/// Relative location of the sibling bridge hub.
@@ -88,7 +95,7 @@ pub mod pallet {
 		fn on_initialize(_n: BlockNumberFor<T>) -> Weight {
 			// if XCM queue is still congested, we don't change anything
 			if T::WithBridgeHubChannel::is_congested() {
-				return Weight::zero() // TODO: benchmarks
+				return T::WeightInfo::on_initialize_when_congested()
 			}
 
 			DeliveryFeeFactor::<T, I>::mutate(|f| {
@@ -101,11 +108,15 @@ pub mod pallet {
 						previous_factor,
 						f,
 					);
-				}
-				*f
-			});
 
-			Weight::zero() // TODO: benchmarks
+					T::WeightInfo::on_initialize_when_non_congested()
+				} else {
+					// we have not actually updated the `DeliveryFeeFactor`, so we may deduct
+					// single db write from maximal weight
+					T::WeightInfo::on_initialize_when_non_congested()
+						.saturating_sub(T::DbWeight::get().writes(1))
+				}
+			})
 		}
 	}
 
