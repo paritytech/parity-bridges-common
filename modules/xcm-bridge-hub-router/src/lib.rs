@@ -73,7 +73,7 @@ pub mod pallet {
 		/// The bridged network that this config is for.
 		type BridgedNetworkId: Get<NetworkId>;
 
-		/// Actual message sender (XCMP/DMP) to the sibling bridge hub location.
+		/// Actual message sender (`HRMP` or `DMP`) to the sibling bridge hub location.
 		type ToBridgeHubSender: SendXcm;
 		/// Underlying channel with the sibling bridge hub. It must match the channel, used
 		/// by the `Self::ToBridgeHubSender`.
@@ -343,10 +343,7 @@ mod tests {
 					.into_inner() / FixedU128::DIV +
 					HRMP_FEE;
 			assert_eq!(
-				XcmBridgeHubRouter::validate(&mut Some(dest), &mut Some(xcm.clone()))
-					.unwrap()
-					.1
-					.get(0),
+				XcmBridgeHubRouter::validate(&mut Some(dest), &mut Some(xcm)).unwrap().1.get(0),
 				Some(&(BridgeFeeAsset::get(), expected_fee).into()),
 			);
 		});

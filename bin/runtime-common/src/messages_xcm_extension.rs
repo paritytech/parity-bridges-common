@@ -207,7 +207,7 @@ impl LocalXcmQueueManager {
 	}
 }
 
-/// A structure that implements [`frame_support:traits::messages::ProcessMessage`] and may
+/// A structure that implements [`frame_support::traits::ProcessMessage`] and may
 /// be used in the `pallet-message-queue` configuration to stop processing messages when the
 /// bridge queue is congested.
 ///
@@ -243,10 +243,11 @@ where
 	) -> Result<bool, ProcessMessageError> {
 		// if the queue is suspended, yield immediately
 		let sender_and_lane = SL::get();
-		if origin.clone().into() == sender_and_lane.location {
-			if LocalXcmQueueManager::is_inbound_queue_suspended::<R, MI>(sender_and_lane.lane) {
-				return Err(ProcessMessageError::Yield)
-			}
+		let is_expected_origin = origin.clone().into() == sender_and_lane.location;
+		if is_expected_origin &&
+			LocalXcmQueueManager::is_inbound_queue_suspended::<R, MI>(sender_and_lane.lane)
+		{
+			return Err(ProcessMessageError::Yield)
 		}
 
 		// else pass message to backed processor
@@ -254,7 +255,7 @@ where
 	}
 }
 
-/// A structure that implements [`frame_support:traits::messages::QueuePausedQuery`] and may
+/// A structure that implements [`frame_support::traits::QueuePausedQuery`] and may
 /// be used in the `pallet-message-queue` configuration to stop processing messages when the
 /// bridge queue is congested.
 ///
@@ -280,10 +281,11 @@ where
 
 		// if we have suspended the queue before, do not even start processing its messages
 		let sender_and_lane = SL::get();
-		if origin.clone().into() == sender_and_lane.location {
-			if LocalXcmQueueManager::is_inbound_queue_suspended::<R, MI>(sender_and_lane.lane) {
-				return true
-			}
+		let is_expected_origin = origin.clone().into() == sender_and_lane.location;
+		if is_expected_origin &&
+			LocalXcmQueueManager::is_inbound_queue_suspended::<R, MI>(sender_and_lane.lane)
+		{
+			return true
 		}
 
 		// else process message

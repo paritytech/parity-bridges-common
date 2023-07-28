@@ -114,7 +114,7 @@ impl SendXcm for TestToBridgeHubSender {
 
 	fn deliver(_ticket: Self::Ticket) -> Result<XcmHash, SendError> {
 		frame_support::storage::unhashed::put(b"TestToBridgeHubSender.Sent", &true);
-		Ok([0u8; 32].into())
+		Ok([0u8; 32])
 	}
 }
 
