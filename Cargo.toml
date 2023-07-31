@@ -2,12 +2,6 @@
 resolver = "2"
 
 members = [
-	"bin/millau/node",
-	"bin/millau/runtime",
-	"bin/rialto/node",
-	"bin/rialto/runtime",
-	"bin/rialto-parachain/node",
-	"bin/rialto-parachain/runtime",
 	"bin/runtime-common",
 	"fuzz/storage-proof",
 	"modules/beefy",
