@@ -2993,9 +2993,9 @@ dependencies = [
 
 [[package]]
 name = "either"
-version = "1.8.1"
+version = "1.9.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7fcaabb2fef8c910e7f4c7ce9f67a1283a1715879a7c230ca9d6d1ae31f16d91"
+checksum = "a26ae43d7bcc3b814de94796a5e736d4029efb0ee900c12e2d54c993ad1a1e07"
 
 [[package]]
 name = "elliptic-curve"
@@ -3555,7 +3555,6 @@ dependencies = [
  "cfg-if 1.0.0",
  "parity-scale-codec",
  "scale-info",
- "serde",
 ]
 
 [[package]]
@@ -3932,10 +3931,8 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "be4136b2a15dd319360be1c07d9933517ccf0be8f16bf62a3bee4f0d618df427"
 dependencies = [
  "cfg-if 1.0.0",
- "js-sys",
  "libc",
  "wasi 0.11.0+wasi-snapshot-preview1",
- "wasm-bindgen",
 ]
 
 [[package]]
@@ -13726,17 +13723,16 @@ checksum = "6bdef32e8150c2a081110b42772ffe7d7c9032b606bc226c8260fd97e0976601"
 
 [[package]]
 name = "subxt"
-version = "0.29.0"
+version = "0.30.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "31a734d66fa935fbda56ba6a71d7e969f424c8c5608d416ba8499d71d8cbfc1f"
+checksum = "0ba02ada83ba2640c46e200a1758cc83ce876a16326d2c52ca5db41b7d6645ce"
 dependencies = [
  "base58",
  "blake2",
  "derivative",
  "either",
- "frame-metadata 15.1.0",
+ "frame-metadata 16.0.0",
  "futures",
- "getrandom 0.2.10",
  "hex",
  "impl-serde",
  "parity-scale-codec",
@@ -13757,11 +13753,11 @@ dependencies = [
 
 [[package]]
 name = "subxt-codegen"
-version = "0.29.0"
+version = "0.30.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4e2f231d97c145c564bd544212c0cc0c29c09ff516af199f4ce00c8e055f8138"
+checksum = "3213eb04567e710aa253b94de74337c7b663eea52114805b8723129763282779"
 dependencies = [
- "frame-metadata 15.1.0",
+ "frame-metadata 16.0.0",
  "heck 0.4.1",
  "hex",
  "jsonrpsee 0.16.2",
@@ -13777,9 +13773,9 @@ dependencies = [
 
 [[package]]
 name = "subxt-macro"
-version = "0.29.0"
+version = "0.30.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e544e41e1c84b616632cd2f86862342868f62e11e4cd9062a9e3dbf5fc871f64"
+checksum = "cfda460cc5f701785973382c589e9bb12c23bb8d825bfc3ac547b7c672aba1c0"
 dependencies = [
  "darling 0.20.3",
  "proc-macro-error",
@@ -13789,11 +13785,11 @@ dependencies = [
 
 [[package]]
 name = "subxt-metadata"
-version = "0.29.0"
+version = "0.30.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a01ce5044c81db3404d38c56f1e69d72eff72c54e5913c9bba4c0b58d376031f"
+checksum = "0283bd02163913fbd0a5153d0b179533e48b239b953fa4e43baa27c73f18861c"
 dependencies = [
- "frame-metadata 15.1.0",
+ "frame-metadata 16.0.0",
  "parity-scale-codec",
  "scale-info",
  "sp-core-hashing 9.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
