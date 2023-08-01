@@ -548,7 +548,7 @@ impl pallet_utility::Config for Runtime {
 // this config is totally incorrect - the pallet is not actually used at this runtime. We need
 // it only to be able to run benchmarks and make required traits (and default weights for tests).
 parameter_types! {
-	pub BridgeTable: Vec<(NetworkId, MultiLocation, Option<MultiAsset>)>
+	pub BridgeTable: Vec<(xcm::prelude::NetworkId, xcm::prelude::MultiLocation, Option<xcm::prelude::MultiAsset>)>
 		= vec![(xcm_config::RialtoNetwork::get(), xcm_config::TokenLocation::get(), None)];
 }
 impl pallet_xcm_bridge_hub_router::Config for Runtime {
