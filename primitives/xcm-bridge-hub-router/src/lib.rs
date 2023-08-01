@@ -32,7 +32,7 @@ impl XcmChannelStatusProvider for () {
 	}
 }
 
-/// Xcm channel with dedicated `Sender` and ability to report whether it is congested or not.
+/// XCM channel with dedicated `Sender` and ability to report whether it is congested or not.
 pub trait ToXcmChannel: XcmChannelStatusProvider {
 	type Sender: SendXcm;
 }
