@@ -18,7 +18,7 @@
 
 use crate as pallet_xcm_bridge_hub_router;
 
-use bp_xcm_bridge_hub_router::LocalXcmChannel;
+use bp_xcm_bridge_hub_router::XcmChannelStatusProvider;
 use frame_support::{construct_runtime, parameter_types};
 use sp_core::H256;
 use sp_runtime::{
@@ -88,23 +88,22 @@ impl pallet_xcm_bridge_hub_router::Config<()> for TestRuntime {
 	type UniversalLocation = UniversalLocation;
 	type Bridges = NetworkExportTable<BridgeTable>;
 
-	type ToBridgeHubSender = TestToBridgeHubSender;
-	type WithBridgeHubChannel = TestWithBridgeHubChannel;
+	type ToBridgeHubChannel = TestWithBridgeHubChannel;
 
 	type BaseFee = ConstU128<BASE_FEE>;
 	type ByteFee = ConstU128<BYTE_FEE>;
 	type FeeAsset = BridgeFeeAsset;
 }
 
-pub struct TestToBridgeHubSender;
+pub struct TestWithBridgeHubChannel;
 
-impl TestToBridgeHubSender {
+impl TestWithBridgeHubChannel {
 	pub fn is_message_sent() -> bool {
 		frame_support::storage::unhashed::get_or_default(b"TestToBridgeHubSender.Sent")
 	}
 }
 
-impl SendXcm for TestToBridgeHubSender {
+impl SendXcm for TestWithBridgeHubChannel {
 	type Ticket = ();
 
 	fn validate(
@@ -120,15 +119,13 @@ impl SendXcm for TestToBridgeHubSender {
 	}
 }
 
-pub struct TestWithBridgeHubChannel;
-
 impl TestWithBridgeHubChannel {
 	pub fn make_congested() {
 		frame_support::storage::unhashed::put(b"TestWithBridgeHubChannel.Congested", &true);
 	}
 }
 
-impl LocalXcmChannel for TestWithBridgeHubChannel {
+impl XcmChannelStatusProvider for TestWithBridgeHubChannel {
 	fn is_congested() -> bool {
 		frame_support::storage::unhashed::get_or_default(b"TestWithBridgeHubChannel.Congested")
 	}

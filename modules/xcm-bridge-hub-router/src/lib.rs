@@ -25,7 +25,7 @@
 
 #![cfg_attr(not(feature = "std"), no_std)]
 
-use bp_xcm_bridge_hub_router::LocalXcmChannel;
+use bp_xcm_bridge_hub_router::{ToXcmChannel, XcmChannelStatusProvider};
 use codec::Encode;
 use frame_support::traits::Get;
 use sp_runtime::{traits::One, FixedPointNumber, FixedU128, Saturating};
@@ -78,11 +78,10 @@ pub mod pallet {
 		/// networks/locations**.
 		type Bridges: ExporterFor;
 
-		/// Actual message sender (`HRMP` or `DMP`) to the sibling bridge hub location.
-		type ToBridgeHubSender: SendXcm;
-		/// Underlying channel with the sibling bridge hub. It must match the channel, used
-		/// by the `Self::ToBridgeHubSender`.
-		type WithBridgeHubChannel: LocalXcmChannel;
+		/// Underlying channel with the sibling bridge hub which has ability to report whether it is
+		/// congested or not. E.g. message sender (`HRMP` or `DMP`) to the sibling bridge hub
+		/// location.
+		type ToBridgeHubChannel: ToXcmChannel;
 
 		/// Base bridge fee that is paid for every outbound message.
 		type BaseFee: Get<u128>;
@@ -99,7 +98,7 @@ pub mod pallet {
 	impl<T: Config<I>, I: 'static> Hooks<BlockNumberFor<T>> for Pallet<T, I> {
 		fn on_initialize(_n: BlockNumberFor<T>) -> Weight {
 			// if XCM queue is still congested, we don't change anything
-			if T::WithBridgeHubChannel::is_congested() {
+			if T::ToBridgeHubChannel::is_congested() {
 				return T::WeightInfo::on_initialize_when_congested()
 			}
 
@@ -141,7 +140,7 @@ pub mod pallet {
 		/// Called when new message is sent (queued to local outbound XCM queue) over the bridge.
 		pub(crate) fn on_message_sent_to_bridge(message_size: u32) {
 			// if outbound queue is not congested, do nothing
-			if !T::WithBridgeHubChannel::is_congested() {
+			if !T::ToBridgeHubChannel::is_congested() {
 				return
 			}
 
@@ -168,7 +167,7 @@ pub mod pallet {
 /// bridge hub.
 type ViaBridgeHubExporter<T, I> = SovereignPaidRemoteExporter<
 	Pallet<T, I>,
-	<T as Config<I>>::ToBridgeHubSender,
+	<<T as Config<I>>::ToBridgeHubChannel as ToXcmChannel>::Sender,
 	<T as Config<I>>::UniversalLocation,
 >;
 
@@ -212,7 +211,7 @@ impl<T: Config<I>, I: 'static> ExporterFor for Pallet<T, I> {
 // XCMP/DMP transport. This allows injecting dynamic message fees into XCM programs that
 // are going to the bridged network.
 impl<T: Config<I>, I: 'static> SendXcm for Pallet<T, I> {
-	type Ticket = (u32, <T::ToBridgeHubSender as SendXcm>::Ticket);
+	type Ticket = (u32, <<T::ToBridgeHubChannel as ToXcmChannel>::Sender as SendXcm>::Ticket);
 
 	fn validate(
 		dest: &mut Option<MultiLocation>,
@@ -245,7 +244,7 @@ impl<T: Config<I>, I: 'static> SendXcm for Pallet<T, I> {
 		// use router to enqueue message to the sibling/child bridge hub. This also should handle
 		// payment for passing through this queue.
 		let (message_size, ticket) = ticket;
-		let xcm_hash = T::ToBridgeHubSender::deliver(ticket)?;
+		let xcm_hash = ViaBridgeHubExporter::<T, I>::deliver(ticket)?;
 
 		// increase delivery fee factor if required
 		Self::on_message_sent_to_bridge(message_size);
@@ -372,7 +371,7 @@ mod tests {
 				Ok(()),
 			);
 
-			assert!(TestToBridgeHubSender::is_message_sent());
+			assert!(TestWithBridgeHubChannel::is_message_sent());
 			assert_eq!(old_delivery_fee_factor, XcmBridgeHubRouter::delivery_fee_factor());
 		});
 	}
@@ -395,7 +394,7 @@ mod tests {
 				Ok(()),
 			);
 
-			assert!(TestToBridgeHubSender::is_message_sent());
+			assert!(TestWithBridgeHubChannel::is_message_sent());
 			assert!(old_delivery_fee_factor < XcmBridgeHubRouter::delivery_fee_factor());
 		});
 	}

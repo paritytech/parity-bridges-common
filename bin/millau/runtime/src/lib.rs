@@ -557,8 +557,7 @@ impl pallet_xcm_bridge_hub_router::Config for Runtime {
 	type UniversalLocation = xcm_config::UniversalLocation;
 	type Bridges = NetworkExportTable<BridgeTable>;
 
-	type ToBridgeHubSender = xcm_config::XcmRouter;
-	type WithBridgeHubChannel = xcm_config::EmulatedSiblingXcmpChannel;
+	type ToBridgeHubChannel = xcm_config::EmulatedSiblingXcmpChannel;
 
 	type BaseFee = ConstU128<1_000_000_000>;
 	type ByteFee = ConstU128<1_000>;

@@ -248,7 +248,11 @@ impl EmulatedSiblingXcmpChannel {
 	}
 }
 
-impl bp_xcm_bridge_hub_router::LocalXcmChannel for EmulatedSiblingXcmpChannel {
+impl bp_xcm_bridge_hub_router::ToXcmChannel for EmulatedSiblingXcmpChannel {
+	type Sender = XcmRouter;
+}
+
+impl bp_xcm_bridge_hub_router::XcmChannelStatusProvider for EmulatedSiblingXcmpChannel {
 	fn is_congested() -> bool {
 		frame_support::storage::unhashed::get_or_default(b"EmulatedSiblingXcmpChannel.Congested")
 	}

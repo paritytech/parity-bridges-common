@@ -1161,6 +1161,9 @@ dependencies = [
 [[package]]
 name = "bp-xcm-bridge-hub-router"
 version = "0.1.0"
+dependencies = [
+ "xcm",
+]
 
 [[package]]
 name = "bridge-runtime-common"

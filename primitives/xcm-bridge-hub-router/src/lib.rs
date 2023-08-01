@@ -18,14 +18,25 @@
 
 #![cfg_attr(not(feature = "std"), no_std)]
 
-/// Local XCM channel that may report whether it is congested or not.
-pub trait LocalXcmChannel {
+use xcm::prelude::SendXcm;
+
+/// XCM channel status provider that may report whether it is congested or not.
+pub trait XcmChannelStatusProvider {
 	/// Returns true if the queue is currently congested.
 	fn is_congested() -> bool;
 }
 
-impl LocalXcmChannel for () {
+impl XcmChannelStatusProvider for () {
 	fn is_congested() -> bool {
 		false
 	}
+}
+
+/// XcmChannel with dedicated `Sender` and ability to report whether it is congested or not.
+pub trait ToXcmChannel: XcmChannelStatusProvider {
+	type Sender: SendXcm;
+}
+
+impl<T: SendXcm + XcmChannelStatusProvider> ToXcmChannel for T {
+	type Sender = T;
 }
