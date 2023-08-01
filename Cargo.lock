@@ -1255,6 +1255,10 @@ dependencies = [
 ]
 
 [[package]]
+name = "bp-xcm-bridge-hub-router"
+version = "0.1.0"
+
+[[package]]
 name = "bridge-runtime-common"
 version = "0.1.0"
 dependencies = [
@@ -6151,6 +6155,7 @@ dependencies = [
  "bp-rialto-parachain",
  "bp-runtime",
  "bp-westend",
+ "bp-xcm-bridge-hub-router",
  "bridge-runtime-common",
  "env_logger",
  "frame-benchmarking",
@@ -6177,6 +6182,7 @@ dependencies = [
  "pallet-transaction-payment-rpc-runtime-api",
  "pallet-utility",
  "pallet-xcm",
+ "pallet-xcm-bridge-hub-router",
  "parity-scale-codec",
  "scale-info",
  "sp-api",
@@ -7925,6 +7931,25 @@ dependencies = [
  "xcm",
  "xcm-builder",
  "xcm-executor",
+]
+
+[[package]]
+name = "pallet-xcm-bridge-hub-router"
+version = "0.1.0"
+dependencies = [
+ "bp-xcm-bridge-hub-router",
+ "frame-benchmarking",
+ "frame-support",
+ "frame-system",
+ "log",
+ "parity-scale-codec",
+ "scale-info",
+ "sp-core",
+ "sp-io",
+ "sp-runtime",
+ "sp-std 8.0.0 (git+https://github.com/paritytech/substrate?branch=master)",
+ "xcm",
+ "xcm-builder",
 ]
 
 [[package]]
