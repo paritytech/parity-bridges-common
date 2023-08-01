@@ -77,8 +77,7 @@ impl ReceiveMessagesProofInfo {
 	/// - or there are no bundled messages, but the inbound lane is blocked by too many unconfirmed
 	///   messages and/or unrewarded relayers.
 	fn is_obsolete(&self, is_dispatcher_active: bool) -> bool {
-		// TODO: maybe rename method to `is_accepted`, because it isn't about **obsolete** messages
-		// anymore if dispatcher is inactive, we don't accept any delivery transactions
+		// if dispatcher is inactive, we don't accept any delivery transactions
 		if !is_dispatcher_active {
 			return true
 		}

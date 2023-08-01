@@ -45,6 +45,9 @@ pub enum LanesManagerError {
 	ClosedInboundLane,
 	/// Outbound lane with given id is closed.
 	ClosedOutboundLane,
+	/// Message dispatcher is inactive at given inbound lane. This is logical equivalent
+	/// of the [`Self::ClosedInboundLane`] variant.
+	LaneDispatcherInactive,
 }
 
 /// Message lanes manager.
@@ -166,7 +169,7 @@ impl<T: Config<I>, I: 'static> RuntimeInboundLaneStorage<T, I> {
 			// There's a limit on number of messages in the message delivery transaction, so even
 			// if we dispatch (enqueue) some additional messages, we'll know the maximal queue
 			// length;
-			ensure!(T::MessageDispatch::is_active(), LanesManagerError::ClosedInboundLane);
+			ensure!(T::MessageDispatch::is_active(lane_id), LanesManagerError::LaneDispatcherInactive);
 		}
 
 		Ok(RuntimeInboundLaneStorage {
