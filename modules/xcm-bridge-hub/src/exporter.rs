@@ -18,10 +18,9 @@
 //! exporter at the sending bridge hub. Internally, it just enqueues outbound blob
 //! in the messages pallet queue.
 
-use crate::{backpressure::LocalXcmQueueManager, Config, Pallet, XcmAsPlainPayload, LOG_TARGET};
+use crate::{Config, Pallet, XcmAsPlainPayload, LOG_TARGET};
 
-use bp_messages::source_chain::MessagesBridge;
-use bp_xcm_bridge_hub::BridgeLocations;
+use bp_messages::{source_chain::MessagesBridge, LaneId};
 use frame_support::traits::Get;
 use pallet_bridge_messages::{Config as BridgeMessagesConfig, Pallet as BridgeMessagesPallet};
 use xcm::prelude::*;
@@ -44,7 +43,7 @@ where
 		OutboundPayload = XcmAsPlainPayload,
 	>,
 {
-	type Ticket = (Box<BridgeLocations>, XcmAsPlainPayload, XcmHash);
+	type Ticket = (LaneId, XcmAsPlainPayload, XcmHash);
 
 	fn validate(
 		network: NetworkId,
@@ -90,25 +89,23 @@ where
 		)
 		.map_err(|_| SendError::Unroutable)?;
 
-		Ok(((bridge_locations, blob, id), price))
+		Ok(((bridge_locations.lane_id, blob, id), price))
 	}
 
 	fn deliver(
-		(bridge_locations, blob, id): (Box<BridgeLocations>, XcmAsPlainPayload, XcmHash),
+		(lane_id, blob, id): (LaneId, XcmAsPlainPayload, XcmHash),
 	) -> Result<XcmHash, SendError> {
-		// push message to the outbound bridge queue
-		let send_result = MessagesPallet::<T, I>::send_message(bridge_locations.lane_id, blob);
-		let artifacts = match send_result {
+		let send_result = MessagesPallet::<T, I>::send_message(lane_id, blob);
+
+		match send_result {
 			Ok(artifacts) => {
 				log::info!(
 					target: LOG_TARGET,
 					"XCM message {:?} has been enqueued at lane {:?} with nonce {}",
 					id,
-					bridge_locations.lane_id,
+					lane_id,
 					artifacts.nonce,
 				);
-
-				artifacts
 			},
 			Err(error) => {
 				log::debug!(
@@ -116,17 +113,11 @@ where
 					"XCM message {:?} has been dropped because of bridge error {:?} on lane {:?}",
 					id,
 					error,
-					bridge_locations.lane_id,
+					lane_id,
 				);
 				return Err(SendError::Transport("BridgeSendError"))
 			},
-		};
-
-		// notify XCM queues manager about the new message
-		LocalXcmQueueManager::<T, I>::on_new_bridge_message_enqueued(
-			bridge_locations,
-			artifacts,
-		);
+		}
 
 		Ok(id)
 	}

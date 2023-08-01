@@ -64,11 +64,9 @@ use xcm::prelude::*;
 use xcm_builder::DispatchBlob;
 use xcm_executor::traits::ConvertLocation;
 
-pub use backpressure::{LocalXcmQueueMessageProcessor, LocalXcmQueueSuspender};
 pub use dispatcher::XcmBlobMessageDispatchResult;
 pub use pallet::*;
 
-mod backpressure;
 mod dispatcher;
 mod exporter;
 mod mock;
@@ -658,7 +656,7 @@ mod tests {
 	fn open_bridge_fails_if_origin_has_reached_bridges_limit() {
 		run_test(|| {
 			let origin = OpenBridgeOrigin::parent_relay_chain_origin();
-			let locations = XcmOverBridge::bridge_locations(
+			let locations = XcmOverBridge::bridge_locations_from_origin(
 				origin.clone(),
 				Box::new(bridged_asset_hub_location().into()),
 			)

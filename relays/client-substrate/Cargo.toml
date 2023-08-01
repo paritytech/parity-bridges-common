@@ -17,7 +17,7 @@ quick_cache = "0.3"
 rand = "0.8"
 scale-info = { version = "2.9.0", features = ["derive"] }
 tokio = { version = "1.29", features = ["rt-multi-thread"] }
-thiserror = "1.0.43"
+thiserror = "1.0.44"
 
 # Bridge dependencies
 

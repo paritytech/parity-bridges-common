@@ -1,4 +1,4 @@
-// Copyright 2023 Parity Technologies (UK) Ltd.
+/*// Copyright 2023 Parity Technologies (UK) Ltd.
 // This file is part of Parity Bridges Common.
 
 // Parity Bridges Common is free software: you can redistribute it and/or modify
@@ -20,7 +20,7 @@
 //!                                          `Relayer`
 //!                                             |
 //! `XcmRouter` <- `MessageDispatch` <- `InboundMessageQueue`
-
+*/
 use bp_messages::{
 	source_chain::MessagesBridge,
 	target_chain::{DispatchMessage, MessageDispatch},
@@ -38,6 +38,24 @@ use sp_std::marker::PhantomData;
 use xcm::prelude::*;
 use xcm_builder::{DispatchBlob, DispatchBlobError, HaulBlob, HaulBlobError};
 
+/// Make LaneId from chain identifiers of two bridge endpoints.
+// TODO: https://github.com/paritytech/parity-bridges-common/issues/1666: this function
+// is a temporary solution, because `ChainId` and will be removed soon.
+pub struct LaneIdFromChainId<R, I>(PhantomData<(R, I)>);
+
+impl<R, I> Get<LaneId> for LaneIdFromChainId<R, I>
+where
+	R: pallet_bridge_messages::Config<I>,
+	I: 'static,
+{
+	fn get() -> LaneId {
+		LaneId::new(
+			pallet_bridge_messages::ThisChainOf::<R, I>::ID,
+			pallet_bridge_messages::BridgedChainOf::<R, I>::ID,
+		)
+	}
+}
+/*
 /// Plain "XCM" payload, which we transfer through bridge
 pub type XcmAsPlainPayload = sp_std::prelude::Vec<u8>;
 
@@ -338,3 +356,4 @@ mod tests {
 		});
 	}
 }
+*/

@@ -20,7 +20,8 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
 pub use bp_polkadot_core::*;
-use frame_support::StateVersion;
+use frame_support::{sp_std, StateVersion};
+use sp_std::prelude::*;
 
 use bp_header_chain::ChainWithGrandpa;
 use bp_runtime::{decl_bridge_finality_runtime_apis, Chain, ChainId, Parachain};
@@ -113,6 +114,6 @@ pub const MAX_NESTED_PARACHAIN_HEAD_DATA_SIZE: u32 = 128;
 /// Identifier of `AssetHubWestend` parachain at the Westend relay chain.
 pub const ASSET_HUB_WESTEND_PARACHAIN_ID: u32 = 1000;
 
-decl_bridge_finality_runtime_apis!(westend);
+decl_bridge_finality_runtime_apis!(westend, grandpa);
 
 decl_bridge_finality_runtime_apis!(AssetHubWestend);

@@ -22,7 +22,7 @@
 
 use bp_runtime::{
 	BasicOperatingMode, Chain, HashOf, HasherOf, HeaderOf, StorageProofError,
-	UnverifiedStorageProof, VerifiedStorageProof,
+	UnderlyingChainProvider, UnverifiedStorageProof, VerifiedStorageProof,
 };
 use codec::{Codec, Decode, Encode, EncodeLike, MaxEncodedLen};
 use core::{clone::Clone, cmp::Eq, default::Default, fmt::Debug};
@@ -256,4 +256,18 @@ pub trait ChainWithGrandpa: Chain {
 	/// ancestry and the pallet will accept the call. The limit is only used to compute maximal
 	/// refund amount and doing calls which exceed the limit, may be costly to submitter.
 	const AVERAGE_HEADER_SIZE_IN_JUSTIFICATION: u32;
+}
+
+/// A trait that provides the type of the underlying `ChainWithGrandpa`.
+pub trait UnderlyingChainWithGrandpaProvider: UnderlyingChainProvider {
+	/// Underlying `ChainWithGrandpa` type.
+	type ChainWithGrandpa: ChainWithGrandpa;
+}
+
+impl<T> UnderlyingChainWithGrandpaProvider for T
+where
+	T: UnderlyingChainProvider,
+	T::Chain: ChainWithGrandpa,
+{
+	type ChainWithGrandpa = T::Chain;
 }

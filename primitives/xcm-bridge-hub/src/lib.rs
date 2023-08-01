@@ -106,7 +106,7 @@ pub struct Bridge<ThisChain: Chain> {
 	/// Reserved amount on the sovereign account of the sibling bridge origin.
 	pub reserve: BalanceOf<ThisChain>,
 }
-
+/*
 /// Short information on all bridges opened by the same local origin (sibling/parent chain).
 #[derive(Decode, Encode, Eq, PartialEqNoBound, TypeInfo, RuntimeDebugNoBound)]
 pub struct OriginBridges<MaxBridgesPerLocalOrigin> {
@@ -117,7 +117,7 @@ pub struct OriginBridges<MaxBridgesPerLocalOrigin> {
 	/// Identifiers of all currently closing bridges.
 	pub closing_bridges: Vec<LaneId>,
 }
-
+*/
 /// Locations of bridge endpoints at both sides of the bridge.
 #[derive(Clone, RuntimeDebug, PartialEq, Eq)]
 pub struct BridgeLocations {

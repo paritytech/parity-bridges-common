@@ -20,7 +20,8 @@ use crate::error::Error;
 use async_trait::async_trait;
 use bp_header_chain::{
 	justification::{verify_and_optimize_justification, GrandpaJustification},
-	ConsensusLogReader, FinalityProof, GrandpaConsensusLogReader,
+	ChainWithGrandpa as ChainWithGrandpaBase, ConsensusLogReader, FinalityProof,
+	GrandpaConsensusLogReader,
 };
 use bp_runtime::{BasicOperatingMode, HeaderIdProvider, OperatingMode};
 use codec::{Decode, Encode};
@@ -85,8 +86,8 @@ pub trait Engine<C: Chain>: Send {
 	}
 
 	/// A method to subscribe to encoded finality proofs, given source client.
-	async fn finality_proofs(
-		client: &impl Client<C>,
+	async fn source_finality_proofs(
+		source_client: &impl Client<C>,
 	) -> Result<Subscription<Bytes>, SubstrateError>;
 
 	/// Optimize finality proof before sending it to the target node.
@@ -140,17 +141,21 @@ impl<C: ChainWithGrandpa> Engine<C> for Grandpa<C> {
 	type OperatingMode = BasicOperatingMode;
 
 	fn is_initialized_key() -> StorageKey {
-		bp_header_chain::storage_keys::best_finalized_key(C::WITH_CHAIN_GRANDPA_PALLET_NAME)
+		bp_header_chain::storage_keys::best_finalized_key(
+			C::ChainWithGrandpa::WITH_CHAIN_GRANDPA_PALLET_NAME,
+		)
 	}
 
 	fn pallet_operating_mode_key() -> StorageKey {
-		bp_header_chain::storage_keys::pallet_operating_mode_key(C::WITH_CHAIN_GRANDPA_PALLET_NAME)
+		bp_header_chain::storage_keys::pallet_operating_mode_key(
+			C::ChainWithGrandpa::WITH_CHAIN_GRANDPA_PALLET_NAME,
+		)
 	}
 
-	async fn finality_proofs(
-		client: &impl Client<C>,
+	async fn source_finality_proofs(
+		source_client: &impl Client<C>,
 	) -> Result<Subscription<Bytes>, SubstrateError> {
-		client.subscribe_grandpa_finality_justifications().await
+		source_client.subscribe_grandpa_finality_justifications().await
 	}
 
 	async fn optimize_proof<TargetChain: Chain>(
@@ -159,7 +164,7 @@ impl<C: ChainWithGrandpa> Engine<C> for Grandpa<C> {
 		proof: &mut Self::FinalityProof,
 	) -> Result<(), SubstrateError> {
 		let current_authority_set_key = bp_header_chain::storage_keys::current_authority_set_key(
-			C::WITH_CHAIN_GRANDPA_PALLET_NAME,
+			C::ChainWithGrandpa::WITH_CHAIN_GRANDPA_PALLET_NAME,
 		);
 		let (authority_set, authority_set_id): (
 			sp_consensus_grandpa::AuthorityList,
@@ -206,7 +211,7 @@ impl<C: ChainWithGrandpa> Engine<C> for Grandpa<C> {
 		// But now there are problems with this approach - `CurrentSetId` may return invalid value.
 		// So here we're waiting for the next justification, read the authorities set and then try
 		// to figure out the set id with bruteforce.
-		let mut justifications = Self::finality_proofs(&source_client)
+		let mut justifications = Self::source_finality_proofs(&source_client)
 			.await
 			.map_err(|err| Error::Subscribe(C::NAME, err))?;
 		// Read next justification - the header that it finalizes will be used as initial header.
