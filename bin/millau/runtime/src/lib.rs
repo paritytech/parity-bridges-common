@@ -55,6 +55,7 @@ use sp_std::prelude::*;
 #[cfg(feature = "std")]
 use sp_version::NativeVersion;
 use sp_version::RuntimeVersion;
+use xcm_builder::NetworkExportTable;
 
 // to be able to use Millau runtime in `bridge-runtime-common` tests
 pub use bridge_runtime_common;
@@ -546,12 +547,15 @@ impl pallet_utility::Config for Runtime {
 
 // this config is totally incorrect - the pallet is not actually used at this runtime. We need
 // it only to be able to run benchmarks and make required traits (and default weights for tests).
+parameter_types! {
+	pub BridgeTable: Vec<(NetworkId, MultiLocation, Option<MultiAsset>)>
+		= vec![(xcm_config::RialtoNetwork::get(), xcm_config::TokenLocation::get(), None)];
+}
 impl pallet_xcm_bridge_hub_router::Config for Runtime {
 	type WeightInfo = ();
 
 	type UniversalLocation = xcm_config::UniversalLocation;
-	type SiblingBridgeHubLocation = xcm_config::TokenLocation;
-	type BridgedNetworkId = xcm_config::RialtoNetwork;
+	type Bridges = NetworkExportTable<BridgeTable>;
 
 	type ToBridgeHubSender = xcm_config::XcmRouter;
 	type WithBridgeHubChannel = xcm_config::EmulatedSiblingXcmpChannel;
