@@ -132,6 +132,35 @@ pub mod pallet {
 	}
 
 	/// The number to multiply the base delivery fee by.
+	///
+	/// This factor is shared by all bridges, served by this pallet. For example, if this
+	/// chain (`Config::UniversalLocation`) opens two bridges (
+	/// `X2(GlobalConsensus(Config::BridgedNetworkId::get()), Parachain(1000))` and
+	/// `X2(GlobalConsensus(Config::BridgedNetworkId::get()), Parachain(2000))), then they
+	/// both will be sharing the same fee factor. This is because both bridges are sharing
+	/// the same local XCM channel with the child/sibling bridge hub, which we are using
+	/// to detect congestion:
+	///
+	/// ```nocompile
+	///  ThisChain --- Local XCM chanel --> Sibling Bridge Hub ------
+	///                                            |                   |
+	///                                            |                   |
+	///                                            |                   |
+	///                                          Lane1               Lane2
+	///                                            |                   |
+	///                                            |                   |
+	///                                            |                   |
+	///                                           \ /                  |
+	///  Parachain1  <-- Local XCM channel --- Remote Bridge Hub <------
+	///                                            |
+	///                                            |
+	///  Parachain1  <-- Local XCM channel ---------
+	/// ```
+	///
+	/// If at least one of other channels is congested, the local XCM channel with sibling
+	/// bridge hub eventually becomes congested too. And we have no means to detect - which
+	/// bridge exactly causes the congestion. So the best solution here is not to make
+	/// any differences between all bridges, started by this chain.
 	#[pallet::storage]
 	#[pallet::getter(fn delivery_fee_factor)]
 	pub type DeliveryFeeFactor<T: Config<I>, I: 'static = ()> =
