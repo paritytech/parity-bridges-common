@@ -14,7 +14,7 @@
 // You should have received a copy of the GNU General Public License
 // along with Parity Bridges Common.  If not, see <http://www.gnu.org/licenses/>.
 
-//! Backpressure mechanism for inbound XCM queues at bridge hub.
+//! Backpressure mechanism for inbound XCM dispatch queues at bridge hub.
 //!
 //! We expect all chains that are exporting XCM messages using bridge hub to have
 //! some rate limiter mechanism that will limit a number of messages across all
@@ -29,6 +29,8 @@
 //! messages in this queue. All local XCM queues (HRMP/UMP/DMP) have the native
 //! backpressure support, so after some time new messages will start piling up at
 //! the sending (sibling/parent) chain, not at the bridge hub.
+//!
+//! This code is executed at the source bridge hub.
 
 use crate::{BridgesByLocalOrigin, Config};
 
@@ -39,29 +41,6 @@ use frame_support::{traits::{Get, ProcessMessage, ProcessMessageError, QueuePaus
 use scale_info::TypeInfo;
 use sp_std::{fmt::Debug, marker::PhantomData};
 use xcm::prelude::*;
-
-/// Local XCM channel manager that is able to suspend and resume channels.
-pub(crate) struct LocalXcmQueueManager<T, I>(PhantomData<(T, I)>);
-
-impl<T, I> LocalXcmQueueManager<T, I> {
-	/// Must be called at the source bridge hub when a new message is enqueued at given lane.
-	///
-	/// If we see that the outbound bridge `lane_id` has messages above the specified limit, we
-	/// assume that messages are not delivered to the bridged bridge hub. It may happen because
-	/// no relayers are serving the lane or some issues with inbound messages processing at the
-	/// bridged bridge hub and/or destination chain.
-	///
-	/// If we detect such situaton, we stop processing any XCM messages from the
-	/// `bridge_origin_universal_location`. New messages will keep piling up at the inbound XCM
-	/// queue, which in turn will lead to the singal to the sending chain. Upon receinving this
-	/// signal, new messages will start piling up at this (sending) chain.
-	pub fn on_new_message_enqueued(
-		_bridge_locations: Box<BridgeLocations>,
-		_artifacts: SendMessageArtifacts,
-	) {
-		unimplemented!("TODO")
-	}
-}
 
 /// A structure that implements [`frame_support:traits::messages::ProcessMessage`] and may
 /// be used in the `pallet-message-queue` configuration to stop processing messages when the
@@ -129,9 +108,6 @@ impl<T, I, Origin, Inner> QueuePausedQuery<Origin> for LocalXcmQueueSuspender<T,
 fn has_overloaded_bridges<T: Config<I>, I: 'static, Origin: Into<MultiLocation>>(
 	origin: Origin,
 ) -> bool {
-	// TODO: doing that for every message may be an overkill - can we store that in some ephemeral
-	// storage value (that is killed from on_finalize)?
-
 	// we assume that the messages over local XCM channel are "sent" by the same origin
 	// that opens the bridge (sibling parachain or parent relay chain)
 	let bridge_origin_relative_location = Box::new(origin.into());
@@ -140,7 +116,7 @@ fn has_overloaded_bridges<T: Config<I>, I: 'static, Origin: Into<MultiLocation>>
 	let bridge_locations = bridge_locations(
 		Box::new(T::UniversalLocation::get()),
 		bridge_origin_relative_location,
-		// we don't care about desstination here - we only need origin universal location
+		// we don't care about destination here - we only need origin universal location
 		Box::new(X1(GlobalConsensus(T::BridgedNetworkId::get()))),
 		T::BridgedNetworkId::get(),
 	);

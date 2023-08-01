@@ -17,6 +17,8 @@
 //! The code that allows to use the pallet (`pallet-xcm-bridge-hub`) as XCM message
 //! exporter at the sending bridge hub. Internally, it just enqueues outbound blob
 //! in the messages pallet queue.
+//!
+//! This code is executed at the source bridge hub.
 
 use crate::{Config, Pallet, XcmAsPlainPayload, LOG_TARGET};
 

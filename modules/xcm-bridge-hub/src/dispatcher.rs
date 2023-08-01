@@ -18,6 +18,8 @@
 //! bridge messages dispatcher. Internally, it just forwards inbound blob to the
 //! XCM-level blob dispatcher, which pushes message to some other queue (e.g.
 //! to HRMP queue with the sibling target chain).
+//!
+//! This code is executed at the target bridge hub.
 
 use crate::{Config, Pallet, XcmAsPlainPayload, LOG_TARGET};
 
