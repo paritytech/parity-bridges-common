@@ -73,10 +73,10 @@ pub mod pallet {
 
 		/// Universal location of this runtime.
 		type UniversalLocation: Get<InteriorMultiLocation>;
-		/// Relative location of the sibling bridge hub.
-		type SiblingBridgeHubLocation: Get<MultiLocation>;
-		/// The bridged network that this config is for.
-		type BridgedNetworkId: Get<NetworkId>;
+		/// Configuration for supported **bridged networks/locations** with **bridge location** and
+		/// **possible fee**. Allows to externalize better control over allowed **bridged
+		/// networks/locations**.
+		type Bridges: ExporterFor;
 
 		/// Actual message sender (`HRMP` or `DMP`) to the sibling bridge hub location.
 		type ToBridgeHubSender: SendXcm;
@@ -177,13 +177,13 @@ type ViaBridgeHubExporter<T, I> = SovereignPaidRemoteExporter<
 impl<T: Config<I>, I: 'static> ExporterFor for Pallet<T, I> {
 	fn exporter_for(
 		network: &NetworkId,
-		_remote_location: &InteriorMultiLocation,
+		remote_location: &InteriorMultiLocation,
 		message: &Xcm<()>,
 	) -> Option<(MultiLocation, Option<MultiAsset>)> {
-		// ensure that the message is sent to the expected bridged network
-		if *network != T::BridgedNetworkId::get() {
+		// ensure that the message is sent to the expected bridged network/location.
+		let Some((bridge_hub_location, maybe_payment)) = T::Bridges::exporter_for(network, remote_location, message) else {
 			return None
-		}
+		};
 
 		// compute fee amount. Keep in mind that this is only the bridge fee. The fee for sending
 		// message from this chain to child/sibling bridge hub is determined by the
@@ -194,6 +194,8 @@ impl<T: Config<I>, I: 'static> ExporterFor for Pallet<T, I> {
 		let fee_factor = Self::delivery_fee_factor();
 		let fee = fee_factor.saturating_mul_int(fee_sum);
 
+		// TODO: how to handle `maybe_payment`? subsume with `(T::FeeAsset::get(), fee)`?
+
 		log::info!(
 			target: LOG_TARGET,
 			"Going to send message ({} bytes) over bridge. Computed bridge fee {} using fee factor {}",
@@ -202,7 +204,7 @@ impl<T: Config<I>, I: 'static> ExporterFor for Pallet<T, I> {
 			message_size,
 		);
 
-		Some((T::SiblingBridgeHubLocation::get(), Some((T::FeeAsset::get(), fee).into())))
+		Some((bridge_hub_location, Some((T::FeeAsset::get(), fee).into())))
 	}
 }
 
