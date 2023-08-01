@@ -136,7 +136,7 @@ pub mod pallet {
 	/// This factor is shared by all bridges, served by this pallet. For example, if this
 	/// chain (`Config::UniversalLocation`) opens two bridges (
 	/// `X2(GlobalConsensus(Config::BridgedNetworkId::get()), Parachain(1000))` and
-	/// `X2(GlobalConsensus(Config::BridgedNetworkId::get()), Parachain(2000))), then they
+	/// `X2(GlobalConsensus(Config::BridgedNetworkId::get()), Parachain(2000))`), then they
 	/// both will be sharing the same fee factor. This is because both bridges are sharing
 	/// the same local XCM channel with the child/sibling bridge hub, which we are using
 	/// to detect congestion:
