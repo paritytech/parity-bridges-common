@@ -930,8 +930,7 @@ mod tests {
 
 		let outbound_lane = outbound_lane::<TestRuntime, ()>(TEST_LANE_ID);
 		let message_nonce = outbound_lane.data().latest_generated_nonce + 1;
-		let prev_enqueud_messages =
-			outbound_lane.data().queued_messages().saturating_len();
+		let prev_enqueud_messages = outbound_lane.data().queued_messages().saturating_len();
 		let artifacts = send_message::<TestRuntime, ()>(
 			RuntimeOrigin::signed(1),
 			TEST_LANE_ID,
