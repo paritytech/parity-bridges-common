@@ -10563,6 +10563,7 @@ dependencies = [
  "pallet-transaction-payment",
  "pallet-transaction-payment-rpc-runtime-api",
  "pallet-xcm",
+ "pallet-xcm-bridge-hub",
  "parachain-info",
  "parity-scale-codec",
  "polkadot-parachain",

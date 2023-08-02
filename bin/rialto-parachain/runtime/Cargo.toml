@@ -26,6 +26,7 @@ bridge-runtime-common = { path = "../../runtime-common", default-features = fals
 pallet-bridge-grandpa = { path = "../../../modules/grandpa", default-features = false }
 pallet-bridge-messages = { path = "../../../modules/messages", default-features = false }
 pallet-bridge-relayers = { path = "../../../modules/relayers", default-features = false }
+pallet-xcm-bridge-hub = { path = "../../../modules/xcm-bridge-hub", default-features = false }
 
 # Substrate Dependencies
 ## Substrate Primitive Dependencies
@@ -125,6 +126,7 @@ std = [
 	"pallet-transaction-payment/std",
 	"pallet-transaction-payment-rpc-runtime-api/std",
 	"pallet-xcm/std",
+	"pallet-xcm-bridge-hub/std",
 	"parachain-info/std",
 	"polkadot-parachain/std",
 	"cumulus-pallet-aura-ext/std",

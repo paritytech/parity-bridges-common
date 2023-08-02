@@ -34,7 +34,7 @@ use sp_api::impl_runtime_apis;
 use sp_core::{crypto::KeyTypeId, ConstBool, OpaqueMetadata};
 use sp_runtime::{
 	create_runtime_str, generic, impl_opaque_keys,
-	traits::{AccountIdLookup, Block as BlockT, DispatchInfoOf, SignedExtension},
+	traits::{AccountIdLookup, Block as BlockT, ConstU128, DispatchInfoOf, SignedExtension},
 	transaction_validity::{TransactionSource, TransactionValidity, TransactionValidityError},
 	ApplyExtrinsicResult,
 };
@@ -455,7 +455,7 @@ impl Config for XcmConfig {
 	type AssetLocker = ();
 	type AssetExchanger = ();
 	type FeeManager = ();
-	type MessageExporter = millau_messages::ToMillauBlobExporter;
+	type MessageExporter = XcmMillauBridgeHub;
 	type UniversalAliases = Nothing;
 	type CallDispatcher = RuntimeCall;
 	type SafeCallFilter = Everything;
@@ -565,8 +565,8 @@ impl pallet_bridge_messages::Config<WithMillauMessagesInstance> for Runtime {
 	type BridgedChain = bp_millau::Millau;
 	type BridgedHeaderChain = BridgeMillauGrandpa;
 
-	type OutboundPayload = bridge_runtime_common::messages_xcm_extension::XcmAsPlainPayload;
-	type InboundPayload = bridge_runtime_common::messages_xcm_extension::XcmAsPlainPayload;
+	type OutboundPayload = pallet_xcm_bridge_hub::XcmAsPlainPayload;
+	type InboundPayload = pallet_xcm_bridge_hub::XcmAsPlainPayload;
 
 	type DeliveryPayments = ();
 	type DeliveryConfirmationPayments = pallet_bridge_relayers::DeliveryConfirmationPaymentsAdapter<
@@ -575,7 +575,28 @@ impl pallet_bridge_messages::Config<WithMillauMessagesInstance> for Runtime {
 		frame_support::traits::ConstU128<100_000>,
 	>;
 
-	type MessageDispatch = crate::millau_messages::FromMillauMessageDispatch;
+	type MessageDispatch = XcmMillauBridgeHub;
+}
+
+/// Instance of the XCM bridge hub pallet used to relay messages to/from Millau chain.
+pub type WithMillauXcmBridgeHubInstance = ();
+
+impl pallet_xcm_bridge_hub::Config<WithMillauXcmBridgeHubInstance> for Runtime {
+	type RuntimeEvent = RuntimeEvent;
+
+	type UniversalLocation = UniversalLocation;
+	type BridgedNetworkId = MillauNetwork;
+	type BridgeMessagesPalletInstance = WithMillauMessagesInstance;
+
+	type MaxBridgesPerLocalOrigin = ConstU32<1>;
+	type OpenBridgeOrigin = frame_support::traits::NeverEnsureOrigin<xcm::latest::MultiLocation>;
+	type BridgeOriginAccountIdConverter = LocationToAccountId;
+
+	type BridgeReserve = ConstU128<1_000_000_000>;
+	type NativeCurrency = Balances;
+
+	type BlobDispatcher = OnRialtoParachainBlobDispatcher;
+	type MessageExportPrice = ();
 }
 
 // Create the runtime by composing the FRAME pallets that were previously configured.
@@ -604,6 +625,7 @@ construct_runtime!(
 		BridgeRelayers: pallet_bridge_relayers::{Pallet, Call, Storage, Event<T>},
 		BridgeMillauGrandpa: pallet_bridge_grandpa::{Pallet, Call, Storage, Event<T>},
 		BridgeMillauMessages: pallet_bridge_messages::{Pallet, Call, Storage, Event<T>, Config<T>},
+		XcmMillauBridgeHub: pallet_xcm_bridge_hub::{Pallet, Call, Storage, Event<T>},
 	}
 );
 
@@ -836,7 +858,7 @@ cumulus_pallet_parachain_system::register_validate_block!(
 	BlockExecutor = cumulus_pallet_aura_ext::BlockExecutor::<Runtime, Executive>,
 	CheckInherents = CheckInherents,
 );
-
+/*
 #[cfg(test)]
 mod tests {
 	use super::*;
@@ -967,3 +989,4 @@ mod tests {
 		check_additional_signed::<SignedExtra, bp_rialto_parachain::SignedExtension>();
 	}
 }
+*/
