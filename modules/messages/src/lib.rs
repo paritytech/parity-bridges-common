@@ -721,7 +721,7 @@ fn send_message<T: Config<I>, I: 'static>(
 		.map_err(Error::<T, I>::MessageRejectedByPallet)?;
 
 	// return number of messages in the queue to let sender know about its state
-	let enqueued_messages = lane.data().queued_messages().checked_len().unwrap_or(0);
+	let enqueued_messages = lane.data().queued_messages().saturating_len();
 
 	log::trace!(
 		target: LOG_TARGET,
@@ -931,7 +931,7 @@ mod tests {
 		let outbound_lane = outbound_lane::<TestRuntime, ()>(TEST_LANE_ID);
 		let message_nonce = outbound_lane.data().latest_generated_nonce + 1;
 		let prev_enqueud_messages =
-			outbound_lane.data().queued_messages().checked_len().unwrap_or(0);
+			outbound_lane.data().queued_messages().saturating_len();
 		let artifacts = send_message::<TestRuntime, ()>(
 			RuntimeOrigin::signed(1),
 			TEST_LANE_ID,

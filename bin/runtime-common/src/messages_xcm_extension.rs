@@ -202,7 +202,7 @@ impl LocalXcmQueueManager {
 	/// Returns true if XCM message queue with given location is currently suspended.
 	pub fn is_inbound_queue_suspended<R: MessagesConfig<MI>, MI: 'static>(lane: LaneId) -> bool {
 		let outbound_lane = MessagesPallet::<R, MI>::outbound_lane_data(lane);
-		let enqueued_messages = outbound_lane.queued_messages().checked_len().unwrap_or(0);
+		let enqueued_messages = outbound_lane.queued_messages().saturating_len();
 		enqueued_messages > MAX_ENQUEUED_MESSAGES_AT_OUTBOUND_LANE
 	}
 }
