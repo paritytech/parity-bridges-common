@@ -207,7 +207,7 @@ impl<T: Config<I>, I: 'static> ExporterFor for Pallet<T, I> {
 			return None
 		};
 
-		// take `base_fee` from `T::Brides`, but have to be the same `T::FeeAsset`
+		// take `base_fee` from `T::Brides`, but it has to be the same `T::FeeAsset`
 		let base_fee = match maybe_payment {
 			Some(payment) => match payment {
 				MultiAsset { fun: Fungible(amount), id } if id.eq(&T::FeeAsset::get()) => amount,
