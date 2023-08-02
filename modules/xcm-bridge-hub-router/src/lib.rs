@@ -243,7 +243,7 @@ impl<T: Config<I>, I: 'static> SendXcm for Pallet<T, I> {
 		// use router to enqueue message to the sibling/child bridge hub. This also should handle
 		// payment for passing through this queue.
 		let (message_size, ticket) = ticket;
-		let xcm_hash = T::ToBridgeHubSender::deliver(ticket)?;
+		let xcm_hash = ViaBridgeHubExporter::<T, I>::deliver(ticket)?;
 
 		// increase delivery fee factor if required
 		Self::on_message_sent_to_bridge(message_size);
