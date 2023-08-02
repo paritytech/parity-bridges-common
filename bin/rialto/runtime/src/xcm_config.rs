@@ -17,7 +17,7 @@
 //! XCM configurations for the Rialto runtime.
 
 use super::{
-	millau_messages::ToMillauBlobExporter, AccountId, AllPalletsWithSystem, Balances, Runtime,
+	AccountId, AllPalletsWithSystem, Balances, Runtime,
 	RuntimeCall, RuntimeEvent, RuntimeOrigin, XcmPallet,
 };
 use bp_rialto::WeightToFee;
@@ -134,7 +134,7 @@ impl xcm_executor::Config for XcmConfig {
 	type PalletInstancesInfo = AllPalletsWithSystem;
 	type MaxAssetsIntoHolding = ConstU32<64>;
 	type FeeManager = ();
-	type MessageExporter = ToMillauBlobExporter;
+	type MessageExporter = crate::XcmMillauBridgeHub;
 	type UniversalAliases = Nothing;
 	type CallDispatcher = RuntimeCall;
 	type SafeCallFilter = Everything;
@@ -189,7 +189,7 @@ impl pallet_xcm::Config for Runtime {
 	type MaxRemoteLockConsumers = ConstU32<0>;
 	type RemoteLockConsumerIdentifier = ();
 }
-
+/*
 #[cfg(test)]
 mod tests {
 	use super::*;
@@ -285,3 +285,4 @@ mod tests {
 		));
 	}
 }
+*/

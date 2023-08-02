@@ -24,6 +24,7 @@ pallet-bridge-grandpa = { path = "../../../modules/grandpa", default-features = 
 pallet-bridge-messages = { path = "../../../modules/messages", default-features = false }
 pallet-bridge-relayers = { path = "../../../modules/relayers", default-features = false }
 pallet-shift-session-manager = { path = "../../../modules/shift-session-manager", default-features = false }
+pallet-xcm-bridge-hub = { path = "../../../modules/xcm-bridge-hub", default-features = false }
 
 # Substrate Dependencies
 
@@ -113,6 +114,7 @@ std = [
 	"pallet-timestamp/std",
 	"pallet-transaction-payment-rpc-runtime-api/std",
 	"pallet-transaction-payment/std",
+	"pallet-xcm-bridge-hub/std",
 	"polkadot-primitives/std",
 	"polkadot-runtime-common/std",
 	"polkadot-runtime-parachains/std",
