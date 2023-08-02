@@ -53,7 +53,7 @@ parameter_types! {
 	pub SiblingBridgeHubLocation: MultiLocation = ParentThen(X1(Parachain(1002))).into();
 	pub BridgeFeeAsset: AssetId = MultiLocation::parent().into();
 	pub BridgeTable: Vec<(NetworkId, MultiLocation, Option<MultiAsset>)>
-		= vec![(BridgedNetworkId::get(), SiblingBridgeHubLocation::get(), None)];
+		= vec![(BridgedNetworkId::get(), SiblingBridgeHubLocation::get(), Some((BridgeFeeAsset::get(), BASE_FEE).into()))];
 }
 
 impl frame_system::Config for TestRuntime {
@@ -92,7 +92,6 @@ impl pallet_xcm_bridge_hub_router::Config<()> for TestRuntime {
 	type ToBridgeHubSender = TestToBridgeHubSender;
 	type WithBridgeHubChannel = TestWithBridgeHubChannel;
 
-	type BaseFee = ConstU128<BASE_FEE>;
 	type ByteFee = ConstU128<BYTE_FEE>;
 	type FeeAsset = BridgeFeeAsset;
 }

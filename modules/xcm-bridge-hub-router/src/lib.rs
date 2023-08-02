@@ -88,8 +88,6 @@ pub mod pallet {
 		/// by the `Self::ToBridgeHubSender`.
 		type WithBridgeHubChannel: LocalXcmChannel;
 
-		/// Base bridge fee that is paid for every outbound message.
-		type BaseFee: Get<u128>;
 		/// Additional fee that is paid for every byte of the outbound message.
 		type ByteFee: Get<u128>;
 		/// Asset that is used to paid bridge fee.
@@ -189,7 +187,7 @@ impl<T: Config<I>, I: 'static> ExporterFor for Pallet<T, I> {
 			if *network != bridged_network {
 				log::trace!(
 					target: LOG_TARGET,
-					"Router with bridged_network_id {:?} does not support bridging to network {:?}",
+					"Router with bridged_network_id {:?} does not support bridging to network {:?}!",
 					bridged_network,
 					network,
 				);
@@ -201,7 +199,7 @@ impl<T: Config<I>, I: 'static> ExporterFor for Pallet<T, I> {
 		let Some((bridge_hub_location, maybe_payment)) = T::Bridges::exporter_for(network, remote_location, message) else {
 			log::trace!(
 				target: LOG_TARGET,
-				"Router with bridged_network_id {:?} does not support bridging to network {:?} and remote_location {:?}",
+				"Router with bridged_network_id {:?} does not support bridging to network {:?} and remote_location {:?}!",
 				T::BridgedNetworkId::get(),
 				network,
 				remote_location,
@@ -209,26 +207,47 @@ impl<T: Config<I>, I: 'static> ExporterFor for Pallet<T, I> {
 			return None
 		};
 
+		// take `base_fee` from `T::Brides`, but have to be the same `T::FeeAsset`
+		let base_fee = match maybe_payment {
+			Some(payment) => match payment {
+				MultiAsset { fun: Fungible(amount), id } if id.eq(&T::FeeAsset::get()) => amount,
+				invalid_asset @ _ => {
+					log::error!(
+						target: LOG_TARGET,
+						"Router with bridged_network_id {:?} is configured for `T::FeeAsset` {:?} which is not compatible with {:?} for bridge_hub_location: {:?} for bridging to {:?}/{:?}!",
+						T::BridgedNetworkId::get(),
+						T::FeeAsset::get(),
+						invalid_asset,
+						bridge_hub_location,
+						network,
+						remote_location,
+					);
+					return None
+				},
+			},
+			None => 0,
+		};
+
 		// compute fee amount. Keep in mind that this is only the bridge fee. The fee for sending
 		// message from this chain to child/sibling bridge hub is determined by the
 		// `Config::ToBridgeHubSender`
 		let message_size = message.encoded_size();
 		let message_fee = (message_size as u128).saturating_mul(T::ByteFee::get());
-		let fee_sum = T::BaseFee::get().saturating_add(message_fee);
+		let fee_sum = base_fee.saturating_add(message_fee);
 		let fee_factor = Self::delivery_fee_factor();
 		let fee = fee_factor.saturating_mul_int(fee_sum);
 
-		// TODO: how to handle `maybe_payment`? subsume with `(T::FeeAsset::get(), fee)`?
+		let fee = if fee > 0 { Some((T::FeeAsset::get(), fee).into()) } else { None };
 
 		log::info!(
 			target: LOG_TARGET,
-			"Going to send message ({} bytes) over bridge. Computed bridge fee {} using fee factor {}",
-			fee,
-			fee_factor,
+			"Going to send message ({} bytes) over bridge. Computed bridge fee {:?} using fee factor {}",
 			message_size,
+			fee,
+			fee_factor
 		);
 
-		Some((bridge_hub_location, Some((T::FeeAsset::get(), fee).into())))
+		Some((bridge_hub_location, fee))
 	}
 }
 

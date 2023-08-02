@@ -549,7 +549,7 @@ impl pallet_utility::Config for Runtime {
 // it only to be able to run benchmarks and make required traits (and default weights for tests).
 parameter_types! {
 	pub BridgeTable: Vec<(xcm::prelude::NetworkId, xcm::prelude::MultiLocation, Option<xcm::prelude::MultiAsset>)>
-		= vec![(xcm_config::RialtoNetwork::get(), xcm_config::TokenLocation::get(), None)];
+		= vec![(xcm_config::RialtoNetwork::get(), xcm_config::TokenLocation::get(), Some((xcm_config::TokenAssetId::get(), 1_000_000_000_u128).into()))];
 }
 impl pallet_xcm_bridge_hub_router::Config for Runtime {
 	type WeightInfo = ();
@@ -561,7 +561,6 @@ impl pallet_xcm_bridge_hub_router::Config for Runtime {
 	type ToBridgeHubSender = xcm_config::XcmRouter;
 	type WithBridgeHubChannel = xcm_config::EmulatedSiblingXcmpChannel;
 
-	type BaseFee = ConstU128<1_000_000_000>;
 	type ByteFee = ConstU128<1_000>;
 	type FeeAsset = xcm_config::TokenAssetId;
 }
