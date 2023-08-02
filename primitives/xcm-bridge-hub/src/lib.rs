@@ -26,7 +26,7 @@ use frame_support::{
 	ensure, CloneNoBound, PalletError, PartialEqNoBound, RuntimeDebug, RuntimeDebugNoBound,
 };
 use scale_info::TypeInfo;
-use sp_std::{boxed::Box, vec::Vec};
+use sp_std::boxed::Box;
 use xcm::{latest::prelude::*, VersionedMultiLocation};
 
 /// A manager of XCM communication channels between the bridge hub and parent/sibling chains

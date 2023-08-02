@@ -331,7 +331,7 @@ fn receive_messages_proof_fails_when_dispatcher_is_inactive() {
 		for _ in 1..=latest_received_nonce {
 			TestMessageDispatch::emulate_enqueued_message();
 		}
-		assert!(!TestMessageDispatch::is_active());
+		assert!(!TestMessageDispatch::is_active(test_lane_id()));
 		InboundLanes::<TestRuntime, ()>::insert(
 			test_lane_id(),
 			InboundLaneData {
@@ -355,7 +355,7 @@ fn receive_messages_proof_fails_when_dispatcher_is_inactive() {
 			),
 			Error::<TestRuntime, ()>::LanesManager(LanesManagerError::ClosedInboundLane)
 		);
-		assert!(!TestMessageDispatch::is_active());
+		assert!(!TestMessageDispatch::is_active(test_lane_id()));
 	});
 }
 
@@ -367,7 +367,7 @@ fn receive_messages_succeeds_when_dispatcher_becomes_inactive_in_the_middle_of_t
 		for _ in 1..=latest_received_nonce {
 			TestMessageDispatch::emulate_enqueued_message();
 		}
-		assert!(TestMessageDispatch::is_active());
+		assert!(TestMessageDispatch::is_active(test_lane_id()));
 		InboundLanes::<TestRuntime, ()>::insert(
 			test_lane_id(),
 			InboundLaneData {
@@ -399,7 +399,7 @@ fn receive_messages_succeeds_when_dispatcher_becomes_inactive_in_the_middle_of_t
 			inbound_unrewarded_relayers_state(test_lane_id()).last_delivered_nonce,
 			messages_end - 1,
 		);
-		assert!(!TestMessageDispatch::is_active());
+		assert!(!TestMessageDispatch::is_active(test_lane_id()));
 	});
 }
 

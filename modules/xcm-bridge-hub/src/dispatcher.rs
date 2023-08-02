@@ -23,7 +23,7 @@
 
 use crate::{Config, Pallet, XcmAsPlainPayload, LOG_TARGET};
 
-use bp_messages::target_chain::{DispatchMessage, MessageDispatch};
+use bp_messages::{target_chain::{DispatchMessage, MessageDispatch}, LaneId};
 use bp_runtime::messages::MessageDispatchResult;
 use codec::{Decode, Encode};
 use frame_support::{dispatch::Weight, CloneNoBound, EqNoBound, PartialEqNoBound};
@@ -54,7 +54,7 @@ where
 	type DispatchPayload = XcmAsPlainPayload;
 	type DispatchLevelResult = XcmBlobMessageDispatchResult;
 
-	fn is_active() -> bool {
+	fn is_active(lane: LaneId) -> bool {
 		// TODO: `fn is_active() -> bool` obviously is not enough - it should be per-lane/per-destination
 		true
 	}

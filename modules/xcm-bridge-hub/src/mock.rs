@@ -305,8 +305,8 @@ impl ChainWithMessages for BridgedChain {
 pub struct TestMessageDispatch;
 
 impl TestMessageDispatch {
-	pub fn deactivate() {
-		frame_support::storage::unhashed::put(&b"inactive"[..], &false);
+	pub fn deactivate(lane: LaneId) {
+		frame_support::storage::unhashed::put(&(b"inactive", lane).encode()[..], &false);
 	}
 }
 
@@ -314,8 +314,8 @@ impl MessageDispatch for TestMessageDispatch {
 	type DispatchPayload = Vec<u8>;
 	type DispatchLevelResult = ();
 
-	fn is_active() -> bool {
-		frame_support::storage::unhashed::take::<bool>(&b"inactive"[..]) != Some(false)
+	fn is_active(lane: LaneId) -> bool {
+		frame_support::storage::unhashed::take::<bool>(&(b"inactive", lane).encode()[..]) != Some(false)
 	}
 
 	fn dispatch_weight(_message: &mut DispatchMessage<Self::DispatchPayload>) -> Weight {

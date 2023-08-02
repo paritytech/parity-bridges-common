@@ -94,11 +94,11 @@ pub trait MessageDispatch {
 	/// Fine-grained result of single message dispatch (for better diagnostic purposes)
 	type DispatchLevelResult: Clone + sp_std::fmt::Debug + Eq;
 
-	/// Returns `true` if dispatcher is ready to accept additional messages. The `false` should
-	/// be treated as a hint by both dispatcher and its consumers - i.e. dispatcher shall not
-	/// simply drop messages if it returns `false`. The consumer may still call the `dispatch`
+	/// Returns `true` if dispatcher for given lane is ready to accept additional messages. The
+	/// `false` should be treated as a hint by both dispatcher and its consumers - i.e. dispatcher
+	/// shall not simply drop messages if it returns `false`. The consumer may still call the `dispatch`
 	/// if dispatcher has returned `false`.
-	fn is_active() -> bool;
+	fn is_active(lane: LaneId) -> bool;
 
 	/// Estimate dispatch weight.
 	///
@@ -174,7 +174,7 @@ impl<DispatchPayload: Decode> MessageDispatch for ForbidInboundMessages<Dispatch
 	type DispatchPayload = DispatchPayload;
 	type DispatchLevelResult = ();
 
-	fn is_active() -> bool {
+	fn is_active(_: LaneId) -> bool {
 		false
 	}
 

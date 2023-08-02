@@ -19,9 +19,6 @@
 use crate::{Runtime, WithMillauMessagesInstance};
 
 use bp_messages::LaneId;
-use bridge_runtime_common::messages_xcm_extension::{
-	LaneIdFromChainId,
-};
 use frame_support::{parameter_types, traits::ConstU64, weights::Weight};
 use sp_core::Get;
 use xcm::prelude::*;

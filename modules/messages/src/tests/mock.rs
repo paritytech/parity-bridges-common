@@ -377,10 +377,11 @@ impl DeliveryConfirmationPayments<AccountId> for TestDeliveryConfirmationPayment
 pub struct TestMessageDispatch;
 
 impl TestMessageDispatch {
-	pub fn emulate_enqueued_message() {
+	pub fn emulate_enqueued_message(lane: LaneId) {
+		let key = (b"dispatched", lane).encode();
 		let dispatched =
-			frame_support::storage::unhashed::get_or_default::<MessageNonce>(&b"dispatched"[..]);
-		frame_support::storage::unhashed::put(&b"dispatched"[..], &(dispatched + 1));
+			frame_support::storage::unhashed::get_or_default::<MessageNonce>(&key[..]);
+		frame_support::storage::unhashed::put(&key[..], &(dispatched + 1));
 	}
 }
 
@@ -388,8 +389,8 @@ impl MessageDispatch for TestMessageDispatch {
 	type DispatchPayload = TestPayload;
 	type DispatchLevelResult = TestDispatchLevelResult;
 
-	fn is_active() -> bool {
-		frame_support::storage::unhashed::get_or_default::<MessageNonce>(&b"dispatched"[..]) <=
+	fn is_active(lane: LaneId) -> bool {
+		frame_support::storage::unhashed::get_or_default::<MessageNonce>(&(b"dispatched", lane).encode()[..]) <=
 			BridgedChain::MAX_UNCONFIRMED_MESSAGES_IN_CONFIRMATION_TX
 	}
 

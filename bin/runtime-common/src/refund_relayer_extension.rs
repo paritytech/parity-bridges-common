@@ -23,7 +23,6 @@ use crate::{
 	messages_call_ext::{
 		CallHelper as MessagesCallHelper, CallInfo as MessagesCallInfo, MessagesCallSubType,
 	},
-	messages_xcm_extension::LaneIdFromChainId,
 };
 use bp_messages::{ChainWithMessages, LaneId, MessageNonce};
 use bp_relayers::{RewardsAccountOwner, RewardsAccountParams};
@@ -113,7 +112,8 @@ where
 	Instance: 'static,
 {
 	type Instance = Instance;
-	type Id = LaneIdFromChainId<Runtime, Instance>;
+	type Id = (); // TODO: this is wrong, but hopefully we will deploy dynamic lanes/fees at the same
+				  // time when those extensions will go away
 }
 
 /// Refund calculator.
