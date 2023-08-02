@@ -6192,6 +6192,7 @@ dependencies = [
  "pallet-transaction-payment-rpc-runtime-api",
  "pallet-utility",
  "pallet-xcm",
+ "pallet-xcm-bridge-hub",
  "pallet-xcm-bridge-hub-router",
  "parity-scale-codec",
  "scale-info",

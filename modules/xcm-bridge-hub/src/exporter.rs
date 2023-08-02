@@ -25,6 +25,7 @@ use crate::{Config, Pallet, XcmAsPlainPayload, LOG_TARGET};
 use bp_messages::{source_chain::MessagesBridge, LaneId};
 use frame_support::traits::Get;
 use pallet_bridge_messages::{Config as BridgeMessagesConfig, Pallet as BridgeMessagesPallet};
+use sp_std::{boxed::Box, vec::Vec};
 use xcm::prelude::*;
 use xcm_builder::{HaulBlob, HaulBlobError, HaulBlobExporter};
 use xcm_executor::traits::ExportXcm;

@@ -169,7 +169,7 @@ impl<T: Config<I>, I: 'static> RuntimeInboundLaneStorage<T, I> {
 			// There's a limit on number of messages in the message delivery transaction, so even
 			// if we dispatch (enqueue) some additional messages, we'll know the maximal queue
 			// length;
-			ensure!(T::MessageDispatch::is_active(lane_id), LanesManagerError::LaneDispatcherInactive);
+			ensure!(T::MessageDispatch::is_active(), LanesManagerError::LaneDispatcherInactive);
 		}
 
 		Ok(RuntimeInboundLaneStorage {

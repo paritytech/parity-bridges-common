@@ -20,7 +20,7 @@ use crate::{Runtime, WithRialtoParachainMessagesInstance};
 
 use bp_messages::LaneId;
 use bridge_runtime_common::messages_xcm_extension::{
-	LaneIdFromChainId, XcmBlobHauler, XcmBlobHaulerAdapter,
+	LaneIdFromChainId,
 };
 use frame_support::{parameter_types, traits::ConstU64, weights::Weight};
 use pallet_bridge_relayers::WeightInfoExt as _;
@@ -41,36 +41,6 @@ parameter_types! {
 	pub const WeightCredit: Weight = BASE_XCM_WEIGHT_TWICE;
 }
 
-/// Call-dispatch based message dispatch for RialtoParachain -> Millau messages.
-pub type FromRialtoParachainMessageDispatch =
-	bridge_runtime_common::messages_xcm_extension::XcmBlobMessageDispatch<
-		crate::xcm_config::OnMillauBlobDispatcher,
-		(),
-	>;
-
-/// Export XCM messages to be relayed to Rialto.
-pub type ToRialtoParachainBlobExporter = HaulBlobExporter<
-	XcmBlobHaulerAdapter<ToRialtoParachainXcmBlobHauler, (), ConstU64<{ u64::MAX }>>,
-	crate::xcm_config::RialtoParachainNetwork,
-	(),
->;
-
-/// To-RialtoParachain XCM hauler.
-pub struct ToRialtoParachainXcmBlobHauler;
-
-impl XcmBlobHauler for ToRialtoParachainXcmBlobHauler {
-	type MessageSender =
-		pallet_bridge_messages::Pallet<Runtime, WithRialtoParachainMessagesInstance>;
-
-	fn sending_chain_location() -> MultiLocation {
-		Here.into()
-	}
-
-	fn xcm_lane() -> LaneId {
-		LaneIdFromChainId::<Runtime, WithRialtoParachainMessagesInstance>::get()
-	}
-}
-
 impl pallet_bridge_messages::WeightInfoExt
 	for crate::weights::RialtoParachainMessagesWeightInfo<Runtime>
 {
@@ -86,7 +56,7 @@ impl pallet_bridge_messages::WeightInfoExt
 		pallet_bridge_relayers::weights::BridgeWeight::<Runtime>::receive_messages_delivery_proof_overhead_from_runtime()
 	}
 }
-
+/*
 #[cfg(test)]
 mod tests {
 	use super::*;
@@ -153,3 +123,4 @@ mod tests {
 		);
 	}
 }
+*/

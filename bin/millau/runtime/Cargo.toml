@@ -30,6 +30,7 @@ pallet-bridge-messages = { path = "../../../modules/messages", default-features 
 pallet-bridge-parachains = { path = "../../../modules/parachains", default-features = false }
 pallet-bridge-relayers = { path = "../../../modules/relayers", default-features = false }
 pallet-shift-session-manager = { path = "../../../modules/shift-session-manager", default-features = false }
+pallet-xcm-bridge-hub = { path = "../../../modules/xcm-bridge-hub", default-features = false }
 pallet-xcm-bridge-hub-router = { path = "../../../modules/xcm-bridge-hub-router", default-features = false }
 
 # Substrate Dependencies
@@ -117,6 +118,7 @@ std = [
 	"pallet-transaction-payment/std",
 	"pallet-utility/std",
 	"pallet-xcm/std",
+	"pallet-xcm-bridge-hub/std",
 	"pallet-xcm-bridge-hub-router/std",
 	"scale-info/std",
 	"sp-api/std",
@@ -144,6 +146,7 @@ runtime-benchmarks = [
 	"pallet-bridge-parachains/runtime-benchmarks",
 	"pallet-bridge-relayers/runtime-benchmarks",
 	"pallet-xcm/runtime-benchmarks",
+	"pallet-xcm-bridge-hub/runtime-benchmarks",
 	"pallet-xcm-bridge-hub-router/runtime-benchmarks",
 	"sp-runtime/runtime-benchmarks",
 	"xcm-builder/runtime-benchmarks",

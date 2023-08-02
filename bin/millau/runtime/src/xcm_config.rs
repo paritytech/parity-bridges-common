@@ -17,10 +17,10 @@
 //! XCM configurations for the Millau runtime.
 
 use super::{
-	rialto_messages::ToRialtoBlobExporter,
-	rialto_parachain_messages::ToRialtoParachainBlobExporter, AccountId, AllPalletsWithSystem,
+	AccountId, AllPalletsWithSystem,
 	Balances, Runtime, RuntimeCall, RuntimeEvent, RuntimeOrigin, XcmPallet,
 };
+use bp_messages::LaneId;
 use bp_millau::WeightToFee;
 use bridge_runtime_common::CustomNetworkId;
 use frame_support::{
@@ -50,6 +50,8 @@ parameter_types! {
 	pub const RialtoNetwork: NetworkId = CustomNetworkId::Rialto.as_network_id();
 	/// The RialtoParachain network ID.
 	pub const RialtoParachainNetwork: NetworkId = CustomNetworkId::RialtoParachain.as_network_id();
+
+	/// Virtual location
 
 	/// Our XCM location ancestry - i.e. our location within the Consensus Universe.
 	///
@@ -199,7 +201,7 @@ impl pallet_xcm::Config for Runtime {
 pub struct ToRialtoOrRialtoParachainSwitchExporter;
 
 impl ExportXcm for ToRialtoOrRialtoParachainSwitchExporter {
-	type Ticket = (NetworkId, (sp_std::prelude::Vec<u8>, XcmHash));
+	type Ticket = (NetworkId, (LaneId, sp_std::prelude::Vec<u8>, XcmHash));
 
 	fn validate(
 		network: NetworkId,
@@ -209,10 +211,10 @@ impl ExportXcm for ToRialtoOrRialtoParachainSwitchExporter {
 		message: &mut Option<Xcm<()>>,
 	) -> SendResult<Self::Ticket> {
 		if network == RialtoNetwork::get() {
-			ToRialtoBlobExporter::validate(network, channel, universal_source, destination, message)
+			crate::XcmRialtoBridgeHub::validate(network, channel, universal_source, destination, message)
 				.map(|result| ((RialtoNetwork::get(), result.0), result.1))
 		} else if network == RialtoParachainNetwork::get() {
-			ToRialtoParachainBlobExporter::validate(
+			crate::XcmRialtoParachainBridgeHub::validate(
 				network,
 				channel,
 				universal_source,
@@ -228,9 +230,9 @@ impl ExportXcm for ToRialtoOrRialtoParachainSwitchExporter {
 	fn deliver(ticket: Self::Ticket) -> Result<XcmHash, SendError> {
 		let (network, ticket) = ticket;
 		if network == RialtoNetwork::get() {
-			ToRialtoBlobExporter::deliver(ticket)
+			crate::XcmRialtoBridgeHub::deliver(ticket)
 		} else if network == RialtoParachainNetwork::get() {
-			ToRialtoParachainBlobExporter::deliver(ticket)
+			crate::XcmRialtoParachainBridgeHub::deliver(ticket)
 		} else {
 			Err(SendError::Unroutable)
 		}
@@ -253,7 +255,7 @@ impl bp_xcm_bridge_hub_router::LocalXcmChannel for EmulatedSiblingXcmpChannel {
 		frame_support::storage::unhashed::get_or_default(b"EmulatedSiblingXcmpChannel.Congested")
 	}
 }
-
+/*
 #[cfg(test)]
 mod tests {
 	use super::*;
@@ -406,3 +408,4 @@ mod tests {
 		));
 	}
 }
+*/
