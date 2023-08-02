@@ -73,6 +73,10 @@ pub mod pallet {
 
 		/// Universal location of this runtime.
 		type UniversalLocation: Get<InteriorMultiLocation>;
+		/// The bridged network that this config is for if specified.
+		/// Also used for filtering `Bridges` by `BridgedNetworkId`.
+		/// If not specified, allows all networks pass through.
+		type BridgedNetworkId: Get<Option<NetworkId>>;
 		/// Configuration for supported **bridged networks/locations** with **bridge location** and
 		/// **possible fee**. Allows to externalize better control over allowed **bridged
 		/// networks/locations**.
@@ -180,8 +184,28 @@ impl<T: Config<I>, I: 'static> ExporterFor for Pallet<T, I> {
 		remote_location: &InteriorMultiLocation,
 		message: &Xcm<()>,
 	) -> Option<(MultiLocation, Option<MultiAsset>)> {
-		// ensure that the message is sent to the expected bridged network/location.
+		// ensure that the message is sent to the expected bridged network (if specified).
+		if let Some(bridged_network) = T::BridgedNetworkId::get() {
+			if *network != bridged_network {
+				log::trace!(
+					target: LOG_TARGET,
+					"Router with bridged_network_id {:?} does not support bridging to network {:?}",
+					bridged_network,
+					network,
+				);
+				return None
+			}
+		}
+
+		// ensure that the message is sent to the expected bridged network and location.
 		let Some((bridge_hub_location, maybe_payment)) = T::Bridges::exporter_for(network, remote_location, message) else {
+			log::trace!(
+				target: LOG_TARGET,
+				"Router with bridged_network_id {:?} does not support bridging to network {:?} and remote_location {:?}",
+				T::BridgedNetworkId::get(),
+				network,
+				remote_location,
+			);
 			return None
 		};
 

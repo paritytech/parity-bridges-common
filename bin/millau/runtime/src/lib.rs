@@ -555,6 +555,7 @@ impl pallet_xcm_bridge_hub_router::Config for Runtime {
 	type WeightInfo = ();
 
 	type UniversalLocation = xcm_config::UniversalLocation;
+	type BridgedNetworkId = xcm_config::RialtoNetwork;
 	type Bridges = NetworkExportTable<BridgeTable>;
 
 	type ToBridgeHubSender = xcm_config::XcmRouter;
