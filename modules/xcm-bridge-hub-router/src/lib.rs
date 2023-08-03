@@ -73,10 +73,14 @@ pub mod pallet {
 
 		/// Universal location of this runtime.
 		type UniversalLocation: Get<InteriorMultiLocation>;
-		/// Relative location of the sibling bridge hub.
-		type SiblingBridgeHubLocation: Get<MultiLocation>;
-		/// The bridged network that this config is for.
-		type BridgedNetworkId: Get<NetworkId>;
+		/// The bridged network that this config is for if specified.
+		/// Also used for filtering `Bridges` by `BridgedNetworkId`.
+		/// If not specified, allows all networks pass through.
+		type BridgedNetworkId: Get<Option<NetworkId>>;
+		/// Configuration for supported **bridged networks/locations** with **bridge location** and
+		/// **possible fee**. Allows to externalize better control over allowed **bridged
+		/// networks/locations**.
+		type Bridges: ExporterFor;
 
 		/// Actual message sender (`HRMP` or `DMP`) to the sibling bridge hub location.
 		type ToBridgeHubSender: SendXcm;
@@ -84,8 +88,6 @@ pub mod pallet {
 		/// by the `Self::ToBridgeHubSender`.
 		type WithBridgeHubChannel: LocalXcmChannel;
 
-		/// Base bridge fee that is paid for every outbound message.
-		type BaseFee: Get<u128>;
 		/// Additional fee that is paid for every byte of the outbound message.
 		type ByteFee: Get<u128>;
 		/// Asset that is used to paid bridge fee.
@@ -177,32 +179,75 @@ type ViaBridgeHubExporter<T, I> = SovereignPaidRemoteExporter<
 impl<T: Config<I>, I: 'static> ExporterFor for Pallet<T, I> {
 	fn exporter_for(
 		network: &NetworkId,
-		_remote_location: &InteriorMultiLocation,
+		remote_location: &InteriorMultiLocation,
 		message: &Xcm<()>,
 	) -> Option<(MultiLocation, Option<MultiAsset>)> {
-		// ensure that the message is sent to the expected bridged network
-		if *network != T::BridgedNetworkId::get() {
-			return None
+		// ensure that the message is sent to the expected bridged network (if specified).
+		if let Some(bridged_network) = T::BridgedNetworkId::get() {
+			if *network != bridged_network {
+				log::trace!(
+					target: LOG_TARGET,
+					"Router with bridged_network_id {:?} does not support bridging to network {:?}!",
+					bridged_network,
+					network,
+				);
+				return None
+			}
 		}
+
+		// ensure that the message is sent to the expected bridged network and location.
+		let Some((bridge_hub_location, maybe_payment)) = T::Bridges::exporter_for(network, remote_location, message) else {
+			log::trace!(
+				target: LOG_TARGET,
+				"Router with bridged_network_id {:?} does not support bridging to network {:?} and remote_location {:?}!",
+				T::BridgedNetworkId::get(),
+				network,
+				remote_location,
+			);
+			return None
+		};
+
+		// take `base_fee` from `T::Brides`, but it has to be the same `T::FeeAsset`
+		let base_fee = match maybe_payment {
+			Some(payment) => match payment {
+				MultiAsset { fun: Fungible(amount), id } if id.eq(&T::FeeAsset::get()) => amount,
+				invalid_asset @ _ => {
+					log::error!(
+						target: LOG_TARGET,
+						"Router with bridged_network_id {:?} is configured for `T::FeeAsset` {:?} which is not compatible with {:?} for bridge_hub_location: {:?} for bridging to {:?}/{:?}!",
+						T::BridgedNetworkId::get(),
+						T::FeeAsset::get(),
+						invalid_asset,
+						bridge_hub_location,
+						network,
+						remote_location,
+					);
+					return None
+				},
+			},
+			None => 0,
+		};
 
 		// compute fee amount. Keep in mind that this is only the bridge fee. The fee for sending
 		// message from this chain to child/sibling bridge hub is determined by the
 		// `Config::ToBridgeHubSender`
 		let message_size = message.encoded_size();
 		let message_fee = (message_size as u128).saturating_mul(T::ByteFee::get());
-		let fee_sum = T::BaseFee::get().saturating_add(message_fee);
+		let fee_sum = base_fee.saturating_add(message_fee);
 		let fee_factor = Self::delivery_fee_factor();
 		let fee = fee_factor.saturating_mul_int(fee_sum);
 
+		let fee = if fee > 0 { Some((T::FeeAsset::get(), fee).into()) } else { None };
+
 		log::info!(
 			target: LOG_TARGET,
-			"Going to send message ({} bytes) over bridge. Computed bridge fee {} using fee factor {}",
-			fee,
-			fee_factor,
+			"Going to send message ({} bytes) over bridge. Computed bridge fee {:?} using fee factor {}",
 			message_size,
+			fee,
+			fee_factor
 		);
 
-		Some((T::SiblingBridgeHubLocation::get(), Some((T::FeeAsset::get(), fee).into())))
+		Some((bridge_hub_location, fee))
 	}
 }
 
