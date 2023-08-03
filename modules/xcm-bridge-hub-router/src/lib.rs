@@ -211,7 +211,7 @@ impl<T: Config<I>, I: 'static> ExporterFor for Pallet<T, I> {
 		let base_fee = match maybe_payment {
 			Some(payment) => match payment {
 				MultiAsset { fun: Fungible(amount), id } if id.eq(&T::FeeAsset::get()) => amount,
-				invalid_asset @ _ => {
+				invalid_asset => {
 					log::error!(
 						target: LOG_TARGET,
 						"Router with bridged_network_id {:?} is configured for `T::FeeAsset` {:?} which is not compatible with {:?} for bridge_hub_location: {:?} for bridging to {:?}/{:?}!",
