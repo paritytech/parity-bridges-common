@@ -285,8 +285,9 @@ where
 {
 	fn expand_call<'a>(&self, call: &'a CallOf<Runtime>) -> Vec<&'a CallOf<Runtime>> {
 		match call.is_sub_type() {
-			Some(UtilityCall::<Runtime>::batch_all { ref calls }) if calls.len() <= 3 =>
-				calls.iter().collect(),
+			Some(UtilityCall::<Runtime>::batch_all { ref calls }) if calls.len() <= 3 => {
+				calls.iter().collect()
+			},
 			Some(_) => vec![],
 			None => vec![call],
 		}
@@ -312,8 +313,9 @@ where
 			(3, Some(relay_finality_call), Some(para_finality_call), Some(msgs_call)) => Some(
 				CallInfo::AllFinalityAndMsgs(relay_finality_call, para_finality_call, msgs_call),
 			),
-			(2, None, Some(para_finality_call), Some(msgs_call)) =>
-				Some(CallInfo::ParachainFinalityAndMsgs(para_finality_call, msgs_call)),
+			(2, None, Some(para_finality_call), Some(msgs_call)) => {
+				Some(CallInfo::ParachainFinalityAndMsgs(para_finality_call, msgs_call))
+			},
 			(1, None, None, Some(msgs_call)) => Some(CallInfo::Msgs(msgs_call)),
 			_ => None,
 		})
@@ -387,7 +389,7 @@ where
 				relayer,
 				e,
 			);
-			return slash_relayer_if_delivery_result
+			return slash_relayer_if_delivery_result;
 		}
 
 		// check if relay chain state has been updated
@@ -434,7 +436,7 @@ where
 					Msgs::Id::get(),
 					relayer,
 				);
-				return slash_relayer_if_delivery_result
+				return slash_relayer_if_delivery_result;
 			}
 		}
 
@@ -450,7 +452,7 @@ where
 				Msgs::Id::get(),
 				relayer,
 			);
-			return slash_relayer_if_delivery_result
+			return slash_relayer_if_delivery_result;
 		}
 
 		// regarding the tip - refund that happens here (at this side of the bridge) isn't the whole
@@ -504,7 +506,7 @@ where
 		let max_unconfirmed_messages_in_confirmation_tx = <Runtime as MessagesConfig<Msgs::Instance>>::BridgedChain
 			::MAX_UNCONFIRMED_MESSAGES_IN_CONFIRMATION_TX;
 		if bundled_messages > max_unconfirmed_messages_in_confirmation_tx {
-			return None
+			return None;
 		}
 
 		Some(bundled_messages)
@@ -566,7 +568,7 @@ where
 
 		// we only boost priority if relayer has staked required balance
 		if !RelayersPallet::<Runtime>::is_registration_active(who) {
-			return Ok(Default::default())
+			return Ok(Default::default());
 		}
 
 		// compute priority boost
@@ -640,8 +642,9 @@ where
 					relayer,
 				);
 			},
-			RelayerAccountAction::Slash(relayer, slash_account) =>
-				RelayersPallet::<Runtime>::slash_and_deregister(&relayer, slash_account),
+			RelayerAccountAction::Slash(relayer, slash_account) => {
+				RelayersPallet::<Runtime>::slash_and_deregister(&relayer, slash_account)
+			},
 		}
 
 		Ok(())
@@ -809,8 +812,8 @@ mod tests {
 					test_lane_id(),
 				)
 				.unwrap()
-				.last_delivered_nonce() +
-					1,
+				.last_delivered_nonce()
+					+ 1,
 				nonces_end: best_message,
 			}),
 			messages_count: 1,
