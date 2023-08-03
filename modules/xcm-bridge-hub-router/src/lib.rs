@@ -25,7 +25,7 @@
 
 #![cfg_attr(not(feature = "std"), no_std)]
 
-use bp_xcm_bridge_hub_router::LocalXcmChannel;
+use bp_xcm_bridge_hub_router::XcmChannelStatusProvider;
 use codec::Encode;
 use frame_support::traits::Get;
 use sp_runtime::{traits::One, FixedPointNumber, FixedU128, Saturating};
@@ -86,7 +86,7 @@ pub mod pallet {
 		type ToBridgeHubSender: SendXcm;
 		/// Underlying channel with the sibling bridge hub. It must match the channel, used
 		/// by the `Self::ToBridgeHubSender`.
-		type WithBridgeHubChannel: LocalXcmChannel;
+		type WithBridgeHubChannel: XcmChannelStatusProvider;
 
 		/// Additional fee that is paid for every byte of the outbound message.
 		type ByteFee: Get<u128>;

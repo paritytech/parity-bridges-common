@@ -27,7 +27,7 @@ use bp_messages::{
 	LaneId, MessageNonce,
 };
 use bp_runtime::{messages::MessageDispatchResult, RangeInclusiveExt};
-use bp_xcm_bridge_hub_router::LocalXcmChannel;
+use bp_xcm_bridge_hub_router::XcmChannelStatusProvider;
 use codec::{Decode, Encode, FullCodec, MaxEncodedLen};
 use frame_support::{
 	dispatch::Weight,
@@ -62,8 +62,11 @@ pub struct XcmBlobMessageDispatch<DispatchBlob, Weights, Channel> {
 	_marker: sp_std::marker::PhantomData<(DispatchBlob, Weights, Channel)>,
 }
 
-impl<BlobDispatcher: DispatchBlob, Weights: MessagesPalletWeights, Channel: LocalXcmChannel>
-	MessageDispatch for XcmBlobMessageDispatch<BlobDispatcher, Weights, Channel>
+impl<
+		BlobDispatcher: DispatchBlob,
+		Weights: MessagesPalletWeights,
+		Channel: XcmChannelStatusProvider,
+	> MessageDispatch for XcmBlobMessageDispatch<BlobDispatcher, Weights, Channel>
 {
 	type DispatchPayload = XcmAsPlainPayload;
 	type DispatchLevelResult = XcmBlobMessageDispatchResult;
