@@ -553,6 +553,7 @@ impl pallet_xcm_bridge_hub_router::Config for Runtime {
 	type SiblingBridgeHubLocation = xcm_config::TokenLocation;
 	type BridgedNetworkId = xcm_config::RialtoNetwork;
 
+	type BridgeHubOrigin = frame_system::EnsureRoot<AccountId>;
 	type ToBridgeHubSender = xcm_config::XcmRouter;
 	type WithBridgeHubChannel = xcm_config::EmulatedSiblingXcmpChannel;
 

@@ -100,7 +100,7 @@ parameter_types! {
 }
 
 /// The XCM router. We are not sending messages to sibling/parent/child chains here.
-pub type XcmRouter = ();
+pub type XcmRouter = EmulatedSiblingXcmpChannel;
 
 /// The barriers one of which must be passed for an XCM message to be executed.
 pub type Barrier = (
@@ -240,6 +240,21 @@ impl ExportXcm for ToRialtoOrRialtoParachainSwitchExporter {
 /// Emulating XCMP channel with sibling chain. We don't have required infra here, at Millau,
 /// so we have to provide at least something to be able to run benchmarks.
 pub struct EmulatedSiblingXcmpChannel;
+
+impl SendXcm for EmulatedSiblingXcmpChannel {
+	type Ticket = ();
+
+	fn validate(
+		_destination: &mut Option<MultiLocation>,
+		_message: &mut Option<Xcm<()>>,
+	) -> SendResult<Self::Ticket> {
+		Ok(((), Default::default()))
+	}
+
+	fn deliver(_ticket: Self::Ticket) -> Result<XcmHash, SendError> {
+		Ok(XcmHash::default())
+	}
+}
 
 impl EmulatedSiblingXcmpChannel {
 	/// Start emulating congested channel.
