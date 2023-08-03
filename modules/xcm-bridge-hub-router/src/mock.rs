@@ -18,7 +18,7 @@
 
 use crate as pallet_xcm_bridge_hub_router;
 
-use bp_xcm_bridge_hub_router::LocalXcmChannel;
+use bp_xcm_bridge_hub_router::XcmChannelStatusProvider;
 use frame_support::{construct_runtime, parameter_types};
 use sp_core::H256;
 use sp_runtime::{
@@ -128,7 +128,7 @@ impl TestWithBridgeHubChannel {
 	}
 }
 
-impl LocalXcmChannel for TestWithBridgeHubChannel {
+impl XcmChannelStatusProvider for TestWithBridgeHubChannel {
 	fn is_congested() -> bool {
 		frame_support::storage::unhashed::get_or_default(b"TestWithBridgeHubChannel.Congested")
 	}
