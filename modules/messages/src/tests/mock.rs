@@ -237,6 +237,7 @@ impl Config for TestRuntime {
 	type DeliveryPayments = TestDeliveryPayments;
 
 	type DeliveryConfirmationPayments = TestDeliveryConfirmationPayments;
+	type OnMessagesDelivered = ();
 
 	type MessageDispatch = TestMessageDispatch;
 }

@@ -118,6 +118,7 @@ impl pallet_bridge_messages::Config for TestRuntime {
 	type DeliveryPayments = ();
 	type DeliveryConfirmationPayments = ();
 	type MessageDispatch = TestMessageDispatch;
+	type OnMessagesDelivered = ();
 }
 
 parameter_types! {

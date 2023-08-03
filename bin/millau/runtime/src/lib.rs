@@ -451,6 +451,7 @@ impl pallet_bridge_messages::Config<WithRialtoMessagesInstance> for Runtime {
 		WithRialtoMessagesInstance,
 		frame_support::traits::ConstU64<100_000>,
 	>;
+	type OnMessagesDelivered = ();
 
 	type MessageDispatch = XcmRialtoBridgeHub;
 }
@@ -479,6 +480,7 @@ impl pallet_bridge_messages::Config<WithRialtoParachainMessagesInstance> for Run
 		WithRialtoParachainMessagesInstance,
 		frame_support::traits::ConstU64<100_000>,
 	>;
+	type OnMessagesDelivered = ();
 
 	type MessageDispatch = XcmRialtoParachainBridgeHub;
 }

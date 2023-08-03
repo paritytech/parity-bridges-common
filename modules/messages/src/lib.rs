@@ -53,7 +53,8 @@ pub use weights_ext::{
 use bp_header_chain::HeaderChain;
 use bp_messages::{
 	source_chain::{
-		DeliveryConfirmationPayments, FromBridgedChainMessagesDeliveryProof, SendMessageArtifacts,
+		DeliveryConfirmationPayments, FromBridgedChainMessagesDeliveryProof, OnMessagesDelivered,
+		SendMessageArtifacts,
 	},
 	target_chain::{
 		DeliveryPayments, DispatchMessage, FromBridgedChainMessagesProof, MessageDispatch,
@@ -125,6 +126,8 @@ pub mod pallet {
 		/// Handler for relayer payments that happen during message delivery confirmation
 		/// transaction.
 		type DeliveryConfirmationPayments: DeliveryConfirmationPayments<Self::AccountId>;
+		/// Delivery confirmation callback.
+		type OnMessagesDelivered: OnMessagesDelivered;
 
 		/// Message dispatch handler.
 		type MessageDispatch: MessageDispatch<DispatchPayload = Self::InboundPayload>;
@@ -408,6 +411,12 @@ pub mod pallet {
 				"Received messages delivery proof up to (and including) {} at lane {:?}",
 				last_delivered_nonce,
 				lane_id,
+			);
+
+			// notify others about messages delivery
+			T::OnMessagesDelivered::on_messages_delivered(
+				lane_id,
+				lane.queued_messages().checked_len().unwrap_or(0),
 			);
 
 			// because of lags, the inbound lane state (`lane_data`) may have entries for

@@ -576,6 +576,7 @@ impl pallet_bridge_messages::Config<WithMillauMessagesInstance> for Runtime {
 		WithMillauMessagesInstance,
 		frame_support::traits::ConstU128<100_000>,
 	>;
+	type OnMessagesDelivered = ();
 
 	type MessageDispatch = XcmMillauBridgeHub;
 }

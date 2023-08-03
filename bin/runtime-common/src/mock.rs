@@ -228,6 +228,7 @@ impl pallet_bridge_messages::Config for TestRuntime {
 		(),
 		ConstU64<100_000>,
 	>;
+	type OnMessagesDelivered = ();
 
 	type MessageDispatch = DummyMessageDispatch;
 	type ThisChain = ThisUnderlyingChain;
