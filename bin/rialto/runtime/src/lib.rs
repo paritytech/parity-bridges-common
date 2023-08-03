@@ -236,8 +236,6 @@ impl pallet_babe::Config for Runtime {
 	// equivocation related configuration - we don't expect any equivocations in our testnets
 	type KeyOwnerProof = sp_core::Void;
 	type EquivocationReportSystem = ();
-
-	type MaxNominators = ConstU32<256>;
 }
 
 impl pallet_beefy::Config for Runtime {
@@ -248,7 +246,6 @@ impl pallet_beefy::Config for Runtime {
 	type WeightInfo = ();
 	type KeyOwnerProof = sp_core::Void;
 	type EquivocationReportSystem = ();
-	type MaxNominators = ConstU32<256>;
 }
 
 impl pallet_grandpa::Config for Runtime {
@@ -259,7 +256,6 @@ impl pallet_grandpa::Config for Runtime {
 	type MaxSetIdSessionEntries = ConstU64<0>;
 	type KeyOwnerProof = sp_core::Void;
 	type EquivocationReportSystem = ();
-	type MaxNominators = ConstU32<256>;
 }
 
 impl pallet_mmr::Config for Runtime {
@@ -990,12 +986,12 @@ mod tests {
 	fn call_size() {
 		const BRIDGES_PALLETS_MAX_CALL_SIZE: usize = 200;
 		assert!(
-			core::mem::size_of::<pallet_bridge_grandpa::Call<Runtime>>() <=
-				BRIDGES_PALLETS_MAX_CALL_SIZE
+			core::mem::size_of::<pallet_bridge_grandpa::Call<Runtime>>()
+				<= BRIDGES_PALLETS_MAX_CALL_SIZE
 		);
 		assert!(
-			core::mem::size_of::<pallet_bridge_messages::Call<Runtime>>() <=
-				BRIDGES_PALLETS_MAX_CALL_SIZE
+			core::mem::size_of::<pallet_bridge_messages::Call<Runtime>>()
+				<= BRIDGES_PALLETS_MAX_CALL_SIZE
 		);
 		// Largest inner Call is `pallet_session::Call` with a size of 224 bytes. This size is a
 		// result of large `SessionKeys` struct.
