@@ -22,13 +22,13 @@ use codec::{Decode, Encode, MaxEncodedLen};
 use scale_info::TypeInfo;
 use sp_runtime::{traits::One, FixedU128, RuntimeDebug};
 
-/// Local XCM channel that may report whether it is congested or not.
-pub trait LocalXcmChannel {
+/// XCM channel status provider that may report whether it is congested or not.
+pub trait XcmChannelStatusProvider {
 	/// Returns true if the queue is currently congested.
 	fn is_congested() -> bool;
 }
 
-impl LocalXcmChannel for () {
+impl XcmChannelStatusProvider for () {
 	fn is_congested() -> bool {
 		false
 	}
