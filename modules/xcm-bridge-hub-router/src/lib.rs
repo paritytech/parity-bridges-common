@@ -147,10 +147,18 @@ pub mod pallet {
 			origin: OriginFor<T>,
 			// this argument is not currently used, but to ease future migration, we'll keep it
 			// here
-			_bridge_id: H256,
+			bridge_id: H256,
 			is_congested: bool,
 		) -> DispatchResult {
 			let _ = T::BridgeHubOrigin::ensure_origin(origin)?;
+
+			log::info!(
+				target: LOG_TARGET,
+				"Received bridge status from {:?}: congested = {}",
+				bridge_id,
+				is_congested,
+			);
+
 			Bridge::<T, I>::mutate(|bridge| {
 				bridge.is_congested = is_congested;
 			});
