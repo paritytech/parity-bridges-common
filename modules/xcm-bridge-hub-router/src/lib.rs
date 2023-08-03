@@ -102,6 +102,11 @@ pub mod pallet {
 	impl<T: Config<I>, I: 'static> Hooks<BlockNumberFor<T>> for Pallet<T, I> {
 		fn on_initialize(_n: BlockNumberFor<T>) -> Weight {
 			Bridge::<T, I>::mutate(|bridge| {
+				// TODO: make sure that `WithBridgeHubChannel::is_congested` returns true if either
+				// of XCM channels (outbound/inbound) is suspended. Because if outbound is suspended
+				// that is definitely congestion. If inbound is suspended, then we are not able to
+				// receive the "report_bridge_status" signal (that maybe sent by the bridge hub).
+
 				// if the channel with sibling/child bridge hub is suspended, we don't change
 				// anything
 				if T::WithBridgeHubChannel::is_congested() {

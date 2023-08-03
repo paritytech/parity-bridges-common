@@ -498,7 +498,7 @@ pub mod pallet {
 			// notify others about messages delivery
 			T::OnMessagesDelivered::on_messages_delivered(
 				lane_id,
-				lane.queued_messages().checked_len().unwrap_or(0),
+				lane.data().queued_messages().checked_len().unwrap_or(0),
 			);
 
 			// because of lags, the inbound lane state (`lane_data`) may have entries for
@@ -591,6 +591,23 @@ pub mod pallet {
 		Hasher = Blake2_128Concat,
 		Key = LaneId,
 		Value = OutboundLaneData,
+		QueryKind = ValueQuery,
+		OnEmpty = GetDefault,
+		MaxValues = MaybeOutboundLanesCount<T, I>,
+	>;
+
+	/// Map of lane id => is congested signal sent. It is managed by the
+	/// `bridge_runtime_common::LocalXcmQueueManager`.
+	///
+	/// **bridges-v1**: this map is temporary and will be dropped in the v2. We can emulate
+	/// a storage map using unhashed storage functions, but then benchmarks are not accounting
+	/// its `proof_size`, so it is missing from the final weights. So we need to make it a map
+	/// inside some pallet.
+	#[pallet::storage]
+	pub type OutboundLanesCongestedSignals<T: Config<I>, I: 'static = ()> = StorageMap<
+		Hasher = Blake2_128Concat,
+		Key = LaneId,
+		Value = bool,
 		QueryKind = ValueQuery,
 		OnEmpty = GetDefault,
 		MaxValues = MaybeOutboundLanesCount<T, I>,

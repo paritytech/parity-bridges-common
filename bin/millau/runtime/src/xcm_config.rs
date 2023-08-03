@@ -391,7 +391,7 @@ mod tests {
 		let dispatch_result = FromRialtoMessageDispatch::dispatch(incoming_message);
 		assert!(matches!(
 			dispatch_result.dispatch_level_result,
-			XcmBlobMessageDispatchResult::NotDispatched(_),
+			XcmBlobMessageDispatchResult::Dispatched,
 		));
 	}
 
@@ -404,7 +404,7 @@ mod tests {
 		let dispatch_result = FromRialtoMessageDispatch::dispatch(incoming_message);
 		assert!(matches!(
 			dispatch_result.dispatch_level_result,
-			XcmBlobMessageDispatchResult::NotDispatched(_),
+			XcmBlobMessageDispatchResult::Dispatched,
 		));
 	}
 }
