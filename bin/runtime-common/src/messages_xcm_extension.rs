@@ -62,8 +62,11 @@ pub struct XcmBlobMessageDispatch<DispatchBlob, Weights, Channel> {
 	_marker: sp_std::marker::PhantomData<(DispatchBlob, Weights, Channel)>,
 }
 
-impl<BlobDispatcher: DispatchBlob, Weights: MessagesPalletWeights, Channel: XcmChannelStatusProvider>
-	MessageDispatch for XcmBlobMessageDispatch<BlobDispatcher, Weights, Channel>
+impl<
+		BlobDispatcher: DispatchBlob,
+		Weights: MessagesPalletWeights,
+		Channel: XcmChannelStatusProvider,
+	> MessageDispatch for XcmBlobMessageDispatch<BlobDispatcher, Weights, Channel>
 {
 	type DispatchPayload = XcmAsPlainPayload;
 	type DispatchLevelResult = XcmBlobMessageDispatchResult;
