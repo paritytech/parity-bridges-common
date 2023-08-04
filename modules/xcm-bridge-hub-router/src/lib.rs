@@ -22,6 +22,11 @@
 //! All other bridge hub queues offer some backpressure mechanisms. So if at least one
 //! of all queues is congested, it will eventually lead to the growth of the queue at
 //! this chain.
+//!
+//! **A note on terminology**: when we mention the bridge hub here, we mean the chain that
+//! has the messages pallet deployed (`pallet-bridge-grandpa`, `pallet-bridge-messages`,
+//! `pallet-xcm-bridge-hub`, ...). It may be the system bridge hub parachain or any other
+//! chain.
 
 #![cfg_attr(not(feature = "std"), no_std)]
 
@@ -100,7 +105,7 @@ pub mod pallet {
 	#[pallet::hooks]
 	impl<T: Config<I>, I: 'static> Hooks<BlockNumberFor<T>> for Pallet<T, I> {
 		fn on_initialize(_n: BlockNumberFor<T>) -> Weight {
-			// if XCM queue is still congested, we don't change anything
+			// if XCM channel is still congested, we don't change anything
 			if T::WithBridgeHubChannel::is_congested() {
 				return T::WeightInfo::on_initialize_when_congested()
 			}
@@ -111,7 +116,7 @@ pub mod pallet {
 				if previous_factor != *f {
 					log::info!(
 						target: LOG_TARGET,
-						"Bridge queue is uncongested. Decreased fee factor from {} to {}",
+						"Bridge channel is uncongested. Decreased fee factor from {} to {}",
 						previous_factor,
 						f,
 					);
@@ -142,7 +147,7 @@ pub mod pallet {
 	impl<T: Config<I>, I: 'static> Pallet<T, I> {
 		/// Called when new message is sent (queued to local outbound XCM queue) over the bridge.
 		pub(crate) fn on_message_sent_to_bridge(message_size: u32) {
-			// if outbound queue is not congested, do nothing
+			// if outbound channel is not congested, do nothing
 			if !T::WithBridgeHubChannel::is_congested() {
 				return
 			}
@@ -156,7 +161,7 @@ pub mod pallet {
 				*f = f.saturating_mul(total_factor);
 				log::info!(
 					target: LOG_TARGET,
-					"Bridge queue is congested. Increased fee factor from {} to {}",
+					"Bridge channel is congested. Increased fee factor from {} to {}",
 					previous_factor,
 					f,
 				);
@@ -196,7 +201,9 @@ impl<T: Config<I>, I: 'static> ExporterFor for Pallet<T, I> {
 		}
 
 		// ensure that the message is sent to the expected bridged network and location.
-		let Some((bridge_hub_location, maybe_payment)) = T::Bridges::exporter_for(network, remote_location, message) else {
+		let Some((bridge_hub_location, maybe_payment)) =
+			T::Bridges::exporter_for(network, remote_location, message)
+		else {
 			log::trace!(
 				target: LOG_TARGET,
 				"Router with bridged_network_id {:?} does not support bridging to network {:?} and remote_location {:?}!",
@@ -214,7 +221,8 @@ impl<T: Config<I>, I: 'static> ExporterFor for Pallet<T, I> {
 				invalid_asset => {
 					log::error!(
 						target: LOG_TARGET,
-						"Router with bridged_network_id {:?} is configured for `T::FeeAsset` {:?} which is not compatible with {:?} for bridge_hub_location: {:?} for bridging to {:?}/{:?}!",
+						"Router with bridged_network_id {:?} is configured for `T::FeeAsset` {:?} which is not \
+						compatible with {:?} for bridge_hub_location: {:?} for bridging to {:?}/{:?}!",
 						T::BridgedNetworkId::get(),
 						T::FeeAsset::get(),
 						invalid_asset,
