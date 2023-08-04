@@ -153,7 +153,8 @@ pub trait XcmBlobHauler {
 	type ToSendingChainSender: SendXcm;
 	/// An XCM message that is sent to the sending chain when the bridge queue becomes congested.
 	type CongestedMessage: Get<Xcm<()>>;
-	/// An XCM message that is sent to the sending chain when the bridge queue becomes uncongested.
+	/// An XCM message that is sent to the sending chain when the bridge queue becomes not
+	/// congested.
 	type UncongestedMessage: Get<Xcm<()>>;
 
 	/// Runtime message sender origin, which is used by [`Self::MessageSender`].
@@ -236,7 +237,7 @@ pub struct LocalXcmQueueManager<H>(PhantomData<H>);
 const OUTBOUND_LANE_CONGESTED_THRESHOLD: MessageNonce = 8_192;
 
 /// After we have sent "congestion" XCM message to the sending chain, we wait until number
-/// of messages in the outbound bridge queue drops to this count, before sending "uncongestion"
+/// of messages in the outbound bridge queue drops to this count, before sending `uncongestion`
 /// XCM message.
 const OUTBOUND_LANE_UNCONGESTED_THRESHOLD: MessageNonce = 1_024;
 
@@ -314,7 +315,7 @@ impl<H: XcmBlobHauler> LocalXcmQueueManager<H> {
 
 	/// Returns true if we have sent "congested" signal to the `sending_chain_location`.
 	fn is_congested_signal_sent(lane: LaneId) -> bool {
-		OutboundLanesCongestedSignals::<H::Runtime, H::MessagesInstance>::get(&lane)
+		OutboundLanesCongestedSignals::<H::Runtime, H::MessagesInstance>::get(lane)
 	}
 
 	/// Send congested signal to the `sending_chain_location`.
@@ -327,14 +328,14 @@ impl<H: XcmBlobHauler> LocalXcmQueueManager<H> {
 		Ok(())
 	}
 
-	/// Send uncongested signal to the `sending_chain_location`.
+	/// Send `uncongested` signal to the `sending_chain_location`.
 	fn send_uncongested_signal(sender_and_lane: &SenderAndLane) -> Result<(), SendError> {
 		send_xcm::<H::ToSendingChainSender>(
 			sender_and_lane.location,
 			H::UncongestedMessage::get(),
 		)?;
 		OutboundLanesCongestedSignals::<H::Runtime, H::MessagesInstance>::remove(
-			&sender_and_lane.lane,
+			sender_and_lane.lane,
 		);
 		Ok(())
 	}
