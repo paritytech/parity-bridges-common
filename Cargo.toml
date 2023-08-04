@@ -41,6 +41,8 @@ members = [
 	"primitives/test-utils",
 	"primitives/xcm-bridge-hub",
 	"primitives/xcm-bridge-hub-router",
+	"primitives/chain-evolution",
+	"primitives/chain-ownership-parachain",
 	"relays/bin-substrate",
 	"relays/client-bridge-hub-kusama",
 	"relays/client-bridge-hub-polkadot",
