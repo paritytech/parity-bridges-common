@@ -20,7 +20,10 @@
 
 use codec::{Decode, Encode, MaxEncodedLen};
 use scale_info::TypeInfo;
-use sp_runtime::{traits::One, FixedU128, RuntimeDebug};
+use sp_runtime::{FixedU128, RuntimeDebug};
+
+/// Minimal delivery fee factor.
+pub const MINIMAL_DELIVERY_FEE_FACTOR: FixedU128 = FixedU128::from_u32(1);
 
 /// XCM channel status provider that may report whether it is congested or not.
 pub trait XcmChannelStatusProvider {
@@ -45,6 +48,6 @@ pub struct BridgeState {
 
 impl Default for BridgeState {
 	fn default() -> BridgeState {
-		BridgeState { delivery_fee_factor: FixedU128::one(), is_congested: false }
+		BridgeState { delivery_fee_factor: MINIMAL_DELIVERY_FEE_FACTOR, is_congested: false }
 	}
 }

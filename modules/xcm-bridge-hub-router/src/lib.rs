@@ -25,11 +25,13 @@
 
 #![cfg_attr(not(feature = "std"), no_std)]
 
-use bp_xcm_bridge_hub_router::{BridgeState, XcmChannelStatusProvider};
+use bp_xcm_bridge_hub_router::{
+	BridgeState, XcmChannelStatusProvider, MINIMAL_DELIVERY_FEE_FACTOR,
+};
 use codec::Encode;
 use frame_support::traits::Get;
 use sp_core::H256;
-use sp_runtime::{traits::One, FixedPointNumber, FixedU128, Saturating};
+use sp_runtime::{FixedPointNumber, FixedU128, Saturating};
 use xcm::prelude::*;
 use xcm_builder::{ExporterFor, SovereignPaidRemoteExporter};
 
@@ -103,40 +105,40 @@ pub mod pallet {
 	#[pallet::hooks]
 	impl<T: Config<I>, I: 'static> Hooks<BlockNumberFor<T>> for Pallet<T, I> {
 		fn on_initialize(_n: BlockNumberFor<T>) -> Weight {
-			Bridge::<T, I>::mutate(|bridge| {
-				// TODO: make sure that `WithBridgeHubChannel::is_congested` returns true if either
-				// of XCM channels (outbound/inbound) is suspended. Because if outbound is suspended
-				// that is definitely congestion. If inbound is suspended, then we are not able to
-				// receive the "report_bridge_status" signal (that maybe sent by the bridge hub).
+			// TODO: make sure that `WithBridgeHubChannel::is_congested` returns true if either
+			// of XCM channels (outbound/inbound) is suspended. Because if outbound is suspended
+			// that is definitely congestion. If inbound is suspended, then we are not able to
+			// receive the "report_bridge_status" signal (that maybe sent by the bridge hub).
 
-				// if the channel with sibling/child bridge hub is suspended, we don't change
-				// anything
-				if T::WithBridgeHubChannel::is_congested() {
-					return T::WeightInfo::on_initialize_when_congested()
-				}
+			// if the channel with sibling/child bridge hub is suspended, we don't change
+			// anything
+			if T::WithBridgeHubChannel::is_congested() {
+				return T::WeightInfo::on_initialize_when_congested()
+			}
 
-				// if bridge has reported congestion, we don't change anything
-				if bridge.is_congested {
-					return T::WeightInfo::on_initialize_when_congested()
-				}
+			// if bridge has reported congestion, we don't change anything
+			let mut bridge = Self::bridge();
+			if bridge.is_congested {
+				return T::WeightInfo::on_initialize_when_congested()
+			}
 
-				// if fee factor is already minimal, we don't change anything
-				if bridge.delivery_fee_factor == FixedU128::one() {
-					return T::WeightInfo::on_initialize_when_congested()
-				}
+			// if fee factor is already minimal, we don't change anything
+			if bridge.delivery_fee_factor == MINIMAL_DELIVERY_FEE_FACTOR {
+				return T::WeightInfo::on_initialize_when_congested()
+			}
 
-				let previous_factor = bridge.delivery_fee_factor;
-				bridge.delivery_fee_factor =
-					FixedU128::one().max(bridge.delivery_fee_factor / EXPONENTIAL_FEE_BASE);
-				log::info!(
-					target: LOG_TARGET,
-					"Bridge queue is uncongested. Decreased fee factor from {} to {}",
-					previous_factor,
-					bridge.delivery_fee_factor,
-				);
+			let previous_factor = bridge.delivery_fee_factor;
+			bridge.delivery_fee_factor =
+				MINIMAL_DELIVERY_FEE_FACTOR.max(bridge.delivery_fee_factor / EXPONENTIAL_FEE_BASE);
+			log::info!(
+				target: LOG_TARGET,
+				"Bridge queue is uncongested. Decreased fee factor from {} to {}",
+				previous_factor,
+				bridge.delivery_fee_factor,
+			);
 
-				T::WeightInfo::on_initialize_when_non_congested()
-			})
+			Bridge::<T, I>::put(bridge);
+			T::WeightInfo::on_initialize_when_non_congested()
 		}
 	}
 
@@ -353,6 +355,7 @@ mod tests {
 	use mock::*;
 
 	use frame_support::traits::Hooks;
+	use sp_runtime::traits::One;
 
 	fn congested_bridge(delivery_fee_factor: FixedU128) -> BridgeState {
 		BridgeState { is_congested: true, delivery_fee_factor }
@@ -365,7 +368,10 @@ mod tests {
 	#[test]
 	fn initial_fee_factor_is_one() {
 		run_test(|| {
-			assert_eq!(Bridge::<TestRuntime, ()>::get(), uncongested_bridge(FixedU128::one()),);
+			assert_eq!(
+				Bridge::<TestRuntime, ()>::get(),
+				uncongested_bridge(MINIMAL_DELIVERY_FEE_FACTOR),
+			);
 		})
 	}
 
@@ -400,13 +406,16 @@ mod tests {
 			Bridge::<TestRuntime, ()>::put(uncongested_bridge(FixedU128::from_rational(125, 100)));
 
 			// it shold eventually decreased to one
-			while XcmBridgeHubRouter::bridge().delivery_fee_factor > FixedU128::one() {
+			while XcmBridgeHubRouter::bridge().delivery_fee_factor > MINIMAL_DELIVERY_FEE_FACTOR {
 				XcmBridgeHubRouter::on_initialize(One::one());
 			}
 
 			// verify that it doesn't decreases anymore
 			XcmBridgeHubRouter::on_initialize(One::one());
-			assert_eq!(XcmBridgeHubRouter::bridge(), uncongested_bridge(FixedU128::one()));
+			assert_eq!(
+				XcmBridgeHubRouter::bridge(),
+				uncongested_bridge(MINIMAL_DELIVERY_FEE_FACTOR)
+			);
 		})
 	}
 
@@ -518,7 +527,7 @@ mod tests {
 	#[test]
 	fn sent_message_increases_factor_if_bridge_has_reported_congestion() {
 		run_test(|| {
-			Bridge::<TestRuntime, ()>::put(congested_bridge(FixedU128::one()));
+			Bridge::<TestRuntime, ()>::put(congested_bridge(MINIMAL_DELIVERY_FEE_FACTOR));
 
 			let old_bridge = XcmBridgeHubRouter::bridge();
 			assert_eq!(

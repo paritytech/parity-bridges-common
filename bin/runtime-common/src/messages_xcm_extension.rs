@@ -148,9 +148,9 @@ pub trait XcmBlobHauler {
 	/// Returns lane used by this hauler.
 	type SenderAndLane: Get<SenderAndLane>;
 
-	/// Actual XCM message sender (`HRMP` or `UMP`) to the sending chain
+	/// Actual XCM message sender (`HRMP` or `UMP`) to the source chain
 	/// location (`Self::SenderAndLane::get().location`).
-	type ToSendingChainSender: SendXcm;
+	type ToSourceChainSender: SendXcm;
 	/// An XCM message that is sent to the sending chain when the bridge queue becomes congested.
 	type CongestedMessage: Get<Xcm<()>>;
 	/// An XCM message that is sent to the sending chain when the bridge queue becomes not
@@ -247,8 +247,7 @@ impl<H: XcmBlobHauler> LocalXcmQueueManager<H> {
 		sender_and_lane: &SenderAndLane,
 		enqueued_messages: MessageNonce,
 	) {
-		// if we have alsender_and_laneready sent the congestion signal, we don't want to do
-		// anything
+		// if we have already sent the congestion signal, we don't want to do anything
 		if Self::is_congested_signal_sent(sender_and_lane.lane) {
 			return
 		}
@@ -320,7 +319,7 @@ impl<H: XcmBlobHauler> LocalXcmQueueManager<H> {
 
 	/// Send congested signal to the `sending_chain_location`.
 	fn send_congested_signal(sender_and_lane: &SenderAndLane) -> Result<(), SendError> {
-		send_xcm::<H::ToSendingChainSender>(sender_and_lane.location, H::CongestedMessage::get())?;
+		send_xcm::<H::ToSourceChainSender>(sender_and_lane.location, H::CongestedMessage::get())?;
 		OutboundLanesCongestedSignals::<H::Runtime, H::MessagesInstance>::insert(
 			sender_and_lane.lane,
 			true,
@@ -330,10 +329,7 @@ impl<H: XcmBlobHauler> LocalXcmQueueManager<H> {
 
 	/// Send `uncongested` signal to the `sending_chain_location`.
 	fn send_uncongested_signal(sender_and_lane: &SenderAndLane) -> Result<(), SendError> {
-		send_xcm::<H::ToSendingChainSender>(
-			sender_and_lane.location,
-			H::UncongestedMessage::get(),
-		)?;
+		send_xcm::<H::ToSourceChainSender>(sender_and_lane.location, H::UncongestedMessage::get())?;
 		OutboundLanesCongestedSignals::<H::Runtime, H::MessagesInstance>::remove(
 			sender_and_lane.lane,
 		);
@@ -390,7 +386,7 @@ mod tests {
 		type MessagesInstance = ();
 		type SenderAndLane = TestSenderAndLane;
 
-		type ToSendingChainSender = DummySendXcm;
+		type ToSourceChainSender = DummySendXcm;
 		type CongestedMessage = DummyXcmMessage;
 		type UncongestedMessage = DummyXcmMessage;
 
