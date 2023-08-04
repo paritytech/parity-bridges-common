@@ -930,9 +930,10 @@ mod tests {
 			inbound_unrewarded_relayers_state, message, message_payload, run_test,
 			unrewarded_relayer, AccountId, DbWeight, RuntimeEvent as TestEvent, RuntimeOrigin,
 			TestDeliveryConfirmationPayments, TestDeliveryPayments, TestMessageDispatch,
-			TestMessagesDeliveryProof, TestMessagesProof, TestRelayer, TestRuntime, TestWeightInfo,
-			MAX_OUTBOUND_PAYLOAD_SIZE, PAYLOAD_REJECTED_BY_TARGET_CHAIN, REGULAR_PAYLOAD,
-			TEST_LANE_ID, TEST_LANE_ID_2, TEST_LANE_ID_3, TEST_RELAYER_A, TEST_RELAYER_B,
+			TestMessagesDeliveryProof, TestMessagesProof, TestOnMessagesDelivered, TestRelayer,
+			TestRuntime, TestWeightInfo, MAX_OUTBOUND_PAYLOAD_SIZE,
+			PAYLOAD_REJECTED_BY_TARGET_CHAIN, REGULAR_PAYLOAD, TEST_LANE_ID, TEST_LANE_ID_2,
+			TEST_LANE_ID_3, TEST_RELAYER_A, TEST_RELAYER_B,
 		},
 		outbound_lane::ReceivalConfirmationError,
 	};
@@ -1403,6 +1404,7 @@ mod tests {
 			);
 			assert!(TestDeliveryConfirmationPayments::is_reward_paid(TEST_RELAYER_A, 1));
 			assert!(!TestDeliveryConfirmationPayments::is_reward_paid(TEST_RELAYER_B, 1));
+			assert_eq!(TestOnMessagesDelivered::call_arguments(), Some((TEST_LANE_ID, 1)));
 
 			// this reports delivery of both message 1 and message 2 => reward is paid only to
 			// TEST_RELAYER_B
@@ -1445,6 +1447,7 @@ mod tests {
 			);
 			assert!(!TestDeliveryConfirmationPayments::is_reward_paid(TEST_RELAYER_A, 1));
 			assert!(TestDeliveryConfirmationPayments::is_reward_paid(TEST_RELAYER_B, 1));
+			assert_eq!(TestOnMessagesDelivered::call_arguments(), Some((TEST_LANE_ID, 0)));
 		});
 	}
 
