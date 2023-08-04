@@ -20,20 +20,20 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
 use bp_messages::{
-    ChainWithMessages, InboundMessageDetails, LaneId, MessageNonce, MessagePayload,
-    OutboundMessageDetails,
+	ChainWithMessages, InboundMessageDetails, LaneId, MessageNonce, MessagePayload,
+	OutboundMessageDetails,
 };
 use bp_runtime::{decl_bridge_runtime_apis, Chain, ChainId, Parachain};
 use frame_support::{
-    dispatch::DispatchClass,
-    weights::{constants::WEIGHT_REF_TIME_PER_SECOND, IdentityFee, Weight},
-    RuntimeDebug, StateVersion,
+	dispatch::DispatchClass,
+	weights::{constants::WEIGHT_REF_TIME_PER_SECOND, IdentityFee, Weight},
+	RuntimeDebug, StateVersion,
 };
 use frame_system::limits;
 use sp_core::Hasher as HasherT;
 use sp_runtime::{
-    traits::{BlakeTwo256, IdentifyAccount, Verify},
-    MultiSignature, MultiSigner, Perbill,
+	traits::{BlakeTwo256, IdentifyAccount, Verify},
+	MultiSignature, MultiSigner, Perbill,
 };
 use sp_std::vec::Vec;
 
@@ -58,10 +58,8 @@ pub const TX_EXTRA_BYTES: u32 = 104;
 /// This represents two seconds of compute assuming a target block time of six seconds.
 ///
 /// Max PoV size is set to `5Mb` as all Cumulus-based parachains do.
-pub const MAXIMUM_BLOCK_WEIGHT: Weight = Weight::from_parts(
-    WEIGHT_REF_TIME_PER_SECOND.saturating_mul(2),
-    5 * 1024 * 1024,
-);
+pub const MAXIMUM_BLOCK_WEIGHT: Weight =
+	Weight::from_parts(WEIGHT_REF_TIME_PER_SECOND.saturating_mul(2), 5 * 1024 * 1024);
 
 /// Represents the portion of a block that will be used by Normal extrinsics.
 pub const NORMAL_DISPATCH_RATIO: Perbill = Perbill::from_percent(75);
@@ -111,43 +109,43 @@ pub type WeightToFee = IdentityFee<Balance>;
 pub struct OwnershipParachain;
 
 impl Chain for OwnershipParachain {
-    const ID: ChainId = *b"rlpa";
+	const ID: ChainId = *b"ownp";
 
-    type BlockNumber = BlockNumber;
-    type Hash = Hash;
-    type Hasher = Hasher;
-    type Header = Header;
+	type BlockNumber = BlockNumber;
+	type Hash = Hash;
+	type Hasher = Hasher;
+	type Header = Header;
 
-    type AccountId = AccountId;
-    type Balance = Balance;
-    type Nonce = Nonce;
-    type Signature = Signature;
+	type AccountId = AccountId;
+	type Balance = Balance;
+	type Nonce = Nonce;
+	type Signature = Signature;
 
-    const STATE_VERSION: StateVersion = StateVersion::V0;
+	const STATE_VERSION: StateVersion = StateVersion::V0;
 
-    fn max_extrinsic_size() -> u32 {
-        *BlockLength::get().max.get(DispatchClass::Normal)
-    }
+	fn max_extrinsic_size() -> u32 {
+		*BlockLength::get().max.get(DispatchClass::Normal)
+	}
 
-    fn max_extrinsic_weight() -> Weight {
-        BlockWeights::get()
-            .get(DispatchClass::Normal)
-            .max_extrinsic
-            .unwrap_or(Weight::MAX)
-    }
+	fn max_extrinsic_weight() -> Weight {
+		BlockWeights::get()
+			.get(DispatchClass::Normal)
+			.max_extrinsic
+			.unwrap_or(Weight::MAX)
+	}
 }
 
 impl Parachain for OwnershipParachain {
-    const PARACHAIN_ID: u32 = OWNERSHIP_PARACHAIN_ID;
+	const PARACHAIN_ID: u32 = OWNERSHIP_PARACHAIN_ID;
 }
 
 impl ChainWithMessages for OwnershipParachain {
-    const WITH_CHAIN_MESSAGES_PALLET_NAME: &'static str =
-        WITH_OWNERSHIP_PARACHAIN_MESSAGES_PALLET_NAME;
-    const MAX_UNREWARDED_RELAYERS_IN_CONFIRMATION_TX: MessageNonce =
-        MAX_UNREWARDED_RELAYERS_IN_CONFIRMATION_TX;
-    const MAX_UNCONFIRMED_MESSAGES_IN_CONFIRMATION_TX: MessageNonce =
-        MAX_UNCONFIRMED_MESSAGES_IN_CONFIRMATION_TX;
+	const WITH_CHAIN_MESSAGES_PALLET_NAME: &'static str =
+		WITH_OWNERSHIP_PARACHAIN_MESSAGES_PALLET_NAME;
+	const MAX_UNREWARDED_RELAYERS_IN_CONFIRMATION_TX: MessageNonce =
+		MAX_UNREWARDED_RELAYERS_IN_CONFIRMATION_TX;
+	const MAX_UNCONFIRMED_MESSAGES_IN_CONFIRMATION_TX: MessageNonce =
+		MAX_UNCONFIRMED_MESSAGES_IN_CONFIRMATION_TX;
 }
 
 // Technically this is incorrect, because ownership-parachain isn't a bridge hub, but we're
@@ -155,12 +153,12 @@ impl ChainWithMessages for OwnershipParachain {
 pub use bp_bridge_hub_cumulus::SignedExtension;
 
 frame_support::parameter_types! {
-    /// Size limit of the Ownership parachain blocks.
-    pub BlockLength: limits::BlockLength =
-        limits::BlockLength::max_with_normal_ratio(5 * 1024 * 1024, NORMAL_DISPATCH_RATIO);
-    /// Weight limit of the Ownership parachain blocks.
-    pub BlockWeights: limits::BlockWeights =
-        limits::BlockWeights::with_sensible_defaults(MAXIMUM_BLOCK_WEIGHT, NORMAL_DISPATCH_RATIO);
+	/// Size limit of the Ownership parachain blocks.
+	pub BlockLength: limits::BlockLength =
+		limits::BlockLength::max_with_normal_ratio(5 * 1024 * 1024, NORMAL_DISPATCH_RATIO);
+	/// Weight limit of the Ownership parachain blocks.
+	pub BlockWeights: limits::BlockWeights =
+		limits::BlockWeights::with_sensible_defaults(MAXIMUM_BLOCK_WEIGHT, NORMAL_DISPATCH_RATIO);
 }
 
 /// Name of the With-Ownership-Parachain messages pallet instance that is deployed at bridged chains.
