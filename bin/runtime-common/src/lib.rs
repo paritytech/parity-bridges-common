@@ -147,15 +147,15 @@ macro_rules! generate_bridge_reject_obsolete_headers_and_messages {
 }
 
 /// A mapping over `NetworkId`.
-/// Since `NetworkId` doesn't include `Millau`, `Rialto` and `RialtoParachain`, we create some
+/// Since `NetworkId` doesn't include `Evochain`, `Rococo` and `OwnershipParachain`, we create some
 /// synthetic associations between these chains and `NetworkId` chains.
 pub enum CustomNetworkId {
-	/// The Millau network ID, associated with Kusama.
-	Millau,
-	/// The Rialto network ID, associated with Polkadot.
-	Rialto,
-	/// The RialtoParachain network ID, associated with Westend.
-	RialtoParachain,
+	/// The Evochain network ID, associated with Kusama.
+	Evochain,
+	/// The Rococo network ID, associated with Polkadot.
+	Rococo,
+	/// The OwnershipParachain network ID, associated with Westend.
+	OwnershipParachain,
 }
 
 impl TryFrom<bp_runtime::ChainId> for CustomNetworkId {
@@ -164,12 +164,12 @@ impl TryFrom<bp_runtime::ChainId> for CustomNetworkId {
 	fn try_from(chain: bp_runtime::ChainId) -> Result<Self, Self::Error> {
 		// TODO: this code needs to be removed or fixed (use constants) in the
 		// https://github.com/paritytech/parity-bridges-common/issues/2068
-		if chain == *b"mlau" {
-			Ok(Self::Millau)
-		} else if chain == *b"rlto" {
-			Ok(Self::Rialto)
-		} else if chain == *b"rlpa" {
-			Ok(Self::RialtoParachain)
+		if chain == *b"evol" {
+			Ok(Self::Evochain)
+		} else if chain == *b"roco" {
+			Ok(Self::Rococo)
+		} else if chain == *b"ownp" {
+			Ok(Self::OwnershipParachain)
 		} else {
 			Err(())
 		}
@@ -180,9 +180,9 @@ impl CustomNetworkId {
 	/// Converts self to XCM' network id.
 	pub const fn as_network_id(&self) -> NetworkId {
 		match *self {
-			CustomNetworkId::Millau => NetworkId::Kusama,
-			CustomNetworkId::Rialto => NetworkId::Polkadot,
-			CustomNetworkId::RialtoParachain => NetworkId::Westend,
+			CustomNetworkId::Evochain => NetworkId::Kusama,
+			CustomNetworkId::Rococo => NetworkId::Polkadot,
+			CustomNetworkId::OwnershipParachain => NetworkId::Westend,
 		}
 	}
 }
@@ -218,7 +218,7 @@ mod tests {
 	impl BridgeRuntimeFilterCall<MockCall> for FirstFilterCall {
 		fn validate(call: &MockCall) -> TransactionValidity {
 			if call.data <= 1 {
-				return InvalidTransaction::Custom(1).into()
+				return InvalidTransaction::Custom(1).into();
 			}
 
 			Ok(ValidTransaction { priority: 1, ..Default::default() })
@@ -229,7 +229,7 @@ mod tests {
 	impl BridgeRuntimeFilterCall<MockCall> for SecondFilterCall {
 		fn validate(call: &MockCall) -> TransactionValidity {
 			if call.data <= 2 {
-				return InvalidTransaction::Custom(2).into()
+				return InvalidTransaction::Custom(2).into();
 			}
 
 			Ok(ValidTransaction { priority: 2, ..Default::default() })
