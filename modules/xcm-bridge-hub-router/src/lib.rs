@@ -22,6 +22,11 @@
 //! All other bridge hub queues offer some backpressure mechanisms. So if at least one
 //! of all queues is congested, it will eventually lead to the growth of the queue at
 //! this chain.
+//!
+//! **A note on terminology**: when we mention the bridge hub here, we mean the chain that
+//! has the messages pallet deployed (`pallet-bridge-grandpa`, `pallet-bridge-messages`,
+//! `pallet-xcm-bridge-hub`, ...). It may be the system bridge hub parachain or any other
+//! chain.
 
 #![cfg_attr(not(feature = "std"), no_std)]
 
@@ -204,7 +209,7 @@ pub mod pallet {
 
 				log::info!(
 					target: LOG_TARGET,
-					"Bridge queue is congested. Increased fee factor from {} to {}",
+					"Bridge channel is congested. Increased fee factor from {} to {}",
 					previous_factor,
 					bridge.delivery_fee_factor,
 				);
@@ -265,7 +270,8 @@ impl<T: Config<I>, I: 'static> ExporterFor for Pallet<T, I> {
 				invalid_asset => {
 					log::error!(
 						target: LOG_TARGET,
-						"Router with bridged_network_id {:?} is configured for `T::FeeAsset` {:?} which is not compatible with {:?} for bridge_hub_location: {:?} for bridging to {:?}/{:?}!",
+						"Router with bridged_network_id {:?} is configured for `T::FeeAsset` {:?} which is not \
+						compatible with {:?} for bridge_hub_location: {:?} for bridging to {:?}/{:?}!",
 						T::BridgedNetworkId::get(),
 						T::FeeAsset::get(),
 						invalid_asset,
