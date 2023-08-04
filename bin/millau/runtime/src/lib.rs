@@ -465,6 +465,7 @@ impl pallet_bridge_messages::Config<WithRialtoMessagesInstance> for Runtime {
 		WithRialtoMessagesInstance,
 		frame_support::traits::ConstU64<100_000>,
 	>;
+	type OnMessagesDelivered = ();
 
 	type SourceHeaderChain = crate::rialto_messages::RialtoAsSourceHeaderChain;
 	type MessageDispatch = crate::rialto_messages::FromRialtoMessageDispatch;
@@ -496,6 +497,7 @@ impl pallet_bridge_messages::Config<WithRialtoParachainMessagesInstance> for Run
 		WithRialtoParachainMessagesInstance,
 		frame_support::traits::ConstU64<100_000>,
 	>;
+	type OnMessagesDelivered = ();
 
 	type SourceHeaderChain = crate::rialto_parachain_messages::RialtoParachainAsSourceHeaderChain;
 	type MessageDispatch = crate::rialto_parachain_messages::FromRialtoParachainMessageDispatch;
@@ -558,6 +560,7 @@ impl pallet_xcm_bridge_hub_router::Config for Runtime {
 	type BridgedNetworkId = xcm_config::RialtoNetwork;
 	type Bridges = NetworkExportTable<BridgeTable>;
 
+	type BridgeHubOrigin = frame_system::EnsureRoot<AccountId>;
 	type ToBridgeHubSender = xcm_config::XcmRouter;
 	type WithBridgeHubChannel = xcm_config::EmulatedSiblingXcmpChannel;
 
