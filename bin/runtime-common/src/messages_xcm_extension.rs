@@ -157,14 +157,14 @@ pub trait XcmBlobHauler {
 	/// congested.
 	type UncongestedMessage: Get<Xcm<()>>;
 
-	/// Runtime message sender origin, which is used by [`Self::MessageSender`].
+	/// Runtime message sender origin, which is used by the associated messages pallet.
 	type MessageSenderOrigin;
 	/// Runtime origin for our (i.e. this bridge hub) location within the Consensus Universe.
 	fn message_sender_origin() -> Self::MessageSenderOrigin;
 }
 
-/// XCM bridge adapter which connects [`XcmBlobHauler`] with [`XcmBlobHauler::MessageSender`] and
-/// makes sure that XCM blob is sent to the [`pallet_bridge_messages`] queue to be relayed.
+/// XCM bridge adapter which connects [`XcmBlobHauler`] with [`pallet_bridge_messages`] and
+/// makes sure that XCM blob is sent to the outbound lane to be relayed.
 ///
 /// It needs to be used at the source bridge hub.
 pub struct XcmBlobHaulerAdapter<XcmBlobHauler>(sp_std::marker::PhantomData<XcmBlobHauler>);
