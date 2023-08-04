@@ -80,7 +80,7 @@ benchmarks_instance_pallet! {
 
 		let dest = MultiLocation::new(
 			T::UniversalLocation::get().len() as u8,
-			X1(GlobalConsensus(T::BridgedNetworkId::get())),
+			X1(GlobalConsensus(T::BridgedNetworkId::get().unwrap())),
 		);
 		let xcm = sp_std::vec![].into();
 	}: {
