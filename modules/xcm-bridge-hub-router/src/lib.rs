@@ -144,7 +144,7 @@ pub mod pallet {
 	impl<T: Config<I>, I: 'static> Pallet<T, I> {
 		/// Notification about congested bridge queue.
 		#[pallet::call_index(0)]
-		#[pallet::weight(T::WeighInfo::report_bridge_status())]
+		#[pallet::weight(T::WeightInfo::report_bridge_status())]
 		pub fn report_bridge_status(
 			origin: OriginFor<T>,
 			// this argument is not currently used, but to ease future migration, we'll keep it
