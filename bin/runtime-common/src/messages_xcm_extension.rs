@@ -340,3 +340,160 @@ impl<H: XcmBlobHauler> LocalXcmQueueManager<H> {
 		Ok(())
 	}
 }
+
+#[cfg(test)]
+mod tests {
+	use super::*;
+	use crate::mock::*;
+
+	use bp_messages::OutboundLaneData;
+	use frame_support::parameter_types;
+	use pallet_bridge_messages::OutboundLanes;
+
+	parameter_types! {
+		pub TestSenderAndLane: SenderAndLane = SenderAndLane {
+			location: MultiLocation::new(1, X1(Parachain(1000))),
+			lane: TEST_LANE_ID,
+		};
+		pub DummyXcmMessage: Xcm<()> = Xcm::new();
+	}
+
+	struct DummySendXcm;
+
+	impl DummySendXcm {
+		fn messages_sent() -> u32 {
+			frame_support::storage::unhashed::get(b"DummySendXcm").unwrap_or(0)
+		}
+	}
+
+	impl SendXcm for DummySendXcm {
+		type Ticket = ();
+
+		fn validate(
+			_destination: &mut Option<MultiLocation>,
+			_message: &mut Option<Xcm<()>>,
+		) -> SendResult<Self::Ticket> {
+			Ok(((), Default::default()))
+		}
+
+		fn deliver(_ticket: Self::Ticket) -> Result<XcmHash, SendError> {
+			let messages_sent: u32 = Self::messages_sent();
+			frame_support::storage::unhashed::put(b"DummySendXcm", &(messages_sent + 1));
+			Ok(XcmHash::default())
+		}
+	}
+
+	struct TestBlobHauler;
+
+	impl XcmBlobHauler for TestBlobHauler {
+		type Runtime = TestRuntime;
+		type MessagesInstance = ();
+		type SenderAndLane = TestSenderAndLane;
+
+		type ToSendingChainSender = DummySendXcm;
+		type CongestedMessage = DummyXcmMessage;
+		type UncongestedMessage = DummyXcmMessage;
+
+		type MessageSenderOrigin = RuntimeOrigin;
+
+		fn message_sender_origin() -> Self::MessageSenderOrigin {
+			RuntimeOrigin::root()
+		}
+	}
+
+	type TestBlobHaulerAdapter = XcmBlobHaulerAdapter<TestBlobHauler>;
+
+	fn fill_up_lane_to_congestion() {
+		OutboundLanes::<TestRuntime, ()>::insert(
+			TEST_LANE_ID,
+			OutboundLaneData {
+				oldest_unpruned_nonce: 0,
+				latest_received_nonce: 0,
+				latest_generated_nonce: OUTBOUND_LANE_CONGESTED_THRESHOLD,
+			},
+		);
+	}
+
+	#[test]
+	fn congested_signal_is_not_sent_twice() {
+		run_test(|| {
+			fill_up_lane_to_congestion();
+
+			// next sent message leads to congested signal
+			TestBlobHaulerAdapter::haul_blob(vec![42]).unwrap();
+			assert_eq!(DummySendXcm::messages_sent(), 1);
+
+			// next sent message => we don't sent another congested signal
+			TestBlobHaulerAdapter::haul_blob(vec![42]).unwrap();
+			assert_eq!(DummySendXcm::messages_sent(), 1);
+		});
+	}
+
+	#[test]
+	fn congested_signal_is_not_sent_when_outbound_lane_is_not_congested() {
+		run_test(|| {
+			TestBlobHaulerAdapter::haul_blob(vec![42]).unwrap();
+			assert_eq!(DummySendXcm::messages_sent(), 0);
+		});
+	}
+
+	#[test]
+	fn congested_signal_is_sent_when_outbound_lane_is_congested() {
+		run_test(|| {
+			fill_up_lane_to_congestion();
+
+			// next sent message leads to congested signal
+			TestBlobHaulerAdapter::haul_blob(vec![42]).unwrap();
+			assert_eq!(DummySendXcm::messages_sent(), 1);
+			assert!(LocalXcmQueueManager::<TestBlobHauler>::is_congested_signal_sent(TEST_LANE_ID));
+		});
+	}
+
+	#[test]
+	fn uncongested_signal_is_not_sent_when_messages_are_delivered_at_other_lane() {
+		run_test(|| {
+			LocalXcmQueueManager::<TestBlobHauler>::send_congested_signal(&TestSenderAndLane::get()).unwrap();
+			assert_eq!(DummySendXcm::messages_sent(), 1);
+
+			// when we receive a delivery report for other lane, we don't send an uncongested signal
+			TestBlobHaulerAdapter::on_messages_delivered(LaneId([42, 42, 42, 42]), 0);
+			assert_eq!(DummySendXcm::messages_sent(), 1);
+		});
+	}
+
+	#[test]
+	fn uncongested_signal_is_not_sent_when_we_havent_send_congested_signal_before() {
+		run_test(|| {
+			TestBlobHaulerAdapter::on_messages_delivered(TEST_LANE_ID, 0);
+			assert_eq!(DummySendXcm::messages_sent(), 0);
+		});
+	}
+
+	#[test]
+	fn uncongested_signal_is_not_sent_if_outbound_lane_is_still_congested() {
+		run_test(|| {
+			LocalXcmQueueManager::<TestBlobHauler>::send_congested_signal(&TestSenderAndLane::get()).unwrap();
+			assert_eq!(DummySendXcm::messages_sent(), 1);
+
+			TestBlobHaulerAdapter::on_messages_delivered(
+				TEST_LANE_ID,
+				OUTBOUND_LANE_UNCONGESTED_THRESHOLD + 1,
+			);
+			assert_eq!(DummySendXcm::messages_sent(), 1);
+		});
+	}
+
+	#[test]
+	fn uncongested_signal_is_sent_if_outbound_lane_is_uncongested() {
+		run_test(|| {
+			LocalXcmQueueManager::<TestBlobHauler>::send_congested_signal(&TestSenderAndLane::get()).unwrap();
+			assert_eq!(DummySendXcm::messages_sent(), 1);
+
+			TestBlobHaulerAdapter::on_messages_delivered(
+				TEST_LANE_ID,
+				OUTBOUND_LANE_UNCONGESTED_THRESHOLD,
+			);
+			assert_eq!(DummySendXcm::messages_sent(), 2);
+		});
+	}
+}
