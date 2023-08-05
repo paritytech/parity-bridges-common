@@ -15,4 +15,4 @@ bp-rococo = { path = "../../primitives/chain-rococo" }
 
 # Substrate Dependencies
 
-sp-core = { git = "https://github.com/paritytech/substrate", branch = "master" }
+sp-core = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v1.0.0" }

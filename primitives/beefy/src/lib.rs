@@ -26,7 +26,8 @@ pub use pallet_mmr::{
 	verify_leaves_proof as verify_mmr_leaves_proof,
 };
 pub use sp_consensus_beefy::{
-	ecdsa_crypto::{AuthorityId as EcdsaValidatorId, AuthoritySignature as EcdsaValidatorSignature},
+	// ecdsa_crypto
+	crypto::{AuthorityId as EcdsaValidatorId, AuthoritySignature as EcdsaValidatorSignature},
 	known_payloads::MMR_ROOT_ID as MMR_ROOT_PAYLOAD_ID,
 	mmr::{BeefyAuthoritySet, MmrLeafVersion},
 	BeefyAuthorityId, Commitment, Payload as BeefyPayload, SignedCommitment, ValidatorSet,
