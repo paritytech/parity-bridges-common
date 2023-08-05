@@ -128,7 +128,6 @@ pub fn new_partial(
 
 	let (grandpa_block_import, grandpa_link) = sc_consensus_grandpa::block_import(
 		client.clone(),
-		512,
 		&client,
 		select_chain.clone(),
 		telemetry.as_ref().map(|x| x.handle()),
@@ -436,7 +435,7 @@ pub fn new_full(config: Configuration) -> Result<TaskManager, ServiceError> {
 	let grandpa_config = sc_consensus_grandpa::Config {
 		// FIXME #1578 make this available through chainspec
 		gossip_duration: Duration::from_millis(333),
-		justification_generation_period: 512,
+		justification_period: 512,
 		name: Some(name),
 		observer_enabled: false,
 		keystore,
