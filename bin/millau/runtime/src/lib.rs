@@ -44,7 +44,7 @@ use pallet_transaction_payment::{FeeDetails, Multiplier, RuntimeDispatchInfo};
 use sp_api::impl_runtime_apis;
 use sp_consensus_aura::sr25519::AuthorityId as AuraId;
 use sp_consensus_beefy::{crypto::AuthorityId as BeefyId, mmr::MmrLeafVersion, ValidatorSet};
-use sp_core::{ConstBool, OpaqueMetadata};
+use sp_core::{ConstBool, ConstU128, OpaqueMetadata};
 use sp_runtime::{
 	create_runtime_str, generic, impl_opaque_keys,
 	traits::{Block as BlockT, IdentityLookup, Keccak256, NumberFor, OpaqueKeys},
@@ -523,6 +523,23 @@ impl pallet_utility::Config for Runtime {
 	type WeightInfo = ();
 }
 
+// this config is totally incorrect - the pallet is not actually used at this runtime. We need
+// it only to be able to run benchmarks and make required traits (and default weights for tests).
+impl pallet_xcm_bridge_hub_router::Config for Runtime {
+	type WeightInfo = ();
+
+	type UniversalLocation = xcm_config::UniversalLocation;
+	type SiblingBridgeHubLocation = xcm_config::TokenLocation;
+	type BridgedNetworkId = xcm_config::RialtoNetwork;
+
+	type ToBridgeHubSender = xcm_config::XcmRouter;
+	type WithBridgeHubChannel = xcm_config::EmulatedSiblingXcmpChannel;
+
+	type BaseFee = ConstU128<1_000_000_000>;
+	type ByteFee = ConstU128<1_000>;
+	type FeeAsset = xcm_config::TokenAssetId;
+}
+
 construct_runtime!(
 	pub enum Runtime {
 		System: frame_system::{Pallet, Call, Config<T>, Storage, Event<T>},
@@ -561,6 +578,9 @@ construct_runtime!(
 
 		// Pallet for sending XCM.
 		XcmPallet: pallet_xcm::{Pallet, Call, Storage, Event<T>, Origin, Config<T>} = 99,
+
+		// Pallets that are not actually used here (yet?), but we need to run benchmarks on it.
+		XcmBridgeHubRouter: pallet_xcm_bridge_hub_router::{Pallet, Storage} = 200,
 	}
 );
 
@@ -633,6 +653,7 @@ mod benches {
 		[pallet_bridge_grandpa, BridgeRialtoGrandpa]
 		[pallet_bridge_parachains, ParachainsBench::<Runtime, WithRialtoParachainsInstance>]
 		[pallet_bridge_relayers, RelayersBench::<Runtime>]
+		[pallet_xcm_bridge_hub_router, XcmBridgeHubRouterBench::<Runtime>]
 	);
 }
 
@@ -959,6 +980,7 @@ impl_runtime_apis! {
 			use pallet_bridge_messages::benchmarking::Pallet as MessagesBench;
 			use pallet_bridge_parachains::benchmarking::Pallet as ParachainsBench;
 			use pallet_bridge_relayers::benchmarking::Pallet as RelayersBench;
+			use pallet_xcm_bridge_hub_router::benchmarking::Pallet as XcmBridgeHubRouterBench;
 
 			let mut list = Vec::<BenchmarkList>::new();
 			list_benchmarks!(list, extra);
@@ -1009,6 +1031,10 @@ impl_runtime_apis! {
 			use pallet_bridge_relayers::benchmarking::{
 				Pallet as RelayersBench,
 				Config as RelayersConfig,
+			};
+			use pallet_xcm_bridge_hub_router::benchmarking::{
+				Pallet as XcmBridgeHubRouterBench,
+				Config as XcmBridgeHubRouterConfig,
 			};
 
 			impl MessagesConfig<WithRialtoParachainMessagesInstance> for Runtime {
@@ -1115,6 +1141,12 @@ impl_runtime_apis! {
 				fn deposit_account(account: AccountId, balance: Balance) {
 					use frame_support::traits::fungible::Mutate;
 					Balances::mint_into(&account, balance.saturating_add(ExistentialDeposit::get())).unwrap();
+				}
+			}
+
+			impl XcmBridgeHubRouterConfig<()> for Runtime {
+				fn make_congested() {
+					xcm_config::EmulatedSiblingXcmpChannel::make_congested()
 				}
 			}
 
