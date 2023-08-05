@@ -38,6 +38,8 @@ members = [
 	"primitives/relayers",
 	"primitives/runtime",
 	"primitives/test-utils",
+	"primitives/chain-datagen-parachain",
+	"primitives/chain-datagen",
 	"primitives/xcm-bridge-hub",
 	"relays/bin-substrate",
 	"relays/client-bridge-hub-kusama",
