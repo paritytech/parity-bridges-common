@@ -83,6 +83,7 @@ substrate-wasm-builder = { git = "https://github.com/paritytech/substrate", bran
 default = ["std"]
 std = [
 	"sp-consensus-beefy/std",
+	"bp-header-chain/std",
 	"bp-messages/std",
 	"bp-millau/std",
 	"bp-parachains/std",
