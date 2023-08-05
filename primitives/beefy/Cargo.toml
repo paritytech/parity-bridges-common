@@ -37,5 +37,6 @@ std = [
 	"serde/std",
 	"sp-consensus-beefy/std",
 	"sp-runtime/std",
+	"binary-merkle-tree/std",
 	"sp-std/std"
 ]

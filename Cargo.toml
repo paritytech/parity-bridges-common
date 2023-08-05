@@ -39,6 +39,8 @@ members = [
 	"primitives/relayers",
 	"primitives/runtime",
 	"primitives/test-utils",
+	"primitives/chain-datagen-parachain",
+	"primitives/chain-datagen",
 	"primitives/xcm-bridge-hub",
 	"primitives/xcm-bridge-hub-router",
 	"relays/bin-substrate",
