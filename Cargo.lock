@@ -6558,6 +6558,44 @@ dependencies = [
 ]
 
 [[package]]
+name = "node-template-runtime"
+version = "4.0.0-dev"
+source = "git+https://github.com/freeverseio/laos-evolution-node.git?branch=dev#57a4bf233c5d6df2857a6b438db8c0110d19c2f2"
+dependencies = [
+ "fp-account",
+ "frame-benchmarking",
+ "frame-executive",
+ "frame-support",
+ "frame-system",
+ "frame-system-benchmarking",
+ "frame-system-rpc-runtime-api",
+ "frame-try-runtime",
+ "pallet-aura",
+ "pallet-balances",
+ "pallet-grandpa",
+ "pallet-sudo",
+ "pallet-template",
+ "pallet-timestamp",
+ "pallet-transaction-payment",
+ "pallet-transaction-payment-rpc-runtime-api",
+ "parity-scale-codec",
+ "scale-info",
+ "sp-api",
+ "sp-block-builder",
+ "sp-consensus-aura",
+ "sp-consensus-grandpa",
+ "sp-core",
+ "sp-inherents",
+ "sp-offchain",
+ "sp-runtime",
+ "sp-session",
+ "sp-std 8.0.0 (git+https://github.com/paritytech/substrate?branch=polkadot-v1.0.0)",
+ "sp-transaction-pool",
+ "sp-version",
+ "substrate-wasm-builder",
+]
+
+[[package]]
 name = "nodrop"
 version = "0.1.14"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -7758,6 +7796,18 @@ dependencies = [
  "sp-io",
  "sp-runtime",
  "sp-std 8.0.0 (git+https://github.com/paritytech/substrate?branch=polkadot-v1.0.0)",
+]
+
+[[package]]
+name = "pallet-template"
+version = "4.0.0-dev"
+source = "git+https://github.com/freeverseio/laos-evolution-node.git?branch=dev#57a4bf233c5d6df2857a6b438db8c0110d19c2f2"
+dependencies = [
+ "frame-benchmarking",
+ "frame-support",
+ "frame-system",
+ "parity-scale-codec",
+ "scale-info",
 ]
 
 [[package]]
@@ -10269,6 +10319,22 @@ dependencies = [
 ]
 
 [[package]]
+name = "relay-evochain-client"
+version = "0.1.0"
+dependencies = [
+ "bp-evochain",
+ "frame-support",
+ "frame-system",
+ "node-template-runtime",
+ "pallet-transaction-payment",
+ "parity-scale-codec",
+ "relay-substrate-client",
+ "relay-utils",
+ "sp-core",
+ "sp-runtime",
+]
+
+[[package]]
 name = "relay-kusama-client"
 version = "0.1.0"
 dependencies = [
@@ -10292,6 +10358,26 @@ dependencies = [
  "relay-utils",
  "sp-core",
  "sp-runtime",
+]
+
+[[package]]
+name = "relay-ownership-parachain-client"
+version = "0.1.0"
+dependencies = [
+ "bp-bridge-hub-cumulus",
+ "bp-evochain",
+ "bp-header-chain",
+ "bp-messages",
+ "bp-ownership-parachain",
+ "bp-polkadot-core",
+ "bridge-runtime-common",
+ "parity-scale-codec",
+ "relay-substrate-client",
+ "scale-info",
+ "sp-core",
+ "sp-runtime",
+ "sp-weights",
+ "subxt",
 ]
 
 [[package]]
