@@ -16,7 +16,7 @@
 
 //! Types used to connect to the Westend chain.
 
-use bp_westend::WESTEND_ACCEPTED_GRANDPA_FINALITY_PROOFS_METHOD;
+use bp_westend::WESTEND_SYNCED_HEADERS_GRANDPA_INFO_METHOD;
 use relay_substrate_client::{
 	Chain, ChainWithBalances, ChainWithGrandpa, RelayChain, UnderlyingChainProvider,
 };
@@ -48,8 +48,8 @@ impl Chain for Westend {
 }
 
 impl ChainWithGrandpa for Westend {
-	const ACCEPTED_FINALITY_PROOFS_METHOD: &'static str =
-		WESTEND_ACCEPTED_GRANDPA_FINALITY_PROOFS_METHOD;
+	const SYNCED_HEADERS_GRANDPA_INFO_METHOD: &'static str =
+		WESTEND_SYNCED_HEADERS_GRANDPA_INFO_METHOD;
 }
 
 impl RelayChain for Westend {
