@@ -150,6 +150,12 @@ macro_rules! generate_bridge_reject_obsolete_headers_and_messages {
 /// Since `NetworkId` doesn't include `Evochain`, `Rococo` and `OwnershipParachain`, we create some
 /// synthetic associations between these chains and `NetworkId` chains.
 pub enum CustomNetworkId {
+	/// Millau
+	Millau,
+	/// Rialto
+	Rialto,
+	/// Rialto parachain
+	RialtoParachain,
 	/// The Evochain network ID, associated with Kusama.
 	Evochain,
 	/// The Rococo network ID, associated with Polkadot.
@@ -180,6 +186,9 @@ impl CustomNetworkId {
 	/// Converts self to XCM' network id.
 	pub const fn as_network_id(&self) -> NetworkId {
 		match *self {
+			CustomNetworkId::Millau => NetworkId::Kusama,
+			CustomNetworkId::Rialto => NetworkId::Polkadot,
+			CustomNetworkId::RialtoParachain => NetworkId::Westend,
 			CustomNetworkId::Evochain => NetworkId::Kusama,
 			CustomNetworkId::Rococo => NetworkId::Polkadot,
 			CustomNetworkId::OwnershipParachain => NetworkId::Westend,
