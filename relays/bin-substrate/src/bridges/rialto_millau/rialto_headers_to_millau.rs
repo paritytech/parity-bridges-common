@@ -19,18 +19,21 @@
 use crate::cli::bridge::{CliBridgeBase, MessagesCliBridge, RelayToRelayHeadersCliBridge};
 use substrate_relay_helper::{
 	finality::{DirectSubmitGrandpaFinalityProofCallBuilder, SubstrateFinalitySyncPipeline},
-	finality_base::engine::Grandpa as GrandpaFinalityEngine,
+	finality_base::{engine::Grandpa as GrandpaFinalityEngine, SubstrateFinalityPipeline},
 };
 
 /// Description of Millau -> Rialto finalized headers bridge.
 #[derive(Clone, Debug)]
 pub struct RialtoFinalityToMillau;
 
-impl SubstrateFinalitySyncPipeline for RialtoFinalityToMillau {
+impl SubstrateFinalityPipeline for RialtoFinalityToMillau {
 	type SourceChain = relay_rialto_client::Rialto;
 	type TargetChain = relay_millau_client::Millau;
 
 	type FinalityEngine = GrandpaFinalityEngine<Self::SourceChain>;
+}
+
+impl SubstrateFinalitySyncPipeline for RialtoFinalityToMillau {
 	type SubmitFinalityProofCallBuilder = DirectSubmitGrandpaFinalityProofCallBuilder<
 		Self,
 		millau_runtime::Runtime,

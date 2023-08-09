@@ -18,3 +18,18 @@
 //! finality pipelines.
 
 pub mod engine;
+
+use async_trait::async_trait;
+use relay_substrate_client::{Chain, ChainWithTransactions};
+use std::fmt::Debug;
+
+/// Substrate -> Substrate finality proofs synchronization pipeline.
+#[async_trait]
+pub trait SubstrateFinalityPipeline: 'static + Clone + Debug + Send + Sync {
+	/// Headers of this chain are submitted to the `TargetChain`.
+	type SourceChain: Chain;
+	/// Headers of the `SourceChain` are submitted to this chain.
+	type TargetChain: ChainWithTransactions;
+	/// Finality engine.
+	type FinalityEngine: engine::Engine<Self::SourceChain>;
+}

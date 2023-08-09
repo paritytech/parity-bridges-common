@@ -22,7 +22,8 @@ use async_trait::async_trait;
 use relay_substrate_client::{AccountKeyPairOf, Client};
 use substrate_relay_helper::{
 	finality::SubstrateFinalitySyncPipeline,
-	finality_base::engine::Grandpa as GrandpaFinalityEngine, TransactionParams,
+	finality_base::{engine::Grandpa as GrandpaFinalityEngine, SubstrateFinalityPipeline},
+	TransactionParams,
 };
 
 /// Description of Kusama -> PolkadotBridgeHub finalized headers bridge.
@@ -37,11 +38,15 @@ substrate_relay_helper::generate_submit_finality_proof_call_builder!(
 );
 
 #[async_trait]
-impl SubstrateFinalitySyncPipeline for KusamaFinalityToBridgeHubPolkadot {
+impl SubstrateFinalityPipeline for KusamaFinalityToBridgeHubPolkadot {
 	type SourceChain = relay_kusama_client::Kusama;
 	type TargetChain = relay_bridge_hub_polkadot_client::BridgeHubPolkadot;
 
 	type FinalityEngine = GrandpaFinalityEngine<Self::SourceChain>;
+}
+
+#[async_trait]
+impl SubstrateFinalitySyncPipeline for KusamaFinalityToBridgeHubPolkadot {
 	type SubmitFinalityProofCallBuilder = KusamaFinalityToBridgeHubPolkadotCallBuilder;
 
 	async fn start_relay_guards(

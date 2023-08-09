@@ -21,6 +21,7 @@ use crate::{
 	finality_base::engine::Engine,
 };
 
+use crate::finality_base::SubstrateFinalityPipeline;
 use async_std::sync::{Arc, Mutex};
 use async_trait::async_trait;
 use bp_header_chain::FinalityProof;
@@ -45,10 +46,9 @@ pub type SubstrateFinalityProofsStream<P> =
 	Pin<Box<dyn Stream<Item = SubstrateFinalityProof<P>> + Send>>;
 
 /// Substrate finality proof. Specific to the used `FinalityEngine`.
-pub type SubstrateFinalityProof<P> =
-	<<P as SubstrateFinalitySyncPipeline>::FinalityEngine as Engine<
-		<P as SubstrateFinalitySyncPipeline>::SourceChain,
-	>>::FinalityProof;
+pub type SubstrateFinalityProof<P> = <<P as SubstrateFinalityPipeline>::FinalityEngine as Engine<
+	<P as SubstrateFinalityPipeline>::SourceChain,
+>>::FinalityProof;
 
 /// Substrate node as finality source.
 pub struct SubstrateFinalitySource<P: SubstrateFinalitySyncPipeline, SourceClnt> {
