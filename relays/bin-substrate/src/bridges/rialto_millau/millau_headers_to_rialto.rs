@@ -17,9 +17,9 @@
 //! Millau-to-Rialto headers sync entrypoint.
 
 use crate::cli::bridge::{CliBridgeBase, MessagesCliBridge, RelayToRelayHeadersCliBridge};
-use substrate_relay_helper::finality::{
-	engine::Grandpa as GrandpaFinalityEngine, DirectSubmitGrandpaFinalityProofCallBuilder,
-	SubstrateFinalitySyncPipeline,
+use substrate_relay_helper::{
+	finality::{DirectSubmitGrandpaFinalityProofCallBuilder, SubstrateFinalitySyncPipeline},
+	finality_base::engine::Grandpa as GrandpaFinalityEngine,
 };
 
 /// Description of Millau -> Rialto finalized headers bridge.

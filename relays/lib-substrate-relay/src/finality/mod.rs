@@ -19,13 +19,13 @@
 
 use crate::{
 	finality::{
-		engine::Engine,
 		source::{SubstrateFinalityProof, SubstrateFinalitySource},
 		target::SubstrateFinalityTarget,
 	},
 	TransactionParams,
 };
 
+use crate::finality_base::engine::Engine;
 use async_trait::async_trait;
 use bp_header_chain::justification::GrandpaJustification;
 use finality_relay::FinalitySyncPipeline;
@@ -38,7 +38,6 @@ use relay_utils::metrics::MetricsParams;
 use sp_core::Pair;
 use std::{fmt::Debug, marker::PhantomData};
 
-pub mod engine;
 pub mod initialize;
 pub mod source;
 pub mod target;

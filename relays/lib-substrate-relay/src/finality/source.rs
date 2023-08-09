@@ -16,7 +16,10 @@
 
 //! Default generic implementation of finality source for basic Substrate client.
 
-use crate::finality::{engine::Engine, FinalitySyncPipelineAdapter, SubstrateFinalitySyncPipeline};
+use crate::{
+	finality::{FinalitySyncPipelineAdapter, SubstrateFinalitySyncPipeline},
+	finality_base::engine::Engine,
+};
 
 use async_std::sync::{Arc, Mutex};
 use async_trait::async_trait;
