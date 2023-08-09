@@ -21,6 +21,7 @@ use relay_substrate_client::{
 	Chain, ChainWithBalances, ChainWithGrandpa, RelayChain, UnderlyingChainProvider,
 };
 use sp_core::storage::StorageKey;
+use sp_session::MembershipProof;
 use std::time::Duration;
 
 /// Kusama header id.
@@ -50,6 +51,8 @@ impl Chain for Kusama {
 impl ChainWithGrandpa for Kusama {
 	const SYNCED_HEADERS_GRANDPA_INFO_METHOD: &'static str =
 		KUSAMA_SYNCED_HEADERS_GRANDPA_INFO_METHOD;
+
+	type KeyOwnerProof = MembershipProof;
 }
 
 impl ChainWithBalances for Kusama {

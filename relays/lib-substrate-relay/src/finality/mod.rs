@@ -50,9 +50,7 @@ pub(crate) const RECENT_FINALITY_PROOFS_LIMIT: usize = 4096;
 
 /// Substrate -> Substrate finality proofs synchronization pipeline.
 #[async_trait]
-pub trait SubstrateFinalitySyncPipeline:
-	'static + SubstrateFinalityPipeline + Clone + Debug + Send + Sync
-{
+pub trait SubstrateFinalitySyncPipeline: SubstrateFinalityPipeline {
 	/// How submit finality proof call is built?
 	type SubmitFinalityProofCallBuilder: SubmitFinalityProofCallBuilder<Self>;
 

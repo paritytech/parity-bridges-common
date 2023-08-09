@@ -10261,6 +10261,7 @@ dependencies = [
  "relay-substrate-client",
  "relay-utils",
  "sp-core",
+ "sp-session",
 ]
 
 [[package]]
@@ -10277,6 +10278,7 @@ dependencies = [
  "relay-utils",
  "sp-core",
  "sp-runtime",
+ "sp-session",
 ]
 
 [[package]]
@@ -10287,6 +10289,7 @@ dependencies = [
  "relay-substrate-client",
  "relay-utils",
  "sp-core",
+ "sp-session",
 ]
 
 [[package]]
@@ -10303,6 +10306,7 @@ dependencies = [
  "rialto-runtime",
  "sp-core",
  "sp-runtime",
+ "sp-session",
 ]
 
 [[package]]
@@ -10333,6 +10337,7 @@ dependencies = [
  "relay-substrate-client",
  "relay-utils",
  "sp-core",
+ "sp-session",
 ]
 
 [[package]]
@@ -10410,6 +10415,7 @@ dependencies = [
  "relay-substrate-client",
  "relay-utils",
  "sp-core",
+ "sp-session",
 ]
 
 [[package]]
@@ -10420,6 +10426,7 @@ dependencies = [
  "relay-substrate-client",
  "relay-utils",
  "sp-core",
+ "sp-session",
 ]
 
 [[package]]
@@ -13980,6 +13987,7 @@ dependencies = [
  "pallet-bridge-grandpa",
  "pallet-bridge-messages",
  "pallet-bridge-parachains",
+ "pallet-grandpa",
  "pallet-transaction-payment",
  "parachains-relay",
  "parity-scale-codec",
