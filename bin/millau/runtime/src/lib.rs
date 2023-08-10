@@ -910,11 +910,21 @@ impl_runtime_apis! {
 		fn best_finalized() -> Option<HeaderId<bp_rialto::Hash, bp_rialto::BlockNumber>> {
 			BridgeRialtoGrandpa::best_finalized()
 		}
+
+		fn synced_headers_grandpa_info(
+		) -> Vec<bp_header_chain::HeaderGrandpaInfo<bp_rialto::Header>> {
+			BridgeRialtoGrandpa::synced_headers_grandpa_info()
+		}
 	}
 
 	impl bp_westend::WestendFinalityApi<Block> for Runtime {
 		fn best_finalized() -> Option<HeaderId<bp_westend::Hash, bp_westend::BlockNumber>> {
 			BridgeWestendGrandpa::best_finalized()
+		}
+
+		fn synced_headers_grandpa_info(
+		) -> Vec<bp_header_chain::HeaderGrandpaInfo<bp_westend::Header>> {
+			BridgeWestendGrandpa::synced_headers_grandpa_info()
 		}
 	}
 

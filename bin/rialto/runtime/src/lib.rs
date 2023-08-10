@@ -695,6 +695,11 @@ impl_runtime_apis! {
 		fn best_finalized() -> Option<HeaderId<bp_millau::Hash, bp_millau::BlockNumber>> {
 			BridgeMillauGrandpa::best_finalized()
 		}
+
+		fn synced_headers_grandpa_info(
+		) -> Vec<bp_header_chain::HeaderGrandpaInfo<bp_millau::Header>> {
+			BridgeMillauGrandpa::synced_headers_grandpa_info()
+		}
 	}
 
 	impl sp_transaction_pool::runtime_api::TaggedTransactionQueue<Block> for Runtime {

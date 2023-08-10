@@ -30,7 +30,6 @@ use bp_runtime::messages::MessageDispatchResult;
 use bp_xcm_bridge_hub_router::XcmChannelStatusProvider;
 use codec::{Decode, Encode};
 use frame_support::{dispatch::Weight, traits::Get, CloneNoBound, EqNoBound, PartialEqNoBound};
-use frame_system::Config as SystemConfig;
 use pallet_bridge_messages::{
 	Config as MessagesConfig, OutboundLanesCongestedSignals, Pallet as MessagesPallet,
 	WeightInfoExt as MessagesPalletWeights,
@@ -156,11 +155,6 @@ pub trait XcmBlobHauler {
 	/// An XCM message that is sent to the sending chain when the bridge queue becomes not
 	/// congested.
 	type UncongestedMessage: Get<Xcm<()>>;
-
-	/// Runtime message sender origin, which is used by the associated messages pallet.
-	type MessageSenderOrigin;
-	/// Runtime origin for our (i.e. this bridge hub) location within the Consensus Universe.
-	fn message_sender_origin() -> Self::MessageSenderOrigin;
 }
 
 /// XCM bridge adapter which connects [`XcmBlobHauler`] with [`pallet_bridge_messages`] and
@@ -169,16 +163,13 @@ pub trait XcmBlobHauler {
 /// It needs to be used at the source bridge hub.
 pub struct XcmBlobHaulerAdapter<XcmBlobHauler>(sp_std::marker::PhantomData<XcmBlobHauler>);
 
-impl<HaulerOrigin, H: XcmBlobHauler<MessageSenderOrigin = HaulerOrigin>> HaulBlob
-	for XcmBlobHaulerAdapter<H>
+impl<H: XcmBlobHauler> HaulBlob for XcmBlobHaulerAdapter<H>
 where
-	H::Runtime: SystemConfig<RuntimeOrigin = H::MessageSenderOrigin>,
 	H::Runtime: MessagesConfig<H::MessagesInstance, OutboundPayload = XcmAsPlainPayload>,
 {
 	fn haul_blob(blob: sp_std::prelude::Vec<u8>) -> Result<(), HaulBlobError> {
 		let sender_and_lane = H::SenderAndLane::get();
 		MessagesPallet::<H::Runtime, H::MessagesInstance>::send_message(
-			H::message_sender_origin(),
 			sender_and_lane.lane,
 			blob,
 		)
@@ -209,7 +200,7 @@ where
 	}
 }
 
-impl<HaulerOrigin, H: XcmBlobHauler<MessageSenderOrigin = HaulerOrigin>> OnMessagesDelivered
+impl<H: XcmBlobHauler> OnMessagesDelivered
 	for XcmBlobHaulerAdapter<H>
 {
 	fn on_messages_delivered(lane: LaneId, enqueued_messages: MessageNonce) {
@@ -389,12 +380,6 @@ mod tests {
 		type ToSourceChainSender = DummySendXcm;
 		type CongestedMessage = DummyXcmMessage;
 		type UncongestedMessage = DummyXcmMessage;
-
-		type MessageSenderOrigin = RuntimeOrigin;
-
-		fn message_sender_origin() -> Self::MessageSenderOrigin {
-			RuntimeOrigin::root()
-		}
 	}
 
 	type TestBlobHaulerAdapter = XcmBlobHaulerAdapter<TestBlobHauler>;

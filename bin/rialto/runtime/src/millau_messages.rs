@@ -135,13 +135,6 @@ impl XcmBlobHauler for ToMillauXcmBlobHauler {
 	type ToSourceChainSender = crate::xcm_config::XcmRouter;
 	type CongestedMessage = DummyXcmMessage;
 	type UncongestedMessage = DummyXcmMessage;
-
-	type MessageSenderOrigin = RuntimeOrigin;
-
-	fn message_sender_origin() -> RuntimeOrigin {
-		pallet_xcm::Origin::from(MultiLocation::new(1, crate::xcm_config::UniversalLocation::get()))
-			.into()
-	}
 }
 
 #[cfg(test)]

@@ -17,7 +17,10 @@
 //! Types used to connect to the Westend chain.
 
 use bp_runtime::ChainId;
-use relay_substrate_client::{Chain, ChainWithBalances, RelayChain, UnderlyingChainProvider};
+use bp_westend::WESTEND_SYNCED_HEADERS_GRANDPA_INFO_METHOD;
+use relay_substrate_client::{
+	Chain, ChainWithBalances, ChainWithGrandpa, RelayChain, UnderlyingChainProvider,
+};
 use sp_core::storage::StorageKey;
 use std::time::Duration;
 
@@ -44,6 +47,11 @@ impl Chain for Westend {
 
 	type SignedBlock = bp_westend::SignedBlock;
 	type Call = ();
+}
+
+impl ChainWithGrandpa for Westend {
+	const SYNCED_HEADERS_GRANDPA_INFO_METHOD: &'static str =
+		WESTEND_SYNCED_HEADERS_GRANDPA_INFO_METHOD;
 }
 
 impl RelayChain for Westend {
