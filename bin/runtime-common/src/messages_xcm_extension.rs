@@ -169,40 +169,35 @@ where
 {
 	fn haul_blob(blob: sp_std::prelude::Vec<u8>) -> Result<(), HaulBlobError> {
 		let sender_and_lane = H::SenderAndLane::get();
-		MessagesPallet::<H::Runtime, H::MessagesInstance>::send_message(
-			sender_and_lane.lane,
-			blob,
-		)
-		.map(|artifacts| {
-			log::info!(
-				target: crate::LOG_TARGET_BRIDGE_DISPATCH,
-				"haul_blob result - ok: {:?} on lane: {:?}. Enqueued messages: {}",
-				artifacts.nonce,
-				sender_and_lane.lane,
-				artifacts.enqueued_messages,
-			);
+		MessagesPallet::<H::Runtime, H::MessagesInstance>::send_message(sender_and_lane.lane, blob)
+			.map(|artifacts| {
+				log::info!(
+					target: crate::LOG_TARGET_BRIDGE_DISPATCH,
+					"haul_blob result - ok: {:?} on lane: {:?}. Enqueued messages: {}",
+					artifacts.nonce,
+					sender_and_lane.lane,
+					artifacts.enqueued_messages,
+				);
 
-			// notify XCM queue manager about updated lane state
-			LocalXcmQueueManager::<H>::on_bridge_message_enqueued(
-				&sender_and_lane,
-				artifacts.enqueued_messages,
-			);
-		})
-		.map_err(|error| {
-			log::error!(
-				target: crate::LOG_TARGET_BRIDGE_DISPATCH,
-				"haul_blob result - error: {:?} on lane: {:?}",
-				error,
-				sender_and_lane.lane,
-			);
-			HaulBlobError::Transport("MessageSenderError")
-		})
+				// notify XCM queue manager about updated lane state
+				LocalXcmQueueManager::<H>::on_bridge_message_enqueued(
+					&sender_and_lane,
+					artifacts.enqueued_messages,
+				);
+			})
+			.map_err(|error| {
+				log::error!(
+					target: crate::LOG_TARGET_BRIDGE_DISPATCH,
+					"haul_blob result - error: {:?} on lane: {:?}",
+					error,
+					sender_and_lane.lane,
+				);
+				HaulBlobError::Transport("MessageSenderError")
+			})
 	}
 }
 
-impl<H: XcmBlobHauler> OnMessagesDelivered
-	for XcmBlobHaulerAdapter<H>
-{
+impl<H: XcmBlobHauler> OnMessagesDelivered for XcmBlobHaulerAdapter<H> {
 	fn on_messages_delivered(lane: LaneId, enqueued_messages: MessageNonce) {
 		let sender_and_lane = H::SenderAndLane::get();
 		if sender_and_lane.lane != lane {
