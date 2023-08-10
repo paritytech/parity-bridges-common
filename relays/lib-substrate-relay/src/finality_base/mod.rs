@@ -23,7 +23,7 @@ use async_trait::async_trait;
 use relay_substrate_client::{Chain, ChainWithTransactions};
 use std::fmt::Debug;
 
-/// Substrate -> Substrate finality proofs synchronization pipeline.
+/// Substrate -> Substrate finality related pipeline.
 #[async_trait]
 pub trait SubstrateFinalityPipeline: 'static + Clone + Debug + Send + Sync {
 	/// Headers of this chain are submitted to the `TargetChain`.
