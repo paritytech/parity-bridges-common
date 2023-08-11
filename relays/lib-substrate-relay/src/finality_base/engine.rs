@@ -46,6 +46,10 @@ pub trait Engine<C: Chain>: Send {
 	type ConsensusLogReader: ConsensusLogReader;
 	/// Type of finality proofs, used by consensus engine.
 	type FinalityProof: FinalityProof<BlockNumberOf<C>> + Decode + Encode;
+	/// The type of the equivocation proof used by the consensus engine.
+	type EquivocationProof;
+	/// The type of the key owner proof used by the consensus engine.
+	type KeyOwnerProof;
 	/// Type of bridge pallet initialization data.
 	type InitializationData: std::fmt::Debug + Send + Sync + 'static;
 	/// Type of bridge pallet operating mode.
@@ -137,6 +141,8 @@ impl<C: ChainWithGrandpa> Engine<C> for Grandpa<C> {
 	const ID: ConsensusEngineId = GRANDPA_ENGINE_ID;
 	type ConsensusLogReader = GrandpaConsensusLogReader<<C::Header as Header>::Number>;
 	type FinalityProof = GrandpaJustification<HeaderOf<C>>;
+	type EquivocationProof = sp_consensus_grandpa::EquivocationProof<HashOf<C>, BlockNumberOf<C>>;
+	type KeyOwnerProof = C::KeyOwnerProof;
 	type InitializationData = bp_header_chain::InitializationData<C::Header>;
 	type OperatingMode = BasicOperatingMode;
 

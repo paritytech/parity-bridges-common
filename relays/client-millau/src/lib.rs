@@ -25,6 +25,7 @@ use relay_substrate_client::{
 };
 use sp_core::{storage::StorageKey, Pair};
 use sp_runtime::{generic::SignedPayload, traits::IdentifyAccount};
+use sp_session::MembershipProof;
 use std::time::Duration;
 
 /// Millau header id.
@@ -60,6 +61,8 @@ impl Chain for Millau {
 impl ChainWithGrandpa for Millau {
 	const SYNCED_HEADERS_GRANDPA_INFO_METHOD: &'static str =
 		MILLAU_SYNCED_HEADERS_GRANDPA_INFO_METHOD;
+
+	type KeyOwnerProof = MembershipProof;
 }
 
 impl ChainWithBalances for Millau {
