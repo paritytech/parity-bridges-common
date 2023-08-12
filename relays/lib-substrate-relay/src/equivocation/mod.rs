@@ -17,15 +17,19 @@
 //! Types and functions intended to ease adding of new Substrate -> Substrate
 //! equivocation detection pipelines.
 
-use crate::finality_base::SubstrateFinalityPipeline;
-use std::marker::PhantomData;
+mod source;
+mod target;
 
-use crate::finality_base::engine::Engine;
+use crate::finality_base::{engine::Engine, SubstrateFinalityPipeline, SubstrateFinalityProof};
+
 use async_trait::async_trait;
 use bp_runtime::{BlockNumberOf, HashOf};
+use equivocation_detector::EquivocationDetectionPipeline;
+use finality_relay::FinalityPipeline;
 use pallet_grandpa::{Call as GrandpaCall, Config as GrandpaConfig};
-use relay_substrate_client::CallOf;
+use relay_substrate_client::{CallOf, Chain};
 use sp_runtime::traits::{Block, Header};
+use std::marker::PhantomData;
 
 /// Substrate -> Substrate equivocation detection pipeline.
 #[async_trait]
@@ -40,6 +44,29 @@ type EquivocationProofOf<P> = <<P as SubstrateFinalityPipeline>::FinalityEngine 
 type KeyOwnerProofOf<P> = <<P as SubstrateFinalityPipeline>::FinalityEngine as Engine<
 	<P as SubstrateFinalityPipeline>::SourceChain,
 >>::KeyOwnerProof;
+
+/// Adapter that allows a `SubstrateEquivocationDetectionPipeline` to act as an
+/// `EquivocationDetectionPipeline`.
+#[derive(Clone, Debug)]
+pub struct EquivocationDetectionPipelineAdapter<P: SubstrateEquivocationDetectionPipeline> {
+	_phantom: PhantomData<P>,
+}
+
+impl<P: SubstrateEquivocationDetectionPipeline> FinalityPipeline
+	for EquivocationDetectionPipelineAdapter<P>
+{
+	const SOURCE_NAME: &'static str = P::SourceChain::NAME;
+	const TARGET_NAME: &'static str = P::TargetChain::NAME;
+
+	type Hash = HashOf<P::SourceChain>;
+	type Number = BlockNumberOf<P::SourceChain>;
+	type FinalityProof = SubstrateFinalityProof<P>;
+}
+
+impl<P: SubstrateEquivocationDetectionPipeline> EquivocationDetectionPipeline
+	for EquivocationDetectionPipelineAdapter<P>
+{
+}
 
 /// Different ways of building `report_equivocation` calls.
 pub trait ReportEquivocationCallBuilder<P: SubstrateEquivocationDetectionPipeline> {

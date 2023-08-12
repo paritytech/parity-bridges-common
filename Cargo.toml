@@ -55,6 +55,7 @@ members = [
 	"relays/client-substrate",
 	"relays/client-westend",
 	"relays/client-wococo",
+	"relays/equivocation",
 	"relays/finality",
 	"relays/lib-substrate-relay",
 	"relays/messages",
