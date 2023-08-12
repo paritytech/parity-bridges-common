@@ -23,7 +23,7 @@ use crate::finality_base::engine::Engine;
 use async_trait::async_trait;
 use codec::Decode;
 use futures::{stream::unfold, Stream, StreamExt};
-use relay_substrate_client::{Chain, ChainWithTransactions, Client, Error};
+use relay_substrate_client::{Chain, Client, Error};
 use std::{fmt::Debug, pin::Pin};
 
 /// Substrate -> Substrate finality related pipeline.
@@ -32,7 +32,7 @@ pub trait SubstrateFinalityPipeline: 'static + Clone + Debug + Send + Sync {
 	/// Headers of this chain are submitted to the `TargetChain`.
 	type SourceChain: Chain;
 	/// Headers of the `SourceChain` are submitted to this chain.
-	type TargetChain: ChainWithTransactions;
+	type TargetChain: Chain;
 	/// Finality engine.
 	type FinalityEngine: Engine<Self::SourceChain>;
 }

@@ -27,11 +27,10 @@ use crate::{
 use async_trait::async_trait;
 use finality_relay::TargetClient;
 use relay_substrate_client::{
-	AccountIdOf, AccountKeyPairOf, Client, Error, HeaderIdOf, HeaderOf, SyncHeader, TransactionEra,
+	AccountKeyPairOf, Client, Error, HeaderIdOf, HeaderOf, SyncHeader, TransactionEra,
 	TransactionTracker, UnsignedTransaction,
 };
 use relay_utils::relay_loop::Client as RelayClient;
-use sp_core::Pair;
 
 /// Substrate client as Substrate finality target.
 pub struct SubstrateFinalityTarget<P: SubstrateFinalitySyncPipeline, TargetClnt> {
@@ -91,8 +90,6 @@ impl<P: SubstrateFinalitySyncPipeline, TargetClnt: Client<P::TargetChain>> Relay
 #[async_trait]
 impl<P: SubstrateFinalitySyncPipeline, TargetClnt: Client<P::TargetChain>>
 	TargetClient<FinalitySyncPipelineAdapter<P>> for SubstrateFinalityTarget<P, TargetClnt>
-where
-	AccountIdOf<P::TargetChain>: From<<AccountKeyPairOf<P::TargetChain> as Pair>::Public>,
 {
 	type TransactionTracker = TransactionTracker<P::TargetChain, TargetClnt>;
 
