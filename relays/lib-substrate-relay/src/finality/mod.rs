@@ -18,11 +18,8 @@
 //! finality proofs synchronization pipelines.
 
 use crate::{
-	finality::{
-		source::{SubstrateFinalityProof, SubstrateFinalitySource},
-		target::SubstrateFinalityTarget,
-	},
-	finality_base::{engine::Engine, SubstrateFinalityPipeline},
+	finality::{source::SubstrateFinalitySource, target::SubstrateFinalityTarget},
+	finality_base::{engine::Engine, SubstrateFinalityPipeline, SubstrateFinalityProof},
 	TransactionParams,
 };
 

@@ -18,10 +18,9 @@
 
 use crate::{
 	finality::{
-		source::SubstrateFinalityProof, FinalitySyncPipelineAdapter,
-		SubmitFinalityProofCallBuilder, SubstrateFinalitySyncPipeline,
+		FinalitySyncPipelineAdapter, SubmitFinalityProofCallBuilder, SubstrateFinalitySyncPipeline,
 	},
-	finality_base::engine::Engine,
+	finality_base::{engine::Engine, SubstrateFinalityProof},
 	TransactionParams,
 };
 
