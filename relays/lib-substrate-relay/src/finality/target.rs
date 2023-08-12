@@ -120,7 +120,7 @@ where
 		P::FinalityEngine::optimize_proof(&self.client, &header, &mut proof).await?;
 
 		// now we may submit optimized finality proof
-		let transaction_params = self.transaction_params.clone();
+		let mortality = self.transaction_params.mortality;
 		let call =
 			P::SubmitFinalityProofCallBuilder::build_submit_finality_proof_call(header, proof);
 		self.client
@@ -128,7 +128,7 @@ where
 				&self.transaction_params.signer,
 				move |best_block_id, transaction_nonce| {
 					Ok(UnsignedTransaction::new(call.into(), transaction_nonce)
-						.era(TransactionEra::new(best_block_id, transaction_params.mortality)))
+						.era(TransactionEra::new(best_block_id, mortality)))
 				},
 			)
 			.await

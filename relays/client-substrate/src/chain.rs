@@ -22,10 +22,11 @@ use bp_runtime::{
 	Chain as ChainBase, EncodedOrDecodedCall, HashOf, Parachain as ParachainBase, TransactionEra,
 	TransactionEraOf, UnderlyingChainProvider,
 };
-use codec::{Codec, Encode};
+use codec::{Codec, Decode, Encode};
 use jsonrpsee::core::{DeserializeOwned, Serialize};
 use num_traits::Zero;
 use sc_transaction_pool_api::TransactionStatus;
+use scale_info::TypeInfo;
 use sp_core::{storage::StorageKey, Pair};
 use sp_runtime::{
 	generic::SignedBlock,
@@ -88,7 +89,7 @@ pub trait ChainWithGrandpa: Chain + UnderlyingChainWithGrandpaProvider {
 	const SYNCED_HEADERS_GRANDPA_INFO_METHOD: &'static str;
 
 	/// The type of the key owner proof used by the grandpa engine.
-	type KeyOwnerProof;
+	type KeyOwnerProof: Decode + TypeInfo + Send;
 }
 
 /// Substrate-based parachain from minimal relay-client point of view.

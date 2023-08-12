@@ -23,17 +23,43 @@ mod target;
 use crate::finality_base::{engine::Engine, SubstrateFinalityPipeline, SubstrateFinalityProof};
 
 use async_trait::async_trait;
-use bp_runtime::{BlockNumberOf, HashOf};
+use bp_runtime::{AccountIdOf, BlockNumberOf, HashOf};
 use equivocation_detector::EquivocationDetectionPipeline;
 use finality_relay::FinalityPipeline;
 use pallet_grandpa::{Call as GrandpaCall, Config as GrandpaConfig};
-use relay_substrate_client::{CallOf, Chain};
+use relay_substrate_client::{AccountKeyPairOf, CallOf, Chain, ChainWithTransactions};
+use sp_core::Pair;
 use sp_runtime::traits::{Block, Header};
 use std::marker::PhantomData;
 
+/// Convenience trait that adds bounds to `SubstrateEquivocationDetectionPipeline`.
+pub trait BaseSubstrateEquivocationDetectionPipeline:
+	SubstrateFinalityPipeline<SourceChain = Self::BoundedSourceChain>
+{
+	/// Bounded `SubstrateFinalityPipeline::SourceChain`.
+	type BoundedSourceChain: ChainWithTransactions<AccountId = Self::BoundedSourceChainAccountId>;
+
+	/// Bounded `AccountIdOf<SubstrateFinalityPipeline::SourceChain>`.
+	type BoundedSourceChainAccountId: From<
+		<AccountKeyPairOf<Self::BoundedSourceChain> as Pair>::Public,
+	>;
+}
+
+impl<T> BaseSubstrateEquivocationDetectionPipeline for T
+where
+	T: SubstrateFinalityPipeline,
+	T::SourceChain: ChainWithTransactions,
+	AccountIdOf<T::SourceChain>: From<<AccountKeyPairOf<Self::SourceChain> as Pair>::Public>,
+{
+	type BoundedSourceChain = T::SourceChain;
+	type BoundedSourceChainAccountId = AccountIdOf<T::SourceChain>;
+}
+
 /// Substrate -> Substrate equivocation detection pipeline.
 #[async_trait]
-pub trait SubstrateEquivocationDetectionPipeline: SubstrateFinalityPipeline {
+pub trait SubstrateEquivocationDetectionPipeline:
+	BaseSubstrateEquivocationDetectionPipeline
+{
 	/// How the `report_equivocation` call is built ?
 	type ReportEquivocationCallBuilder: ReportEquivocationCallBuilder<Self>;
 }
@@ -66,6 +92,7 @@ impl<P: SubstrateEquivocationDetectionPipeline> FinalityPipeline
 impl<P: SubstrateEquivocationDetectionPipeline> EquivocationDetectionPipeline
 	for EquivocationDetectionPipelineAdapter<P>
 {
+	type EquivocationProof = EquivocationProofOf<P>;
 }
 
 /// Different ways of building `report_equivocation` calls.

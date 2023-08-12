@@ -16,13 +16,26 @@
 
 use async_trait::async_trait;
 use finality_relay::{FinalityPipeline, SourceClientBase};
-use relay_utils::relay_loop::Client as RelayClient;
+use relay_utils::{relay_loop::Client as RelayClient, TransactionTracker};
 
-pub trait EquivocationDetectionPipeline: FinalityPipeline {}
+pub trait EquivocationDetectionPipeline: FinalityPipeline {
+	/// The type of the equivocation proof.
+	type EquivocationProof;
+}
 
 /// Source client used in equivocation detection loop.
 #[async_trait]
-pub trait SourceClient<P: EquivocationDetectionPipeline>: SourceClientBase<P> {}
+pub trait SourceClient<P: EquivocationDetectionPipeline>: SourceClientBase<P> {
+	/// Transaction tracker to track submitted transactions.
+	type TransactionTracker: TransactionTracker;
+
+	/// Report equivocation.
+	async fn report_equivocation(
+		&self,
+		at: P::Hash,
+		equivocation: P::EquivocationProof,
+	) -> Result<Self::TransactionTracker, Self::Error>;
+}
 
 /// Target client used in equivocation detection loop.
 #[async_trait]

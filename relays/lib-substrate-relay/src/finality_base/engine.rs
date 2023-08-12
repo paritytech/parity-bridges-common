@@ -34,7 +34,7 @@ use relay_substrate_client::{
 };
 use sp_consensus_grandpa::{AuthorityList as GrandpaAuthoritiesSet, GRANDPA_ENGINE_ID};
 use sp_core::{storage::StorageKey, Bytes};
-use sp_runtime::{traits::Header, ConsensusEngineId};
+use sp_runtime::{scale_info::TypeInfo, traits::Header, ConsensusEngineId};
 use std::marker::PhantomData;
 
 /// Finality engine, used by the Substrate chain.
@@ -47,9 +47,9 @@ pub trait Engine<C: Chain>: Send {
 	/// Type of finality proofs, used by consensus engine.
 	type FinalityProof: FinalityProof<BlockNumberOf<C>> + Decode + Encode;
 	/// The type of the equivocation proof used by the consensus engine.
-	type EquivocationProof;
+	type EquivocationProof: Send + Sync;
 	/// The type of the key owner proof used by the consensus engine.
-	type KeyOwnerProof;
+	type KeyOwnerProof: Send;
 	/// Type of bridge pallet initialization data.
 	type InitializationData: std::fmt::Debug + Send + Sync + 'static;
 	/// Type of bridge pallet operating mode.
@@ -105,6 +105,13 @@ pub trait Engine<C: Chain>: Send {
 	async fn prepare_initialization_data(
 		client: impl Client<C>,
 	) -> Result<Self::InitializationData, Error<HashOf<C>, BlockNumberOf<C>>>;
+
+	/// Generate key ownership proof for the provided equivocation.
+	async fn generate_source_key_ownership_proof(
+		source_client: &impl Client<C>,
+		at: C::Hash,
+		equivocation: &Self::EquivocationProof,
+	) -> Result<Self::KeyOwnerProof, SubstrateError>;
 }
 
 /// GRANDPA finality engine.
@@ -318,5 +325,35 @@ impl<C: ChainWithGrandpa> Engine<C> for Grandpa<C> {
 			},
 			operating_mode: BasicOperatingMode::Normal,
 		})
+	}
+
+	async fn generate_source_key_ownership_proof(
+		source_client: &impl Client<C>,
+		at: C::Hash,
+		equivocation: &Self::EquivocationProof,
+	) -> Result<Self::KeyOwnerProof, SubstrateError> {
+		let set_id = equivocation.set_id();
+		let offender = equivocation.offender();
+
+		let opaque_key_owner_proof = source_client
+			.generate_grandpa_key_ownership_proof(at, set_id, offender.clone())
+			.await?
+			.ok_or(SubstrateError::Custom(format!(
+				"Couldn't get GRANDPA key ownership proof from {} at block: {at} \
+				for offender: {:?}, set_id: {set_id} ",
+				C::NAME,
+				offender.clone(),
+			)))?;
+
+		let key_owner_proof =
+			opaque_key_owner_proof.decode().ok_or(SubstrateError::Custom(format!(
+				"Couldn't decode GRANDPA `OpaqueKeyOwnnershipProof` from {} at block: {at} 
+				to `{:?}` for offender: {:?}, set_id: {set_id}, at block: {at}",
+				C::NAME,
+				<C::KeyOwnerProof as TypeInfo>::type_info().path,
+				offender.clone(),
+			)))?;
+
+		Ok(key_owner_proof)
 	}
 }

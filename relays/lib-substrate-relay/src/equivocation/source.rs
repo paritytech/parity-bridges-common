@@ -17,22 +17,27 @@
 //! Default generic implementation of equivocation source for basic Substrate client.
 
 use crate::{
-	equivocation::{EquivocationDetectionPipelineAdapter, SubstrateEquivocationDetectionPipeline},
-	finality_base::{finality_proofs, SubstrateFinalityProofsStream},
+	equivocation::{
+		EquivocationDetectionPipelineAdapter, EquivocationProofOf, ReportEquivocationCallBuilder,
+		SubstrateEquivocationDetectionPipeline,
+	},
+	finality_base::{engine::Engine, finality_proofs, SubstrateFinalityProofsStream},
+	TransactionParams,
 };
 
 use async_trait::async_trait;
+use bp_runtime::{HashOf, TransactionEra};
 use equivocation_detector::SourceClient;
 use finality_relay::SourceClientBase;
-use relay_substrate_client::{Client, Error};
+use relay_substrate_client::{
+	AccountKeyPairOf, Client, Error, TransactionTracker, UnsignedTransaction,
+};
 use relay_utils::relay_loop::Client as RelayClient;
-use std::marker::PhantomData;
 
 /// Substrate node as equivocation source.
 pub struct SubstrateEquivocationSource<P: SubstrateEquivocationDetectionPipeline, SourceClnt> {
 	client: SourceClnt,
-
-	_phantom: PhantomData<P>,
+	transaction_params: TransactionParams<AccountKeyPairOf<P::SourceChain>>,
 }
 
 impl<P: SubstrateEquivocationDetectionPipeline, SourceClnt: Client<P::SourceChain>>
@@ -44,7 +49,7 @@ impl<P: SubstrateEquivocationDetectionPipeline, SourceClnt: Clone> Clone
 	for SubstrateEquivocationSource<P, SourceClnt>
 {
 	fn clone(&self) -> Self {
-		Self { client: self.client.clone(), _phantom: Default::default() }
+		Self { client: self.client.clone(), transaction_params: self.transaction_params.clone() }
 	}
 }
 
@@ -76,4 +81,30 @@ impl<P: SubstrateEquivocationDetectionPipeline, SourceClnt: Client<P::SourceChai
 	SourceClient<EquivocationDetectionPipelineAdapter<P>>
 	for SubstrateEquivocationSource<P, SourceClnt>
 {
+	type TransactionTracker = TransactionTracker<P::SourceChain, SourceClnt>;
+
+	async fn report_equivocation(
+		&self,
+		at: HashOf<P::SourceChain>,
+		equivocation: EquivocationProofOf<P>,
+	) -> Result<Self::TransactionTracker, Self::Error> {
+		let key_owner_proof =
+			P::FinalityEngine::generate_source_key_ownership_proof(&self.client, at, &equivocation)
+				.await?;
+
+		let mortality = self.transaction_params.mortality;
+		let call = P::ReportEquivocationCallBuilder::build_report_equivocation_call(
+			equivocation,
+			key_owner_proof,
+		);
+		self.client
+			.submit_and_watch_signed_extrinsic(
+				&self.transaction_params.signer,
+				move |best_block_id, transaction_nonce| {
+					Ok(UnsignedTransaction::new(call.into(), transaction_nonce)
+						.era(TransactionEra::new(best_block_id, mortality)))
+				},
+			)
+			.await
+	}
 }
