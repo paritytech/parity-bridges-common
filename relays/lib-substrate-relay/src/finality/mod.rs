@@ -22,13 +22,13 @@ use crate::{
 		source::{SubstrateFinalityProof, SubstrateFinalitySource},
 		target::SubstrateFinalityTarget,
 	},
+	finality_base::{engine::Engine, SubstrateFinalityPipeline},
 	TransactionParams,
 };
 
-use crate::finality_base::{engine::Engine, SubstrateFinalityPipeline};
 use async_trait::async_trait;
 use bp_header_chain::justification::GrandpaJustification;
-use finality_relay::FinalitySyncPipeline;
+use finality_relay::{FinalityPipeline, FinalitySyncPipeline};
 use pallet_bridge_grandpa::{Call as BridgeGrandpaCall, Config as BridgeGrandpaConfig};
 use relay_substrate_client::{
 	transaction_stall_timeout, AccountIdOf, AccountKeyPairOf, BlockNumberOf, CallOf, Chain, Client,
@@ -70,15 +70,18 @@ pub struct FinalitySyncPipelineAdapter<P: SubstrateFinalitySyncPipeline> {
 	_phantom: PhantomData<P>,
 }
 
-impl<P: SubstrateFinalitySyncPipeline> FinalitySyncPipeline for FinalitySyncPipelineAdapter<P> {
+impl<P: SubstrateFinalitySyncPipeline> FinalityPipeline for FinalitySyncPipelineAdapter<P> {
 	const SOURCE_NAME: &'static str = P::SourceChain::NAME;
 	const TARGET_NAME: &'static str = P::TargetChain::NAME;
 
 	type Hash = HashOf<P::SourceChain>;
 	type Number = BlockNumberOf<P::SourceChain>;
+	type FinalityProof = SubstrateFinalityProof<P>;
+}
+
+impl<P: SubstrateFinalitySyncPipeline> FinalitySyncPipeline for FinalitySyncPipelineAdapter<P> {
 	type ConsensusLogReader = <P::FinalityEngine as Engine<P::SourceChain>>::ConsensusLogReader;
 	type Header = SyncHeader<HeaderOf<P::SourceChain>>;
-	type FinalityProof = SubstrateFinalityProof<P>;
 }
 
 /// Different ways of building `submit_finality_proof` calls.

@@ -26,7 +26,7 @@ use async_std::sync::{Arc, Mutex};
 use async_trait::async_trait;
 use bp_header_chain::FinalityProof;
 use codec::Decode;
-use finality_relay::SourceClient;
+use finality_relay::{SourceClient, SourceClientBase};
 use futures::{
 	select,
 	stream::{try_unfold, unfold, Stream, StreamExt, TryStreamExt},
@@ -211,35 +211,9 @@ impl<P: SubstrateFinalitySyncPipeline, SourceClnt: Client<P::SourceChain>> Relay
 
 #[async_trait]
 impl<P: SubstrateFinalitySyncPipeline, SourceClnt: Client<P::SourceChain>>
-	SourceClient<FinalitySyncPipelineAdapter<P>> for SubstrateFinalitySource<P, SourceClnt>
+	SourceClientBase<FinalitySyncPipelineAdapter<P>> for SubstrateFinalitySource<P, SourceClnt>
 {
 	type FinalityProofsStream = SubstrateFinalityProofsStream<P>;
-
-	async fn best_finalized_block_number(&self) -> Result<BlockNumberOf<P::SourceChain>, Error> {
-		let mut finalized_header_number = self.on_chain_best_finalized_block_number().await?;
-		// never return block number larger than requested. This way we'll never sync headers
-		// past `maximal_header_number`
-		if let Some(ref maximal_header_number) = self.maximal_header_number {
-			let maximal_header_number = *maximal_header_number.lock().await;
-			if finalized_header_number > maximal_header_number {
-				finalized_header_number = maximal_header_number;
-			}
-		}
-		Ok(finalized_header_number)
-	}
-
-	async fn header_and_finality_proof(
-		&self,
-		number: BlockNumberOf<P::SourceChain>,
-	) -> Result<
-		(
-			relay_substrate_client::SyncHeader<HeaderOf<P::SourceChain>>,
-			Option<SubstrateFinalityProof<P>>,
-		),
-		Error,
-	> {
-		header_and_finality_proof::<P>(&self.client, number).await
-	}
 
 	async fn finality_proofs(&self) -> Result<Self::FinalityProofsStream, Error> {
 		Ok(unfold(
@@ -275,6 +249,37 @@ impl<P: SubstrateFinalitySyncPipeline, SourceClnt: Client<P::SourceChain>>
 			},
 		)
 		.boxed())
+	}
+}
+
+#[async_trait]
+impl<P: SubstrateFinalitySyncPipeline, SourceClnt: Client<P::SourceChain>>
+	SourceClient<FinalitySyncPipelineAdapter<P>> for SubstrateFinalitySource<P, SourceClnt>
+{
+	async fn best_finalized_block_number(&self) -> Result<BlockNumberOf<P::SourceChain>, Error> {
+		let mut finalized_header_number = self.on_chain_best_finalized_block_number().await?;
+		// never return block number larger than requested. This way we'll never sync headers
+		// past `maximal_header_number`
+		if let Some(ref maximal_header_number) = self.maximal_header_number {
+			let maximal_header_number = *maximal_header_number.lock().await;
+			if finalized_header_number > maximal_header_number {
+				finalized_header_number = maximal_header_number;
+			}
+		}
+		Ok(finalized_header_number)
+	}
+
+	async fn header_and_finality_proof(
+		&self,
+		number: BlockNumberOf<P::SourceChain>,
+	) -> Result<
+		(
+			relay_substrate_client::SyncHeader<HeaderOf<P::SourceChain>>,
+			Option<SubstrateFinalityProof<P>>,
+		),
+		Error,
+	> {
+		header_and_finality_proof::<P>(&self.client, number).await
 	}
 }
 
