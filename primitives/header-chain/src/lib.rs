@@ -20,6 +20,9 @@
 #![warn(missing_docs)]
 #![cfg_attr(not(feature = "std"), no_std)]
 
+use crate::justification::{
+	GrandpaJustification, JustificationVerificationContext, JustificationVerificationError,
+};
 use bp_runtime::{
 	BasicOperatingMode, Chain, HashOf, HasherOf, HeaderOf, StorageProofError,
 	UnderlyingChainProvider, UnverifiedStorageProof, VerifiedStorageProof,
@@ -190,13 +193,38 @@ impl<Number: Codec> ConsensusLogReader for GrandpaConsensusLogReader<Number> {
 	}
 }
 
+/// The finality-related info associated to a header.
+#[derive(Encode, Decode, Debug, PartialEq, Clone, TypeInfo)]
+pub struct HeaderFinalityInfo<FinalityProof, FinalityVerificationContext> {
+	/// The header finality proof.
+	pub finality_proof: FinalityProof,
+	/// The new validation context introduced by the header.
+	pub new_verification_context: Option<FinalityVerificationContext>,
+}
+
 /// The Grandpa-related info associated to a header.
 #[derive(Encode, Decode, Debug, PartialEq, Clone, TypeInfo)]
 pub struct HeaderGrandpaInfo<Header: HeaderT> {
 	/// The header justification
-	pub justification: justification::GrandpaJustification<Header>,
+	pub justification: GrandpaJustification<Header>,
 	/// The authority set introduced by the header.
 	pub authority_set: Option<AuthoritySet>,
+}
+
+impl<Header: HeaderT> TryFrom<HeaderGrandpaInfo<Header>>
+	for HeaderFinalityInfo<GrandpaJustification<Header>, JustificationVerificationContext>
+{
+	type Error = JustificationVerificationError;
+
+	fn try_from(grandpa_info: HeaderGrandpaInfo<Header>) -> Result<Self, Self::Error> {
+		Ok(Self {
+			finality_proof: grandpa_info.justification,
+			new_verification_context: match grandpa_info.authority_set {
+				Some(authority_set) => Some(authority_set.try_into()?),
+				None => None,
+			},
+		})
+	}
 }
 
 /// A minimized version of `pallet-bridge-grandpa::Call` that can be used without a runtime.

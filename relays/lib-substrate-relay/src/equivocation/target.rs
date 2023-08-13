@@ -21,8 +21,9 @@ use crate::{
 	finality_base::engine::Engine,
 };
 
-use crate::equivocation::FinalityVerificationContextfOf;
+use crate::equivocation::{FinalityProoffOf, FinalityVerificationContextfOf};
 use async_trait::async_trait;
+use bp_header_chain::HeaderFinalityInfo;
 use bp_runtime::BlockNumberOf;
 use equivocation_detector::TargetClient;
 use relay_substrate_client::{Client, Error};
@@ -70,6 +71,20 @@ impl<P: SubstrateEquivocationDetectionPipeline, TargetClnt: Client<P::TargetChai
 		at: BlockNumberOf<P::TargetChain>,
 	) -> Result<FinalityVerificationContextfOf<P>, Self::Error> {
 		P::FinalityEngine::finality_verification_context(
+			&self.client,
+			self.client.header_hash_by_number(at).await?,
+		)
+		.await
+	}
+
+	async fn synced_headers_finality_info(
+		&self,
+		at: BlockNumberOf<P::TargetChain>,
+	) -> Result<
+		Vec<HeaderFinalityInfo<FinalityProoffOf<P>, FinalityVerificationContextfOf<P>>>,
+		Self::Error,
+	> {
+		P::FinalityEngine::synced_headers_finality_info(
 			&self.client,
 			self.client.header_hash_by_number(at).await?,
 		)

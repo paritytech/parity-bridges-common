@@ -15,6 +15,7 @@
 // along with Parity Bridges Common.  If not, see <http://www.gnu.org/licenses/>.
 
 use async_trait::async_trait;
+use bp_header_chain::HeaderFinalityInfo;
 use finality_relay::{FinalityPipeline, SourceClientBase};
 use relay_utils::{relay_loop::Client as RelayClient, TransactionTracker};
 
@@ -50,4 +51,14 @@ pub trait TargetClient<P: EquivocationDetectionPipeline>: RelayClient {
 		&self,
 		at: P::TargetNumber,
 	) -> Result<P::FinalityVerificationContext, Self::Error>;
+
+	/// Get the finality info associated to the source headers synced with the target chain at the
+	/// specified block.
+	async fn synced_headers_finality_info(
+		&self,
+		at: P::TargetNumber,
+	) -> Result<
+		Vec<HeaderFinalityInfo<P::FinalityProof, P::FinalityVerificationContext>>,
+		Self::Error,
+	>;
 }

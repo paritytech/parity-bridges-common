@@ -23,7 +23,7 @@ use bp_header_chain::{
 		verify_and_optimize_justification, GrandpaJustification, JustificationVerificationContext,
 	},
 	AuthoritySet, ChainWithGrandpa as ChainWithGrandpaBase, ConsensusLogReader, FinalityProof,
-	GrandpaConsensusLogReader,
+	GrandpaConsensusLogReader, HeaderFinalityInfo, HeaderGrandpaInfo,
 };
 use bp_runtime::{BasicOperatingMode, HeaderIdProvider, OperatingMode};
 use codec::{Decode, Encode};
@@ -114,6 +114,16 @@ pub trait Engine<C: Chain>: Send {
 		target_client: &impl Client<TargetChain>,
 		at: HashOf<TargetChain>,
 	) -> Result<Self::FinalityVerificationContext, SubstrateError>;
+
+	/// Returns the finality info associated to the source headers synced with the target
+	/// at the provided block.
+	async fn synced_headers_finality_info<TargetChain: Chain>(
+		target_client: &impl Client<TargetChain>,
+		at: TargetChain::Hash,
+	) -> Result<
+		Vec<HeaderFinalityInfo<Self::FinalityProof, Self::FinalityVerificationContext>>,
+		SubstrateError,
+	>;
 
 	/// Generate key ownership proof for the provided equivocation.
 	async fn generate_source_key_ownership_proof(
@@ -352,6 +362,31 @@ impl<C: ChainWithGrandpa> Engine<C> for Grandpa<C> {
 				TargetChain::NAME,
 			))
 		})
+	}
+
+	async fn synced_headers_finality_info<TargetChain: Chain>(
+		target_client: &impl Client<TargetChain>,
+		at: TargetChain::Hash,
+	) -> Result<
+		Vec<HeaderFinalityInfo<Self::FinalityProof, Self::FinalityVerificationContext>>,
+		SubstrateError,
+	> {
+		let headers_grandpa_info: Vec<HeaderGrandpaInfo<HeaderOf<C>>> = target_client
+			.state_call(at, C::SYNCED_HEADERS_GRANDPA_INFO_METHOD.to_string(), ())
+			.await?;
+
+		let mut result = vec![];
+		for header_grandpa_info in headers_grandpa_info {
+			result.push(header_grandpa_info.try_into().map_err(|e| {
+				SubstrateError::Custom(format!(
+					"{} `AuthoritySet` synced to {} is invalid: {e:?} ",
+					C::NAME,
+					TargetChain::NAME,
+				))
+			})?);
+		}
+
+		Ok(result)
 	}
 
 	async fn generate_source_key_ownership_proof(
