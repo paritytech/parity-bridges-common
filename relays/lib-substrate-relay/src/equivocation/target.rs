@@ -16,11 +16,14 @@
 
 //! Default generic implementation of equivocation source for basic Substrate client.
 
-use crate::equivocation::{
-	EquivocationDetectionPipelineAdapter, SubstrateEquivocationDetectionPipeline,
+use crate::{
+	equivocation::{EquivocationDetectionPipelineAdapter, SubstrateEquivocationDetectionPipeline},
+	finality_base::engine::Engine,
 };
 
+use crate::equivocation::FinalityVerificationContextfOf;
 use async_trait::async_trait;
+use bp_runtime::BlockNumberOf;
 use equivocation_detector::TargetClient;
 use relay_substrate_client::{Client, Error};
 use relay_utils::relay_loop::Client as RelayClient;
@@ -62,4 +65,14 @@ impl<P: SubstrateEquivocationDetectionPipeline, TargetClnt: Client<P::TargetChai
 	TargetClient<EquivocationDetectionPipelineAdapter<P>>
 	for SubstrateEquivocationTarget<P, TargetClnt>
 {
+	async fn finality_verification_context(
+		&self,
+		at: BlockNumberOf<P::TargetChain>,
+	) -> Result<FinalityVerificationContextfOf<P>, Self::Error> {
+		P::FinalityEngine::finality_verification_context(
+			&self.client,
+			self.client.header_hash_by_number(at).await?,
+		)
+		.await
+	}
 }

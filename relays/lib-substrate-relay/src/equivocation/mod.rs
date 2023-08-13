@@ -64,6 +64,10 @@ pub trait SubstrateEquivocationDetectionPipeline:
 	type ReportEquivocationCallBuilder: ReportEquivocationCallBuilder<Self>;
 }
 
+type FinalityVerificationContextfOf<P> =
+	<<P as SubstrateFinalityPipeline>::FinalityEngine as Engine<
+		<P as SubstrateFinalityPipeline>::SourceChain,
+	>>::FinalityVerificationContext;
 type EquivocationProofOf<P> = <<P as SubstrateFinalityPipeline>::FinalityEngine as Engine<
 	<P as SubstrateFinalityPipeline>::SourceChain,
 >>::EquivocationProof;
@@ -92,6 +96,8 @@ impl<P: SubstrateEquivocationDetectionPipeline> FinalityPipeline
 impl<P: SubstrateEquivocationDetectionPipeline> EquivocationDetectionPipeline
 	for EquivocationDetectionPipelineAdapter<P>
 {
+	type TargetNumber = BlockNumberOf<P::TargetChain>;
+	type FinalityVerificationContext = FinalityVerificationContextfOf<P>;
 	type EquivocationProof = EquivocationProofOf<P>;
 }
 

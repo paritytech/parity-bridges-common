@@ -19,7 +19,9 @@
 use crate::error::Error;
 use async_trait::async_trait;
 use bp_header_chain::{
-	justification::{verify_and_optimize_justification, GrandpaJustification},
+	justification::{
+		verify_and_optimize_justification, GrandpaJustification, JustificationVerificationContext,
+	},
 	AuthoritySet, ChainWithGrandpa as ChainWithGrandpaBase, ConsensusLogReader, FinalityProof,
 	GrandpaConsensusLogReader,
 };
@@ -45,6 +47,8 @@ pub trait Engine<C: Chain>: Send {
 	type ConsensusLogReader: ConsensusLogReader;
 	/// Type of finality proofs, used by consensus engine.
 	type FinalityProof: FinalityProof<BlockNumberOf<C>> + Decode + Encode;
+	/// The context needed for verifying finality proofs.
+	type FinalityVerificationContext;
 	/// The type of the equivocation proof used by the consensus engine.
 	type EquivocationProof: Send + Sync;
 	/// The type of the key owner proof used by the consensus engine.
@@ -105,6 +109,12 @@ pub trait Engine<C: Chain>: Send {
 		client: impl Client<C>,
 	) -> Result<Self::InitializationData, Error<HashOf<C>, BlockNumberOf<C>>>;
 
+	/// Get the context needed for validating a finality proof.
+	async fn finality_verification_context<TargetChain: Chain>(
+		target_client: &impl Client<TargetChain>,
+		at: HashOf<TargetChain>,
+	) -> Result<Self::FinalityVerificationContext, SubstrateError>;
+
 	/// Generate key ownership proof for the provided equivocation.
 	async fn generate_source_key_ownership_proof(
 		source_client: &impl Client<C>,
@@ -147,6 +157,7 @@ impl<C: ChainWithGrandpa> Engine<C> for Grandpa<C> {
 	const ID: ConsensusEngineId = GRANDPA_ENGINE_ID;
 	type ConsensusLogReader = GrandpaConsensusLogReader<<C::Header as Header>::Number>;
 	type FinalityProof = GrandpaJustification<HeaderOf<C>>;
+	type FinalityVerificationContext = JustificationVerificationContext;
 	type EquivocationProof = sp_consensus_grandpa::EquivocationProof<HashOf<C>, BlockNumberOf<C>>;
 	type KeyOwnerProof = C::KeyOwnerProof;
 	type InitializationData = bp_header_chain::InitializationData<C::Header>;
@@ -175,25 +186,18 @@ impl<C: ChainWithGrandpa> Engine<C> for Grandpa<C> {
 		header: &C::Header,
 		proof: &mut Self::FinalityProof,
 	) -> Result<(), SubstrateError> {
-		let current_authority_set_key = bp_header_chain::storage_keys::current_authority_set_key(
-			C::ChainWithGrandpa::WITH_CHAIN_GRANDPA_PALLET_NAME,
-		);
-		let authority_set: AuthoritySet = target_client
-			.storage_value(target_client.best_header_hash().await?, current_authority_set_key)
-			.await?
-			.map(Ok)
-			.unwrap_or(Err(SubstrateError::Custom(format!(
-				"{} `CurrentAuthoritySet` is missing from the {} storage",
-				C::NAME,
-				TargetChain::NAME,
-			))))?;
+		let verification_context = Grandpa::<C>::finality_verification_context(
+			target_client,
+			target_client.best_header_hash().await?,
+		)
+		.await?;
 		// we're risking with race here - we have decided to submit justification some time ago and
 		// actual authorities set (which we have read now) may have changed, so this
 		// `optimize_justification` may fail. But if target chain is configured properly, it'll fail
 		// anyway, after we submit transaction and failing earlier is better. So - it is fine
 		verify_and_optimize_justification(
 			(header.hash(), *header.number()),
-			&authority_set.try_into().expect("TODO"),
+			&verification_context,
 			proof,
 		)
 		.map_err(|e| {
@@ -321,6 +325,32 @@ impl<C: ChainWithGrandpa> Engine<C> for Grandpa<C> {
 				initial_authorities_set_id
 			},
 			operating_mode: BasicOperatingMode::Normal,
+		})
+	}
+
+	async fn finality_verification_context<TargetChain: Chain>(
+		target_client: &impl Client<TargetChain>,
+		at: HashOf<TargetChain>,
+	) -> Result<Self::FinalityVerificationContext, SubstrateError> {
+		let current_authority_set_key = bp_header_chain::storage_keys::current_authority_set_key(
+			C::ChainWithGrandpa::WITH_CHAIN_GRANDPA_PALLET_NAME,
+		);
+		let authority_set: AuthoritySet = target_client
+			.storage_value(at, current_authority_set_key)
+			.await?
+			.map(Ok)
+			.unwrap_or(Err(SubstrateError::Custom(format!(
+				"{} `CurrentAuthoritySet` is missing from the {} storage",
+				C::NAME,
+				TargetChain::NAME,
+			))))?;
+
+		authority_set.try_into().map_err(|e| {
+			SubstrateError::Custom(format!(
+				"{} `CurrentAuthoritySet` from the {} storage is invalid: {e:?}",
+				C::NAME,
+				TargetChain::NAME,
+			))
 		})
 	}
 

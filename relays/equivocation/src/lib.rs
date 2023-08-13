@@ -19,6 +19,10 @@ use finality_relay::{FinalityPipeline, SourceClientBase};
 use relay_utils::{relay_loop::Client as RelayClient, TransactionTracker};
 
 pub trait EquivocationDetectionPipeline: FinalityPipeline {
+	/// Block number of the target chain.
+	type TargetNumber: relay_utils::BlockNumberBase;
+	/// The context needed for validating finality proofs.
+	type FinalityVerificationContext;
 	/// The type of the equivocation proof.
 	type EquivocationProof;
 }
@@ -39,4 +43,11 @@ pub trait SourceClient<P: EquivocationDetectionPipeline>: SourceClientBase<P> {
 
 /// Target client used in equivocation detection loop.
 #[async_trait]
-pub trait TargetClient<P: EquivocationDetectionPipeline>: RelayClient {}
+pub trait TargetClient<P: EquivocationDetectionPipeline>: RelayClient {
+	/// Get the data stored by the target at the specified block for validating source finality
+	/// proofs.
+	async fn finality_verification_context(
+		&self,
+		at: P::TargetNumber,
+	) -> Result<P::FinalityVerificationContext, Self::Error>;
+}
