@@ -42,7 +42,6 @@ use bp_header_chain::{
 	HeaderChain, HeaderGrandpaInfo, InitializationData, StoredHeaderData, StoredHeaderDataBuilder,
 };
 use bp_runtime::{BlockNumberOf, HashOf, HasherOf, HeaderId, HeaderOf, OwnedBridgeModule};
-use finality_grandpa::voter_set::VoterSet;
 use frame_support::{dispatch::PostDispatchInfo, ensure, DefaultNoBound};
 use sp_runtime::{
 	traits::{Header as HeaderT, Zero},
@@ -506,14 +505,9 @@ pub mod pallet {
 	) -> Result<(), sp_runtime::DispatchError> {
 		use bp_header_chain::justification::verify_justification;
 
-		let voter_set =
-			VoterSet::new(authority_set.authorities).ok_or(<Error<T, I>>::InvalidAuthoritySet)?;
-		let set_id = authority_set.set_id;
-
 		Ok(verify_justification::<BridgedHeader<T, I>>(
 			(hash, number),
-			set_id,
-			&voter_set,
+			&authority_set.try_into().map_err(|_| <Error<T, I>>::InvalidAuthoritySet)?,
 			justification,
 		)
 		.map_err(|e| {

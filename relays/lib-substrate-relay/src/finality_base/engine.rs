@@ -20,12 +20,11 @@ use crate::error::Error;
 use async_trait::async_trait;
 use bp_header_chain::{
 	justification::{verify_and_optimize_justification, GrandpaJustification},
-	ChainWithGrandpa as ChainWithGrandpaBase, ConsensusLogReader, FinalityProof,
+	AuthoritySet, ChainWithGrandpa as ChainWithGrandpaBase, ConsensusLogReader, FinalityProof,
 	GrandpaConsensusLogReader,
 };
 use bp_runtime::{BasicOperatingMode, HeaderIdProvider, OperatingMode};
 use codec::{Decode, Encode};
-use finality_grandpa::voter_set::VoterSet;
 use futures::stream::StreamExt;
 use num_traits::{One, Zero};
 use relay_substrate_client::{
@@ -179,10 +178,7 @@ impl<C: ChainWithGrandpa> Engine<C> for Grandpa<C> {
 		let current_authority_set_key = bp_header_chain::storage_keys::current_authority_set_key(
 			C::ChainWithGrandpa::WITH_CHAIN_GRANDPA_PALLET_NAME,
 		);
-		let (authority_set, authority_set_id): (
-			sp_consensus_grandpa::AuthorityList,
-			sp_consensus_grandpa::SetId,
-		) = target_client
+		let authority_set: AuthoritySet = target_client
 			.storage_value(target_client.best_header_hash().await?, current_authority_set_key)
 			.await?
 			.map(Ok)
@@ -191,16 +187,13 @@ impl<C: ChainWithGrandpa> Engine<C> for Grandpa<C> {
 				C::NAME,
 				TargetChain::NAME,
 			))))?;
-		let authority_set =
-			finality_grandpa::voter_set::VoterSet::new(authority_set).expect("TODO");
 		// we're risking with race here - we have decided to submit justification some time ago and
 		// actual authorities set (which we have read now) may have changed, so this
 		// `optimize_justification` may fail. But if target chain is configured properly, it'll fail
 		// anyway, after we submit transaction and failing earlier is better. So - it is fine
 		verify_and_optimize_justification(
 			(header.hash(), *header.number()),
-			authority_set_id,
-			&authority_set,
+			&authority_set.try_into().expect("TODO"),
 			proof,
 		)
 		.map_err(|e| {
@@ -284,8 +277,6 @@ impl<C: ChainWithGrandpa> Engine<C> for Grandpa<C> {
 		// Now let's try to guess authorities set id by verifying justification.
 		let mut initial_authorities_set_id = 0;
 		let mut min_possible_block_number = C::BlockNumber::zero();
-		let authorities_for_verification = VoterSet::new(authorities_for_verification.clone())
-			.ok_or(Error::ReadInvalidAuthorities(C::NAME, authorities_for_verification))?;
 		loop {
 			log::trace!(
 				target: "bridge", "Trying {} GRANDPA authorities set id: {}",
@@ -295,8 +286,14 @@ impl<C: ChainWithGrandpa> Engine<C> for Grandpa<C> {
 
 			let is_valid_set_id = verify_and_optimize_justification(
 				(initial_header_hash, initial_header_number),
-				initial_authorities_set_id,
-				&authorities_for_verification,
+				&AuthoritySet {
+					authorities: authorities_for_verification.clone(),
+					set_id: initial_authorities_set_id,
+				}
+				.try_into()
+				.map_err(|_| {
+					Error::ReadInvalidAuthorities(C::NAME, authorities_for_verification.clone())
+				})?,
 				&mut justification.clone(),
 			)
 			.is_ok();

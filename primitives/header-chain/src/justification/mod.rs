@@ -26,7 +26,8 @@ pub use verification::{
 	equivocation::{EquivocationsCollector, Error as EquivocationsCollectorError},
 	optimizer::verify_and_optimize_justification,
 	strict::verify_justification,
-	AncestryChain, Error as JustificationVerificationError, PrecommitError,
+	AncestryChain, Error as JustificationVerificationError, JustificationVerificationContext,
+	PrecommitError,
 };
 
 use bp_runtime::{BlockNumberOf, Chain, HashOf, HeaderId};

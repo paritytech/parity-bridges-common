@@ -24,10 +24,9 @@ use crate::justification::{
 	GrandpaJustification,
 };
 
-use crate::justification::verification::IterationFlow;
-use finality_grandpa::voter_set::VoterSet;
+use crate::justification::verification::{IterationFlow, JustificationVerificationContext};
 use frame_support::RuntimeDebug;
-use sp_consensus_grandpa::{AuthorityId, AuthoritySignature, EquivocationProof, Precommit, SetId};
+use sp_consensus_grandpa::{AuthorityId, AuthoritySignature, EquivocationProof, Precommit};
 use sp_runtime::traits::Header as HeaderT;
 use sp_std::{
 	collections::{btree_map::BTreeMap, btree_set::BTreeSet},
@@ -53,8 +52,7 @@ enum AuthorityVotes<Header: HeaderT> {
 /// Structure that can extract equivocations from multiple GRANDPA justifications.
 pub struct EquivocationsCollector<'a, Header: HeaderT> {
 	round: u64,
-	authorities_set_id: SetId,
-	authorities_set: &'a VoterSet<AuthorityId>,
+	context: &'a JustificationVerificationContext,
 
 	votes: BTreeMap<AuthorityId, AuthorityVotes<Header>>,
 }
@@ -62,16 +60,10 @@ pub struct EquivocationsCollector<'a, Header: HeaderT> {
 impl<'a, Header: HeaderT> EquivocationsCollector<'a, Header> {
 	/// Create a new instance of `EquivocationsCollector`.
 	pub fn new(
-		authorities_set_id: SetId,
-		authorities_set: &'a VoterSet<AuthorityId>,
+		context: &'a JustificationVerificationContext,
 		base_justification: &GrandpaJustification<Header>,
 	) -> Result<Self, Error> {
-		let mut checker = Self {
-			round: base_justification.round,
-			authorities_set_id,
-			authorities_set,
-			votes: BTreeMap::new(),
-		};
+		let mut checker = Self { round: base_justification.round, context, votes: BTreeMap::new() };
 
 		checker.parse_justification(base_justification)?;
 		Ok(checker)
@@ -89,8 +81,7 @@ impl<'a, Header: HeaderT> EquivocationsCollector<'a, Header> {
 
 		self.verify_justification(
 			(justification.commit.target_hash, justification.commit.target_number),
-			self.authorities_set_id,
-			self.authorities_set,
+			self.context,
 			justification,
 		)
 		.map_err(Error::JustificationVerification)
@@ -102,7 +93,7 @@ impl<'a, Header: HeaderT> EquivocationsCollector<'a, Header> {
 		for (_authority, vote) in self.votes {
 			if let AuthorityVotes::Equivocation(equivocation) = vote {
 				equivocations.push(EquivocationProof::new(
-					self.authorities_set_id,
+					self.context.authority_set_id,
 					sp_consensus_grandpa::Equivocation::Precommit(equivocation),
 				));
 			}
