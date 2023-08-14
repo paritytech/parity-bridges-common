@@ -202,24 +202,21 @@ pub struct HeaderFinalityInfo<FinalityProof, FinalityVerificationContext> {
 	pub new_verification_context: Option<FinalityVerificationContext>,
 }
 
-/// The Grandpa-related info associated to a header.
-#[derive(Encode, Decode, Debug, PartialEq, Clone, TypeInfo)]
-pub struct HeaderGrandpaInfo<Header: HeaderT> {
-	/// The header justification
-	pub justification: GrandpaJustification<Header>,
-	/// The authority set introduced by the header.
-	pub authority_set: Option<AuthoritySet>,
-}
+/// Storable Grandpa-related info associated to a header.
+pub type StoredHeaderGrandpaInfo<Header> =
+	HeaderFinalityInfo<GrandpaJustification<Header>, AuthoritySet>;
 
-impl<Header: HeaderT> TryFrom<HeaderGrandpaInfo<Header>>
-	for HeaderFinalityInfo<GrandpaJustification<Header>, JustificationVerificationContext>
-{
+/// Processed Grandpa-related info associated to a header.
+pub type HeaderGrandpaInfo<Header> =
+	HeaderFinalityInfo<GrandpaJustification<Header>, JustificationVerificationContext>;
+
+impl<Header: HeaderT> TryFrom<StoredHeaderGrandpaInfo<Header>> for HeaderGrandpaInfo<Header> {
 	type Error = JustificationVerificationError;
 
-	fn try_from(grandpa_info: HeaderGrandpaInfo<Header>) -> Result<Self, Self::Error> {
+	fn try_from(grandpa_info: StoredHeaderGrandpaInfo<Header>) -> Result<Self, Self::Error> {
 		Ok(Self {
-			finality_proof: grandpa_info.justification,
-			new_verification_context: match grandpa_info.authority_set {
+			finality_proof: grandpa_info.finality_proof,
+			new_verification_context: match grandpa_info.new_verification_context {
 				Some(authority_set) => Some(authority_set.try_into()?),
 				None => None,
 			},

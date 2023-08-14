@@ -39,7 +39,8 @@ pub use storage_types::StoredAuthoritySet;
 
 use bp_header_chain::{
 	justification::GrandpaJustification, AuthoritySet, ChainWithGrandpa, GrandpaConsensusLogReader,
-	HeaderChain, HeaderGrandpaInfo, InitializationData, StoredHeaderData, StoredHeaderDataBuilder,
+	HeaderChain, InitializationData, StoredHeaderData, StoredHeaderDataBuilder,
+	StoredHeaderGrandpaInfo,
 };
 use bp_runtime::{BlockNumberOf, HashOf, HasherOf, HeaderId, HeaderOf, OwnedBridgeModule};
 use frame_support::{dispatch::PostDispatchInfo, ensure, DefaultNoBound};
@@ -239,9 +240,9 @@ pub mod pallet {
 			Self::deposit_event(Event::UpdatedBestFinalizedHeader {
 				number,
 				hash,
-				grandpa_info: HeaderGrandpaInfo {
-					justification,
-					authority_set: maybe_new_authority_set,
+				grandpa_info: StoredHeaderGrandpaInfo {
+					finality_proof: justification,
+					new_verification_context: maybe_new_authority_set,
 				},
 			});
 
@@ -411,7 +412,7 @@ pub mod pallet {
 			/// Hash of the new best finalized header.
 			hash: BridgedBlockHash<T, I>,
 			/// The Grandpa info associated to the new best finalized header.
-			grandpa_info: HeaderGrandpaInfo<BridgedHeader<T, I>>,
+			grandpa_info: StoredHeaderGrandpaInfo<BridgedHeader<T, I>>,
 		},
 	}
 
@@ -612,7 +613,7 @@ where
 	<T as frame_system::Config>::RuntimeEvent: TryInto<Event<T, I>>,
 {
 	/// Get the GRANDPA justifications accepted in the current block.
-	pub fn synced_headers_grandpa_info() -> Vec<HeaderGrandpaInfo<BridgedHeader<T, I>>> {
+	pub fn synced_headers_grandpa_info() -> Vec<StoredHeaderGrandpaInfo<BridgedHeader<T, I>>> {
 		frame_system::Pallet::<T>::read_events_no_consensus()
 			.filter_map(|event| {
 				if let Event::<T, I>::UpdatedBestFinalizedHeader { grandpa_info, .. } =
@@ -929,9 +930,9 @@ mod tests {
 					event: TestEvent::Grandpa(Event::UpdatedBestFinalizedHeader {
 						number: *header.number(),
 						hash: header.hash(),
-						grandpa_info: HeaderGrandpaInfo {
-							justification: justification.clone(),
-							authority_set: None,
+						grandpa_info: StoredHeaderGrandpaInfo {
+							finality_proof: justification.clone(),
+							new_verification_context: None,
 						},
 					}),
 					topics: vec![],
@@ -939,7 +940,10 @@ mod tests {
 			);
 			assert_eq!(
 				Pallet::<TestRuntime>::synced_headers_grandpa_info(),
-				vec![HeaderGrandpaInfo { justification, authority_set: None }]
+				vec![StoredHeaderGrandpaInfo {
+					finality_proof: justification,
+					new_verification_context: None
+				}]
 			);
 		})
 	}
@@ -1070,9 +1074,11 @@ mod tests {
 					event: TestEvent::Grandpa(Event::UpdatedBestFinalizedHeader {
 						number: *header.number(),
 						hash: header.hash(),
-						grandpa_info: HeaderGrandpaInfo {
-							justification: justification.clone(),
-							authority_set: Some(<CurrentAuthoritySet<TestRuntime>>::get().into()),
+						grandpa_info: StoredHeaderGrandpaInfo {
+							finality_proof: justification.clone(),
+							new_verification_context: Some(
+								<CurrentAuthoritySet<TestRuntime>>::get().into()
+							),
 						},
 					}),
 					topics: vec![],
@@ -1080,9 +1086,11 @@ mod tests {
 			);
 			assert_eq!(
 				Pallet::<TestRuntime>::synced_headers_grandpa_info(),
-				vec![HeaderGrandpaInfo {
-					justification,
-					authority_set: Some(<CurrentAuthoritySet<TestRuntime>>::get().into()),
+				vec![StoredHeaderGrandpaInfo {
+					finality_proof: justification,
+					new_verification_context: Some(
+						<CurrentAuthoritySet<TestRuntime>>::get().into()
+					),
 				}]
 			);
 		})

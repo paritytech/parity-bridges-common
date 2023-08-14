@@ -23,7 +23,7 @@ use bp_header_chain::{
 		verify_and_optimize_justification, GrandpaJustification, JustificationVerificationContext,
 	},
 	AuthoritySet, ChainWithGrandpa as ChainWithGrandpaBase, ConsensusLogReader, FinalityProof,
-	GrandpaConsensusLogReader, HeaderFinalityInfo, HeaderGrandpaInfo,
+	GrandpaConsensusLogReader, HeaderFinalityInfo, HeaderGrandpaInfo, StoredHeaderGrandpaInfo,
 };
 use bp_runtime::{BasicOperatingMode, HeaderIdProvider, OperatingMode};
 use codec::{Decode, Encode};
@@ -367,17 +367,14 @@ impl<C: ChainWithGrandpa> Engine<C> for Grandpa<C> {
 	async fn synced_headers_finality_info<TargetChain: Chain>(
 		target_client: &impl Client<TargetChain>,
 		at: TargetChain::Hash,
-	) -> Result<
-		Vec<HeaderFinalityInfo<Self::FinalityProof, Self::FinalityVerificationContext>>,
-		SubstrateError,
-	> {
-		let headers_grandpa_info: Vec<HeaderGrandpaInfo<HeaderOf<C>>> = target_client
+	) -> Result<Vec<HeaderGrandpaInfo<HeaderOf<C>>>, SubstrateError> {
+		let stored_headers_grandpa_info: Vec<StoredHeaderGrandpaInfo<HeaderOf<C>>> = target_client
 			.state_call(at, C::SYNCED_HEADERS_GRANDPA_INFO_METHOD.to_string(), ())
 			.await?;
 
-		let mut result = vec![];
-		for header_grandpa_info in headers_grandpa_info {
-			result.push(header_grandpa_info.try_into().map_err(|e| {
+		let mut headers_grandpa_info = vec![];
+		for stored_header_grandpa_info in stored_headers_grandpa_info {
+			headers_grandpa_info.push(stored_header_grandpa_info.try_into().map_err(|e| {
 				SubstrateError::Custom(format!(
 					"{} `AuthoritySet` synced to {} is invalid: {e:?} ",
 					C::NAME,
@@ -386,7 +383,7 @@ impl<C: ChainWithGrandpa> Engine<C> for Grandpa<C> {
 			})?);
 		}
 
-		Ok(result)
+		Ok(headers_grandpa_info)
 	}
 
 	async fn generate_source_key_ownership_proof(
