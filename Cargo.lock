@@ -1600,9 +1600,9 @@ dependencies = [
 
 [[package]]
 name = "clap"
-version = "4.3.19"
+version = "4.3.21"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5fd304a20bff958a57f04c4e96a2e7594cc4490a0e809cbd48bb6437edaa452d"
+checksum = "c27cdf28c0f604ba3f512b0c9a409f8de8513e4816705deb0498b627e7c3a3fd"
 dependencies = [
  "clap_builder",
  "clap_derive",
@@ -1611,9 +1611,9 @@ dependencies = [
 
 [[package]]
 name = "clap_builder"
-version = "4.3.19"
+version = "4.3.21"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "01c6a3f08f1fe5662a35cfe393aec09c4df95f60ee93b7556505260f75eee9e1"
+checksum = "08a9f1ab5e9f01a9b81f202e8562eb9a10de70abf9eaeac1be465c28b75aa4aa"
 dependencies = [
  "anstream",
  "anstyle",
@@ -2048,7 +2048,7 @@ name = "cumulus-client-cli"
 version = "0.1.0"
 source = "git+https://github.com/paritytech/cumulus?branch=master#5386d1821a021b3ede941c5c301802856997f53c"
 dependencies = [
- "clap 4.3.19",
+ "clap 4.3.21",
  "parity-scale-codec",
  "sc-chain-spec",
  "sc-cli",
@@ -3597,7 +3597,7 @@ dependencies = [
  "Inflector",
  "array-bytes",
  "chrono",
- "clap 4.3.19",
+ "clap 4.3.21",
  "comfy-table",
  "frame-benchmarking",
  "frame-support",
@@ -6127,7 +6127,7 @@ version = "0.1.0"
 dependencies = [
  "bp-messages",
  "bridge-runtime-common",
- "clap 4.3.19",
+ "clap 4.3.21",
  "frame-benchmarking",
  "frame-benchmarking-cli",
  "futures",
@@ -6536,7 +6536,7 @@ name = "node-inspect"
 version = "0.9.0-dev"
 source = "git+https://github.com/paritytech/substrate?branch=master#d58481569817f4a2074dbab014fa629dea7e0ec9"
 dependencies = [
- "clap 4.3.19",
+ "clap 4.3.21",
  "parity-scale-codec",
  "sc-cli",
  "sc-client-api",
@@ -8423,7 +8423,7 @@ name = "polkadot-cli"
 version = "0.9.43"
 source = "git+https://github.com/paritytech/polkadot?branch=master#cb58854f2fcfda5459501337aa87d1d04184404f"
 dependencies = [
- "clap 4.3.19",
+ "clap 4.3.21",
  "frame-benchmarking-cli",
  "futures",
  "log",
@@ -10471,7 +10471,7 @@ version = "0.1.0"
 dependencies = [
  "bp-messages",
  "bridge-runtime-common",
- "clap 4.3.19",
+ "clap 4.3.21",
  "frame-benchmarking",
  "frame-benchmarking-cli",
  "frame-support",
@@ -10500,7 +10500,7 @@ version = "0.1.0"
 dependencies = [
  "bp-messages",
  "bridge-runtime-common",
- "clap 4.3.19",
+ "clap 4.3.21",
  "cumulus-client-cli",
  "cumulus-client-consensus-aura",
  "cumulus-client-consensus-common",
@@ -11178,7 +11178,7 @@ source = "git+https://github.com/paritytech/substrate?branch=master#d58481569817
 dependencies = [
  "array-bytes",
  "chrono",
- "clap 4.3.19",
+ "clap 4.3.21",
  "fdlimit",
  "futures",
  "libp2p-identity",
@@ -11988,7 +11988,7 @@ name = "sc-storage-monitor"
 version = "0.1.0"
 source = "git+https://github.com/paritytech/substrate?branch=master#d58481569817f4a2074dbab014fa629dea7e0ec9"
 dependencies = [
- "clap 4.3.19",
+ "clap 4.3.21",
  "fs4",
  "log",
  "sc-client-db",
@@ -14860,7 +14860,7 @@ version = "0.10.0-dev"
 source = "git+https://github.com/paritytech/substrate?branch=master#d58481569817f4a2074dbab014fa629dea7e0ec9"
 dependencies = [
  "async-trait",
- "clap 4.3.19",
+ "clap 4.3.21",
  "frame-remote-externalities",
  "hex",
  "log",
