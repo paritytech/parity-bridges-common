@@ -15,7 +15,7 @@
 // along with Parity Bridges Common.  If not, see <http://www.gnu.org/licenses/>.
 
 use async_trait::async_trait;
-use bp_header_chain::HeaderFinalityInfo;
+use bp_header_chain::{FindEquivocations, HeaderFinalityInfo};
 use finality_relay::{FinalityPipeline, SourceClientBase};
 use relay_utils::{relay_loop::Client as RelayClient, TransactionTracker};
 
@@ -26,6 +26,12 @@ pub trait EquivocationDetectionPipeline: FinalityPipeline {
 	type FinalityVerificationContext;
 	/// The type of the equivocation proof.
 	type EquivocationProof;
+	/// The equivocations finder.
+	type EquivocationsFinder: FindEquivocations<
+		Self::FinalityProof,
+		Self::FinalityVerificationContext,
+		Self::EquivocationProof,
+	>;
 }
 
 /// Source client used in equivocation detection loop.

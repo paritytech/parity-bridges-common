@@ -16,15 +16,19 @@
 
 //! Logic for extracting equivocations from multiple GRANDPA Finality Proofs.
 
-use crate::justification::{
-	verification::{
-		Error as JustificationVerificationError, JustificationVerifier, PrecommitError,
-		SignedPrecommit,
+use crate::{
+	justification::{
+		verification::{
+			Error as JustificationVerificationError, IterationFlow,
+			JustificationVerificationContext, JustificationVerifier, PrecommitError,
+			SignedPrecommit,
+		},
+		GrandpaJustification,
 	},
-	GrandpaJustification,
+	ChainWithGrandpa, FindEquivocations,
 };
 
-use crate::justification::verification::{IterationFlow, JustificationVerificationContext};
+use bp_runtime::{BlockNumberOf, HashOf, HeaderOf};
 use frame_support::RuntimeDebug;
 use sp_consensus_grandpa::{AuthorityId, AuthoritySignature, EquivocationProof, Precommit};
 use sp_runtime::traits::Header as HeaderT;
@@ -166,5 +170,41 @@ impl<'a, Header: HeaderT> JustificationVerifier<Header> for EquivocationsCollect
 		_redundant_votes_ancestries: BTreeSet<Header::Hash>,
 	) -> Result<(), JustificationVerificationError> {
 		Ok(())
+	}
+}
+
+/// Helper struct for finding equivocations in GRANDPA proofs.
+pub struct GrandpaEquivocationsFinder<C>(sp_std::marker::PhantomData<C>);
+
+impl<C: ChainWithGrandpa>
+	FindEquivocations<
+		GrandpaJustification<HeaderOf<C>>,
+		JustificationVerificationContext,
+		EquivocationProof<HashOf<C>, BlockNumberOf<C>>,
+	> for GrandpaEquivocationsFinder<C>
+{
+	type Error = Error;
+
+	fn find_equivocations(
+		verification_context: &JustificationVerificationContext,
+		synced_proof: &GrandpaJustification<HeaderOf<C>>,
+		source_proofs: &[GrandpaJustification<HeaderOf<C>>],
+	) -> Result<Vec<EquivocationProof<HashOf<C>, BlockNumberOf<C>>>, Self::Error> {
+		let source_proof_idx = match source_proofs
+			.binary_search_by(|source_proof| source_proof.round.cmp(&synced_proof.round))
+		{
+			Ok(idx) => idx,
+			Err(_) => return Ok(vec![]),
+		};
+		let source_proof = match source_proofs.get(source_proof_idx) {
+			Some(proof) => proof,
+			None => return Ok(vec![]),
+		};
+
+		let mut equivocations_collector =
+			EquivocationsCollector::new(verification_context, synced_proof)?;
+
+		let _ = equivocations_collector.parse_justification(source_proof);
+		Ok(equivocations_collector.into_equivocation_proofs())
 	}
 }

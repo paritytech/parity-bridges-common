@@ -20,10 +20,11 @@ use crate::error::Error;
 use async_trait::async_trait;
 use bp_header_chain::{
 	justification::{
-		verify_and_optimize_justification, GrandpaJustification, JustificationVerificationContext,
+		verify_and_optimize_justification, GrandpaEquivocationsFinder, GrandpaJustification,
+		JustificationVerificationContext,
 	},
-	AuthoritySet, ChainWithGrandpa as ChainWithGrandpaBase, ConsensusLogReader, FinalityProof,
-	GrandpaConsensusLogReader, HeaderFinalityInfo, HeaderGrandpaInfo, StoredHeaderGrandpaInfo,
+	AuthoritySet, ConsensusLogReader, FinalityProof, FindEquivocations, GrandpaConsensusLogReader,
+	HeaderFinalityInfo, HeaderGrandpaInfo, StoredHeaderGrandpaInfo,
 };
 use bp_runtime::{BasicOperatingMode, HeaderIdProvider, OperatingMode};
 use codec::{Decode, Encode};
@@ -51,6 +52,12 @@ pub trait Engine<C: Chain>: Send {
 	type FinalityVerificationContext;
 	/// The type of the equivocation proof used by the consensus engine.
 	type EquivocationProof: Send + Sync;
+	/// The equivocations finder.
+	type EquivocationsFinder: FindEquivocations<
+		Self::FinalityProof,
+		Self::FinalityVerificationContext,
+		Self::EquivocationProof,
+	>;
 	/// The type of the key owner proof used by the consensus engine.
 	type KeyOwnerProof: Send;
 	/// Type of bridge pallet initialization data.
@@ -169,20 +176,17 @@ impl<C: ChainWithGrandpa> Engine<C> for Grandpa<C> {
 	type FinalityProof = GrandpaJustification<HeaderOf<C>>;
 	type FinalityVerificationContext = JustificationVerificationContext;
 	type EquivocationProof = sp_consensus_grandpa::EquivocationProof<HashOf<C>, BlockNumberOf<C>>;
+	type EquivocationsFinder = GrandpaEquivocationsFinder<C>;
 	type KeyOwnerProof = C::KeyOwnerProof;
 	type InitializationData = bp_header_chain::InitializationData<C::Header>;
 	type OperatingMode = BasicOperatingMode;
 
 	fn is_initialized_key() -> StorageKey {
-		bp_header_chain::storage_keys::best_finalized_key(
-			C::ChainWithGrandpa::WITH_CHAIN_GRANDPA_PALLET_NAME,
-		)
+		bp_header_chain::storage_keys::best_finalized_key(C::WITH_CHAIN_GRANDPA_PALLET_NAME)
 	}
 
 	fn pallet_operating_mode_key() -> StorageKey {
-		bp_header_chain::storage_keys::pallet_operating_mode_key(
-			C::ChainWithGrandpa::WITH_CHAIN_GRANDPA_PALLET_NAME,
-		)
+		bp_header_chain::storage_keys::pallet_operating_mode_key(C::WITH_CHAIN_GRANDPA_PALLET_NAME)
 	}
 
 	async fn source_finality_proofs(
@@ -343,7 +347,7 @@ impl<C: ChainWithGrandpa> Engine<C> for Grandpa<C> {
 		at: HashOf<TargetChain>,
 	) -> Result<Self::FinalityVerificationContext, SubstrateError> {
 		let current_authority_set_key = bp_header_chain::storage_keys::current_authority_set_key(
-			C::ChainWithGrandpa::WITH_CHAIN_GRANDPA_PALLET_NAME,
+			C::WITH_CHAIN_GRANDPA_PALLET_NAME,
 		);
 		let authority_set: AuthoritySet = target_client
 			.storage_value(at, current_authority_set_key)

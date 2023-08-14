@@ -16,7 +16,7 @@
 
 use crate::calls::UtilityCall;
 
-use bp_header_chain::UnderlyingChainWithGrandpaProvider;
+use bp_header_chain::ChainWithGrandpa as ChainWithGrandpaBase;
 use bp_messages::ChainWithMessages as ChainWithMessagesBase;
 use bp_runtime::{
 	Chain as ChainBase, EncodedOrDecodedCall, HashOf, Parachain as ParachainBase, TransactionEra,
@@ -80,7 +80,7 @@ pub trait RelayChain: Chain {
 ///
 /// Keep in mind that parachains are relying on relay chain GRANDPA, so they should not implement
 /// this trait.
-pub trait ChainWithGrandpa: Chain + UnderlyingChainWithGrandpaProvider {
+pub trait ChainWithGrandpa: Chain + ChainWithGrandpaBase {
 	/// Name of the runtime API method that is returning the GRANDPA info associated with the
 	/// headers accepted by the `submit_finality_proofs` extrinsic in the queried block.
 	///

@@ -74,6 +74,9 @@ type FinalityVerificationContextfOf<P> =
 type EquivocationProofOf<P> = <<P as SubstrateFinalityPipeline>::FinalityEngine as Engine<
 	<P as SubstrateFinalityPipeline>::SourceChain,
 >>::EquivocationProof;
+type EquivocationsFinderOf<P> = <<P as SubstrateFinalityPipeline>::FinalityEngine as Engine<
+	<P as SubstrateFinalityPipeline>::SourceChain,
+>>::EquivocationsFinder;
 type KeyOwnerProofOf<P> = <<P as SubstrateFinalityPipeline>::FinalityEngine as Engine<
 	<P as SubstrateFinalityPipeline>::SourceChain,
 >>::KeyOwnerProof;
@@ -102,6 +105,7 @@ impl<P: SubstrateEquivocationDetectionPipeline> EquivocationDetectionPipeline
 	type TargetNumber = BlockNumberOf<P::TargetChain>;
 	type FinalityVerificationContext = FinalityVerificationContextfOf<P>;
 	type EquivocationProof = EquivocationProofOf<P>;
+	type EquivocationsFinder = EquivocationsFinderOf<P>;
 }
 
 /// Different ways of building `report_equivocation` calls.
