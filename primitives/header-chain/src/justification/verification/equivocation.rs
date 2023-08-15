@@ -190,21 +190,20 @@ impl<C: ChainWithGrandpa>
 		synced_proof: &GrandpaJustification<HeaderOf<C>>,
 		source_proofs: &[GrandpaJustification<HeaderOf<C>>],
 	) -> Result<Vec<EquivocationProof<HashOf<C>, BlockNumberOf<C>>>, Self::Error> {
-		let source_proof_idx = match source_proofs
-			.binary_search_by(|source_proof| source_proof.round.cmp(&synced_proof.round))
-		{
-			Ok(idx) => idx,
-			Err(_) => return Ok(vec![]),
-		};
-		let source_proof = match source_proofs.get(source_proof_idx) {
-			Some(proof) => proof,
-			None => return Ok(vec![]),
-		};
-
 		let mut equivocations_collector =
 			EquivocationsCollector::new(verification_context, synced_proof)?;
 
-		let _ = equivocations_collector.parse_justification(source_proof);
+		for source_proof in source_proofs
+			.iter()
+			.filter(|source_proof| source_proof.round == synced_proof.round)
+		{
+			// We ignore the Errors received here since we don't care if the proofs are valid.
+			// We only care about collecting equivocations.
+			// TODO: Maybe we should at least log errors. Or rethink `parse_justification`
+			// to avoid returning errors.
+			let _ = equivocations_collector.parse_justification(source_proof);
+		}
+
 		Ok(equivocations_collector.into_equivocation_proofs())
 	}
 }
