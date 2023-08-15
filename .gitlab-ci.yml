@@ -109,7 +109,8 @@ cargo-clippy:
   <<:                              *test-refs
   script:
     - echo $RUSTFLAGS
-    - rustup component add clipp
+    # TODO: move to docker: https://github.com/paritytech/scripts/pull/591/files
+    - rustup component add clippy
     - cargo version && cargo clippy --version
     - SKIP_WASM_BUILD=1 env -u RUSTFLAGS cargo clippy --locked --all-targets --workspace
 
