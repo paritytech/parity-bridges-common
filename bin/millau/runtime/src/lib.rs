@@ -886,7 +886,7 @@ impl_runtime_apis! {
 		}
 
 		fn synced_headers_grandpa_info(
-		) -> Vec<bp_header_chain::HeaderGrandpaInfo<bp_rialto::Header>> {
+		) -> Vec<bp_header_chain::StoredHeaderGrandpaInfo<bp_rialto::Header>> {
 			BridgeRialtoGrandpa::synced_headers_grandpa_info()
 		}
 	}
@@ -897,7 +897,7 @@ impl_runtime_apis! {
 		}
 
 		fn synced_headers_grandpa_info(
-		) -> Vec<bp_header_chain::HeaderGrandpaInfo<bp_westend::Header>> {
+		) -> Vec<bp_header_chain::StoredHeaderGrandpaInfo<bp_westend::Header>> {
 			BridgeWestendGrandpa::synced_headers_grandpa_info()
 		}
 	}

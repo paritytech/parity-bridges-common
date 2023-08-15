@@ -3241,6 +3241,16 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5443807d6dff69373d433ab9ef5378ad8df50ca6298caf15de6e52e24aaf54d5"
 
 [[package]]
+name = "equivocation-detector"
+version = "0.1.0"
+dependencies = [
+ "async-trait",
+ "bp-header-chain",
+ "finality-relay",
+ "relay-utils",
+]
+
+[[package]]
 name = "errno"
 version = "0.3.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -13970,6 +13980,7 @@ dependencies = [
  "bp-runtime",
  "bp-wococo",
  "bridge-runtime-common",
+ "equivocation-detector",
  "finality-grandpa",
  "finality-relay",
  "frame-support",
