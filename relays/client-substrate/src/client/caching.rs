@@ -224,7 +224,10 @@ impl<C: Chain, B: Client<C>> Client<C> for CachingClient<C, B> {
 		at: HashOf<C>,
 		set_id: sp_consensus_grandpa::SetId,
 		authority_id: sp_consensus_grandpa::AuthorityId,
-	) -> Result<Option<sp_consensus_grandpa::OpaqueKeyOwnershipProof>> {
+	) -> Result<Option<sp_consensus_grandpa::OpaqueKeyOwnershipProof>>
+	where
+		C: ChainWithGrandpa,
+	{
 		self.backend
 			.generate_grandpa_key_ownership_proof(at, set_id, authority_id)
 			.await

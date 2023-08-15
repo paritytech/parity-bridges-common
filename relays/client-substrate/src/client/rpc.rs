@@ -317,7 +317,10 @@ impl<C: Chain> Client<C> for RpcClient<C> {
 		at: HashOf<C>,
 		set_id: sp_consensus_grandpa::SetId,
 		authority_id: sp_consensus_grandpa::AuthorityId,
-	) -> Result<Option<sp_consensus_grandpa::OpaqueKeyOwnershipProof>> {
+	) -> Result<Option<sp_consensus_grandpa::OpaqueKeyOwnershipProof>>
+	where
+		C: ChainWithGrandpa,
+	{
 		self.state_call(
 			at,
 			SUB_API_GRANDPA_GENERATE_KEY_OWNERSHIP_PROOF.into(),

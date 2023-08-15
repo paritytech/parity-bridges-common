@@ -14,7 +14,7 @@
 // You should have received a copy of the GNU General Public License
 // along with Parity Bridges Common.  If not, see <http://www.gnu.org/licenses/>.
 
-use crate::{FinalitySyncPipeline, SourceClient};
+use crate::{base::SourceClientBase, FinalityPipeline};
 
 use bp_header_chain::FinalityProof;
 use futures::{FutureExt, Stream, StreamExt};
@@ -22,15 +22,15 @@ use std::pin::Pin;
 
 /// Finality proofs container. Ordered by target header number.
 pub type FinalityProofs<P> =
-	Vec<(<P as FinalitySyncPipeline>::Number, <P as FinalitySyncPipeline>::FinalityProof)>;
+	Vec<(<P as FinalityPipeline>::Number, <P as FinalityPipeline>::FinalityProof)>;
 
 /// Source finality proofs stream that may be restarted.
-pub struct FinalityProofsStream<P: FinalitySyncPipeline, SC: SourceClient<P>> {
+pub struct FinalityProofsStream<P: FinalityPipeline, SC: SourceClientBase<P>> {
 	/// The underlying stream.
 	stream: Option<Pin<Box<SC::FinalityProofsStream>>>,
 }
 
-impl<P: FinalitySyncPipeline, SC: SourceClient<P>> FinalityProofsStream<P, SC> {
+impl<P: FinalityPipeline, SC: SourceClientBase<P>> FinalityProofsStream<P, SC> {
 	pub fn new() -> Self {
 		Self { stream: None }
 	}
@@ -74,12 +74,12 @@ impl<P: FinalitySyncPipeline, SC: SourceClient<P>> FinalityProofsStream<P, SC> {
 }
 
 /// Source finality proofs buffer.
-pub struct FinalityProofsBuf<P: FinalitySyncPipeline> {
+pub struct FinalityProofsBuf<P: FinalityPipeline> {
 	/// Proofs buffer.
 	buf: FinalityProofs<P>,
 }
 
-impl<P: FinalitySyncPipeline> FinalityProofsBuf<P> {
+impl<P: FinalityPipeline> FinalityProofsBuf<P> {
 	pub fn new(buf: FinalityProofs<P>) -> Self {
 		Self { buf }
 	}
@@ -88,7 +88,7 @@ impl<P: FinalitySyncPipeline> FinalityProofsBuf<P> {
 		&self.buf
 	}
 
-	pub fn fill<SC: SourceClient<P>>(&mut self, stream: &mut FinalityProofsStream<P, SC>) {
+	pub fn fill<SC: SourceClientBase<P>>(&mut self, stream: &mut FinalityProofsStream<P, SC>) {
 		let mut proofs_count = 0;
 		let mut first_header_number = None;
 		let mut last_header_number = None;
@@ -130,7 +130,7 @@ mod tests {
 	use super::*;
 	use crate::mock::*;
 
-	impl<P: FinalitySyncPipeline, SC: SourceClient<P>> FinalityProofsStream<P, SC> {
+	impl<P: FinalityPipeline, SC: SourceClientBase<P>> FinalityProofsStream<P, SC> {
 		fn from_stream(stream: SC::FinalityProofsStream) -> Self {
 			Self { stream: Some(Box::pin(stream)) }
 		}
