@@ -23,9 +23,7 @@ mod verification;
 
 use crate::ChainWithGrandpa;
 pub use verification::{
-	equivocation::{
-		EquivocationsCollector, Error as EquivocationsCollectorError, GrandpaEquivocationsFinder,
-	},
+	equivocation::{EquivocationsCollector, GrandpaEquivocationsFinder},
 	optimizer::verify_and_optimize_justification,
 	strict::verify_justification,
 	AncestryChain, Error as JustificationVerificationError, JustificationVerificationContext,

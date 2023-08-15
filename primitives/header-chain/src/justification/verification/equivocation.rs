@@ -29,22 +29,12 @@ use crate::{
 };
 
 use bp_runtime::{BlockNumberOf, HashOf, HeaderOf};
-use frame_support::RuntimeDebug;
 use sp_consensus_grandpa::{AuthorityId, AuthoritySignature, EquivocationProof, Precommit};
 use sp_runtime::traits::Header as HeaderT;
 use sp_std::{
 	collections::{btree_map::BTreeMap, btree_set::BTreeSet},
 	prelude::*,
 };
-
-/// Justification verification error.
-#[derive(Eq, RuntimeDebug, PartialEq)]
-pub enum Error {
-	/// Justification is targeting unexpected round.
-	InvalidRound,
-	/// Justification verification error.
-	JustificationVerification(JustificationVerificationError),
-}
 
 enum AuthorityVotes<Header: HeaderT> {
 	SingleVote(SignedPrecommit<Header>),
@@ -66,29 +56,32 @@ impl<'a, Header: HeaderT> EquivocationsCollector<'a, Header> {
 	pub fn new(
 		context: &'a JustificationVerificationContext,
 		base_justification: &GrandpaJustification<Header>,
-	) -> Result<Self, Error> {
+	) -> Result<Self, JustificationVerificationError> {
 		let mut checker = Self { round: base_justification.round, context, votes: BTreeMap::new() };
 
-		checker.parse_justification(base_justification)?;
+		checker.verify_justification(
+			(base_justification.commit.target_hash, base_justification.commit.target_number),
+			checker.context,
+			base_justification,
+		)?;
+
 		Ok(checker)
 	}
 
-	/// Parse an additional justification for equivocations.
-	pub fn parse_justification(
-		&mut self,
-		justification: &GrandpaJustification<Header>,
-	) -> Result<(), Error> {
-		// The justification should target the same round as the base justification.
-		if self.round != justification.round {
-			return Err(Error::InvalidRound)
+	/// Parse additional justifications for equivocations.
+	pub fn parse_justifications(&mut self, justifications: &[GrandpaJustification<Header>]) {
+		let round = self.round;
+		for justification in
+			justifications.iter().filter(|justification| round == justification.round)
+		{
+			// We ignore the Errors received here since we don't care if the proofs are valid.
+			// We only care about collecting equivocations.
+			let _ = self.verify_justification(
+				(justification.commit.target_hash, justification.commit.target_number),
+				self.context,
+				justification,
+			);
 		}
-
-		self.verify_justification(
-			(justification.commit.target_hash, justification.commit.target_number),
-			self.context,
-			justification,
-		)
-		.map_err(Error::JustificationVerification)
 	}
 
 	/// Extract the equivocation proofs that have been collected.
@@ -183,7 +176,7 @@ impl<C: ChainWithGrandpa>
 		EquivocationProof<HashOf<C>, BlockNumberOf<C>>,
 	> for GrandpaEquivocationsFinder<C>
 {
-	type Error = Error;
+	type Error = JustificationVerificationError;
 
 	fn find_equivocations(
 		verification_context: &JustificationVerificationContext,
@@ -193,16 +186,7 @@ impl<C: ChainWithGrandpa>
 		let mut equivocations_collector =
 			EquivocationsCollector::new(verification_context, synced_proof)?;
 
-		for source_proof in source_proofs
-			.iter()
-			.filter(|source_proof| source_proof.round == synced_proof.round)
-		{
-			// We ignore the Errors received here since we don't care if the proofs are valid.
-			// We only care about collecting equivocations.
-			// TODO: Maybe we should at least log errors. Or rethink `parse_justification`
-			// to avoid returning errors.
-			let _ = equivocations_collector.parse_justification(source_proof);
-		}
+		equivocations_collector.parse_justifications(source_proofs);
 
 		Ok(equivocations_collector.into_equivocation_proofs())
 	}

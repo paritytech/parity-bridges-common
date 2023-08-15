@@ -30,7 +30,7 @@ fn duplicate_votes_are_not_considered_equivocations() {
 
 	let mut collector =
 		EquivocationsCollector::new(&verification_context, &base_justification).unwrap();
-	collector.parse_justification(&base_justification.clone()).unwrap();
+	collector.parse_justifications(&[base_justification.clone()]);
 
 	assert_eq!(collector.into_equivocation_proofs().len(), 0);
 }
@@ -95,7 +95,7 @@ fn equivocations_are_detected_in_extra_justification_redundant_votes() {
 	let verification_context = verification_context(TEST_GRANDPA_SET_ID);
 	let mut collector =
 		EquivocationsCollector::new(&verification_context, &base_justification).unwrap();
-	collector.parse_justification(&extra_justification).unwrap();
+	collector.parse_justifications(&[extra_justification]);
 
 	assert_eq!(
 		collector.into_equivocation_proofs(),
