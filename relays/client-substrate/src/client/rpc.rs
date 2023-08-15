@@ -385,6 +385,14 @@ impl<C: Chain> Client<C> for RpcClient<C> {
 	}
 
 	async fn submit_unsigned_extrinsic(&self, transaction: Bytes) -> Result<HashOf<C>> {
+		// one last check that the transaction is valid. Most of checks happen in the relay loop and
+		// it is the "final" check before submission.
+		let best_header_hash = self.best_header_hash().await?;
+		self.validate_transaction(best_header_hash, transaction.clone())
+			.await
+			.map_err(|e| Error::failed_to_submit_transaction::<C>(e))?
+			.map_err(|e| Error::failed_to_submit_transaction::<C>(Error::TransactionInvalid(e)))?;
+
 		self.jsonrpsee_execute(move |client| async move {
 			let tx_hash = SubstrateAuthorClient::<C>::submit_extrinsic(&*client, transaction)
 				.await
@@ -444,14 +452,23 @@ impl<C: Chain> Client<C> for RpcClient<C> {
 		let transaction_nonce = self.next_account_index(signer.public().into()).await?;
 		let best_header = self.best_header().await?;
 		let best_header_id = best_header.id();
+
+		let extrinsic = prepare_extrinsic(best_header_id, transaction_nonce)?;
+		let stall_timeout = transaction_stall_timeout(
+			extrinsic.era.mortality_period(),
+			C::AVERAGE_BLOCK_INTERVAL,
+			STALL_TIMEOUT,
+		);
+		let signed_extrinsic = C::sign_transaction(signing_data, extrinsic)?.encode();
+
+		// one last check that the transaction is valid. Most of checks happen in the relay loop and
+		// it is the "final" check before submission.
+		self.validate_transaction(best_header_id.hash(), signed_extrinsic.clone())
+			.await
+			.map_err(|e| Error::failed_to_submit_transaction::<C>(e))?
+			.map_err(|e| Error::failed_to_submit_transaction::<C>(Error::TransactionInvalid(e)))?;
+
 		self.jsonrpsee_execute(move |client| async move {
-			let extrinsic = prepare_extrinsic(best_header_id, transaction_nonce)?;
-			let stall_timeout = transaction_stall_timeout(
-				extrinsic.era.mortality_period(),
-				C::AVERAGE_BLOCK_INTERVAL,
-				STALL_TIMEOUT,
-			);
-			let signed_extrinsic = C::sign_transaction(signing_data, extrinsic)?.encode();
 			let tx_hash = C::Hasher::hash(&signed_extrinsic);
 			let subscription: jsonrpsee::core::client::Subscription<_> =
 				SubstrateAuthorClient::<C>::submit_and_watch_extrinsic(
