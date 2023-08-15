@@ -843,6 +843,24 @@ dependencies = [
 ]
 
 [[package]]
+name = "bp-asset-hub-kusama"
+version = "0.1.0"
+dependencies = [
+ "bp-xcm-bridge-hub-router",
+ "parity-scale-codec",
+ "scale-info",
+]
+
+[[package]]
+name = "bp-asset-hub-polkadot"
+version = "0.1.0"
+dependencies = [
+ "bp-xcm-bridge-hub-router",
+ "parity-scale-codec",
+ "scale-info",
+]
+
+[[package]]
 name = "bp-beefy"
 version = "0.1.0"
 dependencies = [
@@ -1169,6 +1187,7 @@ version = "0.1.0"
 dependencies = [
  "parity-scale-codec",
  "scale-info",
+ "sp-core",
  "sp-runtime",
 ]
 

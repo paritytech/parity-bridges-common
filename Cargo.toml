@@ -18,6 +18,8 @@ members = [
 	"modules/shift-session-manager",
 	"modules/xcm-bridge-hub-router",
 	"primitives/beefy",
+	"primitives/chain-asset-hub-kusama",
+	"primitives/chain-asset-hub-polkadot",
 	"primitives/chain-bridge-hub-cumulus",
 	"primitives/chain-bridge-hub-kusama",
 	"primitives/chain-bridge-hub-polkadot",
