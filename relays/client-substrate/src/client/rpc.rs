@@ -90,6 +90,15 @@ struct ClientData {
 	client: Arc<WsClient>,
 }
 
+/// Already encoded value.
+struct PreEncoded(Vec<u8>);
+
+impl Encode for PreEncoded {
+	fn encode(&self) -> Vec<u8> {
+		self.0.clone()
+	}
+}
+
 impl<C: Chain> std::fmt::Debug for RpcClient<C> {
 	fn fmt(&self, fmt: &mut std::fmt::Formatter) -> std::fmt::Result {
 		fmt.write_fmt(format_args!("RpcClient<{}>", C::NAME))
@@ -388,7 +397,7 @@ impl<C: Chain> Client<C> for RpcClient<C> {
 		// one last check that the transaction is valid. Most of checks happen in the relay loop and
 		// it is the "final" check before submission.
 		let best_header_hash = self.best_header_hash().await?;
-		self.validate_transaction(best_header_hash, transaction.clone())
+		self.validate_transaction(best_header_hash, PreEncoded(transaction.0.clone()))
 			.await
 			.map_err(|e| Error::failed_to_submit_transaction::<C>(e))?
 			.map_err(|e| Error::failed_to_submit_transaction::<C>(Error::TransactionInvalid(e)))?;
@@ -463,7 +472,7 @@ impl<C: Chain> Client<C> for RpcClient<C> {
 
 		// one last check that the transaction is valid. Most of checks happen in the relay loop and
 		// it is the "final" check before submission.
-		self.validate_transaction(best_header_id.hash(), signed_extrinsic.clone())
+		self.validate_transaction(best_header_id.hash(), PreEncoded(signed_extrinsic.clone()))
 			.await
 			.map_err(|e| Error::failed_to_submit_transaction::<C>(e))?
 			.map_err(|e| Error::failed_to_submit_transaction::<C>(Error::TransactionInvalid(e)))?;
