@@ -202,7 +202,7 @@ pub struct HeaderFinalityInfo<FinalityProof, FinalityVerificationContext> {
 	pub new_verification_context: Option<FinalityVerificationContext>,
 }
 
-/// Storable Grandpa-related info associated to a header.
+/// Grandpa-related info associated to a header. This info can be saved to storage.
 pub type StoredHeaderGrandpaInfo<Header> =
 	HeaderFinalityInfo<GrandpaJustification<Header>, AuthoritySet>;
 
