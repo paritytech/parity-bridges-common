@@ -103,6 +103,13 @@ clippy-nightly:
     # clippy currently is raising `derive-partial-eq-without-eq` warning even if `Eq` is actually derived
     - SKIP_WASM_BUILD=1 cargo +nightly clippy --all-targets -- -A clippy::redundant_closure -A clippy::derive-partial-eq-without-eq -A clippy::or_fun_call
 
+cargo-clippy:
+  stage:                           test
+  <<:                              *docker-env
+  <<:                              *test-refs
+  script:
+    - SKIP_WASM_BUILD=1 env -u RUSTFLAGS cargo clippy --locked --all-targets
+
 fmt:
   stage:                           test
   <<:                              *docker-env
