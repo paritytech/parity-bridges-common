@@ -20,7 +20,7 @@ use crate::{
 	finality::{
 		FinalitySyncPipelineAdapter, SubmitFinalityProofCallBuilder, SubstrateFinalitySyncPipeline,
 	},
-	finality_base::{engine::Engine, SubstrateFinalityProof},
+	finality_base::{best_synced_header_id, engine::Engine, SubstrateFinalityProof},
 	TransactionParams,
 };
 
@@ -100,11 +100,11 @@ impl<P: SubstrateFinalitySyncPipeline, TargetClnt: Client<P::TargetChain>>
 		// we can't relay finality if bridge pallet at target chain is halted
 		self.ensure_pallet_active().await?;
 
-		Ok(crate::messages::source::read_client_state::<P::TargetChain, P::SourceChain>(
+		Ok(best_synced_header_id::<P::SourceChain, P::TargetChain>(
 			&self.client,
+			self.client.best_finalized_header_hash().await?,
 		)
 		.await?
-		.best_finalized_peer_at_best_self
 		.ok_or(Error::BridgePalletIsNotInitialized)?)
 	}
 

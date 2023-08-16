@@ -51,6 +51,12 @@ pub trait SourceClient<P: EquivocationDetectionPipeline>: SourceClientBase<P> {
 /// Target client used in equivocation detection loop.
 #[async_trait]
 pub trait TargetClient<P: EquivocationDetectionPipeline>: RelayClient {
+	/// Get the hash of the best source header known by the target at the provided block number.
+	async fn best_synced_header_hash(
+		&self,
+		at: P::TargetNumber,
+	) -> Result<Option<P::Hash>, Self::Error>;
+
 	/// Get the data stored by the target at the specified block for validating source finality
 	/// proofs.
 	async fn finality_verification_context(
