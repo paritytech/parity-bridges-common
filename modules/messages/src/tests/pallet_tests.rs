@@ -329,7 +329,7 @@ fn receive_messages_proof_fails_when_dispatcher_is_inactive() {
 		// "enqueue" enough (to deactivate dispatcher) messages at dispatcher
 		let latest_received_nonce = BridgedChain::MAX_UNCONFIRMED_MESSAGES_IN_CONFIRMATION_TX + 1;
 		for _ in 1..=latest_received_nonce {
-			TestMessageDispatch::emulate_enqueued_message();
+			TestMessageDispatch::emulate_enqueued_message(test_lane_id());
 		}
 		assert!(!TestMessageDispatch::is_active(test_lane_id()));
 		InboundLanes::<TestRuntime, ()>::insert(
@@ -365,7 +365,7 @@ fn receive_messages_succeeds_when_dispatcher_becomes_inactive_in_the_middle_of_t
 		// "enqueue" enough (to deactivate dispatcher) messages at dispatcher
 		let latest_received_nonce = BridgedChain::MAX_UNCONFIRMED_MESSAGES_IN_CONFIRMATION_TX / 2;
 		for _ in 1..=latest_received_nonce {
-			TestMessageDispatch::emulate_enqueued_message();
+			TestMessageDispatch::emulate_enqueued_message(test_lane_id());
 		}
 		assert!(TestMessageDispatch::is_active(test_lane_id()));
 		InboundLanes::<TestRuntime, ()>::insert(

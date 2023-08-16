@@ -14,7 +14,7 @@
 // You should have received a copy of the GNU General Public License
 // along with Parity Bridges Common.  If not, see <http://www.gnu.org/licenses/>.
 
-use bridge_runtime_common::messages_xcm_extension::XcmBlobHauler;
+use bp_messages::LaneId;
 use millau_runtime::{
 	AccountId, AuraConfig, BalancesConfig, BeefyConfig, BridgeRialtoMessagesConfig,
 	BridgeRialtoParachainMessagesConfig, BridgeWestendGrandpaConfig, GrandpaConfig,
@@ -225,7 +225,12 @@ fn testnet_genesis(
 		},
 		bridge_rialto_messages: BridgeRialtoMessagesConfig {
 			owner: Some(get_account_id_from_seed::<sr25519::Public>(RIALTO_MESSAGES_PALLET_OWNER)),
-			opened_lanes: vec![millau_runtime::rialto_messages::ToRialtoXcmBlobHauler::xcm_lane()],
+			opened_lanes: vec![
+				LaneId::new(
+					xcm::latest::InteriorMultiLocation::from(millau_runtime::xcm_config::ThisNetwork::get()),
+					xcm::latest::InteriorMultiLocation::from(millau_runtime::xcm_config::RialtoNetwork::get()),
+				),
+			],
 			..Default::default()
 		},
 		bridge_rialto_parachain_messages: BridgeRialtoParachainMessagesConfig {
@@ -233,8 +238,10 @@ fn testnet_genesis(
 				RIALTO_PARACHAIN_MESSAGES_PALLET_OWNER,
 			)),
 			opened_lanes: vec![
-				millau_runtime::rialto_parachain_messages::ToRialtoParachainXcmBlobHauler::xcm_lane(
-				),
+				LaneId::new(
+					xcm::latest::InteriorMultiLocation::from(millau_runtime::xcm_config::ThisNetwork::get()),
+					xcm::latest::InteriorMultiLocation::from(millau_runtime::xcm_config::RialtoParachainNetwork::get()),
+				)
 			],
 			..Default::default()
 		},

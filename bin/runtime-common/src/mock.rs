@@ -31,6 +31,7 @@ use bp_messages::{
 use bp_parachains::SingleParaStoredHeaderDataBuilder;
 use bp_relayers::PayRewardFromAccount;
 use bp_runtime::{messages::MessageDispatchResult, Chain, ChainId, Parachain};
+use codec::Encode;
 use frame_support::{
 	parameter_types,
 	weights::{ConstantMultiplier, IdentityFee, RuntimeDbWeight, Weight},
@@ -218,7 +219,7 @@ impl pallet_bridge_messages::Config for TestRuntime {
 	type RuntimeEvent = RuntimeEvent;
 	type WeightInfo = pallet_bridge_messages::weights::BridgeWeight<TestRuntime>;
 
-	type OutboundPayload = XcmAsPlainPayload;
+	type OutboundPayload = Vec<u8>;
 
 	type InboundPayload = Vec<u8>;
 	type DeliveryPayments = ();

@@ -14,7 +14,7 @@
 // You should have received a copy of the GNU General Public License
 // along with Parity Bridges Common.  If not, see <http://www.gnu.org/licenses/>.
 
-use bridge_runtime_common::messages_xcm_extension::XcmBlobHauler;
+use bp_messages::LaneId;
 use cumulus_primitives_core::ParaId;
 use rialto_parachain_runtime::{AccountId, AuraId, BridgeMillauMessagesConfig, Signature};
 use sc_chain_spec::{ChainSpecExtension, ChainSpecGroup};
@@ -198,7 +198,10 @@ fn testnet_genesis(
 		bridge_millau_messages: BridgeMillauMessagesConfig {
 			owner: Some(get_account_id_from_seed::<sr25519::Public>(MILLAU_MESSAGES_PALLET_OWNER)),
 			opened_lanes: vec![
-				rialto_parachain_runtime::millau_messages::ToMillauXcmBlobHauler::xcm_lane(),
+				LaneId::new(
+					xcm::latest::InteriorMultiLocation::from(rialto_parachain_runtime::ThisNetwork::get()),
+					xcm::latest::InteriorMultiLocation::from(rialto_parachain_runtime::MillauNetwork::get()),
+				)
 			],
 			..Default::default()
 		},

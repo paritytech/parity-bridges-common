@@ -468,7 +468,7 @@ mod tests {
 			// => tx is accepted
 			deliver_message_10();
 
-			DummyMessageDispatch::deactivate();
+			DummyMessageDispatch::deactivate(test_lane_id());
 			assert!(!validate_message_delivery(11, 15));
 		});
 	}

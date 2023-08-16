@@ -406,7 +406,7 @@ impl MessageDispatch for TestMessageDispatch {
 	) -> MessageDispatchResult<TestDispatchLevelResult> {
 		match message.data.payload.as_ref() {
 			Ok(payload) => {
-				Self::emulate_enqueued_message();
+				Self::emulate_enqueued_message(message.key.lane_id);
 				payload.dispatch_result.clone()
 			},
 			Err(_) => dispatch_result(0),

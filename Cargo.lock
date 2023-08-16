@@ -6149,6 +6149,7 @@ dependencies = [
  "sp-timestamp",
  "substrate-build-script-utils",
  "substrate-frame-rpc-system",
+ "xcm",
 ]
 
 [[package]]
@@ -10471,6 +10472,7 @@ dependencies = [
  "sp-core",
  "sp-runtime",
  "substrate-build-script-utils",
+ "xcm",
 ]
 
 [[package]]
@@ -10526,6 +10528,7 @@ dependencies = [
  "substrate-build-script-utils",
  "substrate-frame-rpc-system",
  "substrate-prometheus-endpoint",
+ "xcm",
 ]
 
 [[package]]
@@ -13905,6 +13908,7 @@ dependencies = [
  "num-traits",
  "pallet-bridge-messages",
  "pallet-bridge-parachains",
+ "pallet-xcm-bridge-hub",
  "parachains-relay",
  "parity-scale-codec",
  "polkadot-parachain",

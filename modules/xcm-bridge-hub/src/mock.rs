@@ -20,7 +20,7 @@ use crate as pallet_xcm_bridge_hub;
 
 use bp_messages::{
 	target_chain::{DispatchMessage, MessageDispatch},
-	ChainWithMessages, MessageNonce,
+	ChainWithMessages, LaneId, MessageNonce,
 };
 use bp_runtime::{messages::MessageDispatchResult, Chain, ChainId};
 use codec::Encode;
