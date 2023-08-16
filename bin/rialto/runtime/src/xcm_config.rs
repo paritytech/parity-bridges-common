@@ -17,8 +17,8 @@
 //! XCM configurations for the Rialto runtime.
 
 use super::{
-	AccountId, AllPalletsWithSystem, Balances, Runtime,
-	RuntimeCall, RuntimeEvent, RuntimeOrigin, XcmPallet,
+	AccountId, AllPalletsWithSystem, Balances, Runtime, RuntimeCall, RuntimeEvent, RuntimeOrigin,
+	XcmPallet,
 };
 use bp_rialto::WeightToFee;
 use bridge_runtime_common::CustomNetworkId;

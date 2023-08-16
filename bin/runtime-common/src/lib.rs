@@ -37,8 +37,6 @@ mod mock;
 #[cfg(feature = "integrity-test")]
 pub mod integrity;
 
-const LOG_TARGET_BRIDGE_DISPATCH: &str = "runtime::bridge-dispatch";
-
 /// A duplication of the `FilterCall` trait.
 ///
 /// We need this trait in order to be able to implement it for the messages pallet,

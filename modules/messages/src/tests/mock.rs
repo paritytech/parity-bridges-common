@@ -379,8 +379,7 @@ pub struct TestMessageDispatch;
 impl TestMessageDispatch {
 	pub fn emulate_enqueued_message(lane: LaneId) {
 		let key = (b"dispatched", lane).encode();
-		let dispatched =
-			frame_support::storage::unhashed::get_or_default::<MessageNonce>(&key[..]);
+		let dispatched = frame_support::storage::unhashed::get_or_default::<MessageNonce>(&key[..]);
 		frame_support::storage::unhashed::put(&key[..], &(dispatched + 1));
 	}
 }
@@ -390,8 +389,9 @@ impl MessageDispatch for TestMessageDispatch {
 	type DispatchLevelResult = TestDispatchLevelResult;
 
 	fn is_active(lane: LaneId) -> bool {
-		frame_support::storage::unhashed::get_or_default::<MessageNonce>(&(b"dispatched", lane).encode()[..]) <=
-			BridgedChain::MAX_UNCONFIRMED_MESSAGES_IN_CONFIRMATION_TX
+		frame_support::storage::unhashed::get_or_default::<MessageNonce>(
+			&(b"dispatched", lane).encode()[..],
+		) <= BridgedChain::MAX_UNCONFIRMED_MESSAGES_IN_CONFIRMATION_TX
 	}
 
 	fn dispatch_weight(message: &mut DispatchMessage<TestPayload>) -> Weight {

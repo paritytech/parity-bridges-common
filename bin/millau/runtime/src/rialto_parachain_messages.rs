@@ -16,14 +16,10 @@
 
 //! Everything required to serve Millau <-> RialtoParachain messages.
 
-use crate::{Runtime, WithRialtoParachainMessagesInstance};
+use crate::Runtime;
 
-use bp_messages::LaneId;
-use frame_support::{parameter_types, traits::ConstU64, weights::Weight};
+use frame_support::{parameter_types, weights::Weight};
 use pallet_bridge_relayers::WeightInfoExt as _;
-use sp_core::Get;
-use xcm::prelude::*;
-use xcm_builder::HaulBlobExporter;
 
 /// Weight of 2 XCM instructions is for simple `Trap(42)` program, coming through bridge
 /// (it is prepended with `UniversalOrigin` instruction). It is used just for simplest manual

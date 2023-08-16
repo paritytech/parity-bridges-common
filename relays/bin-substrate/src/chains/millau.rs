@@ -46,8 +46,8 @@ impl CliEncodeMessage for Millau {
 		)
 		.map_err(|e| anyhow::format_err!("Failed to prepare outbound message: {:?}", e))?
 		.0
-		.1
-		.1)
+		 .1
+		 .1)
 	}
 
 	fn encode_execute_xcm(

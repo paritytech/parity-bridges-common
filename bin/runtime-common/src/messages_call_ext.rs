@@ -279,7 +279,8 @@ impl<
 	fn check_obsolete_call(&self) -> TransactionValidity {
 		match self.call_info() {
 			Some(CallInfo::ReceiveMessagesProof(proof_info))
-				if proof_info.is_obsolete(T::MessageDispatch::is_active(proof_info.base.lane_id)) =>
+				if proof_info
+					.is_obsolete(T::MessageDispatch::is_active(proof_info.base.lane_id)) =>
 			{
 				log::trace!(
 					target: pallet_bridge_messages::LOG_TARGET,

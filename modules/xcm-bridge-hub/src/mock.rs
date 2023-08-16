@@ -315,7 +315,8 @@ impl MessageDispatch for TestMessageDispatch {
 	type DispatchLevelResult = ();
 
 	fn is_active(lane: LaneId) -> bool {
-		frame_support::storage::unhashed::take::<bool>(&(b"inactive", lane).encode()[..]) != Some(false)
+		frame_support::storage::unhashed::take::<bool>(&(b"inactive", lane).encode()[..]) !=
+			Some(false)
 	}
 
 	fn dispatch_weight(_message: &mut DispatchMessage<Self::DispatchPayload>) -> Weight {

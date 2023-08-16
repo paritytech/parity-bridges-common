@@ -19,10 +19,8 @@
 //! with calls that are: delivering new messsage and all necessary underlying headers
 //! (parachain or relay chain).
 
-use crate::{
-	messages_call_ext::{
-		CallHelper as MessagesCallHelper, CallInfo as MessagesCallInfo, MessagesCallSubType,
-	},
+use crate::messages_call_ext::{
+	CallHelper as MessagesCallHelper, CallInfo as MessagesCallInfo, MessagesCallSubType,
 };
 use bp_messages::{ChainWithMessages, LaneId, MessageNonce};
 use bp_relayers::{RewardsAccountOwner, RewardsAccountParams};
@@ -113,7 +111,7 @@ where
 {
 	type Instance = Instance;
 	type Id = (); // TODO: this is wrong, but hopefully we will deploy dynamic lanes/fees at the same
-				  // time when those extensions will go away
+			  // time when those extensions will go away
 }
 
 /// Refund calculator.

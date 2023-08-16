@@ -17,8 +17,8 @@
 //! XCM configurations for the Millau runtime.
 
 use super::{
-	AccountId, AllPalletsWithSystem,
-	Balances, Runtime, RuntimeCall, RuntimeEvent, RuntimeOrigin, XcmPallet,
+	AccountId, AllPalletsWithSystem, Balances, Runtime, RuntimeCall, RuntimeEvent, RuntimeOrigin,
+	XcmPallet,
 };
 use bp_messages::LaneId;
 use bp_millau::WeightToFee;
@@ -211,8 +211,14 @@ impl ExportXcm for ToRialtoOrRialtoParachainSwitchExporter {
 		message: &mut Option<Xcm<()>>,
 	) -> SendResult<Self::Ticket> {
 		if network == RialtoNetwork::get() {
-			crate::XcmRialtoBridgeHub::validate(network, channel, universal_source, destination, message)
-				.map(|result| ((RialtoNetwork::get(), result.0), result.1))
+			crate::XcmRialtoBridgeHub::validate(
+				network,
+				channel,
+				universal_source,
+				destination,
+				message,
+			)
+			.map(|result| ((RialtoNetwork::get(), result.0), result.1))
 		} else if network == RialtoParachainNetwork::get() {
 			crate::XcmRialtoParachainBridgeHub::validate(
 				network,

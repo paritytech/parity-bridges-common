@@ -96,8 +96,8 @@ pub trait MessageDispatch {
 
 	/// Returns `true` if dispatcher for given lane is ready to accept additional messages. The
 	/// `false` should be treated as a hint by both dispatcher and its consumers - i.e. dispatcher
-	/// shall not simply drop messages if it returns `false`. The consumer may still call the `dispatch`
-	/// if dispatcher has returned `false`.
+	/// shall not simply drop messages if it returns `false`. The consumer may still call the
+	/// `dispatch` if dispatcher has returned `false`.
 	fn is_active(lane: LaneId) -> bool;
 
 	/// Estimate dispatch weight.

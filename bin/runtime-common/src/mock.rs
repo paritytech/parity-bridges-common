@@ -38,7 +38,6 @@ use frame_support::{
 	StateVersion,
 };
 use pallet_transaction_payment::Multiplier;
-use sp_core::Get;
 use sp_runtime::{
 	testing::H256,
 	traits::{BlakeTwo256, ConstU32, ConstU64, ConstU8, IdentityLookup},
@@ -258,7 +257,8 @@ impl MessageDispatch for DummyMessageDispatch {
 	type DispatchLevelResult = ();
 
 	fn is_active(lane: LaneId) -> bool {
-		frame_support::storage::unhashed::take::<bool>(&(b"inactive", lane).encode()[..]) != Some(false)
+		frame_support::storage::unhashed::take::<bool>(&(b"inactive", lane).encode()[..]) !=
+			Some(false)
 	}
 
 	fn dispatch_weight(_message: &mut DispatchMessage<Self::DispatchPayload>) -> Weight {

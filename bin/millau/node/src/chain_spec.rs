@@ -225,24 +225,28 @@ fn testnet_genesis(
 		},
 		bridge_rialto_messages: BridgeRialtoMessagesConfig {
 			owner: Some(get_account_id_from_seed::<sr25519::Public>(RIALTO_MESSAGES_PALLET_OWNER)),
-			opened_lanes: vec![
-				LaneId::new(
-					xcm::latest::InteriorMultiLocation::from(millau_runtime::xcm_config::ThisNetwork::get()),
-					xcm::latest::InteriorMultiLocation::from(millau_runtime::xcm_config::RialtoNetwork::get()),
+			opened_lanes: vec![LaneId::new(
+				xcm::latest::InteriorMultiLocation::from(
+					millau_runtime::xcm_config::ThisNetwork::get(),
 				),
-			],
+				xcm::latest::InteriorMultiLocation::from(
+					millau_runtime::xcm_config::RialtoNetwork::get(),
+				),
+			)],
 			..Default::default()
 		},
 		bridge_rialto_parachain_messages: BridgeRialtoParachainMessagesConfig {
 			owner: Some(get_account_id_from_seed::<sr25519::Public>(
 				RIALTO_PARACHAIN_MESSAGES_PALLET_OWNER,
 			)),
-			opened_lanes: vec![
-				LaneId::new(
-					xcm::latest::InteriorMultiLocation::from(millau_runtime::xcm_config::ThisNetwork::get()),
-					xcm::latest::InteriorMultiLocation::from(millau_runtime::xcm_config::RialtoParachainNetwork::get()),
-				)
-			],
+			opened_lanes: vec![LaneId::new(
+				xcm::latest::InteriorMultiLocation::from(
+					millau_runtime::xcm_config::ThisNetwork::get(),
+				),
+				xcm::latest::InteriorMultiLocation::from(
+					millau_runtime::xcm_config::RialtoParachainNetwork::get(),
+				),
+			)],
 			..Default::default()
 		},
 		xcm_pallet: Default::default(),
