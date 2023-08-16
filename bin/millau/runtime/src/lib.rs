@@ -646,7 +646,11 @@ pub type PriorityBoostPerMessage = ConstU64<351_343_108>;
 pub type BridgeRefundRialtoParachainMessages = RefundBridgedParachainMessages<
 	Runtime,
 	RefundableParachain<WithRialtoParachainsInstance, bp_rialto_parachain::RialtoParachain>,
-	RefundableMessagesLane<Runtime, WithRialtoParachainMessagesInstance>,
+	RefundableMessagesLane<
+		Runtime,
+		WithRialtoParachainMessagesInstance,
+		rialto_parachain_messages::Lane,
+	>,
 	ActualFeeRefund<Runtime>,
 	PriorityBoostPerMessage,
 	StrBridgeRefundRialtoPara2000Lane0Msgs,

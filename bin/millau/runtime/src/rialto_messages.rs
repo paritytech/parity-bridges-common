@@ -18,8 +18,10 @@
 
 use crate::Runtime;
 
+use bp_messages::LaneId;
 use frame_support::{parameter_types, weights::Weight};
 use pallet_bridge_relayers::WeightInfoExt as _;
+use xcm::prelude::*;
 
 /// Weight of 2 XCM instructions is for simple `Trap(42)` program, coming through bridge
 /// (it is prepended with `UniversalOrigin` instruction). It is used just for simplest manual
@@ -32,6 +34,12 @@ parameter_types! {
 	/// 2 XCM instructions is for simple `Trap(42)` program, coming through bridge
 	/// (it is prepended with `UniversalOrigin` instruction).
 	pub const WeightCredit: Weight = BASE_XCM_WEIGHT_TWICE;
+
+	/// Lane that is used to send messages tp Rialto.
+	pub Lane: LaneId = LaneId::new(
+		InteriorMultiLocation::from(crate::xcm_config::ThisNetwork::get()),
+		InteriorMultiLocation::from(crate::xcm_config::RialtoNetwork::get()),
+	);
 }
 
 impl pallet_bridge_messages::WeightInfoExt for crate::weights::RialtoMessagesWeightInfo<Runtime> {

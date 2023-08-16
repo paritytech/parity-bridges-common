@@ -353,7 +353,7 @@ fn receive_messages_proof_fails_when_dispatcher_is_inactive() {
 				1,
 				REGULAR_PAYLOAD.declared_weight,
 			),
-			Error::<TestRuntime, ()>::LanesManager(LanesManagerError::ClosedInboundLane)
+			Error::<TestRuntime, ()>::LanesManager(LanesManagerError::LaneDispatcherInactive)
 		);
 		assert!(!TestMessageDispatch::is_active(test_lane_id()));
 	});
