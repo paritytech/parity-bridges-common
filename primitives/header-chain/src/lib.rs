@@ -230,7 +230,7 @@ impl<Header: HeaderT> TryFrom<StoredHeaderGrandpaInfo<Header>> for HeaderGrandpa
 /// Helper trait for finding equivocations in finality proofs.
 pub trait FindEquivocations<FinalityProof, FinalityVerificationContext, EquivocationProof> {
 	/// The type returned when encountering an error while looking for equivocations.
-	type Error;
+	type Error: Debug;
 
 	/// Find equivocations.
 	fn find_equivocations(

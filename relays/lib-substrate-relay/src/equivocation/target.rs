@@ -68,6 +68,12 @@ impl<P: SubstrateEquivocationDetectionPipeline, TargetClnt: Client<P::TargetChai
 	TargetClient<EquivocationDetectionPipelineAdapter<P>>
 	for SubstrateEquivocationTarget<P, TargetClnt>
 {
+	async fn best_finalized_header_number(
+		&self,
+	) -> Result<BlockNumberOf<P::TargetChain>, Self::Error> {
+		self.client.best_finalized_header_number().await
+	}
+
 	async fn best_synced_header_hash(
 		&self,
 		at: BlockNumberOf<P::TargetChain>,

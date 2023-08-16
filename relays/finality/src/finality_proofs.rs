@@ -69,6 +69,12 @@ impl<P: FinalityPipeline, SC: SourceClientBase<P>> FinalityProofsStream<P, SC> {
 	}
 }
 
+impl<P: FinalityPipeline, SC: SourceClientBase<P>> Default for FinalityProofsStream<P, SC> {
+	fn default() -> Self {
+		Self::new()
+	}
+}
+
 /// Source finality proofs buffer.
 pub struct FinalityProofsBuf<P: FinalityPipeline> {
 	/// Proofs buffer. Ordered by target header number.
