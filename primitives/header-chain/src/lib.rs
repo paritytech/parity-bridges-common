@@ -142,7 +142,10 @@ pub struct InitializationData<H: HeaderT> {
 }
 
 /// Abstract finality proof that is justifying block finality.
-pub trait FinalityProof<Number>: Clone + Send + Sync + Debug {
+pub trait FinalityProof<Hash, Number>: Clone + Send + Sync + Debug {
+	/// Return hash of header that this proof is generated for.
+	fn target_header_hash(&self) -> Hash;
+
 	/// Return number of header that this proof is generated for.
 	fn target_header_number(&self) -> Number;
 }

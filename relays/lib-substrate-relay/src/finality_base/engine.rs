@@ -47,7 +47,7 @@ pub trait Engine<C: Chain>: Send {
 	/// A reader that can extract the consensus log from the header digest and interpret it.
 	type ConsensusLogReader: ConsensusLogReader;
 	/// Type of finality proofs, used by consensus engine.
-	type FinalityProof: FinalityProof<BlockNumberOf<C>> + Decode + Encode;
+	type FinalityProof: FinalityProof<HashOf<C>, BlockNumberOf<C>> + Decode + Encode;
 	/// The context needed for verifying finality proofs.
 	type FinalityVerificationContext;
 	/// The type of the equivocation proof used by the consensus engine.
