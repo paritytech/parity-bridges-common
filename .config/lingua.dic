@@ -16,6 +16,9 @@ Best/MS
 BlockId
 BlockNumber
 BridgeStorage
+AssetHub
+AssetHubKusama
+AssetHubPolkadot
 BridgeHub
 BridgeHubRococo
 BridgeHubWococo

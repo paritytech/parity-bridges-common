@@ -194,6 +194,7 @@ benchmarks-test:
     - time cargo run --release -p millau-bridge-node --features=runtime-benchmarks -- benchmark pallet --chain=dev --steps=2 --repeat=1 --pallet=pallet_bridge_grandpa --extrinsic=* --execution=wasm --wasm-execution=Compiled --heap-pages=4096
     - time cargo run --release -p millau-bridge-node --features=runtime-benchmarks -- benchmark pallet --chain=dev --steps=2 --repeat=1 --pallet=pallet_bridge_parachains --extrinsic=* --execution=wasm --wasm-execution=Compiled --heap-pages=4096
     - time cargo run --release -p millau-bridge-node --features=runtime-benchmarks -- benchmark pallet --chain=dev --steps=2 --repeat=1 --pallet=pallet_bridge_relayers --extrinsic=* --execution=wasm --wasm-execution=Compiled --heap-pages=4096
+    - time cargo run --release -p millau-bridge-node --features=runtime-benchmarks -- benchmark pallet --chain=dev --steps=2 --repeat=1 --pallet=pallet_xcm_bridge_hub_router --extrinsic=* --execution=wasm --wasm-execution=Compiled --heap-pages=4096
   # we may live with failing benchmarks, it is just a signal for us
   allow_failure:                   true
 
