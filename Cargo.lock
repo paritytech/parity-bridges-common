@@ -3103,6 +3103,16 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5443807d6dff69373d433ab9ef5378ad8df50ca6298caf15de6e52e24aaf54d5"
 
 [[package]]
+name = "equivocation-detector"
+version = "0.1.0"
+dependencies = [
+ "async-trait",
+ "bp-header-chain",
+ "finality-relay",
+ "relay-utils",
+]
+
+[[package]]
 name = "errno"
 version = "0.3.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -5675,9 +5685,9 @@ dependencies = [
 
 [[package]]
 name = "log"
-version = "0.4.19"
+version = "0.4.20"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b06a4cde4c0f271a446782e3eff8de789548ce57dbc8eca9292c27f4a42004b4"
+checksum = "b5e6163cb8c49088c2c36f57875e58ccd8c87c7427f7fbd50ea6710b2f3f2e8f"
 dependencies = [
  "value-bag",
 ]
@@ -10032,6 +10042,7 @@ dependencies = [
  "relay-substrate-client",
  "relay-utils",
  "sp-core",
+ "sp-session",
 ]
 
 [[package]]
@@ -10050,6 +10061,7 @@ dependencies = [
  "relay-utils",
  "sp-core",
  "sp-runtime",
+ "sp-session",
 ]
 
 [[package]]
@@ -10061,6 +10073,7 @@ dependencies = [
  "relay-substrate-client",
  "relay-utils",
  "sp-core",
+ "sp-session",
 ]
 
 [[package]]
@@ -10079,6 +10092,7 @@ dependencies = [
  "rialto-runtime",
  "sp-core",
  "sp-runtime",
+ "sp-session",
 ]
 
 [[package]]
@@ -10111,6 +10125,7 @@ dependencies = [
  "relay-substrate-client",
  "relay-utils",
  "sp-core",
+ "sp-session",
 ]
 
 [[package]]
@@ -10188,6 +10203,7 @@ dependencies = [
  "relay-substrate-client",
  "relay-utils",
  "sp-core",
+ "sp-session",
 ]
 
 [[package]]
@@ -10199,6 +10215,7 @@ dependencies = [
  "relay-substrate-client",
  "relay-utils",
  "sp-core",
+ "sp-session",
 ]
 
 [[package]]
@@ -13582,6 +13599,7 @@ dependencies = [
  "bp-runtime",
  "bp-wococo",
  "bridge-runtime-common",
+ "equivocation-detector",
  "finality-grandpa",
  "finality-relay",
  "frame-support",
@@ -13595,6 +13613,7 @@ dependencies = [
  "pallet-bridge-grandpa",
  "pallet-bridge-messages",
  "pallet-bridge-parachains",
+ "pallet-grandpa",
  "pallet-transaction-payment",
  "parachains-relay",
  "parity-scale-codec",

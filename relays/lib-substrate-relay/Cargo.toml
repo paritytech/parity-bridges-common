@@ -24,6 +24,7 @@ bp-polkadot-core = { path = "../../primitives/polkadot-core" }
 bp-relayers = { path = "../../primitives/relayers" }
 bridge-runtime-common = { path = "../../bin/runtime-common" }
 
+equivocation-detector = { path = "../equivocation" }
 finality-grandpa = { version = "0.16.2" }
 finality-relay = { path = "../finality" }
 parachains-relay = { path = "../parachains" }
@@ -43,6 +44,7 @@ bp-messages = { path = "../../primitives/messages" }
 frame-support = { git = "https://github.com/paritytech/substrate", branch = "master" }
 frame-system = { git = "https://github.com/paritytech/substrate", branch = "master" }
 pallet-balances = { git = "https://github.com/paritytech/substrate", branch = "master" }
+pallet-grandpa = { git = "https://github.com/paritytech/substrate", branch = "master" }
 sp-core = { git = "https://github.com/paritytech/substrate", branch = "master" }
 sp-consensus-grandpa = { git = "https://github.com/paritytech/substrate", branch = "master" }
 sp-runtime = { git = "https://github.com/paritytech/substrate", branch = "master" }
