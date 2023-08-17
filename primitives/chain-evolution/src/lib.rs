@@ -21,7 +21,6 @@
 
 mod evo_hash;
 
-use bp_beefy::ChainWithBeefy;
 use bp_header_chain::ChainWithGrandpa;
 use bp_messages::{
 	ChainWithMessages, InboundMessageDetails, LaneId, MessageNonce, MessagePayload,
@@ -34,16 +33,13 @@ use frame_support::{
 	RuntimeDebug,
 };
 use frame_system::limits;
-use scale_info::TypeInfo;
-use serde::{Deserialize, Serialize};
 use sp_core::{storage::StateVersion, Hasher as HasherT};
-use sp_runtime::{traits::Keccak256, MultiSignature};
+use sp_runtime::{traits::BlakeTwo256, MultiSignature};
 use sp_runtime::{
 	traits::{IdentifyAccount, Verify},
 	MultiSigner, Perbill,
 };
 use sp_std::prelude::*;
-use sp_trie::{LayoutV0, LayoutV1, TrieConfiguration};
 
 pub use evo_hash::EvoHash;
 
@@ -129,10 +125,10 @@ pub mod time_units {
 pub type BlockNumber = u64;
 
 /// Hash type used in Evochain.
-pub type Hash = <BlakeTwoAndKeccak256 as HasherT>::Out;
+pub type Hash = <BlakeTwo256 as HasherT>::Out;
 
 /// Type of object that can produce hashes on Evochain.
-pub type Hasher = BlakeTwoAndKeccak256;
+pub type Hasher = BlakeTwo256;
 
 /// The header type used by Evochain.
 pub type Header = sp_runtime::generic::Header<BlockNumber, Hasher>;
@@ -196,15 +192,6 @@ impl ChainWithGrandpa for Evochain {
 	const AVERAGE_HEADER_SIZE_IN_JUSTIFICATION: u32 = AVERAGE_HEADER_SIZE_IN_JUSTIFICATION;
 }
 
-impl ChainWithBeefy for Evochain {
-	type CommitmentHasher = Keccak256;
-	type MmrHashing = Keccak256;
-	type MmrHash = <Keccak256 as sp_runtime::traits::Hash>::Output;
-	type BeefyMmrLeafExtra = ();
-	type AuthorityId = bp_beefy::EcdsaValidatorId;
-	type AuthorityIdToMerkleLeaf = bp_beefy::BeefyEcdsaToEthereum;
-}
-
 impl ChainWithMessages for Evochain {
 	const WITH_CHAIN_MESSAGES_PALLET_NAME: &'static str = WITH_EVOCHAIN_MESSAGES_PALLET_NAME;
 
@@ -212,41 +199,6 @@ impl ChainWithMessages for Evochain {
 		MAX_UNREWARDED_RELAYERS_IN_CONFIRMATION_TX;
 	const MAX_UNCONFIRMED_MESSAGES_IN_CONFIRMATION_TX: MessageNonce =
 		MAX_UNCONFIRMED_MESSAGES_IN_CONFIRMATION_TX;
-}
-
-/// Millau Hasher (Blake2-256 ++ Keccak-256) implementation.
-#[derive(PartialEq, Eq, Clone, Copy, RuntimeDebug, TypeInfo, Serialize, Deserialize)]
-pub struct BlakeTwoAndKeccak256;
-
-impl sp_core::Hasher for BlakeTwoAndKeccak256 {
-	type Out = EvoHash;
-	type StdHasher = hash256_std_hasher::Hash256StdHasher;
-	const LENGTH: usize = 64;
-
-	fn hash(s: &[u8]) -> Self::Out {
-		let mut combined_hash = EvoHash::default();
-		combined_hash.as_mut()[..32].copy_from_slice(&sp_io::hashing::blake2_256(s));
-		combined_hash.as_mut()[32..].copy_from_slice(&sp_io::hashing::keccak_256(s));
-		combined_hash
-	}
-}
-
-impl sp_runtime::traits::Hash for BlakeTwoAndKeccak256 {
-	type Output = EvoHash;
-
-	fn trie_root(input: Vec<(Vec<u8>, Vec<u8>)>, state_version: StateVersion) -> Self::Output {
-		match state_version {
-			StateVersion::V0 => LayoutV0::<BlakeTwoAndKeccak256>::trie_root(input),
-			StateVersion::V1 => LayoutV1::<BlakeTwoAndKeccak256>::trie_root(input),
-		}
-	}
-
-	fn ordered_trie_root(input: Vec<Vec<u8>>, state_version: StateVersion) -> Self::Output {
-		match state_version {
-			StateVersion::V0 => LayoutV0::<BlakeTwoAndKeccak256>::ordered_trie_root(input),
-			StateVersion::V1 => LayoutV1::<BlakeTwoAndKeccak256>::ordered_trie_root(input),
-		}
-	}
 }
 
 frame_support::parameter_types! {
