@@ -549,6 +549,16 @@ impl pallet_bridge_grandpa::Config for Runtime {
 	type WeightInfo = pallet_bridge_grandpa::weights::BridgeWeight<Runtime>;
 }
 
+pub type EvochainGrandpaInstance = pallet_bridge_grandpa::Instance1;
+
+impl pallet_bridge_grandpa::Config<EvochainGrandpaInstance> for Runtime {
+	type RuntimeEvent = RuntimeEvent;
+	type BridgedChain = bp_evochain::Evochain;
+	type MaxFreeMandatoryHeadersPerBlock = ConstU32<4>;
+	type HeadersToKeep = ConstU32<{ bp_evochain::DAYS as u32 }>;
+	type WeightInfo = pallet_bridge_grandpa::weights::BridgeWeight<Runtime>;
+}
+
 parameter_types! {
 	pub const MaxMessagesToPruneAtOnce: bp_messages::MessageNonce = 8;
 	pub const RootAccountForPayments: Option<AccountId> = None;
@@ -602,6 +612,7 @@ construct_runtime!(
 
 		// Millau bridge modules.
 		BridgeRelayers: pallet_bridge_relayers::{Pallet, Call, Storage, Event<T>},
+		BridgeEvochainGrandpa: pallet_bridge_grandpa::<Instance1>::{Pallet, Call, Storage, Event<T>},
 		BridgeMillauGrandpa: pallet_bridge_grandpa::{Pallet, Call, Storage, Event<T>},
 		BridgeMillauMessages: pallet_bridge_messages::{Pallet, Call, Storage, Event<T>, Config<T>},
 	}
@@ -738,6 +749,17 @@ impl_runtime_apis! {
 		fn accepted_grandpa_finality_proofs(
 		) -> Vec<bp_header_chain::justification::GrandpaJustification<bp_millau::Header>> {
 			BridgeMillauGrandpa::accepted_finality_proofs()
+		}
+	}
+
+	impl bp_evochain::EvochainFinalityApi<Block> for Runtime {
+		fn best_finalized() -> Option<HeaderId<bp_evochain::Hash, bp_evochain::BlockNumber>> {
+			BridgeEvochainGrandpa::best_finalized()
+		}
+
+		fn accepted_grandpa_finality_proofs(
+		) -> Vec<bp_header_chain::justification::GrandpaJustification<bp_evochain::Header>> {
+			BridgeEvochainGrandpa::accepted_finality_proofs()
 		}
 	}
 
