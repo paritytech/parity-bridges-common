@@ -5,7 +5,7 @@ sleep 15
 
 # see `rialto_millau_bridge_identifier_did_not_changed` test in `millau-runtime` crate for
 # details on how this lane is computed
-MESSAGE_LANE="52011894c856c0c613a2ad2395dfbb509090f6b7a6aef9359adb75aa26a586c7"
+MESSAGE_LANE="b3849561e1a6169bee5a337422f3dbe93c9d385494c24483d380f35671774fb1"
 
 /home/user/substrate-relay init-bridge millau-to-rialto \
 	--source-host millau-node-alice \

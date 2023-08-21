@@ -88,7 +88,7 @@ mod tests {
 		// all deployments scripts, alerts and so on
 		assert_eq!(
 			*ToMillauXcmBlobHauler::xcm_lane().as_ref(),
-			hex_literal::hex!("6aa61bff567db6b5d5f0cb815ee6d8f5ac630e222a95700cb3d594134e3805de")
+			hex_literal::hex!("f096fa40d486cd358041c8922868e2e89f2670d564cb08ca60eb6152876f8212")
 				.into(),
 		);
 	}
