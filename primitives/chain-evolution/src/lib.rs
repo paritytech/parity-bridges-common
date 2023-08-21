@@ -33,8 +33,10 @@ use frame_support::{
 	RuntimeDebug,
 };
 use frame_system::limits;
+use scale_info::TypeInfo;
+use serde::{Deserialize, Serialize};
 use sp_core::{storage::StateVersion, Hasher as HasherT};
-use sp_runtime::{traits::BlakeTwo256, MultiSignature};
+use sp_runtime::MultiSignature;
 use sp_runtime::{
 	traits::{IdentifyAccount, Verify},
 	MultiSigner, Perbill,
@@ -101,6 +103,7 @@ pub const MAX_HEADER_SIZE: u32 = MAX_AUTHORITIES_COUNT
 	.saturating_mul(3)
 	.saturating_add(AVERAGE_HEADER_SIZE_IN_JUSTIFICATION);
 
+use sp_trie::{LayoutV0, LayoutV1, TrieConfiguration};
 /// Re-export `time_units` to make usage easier.
 pub use time_units::*;
 
@@ -125,10 +128,10 @@ pub mod time_units {
 pub type BlockNumber = u64;
 
 /// Hash type used in Evochain.
-pub type Hash = <BlakeTwo256 as HasherT>::Out;
+pub type Hash = <BlakeTwoAndKeccak256 as HasherT>::Out;
 
 /// Type of object that can produce hashes on Evochain.
-pub type Hasher = BlakeTwo256;
+pub type Hasher = BlakeTwoAndKeccak256;
 
 /// The header type used by Evochain.
 pub type Header = sp_runtime::generic::Header<BlockNumber, Hasher>;
@@ -216,5 +219,40 @@ pub const WITH_EVOCHAIN_GRANDPA_PALLET_NAME: &str = "BridgeEvochainGrandpa";
 pub const WITH_EVOCHAIN_MESSAGES_PALLET_NAME: &str = "BridgeEvochainMessages";
 /// Name of the transaction payment pallet at the Evochain runtime.
 pub const TRANSACTION_PAYMENT_PALLET_NAME: &str = "TransactionPayment";
+
+/// Millau Hasher (Blake2-256 ++ Keccak-256) implementation.
+#[derive(PartialEq, Eq, Clone, Copy, RuntimeDebug, TypeInfo, Serialize, Deserialize)]
+pub struct BlakeTwoAndKeccak256;
+
+impl sp_core::Hasher for BlakeTwoAndKeccak256 {
+	type Out = EvoHash;
+	type StdHasher = hash256_std_hasher::Hash256StdHasher;
+	const LENGTH: usize = 64;
+
+	fn hash(s: &[u8]) -> Self::Out {
+		let mut combined_hash: EvoHash = EvoHash::default();
+		combined_hash.as_mut()[..32].copy_from_slice(&sp_io::hashing::blake2_256(s));
+		combined_hash.as_mut()[32..].copy_from_slice(&sp_io::hashing::keccak_256(s));
+		combined_hash
+	}
+}
+
+impl sp_runtime::traits::Hash for BlakeTwoAndKeccak256 {
+	type Output = EvoHash;
+
+	fn trie_root(input: Vec<(Vec<u8>, Vec<u8>)>, state_version: StateVersion) -> Self::Output {
+		match state_version {
+			StateVersion::V0 => LayoutV0::<BlakeTwoAndKeccak256>::trie_root(input),
+			StateVersion::V1 => LayoutV1::<BlakeTwoAndKeccak256>::trie_root(input),
+		}
+	}
+
+	fn ordered_trie_root(input: Vec<Vec<u8>>, state_version: StateVersion) -> Self::Output {
+		match state_version {
+			StateVersion::V0 => LayoutV0::<BlakeTwoAndKeccak256>::ordered_trie_root(input),
+			StateVersion::V1 => LayoutV1::<BlakeTwoAndKeccak256>::ordered_trie_root(input),
+		}
+	}
+}
 
 decl_bridge_runtime_apis!(evochain, grandpa);
