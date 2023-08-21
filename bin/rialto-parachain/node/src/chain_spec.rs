@@ -16,7 +16,9 @@
 
 use bp_messages::LaneId;
 use cumulus_primitives_core::ParaId;
-use rialto_parachain_runtime::{AccountId, AuraId, BridgeMillauMessagesConfig, Signature};
+use rialto_parachain_runtime::{
+	AccountId, AuraId, BridgeMillauMessagesConfig, Signature, XcmMillauBridgeHubConfig,
+};
 use sc_chain_spec::{ChainSpecExtension, ChainSpecGroup};
 use sc_service::ChainType;
 use serde::{Deserialize, Serialize};
@@ -201,6 +203,15 @@ fn testnet_genesis(
 				xcm::latest::InteriorMultiLocation::from(
 					rialto_parachain_runtime::ThisNetwork::get(),
 				),
+				xcm::latest::InteriorMultiLocation::from(
+					rialto_parachain_runtime::MillauNetwork::get(),
+				),
+			)],
+			..Default::default()
+		},
+		xcm_millau_bridge_hub: XcmMillauBridgeHubConfig {
+			opened_bridges: vec![(
+				xcm::latest::Junctions::Here.into(),
 				xcm::latest::InteriorMultiLocation::from(
 					rialto_parachain_runtime::MillauNetwork::get(),
 				),

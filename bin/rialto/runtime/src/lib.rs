@@ -492,7 +492,7 @@ construct_runtime!(
 		BridgeRelayers: pallet_bridge_relayers::{Pallet, Call, Storage, Event<T>},
 		BridgeMillauGrandpa: pallet_bridge_grandpa::{Pallet, Call, Storage, Event<T>},
 		BridgeMillauMessages: pallet_bridge_messages::{Pallet, Call, Storage, Event<T>, Config<T>},
-		XcmMillauBridgeHub: pallet_xcm_bridge_hub::{Pallet, Call, Storage, Event<T>},
+		XcmMillauBridgeHub: pallet_xcm_bridge_hub::{Pallet, Call, Storage, Event<T>, Config<T>},
 
 		// Millau bridge modules (BEEFY based).
 		BridgeMillauBeefy: pallet_bridge_beefy::{Pallet, Call, Storage},

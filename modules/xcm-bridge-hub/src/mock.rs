@@ -23,7 +23,6 @@ use bp_messages::{
 	ChainWithMessages, LaneId, MessageNonce,
 };
 use bp_runtime::{messages::MessageDispatchResult, Chain, ChainId};
-use bp_xcm_bridge_hub::LocalXcmChannelManager;
 use codec::Encode;
 use frame_support::{
 	parameter_types,

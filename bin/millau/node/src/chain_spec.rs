@@ -18,7 +18,7 @@ use millau_runtime::{
 	AccountId, AuraConfig, BalancesConfig, BeefyConfig, BridgeRialtoMessagesConfig,
 	BridgeRialtoParachainMessagesConfig, BridgeWestendGrandpaConfig, GrandpaConfig,
 	RuntimeGenesisConfig, SessionConfig, SessionKeys, Signature, SudoConfig, SystemConfig,
-	WASM_BINARY,
+	XcmRialtoBridgeHubConfig, XcmRialtoParachainBridgeHubConfig, WASM_BINARY,
 };
 use sp_consensus_aura::sr25519::AuthorityId as AuraId;
 use sp_consensus_beefy::crypto::AuthorityId as BeefyId;
@@ -235,5 +235,23 @@ fn testnet_genesis(
 			..Default::default()
 		},
 		xcm_pallet: Default::default(),
+		xcm_rialto_bridge_hub: XcmRialtoBridgeHubConfig {
+			opened_bridges: vec![(
+				xcm::latest::Junctions::Here.into(),
+				xcm::latest::InteriorMultiLocation::from(
+					millau_runtime::xcm_config::RialtoNetwork::get(),
+				),
+			)],
+			..Default::default()
+		},
+		xcm_rialto_parachain_bridge_hub: XcmRialtoParachainBridgeHubConfig {
+			opened_bridges: vec![(
+				xcm::latest::Junctions::Here.into(),
+				xcm::latest::InteriorMultiLocation::from(
+					millau_runtime::xcm_config::RialtoParachainNetwork::get(),
+				),
+			)],
+			..Default::default()
+		},
 	}
 }

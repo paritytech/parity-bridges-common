@@ -61,35 +61,13 @@ where
 
 	fn is_active(lane: LaneId) -> bool {
 		Pallet::<T, I>::bridge(lane)
-			.and_then(|bridge| {
-				let bridge = bridge.bridge_origin_relative_location.try_as().cloned().ok();
-				log::trace!(
-					target: LOG_TARGET,
-					"=== calling MessageDispatch::is_active({:?}) => {:?} ({})",
-					lane,
-					bridge,
-					bridge.is_some(),
-				);
-				bridge
-			})
+			.and_then(|bridge| bridge.bridge_origin_relative_location.try_as().cloned().ok())
 			.and_then(|recipient: MultiLocation| {
-				let is_congested = T::LocalXcmChannelManager::is_congested(&recipient).map(|is_congested| !is_congested).ok();
-				log::trace!(
-					target: LOG_TARGET,
-					"=== calling MessageDispatch::is_active({:?}).is_congested => {:?}",
-					lane,
-					is_congested
-				);
-				is_congested
+				T::LocalXcmChannelManager::is_congested(&recipient)
+					.map(|is_congested| !is_congested)
+					.ok()
 			})
-			.unwrap_or_else(|| {
-				log::trace!(
-					target: LOG_TARGET,
-					"=== calling MessageDispatch::is_active({:?}).no bridge :(",
-					lane,
-				);
-				false
-			})
+			.unwrap_or(false)
 	}
 
 	fn dispatch_weight(message: &mut DispatchMessage<Self::DispatchPayload>) -> Weight {

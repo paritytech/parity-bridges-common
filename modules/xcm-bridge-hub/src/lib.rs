@@ -55,9 +55,12 @@ use bp_messages::{LaneId, LaneState, MessageNonce};
 use bp_runtime::{AccountIdOf, BalanceOf, BlockNumberOf, RangeInclusiveExt};
 use bp_xcm_bridge_hub::{
 	bridge_locations, Bridge, BridgeLocations, BridgeLocationsError, BridgeState,
+	LocalXcmChannelManager,
 };
-use bp_xcm_bridge_hub::LocalXcmChannelManager;
-use frame_support::traits::{Currency, ReservableCurrency};
+use frame_support::{
+	traits::{Currency, ReservableCurrency},
+	DefaultNoBound,
+};
 use frame_system::Config as SystemConfig;
 use pallet_bridge_messages::{Config as BridgeMessagesConfig, LanesManagerError};
 use sp_runtime::traits::{Header as HeaderT, HeaderProvider, Zero};
@@ -435,6 +438,61 @@ pub mod pallet {
 		BoundedVec<LaneId, T::MaxBridgesPerLocalOrigin>,
 		ValueQuery,
 	>;
+
+	#[pallet::genesis_config]
+	#[derive(DefaultNoBound)]
+	pub struct GenesisConfig<T: Config<I>, I: 'static = ()> {
+		/// Opened bridges.
+		pub opened_bridges: Vec<(MultiLocation, InteriorMultiLocation)>,
+		/// Dummy marker.
+		pub phantom: sp_std::marker::PhantomData<(T, I)>,
+	}
+
+	#[pallet::genesis_build]
+	impl<T: Config<I>, I: 'static> BuildGenesisConfig for GenesisConfig<T, I>
+	where
+		T: frame_system::Config<AccountId = AccountIdOf<ThisChainOf<T, I>>>,
+	{
+		fn build(&self) {
+			for (bridge_origin_relative_location, bridge_destination_universal_location) in
+				&self.opened_bridges
+			{
+				let locations = Pallet::<T, I>::bridge_locations(
+					Box::new(*bridge_origin_relative_location),
+					Box::new(bridge_destination_universal_location.clone().into()),
+				)
+				.expect("Invalid genesis configuration");
+				let bridge_owner_account = T::BridgeOriginAccountIdConverter::convert_location(
+					&locations.bridge_origin_relative_location,
+				)
+				.expect("Invalid genesis configuration");
+
+				Bridges::<T, I>::insert(
+					locations.lane_id,
+					Bridge {
+						bridge_origin_relative_location: Box::new(
+							locations.bridge_origin_relative_location.into(),
+						),
+						state: BridgeState::Opened,
+						bridge_owner_account,
+						reserve: Zero::zero(),
+					},
+				);
+
+				BridgesByLocalOrigin::<T, I>::mutate(
+					VersionedInteriorMultiLocation::from(
+						locations.bridge_origin_universal_location,
+					),
+					|storage_bridges| {
+						let mut bridges = storage_bridges.to_vec();
+						bridges.push(locations.lane_id);
+						*storage_bridges =
+							bridges.try_into().expect("Invalid genesis confuguration");
+					},
+				);
+			}
+		}
+	}
 
 	#[pallet::event]
 	#[pallet::generate_deposit(pub(super) fn deposit_event)]
