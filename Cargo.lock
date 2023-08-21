@@ -1255,10 +1255,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "bp-xcm-bridge-hub-router"
-version = "0.1.0"
-
-[[package]]
 name = "bridge-runtime-common"
 version = "0.1.0"
 dependencies = [
@@ -6166,7 +6162,7 @@ dependencies = [
  "bp-rialto-parachain",
  "bp-runtime",
  "bp-westend",
- "bp-xcm-bridge-hub-router",
+ "bp-xcm-bridge-hub",
  "bridge-runtime-common",
  "env_logger",
  "frame-benchmarking",
@@ -7949,7 +7945,7 @@ dependencies = [
 name = "pallet-xcm-bridge-hub-router"
 version = "0.1.0"
 dependencies = [
- "bp-xcm-bridge-hub-router",
+ "bp-xcm-bridge-hub",
  "frame-benchmarking",
  "frame-support",
  "frame-system",

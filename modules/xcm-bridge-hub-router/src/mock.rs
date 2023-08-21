@@ -18,7 +18,7 @@
 
 use crate as pallet_xcm_bridge_hub_router;
 
-use bp_xcm_bridge_hub_router::LocalXcmChannel;
+use bp_xcm_bridge_hub::LocalXcmChannelManager;
 use frame_support::{construct_runtime, parameter_types};
 use sp_core::H256;
 use sp_runtime::{
@@ -87,7 +87,7 @@ impl pallet_xcm_bridge_hub_router::Config<()> for TestRuntime {
 	type BridgedNetworkId = BridgedNetworkId;
 
 	type ToBridgeHubSender = TestToBridgeHubSender;
-	type WithBridgeHubChannel = TestWithBridgeHubChannel;
+	type LocalXcmChannelManager = TestLocalXcmChannelManager;
 
 	type BaseFee = ConstU128<BASE_FEE>;
 	type ByteFee = ConstU128<BYTE_FEE>;
@@ -118,17 +118,19 @@ impl SendXcm for TestToBridgeHubSender {
 	}
 }
 
-pub struct TestWithBridgeHubChannel;
+pub struct TestLocalXcmChannelManager;
 
-impl TestWithBridgeHubChannel {
+impl TestLocalXcmChannelManager {
 	pub fn make_congested() {
-		frame_support::storage::unhashed::put(b"TestWithBridgeHubChannel.Congested", &true);
+		frame_support::storage::unhashed::put(b"TestLocalXcmChannelManager.Congested", &true);
 	}
 }
 
-impl LocalXcmChannel for TestWithBridgeHubChannel {
-	fn is_congested() -> bool {
-		frame_support::storage::unhashed::get_or_default(b"TestWithBridgeHubChannel.Congested")
+impl LocalXcmChannelManager for TestLocalXcmChannelManager {
+	fn is_congested(_with: &MultiLocation) -> Result<bool, xcm::latest::Error> {
+		Ok(frame_support::storage::unhashed::get_or_default(
+			b"TestLocalXcmChannelManager.Congested",
+		))
 	}
 }
 

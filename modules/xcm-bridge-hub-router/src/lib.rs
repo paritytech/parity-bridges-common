@@ -25,7 +25,7 @@
 
 #![cfg_attr(not(feature = "std"), no_std)]
 
-use bp_xcm_bridge_hub_router::LocalXcmChannel;
+use bp_xcm_bridge_hub::LocalXcmChannelManager;
 use codec::Encode;
 use frame_support::traits::Get;
 use sp_runtime::{traits::One, FixedPointNumber, FixedU128, Saturating};
@@ -80,9 +80,8 @@ pub mod pallet {
 
 		/// Actual message sender (`HRMP` or `DMP`) to the sibling bridge hub location.
 		type ToBridgeHubSender: SendXcm;
-		/// Underlying channel with the sibling bridge hub. It must match the channel, used
-		/// by the `Self::ToBridgeHubSender`.
-		type WithBridgeHubChannel: LocalXcmChannel;
+		/// Local XCM channel manager.
+		type LocalXcmChannelManager: LocalXcmChannelManager;
 
 		/// Base bridge fee that is paid for every outbound message.
 		type BaseFee: Get<u128>;
@@ -99,7 +98,9 @@ pub mod pallet {
 	impl<T: Config<I>, I: 'static> Hooks<BlockNumberFor<T>> for Pallet<T, I> {
 		fn on_initialize(_n: BlockNumberFor<T>) -> Weight {
 			// if XCM queue is still congested, we don't change anything
-			if T::WithBridgeHubChannel::is_congested() {
+			let is_congested =
+				T::LocalXcmChannelManager::is_congested(&T::SiblingBridgeHubLocation::get());
+			if is_congested.unwrap_or(true) {
 				return T::WeightInfo::on_initialize_when_congested()
 			}
 
@@ -170,9 +171,12 @@ pub mod pallet {
 		/// Called when new message is sent (queued to local outbound XCM queue) over the bridge.
 		pub(crate) fn on_message_sent_to_bridge(message_size: u32) {
 			// if outbound queue is not congested, do nothing
-			if !T::WithBridgeHubChannel::is_congested() {
-				return
-			}
+			let is_congested =
+				T::LocalXcmChannelManager::is_congested(&T::SiblingBridgeHubLocation::get());
+			match is_congested {
+				Ok(true) => (),
+				_ => return,
+			};
 
 			// ok - we need to increase the fee factor, let's do that
 			let message_size_factor = FixedU128::from_u32(message_size.saturating_div(1024))
@@ -299,7 +303,7 @@ mod tests {
 	fn fee_factor_is_not_decreased_from_on_initialize_when_queue_is_congested() {
 		run_test(|| {
 			DeliveryFeeFactor::<TestRuntime, ()>::put(FixedU128::from_rational(125, 100));
-			TestWithBridgeHubChannel::make_congested();
+			TestLocalXcmChannelManager::make_congested();
 
 			// it should not decrease, because queue is congested
 			let old_delivery_fee_factor = XcmBridgeHubRouter::delivery_fee_factor();
@@ -407,7 +411,7 @@ mod tests {
 	#[test]
 	fn sent_message_increases_factor_if_queue_is_congested() {
 		run_test(|| {
-			TestWithBridgeHubChannel::make_congested();
+			TestLocalXcmChannelManager::make_congested();
 
 			let old_delivery_fee_factor = XcmBridgeHubRouter::delivery_fee_factor();
 			assert_eq!(

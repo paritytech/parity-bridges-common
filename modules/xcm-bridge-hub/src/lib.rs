@@ -133,7 +133,7 @@ pub mod pallet {
 		/// Currency used to pay for bridge registration.
 		type NativeCurrency: ReservableCurrency<Self::AccountId>;
 
-		/// Local XCM channels.
+		/// Local XCM channel manager.
 		type LocalXcmChannelManager: LocalXcmChannelManager;
 		/// XCM-level dispatcher for inbound bridge messages.
 		type BlobDispatcher: DispatchBlob;
