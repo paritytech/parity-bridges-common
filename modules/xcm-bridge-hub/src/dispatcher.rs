@@ -28,11 +28,13 @@ use bp_messages::{
 	LaneId,
 };
 use bp_runtime::messages::MessageDispatchResult;
+use bp_xcm_bridge_hub::LocalXcmChannelManager;
 use codec::{Decode, Encode};
 use frame_support::{dispatch::Weight, CloneNoBound, EqNoBound, PartialEqNoBound};
 use pallet_bridge_messages::{Config as BridgeMessagesConfig, WeightInfoExt};
 use scale_info::TypeInfo;
 use sp_runtime::SaturatedConversion;
+use xcm::prelude::*;
 use xcm_builder::{DispatchBlob, DispatchBlobError};
 
 /// Message dispatch result type for single message.
@@ -58,9 +60,10 @@ where
 	type DispatchLevelResult = XcmBlobMessageDispatchResult;
 
 	fn is_active(lane: LaneId) -> bool {
-		// TODO: `fn is_active() -> bool` obviously is not enough - it should be
-		// per-lane/per-destination
-		true
+		Pallet::<T, I>::bridge(lane)
+			.and_then(|bridge| bridge.bridge_origin_relative_location.try_as().cloned().ok())
+			.and_then(|recipient: MultiLocation| T::LocalXcmChannelManager::is_congested(&recipient).map(|is_congested| !is_congested).ok())
+			.unwrap_or(false)
 	}
 
 	fn dispatch_weight(message: &mut DispatchMessage<Self::DispatchPayload>) -> Weight {

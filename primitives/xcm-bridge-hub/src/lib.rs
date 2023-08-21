@@ -29,6 +29,24 @@ use scale_info::TypeInfo;
 use sp_std::boxed::Box;
 use xcm::{latest::prelude::*, VersionedMultiLocation};
 
+/// Local XCM channel manager.
+///
+/// It only works for channels within the same (local) consensus.
+pub trait LocalXcmChannelManager {
+	/// Returns true if the channel is currently congested.
+	///
+	/// The `with` will be either parent, sibling or child chain. All other locations
+	/// may be ignored by returning `Unroutable` error.
+	fn is_congested(with: &MultiLocation) -> Result<bool, xcm::latest::Error>;
+}
+
+impl LocalXcmChannelManager for () {
+	fn is_congested(_with: &MultiLocation) -> Result<bool, xcm::latest::Error> {
+		Ok(false)
+	}
+}
+
+/*
 /// A manager of XCM communication channels between the bridge hub and parent/sibling chains
 /// that have opened bridges at this bridge hub.
 ///
@@ -80,7 +98,7 @@ impl LocalXcmChannelManager for () {
 		Err(())
 	}
 }
-
+*/
 /// Bridge state.
 #[derive(Clone, Copy, Decode, Encode, Eq, PartialEq, TypeInfo, MaxEncodedLen, RuntimeDebug)]
 pub enum BridgeState {

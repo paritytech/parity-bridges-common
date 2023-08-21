@@ -18,6 +18,8 @@
 
 #![cfg_attr(not(feature = "std"), no_std)]
 
+// TODO: use bp_xcm_bridge_hub::LocalXcmChannel instead
+
 /// Local XCM channel that may report whether it is congested or not.
 pub trait LocalXcmChannel {
 	/// Returns true if the queue is currently congested.

@@ -23,6 +23,7 @@ use bp_messages::{
 	ChainWithMessages, LaneId, MessageNonce,
 };
 use bp_runtime::{messages::MessageDispatchResult, Chain, ChainId};
+use bp_xcm_bridge_hub::LocalXcmChannelManager;
 use codec::Encode;
 use frame_support::{
 	parameter_types,
@@ -226,6 +227,7 @@ impl pallet_xcm_bridge_hub::Config for TestRuntime {
 	type BridgeReserve = BridgeReserve;
 	type NativeCurrency = Balances;
 
+	type LocalXcmChannelManager = ();
 	type BlobDispatcher = TestBlobDispatcher;
 	type MessageExportPrice = ();
 }

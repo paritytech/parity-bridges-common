@@ -56,6 +56,7 @@ use bp_runtime::{AccountIdOf, BalanceOf, BlockNumberOf, RangeInclusiveExt};
 use bp_xcm_bridge_hub::{
 	bridge_locations, Bridge, BridgeLocations, BridgeLocationsError, BridgeState,
 };
+use bp_xcm_bridge_hub::LocalXcmChannelManager;
 use frame_support::traits::{Currency, ReservableCurrency};
 use frame_system::Config as SystemConfig;
 use pallet_bridge_messages::{Config as BridgeMessagesConfig, LanesManagerError};
@@ -129,9 +130,11 @@ pub mod pallet {
 		/// Currency used to pay for bridge registration.
 		type NativeCurrency: ReservableCurrency<Self::AccountId>;
 
+		/// Local XCM channels.
+		type LocalXcmChannelManager: LocalXcmChannelManager;
 		/// XCM-level dispatcher for inbound bridge messages.
 		type BlobDispatcher: DispatchBlob;
-		/// Price of single message export.
+		/// Price of single message export to the bridged consensus (`Self::BridgedNetworkId`).
 		type MessageExportPrice: Get<MultiAssets>;
 	}
 
@@ -414,6 +417,7 @@ pub mod pallet {
 
 	/// All registered bridges.
 	#[pallet::storage]
+	#[pallet::getter(fn bridge)]
 	pub type Bridges<T: Config<I>, I: 'static = ()> =
 		StorageMap<_, Identity, LaneId, BridgeOf<T, I>>;
 
@@ -423,6 +427,7 @@ pub mod pallet {
 	/// map from local calls AND we'll upgrade this map during migration to new XCM version, it
 	/// shall not allow multiple bridges between the same locations.
 	#[pallet::storage]
+	#[pallet::getter(fn bridges_by_local_origin)]
 	pub type BridgesByLocalOrigin<T: Config<I>, I: 'static = ()> = StorageMap<
 		_,
 		Blake2_256,

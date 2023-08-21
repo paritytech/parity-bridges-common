@@ -595,6 +595,7 @@ impl pallet_xcm_bridge_hub::Config<WithMillauXcmBridgeHubInstance> for Runtime {
 	type BridgeReserve = ConstU128<1_000_000_000>;
 	type NativeCurrency = Balances;
 
+	type LocalXcmChannelManager = ();
 	type BlobDispatcher = OnRialtoParachainBlobDispatcher;
 	type MessageExportPrice = ();
 }
