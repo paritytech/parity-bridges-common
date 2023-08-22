@@ -28,7 +28,7 @@ use bp_messages::{
 	LaneId,
 };
 use bp_runtime::messages::MessageDispatchResult;
-use bp_xcm_bridge_hub::{LocalXcmChannelManager, XcmAsPlainPayload};
+use bp_xcm_bridge_hub::{BridgeId, LocalXcmChannelManager, XcmAsPlainPayload};
 use codec::{Decode, Encode};
 use frame_support::{dispatch::Weight, CloneNoBound, EqNoBound, PartialEqNoBound};
 use pallet_bridge_messages::{Config as BridgeMessagesConfig, WeightInfoExt};
@@ -60,7 +60,8 @@ where
 	type DispatchLevelResult = XcmBlobMessageDispatchResult;
 
 	fn is_active(lane: LaneId) -> bool {
-		Pallet::<T, I>::bridge(lane)
+		let bridge_id = BridgeId::from_lane_id(lane);
+		Pallet::<T, I>::bridge(bridge_id)
 			.and_then(|bridge| bridge.bridge_origin_relative_location.try_as().cloned().ok())
 			.map(|recipient: MultiLocation| !T::LocalXcmChannelManager::is_congested(&recipient))
 			.unwrap_or(false)

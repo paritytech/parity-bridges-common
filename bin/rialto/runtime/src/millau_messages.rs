@@ -16,15 +16,15 @@
 
 //! Everything required to serve Millau <-> Rialto messages.
 
-use bp_messages::LaneId;
+use bp_xcm_bridge_hub::BridgeId;
 use frame_support::parameter_types;
 use xcm::prelude::*;
 
 parameter_types! {
-	/// Lane that is used to send messages tp Millau.
-	pub Lane: LaneId = LaneId::new(
-		InteriorMultiLocation::from(crate::xcm_config::ThisNetwork::get()),
-		InteriorMultiLocation::from(crate::xcm_config::MillauNetwork::get()),
+	/// Bridge identifier that is used to bridge with Millau.
+	pub Bridge: BridgeId = BridgeId::new(
+		&InteriorMultiLocation::from(crate::xcm_config::ThisNetwork::get()).into(),
+		&InteriorMultiLocation::from(crate::xcm_config::MillauNetwork::get()).into(),
 	);
 }
 
@@ -77,8 +77,8 @@ mod tests {
 		// there's nothing criminal if it is changed, but then thou need to fix it across
 		// all deployments scripts, alerts and so on
 		assert_eq!(
-			*Lane::get().as_ref(),
-			hex_literal::hex!("b3849561e1a6169bee5a337422f3dbe93c9d385494c24483d380f35671774fb1")
+			*Bridge::get().lane_id().as_ref(),
+			hex_literal::hex!("efed785b626e94da3969257012f506524bcec78867420e26ff8c55ddcdb0f7b7")
 				.into(),
 		);
 	}

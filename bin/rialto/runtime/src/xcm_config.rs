@@ -224,7 +224,7 @@ mod tests {
 	fn xcm_messages_to_millau_are_sent_using_bridge_exporter() {
 		new_test_ext().execute_with(|| {
 			// ensure that the there are no messages queued
-			let lane_id = crate::millau_messages::Lane::get();
+			let lane_id = crate::millau_messages::Bridge::get().lane_id();
 			OutboundLanes::<Runtime, WithMillauMessagesInstance>::insert(
 				lane_id,
 				OutboundLaneData::opened(),
@@ -264,7 +264,7 @@ mod tests {
 		// this is the `BridgeMessage` from polkadot xcm builder, but it has no constructor
 		// or public fields, so just tuple
 		let bridge_message = (location, xcm).encode();
-		let lane_id = crate::millau_messages::Lane::get();
+		let lane_id = crate::millau_messages::Bridge::get().lane_id();
 		DispatchMessage {
 			key: MessageKey { lane_id, nonce: 1 },
 			data: DispatchMessageData { payload: Ok(bridge_message) },

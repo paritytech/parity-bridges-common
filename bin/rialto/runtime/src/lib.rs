@@ -453,7 +453,7 @@ impl pallet_xcm_bridge_hub::Config<WithMillauXcmBridgeHubInstance> for Runtime {
 	type BridgedNetworkId = xcm_config::MillauNetwork;
 	type BridgeMessagesPalletInstance = WithMillauMessagesInstance;
 
-	type MaxBridgesPerLocalOrigin = ConstU32<1>;
+	type MaxSuspendedBridges = ConstU32<1>;
 	type OpenBridgeOrigin = frame_support::traits::NeverEnsureOrigin<xcm::latest::MultiLocation>;
 	type BridgeOriginAccountIdConverter = xcm_config::SovereignAccountOf;
 

@@ -224,14 +224,14 @@ fn testnet_genesis(
 		},
 		bridge_rialto_messages: BridgeRialtoMessagesConfig {
 			owner: Some(get_account_id_from_seed::<sr25519::Public>(RIALTO_MESSAGES_PALLET_OWNER)),
-			opened_lanes: vec![millau_runtime::rialto_messages::Lane::get()],
+			opened_lanes: vec![millau_runtime::rialto_messages::Bridge::get().lane_id()],
 			..Default::default()
 		},
 		bridge_rialto_parachain_messages: BridgeRialtoParachainMessagesConfig {
 			owner: Some(get_account_id_from_seed::<sr25519::Public>(
 				RIALTO_PARACHAIN_MESSAGES_PALLET_OWNER,
 			)),
-			opened_lanes: vec![millau_runtime::rialto_parachain_messages::Lane::get()],
+			opened_lanes: vec![millau_runtime::rialto_parachain_messages::Bridge::get().lane_id()],
 			..Default::default()
 		},
 		xcm_pallet: Default::default(),

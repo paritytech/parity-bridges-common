@@ -20,8 +20,8 @@ use super::{
 	AccountId, AllPalletsWithSystem, Balances, Runtime, RuntimeCall, RuntimeEvent, RuntimeOrigin,
 	XcmPallet,
 };
-use bp_messages::LaneId;
 use bp_millau::WeightToFee;
+use bp_xcm_bridge_hub::{BridgeId, BridgeLocations};
 use bridge_runtime_common::CustomNetworkId;
 use frame_support::{
 	parameter_types,
@@ -29,6 +29,7 @@ use frame_support::{
 	weights::Weight,
 };
 use frame_system::EnsureRoot;
+use sp_std::prelude::*;
 use xcm::latest::prelude::*;
 use xcm_builder::{
 	Account32Hash, AccountId32Aliases, CurrencyAdapter as XcmCurrencyAdapter, IsConcrete,
@@ -201,7 +202,7 @@ impl pallet_xcm::Config for Runtime {
 pub struct ToRialtoOrRialtoParachainSwitchExporter;
 
 impl ExportXcm for ToRialtoOrRialtoParachainSwitchExporter {
-	type Ticket = (NetworkId, (LaneId, sp_std::prelude::Vec<u8>, XcmHash));
+	type Ticket = (NetworkId, (Box<BridgeLocations>, sp_std::prelude::Vec<u8>, XcmHash));
 
 	fn validate(
 		network: NetworkId,
@@ -257,8 +258,18 @@ impl EmulatedSiblingXcmpChannel {
 }
 
 impl bp_xcm_bridge_hub::LocalXcmChannelManager for EmulatedSiblingXcmpChannel {
+	type Error = ();
+
 	fn is_congested(_with: &MultiLocation) -> bool {
 		frame_support::storage::unhashed::get_or_default(b"EmulatedSiblingXcmpChannel.Congested")
+	}
+
+	fn suspend_bridge(_with: &MultiLocation, _bridge_id: BridgeId) -> Result<(), Self::Error> {
+		Ok(())
+	}
+
+	fn resume_bridge(_with: &MultiLocation, _bridge_id: BridgeId) -> Result<(), Self::Error> {
+		Ok(())
 	}
 }
 
@@ -297,7 +308,7 @@ mod tests {
 	fn xcm_messages_to_rialto_are_sent_using_bridge_exporter() {
 		new_test_ext().execute_with(|| {
 			// ensure that the there are no messages queued
-			let lane_id = crate::rialto_messages::Lane::get();
+			let lane_id = crate::rialto_messages::Bridge::get().lane_id();
 			OutboundLanes::<Runtime, WithRialtoMessagesInstance>::insert(
 				lane_id,
 				OutboundLaneData::opened(),
@@ -382,7 +393,8 @@ mod tests {
 
 	#[test]
 	fn xcm_messages_from_rialto_are_dispatched() {
-		let incoming_message = prepare_inbound_bridge_message(crate::rialto_messages::Lane::get());
+		let incoming_message =
+			prepare_inbound_bridge_message(crate::rialto_messages::Bridge::get().lane_id());
 
 		// we care only about handing message to the XCM dispatcher, so we don't care about its
 		// actual dispatch

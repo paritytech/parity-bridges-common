@@ -590,7 +590,7 @@ impl pallet_xcm_bridge_hub::Config<WithMillauXcmBridgeHubInstance> for Runtime {
 	type BridgedNetworkId = MillauNetwork;
 	type BridgeMessagesPalletInstance = WithMillauMessagesInstance;
 
-	type MaxBridgesPerLocalOrigin = ConstU32<1>;
+	type MaxSuspendedBridges = ConstU32<1>;
 	type OpenBridgeOrigin = frame_support::traits::NeverEnsureOrigin<xcm::latest::MultiLocation>;
 	type BridgeOriginAccountIdConverter = LocationToAccountId;
 
@@ -903,7 +903,7 @@ mod tests {
 	fn xcm_messages_to_millau_are_sent_using_bridge_exporter() {
 		new_test_ext().execute_with(|| {
 			// ensure that the there are no messages queued
-			let lane_id = crate::millau_messages::Lane::get();
+			let lane_id = crate::millau_messages::Bridge::get().lane_id();
 			OutboundLanes::<Runtime, WithMillauMessagesInstance>::insert(
 				lane_id,
 				OutboundLaneData::opened(),
@@ -942,7 +942,7 @@ mod tests {
 			xcm::VersionedInteriorMultiLocation::V3(X1(GlobalConsensus(ThisNetwork::get())));
 		// this is the `BridgeMessage` from polkadot xcm builder, but it has no constructor
 		// or public fields, so just tuple
-		let xcm_lane = crate::millau_messages::Lane::get();
+		let xcm_lane = crate::millau_messages::Bridge::get().lane_id();
 		let bridge_message = (location, xcm).encode();
 		DispatchMessage {
 			key: MessageKey { lane_id: xcm_lane, nonce: 1 },

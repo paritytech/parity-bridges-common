@@ -18,7 +18,7 @@
 
 use crate as pallet_xcm_bridge_hub_router;
 
-use bp_xcm_bridge_hub::LocalXcmChannelManager;
+use bp_xcm_bridge_hub::{BridgeId, LocalXcmChannelManager};
 use frame_support::{construct_runtime, parameter_types};
 use sp_core::H256;
 use sp_runtime::{
@@ -127,8 +127,18 @@ impl TestLocalXcmChannelManager {
 }
 
 impl LocalXcmChannelManager for TestLocalXcmChannelManager {
+	type Error = ();
+
 	fn is_congested(_with: &MultiLocation) -> bool {
 		frame_support::storage::unhashed::get_or_default(b"TestLocalXcmChannelManager.Congested")
+	}
+
+	fn suspend_bridge(_with: &MultiLocation, _bridge: BridgeId) -> Result<(), Self::Error> {
+		Ok(())
+	}
+
+	fn resume_bridge(_with: &MultiLocation, _bridge: BridgeId) -> Result<(), Self::Error> {
+		Ok(())
 	}
 }
 

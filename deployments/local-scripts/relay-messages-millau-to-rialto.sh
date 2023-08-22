@@ -10,7 +10,7 @@ RIALTO_PORT="${RIALTO_PORT:-9944}"
 
 RUST_LOG=bridge=debug \
 ./target/debug/substrate-relay relay-messages millau-to-rialto \
-	--lane "b3849561e1a6169bee5a337422f3dbe93c9d385494c24483d380f35671774fb1" \
+	--lane "efed785b626e94da3969257012f506524bcec78867420e26ff8c55ddcdb0f7b7" \
 	--source-host localhost \
 	--source-port $MILLAU_PORT \
 	--source-signer //Bob \

@@ -26,25 +26,112 @@ use frame_support::{
 	ensure, CloneNoBound, PalletError, PartialEqNoBound, RuntimeDebug, RuntimeDebugNoBound,
 };
 use scale_info::TypeInfo;
+use serde::{Deserialize, Serialize};
 use sp_std::boxed::Box;
-use xcm::{latest::prelude::*, VersionedMultiLocation};
+use xcm::{latest::prelude::*, VersionedInteriorMultiLocation, VersionedMultiLocation};
 
 /// Encoded XCM blob. We expect the bridge messages pallet to use this blob type for both inbound
 /// and outbound payloads.
 pub type XcmAsPlainPayload = sp_std::vec::Vec<u8>;
 
+/// Bridge identifier.
+#[derive(
+	Clone,
+	Copy,
+	Decode,
+	Default,
+	Encode,
+	Eq,
+	Ord,
+	PartialOrd,
+	PartialEq,
+	RuntimeDebug,
+	TypeInfo,
+	MaxEncodedLen,
+	Serialize,
+	Deserialize,
+)]
+pub struct BridgeId(LaneId);
+
+impl BridgeId {
+	/// Create bridge identifier from two universal locations.
+	///
+	/// The fact that we are using versioned locations here means that XCM version upgrades must
+	/// be coordinated at all involved chains (at source and target chains + at bridge hubs).
+	/// Othwerise messages may simply be dropped anywhere on its path to the targe chain.
+	pub fn new(
+		universal_location1: &VersionedInteriorMultiLocation,
+		universal_location2: &VersionedInteriorMultiLocation,
+	) -> Self {
+		// a tricky helper struct that adds required `Ord` support for
+		// `VersionedInteriorMultiLocation`
+		#[derive(Eq, PartialEq, Ord, PartialOrd)]
+		struct EncodedVersionedInteriorMultiLocation(sp_std::vec::Vec<u8>);
+
+		impl Encode for EncodedVersionedInteriorMultiLocation {
+			fn encode(&self) -> sp_std::vec::Vec<u8> {
+				self.0.clone()
+			}
+		}
+
+		Self(LaneId::new(
+			EncodedVersionedInteriorMultiLocation(universal_location1.encode()),
+			EncodedVersionedInteriorMultiLocation(universal_location2.encode()),
+		))
+	}
+
+	/// Creates bridge id using lane id.
+	///
+	/// **ATTENTION**: this function may be removed in the future.
+	pub fn from_lane_id(lane_id: LaneId) -> Self {
+		// in the future we may want to keep using the same lane identifiers if we'll be upgrading
+		// the XCM version (and `VersionedInteriorMultiLocation` will change)
+		Self(lane_id)
+	}
+
+	/// Return lane id, used by this bridge.
+	pub fn lane_id(&self) -> LaneId {
+		self.0
+	}
+}
+
 /// Local XCM channel manager.
 pub trait LocalXcmChannelManager {
+	/// Error that may be returned when suspending/resuming the bridge.
+	type Error: sp_std::fmt::Debug;
+
 	/// Returns true if the channel with given location is currently congested.
 	///
 	/// The `with` is guaranteed to be in the same consensus. However, it may point to something
 	/// below the chain level - like the constract or pallet instance, for example.
 	fn is_congested(with: &MultiLocation) -> bool;
+
+	/// Suspend the bridge, opened by given origin.
+	///
+	/// The `local_origin` is guaranteed to be in the same consensus. However, it may point to
+	/// something below the chain level - like the constract or pallet instance, for example.
+	fn suspend_bridge(local_origin: &MultiLocation, bridge: BridgeId) -> Result<(), Self::Error>;
+
+	/// Resume the previously suspended bridge, opened by given origin.
+	///
+	/// The `local_origin` is guaranteed to be in the same consensus. However, it may point to
+	/// something below the chain level - like the constract or pallet instance, for example.
+	fn resume_bridge(local_origin: &MultiLocation, bridge: BridgeId) -> Result<(), Self::Error>;
 }
 
 impl LocalXcmChannelManager for () {
+	type Error = ();
+
 	fn is_congested(_with: &MultiLocation) -> bool {
 		false
+	}
+
+	fn suspend_bridge(_local_origin: &MultiLocation, _bridge: BridgeId) -> Result<(), Self::Error> {
+		Ok(())
+	}
+
+	fn resume_bridge(_local_origin: &MultiLocation, _bridge: BridgeId) -> Result<(), Self::Error> {
+		Ok(())
 	}
 }
 
@@ -84,7 +171,7 @@ pub struct BridgeLocations {
 	/// Universal (unique) location of other side of the bridge.
 	pub bridge_destination_universal_location: InteriorMultiLocation,
 	/// An identifier of the dedicated bridge message lane.
-	pub lane_id: LaneId,
+	pub bridge_id: BridgeId,
 }
 
 /// Errors that may happen when we check bridge locations.
@@ -179,14 +266,16 @@ pub fn bridge_locations(
 	// `GlobalConsensus` and we know that the `bridge_origin_universal_location`
 	// is also within the `GlobalConsensus`. So we know that the lane id will be
 	// the same on both ends of the bridge
-	let lane_id =
-		LaneId::new(bridge_origin_universal_location, bridge_destination_universal_location);
+	let bridge_id = BridgeId::new(
+		&bridge_origin_universal_location.into(),
+		&bridge_destination_universal_location.into(),
+	);
 
 	Ok(Box::new(BridgeLocations {
 		bridge_origin_relative_location: *bridge_origin_relative_location,
 		bridge_origin_universal_location,
 		bridge_destination_universal_location,
-		lane_id,
+		bridge_id,
 	}))
 }
 
@@ -222,9 +311,9 @@ mod tests {
 				bridge_origin_relative_location: test.bridge_origin_relative_location,
 				bridge_origin_universal_location: test.bridge_origin_universal_location,
 				bridge_destination_universal_location: test.bridge_destination_universal_location,
-				lane_id: LaneId::new(
-					test.bridge_origin_universal_location,
-					test.bridge_destination_universal_location,
+				bridge_id: BridgeId::new(
+					&test.bridge_origin_universal_location.into(),
+					&test.bridge_destination_universal_location.into(),
 				),
 			})),
 		);
@@ -377,7 +466,7 @@ mod tests {
 			bridge_destination_universal_location: X1(GlobalConsensus(REMOTE_NETWORK)),
 		});
 
-		assert_eq!(locations1.lane_id, locations2.lane_id);
+		assert_eq!(locations1.bridge_id, locations2.bridge_id);
 	}
 
 	#[test]
@@ -397,7 +486,7 @@ mod tests {
 			bridge_destination_universal_location: X1(GlobalConsensus(REMOTE_NETWORK)),
 		});
 
-		assert_eq!(locations1.lane_id, locations2.lane_id);
+		assert_eq!(locations1.bridge_id, locations2.bridge_id);
 	}
 
 	// negative tests
