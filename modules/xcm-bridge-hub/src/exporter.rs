@@ -22,7 +22,10 @@
 
 use crate::{Config, Pallet, SuspendedBridges, LOG_TARGET};
 
-use bp_messages::{source_chain::MessagesBridge, LaneId, MessageNonce};
+use bp_messages::{
+	source_chain::{MessagesBridge, OnMessagesDelivered},
+	LaneId, MessageNonce,
+};
 use bp_xcm_bridge_hub::{BridgeId, BridgeLocations, LocalXcmChannelManager, XcmAsPlainPayload};
 use frame_support::traits::Get;
 use pallet_bridge_messages::{Config as BridgeMessagesConfig, Pallet as BridgeMessagesPallet};
@@ -137,16 +140,13 @@ where
 		Ok(id)
 	}
 }
-/*
+
 impl<T: Config<I>, I: 'static> OnMessagesDelivered for Pallet<T, I> {
 	fn on_messages_delivered(lane_id: LaneId, enqueued_messages: MessageNonce) {
-		Self::on_bridge_messages_delivered(
-			lane_id,
-			enqueued_messages,
-		);
+		Self::on_bridge_messages_delivered(lane_id, enqueued_messages);
 	}
 }
-*/
+
 impl<T: Config<I>, I: 'static> Pallet<T, I> {
 	/// Called when new message is pushed onto outbound bridge queue.
 	fn on_bridge_message_enqueued(
