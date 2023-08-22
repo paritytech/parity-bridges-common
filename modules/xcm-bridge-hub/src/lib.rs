@@ -106,8 +106,6 @@ pub mod pallet {
 		/// `BridgedNetworkId` consensus.
 		type BridgeMessagesPalletInstance: 'static;
 
-		// TODO: do we need to have a limit a number of all bridges? All bridges by given origin?
-
 		/// Maximal number of suspended bridges.
 		#[pallet::constant]
 		type MaxSuspendedBridges: Get<u32>;
@@ -327,7 +325,7 @@ pub mod pallet {
 			Bridges::<T, I>::remove(locations.bridge_id);
 			SuspendedBridges::<T, I>::mutate(|suspended_bridges| {
 				suspended_bridges.retain(|b| *b == locations.bridge_id);
-				// TODO: send resume signal or not???
+				// TODO: https://github.com/paritytech/parity-bridges-common/issues/2006 send resume signal or not???
 			});
 
 			// unreserve remaining amount
@@ -432,7 +430,7 @@ pub mod pallet {
 			{
 				let locations = Pallet::<T, I>::bridge_locations(
 					Box::new(*bridge_origin_relative_location),
-					Box::new(bridge_destination_universal_location.clone().into()),
+					Box::new((*bridge_destination_universal_location).into()),
 				)
 				.expect("Invalid genesis configuration");
 				let bridge_owner_account = T::BridgeOriginAccountIdConverter::convert_location(

@@ -159,8 +159,9 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
 			return
 		}
 
-		// TODO: we either need fishermens to watch thsi rule violation (suspended, but keep sending
-		// new messages), or we need a hard limit for that like other XCM queues have
+		// TODO: https://github.com/paritytech/parity-bridges-common/issues/2006 we either need fishermens
+		// to watch thsi rule violation (suspended, but keep sending new messages), or we need a hard limit
+		// for that like other XCM queues have
 
 		// check if the lane is already suspended. If it is, do nothing. We still accept new
 		// messages to the suspended bridge, hoping that it'll be actually suspended soon
@@ -200,7 +201,8 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
 		SuspendedBridges::<T, I>::mutate(|suspended_bridges| {
 			let maybe_error = suspended_bridges.try_push(locations.bridge_id);
 			if let Err(e) = maybe_error {
-				// TODO: we've sent the suspend signal, but failed to remember that => we'll keep
+				// TODO: https://github.com/paritytech/parity-bridges-common/issues/2006
+				// we've sent the suspend signal, but failed to remember that => we'll keep
 				// up sending the signal on every further message, effectively blocking the XCM
 				// lane. We need some limit on total number of bridges so that this call won't ever
 				// fail.
@@ -231,7 +233,7 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
 		}
 
 		// else - resume the bridge
-		if let Some(bridge) = Self::bridge(&bridge_id) {
+		if let Some(bridge) = Self::bridge(bridge_id) {
 			let bridge_origin_relative_location =
 				(*bridge.bridge_origin_relative_location).try_into();
 			let bridge_origin_relative_location = match bridge_origin_relative_location {

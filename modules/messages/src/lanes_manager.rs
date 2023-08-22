@@ -152,7 +152,6 @@ impl<T: Config<I>, I: 'static> RuntimeInboundLaneStorage<T, I> {
 		if check_active {
 			// check that the lane is not explicitly closed
 			ensure!(cached_data.state.is_active(), LanesManagerError::ClosedInboundLane);
-			// TODO: https://github.com/paritytech/parity-bridges-common/issues/2006 think of it
 			// apart from the explicit closure, the lane may be unable to receive any messages.
 			// Right now we do an additional check here, but it may be done later (e.g. by
 			// explicitly closing the lane and reopening it from
