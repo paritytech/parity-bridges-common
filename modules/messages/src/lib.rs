@@ -618,7 +618,7 @@ fn send_message<T: Config<I>, I: 'static>(
 		.map_err(Error::<T, I>::MessageRejectedByPallet)?;
 
 	// return number of messages in the queue to let sender know about its state
-	let enqueued_messages = lane.queued_messages().checked_len().unwrap_or(0);
+	let enqueued_messages = lane.saturating_len();
 
 	log::trace!(
 		target: LOG_TARGET,
