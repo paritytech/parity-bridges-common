@@ -7,14 +7,14 @@ license = "GPL-3.0-or-later WITH Classpath-exception-2.0"
 
 [dependencies]
 anyhow = "1.0"
-thiserror = "1.0.44"
+thiserror = "1.0.47"
 async-std = "1.9.0"
 async-trait = "0.1"
 codec = { package = "parity-scale-codec", version = "3.1.5" }
 futures = "0.3.28"
 hex = "0.4"
 num-traits = "0.2"
-log = "0.4.19"
+log = "0.4.20"
 
 # Bridge dependencies
 
@@ -24,6 +24,7 @@ bp-polkadot-core = { path = "../../primitives/polkadot-core" }
 bp-relayers = { path = "../../primitives/relayers" }
 bridge-runtime-common = { path = "../../bin/runtime-common" }
 
+equivocation-detector = { path = "../equivocation" }
 finality-grandpa = { version = "0.16.2" }
 finality-relay = { path = "../finality" }
 parachains-relay = { path = "../parachains" }
@@ -43,6 +44,7 @@ bp-messages = { path = "../../primitives/messages" }
 frame-support = { git = "https://github.com/paritytech/substrate", branch = "master" }
 frame-system = { git = "https://github.com/paritytech/substrate", branch = "master" }
 pallet-balances = { git = "https://github.com/paritytech/substrate", branch = "master" }
+pallet-grandpa = { git = "https://github.com/paritytech/substrate", branch = "master" }
 sp-core = { git = "https://github.com/paritytech/substrate", branch = "master" }
 sp-consensus-grandpa = { git = "https://github.com/paritytech/substrate", branch = "master" }
 sp-runtime = { git = "https://github.com/paritytech/substrate", branch = "master" }

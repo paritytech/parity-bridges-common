@@ -16,13 +16,12 @@
 
 //! Types used to connect to the Polkadot chain.
 
-use bp_polkadot::{
-	AccountInfoStorageMapKeyProvider, POLKADOT_ACCEPTED_GRANDPA_FINALITY_PROOFS_METHOD,
-};
+use bp_polkadot::{AccountInfoStorageMapKeyProvider, POLKADOT_SYNCED_HEADERS_GRANDPA_INFO_METHOD};
 use relay_substrate_client::{
 	Chain, ChainWithBalances, ChainWithGrandpa, RelayChain, UnderlyingChainProvider,
 };
 use sp_core::storage::StorageKey;
+use sp_session::MembershipProof;
 use std::time::Duration;
 
 /// Polkadot header id.
@@ -50,8 +49,10 @@ impl Chain for Polkadot {
 }
 
 impl ChainWithGrandpa for Polkadot {
-	const ACCEPTED_FINALITY_PROOFS_METHOD: &'static str =
-		POLKADOT_ACCEPTED_GRANDPA_FINALITY_PROOFS_METHOD;
+	const SYNCED_HEADERS_GRANDPA_INFO_METHOD: &'static str =
+		POLKADOT_SYNCED_HEADERS_GRANDPA_INFO_METHOD;
+
+	type KeyOwnerProof = MembershipProof;
 }
 
 impl ChainWithBalances for Polkadot {

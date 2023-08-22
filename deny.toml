@@ -50,6 +50,8 @@ notice = "warn"
 ignore = [
     # time (origin: Substrate RPC + benchmarking crates)
     "RUSTSEC-2020-0071",
+    # we are only using it in tests (TODO: https://github.com/paritytech/parity-bridges-common/issues/2355)
+    "RUSTSEC-2022-0093",
 ]
 # Threshold for security vulnerabilities, any vulnerability with a CVSS score
 # lower than the range specified will be ignored. Note that ignored advisories

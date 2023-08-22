@@ -20,34 +20,28 @@
 //! to submit all source headers to the target node.
 
 pub use crate::{
+	base::{FinalityPipeline, SourceClientBase},
 	finality_loop::{metrics_prefix, run, FinalitySyncParams, SourceClient, TargetClient},
 	sync_loop_metrics::SyncLoopMetrics,
 };
 
-use bp_header_chain::{ConsensusLogReader, FinalityProof};
+use bp_header_chain::ConsensusLogReader;
+use relay_utils::{FailedClient, MaybeConnectionError};
 use std::fmt::Debug;
 
+mod base;
 mod finality_loop;
-mod finality_loop_tests;
+mod finality_proofs;
+mod headers;
+mod mock;
 mod sync_loop_metrics;
 
 /// Finality proofs synchronization pipeline.
-pub trait FinalitySyncPipeline: 'static + Clone + Debug + Send + Sync {
-	/// Name of the finality proofs source.
-	const SOURCE_NAME: &'static str;
-	/// Name of the finality proofs target.
-	const TARGET_NAME: &'static str;
-
-	/// Headers we're syncing are identified by this hash.
-	type Hash: Eq + Clone + Copy + Send + Sync + Debug;
-	/// Headers we're syncing are identified by this number.
-	type Number: relay_utils::BlockNumberBase;
+pub trait FinalitySyncPipeline: FinalityPipeline {
 	/// A reader that can extract the consensus log from the header digest and interpret it.
 	type ConsensusLogReader: ConsensusLogReader;
 	/// Type of header that we're syncing.
 	type Header: SourceHeader<Self::Hash, Self::Number, Self::ConsensusLogReader>;
-	/// Finality proof type.
-	type FinalityProof: FinalityProof<Self::Number>;
 }
 
 /// Header that we're receiving from source node.
@@ -58,4 +52,39 @@ pub trait SourceHeader<Hash, Number, Reader>: Clone + Debug + PartialEq + Send +
 	fn number(&self) -> Number;
 	/// Returns true if this header needs to be submitted to target node.
 	fn is_mandatory(&self) -> bool;
+}
+
+/// Error that may happen inside finality synchronization loop.
+#[derive(Debug)]
+enum Error<P: FinalitySyncPipeline, SourceError, TargetError> {
+	/// Source client request has failed with given error.
+	Source(SourceError),
+	/// Target client request has failed with given error.
+	Target(TargetError),
+	/// Finality proof for mandatory header is missing from the source node.
+	MissingMandatoryFinalityProof(P::Number),
+	/// `submit_finality_proof` transaction failed
+	ProofSubmissionTxFailed {
+		#[allow(dead_code)]
+		submitted_number: P::Number,
+		#[allow(dead_code)]
+		best_number_at_target: P::Number,
+	},
+	/// `submit_finality_proof` transaction lost
+	ProofSubmissionTxLost,
+}
+
+impl<P, SourceError, TargetError> Error<P, SourceError, TargetError>
+where
+	P: FinalitySyncPipeline,
+	SourceError: MaybeConnectionError,
+	TargetError: MaybeConnectionError,
+{
+	fn fail_if_connection_error(&self) -> Result<(), FailedClient> {
+		match *self {
+			Error::Source(ref error) if error.is_connection_error() => Err(FailedClient::Source),
+			Error::Target(ref error) if error.is_connection_error() => Err(FailedClient::Target),
+			_ => Ok(()),
+		}
+	}
 }

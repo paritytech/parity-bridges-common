@@ -16,7 +16,7 @@
 
 //! Types used to connect to the Rialto-Substrate chain.
 
-use bp_rialto::RIALTO_ACCEPTED_GRANDPA_FINALITY_PROOFS_METHOD;
+use bp_rialto::RIALTO_SYNCED_HEADERS_GRANDPA_INFO_METHOD;
 use codec::{Compact, Decode, Encode};
 use relay_substrate_client::{
 	BalanceOf, Chain, ChainWithBalances, ChainWithGrandpa, ChainWithMessages,
@@ -25,6 +25,7 @@ use relay_substrate_client::{
 };
 use sp_core::{storage::StorageKey, Pair};
 use sp_runtime::{generic::SignedPayload, traits::IdentifyAccount};
+use sp_session::MembershipProof;
 use std::time::Duration;
 
 /// Rialto header id.
@@ -49,8 +50,10 @@ impl Chain for Rialto {
 }
 
 impl ChainWithGrandpa for Rialto {
-	const ACCEPTED_FINALITY_PROOFS_METHOD: &'static str =
-		RIALTO_ACCEPTED_GRANDPA_FINALITY_PROOFS_METHOD;
+	const SYNCED_HEADERS_GRANDPA_INFO_METHOD: &'static str =
+		RIALTO_SYNCED_HEADERS_GRANDPA_INFO_METHOD;
+
+	type KeyOwnerProof = MembershipProof;
 }
 
 impl RelayChain for Rialto {

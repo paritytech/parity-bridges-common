@@ -26,7 +26,7 @@ use bp_runtime::{
 	decl_bridge_finality_runtime_apis, decl_bridge_messages_runtime_apis, Chain, ChainId, Parachain,
 };
 use frame_support::{dispatch::DispatchClass, RuntimeDebug, StateVersion};
-use sp_std::prelude::*;
+use sp_std::prelude::Vec;
 
 /// BridgeHubPolkadot parachain.
 #[derive(RuntimeDebug)]
