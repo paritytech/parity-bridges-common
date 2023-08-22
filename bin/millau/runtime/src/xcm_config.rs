@@ -259,10 +259,8 @@ impl EmulatedSiblingXcmpChannel {
 }
 
 impl bp_xcm_bridge_hub::LocalXcmChannelManager for EmulatedSiblingXcmpChannel {
-	fn is_congested(_with: &MultiLocation) -> Result<bool, xcm::latest::Error> {
-		Ok(frame_support::storage::unhashed::get_or_default(
-			b"EmulatedSiblingXcmpChannel.Congested",
-		))
+	fn is_congested(_with: &MultiLocation) -> bool {
+		frame_support::storage::unhashed::get_or_default(b"EmulatedSiblingXcmpChannel.Congested")
 	}
 }
 /*

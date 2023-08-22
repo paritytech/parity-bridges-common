@@ -127,10 +127,8 @@ impl TestLocalXcmChannelManager {
 }
 
 impl LocalXcmChannelManager for TestLocalXcmChannelManager {
-	fn is_congested(_with: &MultiLocation) -> Result<bool, xcm::latest::Error> {
-		Ok(frame_support::storage::unhashed::get_or_default(
-			b"TestLocalXcmChannelManager.Congested",
-		))
+	fn is_congested(_with: &MultiLocation) -> bool {
+		frame_support::storage::unhashed::get_or_default(b"TestLocalXcmChannelManager.Congested")
 	}
 }
 

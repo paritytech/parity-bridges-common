@@ -30,75 +30,20 @@ use sp_std::boxed::Box;
 use xcm::{latest::prelude::*, VersionedMultiLocation};
 
 /// Local XCM channel manager.
-///
-/// It only works for channels within the same (local) consensus.
 pub trait LocalXcmChannelManager {
-	/// Returns true if the channel is currently congested.
+	/// Returns true if the channel with given location is currently congested.
 	///
-	/// The `with` will be either parent, sibling or child chain. All other locations
-	/// may be ignored by returning `Unroutable` error.
-	fn is_congested(with: &MultiLocation) -> Result<bool, xcm::latest::Error>;
+	/// The `with` is guaranteed to be in the same consensus. However, it may point to something
+	/// below the chain level - like the constract or pallet instance, for example.
+	fn is_congested(with: &MultiLocation) -> bool;
 }
 
 impl LocalXcmChannelManager for () {
-	fn is_congested(_with: &MultiLocation) -> Result<bool, xcm::latest::Error> {
-		Ok(false)
+	fn is_congested(_with: &MultiLocation) -> bool {
+		false
 	}
 }
 
-/*
-/// A manager of XCM communication channels between the bridge hub and parent/sibling chains
-/// that have opened bridges at this bridge hub.
-///
-/// We use this interface to suspend and resume channels programmatically to implement backpressure
-/// mechanism for bridge queues.
-#[allow(clippy::result_unit_err)] // XCM uses `Result<(), ()>` everywhere
-pub trait LocalXcmChannelManager {
-	// TODO: https://github.com/paritytech/parity-bridges-common/issues/2255
-	// check following assumptions. They are important at least for following cases:
-	// 1) we now close the associated outbound lane when misbehavior is reported. If we'll keep
-	//    handling inbound XCM messages after the `suspend_inbound_channel`, they will be dropped
-	// 2) the sender will be able to enqueue message to othe lanes if we won't stop handling inbound
-	//    XCM immediately. He even may open additional bridges
-
-	/// Stop handling new incoming XCM messages from given bridge `owner` (parent/sibling chain).
-	///
-	/// We assume that the channel will be suspended immediately, but we don't mind if inbound
-	/// messages will keep piling up here for some time. Once this is communicated to the
-	/// `owner` chain (in any form), we expect it to stop sending messages to us and queue
-	/// messages at that `owner` chain instead.
-	///
-	/// We expect that:
-	///
-	/// - no more incoming XCM messages from the `owner` will be processed until further
-	///  `resume_inbound_channel` call;
-	///
-	/// - soon after the call, the channel will switch to the state when incoming messages are
-	///   piling up at the sending chain, not at the bridge hub.
-	///
-	/// This method shall not fail if the channel is already suspended.
-	fn suspend_inbound_channel(owner: MultiLocation) -> Result<(), ()>;
-
-	/// Start handling incoming messages from from given bridge `owner` (parent/sibling chain)
-	/// again.
-	///
-	/// The channel is assumed to be suspended by the previous `suspend_inbound_channel` call,
-	/// however we don't check it anywhere.
-	///
-	/// This method shall not fail if the channel is already resumed.
-	fn resume_inbound_channel(owner: MultiLocation) -> Result<(), ()>;
-}
-
-impl LocalXcmChannelManager for () {
-	fn suspend_inbound_channel(_owner: MultiLocation) -> Result<(), ()> {
-		Ok(())
-	}
-
-	fn resume_inbound_channel(_owner: MultiLocation) -> Result<(), ()> {
-		Err(())
-	}
-}
-*/
 /// Bridge state.
 #[derive(Clone, Copy, Decode, Encode, Eq, PartialEq, TypeInfo, MaxEncodedLen, RuntimeDebug)]
 pub enum BridgeState {
@@ -124,18 +69,7 @@ pub struct Bridge<ThisChain: Chain> {
 	/// Reserved amount on the sovereign account of the sibling bridge origin.
 	pub reserve: BalanceOf<ThisChain>,
 }
-/*
-/// Short information on all bridges opened by the same local origin (sibling/parent chain).
-#[derive(Decode, Encode, Eq, PartialEqNoBound, TypeInfo, RuntimeDebugNoBound)]
-pub struct OriginBridges<MaxBridgesPerLocalOrigin> {
-	/// Identifiers of all currently opened bridges.
-	pub opened_bridges: Vec<LaneId>,
-	/// Identifiers of all currently overloaded bridges.
-	pub overloaded_bridges: Vec<LaneId>,
-	/// Identifiers of all currently closing bridges.
-	pub closing_bridges: Vec<LaneId>,
-}
-*/
+
 /// Locations of bridge endpoints at both sides of the bridge.
 #[derive(Clone, RuntimeDebug, PartialEq, Eq)]
 pub struct BridgeLocations {

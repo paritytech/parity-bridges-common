@@ -98,9 +98,7 @@ pub mod pallet {
 	impl<T: Config<I>, I: 'static> Hooks<BlockNumberFor<T>> for Pallet<T, I> {
 		fn on_initialize(_n: BlockNumberFor<T>) -> Weight {
 			// if XCM queue is still congested, we don't change anything
-			let is_congested =
-				T::LocalXcmChannelManager::is_congested(&T::SiblingBridgeHubLocation::get());
-			if is_congested.unwrap_or(true) {
+			if T::LocalXcmChannelManager::is_congested(&T::SiblingBridgeHubLocation::get()) {
 				return T::WeightInfo::on_initialize_when_congested()
 			}
 
@@ -171,12 +169,9 @@ pub mod pallet {
 		/// Called when new message is sent (queued to local outbound XCM queue) over the bridge.
 		pub(crate) fn on_message_sent_to_bridge(message_size: u32) {
 			// if outbound queue is not congested, do nothing
-			let is_congested =
-				T::LocalXcmChannelManager::is_congested(&T::SiblingBridgeHubLocation::get());
-			match is_congested {
-				Ok(true) => (),
-				_ => return,
-			};
+			if !T::LocalXcmChannelManager::is_congested(&T::SiblingBridgeHubLocation::get()) {
+				return
+			}
 
 			// ok - we need to increase the fee factor, let's do that
 			let message_size_factor = FixedU128::from_u32(message_size.saturating_div(1024))
