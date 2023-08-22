@@ -160,8 +160,8 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
 		}
 
 		// TODO: https://github.com/paritytech/parity-bridges-common/issues/2006 we either need fishermens
-		// to watch thsi rule violation (suspended, but keep sending new messages), or we need a hard limit
-		// for that like other XCM queues have
+		// to watch thsi rule violation (suspended, but keep sending new messages), or we need a
+		// hard limit for that like other XCM queues have
 
 		// check if the lane is already suspended. If it is, do nothing. We still accept new
 		// messages to the suspended bridge, hoping that it'll be actually suspended soon
