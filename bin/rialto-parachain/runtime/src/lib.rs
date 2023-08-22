@@ -861,20 +861,16 @@ cumulus_pallet_parachain_system::register_validate_block!(
 	BlockExecutor = cumulus_pallet_aura_ext::BlockExecutor::<Runtime, Executive>,
 	CheckInherents = CheckInherents,
 );
-/*
+
 #[cfg(test)]
 mod tests {
 	use super::*;
-	use crate::millau_messages::FromMillauMessageDispatch;
 	use bp_messages::{
 		target_chain::{DispatchMessage, DispatchMessageData, MessageDispatch},
 		MessageKey, OutboundLaneData,
 	};
 	use bp_runtime::Chain;
-	use bridge_runtime_common::{
-		integrity::check_additional_signed,
-		messages_xcm_extension::{XcmBlobHauler, XcmBlobMessageDispatchResult},
-	};
+	use bridge_runtime_common::integrity::check_additional_signed;
 	use codec::Encode;
 	use pallet_bridge_messages::OutboundLanes;
 	use sp_runtime::generic::Era;
@@ -907,7 +903,7 @@ mod tests {
 	fn xcm_messages_to_millau_are_sent_using_bridge_exporter() {
 		new_test_ext().execute_with(|| {
 			// ensure that the there are no messages queued
-			let lane_id = crate::millau_messages::ToMillauXcmBlobHauler::xcm_lane();
+			let lane_id = crate::millau_messages::Lane::get();
 			OutboundLanes::<Runtime, WithMillauMessagesInstance>::insert(
 				lane_id,
 				OutboundLaneData::opened(),
@@ -946,7 +942,7 @@ mod tests {
 			xcm::VersionedInteriorMultiLocation::V3(X1(GlobalConsensus(ThisNetwork::get())));
 		// this is the `BridgeMessage` from polkadot xcm builder, but it has no constructor
 		// or public fields, so just tuple
-		let xcm_lane = crate::millau_messages::ToMillauXcmBlobHauler::xcm_lane();
+		let xcm_lane = crate::millau_messages::Lane::get();
 		let bridge_message = (location, xcm).encode();
 		DispatchMessage {
 			key: MessageKey { lane_id: xcm_lane, nonce: 1 },
@@ -961,10 +957,10 @@ mod tests {
 
 			// we care only about handing message to the XCM dispatcher, so we don't care about its
 			// actual dispatch
-			let dispatch_result = FromMillauMessageDispatch::dispatch(incoming_message);
+			let dispatch_result = XcmMillauBridgeHub::dispatch(incoming_message);
 			assert!(matches!(
 				dispatch_result.dispatch_level_result,
-				XcmBlobMessageDispatchResult::NotDispatched(_),
+				pallet_xcm_bridge_hub::XcmBlobMessageDispatchResult::NotDispatched(_),
 			));
 		});
 	}
@@ -992,4 +988,3 @@ mod tests {
 		check_additional_signed::<SignedExtra, bp_rialto_parachain::SignedExtension>();
 	}
 }
-*/

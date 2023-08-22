@@ -51,8 +51,6 @@ parameter_types! {
 	/// The RialtoParachain network ID.
 	pub const RialtoParachainNetwork: NetworkId = CustomNetworkId::RialtoParachain.as_network_id();
 
-	/// Virtual location
-
 	/// Our XCM location ancestry - i.e. our location within the Consensus Universe.
 	///
 	/// Since Kusama is a top-level relay-chain with its own consensus, it's just our network ID.
@@ -263,20 +261,17 @@ impl bp_xcm_bridge_hub::LocalXcmChannelManager for EmulatedSiblingXcmpChannel {
 		frame_support::storage::unhashed::get_or_default(b"EmulatedSiblingXcmpChannel.Congested")
 	}
 }
-/*
+
 #[cfg(test)]
 mod tests {
 	use super::*;
 	use crate::{
-		rialto_messages::FromRialtoMessageDispatch, WithRialtoMessagesInstance,
-		WithRialtoParachainMessagesInstance,
+		WithRialtoMessagesInstance, WithRialtoParachainMessagesInstance, XcmRialtoBridgeHub,
+		XcmRialtoParachainBridgeHub,
 	};
 	use bp_messages::{
 		target_chain::{DispatchMessage, DispatchMessageData, MessageDispatch},
 		LaneId, MessageKey, OutboundLaneData,
-	};
-	use bridge_runtime_common::messages_xcm_extension::{
-		XcmBlobHauler, XcmBlobMessageDispatchResult,
 	};
 	use codec::Encode;
 	use pallet_bridge_messages::OutboundLanes;
@@ -302,7 +297,7 @@ mod tests {
 	fn xcm_messages_to_rialto_are_sent_using_bridge_exporter() {
 		new_test_ext().execute_with(|| {
 			// ensure that the there are no messages queued
-			let lane_id = crate::rialto_messages::ToRialtoXcmBlobHauler::xcm_lane();
+			let lane_id = crate::rialto_messages::Lane::get();
 			OutboundLanes::<Runtime, WithRialtoMessagesInstance>::insert(
 				lane_id,
 				OutboundLaneData::opened(),
@@ -339,8 +334,7 @@ mod tests {
 	fn xcm_messages_to_rialto_parachain_are_sent_using_bridge_exporter() {
 		new_test_ext().execute_with(|| {
 			// ensure that the there are no messages queued
-			let lane_id =
-				crate::rialto_parachain_messages::ToRialtoParachainXcmBlobHauler::xcm_lane();
+			let lane_id = crate::rialto_parachain_messages::Lane::get();
 			OutboundLanes::<Runtime, WithRialtoParachainMessagesInstance>::insert(
 				lane_id,
 				OutboundLaneData::opened(),
@@ -388,32 +382,28 @@ mod tests {
 
 	#[test]
 	fn xcm_messages_from_rialto_are_dispatched() {
-		let incoming_message = prepare_inbound_bridge_message(
-			crate::rialto_messages::ToRialtoXcmBlobHauler::xcm_lane(),
-		);
+		let incoming_message = prepare_inbound_bridge_message(crate::rialto_messages::Lane::get());
 
 		// we care only about handing message to the XCM dispatcher, so we don't care about its
 		// actual dispatch
-		let dispatch_result = FromRialtoMessageDispatch::dispatch(incoming_message);
+		let dispatch_result = XcmRialtoBridgeHub::dispatch(incoming_message);
 		assert!(matches!(
 			dispatch_result.dispatch_level_result,
-			XcmBlobMessageDispatchResult::NotDispatched(_),
+			pallet_xcm_bridge_hub::XcmBlobMessageDispatchResult::NotDispatched(_),
 		));
 	}
 
 	#[test]
 	fn xcm_messages_from_rialto_parachain_are_dispatched() {
-		let incoming_message = prepare_inbound_bridge_message(
-			crate::rialto_parachain_messages::ToRialtoParachainXcmBlobHauler::xcm_lane(),
-		);
+		let incoming_message =
+			prepare_inbound_bridge_message(crate::rialto_parachain_messages::Lane::get());
 
 		// we care only about handing message to the XCM dispatcher, so we don't care about its
 		// actual dispatch
-		let dispatch_result = FromRialtoMessageDispatch::dispatch(incoming_message);
+		let dispatch_result = XcmRialtoParachainBridgeHub::dispatch(incoming_message);
 		assert!(matches!(
 			dispatch_result.dispatch_level_result,
-			XcmBlobMessageDispatchResult::NotDispatched(_),
+			pallet_xcm_bridge_hub::XcmBlobMessageDispatchResult::NotDispatched(_),
 		));
 	}
 }
-*/
