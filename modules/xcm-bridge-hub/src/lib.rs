@@ -76,10 +76,6 @@ mod dispatcher;
 mod exporter;
 mod mock;
 
-/// Encoded XCM blob. We expect the bridge messages pallet to use this blobtype for both inbound
-/// and outbound payloads.
-pub type XcmAsPlainPayload = Vec<u8>;
-
 /// The target that will be used when publishing logs related to this pallet.
 pub const LOG_TARGET: &str = "runtime::bridge-xcm";
 

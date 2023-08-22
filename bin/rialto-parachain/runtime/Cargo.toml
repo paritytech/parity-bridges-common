@@ -22,6 +22,7 @@ bp-millau = { path = "../../../primitives/chain-millau", default-features = fals
 bp-relayers = { path = "../../../primitives/relayers", default-features = false }
 bp-runtime = { path = "../../../primitives/runtime", default-features = false }
 bp-rialto-parachain = { path = "../../../primitives/chain-rialto-parachain", default-features = false }
+bp-xcm-bridge-hub = { path = "../../../primitives/xcm-bridge-hub", default-features = false }
 bridge-runtime-common = { path = "../../runtime-common", default-features = false }
 pallet-bridge-grandpa = { path = "../../../modules/grandpa", default-features = false }
 pallet-bridge-messages = { path = "../../../modules/messages", default-features = false }
@@ -99,6 +100,7 @@ std = [
 	"bp-relayers/std",
 	"bp-runtime/std",
 	"bp-rialto-parachain/std",
+	"bp-xcm-bridge-hub/std",
 	"bridge-runtime-common/std",
 	"codec/std",
 	"scale-info/std",

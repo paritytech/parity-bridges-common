@@ -16,24 +16,18 @@
 
 //! Everything required to serve Millau <-> RialtoParachain messages.
 
-// TODO: this is almost exact copy of `millau_messages.rs` from Rialto runtime.
-// Should be extracted to a separate crate and reused here.
-
-use frame_support::{parameter_types, weights::Weight};
-
-/// Weight of 2 XCM instructions is for simple `Trap(42)` program, coming through bridge
-/// (it is prepended with `UniversalOrigin` instruction). It is used just for simplest manual
-/// tests, confirming that we don't break encoding somewhere between.
-pub const BASE_XCM_WEIGHT_TWICE: Weight = crate::UnitWeightCost::get().saturating_mul(2);
+use bp_messages::LaneId;
+use frame_support::parameter_types;
+use xcm::prelude::*;
 
 parameter_types! {
-	/// Weight credit for our test messages.
-	///
-	/// 2 XCM instructions is for simple `Trap(42)` program, coming through bridge
-	/// (it is prepended with `UniversalOrigin` instruction).
-	pub const WeightCredit: Weight = BASE_XCM_WEIGHT_TWICE;
+	/// Lane that is used to send messages tp Millau.
+	pub Lane: LaneId = LaneId::new(
+		InteriorMultiLocation::from(crate::ThisNetwork::get()),
+		InteriorMultiLocation::from(crate::MillauNetwork::get()),
+	);
 }
-/*
+
 #[cfg(test)]
 mod tests {
 	use super::*;
@@ -87,10 +81,9 @@ mod tests {
 		// there's nothing criminal if it is changed, but then thou need to fix it across
 		// all deployments scripts, alerts and so on
 		assert_eq!(
-			*ToMillauXcmBlobHauler::xcm_lane().as_ref(),
+			*Lane::get().as_ref(),
 			hex_literal::hex!("f096fa40d486cd358041c8922868e2e89f2670d564cb08ca60eb6152876f8212")
 				.into(),
 		);
 	}
 }
-*/

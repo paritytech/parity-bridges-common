@@ -21,14 +21,14 @@
 //!
 //! This code is executed at the target bridge hub.
 
-use crate::{Config, Pallet, XcmAsPlainPayload, LOG_TARGET};
+use crate::{Config, Pallet, LOG_TARGET};
 
 use bp_messages::{
 	target_chain::{DispatchMessage, MessageDispatch},
 	LaneId,
 };
 use bp_runtime::messages::MessageDispatchResult;
-use bp_xcm_bridge_hub::LocalXcmChannelManager;
+use bp_xcm_bridge_hub::{LocalXcmChannelManager, XcmAsPlainPayload};
 use codec::{Decode, Encode};
 use frame_support::{dispatch::Weight, CloneNoBound, EqNoBound, PartialEqNoBound};
 use pallet_bridge_messages::{Config as BridgeMessagesConfig, WeightInfoExt};

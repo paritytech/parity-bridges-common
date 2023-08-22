@@ -23,18 +23,7 @@ use frame_support::{parameter_types, weights::Weight};
 use pallet_bridge_relayers::WeightInfoExt as _;
 use xcm::prelude::*;
 
-/// Weight of 2 XCM instructions is for simple `Trap(42)` program, coming through bridge
-/// (it is prepended with `UniversalOrigin` instruction). It is used just for simplest manual
-/// tests, confirming that we don't break encoding somewhere between.
-pub const BASE_XCM_WEIGHT_TWICE: Weight = crate::xcm_config::BaseXcmWeight::get().saturating_mul(2);
-
 parameter_types! {
-	/// Weight credit for our test messages.
-	///
-	/// 2 XCM instructions is for simple `Trap(42)` program, coming through bridge
-	/// (it is prepended with `UniversalOrigin` instruction).
-	pub const WeightCredit: Weight = BASE_XCM_WEIGHT_TWICE;
-
 	/// Lane that is used to send messages tp Rialto.
 	pub Lane: LaneId = LaneId::new(
 		InteriorMultiLocation::from(crate::xcm_config::ThisNetwork::get()),
@@ -55,7 +44,7 @@ impl pallet_bridge_messages::WeightInfoExt for crate::weights::RialtoMessagesWei
 		pallet_bridge_relayers::weights::BridgeWeight::<Runtime>::receive_messages_delivery_proof_overhead_from_runtime()
 	}
 }
-/*
+
 #[cfg(test)]
 mod tests {
 	use super::*;
@@ -106,10 +95,9 @@ mod tests {
 		// there's nothing criminal if it is changed, but then thou need to fix it across
 		// all deployments scripts, alerts and so on
 		assert_eq!(
-			*ToRialtoXcmBlobHauler::xcm_lane().as_ref(),
+			*Lane::get().as_ref(),
 			hex_literal::hex!("b3849561e1a6169bee5a337422f3dbe93c9d385494c24483d380f35671774fb1")
 				.into(),
 		);
 	}
 }
-*/

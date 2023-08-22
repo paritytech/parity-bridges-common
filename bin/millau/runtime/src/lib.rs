@@ -442,8 +442,8 @@ impl pallet_bridge_messages::Config<WithRialtoMessagesInstance> for Runtime {
 	type BridgedChain = bp_rialto::Rialto;
 	type BridgedHeaderChain = BridgeRialtoGrandpa;
 
-	type OutboundPayload = pallet_xcm_bridge_hub::XcmAsPlainPayload;
-	type InboundPayload = pallet_xcm_bridge_hub::XcmAsPlainPayload;
+	type OutboundPayload = bp_xcm_bridge_hub::XcmAsPlainPayload;
+	type InboundPayload = bp_xcm_bridge_hub::XcmAsPlainPayload;
 
 	type DeliveryPayments = ();
 	type DeliveryConfirmationPayments = pallet_bridge_relayers::DeliveryConfirmationPaymentsAdapter<
@@ -470,8 +470,8 @@ impl pallet_bridge_messages::Config<WithRialtoParachainMessagesInstance> for Run
 		bp_rialto_parachain::RialtoParachain,
 	>;
 
-	type OutboundPayload = pallet_xcm_bridge_hub::XcmAsPlainPayload;
-	type InboundPayload = pallet_xcm_bridge_hub::XcmAsPlainPayload;
+	type OutboundPayload = bp_xcm_bridge_hub::XcmAsPlainPayload;
+	type InboundPayload = bp_xcm_bridge_hub::XcmAsPlainPayload;
 
 	type DeliveryPayments = ();
 	type DeliveryConfirmationPayments = pallet_bridge_relayers::DeliveryConfirmationPaymentsAdapter<

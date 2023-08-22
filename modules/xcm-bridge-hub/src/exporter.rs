@@ -20,9 +20,10 @@
 //!
 //! This code is executed at the source bridge hub.
 
-use crate::{Config, Pallet, XcmAsPlainPayload, LOG_TARGET};
+use crate::{Config, Pallet, LOG_TARGET};
 
 use bp_messages::{source_chain::MessagesBridge, LaneId};
+use bp_xcm_bridge_hub::XcmAsPlainPayload;
 use frame_support::traits::Get;
 use pallet_bridge_messages::{Config as BridgeMessagesConfig, Pallet as BridgeMessagesPallet};
 use sp_std::boxed::Box;

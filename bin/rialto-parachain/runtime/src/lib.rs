@@ -567,8 +567,8 @@ impl pallet_bridge_messages::Config<WithMillauMessagesInstance> for Runtime {
 	type BridgedChain = bp_millau::Millau;
 	type BridgedHeaderChain = BridgeMillauGrandpa;
 
-	type OutboundPayload = pallet_xcm_bridge_hub::XcmAsPlainPayload;
-	type InboundPayload = pallet_xcm_bridge_hub::XcmAsPlainPayload;
+	type OutboundPayload = bp_xcm_bridge_hub::XcmAsPlainPayload;
+	type InboundPayload = bp_xcm_bridge_hub::XcmAsPlainPayload;
 
 	type DeliveryPayments = ();
 	type DeliveryConfirmationPayments = pallet_bridge_relayers::DeliveryConfirmationPaymentsAdapter<

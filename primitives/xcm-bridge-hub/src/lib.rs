@@ -29,6 +29,10 @@ use scale_info::TypeInfo;
 use sp_std::boxed::Box;
 use xcm::{latest::prelude::*, VersionedMultiLocation};
 
+/// Encoded XCM blob. We expect the bridge messages pallet to use this blob type for both inbound
+/// and outbound payloads.
+pub type XcmAsPlainPayload = sp_std::vec::Vec<u8>;
+
 /// Local XCM channel manager.
 pub trait LocalXcmChannelManager {
 	/// Returns true if the channel with given location is currently congested.
