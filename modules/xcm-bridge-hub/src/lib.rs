@@ -324,7 +324,7 @@ pub mod pallet {
 			outbound_lane.purge();
 			Bridges::<T, I>::remove(locations.bridge_id);
 			SuspendedBridges::<T, I>::mutate(|suspended_bridges| {
-				suspended_bridges.retain(|b| *b == locations.bridge_id);
+				suspended_bridges.retain(|b| *b != locations.bridge_id);
 				// TODO: https://github.com/paritytech/parity-bridges-common/issues/2006 send resume signal or not???
 			});
 

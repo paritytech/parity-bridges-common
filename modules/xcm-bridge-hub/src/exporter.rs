@@ -279,7 +279,7 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
 
 		// and forget that we have previously suspended the bridge
 		SuspendedBridges::<T, I>::mutate(|suspended_bridges| {
-			suspended_bridges.retain(|b| *b == bridge_id);
+			suspended_bridges.retain(|b| *b != bridge_id);
 		});
 	}
 }
