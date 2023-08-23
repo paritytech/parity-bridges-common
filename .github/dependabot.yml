@@ -60,3 +60,6 @@ updates:
     versions:
     - ">= 0"
   rebase-strategy: disabled
+  target-branch:
+    - "master"
+    - "polkadot-staging"
