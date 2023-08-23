@@ -36,7 +36,7 @@ use frame_system::limits;
 use scale_info::TypeInfo;
 use serde::{Deserialize, Serialize};
 use sp_core::{storage::StateVersion, Hasher as HasherT};
-use sp_runtime::MultiSignature;
+use sp_runtime::{traits::BlakeTwo256, MultiSignature};
 use sp_runtime::{
 	traits::{IdentifyAccount, Verify},
 	MultiSigner, Perbill,
@@ -128,10 +128,10 @@ pub mod time_units {
 pub type BlockNumber = u64;
 
 /// Hash type used in Evochain.
-pub type Hash = <BlakeTwoAndKeccak256 as HasherT>::Out;
+pub type Hash = <BlakeTwo256 as HasherT>::Out;
 
 /// Type of object that can produce hashes on Evochain.
-pub type Hasher = BlakeTwoAndKeccak256;
+pub type Hasher = BlakeTwo256;
 
 /// The header type used by Evochain.
 pub type Header = sp_runtime::generic::Header<BlockNumber, Hasher>;
