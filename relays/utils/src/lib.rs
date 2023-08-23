@@ -141,6 +141,7 @@ pub trait TransactionTracker: Send {
 	async fn wait(self) -> TrackedTransactionStatus<Self::HeaderId>;
 }
 
+/// Future associated with `TransactionTracker`, monitoring the transaction status.
 pub type TrackedTransactionFuture<T> =
 	BoxFuture<'static, TrackedTransactionStatus<<T as TransactionTracker>::HeaderId>>;
 

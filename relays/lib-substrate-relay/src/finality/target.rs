@@ -102,7 +102,7 @@ impl<P: SubstrateFinalitySyncPipeline, TargetClnt: Client<P::TargetChain>>
 
 		Ok(best_synced_header_id::<P::SourceChain, P::TargetChain>(
 			&self.client,
-			self.client.best_finalized_header_hash().await?,
+			self.client.best_header_hash().await?,
 		)
 		.await?
 		.ok_or(Error::BridgePalletIsNotInitialized)?)

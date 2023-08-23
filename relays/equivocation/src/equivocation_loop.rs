@@ -29,12 +29,15 @@ use relay_utils::{
 };
 use std::{future::Future, time::Duration};
 
+/// The context needed for finding equivocations inside finality proofs and reporting them.
 struct EquivocationReportingContext<P: EquivocationDetectionPipeline> {
 	synced_header_hash: P::Hash,
 	synced_verification_context: P::FinalityVerificationContext,
 }
 
 impl<P: EquivocationDetectionPipeline> EquivocationReportingContext<P> {
+	/// Try to get the `EquivocationReportingContext` used by the target chain
+	/// at the provided block.
 	async fn try_read_from_target<TC: TargetClient<P>>(
 		target_client: &TC,
 		at: P::TargetNumber,
@@ -51,6 +54,7 @@ impl<P: EquivocationDetectionPipeline> EquivocationReportingContext<P> {
 		})
 	}
 
+	/// Update with the new context introduced by the `HeaderFinalityInfo<P>` if any.
 	fn update(&mut self, info: HeaderFinalityInfo<P>) {
 		if let Some(new_verification_context) = info.new_verification_context {
 			self.synced_header_hash = info.finality_proof.target_header_hash();
@@ -59,7 +63,7 @@ impl<P: EquivocationDetectionPipeline> EquivocationReportingContext<P> {
 	}
 }
 
-/// Finality synchronization loop state.
+/// Equivocations detection loop state.
 struct EquivocationDetectionLoop<
 	P: EquivocationDetectionPipeline,
 	SC: SourceClient<P>,
@@ -68,8 +72,8 @@ struct EquivocationDetectionLoop<
 	source_client: SC,
 	target_client: TC,
 
-	from_block_num: P::TargetNumber,
-	until_block_num: P::TargetNumber,
+	from_block_num: Option<P::TargetNumber>,
+	until_block_num: Option<P::TargetNumber>,
 
 	reporter: EquivocationsReporter<P, SC>,
 
@@ -80,7 +84,7 @@ struct EquivocationDetectionLoop<
 impl<P: EquivocationDetectionPipeline, SC: SourceClient<P>, TC: TargetClient<P>>
 	EquivocationDetectionLoop<P, SC, TC>
 {
-	async fn reconnect_source_client(&mut self, e: SC::Error) -> bool {
+	async fn handle_source_error(&mut self, e: SC::Error) {
 		if e.is_connection_error() {
 			reconnect_failed_client(
 				FailedClient::Source,
@@ -89,14 +93,12 @@ impl<P: EquivocationDetectionPipeline, SC: SourceClient<P>, TC: TargetClient<P>>
 				&mut self.target_client,
 			)
 			.await;
-
-			return true
+		} else {
+			async_std::task::sleep(RECONNECT_DELAY).await;
 		}
-
-		false
 	}
 
-	async fn reconnect_target_client(&mut self, e: TC::Error) -> bool {
+	async fn handle_target_error(&mut self, e: TC::Error) {
 		if e.is_connection_error() {
 			reconnect_failed_client(
 				FailedClient::Target,
@@ -105,16 +107,30 @@ impl<P: EquivocationDetectionPipeline, SC: SourceClient<P>, TC: TargetClient<P>>
 				&mut self.target_client,
 			)
 			.await;
-
-			return true
+		} else {
+			async_std::task::sleep(RECONNECT_DELAY).await;
 		}
-
-		false
 	}
 
-	async fn update_until_block_num(&mut self) {
-		self.until_block_num = match self.target_client.best_finalized_header_number().await {
-			Ok(hdr_num) => hdr_num,
+	async fn ensure_finality_proofs_stream(&mut self) {
+		match self.finality_proofs_stream.ensure_stream(&self.source_client).await {
+			Ok(_) => {},
+			Err(e) => {
+				log::error!(
+					target: "bridge",
+					"Could not connect to the {} `FinalityProofsStream`: {e:?}",
+					P::SOURCE_NAME,
+				);
+
+				// Reconnect to the source client if needed
+				self.handle_source_error(e).await
+			},
+		}
+	}
+
+	async fn best_finalized_target_block_number(&mut self) -> Option<P::TargetNumber> {
+		match self.target_client.best_finalized_header_number().await {
+			Ok(block_num) => Some(block_num),
 			Err(e) => {
 				log::error!(
 					target: "bridge",
@@ -123,13 +139,14 @@ impl<P: EquivocationDetectionPipeline, SC: SourceClient<P>, TC: TargetClient<P>>
 				);
 
 				// Reconnect target client and move on
-				self.reconnect_target_client(e).await;
-				return
+				self.handle_target_error(e).await;
+
+				None
 			},
-		};
+		}
 	}
 
-	async fn build_context(
+	async fn build_equivocation_reporting_context(
 		&mut self,
 		block_num: P::TargetNumber,
 	) -> Option<EquivocationReportingContext<P>> {
@@ -150,12 +167,14 @@ impl<P: EquivocationDetectionPipeline, SC: SourceClient<P>, TC: TargetClient<P>>
 				);
 
 				// Reconnect target client if needed and move on.
-				self.reconnect_target_client(e).await;
+				self.handle_target_error(e).await;
 				None
 			},
 		}
 	}
 
+	/// Try to get the finality info associated to the source headers synced with the target chain
+	/// at the specified block.
 	async fn synced_source_headers_at_target(
 		&mut self,
 		at: P::TargetNumber,
@@ -171,7 +190,7 @@ impl<P: EquivocationDetectionPipeline, SC: SourceClient<P>, TC: TargetClient<P>>
 				);
 
 				// Reconnect in case of a connection error.
-				self.reconnect_target_client(e).await;
+				self.handle_target_error(e).await;
 				// And move on to the next block.
 				vec![]
 			},
@@ -189,7 +208,7 @@ impl<P: EquivocationDetectionPipeline, SC: SourceClient<P>, TC: TargetClient<P>>
 				);
 
 				// Reconnect source client and move on
-				self.reconnect_source_client(e).await;
+				self.handle_source_error(e).await;
 			},
 		}
 	}
@@ -230,49 +249,38 @@ impl<P: EquivocationDetectionPipeline, SC: SourceClient<P>, TC: TargetClient<P>>
 		}
 	}
 
-	async fn run(&mut self, tick: Duration, exit_signal: impl Future<Output = ()>) {
+	async fn do_run(&mut self, tick: Duration, exit_signal: impl Future<Output = ()>) {
 		let exit_signal = exit_signal.fuse();
 		futures::pin_mut!(exit_signal);
 
 		loop {
 			// Make sure that we are connected to the source finality proofs stream.
-			match self.finality_proofs_stream.ensure_stream(&self.source_client).await {
-				Ok(_) => {},
-				Err(e) => {
-					log::error!(
-						target: "bridge",
-						"Could not connect to the {} `FinalityProofsStream`: {e:?}",
-						P::SOURCE_NAME,
-					);
-
-					// Reconnect to the source client if needed
-					match self.reconnect_source_client(e).await {
-						true => {
-							// Connection error. Move on.
-							continue
-						},
-						false => {
-							// Irrecoverable error. End the loop.
-							return
-						},
-					}
-				},
-			}
+			self.ensure_finality_proofs_stream().await;
 			// Check the status of the pending equivocation reports
 			self.reporter.process_pending_reports().await;
 
-			// Check the next block
-			self.update_until_block_num().await;
-			if self.from_block_num <= self.until_block_num {
-				let mut context = match self.build_context(self.from_block_num).await {
-					Some(context) => context,
-					None => return,
-				};
-
-				self.check_block(self.from_block_num, &mut context).await;
-
-				self.from_block_num = self.from_block_num.saturating_add(1.into());
+			// Update blocks range.
+			if let Some(block_number) = self.best_finalized_target_block_number().await {
+				self.from_block_num.get_or_insert(block_number);
+				self.until_block_num = Some(block_number);
 			}
+			let (from, until) = match (self.from_block_num, self.until_block_num) {
+				(Some(from), Some(until)) => (from, until),
+				_ => continue,
+			};
+
+			// Check the available blocks
+			let mut current_block_number = from;
+			while current_block_number <= until {
+				let mut context =
+					match self.build_equivocation_reporting_context(current_block_number).await {
+						Some(context) => context,
+						None => return,
+					};
+				self.check_block(current_block_number, &mut context).await;
+				current_block_number = current_block_number.saturating_add(1.into());
+			}
+			self.until_block_num = Some(current_block_number);
 
 			select! {
 				_ = async_std::task::sleep(tick).fuse() => {},
@@ -281,7 +289,7 @@ impl<P: EquivocationDetectionPipeline, SC: SourceClient<P>, TC: TargetClient<P>>
 		}
 	}
 
-	pub async fn spawn(
+	pub async fn run(
 		source_client: SC,
 		target_client: TC,
 		tick: Duration,
@@ -290,18 +298,19 @@ impl<P: EquivocationDetectionPipeline, SC: SourceClient<P>, TC: TargetClient<P>>
 		let mut equivocation_detection_loop = Self {
 			source_client,
 			target_client,
-			from_block_num: 0.into(),
-			until_block_num: 0.into(),
+			from_block_num: None,
+			until_block_num: None,
 			reporter: EquivocationsReporter::<P, SC>::new(),
 			finality_proofs_stream: FinalityProofsStream::new(),
 			finality_proofs_buf: FinalityProofsBuf::new(vec![]),
 		};
 
-		equivocation_detection_loop.run(tick, exit_signal).await;
+		equivocation_detection_loop.do_run(tick, exit_signal).await;
 		Ok(())
 	}
 }
 
+/// Spawn the equivocations detection loop.
 /// TODO: remove `#[allow(dead_code)]`
 #[allow(dead_code)]
 pub async fn run<P: EquivocationDetectionPipeline>(
@@ -315,7 +324,7 @@ pub async fn run<P: EquivocationDetectionPipeline>(
 		.run(
 			format!("{}_to_{}_EquivocationDetection", P::SOURCE_NAME, P::TARGET_NAME),
 			move |source_client, target_client, _metrics| {
-				EquivocationDetectionLoop::spawn(
+				EquivocationDetectionLoop::run(
 					source_client,
 					target_client,
 					tick,

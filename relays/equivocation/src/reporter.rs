@@ -34,6 +34,9 @@ impl<P: EquivocationDetectionPipeline, SC: SourceClient<P>> EquivocationsReporte
 		Self { pending_reports: vec![] }
 	}
 
+	/// Submit a `report_equivocation()` transaction to the source chain.
+	///
+	/// We store the transaction tracker for future monitoring.
 	pub async fn submit_report(
 		&mut self,
 		source_client: &SC,
@@ -72,6 +75,8 @@ impl<P: EquivocationDetectionPipeline, SC: SourceClient<P>> EquivocationsReporte
 		Poll::Ready(())
 	}
 
+	/// Iterate through all the pending `report_equivocation()` transactions
+	/// and log the ones that finished.
 	pub async fn process_pending_reports(&mut self) {
 		poll_fn(|cx| self.do_process_pending_reports(cx)).await
 	}

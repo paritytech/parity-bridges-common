@@ -21,6 +21,7 @@ use futures::{FutureExt, Stream, StreamExt};
 use std::pin::Pin;
 
 /// Source finality proofs stream that may be restarted.
+#[derive(Default)]
 pub struct FinalityProofsStream<P: FinalityPipeline, SC: SourceClientBase<P>> {
 	/// The underlying stream.
 	stream: Option<Pin<Box<SC::FinalityProofsStream>>>,
@@ -66,12 +67,6 @@ impl<P: FinalityPipeline, SC: SourceClientBase<P>> FinalityProofsStream<P, SC> {
 		}
 
 		Ok(())
-	}
-}
-
-impl<P: FinalityPipeline, SC: SourceClientBase<P>> Default for FinalityProofsStream<P, SC> {
-	fn default() -> Self {
-		Self::new()
 	}
 }
 
