@@ -93,7 +93,7 @@ pub async fn finality_proofs<P: SubstrateFinalityPipeline>(
 ///
 /// The runtime API method should be `<TargetChain>FinalityApi::best_finalized()`.
 pub async fn best_synced_header_id<SourceChain, TargetChain>(
-	target_client: &impl Client<TargetChain>,
+	target_client: &Client<TargetChain>,
 	at: HashOf<TargetChain>,
 ) -> Result<Option<HeaderIdOf<SourceChain>>, Error>
 where
@@ -102,6 +102,6 @@ where
 {
 	// now let's read id of best finalized peer header at our best finalized block
 	target_client
-		.state_call(at, SourceChain::BEST_FINALIZED_HEADER_ID_METHOD.into(), ())
+		.typed_state_call(SourceChain::BEST_FINALIZED_HEADER_ID_METHOD.into(), (), Some(at))
 		.await
 }

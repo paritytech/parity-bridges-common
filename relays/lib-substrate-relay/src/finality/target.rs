@@ -31,6 +31,7 @@ use relay_substrate_client::{
 	TransactionTracker, UnsignedTransaction,
 };
 use relay_utils::relay_loop::Client as RelayClient;
+use sp_runtime::traits::Header;
 
 /// Substrate client as Substrate finality target.
 pub struct SubstrateFinalityTarget<P: SubstrateFinalitySyncPipeline> {
@@ -96,7 +97,7 @@ impl<P: SubstrateFinalitySyncPipeline> TargetClient<FinalitySyncPipelineAdapter<
 
 		Ok(best_synced_header_id::<P::SourceChain, P::TargetChain>(
 			&self.client,
-			self.client.best_header_hash().await?,
+			self.client.best_header().await?.hash(),
 		)
 		.await?
 		.ok_or(Error::BridgePalletIsNotInitialized)?)
