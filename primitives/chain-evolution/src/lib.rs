@@ -124,7 +124,7 @@ pub mod time_units {
 }
 
 /// Block number type used in Evochain.
-pub type BlockNumber = u64;
+pub type BlockNumber = u32;
 
 /// Hash type used in Evochain.
 pub type Hash = <BlakeTwo256 as HasherT>::Out;
