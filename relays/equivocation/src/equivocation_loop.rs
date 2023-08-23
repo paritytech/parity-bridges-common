@@ -275,7 +275,7 @@ impl<P: EquivocationDetectionPipeline, SC: SourceClient<P>, TC: TargetClient<P>>
 				let mut context =
 					match self.build_equivocation_reporting_context(current_block_number).await {
 						Some(context) => context,
-						None => return,
+						None => continue,
 					};
 				self.check_block(current_block_number, &mut context).await;
 				current_block_number = current_block_number.saturating_add(1.into());
