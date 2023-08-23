@@ -416,7 +416,7 @@ pub mod pallet {
 			// notify others about messages delivery
 			T::OnMessagesDelivered::on_messages_delivered(
 				lane_id,
-				lane.queued_messages().checked_len().unwrap_or(0),
+				lane.queued_messages().saturating_len(),
 			);
 
 			// because of lags, the inbound lane state (`lane_data`) may have entries for
