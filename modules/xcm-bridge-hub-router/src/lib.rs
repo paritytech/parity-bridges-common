@@ -114,7 +114,7 @@ pub mod pallet {
 				return T::WeightInfo::on_initialize_when_congested()
 			}
 
-			// if bridge has reported congestion, we don't change anything
+			// if we can't decrease the delivery fee factor anymore, we don't change anything
 			let mut delivery_fee_factor = Self::delivery_fee_factor();
 			if delivery_fee_factor == MINIMAL_DELIVERY_FEE_FACTOR {
 				return T::WeightInfo::on_initialize_when_congested()
