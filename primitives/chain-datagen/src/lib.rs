@@ -156,13 +156,12 @@ pub type Nonce = u32;
 
 /// Weight-to-Fee type used by DataGen.
 pub type WeightToFee = IdentityFee<Balance>;
-
 /// DataGen chain.
 #[derive(RuntimeDebug)]
 pub struct DataGen;
 
 impl Chain for DataGen {
-	const ID: ChainId = *b"mlau";
+	const ID: ChainId = *b"dtgn";
 
 	type BlockNumber = BlockNumber;
 	type Hash = Hash;

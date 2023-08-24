@@ -156,6 +156,10 @@ pub enum CustomNetworkId {
 	Rialto,
 	/// The RialtoParachain network ID, associated with Westend.
 	RialtoParachain,
+
+	DataGen,
+
+	DataGenParachain,
 }
 
 impl TryFrom<bp_runtime::ChainId> for CustomNetworkId {
@@ -170,7 +174,11 @@ impl TryFrom<bp_runtime::ChainId> for CustomNetworkId {
 			Ok(Self::Rialto)
 		} else if chain == *b"rlpa" {
 			Ok(Self::RialtoParachain)
-		} else {
+		} else if chain == <bp_datagen::DataGen as bp_runtime::Chain>::ID {
+			Ok(Self::DataGen)
+		} else if chain == <bp_datagen_parachain::DataGenParachain as bp_runtime::Chain>::ID {
+			Ok(Self::DataGenParachain)
+		}else {
 			Err(())
 		}
 	}
@@ -183,6 +191,8 @@ impl CustomNetworkId {
 			CustomNetworkId::Millau => NetworkId::Kusama,
 			CustomNetworkId::Rialto => NetworkId::Polkadot,
 			CustomNetworkId::RialtoParachain => NetworkId::Westend,
+			CustomNetworkId::DataGen => NetworkId::Kusama,
+			CustomNetworkId::DataGenParachain => NetworkId::Westend,
 		}
 	}
 }

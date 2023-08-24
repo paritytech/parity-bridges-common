@@ -1289,6 +1289,8 @@ version = "0.1.0"
 name = "bridge-runtime-common"
 version = "0.1.0"
 dependencies = [
+ "bp-datagen",
+ "bp-datagen-parachain",
  "bp-header-chain",
  "bp-messages",
  "bp-parachains",
