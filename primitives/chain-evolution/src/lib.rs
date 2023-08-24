@@ -38,7 +38,7 @@ use serde::{Deserialize, Serialize};
 use sp_core::{storage::StateVersion, Hasher as HasherT};
 use sp_runtime::{
 	traits::{BlakeTwo256, IdentifyAccount, Verify},
-	MultiSigner, Perbill,
+	MultiSigner, Perbill, MultiSignature,
 };
 use sp_std::prelude::*;
 
@@ -136,7 +136,7 @@ pub type Hasher = BlakeTwo256;
 pub type Header = sp_runtime::generic::Header<BlockNumber, Hasher>;
 
 /// Alias to 512-bit hash when used in the context of a transaction signature on the chain.
-pub type Signature = fp_account::EthereumSignature;
+pub type Signature = MultiSignature;
 
 /// Some way of identifying an account on the chain. We intentionally make it equivalent
 /// to the public key of our transaction signing scheme.
