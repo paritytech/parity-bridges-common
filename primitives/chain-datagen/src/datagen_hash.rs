@@ -24,13 +24,13 @@ use sp_runtime::traits::CheckEqual;
 fixed_hash::construct_fixed_hash! {
 	/// Hash type used in DataGen chain.
 	#[derive(MallocSizeOf, TypeInfo)]
-	pub struct DataGenHash(64);
+	pub struct DatagenHash(64);
 }
 
-impl_serde::impl_fixed_hash_serde!(DataGenHash, 64);
-impl_codec::impl_fixed_hash_codec!(DataGenHash, 64);
+impl_serde::impl_fixed_hash_serde!(DatagenHash, 64);
+impl_codec::impl_fixed_hash_codec!(DatagenHash, 64);
 
-impl CheckEqual for DataGenHash {
+impl CheckEqual for DatagenHash {
 	#[cfg(feature = "std")]
 	fn check_equal(&self, other: &Self) {
 		use sp_core::hexdisplay::HexDisplay;

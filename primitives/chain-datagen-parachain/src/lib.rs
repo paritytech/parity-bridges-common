@@ -105,9 +105,9 @@ pub type Nonce = u32;
 pub type WeightToFee = IdentityFee<Balance>;
 
 #[derive(RuntimeDebug)]
-pub struct DataGenParachain;
+pub struct DatagenParachain;
 
-impl Chain for DataGenParachain {
+impl Chain for DatagenParachain {
 	const ID: ChainId = *b"dtgp";
 
 	type BlockNumber = BlockNumber;
@@ -133,11 +133,11 @@ impl Chain for DataGenParachain {
 	}
 }
 
-impl Parachain for DataGenParachain {
+impl Parachain for DatagenParachain {
 	const PARACHAIN_ID: u32 = DATAGEN_PARACHAIN_ID;
 }
 
-impl ChainWithMessages for DataGenParachain {
+impl ChainWithMessages for DatagenParachain {
 	const WITH_CHAIN_MESSAGES_PALLET_NAME: &'static str =
 	WITH_DATAGEN_PARACHAIN_MESSAGES_PALLET_NAME;
 	const MAX_UNREWARDED_RELAYERS_IN_CONFIRMATION_TX: MessageNonce =

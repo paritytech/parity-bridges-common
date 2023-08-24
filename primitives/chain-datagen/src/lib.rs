@@ -14,7 +14,7 @@
 // You should have received a copy of the GNU General Public License
 // along with Parity Bridges Common.  If not, see <http://www.gnu.org/licenses/>.
 
-//! Primitives of the DataGen chain.
+//! Primitives of the Datagen chain.
 
 #![warn(missing_docs)]
 #![cfg_attr(not(feature = "std"), no_std)]
@@ -46,7 +46,7 @@ use sp_trie::{LayoutV0, LayoutV1, TrieConfiguration};
 use serde::{Deserialize, Serialize};
 use sp_runtime::traits::Keccak256;
 
-pub use datagen_hash::DataGenHash;
+pub use datagen_hash::DatagenHash;
 
 /// Number of extra bytes (excluding size of storage value itself) of storage proof, built at
 /// DataGen chain. This mostly depends on number of entries (and their density) in the storage trie.
@@ -158,9 +158,9 @@ pub type Nonce = u32;
 pub type WeightToFee = IdentityFee<Balance>;
 /// DataGen chain.
 #[derive(RuntimeDebug)]
-pub struct DataGen;
+pub struct Datagen;
 
-impl Chain for DataGen {
+impl Chain for Datagen {
 	const ID: ChainId = *b"dtgn";
 
 	type BlockNumber = BlockNumber;
@@ -187,7 +187,7 @@ impl Chain for DataGen {
 	}
 }
 
-impl ChainWithGrandpa for DataGen {
+impl ChainWithGrandpa for Datagen {
 	const WITH_CHAIN_GRANDPA_PALLET_NAME: &'static str = WITH_DATAGEN_GRANDPA_PALLET_NAME;
 	const MAX_AUTHORITIES_COUNT: u32 = MAX_AUTHORITIES_COUNT;
 	const REASONABLE_HEADERS_IN_JUSTIFICATON_ANCESTRY: u32 =
@@ -196,7 +196,7 @@ impl ChainWithGrandpa for DataGen {
 	const AVERAGE_HEADER_SIZE_IN_JUSTIFICATION: u32 = AVERAGE_HEADER_SIZE_IN_JUSTIFICATION;
 }
 
-impl ChainWithBeefy for DataGen {
+impl ChainWithBeefy for Datagen {
 	type CommitmentHasher = Keccak256;
 	type MmrHashing = Keccak256;
 	type MmrHash = <Keccak256 as sp_runtime::traits::Hash>::Output;
@@ -205,7 +205,7 @@ impl ChainWithBeefy for DataGen {
 	type AuthorityIdToMerkleLeaf = bp_beefy::BeefyEcdsaToEthereum;
 }
 
-impl ChainWithMessages for DataGen {
+impl ChainWithMessages for Datagen {
 	const WITH_CHAIN_MESSAGES_PALLET_NAME: &'static str = WITH_DATAGEN_MESSAGES_PALLET_NAME;
 
 	const MAX_UNREWARDED_RELAYERS_IN_CONFIRMATION_TX: MessageNonce =
@@ -219,12 +219,12 @@ impl ChainWithMessages for DataGen {
 pub struct BlakeTwoAndKeccak256;
 
 impl sp_core::Hasher for BlakeTwoAndKeccak256 {
-	type Out = DataGenHash;
+	type Out = DatagenHash;
 	type StdHasher = hash256_std_hasher::Hash256StdHasher;
 	const LENGTH: usize = 64;
 
 	fn hash(s: &[u8]) -> Self::Out {
-		let mut combined_hash = DataGenHash::default();
+		let mut combined_hash = DatagenHash::default();
 		combined_hash.as_mut()[..32].copy_from_slice(&sp_io::hashing::blake2_256(s));
 		combined_hash.as_mut()[32..].copy_from_slice(&sp_io::hashing::keccak_256(s));
 		combined_hash
@@ -232,7 +232,7 @@ impl sp_core::Hasher for BlakeTwoAndKeccak256 {
 }
 
 impl sp_runtime::traits::Hash for BlakeTwoAndKeccak256 {
-	type Output = DataGenHash;
+	type Output = DatagenHash;
 
 	fn trie_root(input: Vec<(Vec<u8>, Vec<u8>)>, state_version: StateVersion) -> Self::Output {
 		match state_version {
@@ -259,7 +259,7 @@ frame_support::parameter_types! {
 }
 
 /// Name of the With-DataGen GRANDPA pallet instance that is deployed at bridged chains.
-pub const WITH_DATAGEN_GRANDPA_PALLET_NAME: &str = "BridgeDataGenGrandpa";
+pub const WITH_DATAGEN_GRANDPA_PALLET_NAME: &str = "BridgeDatagenGrandpa";
 /// Name of the With-DataGen messages pallet instance that is deployed at bridged chains.
 pub const WITH_DATAGEN_MESSAGES_PALLET_NAME: &str = "BridgeDatagenMessages";
 /// Name of the transaction payment pallet at the DataGen runtime.
