@@ -10352,11 +10352,18 @@ dependencies = [
 name = "relay-rococo-client"
 version = "0.1.0"
 dependencies = [
+ "bp-polkadot-core",
  "bp-rococo",
+ "parity-scale-codec",
  "relay-substrate-client",
  "relay-utils",
+ "scale-info",
+ "sp-consensus-grandpa",
  "sp-core",
+ "sp-runtime",
  "sp-session",
+ "sp-weights",
+ "subxt",
 ]
 
 [[package]]

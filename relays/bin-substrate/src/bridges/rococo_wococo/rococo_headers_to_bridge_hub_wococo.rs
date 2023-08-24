@@ -21,6 +21,7 @@ use crate::cli::bridge::{CliBridgeBase, RelayToRelayHeadersCliBridge};
 use async_trait::async_trait;
 use relay_substrate_client::{AccountKeyPairOf, Client};
 use substrate_relay_helper::{
+	equivocation::SubstrateEquivocationDetectionPipeline,
 	finality::SubstrateFinalitySyncPipeline,
 	finality_base::{engine::Grandpa as GrandpaFinalityEngine, SubstrateFinalityPipeline},
 	TransactionParams,
@@ -32,9 +33,16 @@ pub struct RococoFinalityToBridgeHubWococo;
 
 substrate_relay_helper::generate_submit_finality_proof_call_builder!(
 	RococoFinalityToBridgeHubWococo,
-	RococoFinalityToBridgeHubWococoCallBuilder,
+	SubmitFinalityProofCallBuilder,
 	relay_bridge_hub_wococo_client::RuntimeCall::BridgeRococoGrandpa,
 	relay_bridge_hub_wococo_client::BridgeGrandpaCall::submit_finality_proof
+);
+
+substrate_relay_helper::generate_report_equivocation_call_builder!(
+	RococoFinalityToBridgeHubWococo,
+	ReportEquivocationCallBuilder,
+	relay_rococo_client::RuntimeCall::Grandpa,
+	relay_rococo_client::GrandpaCall::report_equivocation
 );
 
 #[async_trait]
@@ -47,7 +55,7 @@ impl SubstrateFinalityPipeline for RococoFinalityToBridgeHubWococo {
 
 #[async_trait]
 impl SubstrateFinalitySyncPipeline for RococoFinalityToBridgeHubWococo {
-	type SubmitFinalityProofCallBuilder = RococoFinalityToBridgeHubWococoCallBuilder;
+	type SubmitFinalityProofCallBuilder = SubmitFinalityProofCallBuilder;
 
 	async fn start_relay_guards(
 		target_client: &impl Client<Self::TargetChain>,
@@ -62,6 +70,11 @@ impl SubstrateFinalitySyncPipeline for RococoFinalityToBridgeHubWococo {
 		}
 		Ok(())
 	}
+}
+
+#[async_trait]
+impl SubstrateEquivocationDetectionPipeline for RococoFinalityToBridgeHubWococo {
+	type ReportEquivocationCallBuilder = ReportEquivocationCallBuilder;
 }
 
 /// `Rococo` to BridgeHub `Wococo` bridge definition.
