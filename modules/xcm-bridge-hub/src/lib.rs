@@ -402,7 +402,7 @@ pub mod pallet {
 
 	/// All currently suspended bridges.
 	#[pallet::storage]
-	#[pallet::getter(fn bridges_by_local_origin)]
+	#[pallet::getter(fn suspended_bridges)]
 	pub type SuspendedBridges<T: Config<I>, I: 'static = ()> =
 		StorageValue<_, BoundedVec<BridgeId, T::MaxSuspendedBridges>, ValueQuery>;
 
