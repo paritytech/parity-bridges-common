@@ -266,9 +266,9 @@ pub fn bridge_locations(
 	// `GlobalConsensus` and we know that the `bridge_origin_universal_location`
 	// is also within the `GlobalConsensus`. So we know that the lane id will be
 	// the same on both ends of the bridge
-	let bridge_id = BridgeId::new(
-		&bridge_origin_universal_location.into(),
-		&bridge_destination_universal_location.into(),
+	let bridge_id = bridge_id_from_locations(
+		&bridge_origin_universal_location,
+		&bridge_destination_universal_location,
 	);
 
 	Ok(Box::new(BridgeLocations {
@@ -277,6 +277,17 @@ pub fn bridge_locations(
 		bridge_destination_universal_location,
 		bridge_id,
 	}))
+}
+
+/// Return `BridgeId` for bridge between two universal XCM locations.
+pub fn bridge_id_from_locations(
+	bridge_origin_universal_location: &InteriorMultiLocation,
+	bridge_destination_universal_location: &InteriorMultiLocation,
+) -> BridgeId {
+	BridgeId::new(
+		&(*bridge_origin_universal_location).into(),
+		&(*bridge_destination_universal_location).into(),
+	)
 }
 
 #[cfg(test)]

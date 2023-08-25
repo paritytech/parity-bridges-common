@@ -165,8 +165,8 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
 
 		// check if the lane is already suspended. If it is, do nothing. We still accept new
 		// messages to the suspended bridge, hoping that it'll be actually suspended soon
-		let is_already_congested = SuspendedBridges::<T, I>::get().contains(&locations.bridge_id);
-		if is_already_congested {
+		let is_already_suspended = SuspendedBridges::<T, I>::get().contains(&locations.bridge_id);
+		if is_already_suspended {
 			return
 		}
 

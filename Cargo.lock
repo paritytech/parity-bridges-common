@@ -1261,6 +1261,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "bp-xcm-bridge-hub-router"
+version = "0.1.0"
+dependencies = [
+ "bp-xcm-bridge-hub",
+ "parity-scale-codec",
+ "scale-info",
+ "sp-runtime",
+]
+
+[[package]]
 name = "bridge-runtime-common"
 version = "0.1.0"
 dependencies = [
@@ -7977,7 +7987,7 @@ dependencies = [
 name = "pallet-xcm-bridge-hub-router"
 version = "0.1.0"
 dependencies = [
- "bp-xcm-bridge-hub",
+ "bp-xcm-bridge-hub-router",
  "frame-benchmarking",
  "frame-support",
  "frame-system",
