@@ -161,7 +161,19 @@ pub mod pallet {
 	pub type Bridges<T: Config<I>, I: 'static = ()> =
 		StorageMap<_, Identity, BridgeId, Bridge<BlockNumberFor<T>>>;
 
-	impl<T: Config<I>, I: 'static> Pallet<T, I> {
+	/// 
+	#[pallet::storage]
+	pub type LatestSuspendedMessageIndex<T: Config<I>, I: 'static = ()> =
+		StorageValue<_, u64, ValueQuery>;
+
+	///
+	#[pallet::storage]
+	pub type SuspendedMessages<T: Config<I>, I: 'static = ()> =
+		StorageMap<_, Identity, u64, BoundedVec<u8, ConstU32<HARD_MESSAGE_SIZE_LIMIT>>>;
+
+	impl<T: Config<I>, I: 'static> Pallet<T, I> where
+		
+	{
 		/// Called when we receive a bridge-suspended signal.
 		pub fn on_bridge_suspended(bridge_id: BridgeId) {
 			Bridges::<T, I>::mutate_extant(bridge_id, |bridge| {
@@ -306,7 +318,9 @@ impl<T: Config<I>, I: 'static> ExporterFor for Pallet<T, I> {
 // This pallet acts as the `SendXcm` to the sibling/child bridge hub instead of regular
 // XCMP/DMP transport. This allows injecting dynamic message fees into XCM programs that
 // are going to the bridged network.
-impl<T: Config<I>, I: 'static> SendXcm for Pallet<T, I> {
+impl<T: Config<I>, I: 'static> SendXcm for Pallet<T, I> where
+	<T::ToBridgeHubSender as SendXcm>::Ticket: Encode,
+{
 	type Ticket = (BridgeId, u32, <T::ToBridgeHubSender as SendXcm>::Ticket);
 
 	fn validate(
@@ -356,7 +370,18 @@ impl<T: Config<I>, I: 'static> SendXcm for Pallet<T, I> {
 		// use router to enqueue message to the sibling/child bridge hub. This also should handle
 		// payment for passing through this queue.
 		let (bridge_id, message_size, ticket) = ticket;
-		let xcm_hash = ViaBridgeHubExporter::<T, I>::deliver(ticket)?;
+		let bridge = Bridges::<T, I>::get(bridge_id).ok_or_else(|| SendError::Transport("UnknownBridge"))?;
+		let xcm_hash = if bridge.is_suspended() {
+			let xcm_hash = Default::default(); // TODO: what about message hash? is it important? where it is used?
+			let message_index = LatestSuspendedMessageIndex::<T, I>::mutate(|index| {
+				*index += 1;
+				*index
+			});
+			SuspendedMessages::<T, I>::insert(message_index, ticket.encode().try_into().expect("TODO"));
+			xcm_hash
+		} else {
+			ViaBridgeHubExporter::<T, I>::deliver(ticket)?
+		};
 
 		// increase delivery fee factor if required
 		Self::on_message_sent_to_bridge(bridge_id, message_size);
