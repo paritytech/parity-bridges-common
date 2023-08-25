@@ -39,3 +39,10 @@ pub struct Bridge<BlockNumber> {
 	/// suspended, it is `None`.
 	pub bridge_resumed_at: Option<BlockNumber>,
 }
+
+impl<BlockNumber> Bridge<BlockNumber> {
+	/// Returns true if bridge is currently suspended.
+	pub fn is_suspended(&self) -> bool {
+		self.bridge_resumed_at.is_none()
+	}
+}

@@ -81,10 +81,6 @@ pub mod pallet {
 		/// Benchmarks results from runtime we're plugged into.
 		type WeightInfo: WeightInfo;
 
-		/// Maximal number of suspended bridges.
-		#[pallet::constant]
-		type MaxSuspendedBridges: Get<u32>;
-
 		/// Universal location of this runtime.
 		type UniversalLocation: Get<InteriorMultiLocation>;
 		/// Relative location of the sibling bridge hub.
@@ -165,13 +161,21 @@ pub mod pallet {
 	pub type Bridges<T: Config<I>, I: 'static = ()> =
 		StorageMap<_, Identity, BridgeId, Bridge<BlockNumberFor<T>>>;
 
-	/// All currently suspended bridges.
-	#[pallet::storage]
-	#[pallet::getter(fn bridges_by_local_origin)]
-	pub type SuspendedBridges<T: Config<I>, I: 'static = ()> =
-		StorageValue<_, BoundedVec<BridgeId, T::MaxSuspendedBridges>, ValueQuery>;
-
 	impl<T: Config<I>, I: 'static> Pallet<T, I> {
+		/// Called when we receive a bridge-suspended signal.
+		pub fn on_bridge_suspended(bridge_id: BridgeId) {
+			Bridges::<T, I>::mutate_extant(bridge_id, |bridge| {
+				bridge.bridge_resumed_at = None;
+			});
+		}
+
+		/// Called when we receive a bridge-resume signal.
+		pub fn on_bridge_resumed(bridge_id: BridgeId) {
+			Bridges::<T, I>::mutate_extant(bridge_id, |bridge| {
+				bridge.bridge_resumed_at = Some(frame_system::Pallet::<T>::block_number());
+			});
+		}
+
 		/// Called when new message is sent (queued to local outbound XCM queue) over the bridge.
 		pub(crate) fn on_message_sent_to_bridge(bridge_id: BridgeId, message_size: u32) {
 			// both fee factor components are increased using the same `total_factor`
@@ -198,9 +202,9 @@ pub mod pallet {
 			}
 
 			// if the bridge is suspended, increase the bridge fee factor
-			let is_bridge_suspended = SuspendedBridges::<T, I>::get().contains(&bridge_id);
-			if is_bridge_suspended {
-				Bridges::<T, I>::mutate_extant(bridge_id, |bridge| {
+			Bridges::<T, I>::mutate_extant(bridge_id, |bridge| {
+				let is_bridge_suspended = bridge.is_suspended();
+				if is_bridge_suspended {
 					let previous_factor = bridge.bridge_fee_factor;
 					bridge.bridge_fee_factor =
 						bridge.bridge_fee_factor.saturating_mul(total_factor);
@@ -211,8 +215,8 @@ pub mod pallet {
 						previous_factor,
 						bridge.bridge_fee_factor,
 					);
-				});
-			}
+				}
+			});
 		}
 	}
 }

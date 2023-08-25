@@ -400,6 +400,7 @@ pub mod pallet {
 	pub type Bridges<T: Config<I>, I: 'static = ()> =
 		StorageMap<_, Identity, BridgeId, BridgeOf<T, I>>;
 
+	// TODO: do we really need this vec? Can we live with some flag in the `Bridge` struct?
 	/// All currently suspended bridges.
 	#[pallet::storage]
 	#[pallet::getter(fn bridges_by_local_origin)]

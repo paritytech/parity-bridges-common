@@ -20,7 +20,7 @@ use crate as pallet_xcm_bridge_hub_router;
 
 use bp_xcm_bridge_hub_router::{BridgeId, LocalXcmChannelManager};
 use frame_support::{construct_runtime, parameter_types};
-use sp_core::{ConstU32, H256};
+use sp_core::H256;
 use sp_runtime::{
 	traits::{BlakeTwo256, ConstU128, IdentityLookup},
 	BuildStorage,
@@ -81,8 +81,6 @@ impl frame_system::Config for TestRuntime {
 
 impl pallet_xcm_bridge_hub_router::Config<()> for TestRuntime {
 	type WeightInfo = ();
-
-	type MaxSuspendedBridges = ConstU32<1>;
 
 	type UniversalLocation = UniversalLocation;
 	type SiblingBridgeHubLocation = SiblingBridgeHubLocation;
