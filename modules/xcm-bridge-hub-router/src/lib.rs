@@ -35,7 +35,7 @@ use bp_xcm_bridge_hub_router::{
 };
 use codec::Encode;
 use frame_support::traits::Get;
-use sp_runtime::{FixedPointNumber, FixedU128, Saturating};
+use sp_runtime::{FixedPointNumber, FixedU128, SaturatedConversion, Saturating};
 use xcm::prelude::*;
 use xcm_builder::{ExporterFor, SovereignPaidRemoteExporter};
 
@@ -113,45 +113,57 @@ pub mod pallet {
 	#[pallet::hooks]
 	impl<T: Config<I>, I: 'static> Hooks<BlockNumberFor<T>> for Pallet<T, I> {
 		fn on_initialize(_n: BlockNumberFor<T>) -> Weight {
-			/*
-						// if XCM channel is still congested, we don't change anything
-						if T::LocalXcmChannelManager::is_congested(&T::SiblingBridgeHubLocation::get()) {
-							return T::WeightInfo::on_initialize_when_congested()
-						}
+			// if XCM channel is still congested, we don't change anything
+			if T::LocalXcmChannelManager::is_congested(&T::SiblingBridgeHubLocation::get()) {
+				return T::WeightInfo::on_initialize_when_congested()
+			}
 
-						// if we can't decrease the delivery fee factor anymore, we don't change anything
-						let mut delivery_fee_factor = Self::delivery_fee_factor();
-						if delivery_fee_factor == MINIMAL_DELIVERY_FEE_FACTOR {
-							return T::WeightInfo::on_initialize_when_congested()
-						}
+			// if we can't decrease the congestion fee factor anymore, we don't change anything
+			let mut congestion_fee_factor = Self::congestion_fee_factor();
+			if congestion_fee_factor == MINIMAL_DELIVERY_FEE_FACTOR {
+				return T::WeightInfo::on_initialize_when_congested()
+			}
 
-						let previous_factor = delivery_fee_factor;
-						delivery_fee_factor =
-							MINIMAL_DELIVERY_FEE_FACTOR.max(delivery_fee_factor / EXPONENTIAL_FEE_BASE);
-						log::info!(
-							target: LOG_TARGET,
-							"Bridge channel is uncongested. Decreased fee factor from {} to {}",
-							previous_factor,
-							delivery_fee_factor,
-						);
+			let previous_factor = congestion_fee_factor;
+			congestion_fee_factor =
+				MINIMAL_DELIVERY_FEE_FACTOR.max(congestion_fee_factor / EXPONENTIAL_FEE_BASE);
+			log::info!(
+				target: LOG_TARGET,
+				"With-bridge-hub channel is uncongested. Decreased congestion fee factor from {} to {}",
+				previous_factor,
+				congestion_fee_factor,
+			);
 
-						DeliveryFeeFactor::<T, I>::put(delivery_fee_factor);
-						T::WeightInfo::on_initialize_when_non_congested()
-			*/
-			Weight::zero()
+			CongestionFeeFactor::<T, I>::put(congestion_fee_factor);
+			T::WeightInfo::on_initialize_when_non_congested()
 		}
 	}
 
-	/// Initialization value for the delivery fee factor.
+	/// Initialization value for the congestion fee factor.
 	#[pallet::type_value]
-	pub fn InitialFactor() -> FixedU128 {
+	pub fn InitialCongestionFactor() -> FixedU128 {
 		MINIMAL_DELIVERY_FEE_FACTOR
 	}
+
+	/// One (congestion-related) component of the number to multiply the base delivery fee by.
+	///
+	/// This factor is shared by all bridges, served by this pallet. For example, if this
+	/// chain (`Config::UniversalLocation`) opens two bridges (
+	/// `X2(GlobalConsensus(Config::BridgedNetworkId::get()), Parachain(1000))` and
+	/// `X2(GlobalConsensus(Config::BridgedNetworkId::get()), Parachain(2000))`), then they
+	/// both will be sharing the same congestion fee factor. This is because both bridges are
+	/// sharing the same local XCM channel with the child/sibling bridge hub, which may be
+	/// congested.
+	#[pallet::storage]
+	#[pallet::getter(fn congestion_fee_factor)]
+	pub type CongestionFeeFactor<T: Config<I>, I: 'static = ()> =
+		StorageValue<_, FixedU128, ValueQuery, InitialCongestionFactor>;
 
 	/// All registered bridges and their delivery fee factors.
 	#[pallet::storage]
 	#[pallet::getter(fn bridge)]
-	pub type Bridges<T: Config<I>, I: 'static = ()> = StorageMap<_, Identity, BridgeId, Bridge>;
+	pub type Bridges<T: Config<I>, I: 'static = ()> =
+		StorageMap<_, Identity, BridgeId, Bridge<BlockNumberFor<T>>>;
 
 	/// All currently suspended bridges.
 	#[pallet::storage]
@@ -162,30 +174,45 @@ pub mod pallet {
 	impl<T: Config<I>, I: 'static> Pallet<T, I> {
 		/// Called when new message is sent (queued to local outbound XCM queue) over the bridge.
 		pub(crate) fn on_message_sent_to_bridge(bridge_id: BridgeId, message_size: u32) {
-			// we only need to increase delivery fee factor if the channel with sibling/child BH is
-			// congested or if given bridge is explicitly suspended
-			let need_increase_delivery_fee_factor = SuspendedBridges::<T, I>::get()
-				.contains(&bridge_id) ||
-				T::LocalXcmChannelManager::is_congested(&T::SiblingBridgeHubLocation::get());
-			if !need_increase_delivery_fee_factor {
-				return
-			}
-
-			// ok - we need to increase the fee factor, let's do that
+			// both fee factor components are increased using the same `total_factor`
 			let message_size_factor = FixedU128::from_u32(message_size.saturating_div(1024))
 				.saturating_mul(MESSAGE_SIZE_FEE_BASE);
 			let total_factor = EXPONENTIAL_FEE_BASE.saturating_add(message_size_factor);
-			Bridges::<T, I>::mutate_extant(bridge_id, |bridge| {
-				let previous_factor = bridge.delivery_fee_factor;
-				bridge.delivery_fee_factor =
-					bridge.delivery_fee_factor.saturating_mul(total_factor);
-				log::info!(
-					target: LOG_TARGET,
-					"Bridge channel is congested. Increased fee factor from {} to {}",
-					previous_factor,
-					bridge.delivery_fee_factor,
-				);
-			});
+
+			// if the channel with the sibling/child bridge hub is congested, let's increase
+			// the congestion fee factor
+			let is_bridge_hub_channel_congested =
+				T::LocalXcmChannelManager::is_congested(&T::SiblingBridgeHubLocation::get());
+			if is_bridge_hub_channel_congested {
+				CongestionFeeFactor::<T, I>::mutate(|f| {
+					let previous_factor = *f;
+					*f = f.saturating_mul(total_factor);
+					log::info!(
+						target: LOG_TARGET,
+						"With-bridge-hub channel is congested. Increased congestion fee factor from {} to {}",
+						previous_factor,
+						f,
+					);
+					*f
+				});
+			}
+
+			// if the bridge is suspended, increase the bridge fee factor
+			let is_bridge_suspended = SuspendedBridges::<T, I>::get().contains(&bridge_id);
+			if is_bridge_suspended {
+				Bridges::<T, I>::mutate_extant(bridge_id, |bridge| {
+					let previous_factor = bridge.bridge_fee_factor;
+					bridge.bridge_fee_factor =
+						bridge.bridge_fee_factor.saturating_mul(total_factor);
+					log::info!(
+						target: LOG_TARGET,
+						"Bridge {:?} is suspended. Increased bridge fee factor from {} to {}",
+						bridge_id,
+						previous_factor,
+						bridge.bridge_fee_factor,
+					);
+				});
+			}
 		}
 	}
 }
@@ -230,6 +257,26 @@ impl<T: Config<I>, I: 'static> ExporterFor for Pallet<T, I> {
 			},
 		};
 
+		// we do NOT decrease bridge-specific fee factor from every block `on_initialize` after
+		// bridge is resumed. Instead, we compute an actual factor here, when we actually send
+		// a message over the bridge.
+		let mut bridge_fee_factor = bridge.bridge_fee_factor;
+		if let Some(bridge_resumed_at) = bridge.bridge_resumed_at {
+			let resumed_for_blocks =
+				frame_system::Pallet::<T>::block_number().saturating_sub(bridge_resumed_at);
+			bridge_fee_factor = MINIMAL_DELIVERY_FEE_FACTOR.max(
+				bridge_fee_factor /
+					EXPONENTIAL_FEE_BASE.saturating_pow(resumed_for_blocks.saturated_into()),
+			);
+		}
+
+		// fee factor is comprised of two components - congestion fee factor and bridge fee factor.
+		// They both are changed independently and the total factor is the sum of both factors.
+		// (minus the `MINIMAL_DELIVERY_FEE_FACTOR`, because it is included into both components)
+		let fee_factor = bridge_fee_factor
+			.saturating_add(Self::congestion_fee_factor())
+			.saturating_sub(MINIMAL_DELIVERY_FEE_FACTOR);
+
 		// compute fee amount. Keep in mind that this is only the bridge fee. The fee for sending
 		// message from this chain to child/sibling bridge hub is determined by the
 		// `Config::ToBridgeHubSender`
@@ -237,7 +284,6 @@ impl<T: Config<I>, I: 'static> ExporterFor for Pallet<T, I> {
 		let message_size = message.encoded_size();
 		let message_fee = (message_size as u128).saturating_mul(T::ByteFee::get());
 		let fee_sum = base_fee.saturating_add(message_fee);
-		let fee_factor = bridge.delivery_fee_factor;
 		let fee = fee_factor.saturating_mul_int(fee_sum);
 		let fee = if fee > 0 { Some((T::FeeAsset::get(), fee).into()) } else { None };
 
@@ -322,40 +368,58 @@ mod tests {
 
 	use frame_support::traits::Hooks;
 	use sp_runtime::traits::One;
-	/*
+
+	fn bridge_destination_relative_location() -> MultiLocation {
+		MultiLocation::new(2, X2(GlobalConsensus(Rococo), Parachain(1000)))
+	}
+
+	fn bridge_id() -> BridgeId {
+		BridgeId::new(
+			&UniversalLocation::get().into(),
+			&(*bridge_destination_relative_location().interior()).into(),
+		)
+	}
+
+	fn insert_bridge() {
+		Bridges::<TestRuntime, ()>::insert(
+			bridge_id(),
+			Bridge { bridge_fee_factor: MINIMAL_DELIVERY_FEE_FACTOR, bridge_resumed_at: Some(0) },
+		);
+	}
+
 	#[test]
 	fn initial_fee_factor_is_one() {
 		run_test(|| {
-			assert_eq!(DeliveryFeeFactor::<TestRuntime, ()>::get(), MINIMAL_DELIVERY_FEE_FACTOR);
+			assert_eq!(CongestionFeeFactor::<TestRuntime, ()>::get(), MINIMAL_DELIVERY_FEE_FACTOR);
 		})
 	}
 
 	#[test]
-	fn fee_factor_is_not_decreased_from_on_initialize_when_queue_is_congested() {
+	fn congestion_fee_factor_is_not_decreased_from_on_initialize_when_queue_is_congested() {
 		run_test(|| {
-			DeliveryFeeFactor::<TestRuntime, ()>::put(FixedU128::from_rational(125, 100));
+			CongestionFeeFactor::<TestRuntime, ()>::put(FixedU128::from_rational(125, 100));
 			TestLocalXcmChannelManager::make_congested();
 
 			// it should not decrease, because queue is congested
-			let old_delivery_fee_factor = XcmBridgeHubRouter::delivery_fee_factor();
+			let old_congestion_fee_factor = XcmBridgeHubRouter::congestion_fee_factor();
 			XcmBridgeHubRouter::on_initialize(One::one());
-			assert_eq!(XcmBridgeHubRouter::delivery_fee_factor(), old_delivery_fee_factor);
+			assert_eq!(XcmBridgeHubRouter::congestion_fee_factor(), old_congestion_fee_factor);
 		})
 	}
 
 	#[test]
-	fn fee_factor_is_decreased_from_on_initialize_when_queue_is_uncongested() {
+	fn congestion_fee_factor_is_decreased_from_on_initialize_when_queue_is_uncongested() {
 		run_test(|| {
-			DeliveryFeeFactor::<TestRuntime, ()>::put(FixedU128::from_rational(125, 100));
+			CongestionFeeFactor::<TestRuntime, ()>::put(FixedU128::from_rational(125, 100));
 
 			// it shold eventually decreased to one
-			while XcmBridgeHubRouter::delivery_fee_factor() > MINIMAL_DELIVERY_FEE_FACTOR {
+			while XcmBridgeHubRouter::congestion_fee_factor() > MINIMAL_DELIVERY_FEE_FACTOR {
 				XcmBridgeHubRouter::on_initialize(One::one());
 			}
 
 			// verify that it doesn't decreases anymore
 			XcmBridgeHubRouter::on_initialize(One::one());
-			assert_eq!(XcmBridgeHubRouter::delivery_fee_factor(), MINIMAL_DELIVERY_FEE_FACTOR);
+			assert_eq!(XcmBridgeHubRouter::congestion_fee_factor(), MINIMAL_DELIVERY_FEE_FACTOR);
 		})
 	}
 
@@ -364,7 +428,7 @@ mod tests {
 		run_test(|| {
 			assert_eq!(
 				send_xcm::<XcmBridgeHubRouter>(
-					MultiLocation::new(2, X2(GlobalConsensus(Rococo), Parachain(1000))),
+					bridge_destination_relative_location(),
 					vec![].into(),
 				),
 				Err(SendError::NotApplicable),
@@ -388,7 +452,9 @@ mod tests {
 	#[test]
 	fn returns_proper_delivery_price() {
 		run_test(|| {
-			let dest = MultiLocation::new(2, X1(GlobalConsensus(BridgedNetworkId::get())));
+			insert_bridge();
+
+			let dest = bridge_destination_relative_location();
 			let xcm: Xcm<()> = vec![ClearOrigin].into();
 			let msg_size = xcm.encoded_size();
 
@@ -405,7 +471,7 @@ mod tests {
 			// but when factor is larger than one, it increases the fee, so it becomes:
 			// `(BASE_FEE + BYTE_FEE * msg_size) * F + HRMP_FEE`
 			let factor = FixedU128::from_rational(125, 100);
-			DeliveryFeeFactor::<TestRuntime, ()>::put(factor);
+			CongestionFeeFactor::<TestRuntime, ()>::put(factor);
 			let expected_fee =
 				(FixedU128::saturating_from_integer(BASE_FEE + BYTE_FEE * (msg_size as u128)) *
 					factor)
@@ -421,13 +487,12 @@ mod tests {
 	#[test]
 	fn sent_message_doesnt_increase_factor_if_queue_is_uncongested() {
 		run_test(|| {
-			let old_delivery_fee_factor = XcmBridgeHubRouter::delivery_fee_factor();
+			insert_bridge();
+
+			let old_congestion_fee_factor = XcmBridgeHubRouter::congestion_fee_factor();
 			assert_eq!(
 				send_xcm::<XcmBridgeHubRouter>(
-					MultiLocation::new(
-						2,
-						X2(GlobalConsensus(BridgedNetworkId::get()), Parachain(1000))
-					),
+					bridge_destination_relative_location(),
 					vec![ClearOrigin].into(),
 				)
 				.map(drop),
@@ -435,22 +500,20 @@ mod tests {
 			);
 
 			assert!(TestToBridgeHubSender::is_message_sent());
-			assert_eq!(old_delivery_fee_factor, XcmBridgeHubRouter::delivery_fee_factor());
+			assert_eq!(old_congestion_fee_factor, XcmBridgeHubRouter::congestion_fee_factor());
 		});
 	}
 
 	#[test]
 	fn sent_message_increases_factor_if_queue_is_congested() {
 		run_test(|| {
+			insert_bridge();
 			TestLocalXcmChannelManager::make_congested();
 
-			let old_delivery_fee_factor = XcmBridgeHubRouter::delivery_fee_factor();
+			let old_congestion_fee_factor = XcmBridgeHubRouter::congestion_fee_factor();
 			assert_eq!(
 				send_xcm::<XcmBridgeHubRouter>(
-					MultiLocation::new(
-						2,
-						X2(GlobalConsensus(BridgedNetworkId::get()), Parachain(1000))
-					),
+					bridge_destination_relative_location(),
 					vec![ClearOrigin].into(),
 				)
 				.map(drop),
@@ -458,7 +521,7 @@ mod tests {
 			);
 
 			assert!(TestToBridgeHubSender::is_message_sent());
-			assert!(old_delivery_fee_factor < XcmBridgeHubRouter::delivery_fee_factor());
+			assert!(old_congestion_fee_factor < XcmBridgeHubRouter::congestion_fee_factor());
 		});
-	}*/
+	}
 }

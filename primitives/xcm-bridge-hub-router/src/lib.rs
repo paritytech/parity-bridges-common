@@ -29,7 +29,13 @@ pub use bp_xcm_bridge_hub::{
 /// All required bridge details, known to the chain that uses XCM bridge hub for
 /// sending messages.
 #[derive(Clone, Decode, Encode, Eq, PartialEq, TypeInfo, MaxEncodedLen, RuntimeDebug)]
-pub struct Bridge {
-	/// The number to multiply the base delivery fee by.
-	pub delivery_fee_factor: FixedU128,
+pub struct Bridge<BlockNumber> {
+	/// The bridge-specific number to multiply the base delivery fee by.
+	///
+	/// This is a second component of the total fee factor. The first component is
+	/// shared by all bridges and depends on the physical HRMP congestion.
+	pub bridge_fee_factor: FixedU128,
+	/// A latest block, at which the bridge has been resumed. If bridge is currently
+	/// suspended, it is `None`.
+	pub bridge_resumed_at: Option<BlockNumber>,
 }
