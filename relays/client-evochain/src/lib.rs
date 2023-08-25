@@ -16,8 +16,8 @@
 
 //! Types used to connect to the Evochain-Substrate chain.
 
-use bp_evochain::EVOCHAIN_ACCEPTED_GRANDPA_FINALITY_PROOFS_METHOD;
 use codec::{Compact, Decode, Encode};
+use ep_bridge::EVOCHAIN_ACCEPTED_GRANDPA_FINALITY_PROOFS_METHOD;
 use node_template_runtime as evochain_runtime;
 use relay_substrate_client::{
 	BalanceOf, Chain, ChainWithBalances, ChainWithGrandpa, ChainWithMessages,
@@ -25,7 +25,10 @@ use relay_substrate_client::{
 	FullRuntimeUtilityPallet, NonceOf, SignParam, UnderlyingChainProvider, UnsignedTransaction,
 };
 use sp_core::{storage::StorageKey, Pair};
-use sp_runtime::{generic::SignedPayload, traits::IdentifyAccount};
+use sp_runtime::{
+	generic::{SignedBlock, SignedPayload},
+	traits::IdentifyAccount,
+};
 use std::time::Duration;
 
 /// Evochain header id.
@@ -36,25 +39,25 @@ pub type HeaderId = relay_utils::HeaderId<evochain_runtime::Hash, evochain_runti
 pub struct Evochain;
 
 impl UnderlyingChainProvider for Evochain {
-	type Chain = bp_evochain::Evochain;
+	type Chain = ep_bridge::Evochain;
 }
 
 impl ChainWithMessages for Evochain {
 	// TODO (https://github.com/paritytech/parity-bridges-common/issues/1692): change the name
 	const WITH_CHAIN_RELAYERS_PALLET_NAME: Option<&'static str> = Some("BridgeRelayers");
 	const TO_CHAIN_MESSAGE_DETAILS_METHOD: &'static str =
-		bp_evochain::TO_EVOCHAIN_MESSAGE_DETAILS_METHOD;
+		ep_bridge::TO_EVOCHAIN_MESSAGE_DETAILS_METHOD;
 	const FROM_CHAIN_MESSAGE_DETAILS_METHOD: &'static str =
-		bp_evochain::FROM_EVOCHAIN_MESSAGE_DETAILS_METHOD;
+		ep_bridge::FROM_EVOCHAIN_MESSAGE_DETAILS_METHOD;
 }
 
 impl Chain for Evochain {
 	const NAME: &'static str = "Evochain";
 	const BEST_FINALIZED_HEADER_ID_METHOD: &'static str =
-		bp_evochain::BEST_FINALIZED_EVOCHAIN_HEADER_METHOD;
+		ep_bridge::BEST_FINALIZED_EVOCHAIN_HEADER_METHOD;
 	const AVERAGE_BLOCK_INTERVAL: Duration = Duration::from_secs(5);
 
-	type SignedBlock = evochain_runtime::SignedBlock;
+	type SignedBlock = SignedBlock<evochain_runtime::Block>;
 	type Call = evochain_runtime::RuntimeCall;
 }
 
@@ -91,8 +94,6 @@ impl ChainWithTransactions for Evochain {
 				frame_system::CheckNonce::<evochain_runtime::Runtime>::from(unsigned.nonce),
 				frame_system::CheckWeight::<evochain_runtime::Runtime>::new(),
 				pallet_transaction_payment::ChargeTransactionPayment::<evochain_runtime::Runtime>::from(unsigned.tip),
-				evochain_runtime::BridgeRejectObsoleteHeadersAndMessages,
-				evochain_runtime::BridgeRefundRialtoParachainMessages::default(),
 			),
 			(
 				(),
@@ -103,8 +104,6 @@ impl ChainWithTransactions for Evochain {
 				(),
 				(),
 				(),
-				(),
-				()
 			),
 		);
 		let signature = raw_payload.using_encoded(|payload| param.signer.sign(payload));
@@ -174,7 +173,7 @@ mod tests {
 			SignParam {
 				spec_version: 42,
 				transaction_version: 50000,
-				genesis_hash: [42u8; 64].into(),
+				genesis_hash: [42u8; 32].into(),
 				signer: sp_core::sr25519::Pair::from_seed_slice(&[1u8; 32]).unwrap(),
 			},
 			unsigned.clone(),

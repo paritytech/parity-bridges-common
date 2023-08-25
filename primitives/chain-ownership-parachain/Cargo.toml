@@ -9,20 +9,22 @@ license = "GPL-3.0-or-later WITH Classpath-exception-2.0"
 [dependencies]
 
 # Bridge Dependencies
-
 bp-bridge-hub-cumulus = { path = "../chain-bridge-hub-cumulus", default-features = false }
 bp-messages = { path = "../messages", default-features = false }
 bp-polkadot-core = { path = "../polkadot-core", default-features = false }
 bp-runtime = { path = "../runtime", default-features = false }
+bp-header-chain = { path = "../header-chain", default-features = false }
 
 # Substrate Based Dependencies
-
 frame-support = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v1.0.0", default-features = false }
 frame-system = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v1.0.0", default-features = false }
 sp-api = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v1.0.0", default-features = false }
 sp-core = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v1.0.0", default-features = false }
 sp-runtime = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v1.0.0", default-features = false }
 sp-std = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v1.0.0", default-features = false }
+
+# Ownership parachain Primitives
+ownership-parachain-primitives = { git = "https://github.com/freeverseio/laos-ownership-node.git", branch = "feat/relayer", default-features = false }
 
 [features]
 default = ["std"]
@@ -33,6 +35,7 @@ std = [
 	"bp-runtime/std",
 	"frame-support/std",
 	"frame-system/std",
+	"ownership-parachain-primitives/std",
 	"sp-api/std",
 	"sp-core/std",
 	"sp-runtime/std",

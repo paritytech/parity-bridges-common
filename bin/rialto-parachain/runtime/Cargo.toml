@@ -18,7 +18,6 @@ scale-info = { version = "2.9.0", default-features = false, features = ["derive"
 
 bp-header-chain = { path = "../../../primitives/header-chain", default-features = false }
 bp-messages = { path = "../../../primitives/messages", default-features = false }
-bp-evochain = { path = "../../../primitives/chain-evolution", default-features = false }
 bp-millau = { path = "../../../primitives/chain-millau", default-features = false }
 bp-relayers = { path = "../../../primitives/relayers", default-features = false }
 bp-runtime = { path = "../../../primitives/runtime", default-features = false }
@@ -94,7 +93,6 @@ runtime-benchmarks = [
 	'xcm-builder/runtime-benchmarks',
 ]
 std = [
-	"bp-evochain/std",
 	"bp-messages/std",
 	"bp-millau/std",
 	"bp-relayers/std",

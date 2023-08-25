@@ -11,12 +11,10 @@ relay-substrate-client = { path = "../client-substrate" }
 relay-utils = { path = "../utils" }
 
 # Supported Chains
-
 bp-evochain = { path = "../../primitives/chain-evolution" }
-node-template-runtime = { git = "https://github.com/freeverseio/laos-evolution-node.git", branch = "dev" }
+node-template-runtime = { git = "https://github.com/freeverseio/laos-evolution-node.git", branch = "feat/grandpa-rpc" }
 
 # Substrate Dependencies
-
 frame-support = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v1.0.0" }
 frame-system = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v1.0.0" }
 pallet-transaction-payment = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v1.0.0" }

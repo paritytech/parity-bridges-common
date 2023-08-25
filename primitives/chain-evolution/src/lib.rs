@@ -1,25 +1,10 @@
-// Copyright 2019-2021 Parity Technologies (UK) Ltd.
-// This file is part of Parity Bridges Common.
-
-// Parity Bridges Common is free software: you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-
-// Parity Bridges Common is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-
-// You should have received a copy of the GNU General Public License
-// along with Parity Bridges Common.  If not, see <http://www.gnu.org/licenses/>.
-
-//! Primitives of the Evochain.
+//! Bridge primitives of the Evochain.
 
 #![warn(missing_docs)]
 #![cfg_attr(not(feature = "std"), no_std)]
 
-mod evo_hash;
+// Re-export core Evochain primitives.
+pub use evochain_primitives::*;
 
 use bp_header_chain::ChainWithGrandpa;
 use bp_messages::{
@@ -27,22 +12,13 @@ use bp_messages::{
 	OutboundMessageDetails,
 };
 use bp_runtime::{decl_bridge_finality_runtime_apis, decl_bridge_runtime_apis, Chain, ChainId};
-use frame_support::{
-	dispatch::DispatchClass,
-	weights::{constants::WEIGHT_REF_TIME_PER_SECOND, IdentityFee, Weight},
-	RuntimeDebug,
+use evochain_primitives::{
+	AccountId, Balance, BlockLength, BlockNumber, BlockWeights, Hash, Hasher, Header, Nonce,
+	Signature, MINUTES,
 };
-use frame_system::limits;
-use scale_info::TypeInfo;
-use serde::{Deserialize, Serialize};
-use sp_core::{storage::StateVersion, Hasher as HasherT};
-use sp_runtime::{
-	traits::{BlakeTwo256, IdentifyAccount, Verify},
-	MultiSigner, Perbill, MultiSignature,
-};
+use frame_support::{dispatch::DispatchClass, weights::Weight, RuntimeDebug};
+use sp_core::storage::StateVersion;
 use sp_std::prelude::*;
-
-pub use evo_hash::EvoHash;
 
 /// Number of extra bytes (excluding size of storage value itself) of storage proof, built at
 /// Evochain chain. This mostly depends on number of entries (and their density) in the storage trie.
@@ -53,17 +29,6 @@ pub const EXTRA_STORAGE_PROOF_SIZE: u32 = 1024;
 ///
 /// Can be computed by subtracting encoded call size from raw transaction size.
 pub const TX_EXTRA_BYTES: u32 = 103;
-
-/// Maximum weight of single Evochain block.
-///
-/// This represents 0.5 seconds of compute assuming a target block time of six seconds.
-///
-/// Max PoV size is set to max value, since it isn't important for relay/standalone chains.
-pub const MAXIMUM_BLOCK_WEIGHT: Weight =
-	Weight::from_parts(WEIGHT_REF_TIME_PER_SECOND.saturating_div(2), u64::MAX);
-
-/// Represents the portion of a block that will be used by Normal extrinsics.
-pub const NORMAL_DISPATCH_RATIO: Perbill = Perbill::from_percent(75);
 
 /// Maximal number of unrewarded relayer entries in Evochain confirmation transaction.
 pub const MAX_UNREWARDED_RELAYERS_IN_CONFIRMATION_TX: MessageNonce = 128;
@@ -76,7 +41,7 @@ pub const MAX_UNCONFIRMED_MESSAGES_IN_CONFIRMATION_TX: MessageNonce = 128;
 ///
 /// Note that since this is a target sessions may change before/after this time depending on network
 /// conditions.
-pub const SESSION_LENGTH: BlockNumber = 5 * time_units::MINUTES;
+pub const SESSION_LENGTH: BlockNumber = 5 * MINUTES;
 
 /// Maximal number of GRANDPA authorities at Evochain.
 pub const MAX_AUTHORITIES_COUNT: u32 = 5;
@@ -101,58 +66,6 @@ pub const AVERAGE_HEADER_SIZE_IN_JUSTIFICATION: u32 = 256;
 pub const MAX_HEADER_SIZE: u32 = MAX_AUTHORITIES_COUNT
 	.saturating_mul(3)
 	.saturating_add(AVERAGE_HEADER_SIZE_IN_JUSTIFICATION);
-
-use sp_trie::{LayoutV0, LayoutV1, TrieConfiguration};
-/// Re-export `time_units` to make usage easier.
-pub use time_units::*;
-
-/// Human readable time units defined in terms of number of blocks.
-pub mod time_units {
-	use super::BlockNumber;
-
-	/// Milliseconds between Evochain chain blocks.
-	pub const MILLISECS_PER_BLOCK: u64 = 6000;
-	/// Slot duration in Evochain chain consensus algorithms.
-	pub const SLOT_DURATION: u64 = MILLISECS_PER_BLOCK;
-
-	/// A minute, expressed in Evochain chain blocks.
-	pub const MINUTES: BlockNumber = 60_000 / (MILLISECS_PER_BLOCK as BlockNumber);
-	/// A hour, expressed in Evochain chain blocks.
-	pub const HOURS: BlockNumber = MINUTES * 60;
-	/// A day, expressed in Evochain chain blocks.
-	pub const DAYS: BlockNumber = HOURS * 24;
-}
-
-/// Block number type used in Evochain.
-pub type BlockNumber = u32;
-
-/// Hash type used in Evochain.
-pub type Hash = <BlakeTwo256 as HasherT>::Out;
-
-/// Type of object that can produce hashes on Evochain.
-pub type Hasher = BlakeTwo256;
-
-/// The header type used by Evochain.
-pub type Header = sp_runtime::generic::Header<BlockNumber, Hasher>;
-
-/// Alias to 512-bit hash when used in the context of a transaction signature on the chain.
-pub type Signature = MultiSignature;
-
-/// Some way of identifying an account on the chain. We intentionally make it equivalent
-/// to the public key of our transaction signing scheme.
-pub type AccountId = <<Signature as Verify>::Signer as IdentifyAccount>::AccountId;
-
-/// Public key of the chain account that may be used to verify signatures.
-pub type AccountSigner = MultiSigner;
-
-/// Balance of an account.
-pub type Balance = u64;
-
-/// Nonce of a transaction in the chain.
-pub type Nonce = u32;
-
-/// Weight-to-Fee type used by Evochain.
-pub type WeightToFee = IdentityFee<Balance>;
 
 /// Evochain chain.
 #[derive(RuntimeDebug)]
@@ -203,55 +116,11 @@ impl ChainWithMessages for Evochain {
 		MAX_UNCONFIRMED_MESSAGES_IN_CONFIRMATION_TX;
 }
 
-frame_support::parameter_types! {
-	/// Size limit of the Evochain blocks.
-	pub BlockLength: limits::BlockLength =
-		limits::BlockLength::max_with_normal_ratio(2 * 1024 * 1024, NORMAL_DISPATCH_RATIO);
-	/// Weight limit of the Evochain blocks.
-	pub BlockWeights: limits::BlockWeights =
-		limits::BlockWeights::with_sensible_defaults(MAXIMUM_BLOCK_WEIGHT, NORMAL_DISPATCH_RATIO);
-}
-
 /// Name of the With-Evochain GRANDPA pallet instance that is deployed at bridged chains.
 pub const WITH_EVOCHAIN_GRANDPA_PALLET_NAME: &str = "BridgeEvochainGrandpa";
 /// Name of the With-Evochain messages pallet instance that is deployed at bridged chains.
 pub const WITH_EVOCHAIN_MESSAGES_PALLET_NAME: &str = "BridgeEvochainMessages";
 /// Name of the transaction payment pallet at the Evochain runtime.
 pub const TRANSACTION_PAYMENT_PALLET_NAME: &str = "TransactionPayment";
-
-/// Millau Hasher (Blake2-256 ++ Keccak-256) implementation.
-#[derive(PartialEq, Eq, Clone, Copy, RuntimeDebug, TypeInfo, Serialize, Deserialize)]
-pub struct BlakeTwoAndKeccak256;
-
-impl sp_core::Hasher for BlakeTwoAndKeccak256 {
-	type Out = EvoHash;
-	type StdHasher = hash256_std_hasher::Hash256StdHasher;
-	const LENGTH: usize = 64;
-
-	fn hash(s: &[u8]) -> Self::Out {
-		let mut combined_hash: EvoHash = EvoHash::default();
-		combined_hash.as_mut()[..32].copy_from_slice(&sp_io::hashing::blake2_256(s));
-		combined_hash.as_mut()[32..].copy_from_slice(&sp_io::hashing::keccak_256(s));
-		combined_hash
-	}
-}
-
-impl sp_runtime::traits::Hash for BlakeTwoAndKeccak256 {
-	type Output = EvoHash;
-
-	fn trie_root(input: Vec<(Vec<u8>, Vec<u8>)>, state_version: StateVersion) -> Self::Output {
-		match state_version {
-			StateVersion::V0 => LayoutV0::<BlakeTwoAndKeccak256>::trie_root(input),
-			StateVersion::V1 => LayoutV1::<BlakeTwoAndKeccak256>::trie_root(input),
-		}
-	}
-
-	fn ordered_trie_root(input: Vec<Vec<u8>>, state_version: StateVersion) -> Self::Output {
-		match state_version {
-			StateVersion::V0 => LayoutV0::<BlakeTwoAndKeccak256>::ordered_trie_root(input),
-			StateVersion::V1 => LayoutV1::<BlakeTwoAndKeccak256>::ordered_trie_root(input),
-		}
-	}
-}
 
 decl_bridge_runtime_apis!(evochain, grandpa);

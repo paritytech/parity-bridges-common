@@ -1,19 +1,3 @@
-// Copyright 2019-2021 Parity Technologies (UK) Ltd.
-// This file is part of Parity Bridges Common.
-
-// Parity Bridges Common is free software: you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-
-// Parity Bridges Common is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-
-// You should have received a copy of the GNU General Public License
-// along with Parity Bridges Common.  If not, see <http://www.gnu.org/licenses/>.
-
 //! Primitives of the Ownership parachain.
 
 #![warn(missing_docs)]
@@ -53,56 +37,11 @@ pub const EXTRA_STORAGE_PROOF_SIZE: u32 = 1024;
 /// Can be computed by subtracting encoded call size from raw transaction size.
 pub const TX_EXTRA_BYTES: u32 = 104;
 
-/// Maximal weight of single OwnershipParachain block.
-///
-/// This represents two seconds of compute assuming a target block time of six seconds.
-///
-/// Max PoV size is set to `5Mb` as all Cumulus-based parachains do.
-pub const MAXIMUM_BLOCK_WEIGHT: Weight =
-	Weight::from_parts(WEIGHT_REF_TIME_PER_SECOND.saturating_mul(2), 5 * 1024 * 1024);
-
-/// Represents the portion of a block that will be used by Normal extrinsics.
-pub const NORMAL_DISPATCH_RATIO: Perbill = Perbill::from_percent(75);
-
 /// Maximal number of unrewarded relayer entries in Ownership chain confirmation transaction.
 pub const MAX_UNREWARDED_RELAYERS_IN_CONFIRMATION_TX: MessageNonce = 1024;
 
 /// Maximal number of unconfirmed messages in Ownership chain confirmation transaction.
 pub const MAX_UNCONFIRMED_MESSAGES_IN_CONFIRMATION_TX: MessageNonce = 1024;
-
-/// Block number type used in Ownership chain.
-pub type BlockNumber = u32;
-
-/// Hash type used in Ownership chain.
-pub type Hash = <BlakeTwo256 as HasherT>::Out;
-
-/// The type of object that can produce hashes on Ownership chain.
-pub type Hasher = BlakeTwo256;
-
-/// The header type used by Ownership chain.
-pub type Header = sp_runtime::generic::Header<BlockNumber, Hasher>;
-
-/// Alias to 512-bit hash when used in the context of a transaction signature on the chain.
-pub type Signature = MultiSignature;
-
-/// Some way of identifying an account on the chain. We intentionally make it equivalent
-/// to the public key of our transaction signing scheme.
-pub type AccountId = <<Signature as Verify>::Signer as IdentifyAccount>::AccountId;
-
-/// Public key of the chain account that may be used to verify signatures.
-pub type AccountSigner = MultiSigner;
-
-/// Balance of an account.
-pub type Balance = u128;
-
-/// An instant or duration in time.
-pub type Moment = u64;
-
-/// Nonce of a transaction in the parachain.
-pub type Nonce = u32;
-
-/// Weight-to-Fee type used by Ownership parachain.
-pub type WeightToFee = IdentityFee<Balance>;
 
 /// Ownership parachain.
 #[derive(RuntimeDebug)]
@@ -151,15 +90,6 @@ impl ChainWithMessages for OwnershipParachain {
 // Technically this is incorrect, because ownership-parachain isn't a bridge hub, but we're
 // trying to keep it close to the bridge hubs code (at least in this aspect).
 pub use bp_bridge_hub_cumulus::SignedExtension;
-
-frame_support::parameter_types! {
-	/// Size limit of the Ownership parachain blocks.
-	pub BlockLength: limits::BlockLength =
-		limits::BlockLength::max_with_normal_ratio(5 * 1024 * 1024, NORMAL_DISPATCH_RATIO);
-	/// Weight limit of the Ownership parachain blocks.
-	pub BlockWeights: limits::BlockWeights =
-		limits::BlockWeights::with_sensible_defaults(MAXIMUM_BLOCK_WEIGHT, NORMAL_DISPATCH_RATIO);
-}
 
 /// Name of the With-Ownership-Parachain messages pallet instance that is deployed at bridged chains.
 pub const WITH_OWNERSHIP_PARACHAIN_MESSAGES_PALLET_NAME: &str = "BridgeOwnershipParachainMessages";
