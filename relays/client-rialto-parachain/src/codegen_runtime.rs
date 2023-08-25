@@ -981,68 +981,6 @@ pub mod api {
 				}
 			}
 		}
-		pub mod pallet_bridge_grandpa_evochain {
-			use super::runtime_types;
-			pub mod pallet {
-				use sp_runtime::traits::BlakeTwo256;
-
-				use super::runtime_types;
-				#[derive(:: codec :: Decode, :: codec :: Encode, Clone, Debug, PartialEq)]
-				pub enum Call {
-					#[codec(index = 0)]
-					submit_finality_proof {
-						finality_target: ::std::boxed::Box<
-							::sp_runtime::generic::Header<::core::primitive::u64, BlakeTwo256>,
-						>,
-						justification: ::bp_header_chain::justification::GrandpaJustification<
-							::sp_runtime::generic::Header<::core::primitive::u64, BlakeTwo256>,
-						>,
-					},
-					#[codec(index = 1)]
-					initialize {
-						init_data: ::bp_header_chain::InitializationData<
-							::sp_runtime::generic::Header<::core::primitive::u64, BlakeTwo256>,
-						>,
-					},
-					#[codec(index = 2)]
-					set_owner { new_owner: ::core::option::Option<::sp_core::crypto::AccountId32> },
-					#[codec(index = 3)]
-					set_operating_mode {
-						operating_mode: runtime_types::bp_runtime::BasicOperatingMode,
-					},
-				}
-				#[derive(:: codec :: Decode, :: codec :: Encode, Clone, Debug, PartialEq)]
-				pub enum Error {
-					#[codec(index = 0)]
-					InvalidJustification,
-					#[codec(index = 1)]
-					InvalidAuthoritySet,
-					#[codec(index = 2)]
-					OldHeader,
-					#[codec(index = 3)]
-					UnsupportedScheduledChange,
-					#[codec(index = 4)]
-					NotInitialized,
-					#[codec(index = 5)]
-					AlreadyInitialized,
-					#[codec(index = 6)]
-					TooManyAuthoritiesInSet,
-					#[codec(index = 7)]
-					BridgeModule(runtime_types::bp_runtime::OwnedBridgeModuleError),
-				}
-				#[derive(:: codec :: Decode, :: codec :: Encode, Clone, Debug, PartialEq)]
-				pub enum Event {
-					#[codec(index = 0)]
-					UpdatedBestFinalizedHeader {
-						number: ::core::primitive::u64,
-						hash: ::sp_core::H256,
-						justification: ::bp_header_chain::justification::GrandpaJustification<
-							::sp_runtime::generic::Header<::core::primitive::u64, BlakeTwo256>,
-						>,
-					},
-				}
-			}
-		}
 		pub mod pallet_bridge_messages {
 			use super::runtime_types;
 			pub mod pallet {
@@ -1610,10 +1548,8 @@ pub mod api {
 				#[codec(index = 54)]
 				BridgeRelayers(runtime_types::pallet_bridge_relayers::pallet::Call),
 				#[codec(index = 55)]
-				BridgeEvochainGrandpa(runtime_types::pallet_bridge_grandpa_evochain::pallet::Call),
-				#[codec(index = 56)]
 				BridgeMillauGrandpa(runtime_types::pallet_bridge_grandpa::pallet::Call),
-				#[codec(index = 57)]
+				#[codec(index = 56)]
 				BridgeMillauMessages(runtime_types::pallet_bridge_messages::pallet::Call),
 			}
 			#[derive(:: codec :: Decode, :: codec :: Encode, Clone, Debug, PartialEq)]
@@ -1639,10 +1575,8 @@ pub mod api {
 				#[codec(index = 54)]
 				BridgeRelayers(runtime_types::pallet_bridge_relayers::pallet::Event),
 				#[codec(index = 55)]
-				BridgeEvochainGrandpa(runtime_types::pallet_bridge_grandpa_evochain::pallet::Event),
-				#[codec(index = 56)]
 				BridgeMillauGrandpa(runtime_types::pallet_bridge_grandpa::pallet::Event),
-				#[codec(index = 57)]
+				#[codec(index = 56)]
 				BridgeMillauMessages(runtime_types::pallet_bridge_messages::pallet::Event),
 			}
 		}

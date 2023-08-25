@@ -33,7 +33,6 @@ pub use codegen_runtime::api::runtime_types;
 pub type RuntimeCall = runtime_types::rialto_parachain_runtime::RuntimeCall;
 pub type SudoCall = runtime_types::pallet_sudo::pallet::Call;
 pub type BridgeGrandpaCall = runtime_types::pallet_bridge_grandpa::pallet::Call;
-pub type BridgeGrandpaEvochainCall = runtime_types::pallet_bridge_grandpa_evochain::pallet::Call;
 pub type BridgeMessagesCall = runtime_types::pallet_bridge_messages::pallet::Call;
 
 /// The address format for describing accounts.

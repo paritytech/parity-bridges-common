@@ -914,7 +914,7 @@ name = "bp-beefy"
 version = "0.1.0"
 dependencies = [
  "binary-merkle-tree",
- "bp-runtime 0.1.0",
+ "bp-runtime",
  "frame-support",
  "pallet-beefy-mmr",
  "pallet-mmr",
@@ -930,9 +930,9 @@ dependencies = [
 name = "bp-bridge-hub-cumulus"
 version = "0.1.0"
 dependencies = [
- "bp-messages 0.1.0",
+ "bp-messages",
  "bp-polkadot-core",
- "bp-runtime 0.1.0",
+ "bp-runtime",
  "frame-support",
  "frame-system",
  "polkadot-primitives",
@@ -945,8 +945,8 @@ name = "bp-bridge-hub-kusama"
 version = "0.1.0"
 dependencies = [
  "bp-bridge-hub-cumulus",
- "bp-messages 0.1.0",
- "bp-runtime 0.1.0",
+ "bp-messages",
+ "bp-runtime",
  "frame-support",
  "sp-api",
  "sp-std 8.0.0 (git+https://github.com/paritytech/substrate?branch=polkadot-v1.0.0)",
@@ -957,8 +957,8 @@ name = "bp-bridge-hub-polkadot"
 version = "0.1.0"
 dependencies = [
  "bp-bridge-hub-cumulus",
- "bp-messages 0.1.0",
- "bp-runtime 0.1.0",
+ "bp-messages",
+ "bp-runtime",
  "frame-support",
  "sp-api",
  "sp-std 8.0.0 (git+https://github.com/paritytech/substrate?branch=polkadot-v1.0.0)",
@@ -969,8 +969,8 @@ name = "bp-bridge-hub-rococo"
 version = "0.1.0"
 dependencies = [
  "bp-bridge-hub-cumulus",
- "bp-messages 0.1.0",
- "bp-runtime 0.1.0",
+ "bp-messages",
+ "bp-runtime",
  "frame-support",
  "sp-api",
  "sp-std 8.0.0 (git+https://github.com/paritytech/substrate?branch=polkadot-v1.0.0)",
@@ -981,26 +981,10 @@ name = "bp-bridge-hub-wococo"
 version = "0.1.0"
 dependencies = [
  "bp-bridge-hub-cumulus",
- "bp-messages 0.1.0",
- "bp-runtime 0.1.0",
+ "bp-messages",
+ "bp-runtime",
  "frame-support",
  "sp-api",
- "sp-std 8.0.0 (git+https://github.com/paritytech/substrate?branch=polkadot-v1.0.0)",
-]
-
-[[package]]
-name = "bp-evochain"
-version = "0.1.0"
-dependencies = [
- "bp-header-chain 0.1.0 (git+https://github.com/freeverseio/parity-bridges-common.git?branch=polkadot-v1.0.0)",
- "bp-messages 0.1.0 (git+https://github.com/freeverseio/parity-bridges-common.git?branch=polkadot-v1.0.0)",
- "bp-runtime 0.1.0 (git+https://github.com/freeverseio/parity-bridges-common.git?branch=polkadot-v1.0.0)",
- "evochain-primitives 0.1.0 (git+https://github.com/freeverseio/laos-evolution-node.git?branch=feat/extract-primitives)",
- "frame-support",
- "frame-system",
- "sp-api",
- "sp-core",
- "sp-runtime",
  "sp-std 8.0.0 (git+https://github.com/paritytech/substrate?branch=polkadot-v1.0.0)",
 ]
 
@@ -1008,7 +992,7 @@ dependencies = [
 name = "bp-header-chain"
 version = "0.1.0"
 dependencies = [
- "bp-runtime 0.1.0",
+ "bp-runtime",
  "bp-test-utils",
  "finality-grandpa",
  "frame-support",
@@ -1024,29 +1008,12 @@ dependencies = [
 ]
 
 [[package]]
-name = "bp-header-chain"
-version = "0.1.0"
-source = "git+https://github.com/freeverseio/parity-bridges-common.git?branch=polkadot-v1.0.0#0298cf94509177ce18119e9862f299cb18afc47c"
-dependencies = [
- "bp-runtime 0.1.0 (git+https://github.com/freeverseio/parity-bridges-common.git?branch=polkadot-v1.0.0)",
- "finality-grandpa",
- "frame-support",
- "parity-scale-codec",
- "scale-info",
- "serde",
- "sp-consensus-grandpa",
- "sp-core",
- "sp-runtime",
- "sp-std 8.0.0 (git+https://github.com/paritytech/substrate?branch=polkadot-v1.0.0)",
-]
-
-[[package]]
 name = "bp-kusama"
 version = "0.1.0"
 dependencies = [
- "bp-header-chain 0.1.0",
+ "bp-header-chain",
  "bp-polkadot-core",
- "bp-runtime 0.1.0",
+ "bp-runtime",
  "frame-support",
  "sp-api",
 ]
@@ -1055,27 +1022,11 @@ dependencies = [
 name = "bp-messages"
 version = "0.1.0"
 dependencies = [
- "bp-header-chain 0.1.0",
- "bp-runtime 0.1.0",
+ "bp-header-chain",
+ "bp-runtime",
  "frame-support",
  "hex",
  "hex-literal 0.4.1",
- "parity-scale-codec",
- "scale-info",
- "serde",
- "sp-core",
- "sp-io",
- "sp-std 8.0.0 (git+https://github.com/paritytech/substrate?branch=polkadot-v1.0.0)",
-]
-
-[[package]]
-name = "bp-messages"
-version = "0.1.0"
-source = "git+https://github.com/freeverseio/parity-bridges-common.git?branch=polkadot-v1.0.0#0298cf94509177ce18119e9862f299cb18afc47c"
-dependencies = [
- "bp-header-chain 0.1.0 (git+https://github.com/freeverseio/parity-bridges-common.git?branch=polkadot-v1.0.0)",
- "bp-runtime 0.1.0 (git+https://github.com/freeverseio/parity-bridges-common.git?branch=polkadot-v1.0.0)",
- "frame-support",
  "parity-scale-codec",
  "scale-info",
  "serde",
@@ -1089,9 +1040,9 @@ name = "bp-millau"
 version = "0.1.0"
 dependencies = [
  "bp-beefy",
- "bp-header-chain 0.1.0",
- "bp-messages 0.1.0",
- "bp-runtime 0.1.0",
+ "bp-header-chain",
+ "bp-messages",
+ "bp-runtime",
  "fixed-hash",
  "frame-support",
  "frame-system",
@@ -1110,30 +1061,12 @@ dependencies = [
 ]
 
 [[package]]
-name = "bp-ownership-parachain"
-version = "0.1.0"
-dependencies = [
- "bp-bridge-hub-cumulus",
- "bp-header-chain 0.1.0",
- "bp-messages 0.1.0",
- "bp-polkadot-core",
- "bp-runtime 0.1.0",
- "frame-support",
- "frame-system",
- "ownership-parachain-primitives",
- "sp-api",
- "sp-core",
- "sp-runtime",
- "sp-std 8.0.0 (git+https://github.com/paritytech/substrate?branch=polkadot-v1.0.0)",
-]
-
-[[package]]
 name = "bp-parachains"
 version = "0.1.0"
 dependencies = [
- "bp-header-chain 0.1.0",
+ "bp-header-chain",
  "bp-polkadot-core",
- "bp-runtime 0.1.0",
+ "bp-runtime",
  "frame-support",
  "impl-trait-for-tuples",
  "parity-scale-codec",
@@ -1147,9 +1080,9 @@ dependencies = [
 name = "bp-polkadot"
 version = "0.1.0"
 dependencies = [
- "bp-header-chain 0.1.0",
+ "bp-header-chain",
  "bp-polkadot-core",
- "bp-runtime 0.1.0",
+ "bp-runtime",
  "frame-support",
  "sp-api",
 ]
@@ -1158,8 +1091,8 @@ dependencies = [
 name = "bp-polkadot-core"
 version = "0.1.0"
 dependencies = [
- "bp-messages 0.1.0",
- "bp-runtime 0.1.0",
+ "bp-messages",
+ "bp-runtime",
  "frame-support",
  "frame-system",
  "hex",
@@ -1176,8 +1109,8 @@ dependencies = [
 name = "bp-relayers"
 version = "0.1.0"
 dependencies = [
- "bp-messages 0.1.0",
- "bp-runtime 0.1.0",
+ "bp-messages",
+ "bp-runtime",
  "frame-support",
  "hex",
  "hex-literal 0.4.1",
@@ -1191,9 +1124,9 @@ dependencies = [
 name = "bp-rialto"
 version = "0.1.0"
 dependencies = [
- "bp-header-chain 0.1.0",
- "bp-messages 0.1.0",
- "bp-runtime 0.1.0",
+ "bp-header-chain",
+ "bp-messages",
+ "bp-runtime",
  "frame-support",
  "frame-system",
  "sp-api",
@@ -1207,9 +1140,9 @@ name = "bp-rialto-parachain"
 version = "0.1.0"
 dependencies = [
  "bp-bridge-hub-cumulus",
- "bp-messages 0.1.0",
+ "bp-messages",
  "bp-polkadot-core",
- "bp-runtime 0.1.0",
+ "bp-runtime",
  "frame-support",
  "frame-system",
  "sp-api",
@@ -1222,9 +1155,9 @@ dependencies = [
 name = "bp-rococo"
 version = "0.1.0"
 dependencies = [
- "bp-header-chain 0.1.0",
+ "bp-header-chain",
  "bp-polkadot-core",
- "bp-runtime 0.1.0",
+ "bp-runtime",
  "frame-support",
  "sp-api",
 ]
@@ -1237,28 +1170,6 @@ dependencies = [
  "frame-system",
  "hash-db",
  "hex-literal 0.4.1",
- "impl-trait-for-tuples",
- "num-traits",
- "parity-scale-codec",
- "scale-info",
- "serde",
- "sp-core",
- "sp-io",
- "sp-runtime",
- "sp-state-machine",
- "sp-std 8.0.0 (git+https://github.com/paritytech/substrate?branch=polkadot-v1.0.0)",
- "sp-trie",
- "trie-db",
-]
-
-[[package]]
-name = "bp-runtime"
-version = "0.1.0"
-source = "git+https://github.com/freeverseio/parity-bridges-common.git?branch=polkadot-v1.0.0#0298cf94509177ce18119e9862f299cb18afc47c"
-dependencies = [
- "frame-support",
- "frame-system",
- "hash-db",
  "impl-trait-for-tuples",
  "num-traits",
  "parity-scale-codec",
@@ -1277,10 +1188,10 @@ dependencies = [
 name = "bp-test-utils"
 version = "0.1.0"
 dependencies = [
- "bp-header-chain 0.1.0",
+ "bp-header-chain",
  "bp-parachains",
  "bp-polkadot-core",
- "bp-runtime 0.1.0",
+ "bp-runtime",
  "ed25519-dalek 1.0.1",
  "finality-grandpa",
  "parity-scale-codec",
@@ -1296,9 +1207,9 @@ dependencies = [
 name = "bp-westend"
 version = "0.1.0"
 dependencies = [
- "bp-header-chain 0.1.0",
+ "bp-header-chain",
  "bp-polkadot-core",
- "bp-runtime 0.1.0",
+ "bp-runtime",
  "frame-support",
  "sp-api",
 ]
@@ -1307,10 +1218,10 @@ dependencies = [
 name = "bp-wococo"
 version = "0.1.0"
 dependencies = [
- "bp-header-chain 0.1.0",
+ "bp-header-chain",
  "bp-polkadot-core",
  "bp-rococo",
- "bp-runtime 0.1.0",
+ "bp-runtime",
  "frame-support",
  "sp-api",
 ]
@@ -1319,8 +1230,8 @@ dependencies = [
 name = "bp-xcm-bridge-hub"
 version = "0.1.0"
 dependencies = [
- "bp-messages 0.1.0",
- "bp-runtime 0.1.0",
+ "bp-messages",
+ "bp-runtime",
  "frame-support",
  "parity-scale-codec",
  "scale-info",
@@ -1336,12 +1247,12 @@ version = "0.1.0"
 name = "bridge-runtime-common"
 version = "0.1.0"
 dependencies = [
- "bp-header-chain 0.1.0",
- "bp-messages 0.1.0",
+ "bp-header-chain",
+ "bp-messages",
  "bp-parachains",
  "bp-polkadot-core",
  "bp-relayers",
- "bp-runtime 0.1.0",
+ "bp-runtime",
  "bp-test-utils",
  "frame-support",
  "frame-system",
@@ -3430,28 +3341,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0206175f82b8d6bf6652ff7d71a1e27fd2e4efde587fd368662814d6ec1d9ce0"
 
 [[package]]
-name = "evochain-primitives"
-version = "0.1.0"
-source = "git+https://github.com/freeverseio/laos-evolution-node.git?branch=feat/extract-primitives#6eb9143004cf89daba88ad74ad2af6bdb8c54f44"
-dependencies = [
- "frame-support",
- "frame-system",
- "sp-core",
- "sp-runtime",
-]
-
-[[package]]
-name = "evochain-primitives"
-version = "0.1.0"
-source = "git+https://github.com/freeverseio/laos-evolution-node.git?branch=feat/grandpa-rpc#cbbd4f2f984d7eae333f5544fc0ca39655bc4ef1"
-dependencies = [
- "frame-support",
- "frame-system",
- "sp-core",
- "sp-runtime",
-]
-
-[[package]]
 name = "exit-future"
 version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3629,7 +3518,7 @@ dependencies = [
  "async-std",
  "async-trait",
  "backoff",
- "bp-header-chain 0.1.0",
+ "bp-header-chain",
  "futures",
  "log",
  "num-traits",
@@ -3696,25 +3585,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a62bc1cf6f830c2ec14a513a9fb124d0a213a629668a4186f329db21fe045652"
 dependencies = [
  "percent-encoding",
-]
-
-[[package]]
-name = "fp-account"
-version = "1.0.0-dev"
-source = "git+https://github.com/paritytech/frontier?branch=polkadot-v1.0.0#b520b749eb90df15177144dbece3fbd3622a2b19"
-dependencies = [
- "hex",
- "impl-serde",
- "libsecp256k1",
- "log",
- "parity-scale-codec",
- "scale-info",
- "serde",
- "sp-core",
- "sp-io",
- "sp-runtime",
- "sp-runtime-interface",
- "sp-std 8.0.0 (git+https://github.com/paritytech/substrate?branch=polkadot-v1.0.0)",
 ]
 
 [[package]]
@@ -6223,7 +6093,7 @@ version = "0.1.0"
 dependencies = [
  "async-std",
  "async-trait",
- "bp-messages 0.1.0",
+ "bp-messages",
  "env_logger",
  "finality-relay",
  "futures",
@@ -6250,7 +6120,7 @@ dependencies = [
 name = "millau-bridge-node"
 version = "0.1.0"
 dependencies = [
- "bp-messages 0.1.0",
+ "bp-messages",
  "bridge-runtime-common",
  "clap 4.4.0",
  "frame-benchmarking",
@@ -6295,15 +6165,15 @@ dependencies = [
 name = "millau-runtime"
 version = "0.1.0"
 dependencies = [
- "bp-header-chain 0.1.0",
- "bp-messages 0.1.0",
+ "bp-header-chain",
+ "bp-messages",
  "bp-millau",
  "bp-parachains",
  "bp-polkadot-core",
  "bp-relayers",
  "bp-rialto",
  "bp-rialto-parachain",
- "bp-runtime 0.1.0",
+ "bp-runtime",
  "bp-westend",
  "bp-xcm-bridge-hub-router",
  "bridge-runtime-common",
@@ -6673,45 +6543,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "node-template-runtime"
-version = "4.0.0-dev"
-source = "git+https://github.com/freeverseio/laos-evolution-node.git?branch=feat/grandpa-rpc#cbbd4f2f984d7eae333f5544fc0ca39655bc4ef1"
-dependencies = [
- "evochain-primitives 0.1.0 (git+https://github.com/freeverseio/laos-evolution-node.git?branch=feat/grandpa-rpc)",
- "fp-account",
- "frame-benchmarking",
- "frame-executive",
- "frame-support",
- "frame-system",
- "frame-system-benchmarking",
- "frame-system-rpc-runtime-api",
- "frame-try-runtime",
- "pallet-aura",
- "pallet-balances",
- "pallet-grandpa",
- "pallet-sudo",
- "pallet-template",
- "pallet-timestamp",
- "pallet-transaction-payment",
- "pallet-transaction-payment-rpc-runtime-api",
- "parity-scale-codec",
- "scale-info",
- "sp-api",
- "sp-block-builder",
- "sp-consensus-aura",
- "sp-consensus-grandpa",
- "sp-core",
- "sp-inherents",
- "sp-offchain",
- "sp-runtime",
- "sp-session",
- "sp-std 8.0.0 (git+https://github.com/paritytech/substrate?branch=polkadot-v1.0.0)",
- "sp-transaction-pool",
- "sp-version",
- "substrate-wasm-builder",
-]
-
-[[package]]
 name = "nodrop"
 version = "0.1.14"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -6951,17 +6782,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "ownership-parachain-primitives"
-version = "0.1.0"
-source = "git+https://github.com/freeverseio/laos-ownership-node.git?branch=feat/relayer#052270140335d17ce8a829c7c1fd330dbaa11fe4"
-dependencies = [
- "frame-support",
- "frame-system",
- "sp-core",
- "sp-runtime",
-]
-
-[[package]]
 name = "p256"
 version = "0.11.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -7154,7 +6974,7 @@ name = "pallet-bridge-beefy"
 version = "0.1.0"
 dependencies = [
  "bp-beefy",
- "bp-runtime 0.1.0",
+ "bp-runtime",
  "bp-test-utils",
  "ckb-merkle-mountain-range 0.3.2",
  "frame-support",
@@ -7177,8 +6997,8 @@ dependencies = [
 name = "pallet-bridge-grandpa"
 version = "0.1.0"
 dependencies = [
- "bp-header-chain 0.1.0",
- "bp-runtime 0.1.0",
+ "bp-header-chain",
+ "bp-runtime",
  "bp-test-utils",
  "finality-grandpa",
  "frame-benchmarking",
@@ -7199,9 +7019,9 @@ dependencies = [
 name = "pallet-bridge-messages"
 version = "0.1.0"
 dependencies = [
- "bp-header-chain 0.1.0",
- "bp-messages 0.1.0",
- "bp-runtime 0.1.0",
+ "bp-header-chain",
+ "bp-messages",
+ "bp-runtime",
  "bp-test-utils",
  "frame-benchmarking",
  "frame-support",
@@ -7223,10 +7043,10 @@ dependencies = [
 name = "pallet-bridge-parachains"
 version = "0.1.0"
 dependencies = [
- "bp-header-chain 0.1.0",
+ "bp-header-chain",
  "bp-parachains",
  "bp-polkadot-core",
- "bp-runtime 0.1.0",
+ "bp-runtime",
  "bp-test-utils",
  "frame-benchmarking",
  "frame-support",
@@ -7246,9 +7066,9 @@ dependencies = [
 name = "pallet-bridge-relayers"
 version = "0.1.0"
 dependencies = [
- "bp-messages 0.1.0",
+ "bp-messages",
  "bp-relayers",
- "bp-runtime 0.1.0",
+ "bp-runtime",
  "frame-benchmarking",
  "frame-support",
  "frame-system",
@@ -7916,18 +7736,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "pallet-template"
-version = "4.0.0-dev"
-source = "git+https://github.com/freeverseio/laos-evolution-node.git?branch=feat/grandpa-rpc#cbbd4f2f984d7eae333f5544fc0ca39655bc4ef1"
-dependencies = [
- "frame-benchmarking",
- "frame-support",
- "frame-system",
- "parity-scale-codec",
- "scale-info",
-]
-
-[[package]]
 name = "pallet-timestamp"
 version = "4.0.0-dev"
 source = "git+https://github.com/paritytech/substrate?branch=polkadot-v1.0.0#948fbd2fd1233dc26dbb9f9bbc1d2cca2c03945d"
@@ -8115,8 +7923,8 @@ dependencies = [
 name = "pallet-xcm-bridge-hub"
 version = "0.1.0"
 dependencies = [
- "bp-messages 0.1.0",
- "bp-runtime 0.1.0",
+ "bp-messages",
+ "bp-runtime",
  "bp-xcm-bridge-hub",
  "frame-support",
  "frame-system",
@@ -10367,8 +10175,8 @@ version = "0.1.0"
 dependencies = [
  "bp-bridge-hub-kusama",
  "bp-bridge-hub-polkadot",
- "bp-header-chain 0.1.0",
- "bp-messages 0.1.0",
+ "bp-header-chain",
+ "bp-messages",
  "bp-parachains",
  "bp-polkadot",
  "parity-scale-codec",
@@ -10384,12 +10192,12 @@ version = "0.1.0"
 dependencies = [
  "bp-bridge-hub-kusama",
  "bp-bridge-hub-polkadot",
- "bp-header-chain 0.1.0",
+ "bp-header-chain",
  "bp-kusama",
- "bp-messages 0.1.0",
+ "bp-messages",
  "bp-parachains",
  "bp-polkadot-core",
- "bp-runtime 0.1.0",
+ "bp-runtime",
  "parity-scale-codec",
  "relay-substrate-client",
  "scale-info",
@@ -10404,8 +10212,8 @@ version = "0.1.0"
 dependencies = [
  "bp-bridge-hub-rococo",
  "bp-bridge-hub-wococo",
- "bp-header-chain 0.1.0",
- "bp-messages 0.1.0",
+ "bp-header-chain",
+ "bp-messages",
  "bp-parachains",
  "bp-polkadot-core",
  "bp-wococo",
@@ -10425,7 +10233,7 @@ version = "0.1.0"
 dependencies = [
  "bp-bridge-hub-rococo",
  "bp-bridge-hub-wococo",
- "bp-header-chain 0.1.0",
+ "bp-header-chain",
  "bp-parachains",
  "bp-polkadot-core",
  "bp-rococo",
@@ -10439,22 +10247,6 @@ dependencies = [
  "sp-runtime",
  "sp-weights",
  "subxt",
-]
-
-[[package]]
-name = "relay-evochain-client"
-version = "0.1.0"
-dependencies = [
- "bp-evochain",
- "frame-support",
- "frame-system",
- "node-template-runtime",
- "pallet-transaction-payment",
- "parity-scale-codec",
- "relay-substrate-client",
- "relay-utils",
- "sp-core",
- "sp-runtime",
 ]
 
 [[package]]
@@ -10481,26 +10273,6 @@ dependencies = [
  "relay-utils",
  "sp-core",
  "sp-runtime",
-]
-
-[[package]]
-name = "relay-ownership-parachain-client"
-version = "0.1.0"
-dependencies = [
- "bp-bridge-hub-cumulus",
- "bp-evochain",
- "bp-header-chain 0.1.0",
- "bp-messages 0.1.0",
- "bp-ownership-parachain",
- "bp-polkadot-core",
- "bridge-runtime-common",
- "parity-scale-codec",
- "relay-substrate-client",
- "scale-info",
- "sp-core",
- "sp-runtime",
- "sp-weights",
- "subxt",
 ]
 
 [[package]]
@@ -10534,8 +10306,8 @@ name = "relay-rialto-parachain-client"
 version = "0.1.0"
 dependencies = [
  "bp-bridge-hub-cumulus",
- "bp-header-chain 0.1.0",
- "bp-messages 0.1.0",
+ "bp-header-chain",
+ "bp-messages",
  "bp-millau",
  "bp-polkadot-core",
  "bp-rialto-parachain",
@@ -10565,10 +10337,10 @@ version = "0.1.0"
 dependencies = [
  "async-std",
  "async-trait",
- "bp-header-chain 0.1.0",
- "bp-messages 0.1.0",
+ "bp-header-chain",
+ "bp-messages",
  "bp-polkadot-core",
- "bp-runtime 0.1.0",
+ "bp-runtime",
  "finality-relay",
  "frame-support",
  "frame-system",
@@ -10610,7 +10382,7 @@ dependencies = [
  "async-std",
  "async-trait",
  "backoff",
- "bp-runtime 0.1.0",
+ "bp-runtime",
  "env_logger",
  "futures",
  "isahc",
@@ -10681,7 +10453,7 @@ dependencies = [
 name = "rialto-bridge-node"
 version = "0.1.0"
 dependencies = [
- "bp-messages 0.1.0",
+ "bp-messages",
  "bridge-runtime-common",
  "clap 4.4.0",
  "frame-benchmarking",
@@ -10710,7 +10482,7 @@ dependencies = [
 name = "rialto-parachain-collator"
 version = "0.1.0"
 dependencies = [
- "bp-messages 0.1.0",
+ "bp-messages",
  "bridge-runtime-common",
  "clap 4.4.0",
  "cumulus-client-cli",
@@ -10765,12 +10537,12 @@ dependencies = [
 name = "rialto-parachain-runtime"
 version = "0.1.0"
 dependencies = [
- "bp-header-chain 0.1.0",
- "bp-messages 0.1.0",
+ "bp-header-chain",
+ "bp-messages",
  "bp-millau",
  "bp-relayers",
  "bp-rialto-parachain",
- "bp-runtime 0.1.0",
+ "bp-runtime",
  "bridge-runtime-common",
  "cumulus-pallet-aura-ext",
  "cumulus-pallet-dmp-queue",
@@ -10823,12 +10595,12 @@ dependencies = [
 name = "rialto-runtime"
 version = "0.1.0"
 dependencies = [
- "bp-header-chain 0.1.0",
- "bp-messages 0.1.0",
+ "bp-header-chain",
+ "bp-messages",
  "bp-millau",
  "bp-relayers",
  "bp-rialto",
- "bp-runtime 0.1.0",
+ "bp-runtime",
  "bridge-runtime-common",
  "env_logger",
  "frame-benchmarking",
@@ -13952,7 +13724,7 @@ dependencies = [
 name = "storage-proof-fuzzer"
 version = "0.1.0"
 dependencies = [
- "bp-runtime 0.1.0",
+ "bp-runtime",
  "env_logger",
  "honggfuzz",
  "log",
@@ -14118,14 +13890,14 @@ dependencies = [
  "anyhow",
  "async-std",
  "async-trait",
- "bp-header-chain 0.1.0",
- "bp-messages 0.1.0",
+ "bp-header-chain",
+ "bp-messages",
  "bp-millau",
  "bp-parachains",
  "bp-polkadot-core",
  "bp-rialto",
  "bp-rialto-parachain",
- "bp-runtime 0.1.0",
+ "bp-runtime",
  "bp-test-utils",
  "bridge-runtime-common",
  "finality-grandpa",
@@ -14183,15 +13955,15 @@ dependencies = [
  "anyhow",
  "async-std",
  "async-trait",
- "bp-header-chain 0.1.0",
- "bp-messages 0.1.0",
+ "bp-header-chain",
+ "bp-messages",
  "bp-parachains",
  "bp-polkadot-core",
  "bp-relayers",
  "bp-rialto",
  "bp-rialto-parachain",
  "bp-rococo",
- "bp-runtime 0.1.0",
+ "bp-runtime",
  "bp-wococo",
  "bridge-runtime-common",
  "finality-grandpa",
