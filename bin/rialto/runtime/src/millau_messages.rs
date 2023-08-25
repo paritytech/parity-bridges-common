@@ -16,52 +16,16 @@
 
 //! Everything required to serve Millau <-> Rialto messages.
 
-use crate::{Runtime, WithMillauMessagesInstance};
-
-use bp_messages::LaneId;
-use bridge_runtime_common::messages_xcm_extension::{
-	LaneIdFromChainId, XcmBlobHauler, XcmBlobHaulerAdapter,
-};
-use frame_support::{parameter_types, weights::Weight};
-use sp_core::Get;
-use xcm_builder::HaulBlobExporter;
-
-/// Weight of 2 XCM instructions is for simple `Trap(42)` program, coming through bridge
-/// (it is prepended with `UniversalOrigin` instruction). It is used just for simplest manual
-/// tests, confirming that we don't break encoding somewhere between.
-pub const BASE_XCM_WEIGHT_TWICE: Weight = crate::xcm_config::BaseXcmWeight::get().saturating_mul(2);
+use bp_xcm_bridge_hub::BridgeId;
+use frame_support::parameter_types;
+use xcm::prelude::*;
 
 parameter_types! {
-	/// Weight credit for our test messages.
-	///
-	/// 2 XCM instructions is for simple `Trap(42)` program, coming through bridge
-	/// (it is prepended with `UniversalOrigin` instruction).
-	pub const WeightCredit: Weight = BASE_XCM_WEIGHT_TWICE;
-}
-
-/// Call-dispatch based message dispatch for Millau -> Rialto messages.
-pub type FromMillauMessageDispatch =
-	bridge_runtime_common::messages_xcm_extension::XcmBlobMessageDispatch<
-		crate::xcm_config::OnRialtoBlobDispatcher,
-		(),
-	>;
-
-/// Export XCM messages to be relayed to Millau.
-pub type ToMillauBlobExporter = HaulBlobExporter<
-	XcmBlobHaulerAdapter<ToMillauXcmBlobHauler>,
-	crate::xcm_config::MillauNetwork,
-	(),
->;
-
-/// To-Millau XCM hauler.
-pub struct ToMillauXcmBlobHauler;
-
-impl XcmBlobHauler for ToMillauXcmBlobHauler {
-	type MessageSender = pallet_bridge_messages::Pallet<Runtime, WithMillauMessagesInstance>;
-
-	fn xcm_lane() -> LaneId {
-		LaneIdFromChainId::<Runtime, WithMillauMessagesInstance>::get()
-	}
+	/// Bridge identifier that is used to bridge with Millau.
+	pub Bridge: BridgeId = BridgeId::new(
+		&InteriorMultiLocation::from(crate::xcm_config::ThisNetwork::get()).into(),
+		&InteriorMultiLocation::from(crate::xcm_config::MillauNetwork::get()).into(),
+	);
 }
 
 #[cfg(test)]
@@ -119,8 +83,8 @@ mod tests {
 		// there's nothing criminal if it is changed, but then thou need to fix it across
 		// all deployments scripts, alerts and so on
 		assert_eq!(
-			*ToMillauXcmBlobHauler::xcm_lane().as_ref(),
-			hex_literal::hex!("52011894c856c0c613a2ad2395dfbb509090f6b7a6aef9359adb75aa26a586c7")
+			*Bridge::get().lane_id().as_ref(),
+			hex_literal::hex!("efed785b626e94da3969257012f506524bcec78867420e26ff8c55ddcdb0f7b7")
 				.into(),
 		);
 	}

@@ -35,6 +35,7 @@ bridge-runtime-common = { path = "../../bin/runtime-common" }
 millau-runtime = { path = "../../bin/millau/runtime" }
 pallet-bridge-parachains = { path = "../../modules/parachains" }
 pallet-bridge-messages = { path = "../../modules/messages" }
+pallet-xcm-bridge-hub = { path = "../../modules/xcm-bridge-hub" }
 parachains-relay = { path = "../parachains" }
 relay-millau-client = { path = "../client-millau" }
 relay-rialto-client = { path = "../client-rialto" }

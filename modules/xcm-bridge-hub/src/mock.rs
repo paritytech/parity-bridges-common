@@ -18,8 +18,11 @@
 
 use crate as pallet_xcm_bridge_hub;
 
-use bp_messages::{target_chain::ForbidInboundMessages, ChainWithMessages, MessageNonce};
-use bp_runtime::{Chain, ChainId};
+use bp_messages::{
+	target_chain::{DispatchMessage, MessageDispatch},
+	ChainWithMessages, LaneId, MessageNonce,
+};
+use bp_runtime::{messages::MessageDispatchResult, Chain, ChainId};
 use codec::Encode;
 use frame_support::{
 	parameter_types,
@@ -114,7 +117,8 @@ impl pallet_bridge_messages::Config for TestRuntime {
 	type InboundPayload = Vec<u8>;
 	type DeliveryPayments = ();
 	type DeliveryConfirmationPayments = ();
-	type MessageDispatch = ForbidInboundMessages<Vec<u8>>;
+	type MessageDispatch = TestMessageDispatch;
+	type OnMessagesDelivered = ();
 }
 
 parameter_types! {
@@ -126,6 +130,8 @@ parameter_types! {
 		GlobalConsensus(RelayNetwork::get()),
 		Parachain(THIS_BRIDGE_HUB_ID),
 	);
+	pub const MaxSuspendedBridges: u32 = 2;
+	pub const Penalty: Balance = 1_000;
 }
 
 /// Type for specifying how a `MultiLocation` can be converted into an `AccountId`. This is used
@@ -214,12 +220,14 @@ impl pallet_xcm_bridge_hub::Config for TestRuntime {
 	type BridgedNetworkId = BridgedRelayNetwork;
 	type BridgeMessagesPalletInstance = ();
 
+	type MaxSuspendedBridges = MaxSuspendedBridges;
 	type OpenBridgeOrigin = OpenBridgeOrigin;
 	type BridgeOriginAccountIdConverter = LocationToAccountId;
 
 	type BridgeReserve = BridgeReserve;
 	type NativeCurrency = Balances;
 
+	type LocalXcmChannelManager = ();
 	type BlobDispatcher = TestBlobDispatcher;
 	type MessageExportPrice = ();
 }
@@ -293,6 +301,35 @@ impl ChainWithMessages for BridgedChain {
 	const WITH_CHAIN_MESSAGES_PALLET_NAME: &'static str = "WithBridgedChainBridgeMessages";
 	const MAX_UNREWARDED_RELAYERS_IN_CONFIRMATION_TX: MessageNonce = 16;
 	const MAX_UNCONFIRMED_MESSAGES_IN_CONFIRMATION_TX: MessageNonce = 128;
+}
+
+/// Test message dispatcher.
+pub struct TestMessageDispatch;
+
+impl TestMessageDispatch {
+	pub fn deactivate(lane: LaneId) {
+		frame_support::storage::unhashed::put(&(b"inactive", lane).encode()[..], &false);
+	}
+}
+
+impl MessageDispatch for TestMessageDispatch {
+	type DispatchPayload = Vec<u8>;
+	type DispatchLevelResult = ();
+
+	fn is_active(lane: LaneId) -> bool {
+		frame_support::storage::unhashed::take::<bool>(&(b"inactive", lane).encode()[..]) !=
+			Some(false)
+	}
+
+	fn dispatch_weight(_message: &mut DispatchMessage<Self::DispatchPayload>) -> Weight {
+		Weight::zero()
+	}
+
+	fn dispatch(
+		_: DispatchMessage<Self::DispatchPayload>,
+	) -> MessageDispatchResult<Self::DispatchLevelResult> {
+		MessageDispatchResult { unspent_weight: Weight::zero(), dispatch_level_result: () }
+	}
 }
 
 /// Location of bridged asset hub.

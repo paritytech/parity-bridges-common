@@ -18,16 +18,23 @@
 //! bridge messages dispatcher. Internally, it just forwards inbound blob to the
 //! XCM-level blob dispatcher, which pushes message to some other queue (e.g.
 //! to HRMP queue with the sibling target chain).
+//!
+//! This code is executed at the target bridge hub.
 
-use crate::{Config, Pallet, XcmAsPlainPayload, LOG_TARGET};
+use crate::{Config, Pallet, LOG_TARGET};
 
-use bp_messages::target_chain::{DispatchMessage, MessageDispatch};
+use bp_messages::{
+	target_chain::{DispatchMessage, MessageDispatch},
+	LaneId,
+};
 use bp_runtime::messages::MessageDispatchResult;
+use bp_xcm_bridge_hub::{BridgeId, LocalXcmChannelManager, XcmAsPlainPayload};
 use codec::{Decode, Encode};
 use frame_support::{dispatch::Weight, CloneNoBound, EqNoBound, PartialEqNoBound};
 use pallet_bridge_messages::{Config as BridgeMessagesConfig, WeightInfoExt};
 use scale_info::TypeInfo;
 use sp_runtime::SaturatedConversion;
+use xcm::prelude::*;
 use xcm_builder::{DispatchBlob, DispatchBlobError};
 
 /// Message dispatch result type for single message.
@@ -51,6 +58,14 @@ where
 {
 	type DispatchPayload = XcmAsPlainPayload;
 	type DispatchLevelResult = XcmBlobMessageDispatchResult;
+
+	fn is_active(lane: LaneId) -> bool {
+		let bridge_id = BridgeId::from_lane_id(lane);
+		Pallet::<T, I>::bridge(bridge_id)
+			.and_then(|bridge| bridge.bridge_origin_relative_location.try_as().cloned().ok())
+			.map(|recipient: MultiLocation| !T::LocalXcmChannelManager::is_congested(&recipient))
+			.unwrap_or(false)
+	}
 
 	fn dispatch_weight(message: &mut DispatchMessage<Self::DispatchPayload>) -> Weight {
 		match message.data.payload {
