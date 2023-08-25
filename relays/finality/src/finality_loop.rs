@@ -22,12 +22,13 @@
 use crate::{sync_loop_metrics::SyncLoopMetrics, Error, FinalitySyncPipeline, SourceHeader};
 
 use crate::{
+	base::SourceClientBase,
 	finality_proofs::{FinalityProofsBuf, FinalityProofsStream},
 	headers::{JustifiedHeader, JustifiedHeaderSelector},
 };
 use async_trait::async_trait;
 use backoff::{backoff::Backoff, ExponentialBackoff};
-use futures::{future::Fuse, select, Future, FutureExt, Stream};
+use futures::{future::Fuse, select, Future, FutureExt};
 use num_traits::Saturating;
 use relay_utils::{
 	metrics::MetricsParams, relay_loop::Client as RelayClient, retry_backoff, FailedClient,
@@ -67,11 +68,7 @@ pub struct FinalitySyncParams {
 
 /// Source client used in finality synchronization loop.
 #[async_trait]
-pub trait SourceClient<P: FinalitySyncPipeline>: RelayClient {
-	/// Stream of new finality proofs. The stream is allowed to miss proofs for some
-	/// headers, even if those headers are mandatory.
-	type FinalityProofsStream: Stream<Item = P::FinalityProof> + Send;
-
+pub trait SourceClient<P: FinalitySyncPipeline>: SourceClientBase<P> {
 	/// Get best finalized block number.
 	async fn best_finalized_block_number(&self) -> Result<P::Number, Self::Error>;
 
@@ -80,9 +77,6 @@ pub trait SourceClient<P: FinalitySyncPipeline>: RelayClient {
 		&self,
 		number: P::Number,
 	) -> Result<(P::Header, Option<P::FinalityProof>), Self::Error>;
-
-	/// Subscribe to new finality proofs.
-	async fn finality_proofs(&self) -> Result<Self::FinalityProofsStream, Self::Error>;
 }
 
 /// Target client used in finality synchronization loop.
@@ -325,8 +319,10 @@ impl<P: FinalitySyncPipeline, SC: SourceClient<P>, TC: TargetClient<P>> Finality
 			.as_ref()
 			.map(|justified_header| justified_header.number())
 			.unwrap_or(info.best_number_at_target);
-		self.finality_proofs_buf
-			.prune(oldest_finality_proof_to_keep, self.sync_params.recent_finality_proofs_limit);
+		self.finality_proofs_buf.prune(
+			oldest_finality_proof_to_keep,
+			Some(self.sync_params.recent_finality_proofs_limit),
+		);
 
 		Ok(maybe_justified_header)
 	}

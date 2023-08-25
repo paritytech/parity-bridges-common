@@ -16,11 +16,12 @@
 
 //! Types used to connect to the Wococo-Substrate chain.
 
-use bp_wococo::WOCOCO_ACCEPTED_GRANDPA_FINALITY_PROOFS_METHOD;
+use bp_wococo::WOCOCO_SYNCED_HEADERS_GRANDPA_INFO_METHOD;
 use relay_substrate_client::{
 	Chain, ChainWithBalances, ChainWithGrandpa, RelayChain, UnderlyingChainProvider,
 };
 use sp_core::storage::StorageKey;
+use sp_session::MembershipProof;
 use std::time::Duration;
 
 /// Wococo header id.
@@ -48,8 +49,10 @@ impl Chain for Wococo {
 }
 
 impl ChainWithGrandpa for Wococo {
-	const ACCEPTED_FINALITY_PROOFS_METHOD: &'static str =
-		WOCOCO_ACCEPTED_GRANDPA_FINALITY_PROOFS_METHOD;
+	const SYNCED_HEADERS_GRANDPA_INFO_METHOD: &'static str =
+		WOCOCO_SYNCED_HEADERS_GRANDPA_INFO_METHOD;
+
+	type KeyOwnerProof = MembershipProof;
 }
 
 impl ChainWithBalances for Wococo {

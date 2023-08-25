@@ -23,10 +23,11 @@ mod verification;
 
 use crate::ChainWithGrandpa;
 pub use verification::{
-	equivocation::{EquivocationsCollector, Error as EquivocationsCollectorError},
+	equivocation::{EquivocationsCollector, GrandpaEquivocationsFinder},
 	optimizer::verify_and_optimize_justification,
 	strict::verify_justification,
-	AncestryChain, Error as JustificationVerificationError, PrecommitError,
+	AncestryChain, Error as JustificationVerificationError, JustificationVerificationContext,
+	PrecommitError,
 };
 
 use bp_runtime::{BlockNumberOf, Chain, HashOf, HeaderId};
@@ -96,7 +97,11 @@ impl<H: HeaderT> GrandpaJustification<H> {
 	}
 }
 
-impl<H: HeaderT> crate::FinalityProof<H::Number> for GrandpaJustification<H> {
+impl<H: HeaderT> crate::FinalityProof<H::Hash, H::Number> for GrandpaJustification<H> {
+	fn target_header_hash(&self) -> H::Hash {
+		self.commit.target_hash
+	}
+
 	fn target_header_number(&self) -> H::Number {
 		self.commit.target_number
 	}

@@ -16,7 +16,7 @@
 
 //! Types used to connect to the Millau-Substrate chain.
 
-use bp_millau::MILLAU_ACCEPTED_GRANDPA_FINALITY_PROOFS_METHOD;
+use bp_millau::MILLAU_SYNCED_HEADERS_GRANDPA_INFO_METHOD;
 use codec::{Compact, Decode, Encode};
 use relay_substrate_client::{
 	BalanceOf, Chain, ChainWithBalances, ChainWithGrandpa, ChainWithMessages,
@@ -25,6 +25,7 @@ use relay_substrate_client::{
 };
 use sp_core::{storage::StorageKey, Pair};
 use sp_runtime::{generic::SignedPayload, traits::IdentifyAccount};
+use sp_session::MembershipProof;
 use std::time::Duration;
 
 /// Millau header id.
@@ -58,8 +59,10 @@ impl Chain for Millau {
 }
 
 impl ChainWithGrandpa for Millau {
-	const ACCEPTED_FINALITY_PROOFS_METHOD: &'static str =
-		MILLAU_ACCEPTED_GRANDPA_FINALITY_PROOFS_METHOD;
+	const SYNCED_HEADERS_GRANDPA_INFO_METHOD: &'static str =
+		MILLAU_SYNCED_HEADERS_GRANDPA_INFO_METHOD;
+
+	type KeyOwnerProof = MembershipProof;
 }
 
 impl ChainWithBalances for Millau {
