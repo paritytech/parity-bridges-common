@@ -1255,13 +1255,10 @@ dependencies = [
  "frame-support",
  "parity-scale-codec",
  "scale-info",
+ "serde",
  "sp-std 8.0.0 (git+https://github.com/paritytech/substrate?branch=master)",
  "xcm",
 ]
-
-[[package]]
-name = "bp-xcm-bridge-hub-router"
-version = "0.1.0"
 
 [[package]]
 name = "bridge-runtime-common"
@@ -1274,6 +1271,7 @@ dependencies = [
  "bp-relayers",
  "bp-runtime",
  "bp-test-utils",
+ "bp-xcm-bridge-hub",
  "frame-support",
  "frame-system",
  "hash-db",
@@ -6179,6 +6177,7 @@ dependencies = [
  "sp-timestamp",
  "substrate-build-script-utils",
  "substrate-frame-rpc-system",
+ "xcm",
 ]
 
 [[package]]
@@ -6195,7 +6194,7 @@ dependencies = [
  "bp-rialto-parachain",
  "bp-runtime",
  "bp-westend",
- "bp-xcm-bridge-hub-router",
+ "bp-xcm-bridge-hub",
  "bridge-runtime-common",
  "env_logger",
  "frame-benchmarking",
@@ -6222,6 +6221,7 @@ dependencies = [
  "pallet-transaction-payment-rpc-runtime-api",
  "pallet-utility",
  "pallet-xcm",
+ "pallet-xcm-bridge-hub",
  "pallet-xcm-bridge-hub-router",
  "parity-scale-codec",
  "scale-info",
@@ -7977,7 +7977,7 @@ dependencies = [
 name = "pallet-xcm-bridge-hub-router"
 version = "0.1.0"
 dependencies = [
- "bp-xcm-bridge-hub-router",
+ "bp-xcm-bridge-hub",
  "frame-benchmarking",
  "frame-support",
  "frame-system",
@@ -10507,6 +10507,7 @@ dependencies = [
  "sp-core",
  "sp-runtime",
  "substrate-build-script-utils",
+ "xcm",
 ]
 
 [[package]]
@@ -10562,6 +10563,7 @@ dependencies = [
  "substrate-build-script-utils",
  "substrate-frame-rpc-system",
  "substrate-prometheus-endpoint",
+ "xcm",
 ]
 
 [[package]]
@@ -10574,6 +10576,7 @@ dependencies = [
  "bp-relayers",
  "bp-rialto-parachain",
  "bp-runtime",
+ "bp-xcm-bridge-hub",
  "bridge-runtime-common",
  "cumulus-pallet-aura-ext",
  "cumulus-pallet-dmp-queue",
@@ -10599,6 +10602,7 @@ dependencies = [
  "pallet-transaction-payment",
  "pallet-transaction-payment-rpc-runtime-api",
  "pallet-xcm",
+ "pallet-xcm-bridge-hub",
  "parachain-info",
  "parity-scale-codec",
  "polkadot-parachain",
@@ -10632,6 +10636,7 @@ dependencies = [
  "bp-relayers",
  "bp-rialto",
  "bp-runtime",
+ "bp-xcm-bridge-hub",
  "bridge-runtime-common",
  "env_logger",
  "frame-benchmarking",
@@ -10659,6 +10664,7 @@ dependencies = [
  "pallet-transaction-payment",
  "pallet-transaction-payment-rpc-runtime-api",
  "pallet-xcm",
+ "pallet-xcm-bridge-hub",
  "parity-scale-codec",
  "polkadot-primitives",
  "polkadot-runtime-common",
@@ -13939,6 +13945,7 @@ dependencies = [
  "num-traits",
  "pallet-bridge-messages",
  "pallet-bridge-parachains",
+ "pallet-xcm-bridge-hub",
  "parachains-relay",
  "parity-scale-codec",
  "polkadot-parachain",

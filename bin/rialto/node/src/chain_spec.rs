@@ -14,12 +14,11 @@
 // You should have received a copy of the GNU General Public License
 // along with Parity Bridges Common.  If not, see <http://www.gnu.org/licenses/>.
 
-use bridge_runtime_common::messages_xcm_extension::XcmBlobHauler;
 use polkadot_primitives::v5::{AssignmentId, ValidatorId};
 use rialto_runtime::{
 	AccountId, BabeConfig, BalancesConfig, BeefyConfig, BridgeMillauMessagesConfig,
 	ConfigurationConfig, GrandpaConfig, RuntimeGenesisConfig, SessionConfig, SessionKeys,
-	Signature, SudoConfig, SystemConfig, WASM_BINARY,
+	Signature, SudoConfig, SystemConfig, XcmMillauBridgeHubConfig, WASM_BINARY,
 };
 use serde_json::json;
 use sp_authority_discovery::AuthorityId as AuthorityDiscoveryId;
@@ -280,9 +279,18 @@ fn testnet_genesis(
 		paras: Default::default(),
 		bridge_millau_messages: BridgeMillauMessagesConfig {
 			owner: Some(get_account_id_from_seed::<sr25519::Public>(MILLAU_MESSAGES_PALLET_OWNER)),
-			opened_lanes: vec![rialto_runtime::millau_messages::ToMillauXcmBlobHauler::xcm_lane()],
+			opened_lanes: vec![rialto_runtime::millau_messages::Bridge::get().lane_id()],
 			..Default::default()
 		},
 		xcm_pallet: Default::default(),
+		xcm_millau_bridge_hub: XcmMillauBridgeHubConfig {
+			opened_bridges: vec![(
+				xcm::latest::Junctions::Here.into(),
+				xcm::latest::InteriorMultiLocation::from(
+					rialto_runtime::xcm_config::MillauNetwork::get(),
+				),
+			)],
+			..Default::default()
+		},
 	}
 }

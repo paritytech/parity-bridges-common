@@ -19,11 +19,8 @@
 //! with calls that are: delivering new messsage and all necessary underlying headers
 //! (parachain or relay chain).
 
-use crate::{
-	messages_call_ext::{
-		CallHelper as MessagesCallHelper, CallInfo as MessagesCallInfo, MessagesCallSubType,
-	},
-	messages_xcm_extension::LaneIdFromChainId,
+use crate::messages_call_ext::{
+	CallHelper as MessagesCallHelper, CallInfo as MessagesCallInfo, MessagesCallSubType,
 };
 use bp_messages::{ChainWithMessages, LaneId, MessageNonce};
 use bp_relayers::{RewardsAccountOwner, RewardsAccountParams};
@@ -105,15 +102,17 @@ pub trait RefundableMessagesLaneId {
 }
 
 /// Default implementation of `RefundableMessagesLaneId`.
-pub struct RefundableMessagesLane<Runtime, Instance>(PhantomData<(Runtime, Instance)>);
+pub struct RefundableMessagesLane<Runtime, Instance, Lane>(PhantomData<(Runtime, Instance, Lane)>);
 
-impl<Runtime, Instance> RefundableMessagesLaneId for RefundableMessagesLane<Runtime, Instance>
+impl<Runtime, Instance, Lane> RefundableMessagesLaneId
+	for RefundableMessagesLane<Runtime, Instance, Lane>
 where
 	Runtime: MessagesConfig<Instance>,
 	Instance: 'static,
+	Lane: Get<LaneId>,
 {
 	type Instance = Instance;
-	type Id = LaneIdFromChainId<Runtime, Instance>;
+	type Id = Lane;
 }
 
 /// Refund calculator.
@@ -693,13 +692,14 @@ mod tests {
 			TEST_BRIDGED_CHAIN_ID,
 			RewardsAccountOwner::BridgedChain,
 		);
+		pub TestLaneId: LaneId = test_lane_id();
 	}
 
 	bp_runtime::generate_static_str_provider!(TestExtension);
 	type TestExtension = RefundBridgedParachainMessages<
 		TestRuntime,
 		DefaultRefundableParachainId<(), TestParachain>,
-		RefundableMessagesLane<TestRuntime, ()>,
+		RefundableMessagesLane<TestRuntime, (), TestLaneId>,
 		ActualFeeRefund<TestRuntime>,
 		ConstU64<1>,
 		StrTestExtension,

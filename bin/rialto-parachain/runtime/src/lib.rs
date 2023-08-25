@@ -34,7 +34,7 @@ use sp_api::impl_runtime_apis;
 use sp_core::{crypto::KeyTypeId, ConstBool, OpaqueMetadata};
 use sp_runtime::{
 	create_runtime_str, generic, impl_opaque_keys,
-	traits::{AccountIdLookup, Block as BlockT, DispatchInfoOf, SignedExtension},
+	traits::{AccountIdLookup, Block as BlockT, ConstU128, DispatchInfoOf, SignedExtension},
 	transaction_validity::{TransactionSource, TransactionValidity, TransactionValidityError},
 	ApplyExtrinsicResult,
 };
@@ -83,10 +83,10 @@ use pallet_xcm::XcmPassthrough;
 use polkadot_parachain::primitives::Sibling;
 use xcm::latest::prelude::*;
 use xcm_builder::{
-	AccountId32Aliases, CurrencyAdapter, EnsureXcmOrigin, FixedWeightBounds, IsConcrete,
-	NativeAsset, ParentAsSuperuser, ParentIsPreset, RelayChainAsNative, SiblingParachainAsNative,
-	SiblingParachainConvertsVia, SignedAccountId32AsNative, SignedToAccountId32,
-	SovereignSignedViaLocation, TakeWeightCredit, UsingComponents,
+	Account32Hash, AccountId32Aliases, CurrencyAdapter, EnsureXcmOrigin, FixedWeightBounds,
+	IsConcrete, NativeAsset, ParentAsSuperuser, ParentIsPreset, RelayChainAsNative,
+	SiblingParachainAsNative, SiblingParachainConvertsVia, SignedAccountId32AsNative,
+	SignedToAccountId32, SovereignSignedViaLocation, TakeWeightCredit, UsingComponents,
 };
 use xcm_executor::{Config, XcmExecutor};
 
@@ -365,6 +365,8 @@ pub type LocationToAccountId = (
 	SiblingParachainConvertsVia<Sibling, AccountId>,
 	// Straight up local `AccountId32` origins just alias directly to `AccountId`.
 	AccountId32Aliases<RelayNetwork, AccountId>,
+	// Dummy stuff for our tests.
+	Account32Hash<ThisNetwork, AccountId>,
 );
 
 /// Means for transacting assets on this chain.
@@ -455,7 +457,7 @@ impl Config for XcmConfig {
 	type AssetLocker = ();
 	type AssetExchanger = ();
 	type FeeManager = ();
-	type MessageExporter = millau_messages::ToMillauBlobExporter;
+	type MessageExporter = XcmMillauBridgeHub;
 	type UniversalAliases = Nothing;
 	type CallDispatcher = RuntimeCall;
 	type SafeCallFilter = Everything;
@@ -565,8 +567,8 @@ impl pallet_bridge_messages::Config<WithMillauMessagesInstance> for Runtime {
 	type BridgedChain = bp_millau::Millau;
 	type BridgedHeaderChain = BridgeMillauGrandpa;
 
-	type OutboundPayload = bridge_runtime_common::messages_xcm_extension::XcmAsPlainPayload;
-	type InboundPayload = bridge_runtime_common::messages_xcm_extension::XcmAsPlainPayload;
+	type OutboundPayload = bp_xcm_bridge_hub::XcmAsPlainPayload;
+	type InboundPayload = bp_xcm_bridge_hub::XcmAsPlainPayload;
 
 	type DeliveryPayments = ();
 	type DeliveryConfirmationPayments = pallet_bridge_relayers::DeliveryConfirmationPaymentsAdapter<
@@ -574,8 +576,31 @@ impl pallet_bridge_messages::Config<WithMillauMessagesInstance> for Runtime {
 		WithMillauMessagesInstance,
 		frame_support::traits::ConstU128<100_000>,
 	>;
+	type OnMessagesDelivered = XcmMillauBridgeHub;
 
-	type MessageDispatch = crate::millau_messages::FromMillauMessageDispatch;
+	type MessageDispatch = XcmMillauBridgeHub;
+}
+
+/// Instance of the XCM bridge hub pallet used to relay messages to/from Millau chain.
+pub type WithMillauXcmBridgeHubInstance = ();
+
+impl pallet_xcm_bridge_hub::Config<WithMillauXcmBridgeHubInstance> for Runtime {
+	type RuntimeEvent = RuntimeEvent;
+
+	type UniversalLocation = UniversalLocation;
+	type BridgedNetworkId = MillauNetwork;
+	type BridgeMessagesPalletInstance = WithMillauMessagesInstance;
+
+	type MaxSuspendedBridges = ConstU32<1>;
+	type OpenBridgeOrigin = frame_support::traits::NeverEnsureOrigin<xcm::latest::MultiLocation>;
+	type BridgeOriginAccountIdConverter = LocationToAccountId;
+
+	type BridgeReserve = ConstU128<1_000_000_000>;
+	type NativeCurrency = Balances;
+
+	type LocalXcmChannelManager = ();
+	type BlobDispatcher = OnRialtoParachainBlobDispatcher;
+	type MessageExportPrice = ();
 }
 
 // Create the runtime by composing the FRAME pallets that were previously configured.
@@ -604,6 +629,7 @@ construct_runtime!(
 		BridgeRelayers: pallet_bridge_relayers::{Pallet, Call, Storage, Event<T>},
 		BridgeMillauGrandpa: pallet_bridge_grandpa::{Pallet, Call, Storage, Event<T>},
 		BridgeMillauMessages: pallet_bridge_messages::{Pallet, Call, Storage, Event<T>, Config<T>},
+		XcmMillauBridgeHub: pallet_xcm_bridge_hub::{Pallet, Call, Storage, Event<T>, Config<T>},
 	}
 );
 
@@ -840,16 +866,12 @@ cumulus_pallet_parachain_system::register_validate_block!(
 #[cfg(test)]
 mod tests {
 	use super::*;
-	use crate::millau_messages::FromMillauMessageDispatch;
 	use bp_messages::{
 		target_chain::{DispatchMessage, DispatchMessageData, MessageDispatch},
 		MessageKey, OutboundLaneData,
 	};
 	use bp_runtime::Chain;
-	use bridge_runtime_common::{
-		integrity::check_additional_signed,
-		messages_xcm_extension::{XcmBlobHauler, XcmBlobMessageDispatchResult},
-	};
+	use bridge_runtime_common::integrity::check_additional_signed;
 	use codec::Encode;
 	use pallet_bridge_messages::OutboundLanes;
 	use sp_runtime::generic::Era;
@@ -882,7 +904,7 @@ mod tests {
 	fn xcm_messages_to_millau_are_sent_using_bridge_exporter() {
 		new_test_ext().execute_with(|| {
 			// ensure that the there are no messages queued
-			let lane_id = crate::millau_messages::ToMillauXcmBlobHauler::xcm_lane();
+			let lane_id = crate::millau_messages::Bridge::get().lane_id();
 			OutboundLanes::<Runtime, WithMillauMessagesInstance>::insert(
 				lane_id,
 				OutboundLaneData::opened(),
@@ -921,7 +943,7 @@ mod tests {
 			xcm::VersionedInteriorMultiLocation::V3(X1(GlobalConsensus(ThisNetwork::get())));
 		// this is the `BridgeMessage` from polkadot xcm builder, but it has no constructor
 		// or public fields, so just tuple
-		let xcm_lane = crate::millau_messages::ToMillauXcmBlobHauler::xcm_lane();
+		let xcm_lane = crate::millau_messages::Bridge::get().lane_id();
 		let bridge_message = (location, xcm).encode();
 		DispatchMessage {
 			key: MessageKey { lane_id: xcm_lane, nonce: 1 },
@@ -936,10 +958,10 @@ mod tests {
 
 			// we care only about handing message to the XCM dispatcher, so we don't care about its
 			// actual dispatch
-			let dispatch_result = FromMillauMessageDispatch::dispatch(incoming_message);
+			let dispatch_result = XcmMillauBridgeHub::dispatch(incoming_message);
 			assert!(matches!(
 				dispatch_result.dispatch_level_result,
-				XcmBlobMessageDispatchResult::NotDispatched(_),
+				pallet_xcm_bridge_hub::XcmBlobMessageDispatchResult::NotDispatched(_),
 			));
 		});
 	}

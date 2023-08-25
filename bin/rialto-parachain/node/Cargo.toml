@@ -82,3 +82,4 @@ cumulus-relay-chain-interface = { git = "https://github.com/paritytech/cumulus",
 polkadot-cli = { git = "https://github.com/paritytech/polkadot", branch = "master" }
 polkadot-primitives = { git = "https://github.com/paritytech/polkadot", branch = "master" }
 polkadot-service = { git = "https://github.com/paritytech/polkadot", branch = "master" }
+xcm = { git = "https://github.com/paritytech/polkadot", branch = "master" }
