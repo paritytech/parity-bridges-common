@@ -20,13 +20,13 @@
 //!
 //! This code is executed at the source bridge hub.
 
-use crate::{Config, Pallet, SuspendedBridges, LOG_TARGET};
+use crate::{BridgeOf, Bridges, Config, Pallet, LOG_TARGET};
 
 use bp_messages::{
 	source_chain::{MessagesBridge, OnMessagesDelivered},
 	LaneId, MessageNonce,
 };
-use bp_xcm_bridge_hub::{BridgeId, BridgeLocations, LocalXcmChannelManager, XcmAsPlainPayload};
+use bp_xcm_bridge_hub::{BridgeId, BridgeState, LocalXcmChannelManager, XcmAsPlainPayload};
 use frame_support::traits::Get;
 use pallet_bridge_messages::{Config as BridgeMessagesConfig, Pallet as BridgeMessagesPallet};
 use sp_std::boxed::Box;
@@ -42,8 +42,8 @@ const OUTBOUND_LANE_CONGESTED_THRESHOLD: MessageNonce = 8_192;
 /// queue drops to this count, before sending resuming the bridge.
 const OUTBOUND_LANE_UNCONGESTED_THRESHOLD: MessageNonce = 1_024;
 
-// An easy way to access `HaulBlobExporter`.
-type PalletAsHaulBlobExporter<T, I> = HaulBlobExporter<
+/// An easy way to access `HaulBlobExporter`.
+pub type PalletAsHaulBlobExporter<T, I> = HaulBlobExporter<
 	DummyHaulBlob,
 	<T as Config<I>>::BridgedNetworkId,
 	<T as Config<I>>::MessageExportPrice,
@@ -58,7 +58,7 @@ where
 		OutboundPayload = XcmAsPlainPayload,
 	>,
 {
-	type Ticket = (Box<BridgeLocations>, XcmAsPlainPayload, XcmHash);
+	type Ticket = (BridgeId, BridgeOf<T, I>, XcmAsPlainPayload, XcmHash);
 
 	fn validate(
 		network: NetworkId,
@@ -95,14 +95,15 @@ where
 			Box::new(bridge_destination_universal_location.into()),
 		)
 		.map_err(|_| SendError::Unroutable)?;
+		let bridge = Self::bridge(locations.bridge_id).ok_or(SendError::Unroutable)?;
 
-		Ok(((locations, blob, id), price))
+		Ok(((locations.bridge_id, bridge, blob, id), price))
 	}
 
 	fn deliver(
-		(locations, blob, id): (Box<BridgeLocations>, XcmAsPlainPayload, XcmHash),
+		(bridge_id, bridge, blob, id): (BridgeId, BridgeOf<T, I>, XcmAsPlainPayload, XcmHash),
 	) -> Result<XcmHash, SendError> {
-		let send_result = MessagesPallet::<T, I>::send_message(locations.bridge_id.lane_id(), blob);
+		let send_result = MessagesPallet::<T, I>::send_message(bridge_id.lane_id(), blob);
 
 		match send_result {
 			Ok(artifacts) => {
@@ -110,12 +111,12 @@ where
 					target: LOG_TARGET,
 					"XCM message {:?} has been enqueued at bridge {:?} with nonce {}",
 					id,
-					locations.bridge_id,
+					bridge_id,
 					artifacts.nonce,
 				);
 
 				// maybe we need switch to congested state
-				Self::on_bridge_message_enqueued(locations, artifacts.enqueued_messages);
+				Self::on_bridge_message_enqueued(bridge_id, bridge, artifacts.enqueued_messages);
 			},
 			Err(error) => {
 				log::debug!(
@@ -123,7 +124,7 @@ where
 					"XCM message {:?} has been dropped because of bridge error {:?} on bridge {:?}",
 					id,
 					error,
-					locations.bridge_id,
+					bridge_id,
 				);
 				return Err(SendError::Transport("BridgeSendError"))
 			},
@@ -142,7 +143,8 @@ impl<T: Config<I>, I: 'static> OnMessagesDelivered for Pallet<T, I> {
 impl<T: Config<I>, I: 'static> Pallet<T, I> {
 	/// Called when new message is pushed onto outbound bridge queue.
 	fn on_bridge_message_enqueued(
-		locations: Box<BridgeLocations>,
+		bridge_id: BridgeId,
+		bridge: BridgeOf<T, I>,
 		enqueued_messages: MessageNonce,
 	) {
 		// if the bridge queue is not congested, we don't want to do anything
@@ -152,36 +154,48 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
 		}
 
 		// TODO: https://github.com/paritytech/parity-bridges-common/issues/2006 we either need fishermens
-		// to watch thsi rule violation (suspended, but keep sending new messages), or we need a
+		// to watch this rule violation (suspended, but keep sending new messages), or we need a
 		// hard limit for that like other XCM queues have
 
 		// check if the lane is already suspended. If it is, do nothing. We still accept new
 		// messages to the suspended bridge, hoping that it'll be actually suspended soon
-		let is_already_congested = SuspendedBridges::<T, I>::get().contains(&locations.bridge_id);
-		if is_already_congested {
+		let is_already_suspended = bridge.state == BridgeState::Suspended;
+		if is_already_suspended {
 			return
 		}
 
 		// else - suspend the bridge
-		let suspend_result = T::LocalXcmChannelManager::suspend_bridge(
-			&locations.bridge_origin_relative_location,
-			locations.bridge_id,
-		);
+		let bridge_origin_relative_location = match bridge.bridge_origin_relative_location.try_as()
+		{
+			Ok(bridge_origin_relative_location) => bridge_origin_relative_location,
+			Err(_) => {
+				log::debug!(
+					target: LOG_TARGET,
+					"Failed to convert the bridge {:?} origin location {:?}",
+					bridge_id,
+					bridge.bridge_origin_relative_location,
+				);
+
+				return
+			},
+		};
+		let suspend_result =
+			T::LocalXcmChannelManager::suspend_bridge(bridge_origin_relative_location, bridge_id);
 		match suspend_result {
 			Ok(_) => {
 				log::debug!(
 					target: LOG_TARGET,
 					"Suspended the bridge {:?}, originated by the {:?}",
-					locations.bridge_id,
-					locations.bridge_origin_relative_location,
+					bridge_id,
+					bridge.bridge_origin_relative_location,
 				);
 			},
 			Err(e) => {
 				log::debug!(
 					target: LOG_TARGET,
 					"Failed to suspended the bridge {:?}, originated by the {:?}: {:?}",
-					locations.bridge_id,
-					locations.bridge_origin_relative_location,
+					bridge_id,
+					bridge.bridge_origin_relative_location,
 					e,
 				);
 
@@ -190,23 +204,8 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
 		}
 
 		// and remember that we have suspended the bridge
-		SuspendedBridges::<T, I>::mutate(|suspended_bridges| {
-			let maybe_error = suspended_bridges.try_push(locations.bridge_id);
-			if let Err(e) = maybe_error {
-				// TODO: https://github.com/paritytech/parity-bridges-common/issues/2006
-				// we've sent the suspend signal, but failed to remember that => we'll keep
-				// up sending the signal on every further message, effectively blocking the XCM
-				// lane. We need some limit on total number of bridges so that this call won't ever
-				// fail.
-
-				log::debug!(
-					target: LOG_TARGET,
-					"Failed to remember the suspended bridge {:?}, originated by the {:?}: {:?}",
-					locations.bridge_id,
-					locations.bridge_origin_relative_location,
-					e,
-				);
-			}
+		Bridges::<T, I>::mutate_extant(bridge_id, |bridge| {
+			bridge.state = BridgeState::Suspended;
 		});
 	}
 
@@ -218,60 +217,62 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
 			return
 		}
 
-		// if we have not suspended the bridge before, we don't want to do anything
+		// if we have not suspended the bridge before (or it is closed), we don't want to do
+		// anything
 		let bridge_id = BridgeId::from_lane_id(lane_id);
-		if !SuspendedBridges::<T, I>::get().contains(&bridge_id) {
-			return
-		}
+		let bridge = match Self::bridge(bridge_id) {
+			Some(bridge) if bridge.state == BridgeState::Suspended => bridge,
+			_ => {
+				// if there is no bridge or it has been closed, then we don't need to send resume
+				// signal to the local origin - it has closed bridge itself, so it should have
+				// alrady pruned everything else
+				return
+			},
+		};
 
 		// else - resume the bridge
-		if let Some(bridge) = Self::bridge(bridge_id) {
-			let bridge_origin_relative_location =
-				(*bridge.bridge_origin_relative_location).try_into();
-			let bridge_origin_relative_location = match bridge_origin_relative_location {
-				Ok(bridge_origin_relative_location) => bridge_origin_relative_location,
-				Err(e) => {
-					log::debug!(
-						target: LOG_TARGET,
-						"Failed to convert the bridge  {:?} location: {:?}",
-						lane_id,
-						e,
-					);
+		let bridge_origin_relative_location = (*bridge.bridge_origin_relative_location).try_into();
+		let bridge_origin_relative_location = match bridge_origin_relative_location {
+			Ok(bridge_origin_relative_location) => bridge_origin_relative_location,
+			Err(e) => {
+				log::debug!(
+					target: LOG_TARGET,
+					"Failed to convert the bridge  {:?} location: {:?}",
+					lane_id,
+					e,
+				);
 
-					return
-				},
-			};
+				return
+			},
+		};
 
-			let resume_result = T::LocalXcmChannelManager::resume_bridge(
-				&bridge_origin_relative_location,
-				bridge_id,
-			);
-			match resume_result {
-				Ok(_) => {
-					log::debug!(
-						target: LOG_TARGET,
-						"Resumed the bridge {:?}, originated by the {:?}",
-						lane_id,
-						bridge_origin_relative_location,
-					);
-				},
-				Err(e) => {
-					log::debug!(
-						target: LOG_TARGET,
-						"Failed to resume the bridge {:?}, originated by the {:?}: {:?}",
-						lane_id,
-						bridge_origin_relative_location,
-						e,
-					);
+		let resume_result =
+			T::LocalXcmChannelManager::resume_bridge(&bridge_origin_relative_location, bridge_id);
+		match resume_result {
+			Ok(_) => {
+				log::debug!(
+					target: LOG_TARGET,
+					"Resumed the bridge {:?}, originated by the {:?}",
+					lane_id,
+					bridge_origin_relative_location,
+				);
+			},
+			Err(e) => {
+				log::debug!(
+					target: LOG_TARGET,
+					"Failed to resume the bridge {:?}, originated by the {:?}: {:?}",
+					lane_id,
+					bridge_origin_relative_location,
+					e,
+				);
 
-					return
-				},
-			}
+				return
+			},
 		}
 
 		// and forget that we have previously suspended the bridge
-		SuspendedBridges::<T, I>::mutate(|suspended_bridges| {
-			suspended_bridges.retain(|b| *b != bridge_id);
+		Bridges::<T, I>::mutate_extant(bridge_id, |bridge| {
+			bridge.state = BridgeState::Opened;
 		});
 	}
 }
@@ -283,7 +284,7 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
 /// else. But bridge messages pallet may have a dedicated channel (lane) for every pair of bridged
 /// chains. So we are using our own `ExportXcm` implementation, but to utilize `HaulBlobExporter` we
 /// still need this `DummyHaulBlob`.
-struct DummyHaulBlob;
+pub struct DummyHaulBlob;
 
 impl HaulBlob for DummyHaulBlob {
 	fn haul_blob(_blob: XcmAsPlainPayload) -> Result<(), HaulBlobError> {
@@ -367,9 +368,9 @@ mod tests {
 	#[test]
 	fn exporter_does_not_suspend_the_bridge_if_outbound_bridge_queue_is_not_congested() {
 		run_test(|| {
-			open_lane_and_send_regular_message();
+			let bridge_id = open_lane_and_send_regular_message();
 			assert!(!TestLocalXcmChannelManager::is_bridge_suspened());
-			assert_eq!(XcmOverBridge::suspended_bridges().as_slice(), &[]);
+			assert_eq!(XcmOverBridge::bridge(bridge_id).unwrap().state, BridgeState::Opened);
 		});
 	}
 
@@ -377,8 +378,8 @@ mod tests {
 	fn exporter_does_not_suspend_the_bridge_if_it_is_already_suspended() {
 		run_test(|| {
 			let bridge_id = open_lane_and_send_regular_message();
-			SuspendedBridges::<TestRuntime, ()>::mutate(|suspended_bridges| {
-				suspended_bridges.try_push(bridge_id).unwrap()
+			Bridges::<TestRuntime, ()>::mutate_extant(bridge_id, |bridge| {
+				bridge.state = BridgeState::Suspended;
 			});
 			for _ in 1..OUTBOUND_LANE_CONGESTED_THRESHOLD {
 				open_lane_and_send_regular_message();
@@ -398,11 +399,11 @@ mod tests {
 			}
 
 			assert!(!TestLocalXcmChannelManager::is_bridge_suspened());
-			assert_eq!(XcmOverBridge::suspended_bridges().as_slice(), &[]);
+			assert_eq!(XcmOverBridge::bridge(bridge_id).unwrap().state, BridgeState::Opened);
 
 			open_lane_and_send_regular_message();
 			assert!(TestLocalXcmChannelManager::is_bridge_suspened());
-			assert_eq!(XcmOverBridge::suspended_bridges().as_slice(), &[bridge_id]);
+			assert_eq!(XcmOverBridge::bridge(bridge_id).unwrap().state, BridgeState::Suspended);
 		});
 	}
 
@@ -410,8 +411,8 @@ mod tests {
 	fn bridge_is_not_resumed_if_outbound_bridge_queue_is_still_congested() {
 		run_test(|| {
 			let bridge_id = open_lane_and_send_regular_message();
-			SuspendedBridges::<TestRuntime, ()>::mutate(|suspended_bridges| {
-				suspended_bridges.try_push(bridge_id).unwrap()
+			Bridges::<TestRuntime, ()>::mutate_extant(bridge_id, |bridge| {
+				bridge.state = BridgeState::Suspended;
 			});
 			XcmOverBridge::on_bridge_messages_delivered(
 				bridge_id.lane_id(),
@@ -419,7 +420,7 @@ mod tests {
 			);
 
 			assert!(!TestLocalXcmChannelManager::is_bridge_resumed());
-			assert_eq!(XcmOverBridge::suspended_bridges().as_slice(), &[bridge_id]);
+			assert_eq!(XcmOverBridge::bridge(bridge_id).unwrap().state, BridgeState::Suspended);
 		});
 	}
 
@@ -433,7 +434,7 @@ mod tests {
 			);
 
 			assert!(!TestLocalXcmChannelManager::is_bridge_resumed());
-			assert_eq!(XcmOverBridge::suspended_bridges().as_slice(), &[]);
+			assert_eq!(XcmOverBridge::bridge(bridge_id).unwrap().state, BridgeState::Opened);
 		});
 	}
 
@@ -441,8 +442,8 @@ mod tests {
 	fn bridge_is_resumed_when_enough_messages_are_delivered() {
 		run_test(|| {
 			let bridge_id = open_lane_and_send_regular_message();
-			SuspendedBridges::<TestRuntime, ()>::mutate(|suspended_bridges| {
-				suspended_bridges.try_push(bridge_id).unwrap()
+			Bridges::<TestRuntime, ()>::mutate_extant(bridge_id, |bridge| {
+				bridge.state = BridgeState::Suspended;
 			});
 			XcmOverBridge::on_bridge_messages_delivered(
 				bridge_id.lane_id(),
@@ -450,7 +451,7 @@ mod tests {
 			);
 
 			assert!(TestLocalXcmChannelManager::is_bridge_resumed());
-			assert_eq!(XcmOverBridge::suspended_bridges().as_slice(), &[]);
+			assert_eq!(XcmOverBridge::bridge(bridge_id).unwrap().state, BridgeState::Opened);
 		});
 	}
 
@@ -486,6 +487,15 @@ mod tests {
 		run_test(|| {
 			let expected_bridge_id =
 				BridgeId::new(&universal_source().into(), &universal_destination().into());
+			Bridges::<TestRuntime, ()>::insert(
+				expected_bridge_id,
+				Bridge {
+					bridge_origin_relative_location: Box::new(universal_destination().into()),
+					state: BridgeState::Opened,
+					bridge_owner_account: [0u8; 32].into(),
+					reserve: 0,
+				},
+			);
 			assert_eq!(
 				XcmOverBridge::validate(
 					BridgedRelayNetwork::get(),
@@ -496,8 +506,7 @@ mod tests {
 				)
 				.unwrap()
 				.0
-				 .0
-				.bridge_id,
+				 .0,
 				expected_bridge_id,
 			);
 		})
