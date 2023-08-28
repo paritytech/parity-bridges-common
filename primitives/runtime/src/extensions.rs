@@ -77,6 +77,9 @@ pub type CheckWeight = GenericSignedExtensionSchema<(), ()>;
 /// The `SignedExtensionSchema` for `pallet_transaction_payment::ChargeTransactionPayment`.
 pub type ChargeTransactionPayment<Balance> = GenericSignedExtensionSchema<Compact<Balance>, ()>;
 
+/// The `SignedExtensionSchema` for `polkadot-runtime-common::PrevalidateAttests`.
+pub type PrevalidateAttests = GenericSignedExtensionSchema<(), ()>;
+
 /// The `SignedExtensionSchema` for `BridgeRejectObsoleteHeadersAndMessages`.
 pub type BridgeRejectObsoleteHeadersAndMessages = GenericSignedExtensionSchema<(), ()>;
 
