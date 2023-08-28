@@ -51,6 +51,7 @@ parameter_types! {
 	pub UniversalLocation: InteriorMultiLocation = X2(GlobalConsensus(ThisNetworkId::get()), Parachain(1000));
 	pub SiblingBridgeHubLocation: MultiLocation = ParentThen(X1(Parachain(1002))).into();
 	pub BridgeFeeAsset: AssetId = MultiLocation::parent().into();
+	pub ToBridgeHubSendWeight: Weight = Weight::zero();
 }
 
 impl frame_system::Config for TestRuntime {
@@ -86,6 +87,7 @@ impl pallet_xcm_bridge_hub_router::Config<()> for TestRuntime {
 	type SiblingBridgeHubLocation = SiblingBridgeHubLocation;
 	type BridgedNetworkId = BridgedNetworkId;
 
+	type ToBridgeHubSendWeight = ToBridgeHubSendWeight;
 	type ToBridgeHubSender = TestToBridgeHubSender;
 	type LocalXcmChannelManager = TestLocalXcmChannelManager;
 

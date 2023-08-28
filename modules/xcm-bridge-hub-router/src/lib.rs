@@ -30,12 +30,13 @@
 
 #![cfg_attr(not(feature = "std"), no_std)]
 
+use bp_runtime::RangeInclusiveExt;
 use bp_xcm_bridge_hub_router::{
 	bridge_id_from_locations, Bridge, BridgeId, LocalXcmChannelManager,
 };
-use codec::Encode;
+use codec::{Codec, Compact, CompactLen, Encode};
 use frame_support::traits::Get;
-use sp_runtime::{FixedPointNumber, FixedU128, SaturatedConversion, Saturating};
+use sp_runtime::{BoundedVec, FixedPointNumber, FixedU128, SaturatedConversion, Saturating};
 use xcm::prelude::*;
 use xcm_builder::{ExporterFor, SovereignPaidRemoteExporter};
 
@@ -61,6 +62,9 @@ const MESSAGE_SIZE_FEE_BASE: FixedU128 = FixedU128::from_rational(1, 1000); // 0
 /// This should be less than the maximal size, allowed by the messages pallet, because
 /// the message itself is wrapped in other structs and is double encoded.
 pub const HARD_MESSAGE_SIZE_LIMIT: u32 = 32 * 1024;
+
+/// Maximal size of suspended outbound message.
+pub const HARD_SUSPENDED_MESSAGE_SIZE_LIMIT: u32 = HARD_MESSAGE_SIZE_LIMIT + 1_024;
 
 /// The target that will be used when publishing logs related to this pallet.
 ///
@@ -90,6 +94,8 @@ pub mod pallet {
 		/// If not specified, allows all networks pass through.
 		type BridgedNetworkId: Get<NetworkId>;
 
+		/// Weight of the `ToBridgeHubSender::deliver` call.
+		type ToBridgeHubSendWeight: Get<Weight>;
 		/// Actual message sender (`HRMP` or `DMP`) to the sibling bridge hub location.
 		type ToBridgeHubSender: SendXcm;
 		/// Local XCM channel manager.
@@ -107,7 +113,9 @@ pub mod pallet {
 	pub struct Pallet<T, I = ()>(PhantomData<(T, I)>);
 
 	#[pallet::hooks]
-	impl<T: Config<I>, I: 'static> Hooks<BlockNumberFor<T>> for Pallet<T, I> {
+	impl<T: Config<I>, I: 'static> Hooks<BlockNumberFor<T>> for Pallet<T, I> where
+		<T::ToBridgeHubSender as SendXcm>::Ticket: Codec,
+	{
 		fn on_initialize(_n: BlockNumberFor<T>) -> Weight {
 			// if XCM channel is still congested, we don't change anything
 			if T::LocalXcmChannelManager::is_congested(&T::SiblingBridgeHubLocation::get()) {
@@ -132,6 +140,106 @@ pub mod pallet {
 
 			CongestionFeeFactor::<T, I>::put(congestion_fee_factor);
 			T::WeightInfo::on_initialize_when_non_congested()
+		}
+
+		fn on_idle(_block: BlockNumberFor<T>, remaining_weight: Weight) -> Weight {
+			// we need to read+update range + move (1 read + two writes) message
+			let suspended_messages_range_read_weight = Self::suspended_messages_range_read_weight();
+			let suspended_message_read_weight = Self::suspended_message_read_weight();
+			let deliver_message_weight = T::ToBridgeHubSendWeight::get();
+			let db_weight = T::DbWeight::get();
+			let min_required_weight = suspended_messages_range_read_weight
+				.saturating_add(suspended_message_read_weight)
+				.saturating_add(deliver_message_weight)
+				.saturating_add(db_weight.writes(2));
+			if remaining_weight.any_lt(min_required_weight) {
+				return Weight::zero();
+			}
+
+			let mut total_used_weight = suspended_messages_range_read_weight;
+			SuspendedMessagesRange::<T, I>::mutate_exists(|range| {
+				// nothing to do if there are no suspended messages
+				let (mut message_index, range_end) = match *range {
+					Some((message_index, range_end)) => (message_index, range_end),
+					None => return,
+				};
+
+				// start delivering messages
+				while message_index <= range_end {
+					let mut message_used_weight = suspended_message_read_weight;
+					let message = match SuspendedMessages::<T, I>::take(message_index) {
+						Some(message) => message,
+						None => {
+							message_index += 1;
+							total_used_weight.saturating_reduce(Weight::from_parts(0, HARD_SUSPENDED_MESSAGE_SIZE_LIMIT as _));
+
+							continue;
+						},
+					};
+					let message_len = message.len() as u32;
+					
+					// the `HARD_SUSPENDED_MESSAGE_SIZE_LIMIT` is quite large, so we want to decrease
+					// the size of PoV if actual message is smaller than this limit
+					message_used_weight.saturating_reduce(
+						Weight::from_parts(
+							0,
+							HARD_SUSPENDED_MESSAGE_SIZE_LIMIT
+								.saturating_sub(message_len.saturating_add(Compact::compact_len(&message_len) as _)) as _,
+						)
+					);
+
+					// decode the ticket
+					let ticket = match Decode::decode(&mut &message[..]) {
+						Ok(ticket) => ticket,
+						Err(e) => {
+							log::debug!(
+								target: LOG_TARGET,
+								"Failed to decode suspended bridge message {}: {:?}. The message is dropped",
+								message_index,
+								e,
+							);
+
+							message_index += 1;
+							total_used_weight.saturating_accrue(message_used_weight);
+							continue;
+						},
+					};
+
+					// deliver the message
+					match T::ToBridgeHubSender::deliver(ticket) {
+						Ok(_) => {
+							log::debug!(
+								target: LOG_TARGET,
+								"Sending suspended bridge message {}. {} suspended messages remaining",
+								message_index,
+								((message_index + 1)..=range_end).saturating_len(),
+							);
+						},
+						Err(e) => {
+							log::debug!(
+								target: LOG_TARGET,
+								"Failed to deliver bridge message {}: {:?}",
+								message_index,
+								e,
+							);
+						},
+					}
+
+					message_index += 1;
+					message_used_weight.saturating_accrue(deliver_message_weight);
+					total_used_weight.saturating_accrue(message_used_weight);
+				}
+
+				*range = if (message_index..=range_end).is_empty() {
+					None
+				} else {
+					Some((message_index, range_end))
+				};
+
+				total_used_weight.saturating_accrue(db_weight.writes(1))
+			});
+
+			total_used_weight
 		}
 	}
 
@@ -163,16 +271,16 @@ pub mod pallet {
 
 	/// 
 	#[pallet::storage]
-	pub type LatestSuspendedMessageIndex<T: Config<I>, I: 'static = ()> =
-		StorageValue<_, u64, ValueQuery>;
+	pub type SuspendedMessagesRange<T: Config<I>, I: 'static = ()> =
+		StorageValue<_, (u64, u64), OptionQuery>;
 
 	///
 	#[pallet::storage]
 	pub type SuspendedMessages<T: Config<I>, I: 'static = ()> =
-		StorageMap<_, Identity, u64, BoundedVec<u8, ConstU32<HARD_MESSAGE_SIZE_LIMIT>>>;
+		StorageMap<_, Identity, u64, BoundedVec<u8, ConstU32<HARD_SUSPENDED_MESSAGE_SIZE_LIMIT>>>; // TODO: const
 
 	impl<T: Config<I>, I: 'static> Pallet<T, I> where
-		
+		<T::ToBridgeHubSender as SendXcm>::Ticket: Encode,
 	{
 		/// Called when we receive a bridge-suspended signal.
 		pub fn on_bridge_suspended(bridge_id: BridgeId) {
@@ -229,6 +337,16 @@ pub mod pallet {
 					);
 				}
 			});
+		}
+
+		/// Return weight of reading the `SuspendedMessagesRange` value.
+		fn suspended_messages_range_read_weight() -> Weight {
+			Weight::zero() // TODO
+		}
+
+		/// Return weight of reading the maximal size message from `SuspendedMessages`.
+		fn suspended_message_read_weight() -> Weight {
+			Weight::zero() // TODO
 		}
 	}
 }
@@ -373,11 +491,15 @@ impl<T: Config<I>, I: 'static> SendXcm for Pallet<T, I> where
 		let bridge = Bridges::<T, I>::get(bridge_id).ok_or_else(|| SendError::Transport("UnknownBridge"))?;
 		let xcm_hash = if bridge.is_suspended() {
 			let xcm_hash = Default::default(); // TODO: what about message hash? is it important? where it is used?
-			let message_index = LatestSuspendedMessageIndex::<T, I>::mutate(|index| {
-				*index += 1;
-				*index
+			let message_index = SuspendedMessagesRange::<T, I>::mutate(|range| {
+				let (start, end) = (*range).unwrap_or((1, 0));
+				let message_index = end + 1;
+				*range = Some((start, end));
+				message_index
 			});
-			SuspendedMessages::<T, I>::insert(message_index, ticket.encode().try_into().expect("TODO"));
+			SuspendedMessages::<T, I>::insert(
+				message_index,
+				BoundedVec::<_, _>::try_from(ticket.encode()).expect("TODO"));
 			xcm_hash
 		} else {
 			ViaBridgeHubExporter::<T, I>::deliver(ticket)?

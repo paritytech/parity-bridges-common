@@ -7987,6 +7987,7 @@ dependencies = [
 name = "pallet-xcm-bridge-hub-router"
 version = "0.1.0"
 dependencies = [
+ "bp-runtime",
  "bp-xcm-bridge-hub-router",
  "frame-benchmarking",
  "frame-support",
