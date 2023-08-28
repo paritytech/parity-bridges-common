@@ -21,6 +21,7 @@ use crate::cli::bridge::{CliBridgeBase, RelayToRelayHeadersCliBridge};
 use async_trait::async_trait;
 use relay_substrate_client::{AccountKeyPairOf, Client};
 use substrate_relay_helper::{
+	equivocation::SubstrateEquivocationDetectionPipeline,
 	finality::SubstrateFinalitySyncPipeline,
 	finality_base::{engine::Grandpa as GrandpaFinalityEngine, SubstrateFinalityPipeline},
 	TransactionParams,
@@ -32,9 +33,16 @@ pub struct KusamaFinalityToBridgeHubPolkadot;
 
 substrate_relay_helper::generate_submit_finality_proof_call_builder!(
 	KusamaFinalityToBridgeHubPolkadot,
-	KusamaFinalityToBridgeHubPolkadotCallBuilder,
+	SubmitFinalityProofCallBuilder,
 	relay_bridge_hub_polkadot_client::runtime::Call::BridgeKusamaGrandpa,
 	relay_bridge_hub_polkadot_client::runtime::BridgeKusamaGrandpaCall::submit_finality_proof
+);
+
+substrate_relay_helper::generate_report_equivocation_call_builder!(
+	KusamaFinalityToBridgeHubPolkadot,
+	ReportEquivocationCallBuilder,
+	relay_kusama_client::RuntimeCall::Grandpa,
+	relay_kusama_client::GrandpaCall::report_equivocation
 );
 
 #[async_trait]
@@ -47,7 +55,7 @@ impl SubstrateFinalityPipeline for KusamaFinalityToBridgeHubPolkadot {
 
 #[async_trait]
 impl SubstrateFinalitySyncPipeline for KusamaFinalityToBridgeHubPolkadot {
-	type SubmitFinalityProofCallBuilder = KusamaFinalityToBridgeHubPolkadotCallBuilder;
+	type SubmitFinalityProofCallBuilder = SubmitFinalityProofCallBuilder;
 
 	async fn start_relay_guards(
 		target_client: &impl Client<Self::TargetChain>,
@@ -62,6 +70,11 @@ impl SubstrateFinalitySyncPipeline for KusamaFinalityToBridgeHubPolkadot {
 		}
 		Ok(())
 	}
+}
+
+#[async_trait]
+impl SubstrateEquivocationDetectionPipeline for KusamaFinalityToBridgeHubPolkadot {
+	type ReportEquivocationCallBuilder = ReportEquivocationCallBuilder;
 }
 
 /// `Kusama` to BridgeHub `Polkadot` bridge definition.
