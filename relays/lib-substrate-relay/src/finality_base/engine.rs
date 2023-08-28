@@ -37,7 +37,7 @@ use relay_substrate_client::{
 use sp_consensus_grandpa::{AuthorityList as GrandpaAuthoritiesSet, GRANDPA_ENGINE_ID};
 use sp_core::{storage::StorageKey, Bytes};
 use sp_runtime::{scale_info::TypeInfo, traits::Header, ConsensusEngineId};
-use std::marker::PhantomData;
+use std::{fmt::Debug, marker::PhantomData};
 
 /// Finality engine, used by the Substrate chain.
 #[async_trait]
@@ -47,11 +47,11 @@ pub trait Engine<C: Chain>: Send {
 	/// A reader that can extract the consensus log from the header digest and interpret it.
 	type ConsensusLogReader: ConsensusLogReader;
 	/// Type of finality proofs, used by consensus engine.
-	type FinalityProof: FinalityProof<BlockNumberOf<C>> + Decode + Encode;
+	type FinalityProof: FinalityProof<HashOf<C>, BlockNumberOf<C>> + Decode + Encode;
 	/// The context needed for verifying finality proofs.
-	type FinalityVerificationContext;
+	type FinalityVerificationContext: Send;
 	/// The type of the equivocation proof used by the consensus engine.
-	type EquivocationProof: Send + Sync;
+	type EquivocationProof: Clone + Debug + Send + Sync;
 	/// The equivocations finder.
 	type EquivocationsFinder: FindEquivocations<
 		Self::FinalityProof,
@@ -61,7 +61,7 @@ pub trait Engine<C: Chain>: Send {
 	/// The type of the key owner proof used by the consensus engine.
 	type KeyOwnerProof: Send;
 	/// Type of bridge pallet initialization data.
-	type InitializationData: std::fmt::Debug + Send + Sync + 'static;
+	type InitializationData: Debug + Send + Sync + 'static;
 	/// Type of bridge pallet operating mode.
 	type OperatingMode: OperatingMode + 'static;
 

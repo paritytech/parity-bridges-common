@@ -142,7 +142,10 @@ pub struct InitializationData<H: HeaderT> {
 }
 
 /// Abstract finality proof that is justifying block finality.
-pub trait FinalityProof<Number>: Clone + Send + Sync + Debug {
+pub trait FinalityProof<Hash, Number>: Clone + Send + Sync + Debug {
+	/// Return hash of header that this proof is generated for.
+	fn target_header_hash(&self) -> Hash;
+
 	/// Return number of header that this proof is generated for.
 	fn target_header_number(&self) -> Number;
 }
@@ -227,7 +230,7 @@ impl<Header: HeaderT> TryFrom<StoredHeaderGrandpaInfo<Header>> for HeaderGrandpa
 /// Helper trait for finding equivocations in finality proofs.
 pub trait FindEquivocations<FinalityProof, FinalityVerificationContext, EquivocationProof> {
 	/// The type returned when encountering an error while looking for equivocations.
-	type Error;
+	type Error: Debug;
 
 	/// Find equivocations.
 	fn find_equivocations(
