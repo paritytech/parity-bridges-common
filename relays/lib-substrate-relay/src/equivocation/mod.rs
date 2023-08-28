@@ -71,13 +71,15 @@ type FinalityVerificationContextfOf<P> =
 	<<P as SubstrateFinalityPipeline>::FinalityEngine as Engine<
 		<P as SubstrateFinalityPipeline>::SourceChain,
 	>>::FinalityVerificationContext;
-type EquivocationProofOf<P> = <<P as SubstrateFinalityPipeline>::FinalityEngine as Engine<
+/// The type of the equivocation proof used by the `SubstrateEquivocationDetectionPipeline`
+pub type EquivocationProofOf<P> = <<P as SubstrateFinalityPipeline>::FinalityEngine as Engine<
 	<P as SubstrateFinalityPipeline>::SourceChain,
 >>::EquivocationProof;
 type EquivocationsFinderOf<P> = <<P as SubstrateFinalityPipeline>::FinalityEngine as Engine<
 	<P as SubstrateFinalityPipeline>::SourceChain,
 >>::EquivocationsFinder;
-type KeyOwnerProofOf<P> = <<P as SubstrateFinalityPipeline>::FinalityEngine as Engine<
+/// The type of the key owner proof used by the `SubstrateEquivocationDetectionPipeline`
+pub type KeyOwnerProofOf<P> = <<P as SubstrateFinalityPipeline>::FinalityEngine as Engine<
 	<P as SubstrateFinalityPipeline>::SourceChain,
 >>::KeyOwnerProof;
 
@@ -147,4 +149,32 @@ where
 		}
 		.into()
 	}
+}
+
+/// Macro that generates `ReportEquivocationCallBuilder` implementation for the case where
+/// we only have access to the mocked version of the source chain runtime.
+#[rustfmt::skip]
+#[macro_export]
+macro_rules! generate_report_equivocation_call_builder {
+	($pipeline:ident, $mocked_builder:ident, $grandpa:path, $report_equivocation:path) => {
+		pub struct $mocked_builder;
+
+		impl $crate::equivocation::ReportEquivocationCallBuilder<$pipeline>
+			for $mocked_builder
+		{
+			fn build_report_equivocation_call(
+				equivocation_proof: $crate::equivocation::EquivocationProofOf<$pipeline>,
+				key_owner_proof: $crate::equivocation::KeyOwnerProofOf<$pipeline>,
+			) -> relay_substrate_client::CallOf<
+				<$pipeline as $crate::finality_base::SubstrateFinalityPipeline>::SourceChain
+			> {
+				bp_runtime::paste::item! {
+					$grandpa($report_equivocation {
+						equivocation_proof: Box::new(equivocation_proof),
+						key_owner_proof: key_owner_proof
+					})
+				}
+			}
+		}
+	};
 }
