@@ -10572,6 +10572,7 @@ dependencies = [
  "bp-header-chain",
  "bp-messages",
  "bp-millau",
+ "bp-polkadot-core",
  "bp-relayers",
  "bp-rialto-parachain",
  "bp-runtime",
