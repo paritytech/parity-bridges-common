@@ -23,20 +23,21 @@
 
 #![cfg(test)]
 
-use crate::messages_xcm_extension::XcmAsPlainPayload;
-
 use bp_header_chain::ChainWithGrandpa;
-use bp_messages::{target_chain::ForbidInboundMessages, ChainWithMessages, LaneId, MessageNonce};
+use bp_messages::{
+	target_chain::{DispatchMessage, MessageDispatch},
+	ChainWithMessages, LaneId, MessageNonce,
+};
 use bp_parachains::SingleParaStoredHeaderDataBuilder;
 use bp_relayers::PayRewardFromAccount;
-use bp_runtime::{Chain, ChainId, Parachain};
+use bp_runtime::{messages::MessageDispatchResult, Chain, ChainId, Parachain};
+use codec::Encode;
 use frame_support::{
 	parameter_types,
 	weights::{ConstantMultiplier, IdentityFee, RuntimeDbWeight, Weight},
 	StateVersion,
 };
 use pallet_transaction_payment::Multiplier;
-use sp_core::Get;
 use sp_runtime::{
 	testing::H256,
 	traits::{BlakeTwo256, ConstU32, ConstU64, ConstU8, IdentityLookup},
@@ -90,7 +91,7 @@ pub type TestStakeAndSlash = pallet_bridge_relayers::StakeAndSlashNamed<
 
 /// Message lane used in tests.
 pub fn test_lane_id() -> LaneId {
-	crate::messages_xcm_extension::LaneIdFromChainId::<TestRuntime, ()>::get()
+	LaneId::new(1, 2)
 }
 
 /// Bridged chain id used in tests.
@@ -217,7 +218,7 @@ impl pallet_bridge_messages::Config for TestRuntime {
 	type RuntimeEvent = RuntimeEvent;
 	type WeightInfo = pallet_bridge_messages::weights::BridgeWeight<TestRuntime>;
 
-	type OutboundPayload = XcmAsPlainPayload;
+	type OutboundPayload = Vec<u8>;
 
 	type InboundPayload = Vec<u8>;
 	type DeliveryPayments = ();
@@ -227,8 +228,9 @@ impl pallet_bridge_messages::Config for TestRuntime {
 		(),
 		ConstU64<100_000>,
 	>;
+	type OnMessagesDelivered = ();
 
-	type MessageDispatch = ForbidInboundMessages<Vec<u8>>;
+	type MessageDispatch = DummyMessageDispatch;
 	type ThisChain = ThisUnderlyingChain;
 	type BridgedChain = BridgedUnderlyingChain;
 	type BridgedHeaderChain = BridgeGrandpa;
@@ -240,6 +242,35 @@ impl pallet_bridge_relayers::Config for TestRuntime {
 	type PaymentProcedure = TestPaymentProcedure;
 	type StakeAndSlash = TestStakeAndSlash;
 	type WeightInfo = ();
+}
+
+/// Dummy message dispatcher.
+pub struct DummyMessageDispatch;
+
+impl DummyMessageDispatch {
+	pub fn deactivate(lane: LaneId) {
+		frame_support::storage::unhashed::put(&(b"inactive", lane).encode()[..], &false);
+	}
+}
+
+impl MessageDispatch for DummyMessageDispatch {
+	type DispatchPayload = Vec<u8>;
+	type DispatchLevelResult = ();
+
+	fn is_active(lane: LaneId) -> bool {
+		frame_support::storage::unhashed::take::<bool>(&(b"inactive", lane).encode()[..]) !=
+			Some(false)
+	}
+
+	fn dispatch_weight(_message: &mut DispatchMessage<Self::DispatchPayload>) -> Weight {
+		Weight::zero()
+	}
+
+	fn dispatch(
+		_: DispatchMessage<Self::DispatchPayload>,
+	) -> MessageDispatchResult<Self::DispatchLevelResult> {
+		MessageDispatchResult { unspent_weight: Weight::zero(), dispatch_level_result: () }
+	}
 }
 
 /// Underlying chain of `ThisChain`.

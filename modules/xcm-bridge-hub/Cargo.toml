@@ -29,7 +29,7 @@ sp-std = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v
 # Polkadot Dependencies
 
 xcm = { git = "https://github.com/paritytech/polkadot", branch = "release-v1.0.0", default-features = false }
-xcm-builder = { git = "https://github.com/paritytech/polkadot", branch = "release-v1.0.0" }
+xcm-builder = { git = "https://github.com/paritytech/polkadot", branch = "release-v1.0.0", default-features = false }
 xcm-executor = { git = "https://github.com/paritytech/polkadot", branch = "release-v1.0.0", default-features = false }
 
 [dev-dependencies]

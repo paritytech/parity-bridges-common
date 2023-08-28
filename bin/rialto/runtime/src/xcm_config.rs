@@ -17,8 +17,8 @@
 //! XCM configurations for the Rialto runtime.
 
 use super::{
-	millau_messages::ToMillauBlobExporter, AccountId, AllPalletsWithSystem, Balances, Runtime,
-	RuntimeCall, RuntimeEvent, RuntimeOrigin, XcmPallet,
+	AccountId, AllPalletsWithSystem, Balances, Runtime, RuntimeCall, RuntimeEvent, RuntimeOrigin,
+	XcmPallet,
 };
 use bp_rialto::WeightToFee;
 use bridge_runtime_common::CustomNetworkId;
@@ -30,9 +30,9 @@ use frame_support::{
 use frame_system::EnsureRoot;
 use xcm::latest::prelude::*;
 use xcm_builder::{
-	AccountId32Aliases, CurrencyAdapter as XcmCurrencyAdapter, IsConcrete, MintLocation,
-	SignedAccountId32AsNative, SignedToAccountId32, SovereignSignedViaLocation, TakeWeightCredit,
-	UsingComponents,
+	Account32Hash, AccountId32Aliases, CurrencyAdapter as XcmCurrencyAdapter, IsConcrete,
+	MintLocation, SignedAccountId32AsNative, SignedToAccountId32, SovereignSignedViaLocation,
+	TakeWeightCredit, UsingComponents,
 };
 
 parameter_types! {
@@ -58,6 +58,8 @@ parameter_types! {
 pub type SovereignAccountOf = (
 	// We can directly alias an `AccountId32` into a local account.
 	AccountId32Aliases<ThisNetwork, AccountId>,
+	// Dummy stuff for our tests.
+	Account32Hash<ThisNetwork, AccountId>,
 );
 
 /// Our asset transactor. This is what allows us to interest with the runtime facilities from the
@@ -134,7 +136,7 @@ impl xcm_executor::Config for XcmConfig {
 	type PalletInstancesInfo = AllPalletsWithSystem;
 	type MaxAssetsIntoHolding = ConstU32<64>;
 	type FeeManager = ();
-	type MessageExporter = ToMillauBlobExporter;
+	type MessageExporter = crate::XcmMillauBridgeHub;
 	type UniversalAliases = Nothing;
 	type CallDispatcher = RuntimeCall;
 	type SafeCallFilter = Everything;
@@ -193,13 +195,10 @@ impl pallet_xcm::Config for Runtime {
 #[cfg(test)]
 mod tests {
 	use super::*;
-	use crate::{millau_messages::FromMillauMessageDispatch, WithMillauMessagesInstance};
+	use crate::{WithMillauMessagesInstance, XcmMillauBridgeHub};
 	use bp_messages::{
 		target_chain::{DispatchMessage, DispatchMessageData, MessageDispatch},
 		MessageKey, OutboundLaneData,
-	};
-	use bridge_runtime_common::messages_xcm_extension::{
-		XcmBlobHauler, XcmBlobMessageDispatchResult,
 	};
 	use codec::Encode;
 	use pallet_bridge_messages::OutboundLanes;
@@ -225,7 +224,7 @@ mod tests {
 	fn xcm_messages_to_millau_are_sent_using_bridge_exporter() {
 		new_test_ext().execute_with(|| {
 			// ensure that the there are no messages queued
-			let lane_id = crate::millau_messages::ToMillauXcmBlobHauler::xcm_lane();
+			let lane_id = crate::millau_messages::Bridge::get().lane_id();
 			OutboundLanes::<Runtime, WithMillauMessagesInstance>::insert(
 				lane_id,
 				OutboundLaneData::opened(),
@@ -265,7 +264,7 @@ mod tests {
 		// this is the `BridgeMessage` from polkadot xcm builder, but it has no constructor
 		// or public fields, so just tuple
 		let bridge_message = (location, xcm).encode();
-		let lane_id = crate::millau_messages::ToMillauXcmBlobHauler::xcm_lane();
+		let lane_id = crate::millau_messages::Bridge::get().lane_id();
 		DispatchMessage {
 			key: MessageKey { lane_id, nonce: 1 },
 			data: DispatchMessageData { payload: Ok(bridge_message) },
@@ -278,10 +277,10 @@ mod tests {
 
 		// we care only about handing message to the XCM dispatcher, so we don't care about its
 		// actual dispatch
-		let dispatch_result = FromMillauMessageDispatch::dispatch(incoming_message);
+		let dispatch_result = XcmMillauBridgeHub::dispatch(incoming_message);
 		assert!(matches!(
 			dispatch_result.dispatch_level_result,
-			XcmBlobMessageDispatchResult::NotDispatched(_),
+			pallet_xcm_bridge_hub::XcmBlobMessageDispatchResult::NotDispatched(_),
 		));
 	}
 }

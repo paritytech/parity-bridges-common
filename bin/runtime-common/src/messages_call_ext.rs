@@ -17,7 +17,9 @@
 //! Signed extension for the `pallet-bridge-messages` that is able to reject obsolete
 //! (and some other invalid) transactions.
 
-use bp_messages::{ChainWithMessages, InboundLaneData, LaneId, MessageNonce};
+use bp_messages::{
+	target_chain::MessageDispatch, ChainWithMessages, InboundLaneData, LaneId, MessageNonce,
+};
 use bp_runtime::AccountIdOf;
 use frame_support::{dispatch::CallableCallFor, traits::IsSubType, RuntimeDebug};
 use pallet_bridge_messages::{BridgedChainOf, Config, Pallet};
@@ -74,7 +76,12 @@ impl ReceiveMessagesProofInfo {
 	///
 	/// - or there are no bundled messages, but the inbound lane is blocked by too many unconfirmed
 	///   messages and/or unrewarded relayers.
-	fn is_obsolete(&self) -> bool {
+	fn is_obsolete(&self, is_dispatcher_active: bool) -> bool {
+		// if dispatcher is inactive, we don't accept any delivery transactions
+		if !is_dispatcher_active {
+			return true
+		}
+
 		// transactions with zero bundled nonces are not allowed, unless they're message
 		// delivery transactions, which brings reward confirmations required to unblock
 		// the lane
@@ -271,7 +278,10 @@ impl<
 
 	fn check_obsolete_call(&self) -> TransactionValidity {
 		match self.call_info() {
-			Some(CallInfo::ReceiveMessagesProof(proof_info)) if proof_info.is_obsolete() => {
+			Some(CallInfo::ReceiveMessagesProof(proof_info))
+				if proof_info
+					.is_obsolete(T::MessageDispatch::is_active(proof_info.base.lane_id)) =>
+			{
 				log::trace!(
 					target: pallet_bridge_messages::LOG_TARGET,
 					"Rejecting obsolete messages delivery transaction: {:?}",
@@ -320,7 +330,7 @@ mod tests {
 	use super::*;
 	use crate::{
 		messages_call_ext::MessagesCallSubType,
-		mock::{BridgedUnderlyingChain, TestRuntime, ThisChainRuntimeCall},
+		mock::{BridgedUnderlyingChain, DummyMessageDispatch, TestRuntime, ThisChainRuntimeCall},
 	};
 	use bp_messages::{
 		source_chain::FromBridgedChainMessagesDeliveryProof,
@@ -449,6 +459,18 @@ mod tests {
 			// 13..=15 => tx is rejected
 			deliver_message_10();
 			assert!(!validate_message_delivery(13, 15));
+		});
+	}
+
+	#[test]
+	fn extension_reject_call_when_dispatcher_is_inactive() {
+		run_test(|| {
+			// when current best delivered is message#10 and we're trying to deliver message 11..=15
+			// => tx is accepted
+			deliver_message_10();
+
+			DummyMessageDispatch::deactivate(test_lane_id());
+			assert!(!validate_message_delivery(11, 15));
 		});
 	}
 

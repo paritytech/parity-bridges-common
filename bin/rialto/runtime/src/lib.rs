@@ -43,7 +43,7 @@ use sp_consensus_beefy::{crypto::AuthorityId as BeefyId, mmr::MmrLeafVersion, Va
 use sp_core::OpaqueMetadata;
 use sp_runtime::{
 	create_runtime_str, generic, impl_opaque_keys,
-	traits::{AccountIdLookup, Block as BlockT, Keccak256, NumberFor, OpaqueKeys},
+	traits::{AccountIdLookup, Block as BlockT, ConstU128, Keccak256, NumberFor, OpaqueKeys},
 	transaction_validity::{TransactionSource, TransactionValidity},
 	ApplyExtrinsicResult, FixedPointNumber, Perquintill,
 };
@@ -419,8 +419,8 @@ impl pallet_bridge_messages::Config<WithMillauMessagesInstance> for Runtime {
 	type BridgedChain = bp_millau::Millau;
 	type BridgedHeaderChain = BridgeMillauGrandpa;
 
-	type OutboundPayload = bridge_runtime_common::messages_xcm_extension::XcmAsPlainPayload;
-	type InboundPayload = bridge_runtime_common::messages_xcm_extension::XcmAsPlainPayload;
+	type OutboundPayload = bp_xcm_bridge_hub::XcmAsPlainPayload;
+	type InboundPayload = bp_xcm_bridge_hub::XcmAsPlainPayload;
 
 	type DeliveryPayments = ();
 	type DeliveryConfirmationPayments = pallet_bridge_relayers::DeliveryConfirmationPaymentsAdapter<
@@ -428,8 +428,9 @@ impl pallet_bridge_messages::Config<WithMillauMessagesInstance> for Runtime {
 		WithMillauMessagesInstance,
 		frame_support::traits::ConstU128<100_000>,
 	>;
+	type OnMessagesDelivered = XcmMillauBridgeHub;
 
-	type MessageDispatch = crate::millau_messages::FromMillauMessageDispatch;
+	type MessageDispatch = XcmMillauBridgeHub;
 }
 
 pub type MillauBeefyInstance = ();
@@ -437,6 +438,28 @@ impl pallet_bridge_beefy::Config<MillauBeefyInstance> for Runtime {
 	type MaxRequests = frame_support::traits::ConstU32<16>;
 	type CommitmentsToKeep = frame_support::traits::ConstU32<8>;
 	type BridgedChain = bp_millau::Millau;
+}
+
+/// Instance of the XCM bridge hub pallet used to relay messages to/from Millau chain.
+pub type WithMillauXcmBridgeHubInstance = ();
+
+impl pallet_xcm_bridge_hub::Config<WithMillauXcmBridgeHubInstance> for Runtime {
+	type RuntimeEvent = RuntimeEvent;
+
+	type UniversalLocation = xcm_config::UniversalLocation;
+	type BridgedNetworkId = xcm_config::MillauNetwork;
+	type BridgeMessagesPalletInstance = WithMillauMessagesInstance;
+
+	type MaxSuspendedBridges = ConstU32<1>;
+	type OpenBridgeOrigin = frame_support::traits::NeverEnsureOrigin<xcm::latest::MultiLocation>;
+	type BridgeOriginAccountIdConverter = xcm_config::SovereignAccountOf;
+
+	type BridgeReserve = ConstU128<1_000_000_000>;
+	type NativeCurrency = Balances;
+
+	type LocalXcmChannelManager = ();
+	type BlobDispatcher = xcm_config::OnRialtoBlobDispatcher;
+	type MessageExportPrice = ();
 }
 
 construct_runtime!(
@@ -466,6 +489,7 @@ construct_runtime!(
 		BridgeRelayers: pallet_bridge_relayers::{Pallet, Call, Storage, Event<T>},
 		BridgeMillauGrandpa: pallet_bridge_grandpa::{Pallet, Call, Storage, Event<T>},
 		BridgeMillauMessages: pallet_bridge_messages::{Pallet, Call, Storage, Event<T>, Config<T>},
+		XcmMillauBridgeHub: pallet_xcm_bridge_hub::{Pallet, Call, Storage, Event<T>, Config<T>},
 
 		// Millau bridge modules (BEEFY based).
 		BridgeMillauBeefy: pallet_bridge_beefy::{Pallet, Call, Storage},

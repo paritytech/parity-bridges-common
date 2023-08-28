@@ -16,54 +16,22 @@
 
 //! Everything required to serve Millau <-> RialtoParachain messages.
 
-use crate::{Runtime, WithRialtoParachainMessagesInstance};
+use crate::Runtime;
 
 use bp_messages::LaneId;
-use bridge_runtime_common::messages_xcm_extension::{
-	LaneIdFromChainId, XcmBlobHauler, XcmBlobHaulerAdapter,
-};
+use bp_xcm_bridge_hub::BridgeId;
 use frame_support::{parameter_types, weights::Weight};
 use pallet_bridge_relayers::WeightInfoExt as _;
-use sp_core::Get;
-use xcm_builder::HaulBlobExporter;
-
-/// Weight of 2 XCM instructions is for simple `Trap(42)` program, coming through bridge
-/// (it is prepended with `UniversalOrigin` instruction). It is used just for simplest manual
-/// tests, confirming that we don't break encoding somewhere between.
-pub const BASE_XCM_WEIGHT_TWICE: Weight = crate::xcm_config::BaseXcmWeight::get().saturating_mul(2);
+use xcm::prelude::*;
 
 parameter_types! {
-	/// Weight credit for our test messages.
-	///
-	/// 2 XCM instructions is for simple `Trap(42)` program, coming through bridge
-	/// (it is prepended with `UniversalOrigin` instruction).
-	pub const WeightCredit: Weight = BASE_XCM_WEIGHT_TWICE;
-}
-
-/// Call-dispatch based message dispatch for RialtoParachain -> Millau messages.
-pub type FromRialtoParachainMessageDispatch =
-	bridge_runtime_common::messages_xcm_extension::XcmBlobMessageDispatch<
-		crate::xcm_config::OnMillauBlobDispatcher,
-		(),
-	>;
-
-/// Export XCM messages to be relayed to Rialto.
-pub type ToRialtoParachainBlobExporter = HaulBlobExporter<
-	XcmBlobHaulerAdapter<ToRialtoParachainXcmBlobHauler>,
-	crate::xcm_config::RialtoParachainNetwork,
-	(),
->;
-
-/// To-RialtoParachain XCM hauler.
-pub struct ToRialtoParachainXcmBlobHauler;
-
-impl XcmBlobHauler for ToRialtoParachainXcmBlobHauler {
-	type MessageSender =
-		pallet_bridge_messages::Pallet<Runtime, WithRialtoParachainMessagesInstance>;
-
-	fn xcm_lane() -> LaneId {
-		LaneIdFromChainId::<Runtime, WithRialtoParachainMessagesInstance>::get()
-	}
+	/// Bridge identifier that is used to bridge with RialtoParachain.
+	pub Bridge: BridgeId = BridgeId::new(
+		&InteriorMultiLocation::from(crate::xcm_config::ThisNetwork::get()).into(),
+		&InteriorMultiLocation::from(crate::xcm_config::RialtoParachainNetwork::get()).into(),
+	);
+	/// Lane identifier, used by with-RialtoParachain bridge.
+	pub Lane: LaneId = Bridge::get().lane_id();
 }
 
 impl pallet_bridge_messages::WeightInfoExt
@@ -142,8 +110,8 @@ mod tests {
 		// there's nothing criminal if it is changed, but then thou need to fix it across
 		// all deployments scripts, alerts and so on
 		assert_eq!(
-			*ToRialtoParachainXcmBlobHauler::xcm_lane().as_ref(),
-			hex_literal::hex!("6aa61bff567db6b5d5f0cb815ee6d8f5ac630e222a95700cb3d594134e3805de")
+			*Bridge::get().lane_id().as_ref(),
+			hex_literal::hex!("ee7158d2a51c3c43853ced550cc25bd00eb2662b231b1ddbb92e495ec882969c")
 				.into(),
 		);
 	}

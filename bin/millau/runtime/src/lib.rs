@@ -55,6 +55,7 @@ use sp_std::prelude::*;
 #[cfg(feature = "std")]
 use sp_version::NativeVersion;
 use sp_version::RuntimeVersion;
+use xcm_builder::NetworkExportTable;
 
 // to be able to use Millau runtime in `bridge-runtime-common` tests
 pub use bridge_runtime_common;
@@ -440,8 +441,8 @@ impl pallet_bridge_messages::Config<WithRialtoMessagesInstance> for Runtime {
 	type BridgedChain = bp_rialto::Rialto;
 	type BridgedHeaderChain = BridgeRialtoGrandpa;
 
-	type OutboundPayload = bridge_runtime_common::messages_xcm_extension::XcmAsPlainPayload;
-	type InboundPayload = bridge_runtime_common::messages_xcm_extension::XcmAsPlainPayload;
+	type OutboundPayload = bp_xcm_bridge_hub::XcmAsPlainPayload;
+	type InboundPayload = bp_xcm_bridge_hub::XcmAsPlainPayload;
 
 	type DeliveryPayments = ();
 	type DeliveryConfirmationPayments = pallet_bridge_relayers::DeliveryConfirmationPaymentsAdapter<
@@ -449,8 +450,9 @@ impl pallet_bridge_messages::Config<WithRialtoMessagesInstance> for Runtime {
 		WithRialtoMessagesInstance,
 		frame_support::traits::ConstU64<100_000>,
 	>;
+	type OnMessagesDelivered = XcmRialtoBridgeHub;
 
-	type MessageDispatch = crate::rialto_messages::FromRialtoMessageDispatch;
+	type MessageDispatch = XcmRialtoBridgeHub;
 }
 
 /// Instance of the messages pallet used to relay messages to/from RialtoParachain chain.
@@ -468,8 +470,8 @@ impl pallet_bridge_messages::Config<WithRialtoParachainMessagesInstance> for Run
 		bp_rialto_parachain::RialtoParachain,
 	>;
 
-	type OutboundPayload = bridge_runtime_common::messages_xcm_extension::XcmAsPlainPayload;
-	type InboundPayload = bridge_runtime_common::messages_xcm_extension::XcmAsPlainPayload;
+	type OutboundPayload = bp_xcm_bridge_hub::XcmAsPlainPayload;
+	type InboundPayload = bp_xcm_bridge_hub::XcmAsPlainPayload;
 
 	type DeliveryPayments = ();
 	type DeliveryConfirmationPayments = pallet_bridge_relayers::DeliveryConfirmationPaymentsAdapter<
@@ -477,8 +479,9 @@ impl pallet_bridge_messages::Config<WithRialtoParachainMessagesInstance> for Run
 		WithRialtoParachainMessagesInstance,
 		frame_support::traits::ConstU64<100_000>,
 	>;
+	type OnMessagesDelivered = XcmRialtoParachainBridgeHub;
 
-	type MessageDispatch = crate::rialto_parachain_messages::FromRialtoParachainMessageDispatch;
+	type MessageDispatch = XcmRialtoParachainBridgeHub;
 }
 
 parameter_types! {
@@ -525,19 +528,73 @@ impl pallet_utility::Config for Runtime {
 
 // this config is totally incorrect - the pallet is not actually used at this runtime. We need
 // it only to be able to run benchmarks and make required traits (and default weights for tests).
+
+parameter_types! {
+	pub BridgeTable: Vec<(xcm::prelude::NetworkId, xcm::prelude::MultiLocation, Option<xcm::prelude::MultiAsset>)>
+		= vec![(
+			xcm_config::RialtoNetwork::get(),
+			xcm_config::TokenLocation::get(),
+			Some((xcm_config::TokenAssetId::get(), 1_000_000_000_u128).into()),
+		)];
+}
+
 impl pallet_xcm_bridge_hub_router::Config for Runtime {
 	type WeightInfo = ();
 
 	type UniversalLocation = xcm_config::UniversalLocation;
 	type SiblingBridgeHubLocation = xcm_config::TokenLocation;
 	type BridgedNetworkId = xcm_config::RialtoNetwork;
+	type Bridges = NetworkExportTable<BridgeTable>;
 
 	type ToBridgeHubSender = xcm_config::XcmRouter;
-	type WithBridgeHubChannel = xcm_config::EmulatedSiblingXcmpChannel;
+	type LocalXcmChannelManager = xcm_config::EmulatedSiblingXcmpChannel;
 
-	type BaseFee = ConstU128<1_000_000_000>;
 	type ByteFee = ConstU128<1_000>;
 	type FeeAsset = xcm_config::TokenAssetId;
+}
+
+/// Instance of the XCM bridge hub pallet used to relay messages to/from Rialto chain.
+pub type WithRialtoXcmBridgeHubInstance = ();
+
+impl pallet_xcm_bridge_hub::Config<WithRialtoXcmBridgeHubInstance> for Runtime {
+	type RuntimeEvent = RuntimeEvent;
+
+	type UniversalLocation = xcm_config::UniversalLocation;
+	type BridgedNetworkId = xcm_config::RialtoNetwork;
+	type BridgeMessagesPalletInstance = WithRialtoMessagesInstance;
+
+	type MaxSuspendedBridges = ConstU32<1>;
+	type OpenBridgeOrigin = frame_support::traits::NeverEnsureOrigin<xcm::latest::MultiLocation>;
+	type BridgeOriginAccountIdConverter = xcm_config::SovereignAccountOf;
+
+	type BridgeReserve = ConstU64<1_000_000_000>;
+	type NativeCurrency = Balances;
+
+	type LocalXcmChannelManager = ();
+	type BlobDispatcher = xcm_config::OnMillauBlobDispatcher;
+	type MessageExportPrice = ();
+}
+
+/// Instance of the XCM bridge hub pallet used to relay messages to/from RialtoParachain chain.
+pub type WithRialtoParachainXcmBridgeHubInstance = pallet_xcm_bridge_hub::Instance1;
+
+impl pallet_xcm_bridge_hub::Config<WithRialtoParachainXcmBridgeHubInstance> for Runtime {
+	type RuntimeEvent = RuntimeEvent;
+
+	type UniversalLocation = xcm_config::UniversalLocation;
+	type BridgedNetworkId = xcm_config::RialtoParachainNetwork;
+	type BridgeMessagesPalletInstance = WithRialtoParachainMessagesInstance;
+
+	type MaxSuspendedBridges = ConstU32<1>;
+	type OpenBridgeOrigin = frame_support::traits::NeverEnsureOrigin<xcm::latest::MultiLocation>;
+	type BridgeOriginAccountIdConverter = xcm_config::SovereignAccountOf;
+
+	type BridgeReserve = ConstU64<1_000_000_000>;
+	type NativeCurrency = Balances;
+
+	type LocalXcmChannelManager = ();
+	type BlobDispatcher = xcm_config::OnMillauBlobDispatcher;
+	type MessageExportPrice = ();
 }
 
 construct_runtime!(
@@ -567,6 +624,7 @@ construct_runtime!(
 		BridgeRelayers: pallet_bridge_relayers::{Pallet, Call, Storage, Event<T>},
 		BridgeRialtoGrandpa: pallet_bridge_grandpa::{Pallet, Call, Storage, Event<T>},
 		BridgeRialtoMessages: pallet_bridge_messages::{Pallet, Call, Storage, Event<T>, Config<T>},
+		XcmRialtoBridgeHub: pallet_xcm_bridge_hub::{Pallet, Call, Storage, Event<T>, Config<T>},
 
 		// Westend bridge modules.
 		BridgeWestendGrandpa: pallet_bridge_grandpa::<Instance1>::{Pallet, Call, Config<T>, Storage, Event<T>},
@@ -575,6 +633,7 @@ construct_runtime!(
 		// RialtoParachain bridge modules.
 		BridgeRialtoParachains: pallet_bridge_parachains::{Pallet, Call, Storage, Event<T>},
 		BridgeRialtoParachainMessages: pallet_bridge_messages::<Instance1>::{Pallet, Call, Storage, Event<T>, Config<T>},
+		XcmRialtoParachainBridgeHub: pallet_xcm_bridge_hub::<Instance1>::{Pallet, Call, Storage, Event<T>, Config<T>},
 
 		// Pallet for sending XCM.
 		XcmPallet: pallet_xcm::{Pallet, Call, Storage, Event<T>, Origin, Config<T>} = 99,
@@ -600,7 +659,11 @@ pub type PriorityBoostPerMessage = ConstU64<351_343_108>;
 pub type BridgeRefundRialtoParachainMessages = RefundBridgedParachainMessages<
 	Runtime,
 	RefundableParachain<WithRialtoParachainsInstance, bp_rialto_parachain::RialtoParachain>,
-	RefundableMessagesLane<Runtime, WithRialtoParachainMessagesInstance>,
+	RefundableMessagesLane<
+		Runtime,
+		WithRialtoParachainMessagesInstance,
+		rialto_parachain_messages::Lane,
+	>,
 	ActualFeeRefund<Runtime>,
 	PriorityBoostPerMessage,
 	StrBridgeRefundRialtoPara2000Lane0Msgs,
@@ -1010,6 +1073,7 @@ impl_runtime_apis! {
 			use bp_messages::{
 				source_chain::FromBridgedChainMessagesDeliveryProof,
 				target_chain::FromBridgedChainMessagesProof,
+				LaneId,
 			};
 			use bp_runtime::Chain;
 			use bridge_runtime_common::messages_benchmarking::{
@@ -1038,6 +1102,10 @@ impl_runtime_apis! {
 			};
 
 			impl MessagesConfig<WithRialtoParachainMessagesInstance> for Runtime {
+				fn bench_lane_id() -> LaneId {
+					rialto_parachain_messages::Lane::get()
+				}
+
 				fn prepare_message_proof(
 					params: MessageProofParams,
 				) -> (FromBridgedChainMessagesProof<bp_rialto_parachain::Hash>, Weight) {
@@ -1069,6 +1137,10 @@ impl_runtime_apis! {
 			}
 
 			impl MessagesConfig<WithRialtoMessagesInstance> for Runtime {
+				fn bench_lane_id() -> LaneId {
+					rialto_messages::Lane::get()
+				}
+
 				fn prepare_message_proof(
 					params: MessageProofParams,
 				) -> (FromBridgedChainMessagesProof<bp_rialto::Hash>, Weight) {

@@ -39,7 +39,6 @@ members = [
 	"primitives/relayers",
 	"primitives/runtime",
 	"primitives/test-utils",
-	"primitives/xcm-bridge-hub-router",
 	"primitives/xcm-bridge-hub",
 	"relays/bin-substrate",
 	"relays/client-bridge-hub-kusama",

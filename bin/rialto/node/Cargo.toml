@@ -9,7 +9,7 @@ repository = "https://github.com/paritytech/parity-bridges-common/"
 license = "GPL-3.0-or-later WITH Classpath-exception-2.0"
 
 [dependencies]
-clap = { version = "4.3.23", features = ["derive"] }
+clap = { version = "4.4.0", features = ["derive"] }
 serde_json = "1.0.105"
 
 # Bridge dependencies
@@ -39,6 +39,7 @@ polkadot-node-core-pvf = { git = "https://github.com/paritytech/polkadot", branc
 polkadot-primitives = { git = "https://github.com/paritytech/polkadot", branch = "release-v1.0.0" }
 polkadot-runtime-parachains = { git = "https://github.com/paritytech/polkadot", branch = "release-v1.0.0" }
 polkadot-service = { git = "https://github.com/paritytech/polkadot", branch = "release-v1.0.0", default-features = false, features = [ "full-node", "polkadot-native" ] }
+xcm = { git = "https://github.com/paritytech/polkadot", branch = "release-v1.0.0" }
 
 [build-dependencies]
 substrate-build-script-utils = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v1.0.0" }

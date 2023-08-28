@@ -18,10 +18,10 @@
 
 #![cfg(feature = "runtime-benchmarks")]
 
-use crate::{DeliveryFeeFactor, InitialFactor};
+use crate::{DeliveryFeeFactor, MINIMAL_DELIVERY_FEE_FACTOR};
 
 use frame_benchmarking::benchmarks_instance_pallet;
-use frame_support::traits::{Get, Hooks};
+use frame_support::traits::Hooks;
 use sp_runtime::traits::Zero;
 
 /// Pallet we're benchmarking here.
@@ -35,13 +35,13 @@ pub trait Config<I: 'static>: crate::Config<I> {
 
 benchmarks_instance_pallet! {
 	on_initialize_when_non_congested {
-		DeliveryFeeFactor::<T, I>::put(InitialFactor::get() + InitialFactor::get());
+		DeliveryFeeFactor::<T, I>::put(MINIMAL_DELIVERY_FEE_FACTOR + MINIMAL_DELIVERY_FEE_FACTOR);
 	}: {
 		crate::Pallet::<T, I>::on_initialize(Zero::zero())
 	}
 
 	on_initialize_when_congested {
-		DeliveryFeeFactor::<T, I>::put(InitialFactor::get() + InitialFactor::get());
+		DeliveryFeeFactor::<T, I>::put(MINIMAL_DELIVERY_FEE_FACTOR + MINIMAL_DELIVERY_FEE_FACTOR);
 		T::make_congested();
 	}: {
 		crate::Pallet::<T, I>::on_initialize(Zero::zero())

@@ -14,12 +14,11 @@
 // You should have received a copy of the GNU General Public License
 // along with Parity Bridges Common.  If not, see <http://www.gnu.org/licenses/>.
 
-use bridge_runtime_common::messages_xcm_extension::XcmBlobHauler;
 use millau_runtime::{
 	AccountId, AuraConfig, BalancesConfig, BeefyConfig, BridgeRialtoMessagesConfig,
 	BridgeRialtoParachainMessagesConfig, BridgeWestendGrandpaConfig, GrandpaConfig,
 	RuntimeGenesisConfig, SessionConfig, SessionKeys, Signature, SudoConfig, SystemConfig,
-	WASM_BINARY,
+	XcmRialtoBridgeHubConfig, XcmRialtoParachainBridgeHubConfig, WASM_BINARY,
 };
 use sp_consensus_aura::sr25519::AuthorityId as AuraId;
 use sp_consensus_beefy::crypto::AuthorityId as BeefyId;
@@ -225,19 +224,34 @@ fn testnet_genesis(
 		},
 		bridge_rialto_messages: BridgeRialtoMessagesConfig {
 			owner: Some(get_account_id_from_seed::<sr25519::Public>(RIALTO_MESSAGES_PALLET_OWNER)),
-			opened_lanes: vec![millau_runtime::rialto_messages::ToRialtoXcmBlobHauler::xcm_lane()],
+			opened_lanes: vec![millau_runtime::rialto_messages::Bridge::get().lane_id()],
 			..Default::default()
 		},
 		bridge_rialto_parachain_messages: BridgeRialtoParachainMessagesConfig {
 			owner: Some(get_account_id_from_seed::<sr25519::Public>(
 				RIALTO_PARACHAIN_MESSAGES_PALLET_OWNER,
 			)),
-			opened_lanes: vec![
-				millau_runtime::rialto_parachain_messages::ToRialtoParachainXcmBlobHauler::xcm_lane(
-				),
-			],
+			opened_lanes: vec![millau_runtime::rialto_parachain_messages::Bridge::get().lane_id()],
 			..Default::default()
 		},
 		xcm_pallet: Default::default(),
+		xcm_rialto_bridge_hub: XcmRialtoBridgeHubConfig {
+			opened_bridges: vec![(
+				xcm::latest::Junctions::Here.into(),
+				xcm::latest::InteriorMultiLocation::from(
+					millau_runtime::xcm_config::RialtoNetwork::get(),
+				),
+			)],
+			..Default::default()
+		},
+		xcm_rialto_parachain_bridge_hub: XcmRialtoParachainBridgeHubConfig {
+			opened_bridges: vec![(
+				xcm::latest::Junctions::Here.into(),
+				xcm::latest::InteriorMultiLocation::from(
+					millau_runtime::xcm_config::RialtoParachainNetwork::get(),
+				),
+			)],
+			..Default::default()
+		},
 	}
 }
