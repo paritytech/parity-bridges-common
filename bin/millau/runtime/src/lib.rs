@@ -1075,6 +1075,7 @@ impl_runtime_apis! {
 			use bp_messages::{
 				source_chain::FromBridgedChainMessagesDeliveryProof,
 				target_chain::FromBridgedChainMessagesProof,
+				LaneId,
 			};
 			use bp_runtime::Chain;
 			use bridge_runtime_common::messages_benchmarking::{
@@ -1103,6 +1104,10 @@ impl_runtime_apis! {
 			};
 
 			impl MessagesConfig<WithRialtoParachainMessagesInstance> for Runtime {
+				fn bench_lane_id() -> LaneId {
+					rialto_parachain_messages::Lane::get()
+				}
+
 				fn prepare_message_proof(
 					params: MessageProofParams,
 				) -> (FromBridgedChainMessagesProof<bp_rialto_parachain::Hash>, Weight) {
@@ -1134,6 +1139,10 @@ impl_runtime_apis! {
 			}
 
 			impl MessagesConfig<WithRialtoMessagesInstance> for Runtime {
+				fn bench_lane_id() -> LaneId {
+					rialto_messages::Lane::get()
+				}
+
 				fn prepare_message_proof(
 					params: MessageProofParams,
 				) -> (FromBridgedChainMessagesProof<bp_rialto::Hash>, Weight) {

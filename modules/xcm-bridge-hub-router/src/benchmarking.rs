@@ -18,10 +18,10 @@
 
 #![cfg(feature = "runtime-benchmarks")]
 
-use crate::{DeliveryFeeFactor, InitialFactor, MINIMAL_DELIVERY_FEE_FACTOR};
+use crate::{DeliveryFeeFactor, MINIMAL_DELIVERY_FEE_FACTOR};
 
 use frame_benchmarking::benchmarks_instance_pallet;
-use frame_support::traits::{Get, Hooks};
+use frame_support::traits::Hooks;
 use sp_runtime::traits::Zero;
 
 /// Pallet we're benchmarking here.
