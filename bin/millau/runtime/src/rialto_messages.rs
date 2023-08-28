@@ -18,6 +18,7 @@
 
 use crate::Runtime;
 
+use bp_messages::LaneId;
 use bp_xcm_bridge_hub::BridgeId;
 use frame_support::{parameter_types, weights::Weight};
 use pallet_bridge_relayers::WeightInfoExt as _;
@@ -29,6 +30,8 @@ parameter_types! {
 		&InteriorMultiLocation::from(crate::xcm_config::ThisNetwork::get()).into(),
 		&InteriorMultiLocation::from(crate::xcm_config::RialtoNetwork::get()).into(),
 	);
+	/// Lane identifier, used by with-Rialto bridge.
+	pub Lane: LaneId = Bridge::get().lane_id();
 }
 
 impl pallet_bridge_messages::WeightInfoExt for crate::weights::RialtoMessagesWeightInfo<Runtime> {
