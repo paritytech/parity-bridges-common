@@ -18,6 +18,9 @@
 
 use crate::cli::bridge::{CliBridgeBase, MessagesCliBridge, RelayToRelayHeadersCliBridge};
 use substrate_relay_helper::{
+	equivocation::{
+		DirectReportGrandpaEquivocationCallBuilder, SubstrateEquivocationDetectionPipeline,
+	},
 	finality::{DirectSubmitGrandpaFinalityProofCallBuilder, SubstrateFinalitySyncPipeline},
 	finality_base::{engine::Grandpa as GrandpaFinalityEngine, SubstrateFinalityPipeline},
 };
@@ -39,6 +42,11 @@ impl SubstrateFinalitySyncPipeline for MillauFinalityToRialto {
 		rialto_runtime::Runtime,
 		rialto_runtime::MillauGrandpaInstance,
 	>;
+}
+
+impl SubstrateEquivocationDetectionPipeline for MillauFinalityToRialto {
+	type ReportEquivocationCallBuilder =
+		DirectReportGrandpaEquivocationCallBuilder<Self, millau_runtime::Runtime>;
 }
 
 /// `Millau` to `Rialto` bridge definition.

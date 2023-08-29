@@ -23,9 +23,8 @@ use relay_substrate_client::{
 	ChainWithTransactions, ChainWithUtilityPallet, Error as SubstrateError,
 	FullRuntimeUtilityPallet, NonceOf, SignParam, UnderlyingChainProvider, UnsignedTransaction,
 };
-use sp_core::{storage::StorageKey, Pair};
+use sp_core::{storage::StorageKey, Pair, Void};
 use sp_runtime::{generic::SignedPayload, traits::IdentifyAccount};
-use sp_session::MembershipProof;
 use std::time::Duration;
 
 /// Millau header id.
@@ -62,7 +61,7 @@ impl ChainWithGrandpa for Millau {
 	const SYNCED_HEADERS_GRANDPA_INFO_METHOD: &'static str =
 		MILLAU_SYNCED_HEADERS_GRANDPA_INFO_METHOD;
 
-	type KeyOwnerProof = MembershipProof;
+	type KeyOwnerProof = Void;
 }
 
 impl ChainWithBalances for Millau {
