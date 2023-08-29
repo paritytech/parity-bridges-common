@@ -56,7 +56,7 @@ sc-network-common = { git = "https://github.com/paritytech/substrate", branch = 
 
 # Polkadot Dependencies
 
-xcm = { git = "https://github.com/paritytech/polkadot", branch = "master" }
+xcm = { git = "https://github.com/paritytech/polkadot", branch = "release-v1.0.0" }
 
 [build-dependencies]
 substrate-build-script-utils = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v1.0.0" }

@@ -1435,7 +1435,7 @@ dependencies = [
  "scale-info",
  "serde",
  "sp-std 8.0.0 (git+https://github.com/paritytech/substrate?branch=polkadot-v1.0.0)",
- "xcm 1.0.0",
+ "xcm",
 ]
 
 [[package]]
@@ -1470,7 +1470,7 @@ dependencies = [
  "sp-std 8.0.0 (git+https://github.com/paritytech/substrate?branch=polkadot-v1.0.0)",
  "sp-trie 22.0.0 (git+https://github.com/paritytech/substrate?branch=polkadot-v1.0.0)",
  "static_assertions",
- "xcm 1.0.0",
+ "xcm",
  "xcm-builder",
 ]
 
@@ -2492,7 +2492,7 @@ dependencies = [
  "sp-io 23.0.0 (git+https://github.com/paritytech/substrate?branch=polkadot-v1.0.0)",
  "sp-runtime 24.0.0 (git+https://github.com/paritytech/substrate?branch=polkadot-v1.0.0)",
  "sp-std 8.0.0 (git+https://github.com/paritytech/substrate?branch=polkadot-v1.0.0)",
- "xcm 1.0.0",
+ "xcm",
 ]
 
 [[package]]
@@ -2521,7 +2521,7 @@ dependencies = [
  "sp-std 8.0.0 (git+https://github.com/paritytech/substrate?branch=polkadot-v1.0.0)",
  "sp-trie 22.0.0 (git+https://github.com/paritytech/substrate?branch=polkadot-v1.0.0)",
  "sp-version 22.0.0 (git+https://github.com/paritytech/substrate?branch=polkadot-v1.0.0)",
- "xcm 1.0.0",
+ "xcm",
 ]
 
 [[package]]
@@ -2548,7 +2548,7 @@ dependencies = [
  "sp-io 23.0.0 (git+https://github.com/paritytech/substrate?branch=polkadot-v1.0.0)",
  "sp-runtime 24.0.0 (git+https://github.com/paritytech/substrate?branch=polkadot-v1.0.0)",
  "sp-std 8.0.0 (git+https://github.com/paritytech/substrate?branch=polkadot-v1.0.0)",
- "xcm 1.0.0",
+ "xcm",
 ]
 
 [[package]]
@@ -2567,7 +2567,7 @@ dependencies = [
  "sp-io 23.0.0 (git+https://github.com/paritytech/substrate?branch=polkadot-v1.0.0)",
  "sp-runtime 24.0.0 (git+https://github.com/paritytech/substrate?branch=polkadot-v1.0.0)",
  "sp-std 8.0.0 (git+https://github.com/paritytech/substrate?branch=polkadot-v1.0.0)",
- "xcm 1.0.0",
+ "xcm",
  "xcm-executor",
 ]
 
@@ -2599,7 +2599,7 @@ dependencies = [
  "sp-runtime 24.0.0 (git+https://github.com/paritytech/substrate?branch=polkadot-v1.0.0)",
  "sp-std 8.0.0 (git+https://github.com/paritytech/substrate?branch=polkadot-v1.0.0)",
  "sp-trie 22.0.0 (git+https://github.com/paritytech/substrate?branch=polkadot-v1.0.0)",
- "xcm 1.0.0",
+ "xcm",
 ]
 
 [[package]]
@@ -5549,7 +5549,7 @@ dependencies = [
  "sp-version 22.0.0 (git+https://github.com/paritytech/substrate?branch=polkadot-v1.0.0)",
  "static_assertions",
  "substrate-wasm-builder",
- "xcm 1.0.0",
+ "xcm",
  "xcm-builder",
  "xcm-executor",
 ]
@@ -6550,7 +6550,7 @@ dependencies = [
  "sp-timestamp",
  "substrate-build-script-utils",
  "substrate-frame-rpc-system",
- "xcm 0.9.43",
+ "xcm",
 ]
 
 [[package]]
@@ -6613,7 +6613,7 @@ dependencies = [
  "sp-version 22.0.0 (git+https://github.com/paritytech/substrate?branch=polkadot-v1.0.0)",
  "static_assertions",
  "substrate-wasm-builder",
- "xcm 1.0.0",
+ "xcm",
  "xcm-builder",
  "xcm-executor",
 ]
@@ -8289,7 +8289,7 @@ dependencies = [
  "sp-io 23.0.0 (git+https://github.com/paritytech/substrate?branch=polkadot-v1.0.0)",
  "sp-runtime 24.0.0 (git+https://github.com/paritytech/substrate?branch=polkadot-v1.0.0)",
  "sp-std 8.0.0 (git+https://github.com/paritytech/substrate?branch=polkadot-v1.0.0)",
- "xcm 1.0.0",
+ "xcm",
  "xcm-executor",
 ]
 
@@ -8307,7 +8307,7 @@ dependencies = [
  "sp-io 23.0.0 (git+https://github.com/paritytech/substrate?branch=polkadot-v1.0.0)",
  "sp-runtime 24.0.0 (git+https://github.com/paritytech/substrate?branch=polkadot-v1.0.0)",
  "sp-std 8.0.0 (git+https://github.com/paritytech/substrate?branch=polkadot-v1.0.0)",
- "xcm 1.0.0",
+ "xcm",
  "xcm-builder",
  "xcm-executor",
 ]
@@ -8331,7 +8331,7 @@ dependencies = [
  "sp-io 23.0.0 (git+https://github.com/paritytech/substrate?branch=polkadot-v1.0.0)",
  "sp-runtime 24.0.0 (git+https://github.com/paritytech/substrate?branch=polkadot-v1.0.0)",
  "sp-std 8.0.0 (git+https://github.com/paritytech/substrate?branch=polkadot-v1.0.0)",
- "xcm 1.0.0",
+ "xcm",
  "xcm-builder",
  "xcm-executor",
 ]
@@ -8351,7 +8351,7 @@ dependencies = [
  "sp-io 23.0.0 (git+https://github.com/paritytech/substrate?branch=polkadot-v1.0.0)",
  "sp-runtime 24.0.0 (git+https://github.com/paritytech/substrate?branch=polkadot-v1.0.0)",
  "sp-std 8.0.0 (git+https://github.com/paritytech/substrate?branch=polkadot-v1.0.0)",
- "xcm 1.0.0",
+ "xcm",
  "xcm-builder",
 ]
 
@@ -9615,7 +9615,7 @@ dependencies = [
  "sp-version 22.0.0 (git+https://github.com/paritytech/substrate?branch=polkadot-v1.0.0)",
  "static_assertions",
  "substrate-wasm-builder",
- "xcm 1.0.0",
+ "xcm",
  "xcm-builder",
  "xcm-executor",
 ]
@@ -9663,7 +9663,7 @@ dependencies = [
  "sp-staking 4.0.0-dev (git+https://github.com/paritytech/substrate?branch=polkadot-v1.0.0)",
  "sp-std 8.0.0 (git+https://github.com/paritytech/substrate?branch=polkadot-v1.0.0)",
  "static_assertions",
- "xcm 1.0.0",
+ "xcm",
 ]
 
 [[package]]
@@ -9733,7 +9733,7 @@ dependencies = [
  "sp-staking 4.0.0-dev (git+https://github.com/paritytech/substrate?branch=polkadot-v1.0.0)",
  "sp-std 8.0.0 (git+https://github.com/paritytech/substrate?branch=polkadot-v1.0.0)",
  "static_assertions",
- "xcm 1.0.0",
+ "xcm",
  "xcm-executor",
 ]
 
@@ -10768,7 +10768,7 @@ dependencies = [
  "sp-version 22.0.0 (git+https://github.com/paritytech/substrate?branch=polkadot-v1.0.0)",
  "thiserror",
  "tokio",
- "xcm 1.0.0",
+ "xcm",
 ]
 
 [[package]]
@@ -10876,7 +10876,7 @@ dependencies = [
  "sp-core 21.0.0 (git+https://github.com/paritytech/substrate?branch=polkadot-v1.0.0)",
  "sp-runtime 24.0.0 (git+https://github.com/paritytech/substrate?branch=polkadot-v1.0.0)",
  "substrate-build-script-utils",
- "xcm 1.0.0",
+ "xcm",
 ]
 
 [[package]]
@@ -10932,7 +10932,7 @@ dependencies = [
  "substrate-build-script-utils",
  "substrate-frame-rpc-system",
  "substrate-prometheus-endpoint",
- "xcm 1.0.0",
+ "xcm",
 ]
 
 [[package]]
@@ -10990,7 +10990,7 @@ dependencies = [
  "sp-version 22.0.0 (git+https://github.com/paritytech/substrate?branch=polkadot-v1.0.0)",
  "static_assertions",
  "substrate-wasm-builder",
- "xcm 1.0.0",
+ "xcm",
  "xcm-builder",
  "xcm-executor",
 ]
@@ -11055,7 +11055,7 @@ dependencies = [
  "sp-version 22.0.0 (git+https://github.com/paritytech/substrate?branch=polkadot-v1.0.0)",
  "static_assertions",
  "substrate-wasm-builder",
- "xcm 1.0.0",
+ "xcm",
  "xcm-builder",
  "xcm-executor",
 ]
@@ -11192,7 +11192,7 @@ dependencies = [
  "sp-version 22.0.0 (git+https://github.com/paritytech/substrate?branch=polkadot-v1.0.0)",
  "static_assertions",
  "substrate-wasm-builder",
- "xcm 1.0.0",
+ "xcm",
  "xcm-builder",
  "xcm-executor",
 ]
@@ -14797,7 +14797,7 @@ dependencies = [
  "strum 0.25.0",
  "substrate-relay-helper",
  "tempfile",
- "xcm 1.0.0",
+ "xcm",
  "xcm-executor",
 ]
 
@@ -16701,7 +16701,7 @@ dependencies = [
  "sp-version 22.0.0 (git+https://github.com/paritytech/substrate?branch=polkadot-v1.0.0)",
  "substrate-wasm-builder",
  "westend-runtime-constants",
- "xcm 1.0.0",
+ "xcm",
  "xcm-builder",
  "xcm-executor",
 ]
@@ -17052,22 +17052,6 @@ dependencies = [
 
 [[package]]
 name = "xcm"
-version = "0.9.43"
-source = "git+https://github.com/paritytech/polkadot?branch=master#52209dcfe546ff39cc031b92d64e787e7e8264d4"
-dependencies = [
- "bounded-collections",
- "derivative",
- "impl-trait-for-tuples",
- "log",
- "parity-scale-codec",
- "scale-info",
- "serde",
- "sp-weights 20.0.0 (git+https://github.com/paritytech/substrate?branch=master)",
- "xcm-procedural 0.9.43",
-]
-
-[[package]]
-name = "xcm"
 version = "1.0.0"
 source = "git+https://github.com/paritytech/polkadot?branch=release-v1.0.0#c9ec8c5a15959ce711bb60aa79add58f560d61e9"
 dependencies = [
@@ -17079,7 +17063,7 @@ dependencies = [
  "scale-info",
  "serde",
  "sp-weights 20.0.0 (git+https://github.com/paritytech/substrate?branch=polkadot-v1.0.0)",
- "xcm-procedural 1.0.0",
+ "xcm-procedural",
 ]
 
 [[package]]
@@ -17100,7 +17084,7 @@ dependencies = [
  "sp-runtime 24.0.0 (git+https://github.com/paritytech/substrate?branch=polkadot-v1.0.0)",
  "sp-std 8.0.0 (git+https://github.com/paritytech/substrate?branch=polkadot-v1.0.0)",
  "sp-weights 20.0.0 (git+https://github.com/paritytech/substrate?branch=polkadot-v1.0.0)",
- "xcm 1.0.0",
+ "xcm",
  "xcm-executor",
 ]
 
@@ -17121,18 +17105,7 @@ dependencies = [
  "sp-runtime 24.0.0 (git+https://github.com/paritytech/substrate?branch=polkadot-v1.0.0)",
  "sp-std 8.0.0 (git+https://github.com/paritytech/substrate?branch=polkadot-v1.0.0)",
  "sp-weights 20.0.0 (git+https://github.com/paritytech/substrate?branch=polkadot-v1.0.0)",
- "xcm 1.0.0",
-]
-
-[[package]]
-name = "xcm-procedural"
-version = "0.9.43"
-source = "git+https://github.com/paritytech/polkadot?branch=master#52209dcfe546ff39cc031b92d64e787e7e8264d4"
-dependencies = [
- "Inflector",
- "proc-macro2 1.0.66",
- "quote 1.0.33",
- "syn 2.0.29",
+ "xcm",
 ]
 
 [[package]]
