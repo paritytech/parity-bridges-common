@@ -433,7 +433,7 @@ where
 					Msgs::Id::get(),
 					relayer,
 				);
-				return slash_relayer_if_delivery_result;
+				return slash_relayer_if_delivery_result
 			}
 		}
 
