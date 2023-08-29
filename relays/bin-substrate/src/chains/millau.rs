@@ -37,7 +37,10 @@ impl CliEncodeMessage for Millau {
 			anyhow::format_err!("Unsupported target chain: {:?}", target)
 		);
 
-		Ok(millau_runtime::xcm_config::ToRialtoOrRialtoParachainSwitchExporter::validate(
+		Ok(pallet_xcm_bridge_hub::PalletAsHaulBlobExporter::<
+			millau_runtime::Runtime,
+			millau_runtime::WithRialtoXcmBridgeHubInstance,
+		>::validate(
 			target,
 			0,
 			&mut Some(Self::dummy_universal_source()?),
@@ -46,8 +49,7 @@ impl CliEncodeMessage for Millau {
 		)
 		.map_err(|e| anyhow::format_err!("Failed to prepare outbound message: {:?}", e))?
 		.0
-		 .1
-		 .1)
+		 .0)
 	}
 
 	fn encode_execute_xcm(

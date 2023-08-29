@@ -591,7 +591,6 @@ impl pallet_xcm_bridge_hub::Config<WithMillauXcmBridgeHubInstance> for Runtime {
 	type BridgedNetworkId = MillauNetwork;
 	type BridgeMessagesPalletInstance = WithMillauMessagesInstance;
 
-	type MaxSuspendedBridges = ConstU32<1>;
 	type OpenBridgeOrigin = frame_support::traits::NeverEnsureOrigin<xcm::latest::MultiLocation>;
 	type BridgeOriginAccountIdConverter = LocationToAccountId;
 
@@ -871,9 +870,11 @@ mod tests {
 		MessageKey, OutboundLaneData,
 	};
 	use bp_runtime::Chain;
+	use bp_xcm_bridge_hub::{Bridge, BridgeState};
 	use bridge_runtime_common::integrity::check_additional_signed;
 	use codec::Encode;
 	use pallet_bridge_messages::OutboundLanes;
+	use pallet_xcm_bridge_hub::Bridges;
 	use sp_runtime::generic::Era;
 	use xcm_executor::XcmExecutor;
 
@@ -904,7 +905,17 @@ mod tests {
 	fn xcm_messages_to_millau_are_sent_using_bridge_exporter() {
 		new_test_ext().execute_with(|| {
 			// ensure that the there are no messages queued
-			let lane_id = crate::millau_messages::Bridge::get().lane_id();
+			let bridge_id = crate::millau_messages::Bridge::get();
+			let lane_id = bridge_id.lane_id();
+			Bridges::<Runtime, WithMillauXcmBridgeHubInstance>::insert(
+				bridge_id,
+				Bridge {
+					bridge_origin_relative_location: Box::new(MultiLocation::new(0, Here).into()),
+					state: BridgeState::Opened,
+					bridge_owner_account: [0u8; 32].into(),
+					reserve: 0,
+				},
+			);
 			OutboundLanes::<Runtime, WithMillauMessagesInstance>::insert(
 				lane_id,
 				OutboundLaneData::opened(),
