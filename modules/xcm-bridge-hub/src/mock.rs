@@ -174,7 +174,6 @@ parameter_types! {
 		GlobalConsensus(RelayNetwork::get()),
 		Parachain(THIS_BRIDGE_HUB_ID),
 	);
-	pub const MaxSuspendedBridges: u32 = 2;
 	pub const Penalty: Balance = 1_000;
 }
 
@@ -264,7 +263,6 @@ impl pallet_xcm_bridge_hub::Config for TestRuntime {
 	type BridgedNetworkId = BridgedRelayNetwork;
 	type BridgeMessagesPalletInstance = ();
 
-	type MaxSuspendedBridges = MaxSuspendedBridges;
 	type OpenBridgeOrigin = OpenBridgeOrigin;
 	type BridgeOriginAccountIdConverter = LocationToAccountId;
 

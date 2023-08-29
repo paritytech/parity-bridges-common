@@ -565,7 +565,6 @@ impl pallet_xcm_bridge_hub::Config<WithRialtoXcmBridgeHubInstance> for Runtime {
 	type BridgedNetworkId = xcm_config::RialtoNetwork;
 	type BridgeMessagesPalletInstance = WithRialtoMessagesInstance;
 
-	type MaxSuspendedBridges = ConstU32<1>;
 	type OpenBridgeOrigin = frame_support::traits::NeverEnsureOrigin<xcm::latest::MultiLocation>;
 	type BridgeOriginAccountIdConverter = xcm_config::SovereignAccountOf;
 
@@ -587,7 +586,6 @@ impl pallet_xcm_bridge_hub::Config<WithRialtoParachainXcmBridgeHubInstance> for 
 	type BridgedNetworkId = xcm_config::RialtoParachainNetwork;
 	type BridgeMessagesPalletInstance = WithRialtoParachainMessagesInstance;
 
-	type MaxSuspendedBridges = ConstU32<1>;
 	type OpenBridgeOrigin = frame_support::traits::NeverEnsureOrigin<xcm::latest::MultiLocation>;
 	type BridgeOriginAccountIdConverter = xcm_config::SovereignAccountOf;
 

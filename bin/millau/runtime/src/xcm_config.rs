@@ -20,8 +20,8 @@ use super::{
 	AccountId, AllPalletsWithSystem, Balances, Runtime, RuntimeCall, RuntimeEvent, RuntimeOrigin,
 	XcmPallet,
 };
-use bp_millau::WeightToFee;
-use bp_xcm_bridge_hub::{BridgeId, BridgeLocations};
+use bp_millau::{Millau, WeightToFee};
+use bp_xcm_bridge_hub::{Bridge, BridgeId};
 use bridge_runtime_common::CustomNetworkId;
 use frame_support::{
 	parameter_types,
@@ -29,7 +29,6 @@ use frame_support::{
 	weights::Weight,
 };
 use frame_system::EnsureRoot;
-use sp_std::prelude::*;
 use xcm::latest::prelude::*;
 use xcm_builder::{
 	Account32Hash, AccountId32Aliases, CurrencyAdapter as XcmCurrencyAdapter, IsConcrete,
@@ -202,7 +201,7 @@ impl pallet_xcm::Config for Runtime {
 pub struct ToRialtoOrRialtoParachainSwitchExporter;
 
 impl ExportXcm for ToRialtoOrRialtoParachainSwitchExporter {
-	type Ticket = (NetworkId, (Box<BridgeLocations>, sp_std::prelude::Vec<u8>, XcmHash));
+	type Ticket = (NetworkId, (BridgeId, Bridge<Millau>, sp_std::prelude::Vec<u8>, XcmHash));
 
 	fn validate(
 		network: NetworkId,
@@ -277,15 +276,18 @@ impl bp_xcm_bridge_hub::LocalXcmChannelManager for EmulatedSiblingXcmpChannel {
 mod tests {
 	use super::*;
 	use crate::{
-		WithRialtoMessagesInstance, WithRialtoParachainMessagesInstance, XcmRialtoBridgeHub,
-		XcmRialtoParachainBridgeHub,
+		WithRialtoMessagesInstance, WithRialtoParachainMessagesInstance,
+		WithRialtoParachainXcmBridgeHubInstance, WithRialtoXcmBridgeHubInstance,
+		XcmRialtoBridgeHub, XcmRialtoParachainBridgeHub,
 	};
 	use bp_messages::{
 		target_chain::{DispatchMessage, DispatchMessageData, MessageDispatch},
 		LaneId, MessageKey, OutboundLaneData,
 	};
+	use bp_xcm_bridge_hub::BridgeState;
 	use codec::Encode;
 	use pallet_bridge_messages::OutboundLanes;
+	use pallet_xcm_bridge_hub::Bridges;
 	use sp_runtime::BuildStorage;
 	use xcm_executor::XcmExecutor;
 
@@ -308,7 +310,17 @@ mod tests {
 	fn xcm_messages_to_rialto_are_sent_using_bridge_exporter() {
 		new_test_ext().execute_with(|| {
 			// ensure that the there are no messages queued
-			let lane_id = crate::rialto_messages::Bridge::get().lane_id();
+			let bridge_id = crate::rialto_messages::Bridge::get();
+			let lane_id = bridge_id.lane_id();
+			Bridges::<Runtime, WithRialtoXcmBridgeHubInstance>::insert(
+				bridge_id,
+				Bridge {
+					bridge_origin_relative_location: Box::new(MultiLocation::new(0, Here).into()),
+					state: BridgeState::Opened,
+					bridge_owner_account: [0u8; 32].into(),
+					reserve: 0,
+				},
+			);
 			OutboundLanes::<Runtime, WithRialtoMessagesInstance>::insert(
 				lane_id,
 				OutboundLaneData::opened(),
@@ -345,7 +357,17 @@ mod tests {
 	fn xcm_messages_to_rialto_parachain_are_sent_using_bridge_exporter() {
 		new_test_ext().execute_with(|| {
 			// ensure that the there are no messages queued
-			let lane_id = crate::rialto_parachain_messages::Lane::get();
+			let bridge_id = crate::rialto_parachain_messages::Bridge::get();
+			let lane_id = bridge_id.lane_id();
+			Bridges::<Runtime, WithRialtoParachainXcmBridgeHubInstance>::insert(
+				bridge_id,
+				Bridge {
+					bridge_origin_relative_location: Box::new(MultiLocation::new(0, Here).into()),
+					state: BridgeState::Opened,
+					bridge_owner_account: [0u8; 32].into(),
+					reserve: 0,
+				},
+			);
 			OutboundLanes::<Runtime, WithRialtoParachainMessagesInstance>::insert(
 				lane_id,
 				OutboundLaneData::opened(),
