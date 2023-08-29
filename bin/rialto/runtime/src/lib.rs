@@ -1010,12 +1010,12 @@ mod tests {
 	fn call_size() {
 		const BRIDGES_PALLETS_MAX_CALL_SIZE: usize = 200;
 		assert!(
-			core::mem::size_of::<pallet_bridge_grandpa::Call<Runtime>>()
-				<= BRIDGES_PALLETS_MAX_CALL_SIZE
+			core::mem::size_of::<pallet_bridge_grandpa::Call<Runtime>>() <=
+				BRIDGES_PALLETS_MAX_CALL_SIZE
 		);
 		assert!(
-			core::mem::size_of::<pallet_bridge_messages::Call<Runtime>>()
-				<= BRIDGES_PALLETS_MAX_CALL_SIZE
+			core::mem::size_of::<pallet_bridge_messages::Call<Runtime>>() <=
+				BRIDGES_PALLETS_MAX_CALL_SIZE
 		);
 		// Largest inner Call is `pallet_session::Call` with a size of 224 bytes. This size is a
 		// result of large `SessionKeys` struct.
