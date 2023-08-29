@@ -136,8 +136,6 @@ std = [
 	"xcm/std",
 	"xcm-builder/std",
 	"xcm-executor/std",
-	"bp-header-chain/std",
-	"frame-benchmarking/std",
 ]
 runtime-benchmarks = [
 	"bridge-runtime-common/runtime-benchmarks",
@@ -152,12 +150,4 @@ runtime-benchmarks = [
 	"pallet-xcm-bridge-hub-router/runtime-benchmarks",
 	"sp-runtime/runtime-benchmarks",
 	"xcm-builder/runtime-benchmarks",
-	"pallet-balances/runtime-benchmarks",
-	"pallet-bridge-grandpa/runtime-benchmarks",
-	"pallet-grandpa/runtime-benchmarks",
-	"pallet-mmr/runtime-benchmarks",
-	"pallet-sudo/runtime-benchmarks",
-	"pallet-timestamp/runtime-benchmarks",
-	"pallet-utility/runtime-benchmarks",
-	"xcm-executor/runtime-benchmarks",
 ]
