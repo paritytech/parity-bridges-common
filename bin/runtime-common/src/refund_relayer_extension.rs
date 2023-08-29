@@ -388,7 +388,7 @@ where
 				relayer,
 				e,
 			);
-			return slash_relayer_if_delivery_result;
+			return slash_relayer_if_delivery_result
 		}
 
 		// check if relay chain state has been updated
@@ -451,7 +451,7 @@ where
 				Msgs::Id::get(),
 				relayer,
 			);
-			return slash_relayer_if_delivery_result;
+			return slash_relayer_if_delivery_result
 		}
 
 		// regarding the tip - refund that happens here (at this side of the bridge) isn't the whole
@@ -505,7 +505,7 @@ where
 		let max_unconfirmed_messages_in_confirmation_tx = <Runtime as MessagesConfig<Msgs::Instance>>::BridgedChain
 			::MAX_UNCONFIRMED_MESSAGES_IN_CONFIRMATION_TX;
 		if bundled_messages > max_unconfirmed_messages_in_confirmation_tx {
-			return None;
+			return None
 		}
 
 		Some(bundled_messages)
@@ -567,7 +567,7 @@ where
 
 		// we only boost priority if relayer has staked required balance
 		if !RelayersPallet::<Runtime>::is_registration_active(who) {
-			return Ok(Default::default());
+			return Ok(Default::default())
 		}
 
 		// compute priority boost
@@ -812,8 +812,8 @@ mod tests {
 					test_lane_id(),
 				)
 				.unwrap()
-				.last_delivered_nonce()
-					+ 1,
+				.last_delivered_nonce() +
+					1,
 				nonces_end: best_message,
 			}),
 			messages_count: 1,

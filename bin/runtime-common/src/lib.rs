@@ -215,7 +215,7 @@ mod tests {
 	impl BridgeRuntimeFilterCall<MockCall> for FirstFilterCall {
 		fn validate(call: &MockCall) -> TransactionValidity {
 			if call.data <= 1 {
-				return InvalidTransaction::Custom(1).into();
+				return InvalidTransaction::Custom(1).into()
 			}
 
 			Ok(ValidTransaction { priority: 1, ..Default::default() })
@@ -226,7 +226,7 @@ mod tests {
 	impl BridgeRuntimeFilterCall<MockCall> for SecondFilterCall {
 		fn validate(call: &MockCall) -> TransactionValidity {
 			if call.data <= 2 {
-				return InvalidTransaction::Custom(2).into();
+				return InvalidTransaction::Custom(2).into()
 			}
 
 			Ok(ValidTransaction { priority: 2, ..Default::default() })
