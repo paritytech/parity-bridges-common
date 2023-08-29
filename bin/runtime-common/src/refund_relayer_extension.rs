@@ -284,9 +284,8 @@ where
 {
 	fn expand_call<'a>(&self, call: &'a CallOf<Runtime>) -> Vec<&'a CallOf<Runtime>> {
 		match call.is_sub_type() {
-			Some(UtilityCall::<Runtime>::batch_all { ref calls }) if calls.len() <= 3 => {
-				calls.iter().collect()
-			},
+			Some(UtilityCall::<Runtime>::batch_all { ref calls }) if calls.len() <= 3 =>
+				calls.iter().collect(),
 			Some(_) => vec![],
 			None => vec![call],
 		}
@@ -312,9 +311,8 @@ where
 			(3, Some(relay_finality_call), Some(para_finality_call), Some(msgs_call)) => Some(
 				CallInfo::AllFinalityAndMsgs(relay_finality_call, para_finality_call, msgs_call),
 			),
-			(2, None, Some(para_finality_call), Some(msgs_call)) => {
-				Some(CallInfo::ParachainFinalityAndMsgs(para_finality_call, msgs_call))
-			},
+			(2, None, Some(para_finality_call), Some(msgs_call)) =>
+				Some(CallInfo::ParachainFinalityAndMsgs(para_finality_call, msgs_call)),
 			(1, None, None, Some(msgs_call)) => Some(CallInfo::Msgs(msgs_call)),
 			_ => None,
 		})
@@ -641,9 +639,8 @@ where
 					relayer,
 				);
 			},
-			RelayerAccountAction::Slash(relayer, slash_account) => {
-				RelayersPallet::<Runtime>::slash_and_deregister(&relayer, slash_account)
-			},
+			RelayerAccountAction::Slash(relayer, slash_account) =>
+				RelayersPallet::<Runtime>::slash_and_deregister(&relayer, slash_account),
 		}
 
 		Ok(())
