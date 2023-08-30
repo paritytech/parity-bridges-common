@@ -68,7 +68,6 @@ impl parachains_dmp::Config for Runtime {}
 impl parachains_hrmp::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 	type RuntimeOrigin = RuntimeOrigin;
-	type ChannelManager = EnsureRoot<Self::AccountId>;
 	type Currency = Balances;
 	type WeightInfo = parachains_hrmp::TestWeightInfo;
 }

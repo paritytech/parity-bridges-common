@@ -14,5 +14,5 @@ relay-utils = { path = "../utils" }
 bp-wococo = { path = "../../primitives/chain-wococo" }
 
 # Substrate Dependencies
-sp-core = { git = "https://github.com/paritytech/substrate", branch = "master" }
-sp-session = { git = "https://github.com/paritytech/substrate", branch = "master" }
+sp-core = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v1.0.0" }
+sp-session = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v1.0.0" }

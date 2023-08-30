@@ -22,9 +22,9 @@ bp-runtime = { path = "../../primitives/runtime" }
 
 # Substrate Dependencies
 
-sp-core = { git = "https://github.com/paritytech/substrate", branch = "master" }
-sp-runtime = { git = "https://github.com/paritytech/substrate", branch = "master" }
+sp-core = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v1.0.0" }
+sp-runtime = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v1.0.0" }
 
 [dev-dependencies]
 bp-polkadot-core = { path = "../../primitives/polkadot-core" }
-sp-consensus-grandpa = { git = "https://github.com/paritytech/substrate", branch = "master" }
+sp-consensus-grandpa = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v1.0.0" }
