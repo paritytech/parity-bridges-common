@@ -19,6 +19,7 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
 use codec::{Decode, Encode, MaxEncodedLen};
+use frame_support::{EqNoBound, PartialEqNoBound};
 use scale_info::TypeInfo;
 use sp_runtime::{traits::Get, BoundedVec, FixedU128, RuntimeDebug};
 use sp_std::ops::RangeInclusive;
@@ -76,7 +77,9 @@ impl<BlockNumber> Bridge<BlockNumber> {
 /// "suspended") while it has been suspended. So the router tries to deliver all such
 /// messages for relieving bridges. Once there's no more suspended messages, the bridge is
 /// back to normal mode - we don't call it relieved anymore.
-#[derive(Clone, Decode, Encode, Eq, PartialEq, TypeInfo, MaxEncodedLen, RuntimeDebug)]
+#[derive(
+	Clone, Decode, Encode, EqNoBound, PartialEqNoBound, TypeInfo, MaxEncodedLen, RuntimeDebug,
+)]
 #[scale_info(skip_type_params(MaxBridges))]
 pub struct RelievingBridgesQueue<MaxBridges: Get<u32>> {
 	/// An index within the `self.bridges` of next relieving bridge that needs some service.
@@ -132,5 +135,10 @@ impl<MaxBridges: Get<u32>> RelievingBridgesQueue<MaxBridges> {
 		if self.current as usize >= self.bridges.len() {
 			self.current = 0;
 		}
+	}
+
+	/// Remove relieving bridge from the set.
+	pub fn remove(&mut self, bridge: BridgeId) {
+		self.bridges.retain(|b| *b != bridge);
 	}
 }

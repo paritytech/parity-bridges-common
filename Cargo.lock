@@ -1265,6 +1265,7 @@ name = "bp-xcm-bridge-hub-router"
 version = "0.1.0"
 dependencies = [
  "bp-xcm-bridge-hub",
+ "frame-support",
  "parity-scale-codec",
  "scale-info",
  "sp-runtime",

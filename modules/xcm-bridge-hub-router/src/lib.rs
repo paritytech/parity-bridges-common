@@ -230,6 +230,7 @@ pub mod pallet {
 	/// all suspended messages are pushed further, the bridge identifier is removed from this
 	/// vector.
 	#[pallet::storage]
+	#[pallet::getter(fn relieving_bridges)]
 	pub type RelievingBridges<T: Config<I>, I: 'static = ()> =
 		StorageValue<_, RelievingBridgesQueue<T::MaxBridges>, OptionQuery>;
 
@@ -238,6 +239,7 @@ pub mod pallet {
 	/// Suspended message is actually an encoded ticket for `T::ToBridgeHubSender`. We are not
 	/// saving tickets directly here, because they do not need to provide `TypeInfo`.
 	#[pallet::storage]
+	#[pallet::getter(fn suspended_message)]
 	pub type SuspendedMessages<T: Config<I>, I: 'static = ()> = StorageDoubleMap<
 		_,
 		Identity,
@@ -252,6 +254,14 @@ pub mod pallet {
 		pub fn on_bridge_suspended(bridge_id: BridgeId) {
 			Bridges::<T, I>::mutate_extant(bridge_id, |bridge| {
 				bridge.bridge_resumed_at = None;
+				RelievingBridges::<T, I>::mutate(|relieving_bridges| {
+					if let Some(ref mut queue) = relieving_bridges {
+						queue.remove(bridge_id);
+					}
+					if relieving_bridges.as_ref().map(|q| q.is_empty()).unwrap_or(false) {
+						*relieving_bridges = None;
+					}
+				});
 			});
 		}
 
@@ -527,6 +537,12 @@ mod tests {
 		});
 	}
 
+	fn resume_bridge() {
+		Bridges::<TestRuntime, ()>::mutate_extant(bridge_id(), |bridge| {
+			bridge.bridge_resumed_at = Some(System::block_number());
+		});
+	}
+
 	#[test]
 	fn initial_fee_factor_is_one() {
 		run_test(|| {
@@ -590,7 +606,7 @@ mod tests {
 	}
 
 	#[test]
-	fn returns_proper_delivery_price() {
+	fn congestion_fee_factor_affects_delivery_price() {
 		run_test(|| {
 			insert_bridge();
 
@@ -625,6 +641,130 @@ mod tests {
 	}
 
 	#[test]
+	fn bridge_fee_factor_affects_delivery_price() {
+		run_test(|| {
+			insert_bridge();
+
+			// let's say at block 100 the bridge was suspended and then we've sent 10 messages over
+			// it
+			System::set_block_number(100);
+			suspend_bridge();
+			for _ in 0..10 {
+				let previous_factor =
+					XcmBridgeHubRouter::bridge(bridge_id()).unwrap().bridge_fee_factor;
+				assert_eq!(
+					send_xcm::<XcmBridgeHubRouter>(
+						bridge_destination_relative_location(),
+						vec![ClearOrigin].into(),
+					)
+					.map(drop),
+					Ok(()),
+				);
+
+				// every sent message increases the bridge fee factor
+				assert!(
+					previous_factor <
+						XcmBridgeHubRouter::bridge(bridge_id()).unwrap().bridge_fee_factor
+				);
+			}
+
+			// the bridge is resumed at block 150
+			System::set_block_number(150);
+			resume_bridge();
+			{
+				let previous_factor =
+					XcmBridgeHubRouter::bridge(bridge_id()).unwrap().bridge_fee_factor;
+				assert_eq!(
+					send_xcm::<XcmBridgeHubRouter>(
+						bridge_destination_relative_location(),
+						vec![ClearOrigin].into(),
+					)
+					.map(drop),
+					Ok(()),
+				);
+
+				// every sent message increases the bridge fee factor
+				assert_eq!(
+					previous_factor,
+					XcmBridgeHubRouter::bridge(bridge_id()).unwrap().bridge_fee_factor
+				);
+			}
+
+			// then at every following block the price is cheaper and eventually reaches the minimal
+			let dest = bridge_destination_relative_location();
+			let xcm: Xcm<()> = vec![ClearOrigin].into();
+			let msg_size = xcm.encoded_size();
+			let minimal_price = BASE_FEE + BYTE_FEE * (msg_size as u128) + HRMP_FEE;
+			let mut previous_price =
+				XcmBridgeHubRouter::validate(&mut Some(dest), &mut Some(xcm.clone()))
+					.unwrap()
+					.1
+					.get(0)
+					.unwrap()
+					.fun
+					.clone();
+			loop {
+				System::set_block_number(System::block_number() + 1);
+
+				let price = XcmBridgeHubRouter::validate(&mut Some(dest), &mut Some(xcm.clone()))
+					.unwrap()
+					.1
+					.get(0)
+					.unwrap()
+					.fun
+					.clone();
+				if price < previous_price {
+					previous_price = price
+				} else {
+					assert_eq!(price, minimal_price.into());
+					break
+				}
+			}
+		});
+	}
+
+	#[test]
+	fn both_factors_affect_price() {
+		run_test(|| {
+			insert_bridge();
+
+			// increase bridge fee factor
+			Bridges::<TestRuntime, ()>::mutate_extant(bridge_id(), |bridge| {
+				bridge.bridge_fee_factor = MINIMAL_DELIVERY_FEE_FACTOR.saturating_mul(2u128.into());
+			});
+
+			// compute the price with single increased factor
+			let dest = bridge_destination_relative_location();
+			let xcm: Xcm<()> = vec![ClearOrigin].into();
+			let price_with_bridge_factor =
+				XcmBridgeHubRouter::validate(&mut Some(dest), &mut Some(xcm.clone()))
+					.unwrap()
+					.1
+					.get(0)
+					.unwrap()
+					.fun
+					.clone();
+
+			// increase congestion fee factor
+			CongestionFeeFactor::<TestRuntime, ()>::mutate(|factor| {
+				*factor = MINIMAL_DELIVERY_FEE_FACTOR.saturating_mul(2u128.into());
+			});
+
+			// compute the price with two increased factor
+			let price_with_two_factors =
+				XcmBridgeHubRouter::validate(&mut Some(dest), &mut Some(xcm.clone()))
+					.unwrap()
+					.1
+					.get(0)
+					.unwrap()
+					.fun
+					.clone();
+
+			assert!(price_with_two_factors > price_with_bridge_factor);
+		});
+	}
+
+	#[test]
 	fn message_is_not_sent_if_bridge_is_not_registered() {
 		run_test(|| {
 			assert_eq!(
@@ -640,7 +780,7 @@ mod tests {
 	}
 
 	#[test]
-	fn sent_message_doesnt_increase_factor_if_queue_is_uncongested() {
+	fn sent_message_doesnt_increase_congestion_factor_if_queue_is_uncongested() {
 		run_test(|| {
 			insert_bridge();
 
@@ -660,7 +800,7 @@ mod tests {
 	}
 
 	#[test]
-	fn sent_message_increases_factor_if_queue_is_congested() {
+	fn sent_message_increases_congestion_factor_if_queue_is_congested() {
 		run_test(|| {
 			insert_bridge();
 			TestLocalXcmChannelManager::make_congested();
@@ -677,6 +817,53 @@ mod tests {
 
 			assert!(TestToBridgeHubSender::is_message_sent());
 			assert!(old_congestion_fee_factor < XcmBridgeHubRouter::congestion_fee_factor());
+		});
+	}
+
+	#[test]
+	fn sent_message_doesnt_increase_bridge_fee_factor_factor_if_bridge_is_not_suspended() {
+		run_test(|| {
+			insert_bridge();
+
+			let old_bridge_fee_factor =
+				XcmBridgeHubRouter::bridge(bridge_id()).unwrap().bridge_fee_factor;
+			assert_eq!(
+				send_xcm::<XcmBridgeHubRouter>(
+					bridge_destination_relative_location(),
+					vec![ClearOrigin].into(),
+				)
+				.map(drop),
+				Ok(()),
+			);
+
+			assert_eq!(
+				old_bridge_fee_factor,
+				XcmBridgeHubRouter::bridge(bridge_id()).unwrap().bridge_fee_factor
+			);
+		});
+	}
+
+	#[test]
+	fn sent_message_increases_bridge_fee_factor_if_bridge_is_suspended() {
+		run_test(|| {
+			insert_bridge();
+			suspend_bridge();
+
+			let old_bridge_fee_factor =
+				XcmBridgeHubRouter::bridge(bridge_id()).unwrap().bridge_fee_factor;
+			assert_eq!(
+				send_xcm::<XcmBridgeHubRouter>(
+					bridge_destination_relative_location(),
+					vec![ClearOrigin].into(),
+				)
+				.map(drop),
+				Ok(()),
+			);
+
+			assert!(
+				old_bridge_fee_factor <
+					XcmBridgeHubRouter::bridge(bridge_id()).unwrap().bridge_fee_factor
+			);
 		});
 	}
 
@@ -700,6 +887,65 @@ mod tests {
 				XcmBridgeHubRouter::bridge(bridge_id()),
 				Some(Bridge { bridge_resumed_at: None, suspended_messages: Some((1, 1)), .. }),
 			));
+			assert!(XcmBridgeHubRouter::suspended_message(bridge_id(), 1).is_some());
+		});
+	}
+
+	#[test]
+	fn on_bridge_suspended_suspends_the_bridge() {
+		run_test(|| {
+			insert_bridge();
+			RelievingBridges::<TestRuntime, ()>::put(RelievingBridgesQueue::with(bridge_id()));
+
+			XcmBridgeHubRouter::on_bridge_suspended(bridge_id());
+			assert!(matches!(
+				XcmBridgeHubRouter::bridge(bridge_id()),
+				Some(Bridge { bridge_resumed_at: None, .. }),
+			));
+			assert_eq!(RelievingBridges::<TestRuntime, ()>::get(), None)
+		});
+	}
+
+	#[test]
+	fn on_bridge_resumed_resumes_the_bridge() {
+		run_test(|| {
+			insert_bridge();
+			suspend_bridge();
+
+			XcmBridgeHubRouter::on_bridge_resumed(bridge_id());
+			assert!(matches!(
+				XcmBridgeHubRouter::bridge(bridge_id()),
+				Some(Bridge { bridge_resumed_at: Some(0), .. }),
+			));
+			assert_eq!(RelievingBridges::<TestRuntime, ()>::get(), None)
+		});
+	}
+
+	#[test]
+	fn on_bridge_resumed_starts_relieving_the_bridge() {
+		run_test(|| {
+			insert_bridge();
+			suspend_bridge();
+
+			// suspend the message
+			assert_eq!(
+				send_xcm::<XcmBridgeHubRouter>(
+					bridge_destination_relative_location(),
+					vec![ClearOrigin].into(),
+				)
+				.map(drop),
+				Ok(()),
+			);
+
+			// resume the bridge
+			XcmBridgeHubRouter::on_bridge_resumed(bridge_id());
+
+			// ensure that it has been added to the relieving bridges set, because
+			// it has the suspended messages
+			assert_eq!(
+				RelievingBridges::<TestRuntime, ()>::get(),
+				Some(RelievingBridgesQueue::with(bridge_id()))
+			)
 		});
 	}
 }
