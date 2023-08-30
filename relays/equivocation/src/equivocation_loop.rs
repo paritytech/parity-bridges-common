@@ -311,8 +311,6 @@ impl<P: EquivocationDetectionPipeline, SC: SourceClient<P>, TC: TargetClient<P>>
 }
 
 /// Spawn the equivocations detection loop.
-/// TODO: remove `#[allow(dead_code)]`
-#[allow(dead_code)]
 pub async fn run<P: EquivocationDetectionPipeline>(
 	source_client: impl SourceClient<P>,
 	target_client: impl TargetClient<P>,

@@ -22,12 +22,16 @@ mod target;
 
 use crate::finality_base::{engine::Engine, SubstrateFinalityPipeline, SubstrateFinalityProof};
 
+use crate::{
+	equivocation::{source::SubstrateEquivocationSource, target::SubstrateEquivocationTarget},
+	TransactionParams,
+};
 use async_trait::async_trait;
 use bp_runtime::{AccountIdOf, BlockNumberOf, HashOf};
 use equivocation_detector::EquivocationDetectionPipeline;
 use finality_relay::FinalityPipeline;
 use pallet_grandpa::{Call as GrandpaCall, Config as GrandpaConfig};
-use relay_substrate_client::{AccountKeyPairOf, CallOf, Chain, ChainWithTransactions};
+use relay_substrate_client::{AccountKeyPairOf, CallOf, Chain, ChainWithTransactions, Client};
 use sp_core::Pair;
 use sp_runtime::traits::{Block, Header};
 use std::marker::PhantomData;
@@ -177,4 +181,27 @@ macro_rules! generate_report_equivocation_call_builder {
 			}
 		}
 	};
+}
+
+/// Run Substrate-to-Substrate equivocations detection loop.
+pub async fn run<P: SubstrateEquivocationDetectionPipeline>(
+	source_client: impl Client<P::SourceChain>,
+	target_client: impl Client<P::TargetChain>,
+	source_transaction_params: TransactionParams<AccountKeyPairOf<P::SourceChain>>,
+) -> anyhow::Result<()> {
+	log::info!(
+		target: "bridge",
+		"Starting {} -> {} equivocations detection loop",
+		P::SourceChain::NAME,
+		P::TargetChain::NAME,
+	);
+
+	equivocation_detector::run(
+		SubstrateEquivocationSource::<P, _>::new(source_client, source_transaction_params),
+		SubstrateEquivocationTarget::<P, _>::new(target_client),
+		P::TargetChain::AVERAGE_BLOCK_INTERVAL,
+		futures::future::pending(),
+	)
+	.await
+	.map_err(|e| anyhow::format_err!("{}", e))
 }

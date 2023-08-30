@@ -18,13 +18,17 @@ use async_trait::async_trait;
 use std::sync::Arc;
 
 use crate::cli::{
-	bridge::{CliBridgeBase, MessagesCliBridge, RelayToRelayHeadersCliBridge},
+	bridge::{
+		CliBridgeBase, MessagesCliBridge, RelayToRelayEquivocationDetectionCliBridge,
+		RelayToRelayHeadersCliBridge,
+	},
 	relay_headers_and_messages::{Full2WayBridgeBase, Full2WayBridgeCommonParams},
 	CliChain,
 };
 use relay_substrate_client::{AccountIdOf, AccountKeyPairOf, ChainWithTransactions, Client};
 use sp_core::Pair;
 use substrate_relay_helper::{
+	equivocation,
 	finality::SubstrateFinalitySyncPipeline,
 	on_demand::{headers::OnDemandHeadersRelay, OnDemandRelay},
 	TaggedAccount, TransactionParams,
@@ -118,10 +122,12 @@ impl<
 		Right: ChainWithTransactions + CliChain,
 		L2R: CliBridgeBase<Source = Left, Target = Right>
 			+ MessagesCliBridge
-			+ RelayToRelayHeadersCliBridge,
+			+ RelayToRelayHeadersCliBridge
+			+ RelayToRelayEquivocationDetectionCliBridge,
 		R2L: CliBridgeBase<Source = Right, Target = Left>
 			+ MessagesCliBridge
-			+ RelayToRelayHeadersCliBridge,
+			+ RelayToRelayHeadersCliBridge
+			+ RelayToRelayEquivocationDetectionCliBridge,
 	> Full2WayBridgeBase for RelayToRelayBridge<L2R, R2L>
 where
 	AccountIdOf<Left>: From<<AccountKeyPairOf<Left> as Pair>::Public>,
@@ -185,5 +191,33 @@ where
 			);
 
 		Ok((Arc::new(left_to_right_on_demand_headers), Arc::new(right_to_left_on_demand_headers)))
+	}
+
+	fn start_equivocation_detection_loops(&self) {
+		// left to right loop
+		let left_client = self.common.left.client.clone();
+		let right_client = self.common.right.client.clone();
+		let transaction_params = self.common.left.tx_params.clone();
+		async_std::task::spawn(async move {
+			let _ = equivocation::run::<L2R::Equivocation>(
+				left_client,
+				right_client,
+				transaction_params,
+			)
+			.await;
+		});
+
+		// right to left loop
+		let right_client = self.common.right.client.clone();
+		let left_client = self.common.left.client.clone();
+		let transaction_params = self.common.right.tx_params.clone();
+		async_std::task::spawn(async move {
+			let _ = equivocation::run::<R2L::Equivocation>(
+				right_client,
+				left_client,
+				transaction_params,
+			)
+			.await;
+		});
 	}
 }
