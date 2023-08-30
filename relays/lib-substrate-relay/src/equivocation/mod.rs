@@ -20,18 +20,19 @@
 mod source;
 mod target;
 
-use crate::finality_base::{engine::Engine, SubstrateFinalityPipeline, SubstrateFinalityProof};
-
 use crate::{
 	equivocation::{source::SubstrateEquivocationSource, target::SubstrateEquivocationTarget},
+	finality_base::{engine::Engine, SubstrateFinalityPipeline, SubstrateFinalityProof},
 	TransactionParams,
 };
+
 use async_trait::async_trait;
 use bp_runtime::{AccountIdOf, BlockNumberOf, HashOf};
 use equivocation_detector::EquivocationDetectionPipeline;
 use finality_relay::FinalityPipeline;
 use pallet_grandpa::{Call as GrandpaCall, Config as GrandpaConfig};
 use relay_substrate_client::{AccountKeyPairOf, CallOf, Chain, ChainWithTransactions, Client};
+use relay_utils::metrics::MetricsParams;
 use sp_core::Pair;
 use sp_runtime::traits::{Block, Header};
 use std::marker::PhantomData;
@@ -188,6 +189,7 @@ pub async fn run<P: SubstrateEquivocationDetectionPipeline>(
 	source_client: impl Client<P::SourceChain>,
 	target_client: impl Client<P::TargetChain>,
 	source_transaction_params: TransactionParams<AccountKeyPairOf<P::SourceChain>>,
+	metrics_params: MetricsParams,
 ) -> anyhow::Result<()> {
 	log::info!(
 		target: "bridge",
@@ -200,6 +202,7 @@ pub async fn run<P: SubstrateEquivocationDetectionPipeline>(
 		SubstrateEquivocationSource::<P, _>::new(source_client, source_transaction_params),
 		SubstrateEquivocationTarget::<P, _>::new(target_client),
 		P::TargetChain::AVERAGE_BLOCK_INTERVAL,
+		metrics_params,
 		futures::future::pending(),
 	)
 	.await

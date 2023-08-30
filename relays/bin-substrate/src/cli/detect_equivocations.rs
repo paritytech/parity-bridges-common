@@ -14,29 +14,30 @@
 // You should have received a copy of the GNU General Public License
 // along with Parity Bridges Common.  If not, see <http://www.gnu.org/licenses/>.
 
+use crate::{
+	bridges::{
+		kusama_polkadot::{
+			kusama_headers_to_bridge_hub_polkadot::KusamaToBridgeHubPolkadotCliBridge,
+			polkadot_headers_to_bridge_hub_kusama::PolkadotToBridgeHubKusamaCliBridge,
+		},
+		rialto_millau::{
+			millau_headers_to_rialto::MillauToRialtoCliBridge,
+			rialto_headers_to_millau::RialtoToMillauCliBridge,
+		},
+		rialto_parachain_millau::millau_headers_to_rialto_parachain::MillauToRialtoParachainCliBridge,
+		rococo_wococo::{
+			rococo_headers_to_bridge_hub_wococo::RococoToBridgeHubWococoCliBridge,
+			wococo_headers_to_bridge_hub_rococo::WococoToBridgeHubRococoCliBridge,
+		},
+	},
+	cli::{bridge::*, chain_schema::*, PrometheusParams},
+};
+
 use async_trait::async_trait;
 use relay_substrate_client::ChainWithTransactions;
 use structopt::StructOpt;
 use strum::{EnumString, EnumVariantNames, VariantNames};
-
-use crate::bridges::{
-	kusama_polkadot::{
-		kusama_headers_to_bridge_hub_polkadot::KusamaToBridgeHubPolkadotCliBridge,
-		polkadot_headers_to_bridge_hub_kusama::PolkadotToBridgeHubKusamaCliBridge,
-	},
-	rialto_millau::{
-		millau_headers_to_rialto::MillauToRialtoCliBridge,
-		rialto_headers_to_millau::RialtoToMillauCliBridge,
-	},
-	rialto_parachain_millau::millau_headers_to_rialto_parachain::MillauToRialtoParachainCliBridge,
-	rococo_wococo::{
-		rococo_headers_to_bridge_hub_wococo::RococoToBridgeHubWococoCliBridge,
-		wococo_headers_to_bridge_hub_rococo::WococoToBridgeHubRococoCliBridge,
-	},
-};
 use substrate_relay_helper::equivocation;
-
-use crate::cli::{bridge::*, chain_schema::*};
 
 /// Start equivocation detection loop.
 #[derive(StructOpt)]
@@ -49,6 +50,8 @@ pub struct DetectEquivocations {
 	source_sign: SourceSigningParams,
 	#[structopt(flatten)]
 	target: TargetConnectionParams,
+	#[structopt(flatten)]
+	prometheus_params: PrometheusParams,
 }
 
 #[derive(Debug, EnumString, EnumVariantNames)]
@@ -74,6 +77,7 @@ where
 			data.source.into_client::<Self::Source>().await?,
 			data.target.into_client::<Self::Target>().await?,
 			data.source_sign.transaction_params::<Self::Source>()?,
+			data.prometheus_params.into_metrics_params()?,
 		)
 		.await
 	}

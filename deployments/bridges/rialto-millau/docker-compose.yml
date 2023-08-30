@@ -78,7 +78,7 @@ services:
       RUST_LOG: bridge=trace
     entrypoint: /entrypoints/detect-millau-to-rialto-equivocations-entrypoint.sh
     ports:
-      - "10517:9616"
+      - "10616:9616"
     depends_on:
       - relay-millau-rialto
 
@@ -88,7 +88,7 @@ services:
       RUST_LOG: bridge=trace
     entrypoint: /entrypoints/detect-rialto-to-millau-equivocations-entrypoint.sh
     ports:
-      - "10518:9616"
+      - "10716:9616"
     depends_on:
       - relay-millau-rialto
 
