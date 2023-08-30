@@ -16,7 +16,9 @@
 
 //! Rococo-to-Wococo bridge hubs headers sync entrypoint.
 
-use crate::cli::bridge::{CliBridgeBase, RelayToRelayHeadersCliBridge};
+use crate::cli::bridge::{
+	CliBridgeBase, RelayToRelayEquivocationDetectionCliBridge, RelayToRelayHeadersCliBridge,
+};
 
 use async_trait::async_trait;
 use relay_substrate_client::{AccountKeyPairOf, Client};
@@ -87,4 +89,8 @@ impl CliBridgeBase for RococoToBridgeHubWococoCliBridge {
 
 impl RelayToRelayHeadersCliBridge for RococoToBridgeHubWococoCliBridge {
 	type Finality = RococoFinalityToBridgeHubWococo;
+}
+
+impl RelayToRelayEquivocationDetectionCliBridge for RococoToBridgeHubWococoCliBridge {
+	type Equivocation = RococoFinalityToBridgeHubWococo;
 }

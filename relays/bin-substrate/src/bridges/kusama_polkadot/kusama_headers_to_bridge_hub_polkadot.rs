@@ -16,7 +16,9 @@
 
 //! Kusama-to-BridgeHubPolkadot headers sync entrypoint.
 
-use crate::cli::bridge::{CliBridgeBase, RelayToRelayHeadersCliBridge};
+use crate::cli::bridge::{
+	CliBridgeBase, RelayToRelayEquivocationDetectionCliBridge, RelayToRelayHeadersCliBridge,
+};
 
 use async_trait::async_trait;
 use relay_substrate_client::{AccountKeyPairOf, Client};
@@ -87,4 +89,8 @@ impl CliBridgeBase for KusamaToBridgeHubPolkadotCliBridge {
 
 impl RelayToRelayHeadersCliBridge for KusamaToBridgeHubPolkadotCliBridge {
 	type Finality = KusamaFinalityToBridgeHubPolkadot;
+}
+
+impl RelayToRelayEquivocationDetectionCliBridge for KusamaToBridgeHubPolkadotCliBridge {
+	type Equivocation = KusamaFinalityToBridgeHubPolkadot;
 }

@@ -16,10 +16,7 @@
 
 //! Kusama-to-BridgeHubPolkadot parachains sync entrypoint.
 
-use crate::cli::bridge::{
-	CliBridgeBase, MessagesCliBridge, ParachainToRelayEquivocationDetectionCliBridge,
-	ParachainToRelayHeadersCliBridge,
-};
+use crate::cli::bridge::{CliBridgeBase, MessagesCliBridge, ParachainToRelayHeadersCliBridge};
 use bp_polkadot_core::parachains::{ParaHash, ParaHeadsProof, ParaId};
 use relay_substrate_client::{CallOf, HeaderIdOf};
 use substrate_relay_helper::parachains::{
@@ -65,13 +62,6 @@ impl ParachainToRelayHeadersCliBridge for BridgeHubKusamaToBridgeHubPolkadotCliB
 	type ParachainFinality = BridgeHubKusamaToBridgeHubPolkadot;
 	type RelayFinality =
 		crate::bridges::kusama_polkadot::kusama_headers_to_bridge_hub_polkadot::KusamaFinalityToBridgeHubPolkadot;
-}
-
-impl ParachainToRelayEquivocationDetectionCliBridge
-	for BridgeHubKusamaToBridgeHubPolkadotCliBridge
-{
-	type SourceRelay = relay_kusama_client::Kusama;
-	type RelayEquivocation = crate::bridges::kusama_polkadot::kusama_headers_to_bridge_hub_polkadot::KusamaFinalityToBridgeHubPolkadot;
 }
 
 impl CliBridgeBase for BridgeHubKusamaToBridgeHubPolkadotCliBridge {

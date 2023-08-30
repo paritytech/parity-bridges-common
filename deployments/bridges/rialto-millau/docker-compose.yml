@@ -72,6 +72,26 @@ services:
     depends_on:
       - relay-millau-rialto
 
+  detect-millau-to-rialto-equivocations:
+    <<: *sub-bridge-relay
+    environment:
+      RUST_LOG: bridge=trace
+    entrypoint: /entrypoints/detect-millau-to-rialto-equivocations-entrypoint.sh
+    ports:
+      - "10517:9616"
+    depends_on:
+      - relay-millau-rialto
+
+  detect-rialto-to-millau-equivocations:
+    <<: *sub-bridge-relay
+    environment:
+      RUST_LOG: bridge=trace
+    entrypoint: /entrypoints/detect-rialto-to-millau-equivocations-entrypoint.sh
+    ports:
+      - "10518:9616"
+    depends_on:
+      - relay-millau-rialto
+
   # Note: These are being overridden from the top level `monitoring` compose file.
   grafana-dashboard:
     environment:

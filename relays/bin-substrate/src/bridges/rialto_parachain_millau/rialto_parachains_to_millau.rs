@@ -16,10 +16,7 @@
 
 //! Rialto-to-Millau parachains sync entrypoint.
 
-use crate::cli::bridge::{
-	CliBridgeBase, MessagesCliBridge, ParachainToRelayEquivocationDetectionCliBridge,
-	ParachainToRelayHeadersCliBridge,
-};
+use crate::cli::bridge::{CliBridgeBase, MessagesCliBridge, ParachainToRelayHeadersCliBridge};
 use relay_millau_client::Millau;
 use relay_rialto_client::Rialto;
 use relay_rialto_parachain_client::RialtoParachain;
@@ -59,12 +56,6 @@ impl ParachainToRelayHeadersCliBridge for RialtoParachainToMillauCliBridge {
 	type SourceRelay = Rialto;
 	type ParachainFinality = RialtoParachainsToMillau;
 	type RelayFinality =
-		crate::bridges::rialto_millau::rialto_headers_to_millau::RialtoFinalityToMillau;
-}
-
-impl ParachainToRelayEquivocationDetectionCliBridge for RialtoParachainToMillauCliBridge {
-	type SourceRelay = Rialto;
-	type RelayEquivocation =
 		crate::bridges::rialto_millau::rialto_headers_to_millau::RialtoFinalityToMillau;
 }
 
