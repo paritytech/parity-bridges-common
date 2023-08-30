@@ -95,6 +95,10 @@ pub enum Command {
 	RegisterParachain(register_parachain::RegisterParachain),
 	/// Relay parachain heads.
 	RelayParachains(relay_parachains::RelayParachains),
+	/// Detect and report equivocations.
+	///
+	/// Parses the source chain headers that were synchronized with the target chain looking for
+	/// equivocations. If any equivocation is found, it is reported to the source chain.
 	DetectEquivocations(detect_equivocations::DetectEquivocations),
 }
 
