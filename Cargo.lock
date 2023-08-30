@@ -10269,10 +10269,17 @@ name = "relay-kusama-client"
 version = "0.1.0"
 dependencies = [
  "bp-kusama",
+ "bp-polkadot-core",
+ "parity-scale-codec",
  "relay-substrate-client",
  "relay-utils",
+ "scale-info",
+ "sp-consensus-grandpa",
  "sp-core",
+ "sp-runtime",
  "sp-session",
+ "sp-weights",
+ "subxt",
 ]
 
 [[package]]
@@ -10297,10 +10304,17 @@ name = "relay-polkadot-client"
 version = "0.1.0"
 dependencies = [
  "bp-polkadot",
+ "bp-polkadot-core",
+ "parity-scale-codec",
  "relay-substrate-client",
  "relay-utils",
+ "scale-info",
+ "sp-consensus-grandpa",
  "sp-core",
+ "sp-runtime",
  "sp-session",
+ "sp-weights",
+ "subxt",
 ]
 
 [[package]]
@@ -10344,11 +10358,18 @@ dependencies = [
 name = "relay-rococo-client"
 version = "0.1.0"
 dependencies = [
+ "bp-polkadot-core",
  "bp-rococo",
+ "parity-scale-codec",
  "relay-substrate-client",
  "relay-utils",
+ "scale-info",
+ "sp-consensus-grandpa",
  "sp-core",
+ "sp-runtime",
  "sp-session",
+ "sp-weights",
+ "subxt",
 ]
 
 [[package]]
@@ -10433,10 +10454,14 @@ dependencies = [
 name = "relay-wococo-client"
 version = "0.1.0"
 dependencies = [
+ "bp-polkadot-core",
  "bp-wococo",
+ "parity-scale-codec",
+ "relay-rococo-client",
  "relay-substrate-client",
  "relay-utils",
  "sp-core",
+ "sp-runtime",
  "sp-session",
 ]
 
@@ -10564,6 +10589,7 @@ dependencies = [
  "bp-header-chain",
  "bp-messages",
  "bp-millau",
+ "bp-polkadot-core",
  "bp-relayers",
  "bp-rialto-parachain",
  "bp-runtime",

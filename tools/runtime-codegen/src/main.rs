@@ -128,32 +128,38 @@ fn main() -> color_eyre::Result<()> {
 	type_substitutes
 		.extend(
 			vec![
-			TypeSubstitute::simple("sp_core::crypto::AccountId32"),
-			TypeSubstitute::custom("sp_weights::weight_v2::Weight", "::sp_weights::Weight"),
-			TypeSubstitute::custom("sp_runtime::generic::era::Era", "::sp_runtime::generic::Era"),
-			TypeSubstitute::custom(
-				"sp_runtime::generic::header::Header",
-				"::sp_runtime::generic::Header",
-			),
-			TypeSubstitute::simple("sp_runtime::traits::BlakeTwo256"),
-			TypeSubstitute::simple("bp_header_chain::justification::GrandpaJustification"),
-			TypeSubstitute::simple("bp_header_chain::InitializationData"),
-			TypeSubstitute::simple("bp_polkadot_core::parachains::ParaId"),
-			TypeSubstitute::simple("bp_polkadot_core::parachains::ParaHeadsProof"),
-			TypeSubstitute::simple(
-				"bp_messages::target_chain::FromBridgedChainMessagesProof",
-			),
-			TypeSubstitute::simple(
-				"bp_messages::source_chain::FromBridgedChainMessagesDeliveryProof",
-			),
-			TypeSubstitute::simple("bp_messages::UnrewardedRelayersState"),
-			TypeSubstitute::custom("bp_millau::millau_hash::MillauHash", "::bp_millau::MillauHash"),
-			TypeSubstitute::simple("bp_millau::BlakeTwoAndKeccak256"),
-			TypeSubstitute::custom(
-				"sp_runtime::generic::digest::Digest",
-				"::sp_runtime::generic::Digest",
-			),
-		]
+				TypeSubstitute::simple("sp_core::crypto::AccountId32"),
+				TypeSubstitute::custom("sp_weights::weight_v2::Weight", "::sp_weights::Weight"),
+				TypeSubstitute::custom(
+					"sp_runtime::generic::era::Era",
+					"::sp_runtime::generic::Era",
+				),
+				TypeSubstitute::custom(
+					"sp_runtime::generic::header::Header",
+					"::sp_runtime::generic::Header",
+				),
+				TypeSubstitute::simple("sp_runtime::traits::BlakeTwo256"),
+				TypeSubstitute::simple("sp_session::MembershipProof"),
+				TypeSubstitute::simple("sp_consensus_grandpa::EquivocationProof"),
+				TypeSubstitute::simple("bp_header_chain::justification::GrandpaJustification"),
+				TypeSubstitute::simple("bp_header_chain::InitializationData"),
+				TypeSubstitute::simple("bp_polkadot_core::parachains::ParaId"),
+				TypeSubstitute::simple("bp_polkadot_core::parachains::ParaHeadsProof"),
+				TypeSubstitute::simple("bp_messages::target_chain::FromBridgedChainMessagesProof"),
+				TypeSubstitute::simple(
+					"bp_messages::source_chain::FromBridgedChainMessagesDeliveryProof",
+				),
+				TypeSubstitute::simple("bp_messages::UnrewardedRelayersState"),
+				TypeSubstitute::custom(
+					"bp_millau::millau_hash::MillauHash",
+					"::bp_millau::MillauHash",
+				),
+				TypeSubstitute::simple("bp_millau::BlakeTwoAndKeccak256"),
+				TypeSubstitute::custom(
+					"sp_runtime::generic::digest::Digest",
+					"::sp_runtime::generic::Digest",
+				),
+			]
 			.drain(..)
 			.map(|substitute| (substitute.subxt_type, substitute.substitute.try_into().unwrap())),
 		)
