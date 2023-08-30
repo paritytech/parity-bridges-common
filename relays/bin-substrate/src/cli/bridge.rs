@@ -19,8 +19,8 @@ use pallet_bridge_parachains::{RelayBlockHash, RelayBlockHasher, RelayBlockNumbe
 use relay_substrate_client::{Chain, ChainWithTransactions, Parachain, RelayChain};
 use strum::{EnumString, EnumVariantNames};
 use substrate_relay_helper::{
-	finality::SubstrateFinalitySyncPipeline, messages::SubstrateMessageLane,
-	parachains::SubstrateParachainsPipeline,
+	equivocation::SubstrateEquivocationDetectionPipeline, finality::SubstrateFinalitySyncPipeline,
+	messages::SubstrateMessageLane, parachains::SubstrateParachainsPipeline,
 };
 
 #[derive(Debug, PartialEq, Eq, EnumString, EnumVariantNames)]
@@ -56,6 +56,31 @@ pub trait RelayToRelayHeadersCliBridge: CliBridgeBase {
 	>;
 }
 
+/// Convenience trait that adds bounds to `CliBridgeBase`.
+pub trait RelayToRelayEquivocationDetectionCliBridgeBase: CliBridgeBase {
+	type BoundedSourceChain: ChainWithTransactions;
+}
+
+impl<T> RelayToRelayEquivocationDetectionCliBridgeBase for T
+where
+	T: CliBridgeBase,
+	T::Source: ChainWithTransactions,
+{
+	type BoundedSourceChain = T::Source;
+}
+
+/// Bridge representation that can be used from the CLI for detecting equivocations
+/// in the headers synchronized from a relay chain to a relay chain.
+pub trait RelayToRelayEquivocationDetectionCliBridge:
+	RelayToRelayEquivocationDetectionCliBridgeBase
+{
+	/// Equivocation detection pipeline.
+	type Equivocation: SubstrateEquivocationDetectionPipeline<
+		SourceChain = Self::Source,
+		TargetChain = Self::Target,
+	>;
+}
+
 /// Bridge representation that can be used from the CLI for relaying headers
 /// from a parachain to a relay chain.
 pub trait ParachainToRelayHeadersCliBridge: CliBridgeBase
@@ -75,6 +100,23 @@ where
 	>;
 	/// Finality proofs synchronization pipeline (source relay chain -> target).
 	type RelayFinality: SubstrateFinalitySyncPipeline<
+		SourceChain = Self::SourceRelay,
+		TargetChain = Self::Target,
+	>;
+}
+
+/// Bridge representation that can be used from the CLI for detecting equivocations
+/// in the headers that are synchronized from a parachain to a relay chain.
+pub trait ParachainToRelayEquivocationDetectionCliBridge: CliBridgeBase {
+	// The `CliBridgeBase` type represents the parachain in this situation.
+	// We need to add an extra type for the relay chain.
+	type SourceRelay: Chain<BlockNumber = RelayBlockNumber, Hash = RelayBlockHash, Hasher = RelayBlockHasher>
+		+ ChainWithTransactions
+		+ CliChain
+		+ RelayChain;
+
+	/// Equivocation detection pipeline (source relay chain -> target).
+	type RelayEquivocation: SubstrateEquivocationDetectionPipeline<
 		SourceChain = Self::SourceRelay,
 		TargetChain = Self::Target,
 	>;

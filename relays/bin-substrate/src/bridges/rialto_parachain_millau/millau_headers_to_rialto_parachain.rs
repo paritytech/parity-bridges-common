@@ -34,7 +34,10 @@
 
 //! Millau-to-RialtoParachain headers sync entrypoint.
 
-use crate::cli::bridge::{CliBridgeBase, MessagesCliBridge, RelayToRelayHeadersCliBridge};
+use crate::cli::bridge::{
+	CliBridgeBase, MessagesCliBridge, RelayToRelayEquivocationDetectionCliBridge,
+	RelayToRelayHeadersCliBridge,
+};
 use substrate_relay_helper::{
 	equivocation::{
 		DirectReportGrandpaEquivocationCallBuilder, SubstrateEquivocationDetectionPipeline,
@@ -80,6 +83,10 @@ impl CliBridgeBase for MillauToRialtoParachainCliBridge {
 
 impl RelayToRelayHeadersCliBridge for MillauToRialtoParachainCliBridge {
 	type Finality = MillauFinalityToRialtoParachain;
+}
+
+impl RelayToRelayEquivocationDetectionCliBridge for MillauToRialtoParachainCliBridge {
+	type Equivocation = MillauFinalityToRialtoParachain;
 }
 
 impl MessagesCliBridge for MillauToRialtoParachainCliBridge {
