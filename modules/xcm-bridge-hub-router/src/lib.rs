@@ -30,9 +30,8 @@
 
 #![cfg_attr(not(feature = "std"), no_std)]
 
-use bp_runtime::RangeInclusiveExt;
 use bp_xcm_bridge_hub_router::{
-	bridge_id_from_locations, Bridge, BridgeId, LocalXcmChannelManager,
+	bridge_id_from_locations, Bridge, BridgeId, LocalXcmChannelManager, RelievingBridgesQueue,
 };
 use codec::{Codec, Compact, CompactLen, Encode};
 use frame_support::traits::Get;
@@ -42,9 +41,11 @@ use xcm_builder::{ExporterFor, SovereignPaidRemoteExporter};
 
 pub use pallet::*;
 pub use weights::WeightInfo;
+pub use weights_ext::WeightInfoExt;
 
 pub mod benchmarking;
 pub mod weights;
+pub mod weights_ext;
 
 mod mock;
 
@@ -83,7 +84,11 @@ pub mod pallet {
 	#[pallet::config]
 	pub trait Config<I: 'static = ()>: frame_system::Config {
 		/// Benchmarks results from runtime we're plugged into.
-		type WeightInfo: WeightInfo;
+		type WeightInfo: WeightInfoExt;
+
+		/// Maximal number of bridges, supported by this pallet.
+		#[pallet::constant]
+		type MaxBridges: Get<u32> + Get<Option<u32>>;
 
 		/// Universal location of this runtime.
 		type UniversalLocation: Get<InteriorMultiLocation>;
@@ -94,8 +99,6 @@ pub mod pallet {
 		/// If not specified, allows all networks pass through.
 		type BridgedNetworkId: Get<NetworkId>;
 
-		/// Weight of the `ToBridgeHubSender::deliver` call.
-		type ToBridgeHubSendWeight: Get<Weight>;
 		/// Actual message sender (`HRMP` or `DMP`) to the sibling bridge hub location.
 		type ToBridgeHubSender: SendXcm;
 		/// Local XCM channel manager.
@@ -109,12 +112,18 @@ pub mod pallet {
 		type FeeAsset: Get<AssetId>;
 	}
 
+	/// A type alias for `ToBridgeHubSender` tiket. Such tickets are saved into runtime storage when
+	/// message is sent over suspended bridge. Later, when bridge is resumed, tickets are actually
+	/// delivered to the sibling/child bridge hub.
+	type ToBridgeHubTicket<T, I> = <<T as Config<I>>::ToBridgeHubSender as SendXcm>::Ticket;
+
 	#[pallet::pallet]
 	pub struct Pallet<T, I = ()>(PhantomData<(T, I)>);
 
 	#[pallet::hooks]
-	impl<T: Config<I>, I: 'static> Hooks<BlockNumberFor<T>> for Pallet<T, I> where
-		<T::ToBridgeHubSender as SendXcm>::Ticket: Codec,
+	impl<T: Config<I>, I: 'static> Hooks<BlockNumberFor<T>> for Pallet<T, I>
+	where
+		ToBridgeHubTicket<T, I>: Codec,
 	{
 		fn on_initialize(_n: BlockNumberFor<T>) -> Weight {
 			// if XCM channel is still congested, we don't change anything
@@ -142,104 +151,44 @@ pub mod pallet {
 			T::WeightInfo::on_initialize_when_non_congested()
 		}
 
-		fn on_idle(_block: BlockNumberFor<T>, remaining_weight: Weight) -> Weight {
-			// we need to read+update range + move (1 read + two writes) message
-			let suspended_messages_range_read_weight = Self::suspended_messages_range_read_weight();
-			let suspended_message_read_weight = Self::suspended_message_read_weight();
-			let deliver_message_weight = T::ToBridgeHubSendWeight::get();
+		fn on_idle(_block: BlockNumberFor<T>, mut remaining_weight: Weight) -> Weight {
+			// check if we can do anything given the remaining weight
 			let db_weight = T::DbWeight::get();
-			let min_required_weight = suspended_messages_range_read_weight
-				.saturating_add(suspended_message_read_weight)
-				.saturating_add(deliver_message_weight)
-				.saturating_add(db_weight.writes(2));
-			if remaining_weight.any_lt(min_required_weight) {
-				return Weight::zero();
+			if remaining_weight
+				.any_lt(T::WeightInfo::minimal_weight_to_process_suspended_messages(&db_weight))
+			{
+				return Weight::zero()
 			}
 
-			let mut total_used_weight = suspended_messages_range_read_weight;
-			SuspendedMessagesRange::<T, I>::mutate_exists(|range| {
-				// nothing to do if there are no suspended messages
-				let (mut message_index, range_end) = match *range {
-					Some((message_index, range_end)) => (message_index, range_end),
-					None => return,
+			// ok, we can - let's start servicing relieving bridges
+			RelievingBridges::<T, I>::mutate(|relieving_bridges| {
+				// remember that we have read the `RelievingBridges`
+				let read_weight = T::WeightInfo::relieving_bridges_read_weight();
+				let read_and_write_weight = read_weight.saturating_add(db_weight.writes(1));
+
+				// nothing to do if there are no relieving bridges
+				let queue = match relieving_bridges.take() {
+					Some(queue) if !queue.is_empty() => queue,
+					Some(_) => {
+						// this can be caused e.g. by corrupted storage
+						*relieving_bridges = None;
+						return read_and_write_weight
+					},
+					None => return read_weight,
 				};
 
-				// start delivering messages
-				while message_index <= range_end {
-					let mut message_used_weight = suspended_message_read_weight;
-					let message = match SuspendedMessages::<T, I>::take(message_index) {
-						Some(message) => message,
-						None => {
-							message_index += 1;
-							total_used_weight.saturating_reduce(Weight::from_parts(0, HARD_SUSPENDED_MESSAGE_SIZE_LIMIT as _));
+				// remember that we will update the `RelievingBridges` later
+				remaining_weight.saturating_reduce(
+					T::WeightInfo::relieving_bridges_read_weight()
+						.saturating_add(db_weight.writes(1)),
+				);
 
-							continue;
-						},
-					};
-					let message_len = message.len() as u32;
-					
-					// the `HARD_SUSPENDED_MESSAGE_SIZE_LIMIT` is quite large, so we want to decrease
-					// the size of PoV if actual message is smaller than this limit
-					message_used_weight.saturating_reduce(
-						Weight::from_parts(
-							0,
-							HARD_SUSPENDED_MESSAGE_SIZE_LIMIT
-								.saturating_sub(message_len.saturating_add(Compact::compact_len(&message_len) as _)) as _,
-						)
-					);
-
-					// decode the ticket
-					let ticket = match Decode::decode(&mut &message[..]) {
-						Ok(ticket) => ticket,
-						Err(e) => {
-							log::debug!(
-								target: LOG_TARGET,
-								"Failed to decode suspended bridge message {}: {:?}. The message is dropped",
-								message_index,
-								e,
-							);
-
-							message_index += 1;
-							total_used_weight.saturating_accrue(message_used_weight);
-							continue;
-						},
-					};
-
-					// deliver the message
-					match T::ToBridgeHubSender::deliver(ticket) {
-						Ok(_) => {
-							log::debug!(
-								target: LOG_TARGET,
-								"Sending suspended bridge message {}. {} suspended messages remaining",
-								message_index,
-								((message_index + 1)..=range_end).saturating_len(),
-							);
-						},
-						Err(e) => {
-							log::debug!(
-								target: LOG_TARGET,
-								"Failed to deliver bridge message {}: {:?}",
-								message_index,
-								e,
-							);
-						},
-					}
-
-					message_index += 1;
-					message_used_weight.saturating_accrue(deliver_message_weight);
-					total_used_weight.saturating_accrue(message_used_weight);
-				}
-
-				*range = if (message_index..=range_end).is_empty() {
-					None
-				} else {
-					Some((message_index, range_end))
-				};
-
-				total_used_weight.saturating_accrue(db_weight.writes(1))
-			});
-
-			total_used_weight
+				// try to service all relieving bridges
+				let (used_weight, queue) = Self::service_relieving_bridges(queue, remaining_weight);
+				*relieving_bridges =
+					queue.and_then(|queue| if queue.is_empty() { None } else { Some(queue) });
+				used_weight
+			})
 		}
 	}
 
@@ -249,7 +198,7 @@ pub mod pallet {
 		MINIMAL_DELIVERY_FEE_FACTOR
 	}
 
-	/// One (congestion-related) component of the number to multiply the base delivery fee by.
+	/// First (congestion-related) component of the number to multiply the base delivery fee by.
 	///
 	/// This factor is shared by all bridges, served by this pallet. For example, if this
 	/// chain (`Config::UniversalLocation`) opens two bridges (
@@ -266,21 +215,36 @@ pub mod pallet {
 	/// All registered bridges and their delivery fee factors.
 	#[pallet::storage]
 	#[pallet::getter(fn bridge)]
-	pub type Bridges<T: Config<I>, I: 'static = ()> =
-		StorageMap<_, Identity, BridgeId, Bridge<BlockNumberFor<T>>>;
+	pub type Bridges<T: Config<I>, I: 'static = ()> = StorageMap<
+		Hasher = Identity,
+		Key = BridgeId,
+		Value = Bridge<BlockNumberFor<T>>,
+		QueryKind = OptionQuery,
+		OnEmpty = GetDefault,
+		MaxValues = T::MaxBridges,
+	>;
 
-	/// 
+	/// Identifiers of bridges, which have been resumed and still have suspended messages. Once
+	/// all suspended messages are pushed further, the bridge identifier is removed from this
+	/// vector.
 	#[pallet::storage]
-	pub type SuspendedMessagesRange<T: Config<I>, I: 'static = ()> =
-		StorageValue<_, (u64, u64), OptionQuery>;
+	pub type RelievingBridges<T: Config<I>, I: 'static = ()> =
+		StorageValue<_, RelievingBridgesQueue<T::MaxBridges>, OptionQuery>;
 
-	///
+	/// All currently suspended messages.
 	#[pallet::storage]
-	pub type SuspendedMessages<T: Config<I>, I: 'static = ()> =
-		StorageMap<_, Identity, u64, BoundedVec<u8, ConstU32<HARD_SUSPENDED_MESSAGE_SIZE_LIMIT>>>; // TODO: const
+	pub type SuspendedMessages<T: Config<I>, I: 'static = ()> = StorageDoubleMap<
+		_,
+		Identity,
+		BridgeId,
+		Identity,
+		u64,
+		BoundedVec<u8, ConstU32<HARD_SUSPENDED_MESSAGE_SIZE_LIMIT>>,
+	>;
 
-	impl<T: Config<I>, I: 'static> Pallet<T, I> where
-		<T::ToBridgeHubSender as SendXcm>::Ticket: Encode,
+	impl<T: Config<I>, I: 'static> Pallet<T, I>
+	where
+		ToBridgeHubTicket<T, I>: Decode,
 	{
 		/// Called when we receive a bridge-suspended signal.
 		pub fn on_bridge_suspended(bridge_id: BridgeId) {
@@ -293,6 +257,26 @@ pub mod pallet {
 		pub fn on_bridge_resumed(bridge_id: BridgeId) {
 			Bridges::<T, I>::mutate_extant(bridge_id, |bridge| {
 				bridge.bridge_resumed_at = Some(frame_system::Pallet::<T>::block_number());
+				if !bridge.suspended_messages().is_empty() {
+					RelievingBridges::<T, I>::mutate(|relieving_bridges| {
+						// it shall not fail if everything is configured properly, because number
+						// of relieving bridges is equal to maximal number of bridges
+						match relieving_bridges {
+							Some(queue) => {
+								let _ = queue.try_push(bridge_id).map_err(|_| {
+									log::info!(
+										target: LOG_TARGET,
+										"Failed to remember relieving bridge {:?}. Suspended messages may \
+										never be delivered or delivered out of order",
+										bridge_id,
+									);
+								});
+							},
+							None =>
+								*relieving_bridges = Some(RelievingBridgesQueue::with(bridge_id)),
+						}
+					});
+				}
 			});
 		}
 
@@ -339,14 +323,175 @@ pub mod pallet {
 			});
 		}
 
-		/// Return weight of reading the `SuspendedMessagesRange` value.
-		fn suspended_messages_range_read_weight() -> Weight {
-			Weight::zero() // TODO
+		/// Service all relieving bridges.
+		fn service_relieving_bridges(
+			mut queue: RelievingBridgesQueue<T::MaxBridges>,
+			mut remaining_weight: Weight,
+		) -> (Weight, Option<RelievingBridgesQueue<T::MaxBridges>>) {
+			let original_remaining_weight = remaining_weight.clone();
+			let db_weight = T::DbWeight::get();
+			let minimal_required_weight_for_bridge =
+				T::WeightInfo::minimal_weight_to_process_relieving_bridge(&db_weight);
+			loop {
+				// select next relieving bridge
+				let bridge_id = match queue.current() {
+					Some(bridge_id) => bridge_id.clone(),
+					None => {
+						// corrupted storage, let's restart iteration
+						queue.reset_current();
+						continue
+					},
+				};
+
+				// deliver suspended messages of selected bridge
+				let (has_suspended_messages, used_weight) =
+					Self::service_relieving_bridge(bridge_id, remaining_weight).unwrap_or_else(
+						|used_weight|
+					// it means that the bridge has been deleted. We won't try to service this bridge
+					// again AND if there are suspended messages in the `SuspendedMessages` map, they'll
+					// live there forever - it is the incorrect upgrade and we can't fight that
+					(false, used_weight),
+					);
+
+				// remember that we have spent `used_weight` on servicing the `bridge_id`
+				remaining_weight.saturating_reduce(used_weight);
+
+				// update the `next_index` and/or remove the bridge
+				if !has_suspended_messages {
+					queue.remove_current();
+				} else {
+					queue.advance();
+				}
+
+				// if remaining weight is less than the weight required to service at least one
+				// bridge => let's stop iteration
+				if queue.is_empty() || remaining_weight.any_lt(minimal_required_weight_for_bridge) {
+					return (original_remaining_weight.saturating_sub(remaining_weight), Some(queue))
+				}
+			}
 		}
 
-		/// Return weight of reading the maximal size message from `SuspendedMessages`.
-		fn suspended_message_read_weight() -> Weight {
-			Weight::zero() // TODO
+		/// Send suspended messages of given relieving bridge.
+		///
+		/// Returns used weight, wrapped into `Result` type. The return value is `Ok(_)` if we have
+		/// found the bridge in the storage. It is `Err(_)` otherwise.
+		fn service_relieving_bridge(
+			bridge_id: BridgeId,
+			mut remaining_weight: Weight,
+		) -> Result<(bool, Weight), Weight> {
+			let original_remaining_weight = remaining_weight.clone();
+			let db_weight = T::DbWeight::get();
+			Bridges::<T, I>::mutate(bridge_id, |bridge| {
+				// if there's no such bridge, we don't need to service it
+				let mut mut_bridge =
+					bridge.take().ok_or_else(|| T::WeightInfo::bridge_read_weight())?;
+				let suspended_messages = mut_bridge.suspended_messages();
+
+				// remember that we have read and later will update the bridge
+				remaining_weight.saturating_reduce(
+					T::WeightInfo::bridge_read_weight().saturating_add(db_weight.writes(1)),
+				);
+
+				// send suspended messages
+				let mininal_required_weight_for_message =
+					T::WeightInfo::minimal_weight_to_process_suspended_message(&db_weight);
+				let mut message_index = *suspended_messages.start();
+				let messages_end = *suspended_messages.end();
+				loop {
+					let weight_used_by_message =
+						Self::send_suspended_message(bridge_id, message_index);
+					remaining_weight.saturating_reduce(weight_used_by_message);
+
+					message_index += 1;
+					if message_index > messages_end {
+						break
+					}
+					if remaining_weight.any_lt(mininal_required_weight_for_message) {
+						break
+					}
+				}
+
+				// update the storage value
+				let has_suspended_messages = !(message_index..=messages_end).is_empty();
+				mut_bridge.suspended_messages =
+					if has_suspended_messages { Some((message_index, messages_end)) } else { None };
+
+				// update the actual bridge
+				*bridge = Some(mut_bridge);
+
+				// weight that we have spent on servicing suspended messages
+				Ok((
+					has_suspended_messages,
+					original_remaining_weight.saturating_sub(remaining_weight),
+				))
+			})
+		}
+
+		/// Send suspended message with given index to the sibling/child bridge hub. Returns used
+		/// weight.
+		fn send_suspended_message(bridge_id: BridgeId, message_index: u64) -> Weight {
+			// by default we read maximal size message and remove it from the storage
+			let mut used_weight = T::WeightInfo::suspended_message_read_weight()
+				.saturating_add(T::DbWeight::get().writes(1));
+
+			// let's read remove message from the runtime storage
+			let message = SuspendedMessages::<T, I>::take(bridge_id, message_index);
+			let message_len = message.as_ref().map(|message| message.len()).unwrap_or(0);
+
+			// the `HARD_SUSPENDED_MESSAGE_SIZE_LIMIT` is quite large, so we want to decrease
+			// the size of PoV if actual message is smaller than this limit
+			let message_len_len = Compact::compact_len(&(message_len as u32)) as u32;
+			used_weight.saturating_reduce(Weight::from_parts(
+				0,
+				HARD_SUSPENDED_MESSAGE_SIZE_LIMIT
+					.saturating_sub((message_len as u32).saturating_add(message_len_len)) as u64,
+			));
+
+			// if message is missing from the storage (meaning something is corrupted), we are
+			// not doing anything else
+			let message = if let Some(message) = message { message } else { return used_weight };
+
+			// the message is the encoded ticket for `T::ToBridgeHubSender`. Let's try to decode it
+			let ticket = match Decode::decode(&mut &message[..]) {
+				Ok(ticket) => ticket,
+				Err(e) => {
+					log::debug!(
+						target: LOG_TARGET,
+						"Failed to decode relieving bridge {:?} message {} to {:?}: {:?}. The message is dropped",
+						bridge_id,
+						message_index,
+						T::SiblingBridgeHubLocation::get(),
+						e,
+					);
+
+					return used_weight
+				},
+			};
+
+			// finally - deliver the ticket
+			match T::ToBridgeHubSender::deliver(ticket) {
+				Ok(_) => {
+					log::debug!(
+						target: LOG_TARGET,
+						"Sending relieving bridge {:?} message {} to {:?}",
+						bridge_id,
+						message_index,
+						T::SiblingBridgeHubLocation::get(),
+					);
+				},
+				Err(e) => {
+					log::debug!(
+						target: LOG_TARGET,
+						"Failed to deliver relieving bridge {:?} message {} to {:?}: {:?}",
+						bridge_id,
+						message_index,
+						T::SiblingBridgeHubLocation::get(),
+						e,
+					);
+				},
+			}
+
+			used_weight.saturating_add(T::WeightInfo::to_bridge_hub_deliver_weight())
 		}
 	}
 }
@@ -436,8 +581,9 @@ impl<T: Config<I>, I: 'static> ExporterFor for Pallet<T, I> {
 // This pallet acts as the `SendXcm` to the sibling/child bridge hub instead of regular
 // XCMP/DMP transport. This allows injecting dynamic message fees into XCM programs that
 // are going to the bridged network.
-impl<T: Config<I>, I: 'static> SendXcm for Pallet<T, I> where
-	<T::ToBridgeHubSender as SendXcm>::Ticket: Encode,
+impl<T: Config<I>, I: 'static> SendXcm for Pallet<T, I>
+where
+	<T::ToBridgeHubSender as SendXcm>::Ticket: Codec,
 {
 	type Ticket = (BridgeId, u32, <T::ToBridgeHubSender as SendXcm>::Ticket);
 
@@ -488,18 +634,17 @@ impl<T: Config<I>, I: 'static> SendXcm for Pallet<T, I> where
 		// use router to enqueue message to the sibling/child bridge hub. This also should handle
 		// payment for passing through this queue.
 		let (bridge_id, message_size, ticket) = ticket;
-		let bridge = Bridges::<T, I>::get(bridge_id).ok_or_else(|| SendError::Transport("UnknownBridge"))?;
+		let mut bridge =
+			Bridges::<T, I>::get(bridge_id).ok_or_else(|| SendError::Transport("UnknownBridge"))?;
 		let xcm_hash = if bridge.is_suspended() {
 			let xcm_hash = Default::default(); // TODO: what about message hash? is it important? where it is used?
-			let message_index = SuspendedMessagesRange::<T, I>::mutate(|range| {
-				let (start, end) = (*range).unwrap_or((1, 0));
-				let message_index = end + 1;
-				*range = Some((start, end));
-				message_index
-			});
+			let message_index = bridge.select_next_suspended_message_index();
+			Bridges::<T, I>::insert(bridge_id, bridge);
 			SuspendedMessages::<T, I>::insert(
+				bridge_id,
 				message_index,
-				BoundedVec::<_, _>::try_from(ticket.encode()).expect("TODO"));
+				BoundedVec::<_, _>::try_from(ticket.encode()).expect("TODO"),
+			);
 			xcm_hash
 		} else {
 			ViaBridgeHubExporter::<T, I>::deliver(ticket)?
@@ -534,8 +679,18 @@ mod tests {
 	fn insert_bridge() {
 		Bridges::<TestRuntime, ()>::insert(
 			bridge_id(),
-			Bridge { bridge_fee_factor: MINIMAL_DELIVERY_FEE_FACTOR, bridge_resumed_at: Some(0) },
+			Bridge {
+				bridge_fee_factor: MINIMAL_DELIVERY_FEE_FACTOR,
+				bridge_resumed_at: Some(0),
+				suspended_messages: None,
+			},
 		);
+	}
+
+	fn suspend_bridge() {
+		Bridges::<TestRuntime, ()>::mutate_extant(bridge_id(), |bridge| {
+			bridge.bridge_resumed_at = None;
+		});
 	}
 
 	#[test]
@@ -673,6 +828,29 @@ mod tests {
 
 			assert!(TestToBridgeHubSender::is_message_sent());
 			assert!(old_congestion_fee_factor < XcmBridgeHubRouter::congestion_fee_factor());
+		});
+	}
+
+	#[test]
+	fn sent_message_suspended_if_bridge_is_suspended() {
+		run_test(|| {
+			insert_bridge();
+			suspend_bridge();
+
+			assert_eq!(
+				send_xcm::<XcmBridgeHubRouter>(
+					bridge_destination_relative_location(),
+					vec![ClearOrigin].into(),
+				)
+				.map(drop),
+				Ok(()),
+			);
+
+			assert!(!TestToBridgeHubSender::is_message_sent());
+			assert_eq!(
+				XcmBridgeHubRouter::bridge(bridge_id()).map(|b| b.is_suspended()),
+				Some(true),
+			);
 		});
 	}
 }

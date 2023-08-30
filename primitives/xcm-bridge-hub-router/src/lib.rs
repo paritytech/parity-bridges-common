@@ -20,7 +20,8 @@
 
 use codec::{Decode, Encode, MaxEncodedLen};
 use scale_info::TypeInfo;
-use sp_runtime::{FixedU128, RuntimeDebug};
+use sp_runtime::{traits::Get, BoundedVec, FixedU128, RuntimeDebug};
+use sp_std::ops::RangeInclusive;
 
 pub use bp_xcm_bridge_hub::{
 	bridge_id_from_locations, bridge_locations, BridgeId, LocalXcmChannelManager,
@@ -38,11 +39,98 @@ pub struct Bridge<BlockNumber> {
 	/// A latest block, at which the bridge has been resumed. If bridge is currently
 	/// suspended, it is `None`.
 	pub bridge_resumed_at: Option<BlockNumber>,
+	/// Indices (inclusive range) of all currently suspended bridge messages.
+	pub suspended_messages: Option<(u64, u64)>,
 }
 
 impl<BlockNumber> Bridge<BlockNumber> {
 	/// Returns true if bridge is currently suspended.
 	pub fn is_suspended(&self) -> bool {
 		self.bridge_resumed_at.is_none()
+	}
+
+	/// Selects and returns index for next suspended message.
+	pub fn select_next_suspended_message_index(&mut self) -> u64 {
+		match self.suspended_messages {
+			Some((start, end)) => {
+				self.suspended_messages = Some((start, end + 1));
+				end + 1
+			},
+			None => {
+				self.suspended_messages = Some((1, 1));
+				1
+			},
+		}
+	}
+
+	/// Returns range of all currently suspended messages.
+	pub fn suspended_messages(&self) -> RangeInclusive<u64> {
+		self.suspended_messages.map(|(start, end)| start..=end).unwrap_or(1..=0)
+	}
+}
+
+/// Relieving bridges service queue.
+///
+/// Relieving bridge is the bridge that has been suspended some time ago, but now it is
+/// resumed. Some messages have been queued (and stuck in the router pallet - in other words
+/// "suspended") while it has been suspended. So the router tries to deliver all such
+/// messages for relieving bridges. Once there's no more suspended messages, the bridge is
+/// back to normal mode - we don't call it relieved anymore.
+#[derive(Clone, Decode, Encode, Eq, PartialEq, TypeInfo, MaxEncodedLen, RuntimeDebug)]
+#[scale_info(skip_type_params(MaxBridges))]
+pub struct RelievingBridgesQueue<MaxBridges: Get<u32>> {
+	/// An index within the `self.bridges` of next relieving bridge that needs some service.
+	pub current: u32,
+	/// All relieving bridges.
+	pub bridges: BoundedVec<BridgeId, MaxBridges>,
+}
+
+impl<MaxBridges: Get<u32>> RelievingBridgesQueue<MaxBridges> {
+	/// Creates a queue with single item.
+	pub fn with(bridge_id: BridgeId) -> Self {
+		RelievingBridgesQueue {
+			current: 0,
+			bridges: {
+				let mut bridges = BoundedVec::new();
+				bridges.force_push(bridge_id);
+				bridges
+			},
+		}
+	}
+
+	/// Push another bridges onto the queue.
+	pub fn try_push(&mut self, bridge_id: BridgeId) -> Result<(), BridgeId> {
+		self.bridges.try_push(bridge_id)
+	}
+
+	/// Returns true if the queue is empty.
+	pub fn is_empty(&self) -> bool {
+		self.bridges.is_empty()
+	}
+
+	/// Reset current position.
+	pub fn reset_current(&mut self) {
+		self.current = 0;
+	}
+
+	/// Returns current bridge identifier.
+	pub fn current(&self) -> Option<BridgeId> {
+		self.bridges.get(self.current as usize).cloned()
+	}
+
+	/// Remove current bridge from the queue.
+	pub fn remove_current(&mut self) {
+		self.bridges.remove(self.current as usize);
+		if self.current as usize >= self.bridges.len() {
+			self.current = 0;
+		}
+	}
+
+	/// Advance current bridge position.
+	pub fn advance(&mut self) {
+		self.current += 1;
+		if self.current as usize >= self.bridges.len() {
+			self.current = 0;
+		}
 	}
 }

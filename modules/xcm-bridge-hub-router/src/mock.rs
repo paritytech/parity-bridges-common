@@ -22,7 +22,7 @@ use bp_xcm_bridge_hub_router::{BridgeId, LocalXcmChannelManager};
 use frame_support::{construct_runtime, parameter_types};
 use sp_core::H256;
 use sp_runtime::{
-	traits::{BlakeTwo256, ConstU128, IdentityLookup},
+	traits::{BlakeTwo256, ConstU128, ConstU32, IdentityLookup},
 	BuildStorage,
 };
 use xcm::prelude::*;
@@ -51,7 +51,6 @@ parameter_types! {
 	pub UniversalLocation: InteriorMultiLocation = X2(GlobalConsensus(ThisNetworkId::get()), Parachain(1000));
 	pub SiblingBridgeHubLocation: MultiLocation = ParentThen(X1(Parachain(1002))).into();
 	pub BridgeFeeAsset: AssetId = MultiLocation::parent().into();
-	pub ToBridgeHubSendWeight: Weight = Weight::zero();
 }
 
 impl frame_system::Config for TestRuntime {
@@ -83,11 +82,12 @@ impl frame_system::Config for TestRuntime {
 impl pallet_xcm_bridge_hub_router::Config<()> for TestRuntime {
 	type WeightInfo = ();
 
+	type MaxBridges = ConstU32<2>;
+
 	type UniversalLocation = UniversalLocation;
 	type SiblingBridgeHubLocation = SiblingBridgeHubLocation;
 	type BridgedNetworkId = BridgedNetworkId;
 
-	type ToBridgeHubSendWeight = ToBridgeHubSendWeight;
 	type ToBridgeHubSender = TestToBridgeHubSender;
 	type LocalXcmChannelManager = TestLocalXcmChannelManager;
 
