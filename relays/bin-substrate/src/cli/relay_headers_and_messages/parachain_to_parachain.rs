@@ -18,10 +18,7 @@ use async_trait::async_trait;
 use std::sync::Arc;
 
 use crate::cli::{
-	bridge::{
-		CliBridgeBase, MessagesCliBridge, ParachainToRelayEquivocationDetectionCliBridge,
-		ParachainToRelayHeadersCliBridge,
-	},
+	bridge::{CliBridgeBase, MessagesCliBridge, ParachainToRelayHeadersCliBridge},
 	relay_headers_and_messages::{Full2WayBridgeBase, Full2WayBridgeCommonParams},
 	CliChain, DefaultClient,
 };
@@ -32,7 +29,6 @@ use relay_substrate_client::{
 };
 use sp_core::Pair;
 use substrate_relay_helper::{
-	equivocation,
 	finality::SubstrateFinalitySyncPipeline,
 	on_demand::{
 		headers::OnDemandHeadersRelay, parachains::OnDemandParachainsRelay, OnDemandRelay,
@@ -45,12 +41,8 @@ use substrate_relay_helper::{
 /// Such relay starts 2 messages relay. It also starts 2 on-demand header relays and 2 on-demand
 /// parachain heads relay.
 pub struct ParachainToParachainBridge<
-	L2R: MessagesCliBridge
-		+ ParachainToRelayHeadersCliBridge
-		+ ParachainToRelayEquivocationDetectionCliBridge,
-	R2L: MessagesCliBridge
-		+ ParachainToRelayHeadersCliBridge
-		+ ParachainToRelayEquivocationDetectionCliBridge,
+	L2R: MessagesCliBridge + ParachainToRelayHeadersCliBridge,
+	R2L: MessagesCliBridge + ParachainToRelayHeadersCliBridge,
 > where
 	<L2R as CliBridgeBase>::Source: Parachain,
 	<R2L as CliBridgeBase>::Source: Parachain,
@@ -58,20 +50,10 @@ pub struct ParachainToParachainBridge<
 	/// Parameters that are shared by all bridge types.
 	pub common:
 		Full2WayBridgeCommonParams<<R2L as CliBridgeBase>::Target, <L2R as CliBridgeBase>::Target>,
-
 	/// Client of the left relay chain.
 	pub left_relay: DefaultClient<<L2R as ParachainToRelayHeadersCliBridge>::SourceRelay>,
-	/// Params used for creating transactions on the left relay chain.
-	pub left_relay_tx_params: TransactionParams<
-		AccountKeyPairOf<<L2R as ParachainToRelayEquivocationDetectionCliBridge>::SourceRelay>,
-	>,
-
 	/// Client of the right relay chain.
 	pub right_relay: DefaultClient<<R2L as ParachainToRelayHeadersCliBridge>::SourceRelay>,
-	/// Params used for creating transactions on the right relay chain.
-	pub right_relay_tx_params: TransactionParams<
-		AccountKeyPairOf<<R2L as ParachainToRelayEquivocationDetectionCliBridge>::SourceRelay>,
-	>,
 
 	/// Override for right_relay->left headers signer.
 	pub right_headers_to_left_transaction_params:
@@ -113,9 +95,6 @@ macro_rules! declare_parachain_to_parachain_bridge_schema {
 
 				#[structopt(flatten)]
 				left_relay: [<$left_chain ConnectionParams>],
-				// default signer, which is always used to sign transactions on the left relay chain
-				#[structopt(flatten)]
-				left_relay_sign: [<$left_chain SigningParams>],
 
 				#[structopt(flatten)]
 				right: [<$right_parachain ConnectionParams>],
@@ -131,25 +110,20 @@ macro_rules! declare_parachain_to_parachain_bridge_schema {
 
 				#[structopt(flatten)]
 				right_relay: [<$right_chain ConnectionParams>],
-				// default signer, which is always used to sign transactions on the right relay chain
-				#[structopt(flatten)]
-				right_relay_sign: [<$right_chain SigningParams>],
 			}
 
 			impl [<$left_parachain $right_parachain HeadersAndMessages>] {
 				async fn into_bridge<
 					Left: ChainWithTransactions + CliChain + Parachain,
-					LeftRelay: ChainWithTransactions + CliChain,
+					LeftRelay: CliChain,
 					Right: ChainWithTransactions + CliChain + Parachain,
-					RightRelay: ChainWithTransactions + CliChain,
+					RightRelay: CliChain,
 					L2R: CliBridgeBase<Source = Left, Target = Right>
 						+ MessagesCliBridge
-						+ ParachainToRelayHeadersCliBridge<SourceRelay = LeftRelay>
-				        + ParachainToRelayEquivocationDetectionCliBridge<SourceRelay = LeftRelay>,
+						+ ParachainToRelayHeadersCliBridge<SourceRelay = LeftRelay>,
 					R2L: CliBridgeBase<Source = Right, Target = Left>
 						+ MessagesCliBridge
-						+ ParachainToRelayHeadersCliBridge<SourceRelay = RightRelay>
-				        + ParachainToRelayEquivocationDetectionCliBridge<SourceRelay = RightRelay>,
+						+ ParachainToRelayHeadersCliBridge<SourceRelay = RightRelay>,
 				>(
 					self,
 				) -> anyhow::Result<ParachainToParachainBridge<L2R, R2L>> {
@@ -168,9 +142,7 @@ macro_rules! declare_parachain_to_parachain_bridge_schema {
 							},
 						)?,
 						left_relay: self.left_relay.into_client::<LeftRelay>().await?,
-						left_relay_tx_params: self.left_relay_sign.transaction_params::<LeftRelay>()?,
 						right_relay: self.right_relay.into_client::<RightRelay>().await?,
-						right_relay_tx_params: self.right_relay_sign.transaction_params::<RightRelay>()?,
 						right_headers_to_left_transaction_params: self
 							.right_relay_headers_to_left_sign_override
 							.transaction_params_or::<Left, _>(&self.left_sign)?,
@@ -194,24 +166,16 @@ macro_rules! declare_parachain_to_parachain_bridge_schema {
 impl<
 		Left: Chain<Hash = ParaHash> + ChainWithTransactions + CliChain + Parachain,
 		Right: Chain<Hash = ParaHash> + ChainWithTransactions + CliChain + Parachain,
-		LeftRelay: ChainWithTransactions<
-				BlockNumber = RelayBlockNumber,
-				Hash = RelayBlockHash,
-				Hasher = RelayBlockHasher,
-			> + CliChain,
-		RightRelay: ChainWithTransactions<
-				BlockNumber = RelayBlockNumber,
-				Hash = RelayBlockHash,
-				Hasher = RelayBlockHasher,
-			> + CliChain,
+		LeftRelay: Chain<BlockNumber = RelayBlockNumber, Hash = RelayBlockHash, Hasher = RelayBlockHasher>
+			+ CliChain,
+		RightRelay: Chain<BlockNumber = RelayBlockNumber, Hash = RelayBlockHash, Hasher = RelayBlockHasher>
+			+ CliChain,
 		L2R: CliBridgeBase<Source = Left, Target = Right>
 			+ MessagesCliBridge
-			+ ParachainToRelayHeadersCliBridge<SourceRelay = LeftRelay>
-			+ ParachainToRelayEquivocationDetectionCliBridge<SourceRelay = LeftRelay>,
+			+ ParachainToRelayHeadersCliBridge<SourceRelay = LeftRelay>,
 		R2L: CliBridgeBase<Source = Right, Target = Left>
 			+ MessagesCliBridge
-			+ ParachainToRelayHeadersCliBridge<SourceRelay = RightRelay>
-			+ ParachainToRelayEquivocationDetectionCliBridge<SourceRelay = RightRelay>,
+			+ ParachainToRelayHeadersCliBridge<SourceRelay = RightRelay>,
 	> Full2WayBridgeBase for ParachainToParachainBridge<L2R, R2L>
 where
 	AccountIdOf<Left>: From<<AccountKeyPairOf<Left> as Pair>::Public>,
@@ -313,33 +277,5 @@ where
 			Arc::new(left_to_right_on_demand_parachains),
 			Arc::new(right_to_left_on_demand_parachains),
 		))
-	}
-
-	fn start_equivocation_detection_loops(&self) {
-		// left to right loop
-		let left_client = self.left_relay.clone();
-		let right_client = self.common.right.client.clone();
-		let transaction_params = self.left_relay_tx_params.clone();
-		async_std::task::spawn(async move {
-			let _ = equivocation::run::<L2R::RelayEquivocation>(
-				left_client,
-				right_client,
-				transaction_params,
-			)
-			.await;
-		});
-
-		// right to left loop
-		let right_client = self.right_relay.clone();
-		let left_client = self.common.left.client.clone();
-		let transaction_params = self.right_relay_tx_params.clone();
-		async_std::task::spawn(async move {
-			let _ = equivocation::run::<R2L::RelayEquivocation>(
-				right_client,
-				left_client,
-				transaction_params,
-			)
-			.await;
-		});
 	}
 }

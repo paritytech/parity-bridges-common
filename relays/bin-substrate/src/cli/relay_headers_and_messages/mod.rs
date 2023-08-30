@@ -59,8 +59,8 @@ use crate::{
 	},
 	cli::{
 		bridge::{
-			CliBridgeBase, MessagesCliBridge, ParachainToRelayEquivocationDetectionCliBridge,
-			ParachainToRelayHeadersCliBridge, RelayToRelayHeadersCliBridge,
+			CliBridgeBase, MessagesCliBridge, ParachainToRelayHeadersCliBridge,
+			RelayToRelayHeadersCliBridge,
 		},
 		chain_schema::*,
 		relay_headers_and_messages::parachain_to_parachain::ParachainToParachainBridge,
@@ -131,7 +131,7 @@ impl<Left: ChainWithTransactions + CliChain, Right: ChainWithTransactions + CliC
 pub struct BridgeEndCommonParams<Chain: ChainWithTransactions + CliChain> {
 	/// Chain client.
 	pub client: DefaultClient<Chain>,
-	/// Params used for creating transactions on the chain.
+	/// Params used for sending transactions to the chain.
 	pub tx_params: TransactionParams<AccountKeyPairOf<Chain>>,
 	/// Accounts, which balances are exposed as metrics by the relay process.
 	pub accounts: Vec<TaggedAccount<AccountIdOf<Chain>>>,
@@ -261,9 +261,6 @@ trait Full2WayBridgeBase: Sized + Send + Sync {
 		Arc<dyn OnDemandRelay<Self::Left, Self::Right>>,
 		Arc<dyn OnDemandRelay<Self::Right, Self::Left>>,
 	)>;
-
-	/// Start equivocation detection loops.
-	fn start_equivocation_detection_loops(&self);
 }
 
 /// Bidirectional complex relay.
@@ -335,8 +332,6 @@ where
 		// start on-demand header relays
 		let (left_to_right_on_demand_headers, right_to_left_on_demand_headers) =
 			self.mut_base().start_on_demand_headers_relayers().await?;
-
-		self.mut_base().start_equivocation_detection_loops();
 
 		// add balance-related metrics
 		let lanes = self
@@ -675,10 +670,6 @@ mod tests {
 			"rialto-node-alice",
 			"--rialto-port",
 			"9944",
-			"--rialto-signer",
-			"//Charlie",
-			"--rialto-transactions-mortality",
-			"64",
 			"--lane",
 			"0000000000000000000000000000000000000000000000000000000000000000",
 			"--prometheus-host",
@@ -764,13 +755,6 @@ mod tests {
 							rialto_spec_version: None,
 							rialto_transaction_version: None,
 						},
-					},
-					right_relay_sign: RialtoSigningParams {
-						rialto_signer: Some("//Charlie".into()),
-						rialto_signer_password: None,
-						rialto_signer_file: None,
-						rialto_signer_password_file: None,
-						rialto_transactions_mortality: Some(64),
 					},
 				}
 			),

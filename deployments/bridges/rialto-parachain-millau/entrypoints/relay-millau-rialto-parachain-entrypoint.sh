@@ -39,7 +39,5 @@ exec /home/user/substrate-relay relay-headers-and-messages millau-rialto-paracha
 	--rialto-parachain-transactions-mortality=64 \
 	--rialto-host rialto-node-alice \
 	--rialto-port 9944 \
-  --rialto-signer //Millau.HeadersAndMessagesRelay \
-  --rialto-transactions-mortality=64 \
 	--lane=$MESSAGE_LANE \
 	--prometheus-host=0.0.0.0
