@@ -16,7 +16,8 @@
 
 //! Types used to connect to the BridgeHub-Polkadot-Substrate parachain.
 
-use bp_bridge_hub_polkadot::{BridgeHubSignedExtension, AVERAGE_BLOCK_INTERVAL};
+use bp_bridge_hub_polkadot::AVERAGE_BLOCK_INTERVAL;
+use bp_polkadot_core::SuffixedCommonSignedExtensionExt;
 use codec::Encode;
 use relay_substrate_client::{
 	Chain, ChainWithBalances, ChainWithMessages, ChainWithTransactions, ChainWithUtilityPallet,
@@ -76,6 +77,7 @@ impl ChainWithTransactions for BridgeHubPolkadot {
 				param.genesis_hash,
 				unsigned.nonce,
 				unsigned.tip,
+				(((), ()), ((), ())),
 			),
 		)?;
 

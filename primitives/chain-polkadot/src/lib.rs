@@ -23,7 +23,9 @@ pub use bp_polkadot_core::*;
 use frame_support::StateVersion;
 
 use bp_header_chain::ChainWithGrandpa;
-use bp_runtime::{decl_bridge_finality_runtime_apis, Chain, ChainId};
+use bp_runtime::{
+	decl_bridge_finality_runtime_apis, extensions::PrevalidateAttests, Chain, ChainId,
+};
 use frame_support::weights::Weight;
 use sp_std::prelude::Vec;
 
@@ -62,6 +64,9 @@ impl ChainWithGrandpa for Polkadot {
 	const MAX_HEADER_SIZE: u32 = MAX_HEADER_SIZE;
 	const AVERAGE_HEADER_SIZE_IN_JUSTIFICATION: u32 = AVERAGE_HEADER_SIZE_IN_JUSTIFICATION;
 }
+
+/// The SignedExtension used by Polkadot.
+pub type SignedExtension = SuffixedCommonSignedExtension<PrevalidateAttests>;
 
 /// Name of the parachains pallet in the Polkadot runtime.
 pub const PARAS_PALLET_NAME: &str = "Paras";

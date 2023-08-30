@@ -18,7 +18,7 @@
 
 pub mod codegen_runtime;
 
-use bp_bridge_hub_cumulus::BridgeHubSignedExtension;
+use bp_polkadot_core::SuffixedCommonSignedExtensionExt;
 use codec::Encode;
 use relay_substrate_client::{
 	Chain, ChainWithBalances, ChainWithMessages, ChainWithTransactions, Error as SubstrateError,
@@ -89,6 +89,7 @@ impl ChainWithTransactions for RialtoParachain {
 				param.genesis_hash,
 				unsigned.nonce,
 				unsigned.tip,
+				(((), ()), ((), ())),
 			),
 		)?;
 
