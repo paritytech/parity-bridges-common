@@ -1,4 +1,4 @@
-# Exposed ports: 10616, 10617, 10618, 10619
+# Exposed ports: 10200-10203
 
 version: '3.5'
 services:
@@ -10,7 +10,7 @@ services:
     environment:
       RUST_LOG: rpc=trace,bridge=trace
     ports:
-      - "10616:9616"
+      - "10200:9616"
     depends_on:
       - millau-node-alice
 
@@ -23,7 +23,7 @@ services:
       RUST_LOG: rpc=trace,bridge=trace
       EXT_RELAY_ACCOUNT: //Westend.HeadersRelay2
     ports:
-      - "10617:9616"
+      - "10201:9616"
     depends_on:
       - millau-node-alice
 
@@ -35,7 +35,7 @@ services:
     environment:
       RUST_LOG: rpc=trace,bridge=trace
     ports:
-      - "10618:9616"
+      - "10202:9616"
     depends_on:
       - millau-node-alice
 
@@ -48,7 +48,7 @@ services:
       RUST_LOG: rpc=trace,bridge=trace
       EXT_RELAY_ACCOUNT: //Westend.AssetHubWestendHeaders2
     ports:
-      - "10619:9616"
+      - "10203:9616"
     depends_on:
       - millau-node-alice
 
