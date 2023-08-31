@@ -8,10 +8,7 @@ if [ -z "${LOCAL:-}" ]; then
     time docker build . -t local/rialto-parachain-collator --build-arg=PROJECT=rialto-parachain-collator
 else
     if [ -z "${SKIP_BUILD:-}" ]; then
-        time cargo build -p substrate-relay --release
-        time cargo build -p rialto-bridge-node --release
-        time cargo build -p millau-bridge-node --release
-        time cargo build -p rialto-parachain-collator --release
+        time cargo build -p substrate-relay -p rialto-bridge-node -p millau-bridge-node -p rialto-parachain-collator --release
     fi
 
     # (try to) use docker image matching the host os
