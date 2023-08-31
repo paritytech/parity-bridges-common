@@ -1,4 +1,4 @@
-// Copyright 2019-2021 Parity Technologies (UK) Ltd.
+// Copyright (C) Parity Technologies (UK) Ltd.
 // This file is part of Parity Bridges Common.
 
 // Parity Bridges Common is free software: you can redistribute it and/or modify
@@ -29,7 +29,7 @@ use crate::{
 	},
 };
 
-use bp_messages::storage_keys;
+use bp_messages::{storage_keys, MessagePayload};
 use bp_polkadot_core::parachains::ParaHash;
 use bp_runtime::{
 	record_all_trie_keys, Chain, Parachain, RawStorageProof, StorageProofSize, UnderlyingChainOf,
@@ -45,7 +45,7 @@ use xcm::v3::prelude::*;
 /// Prepare inbound bridge message according to given message proof parameters.
 fn prepare_inbound_message(
 	params: &MessageProofParams,
-	destination: InteriorMultiLocation,
+	successful_dispatch_message_generator: impl Fn(usize) -> Vec<u8>,
 ) -> Vec<u8> {
 	// we only care about **this** message size when message proof needs to be `Minimal`
 	let expected_size = match params.size {
@@ -58,25 +58,10 @@ fn prepare_inbound_message(
 		return vec![0u8; expected_size]
 	}
 
-	// else let's prepare successful message. For XCM bridge hubs, it is the message that
-	// will be pushed further to some XCM queue (XCMP/UMP)
-	let location = xcm::VersionedInteriorMultiLocation::V3(destination);
-	let location_encoded_size = location.encoded_size();
-
-	// we don't need to be super-precise with `expected_size` here
-	let xcm_size = expected_size.saturating_sub(location_encoded_size);
-
-	// XCM V3 introduced limit for max instructions
-	const MAX_INSTRUCTIONS_TO_DECODE: u32 = 100;
-	let xcm_size = sp_std::cmp::min(xcm_size, MAX_INSTRUCTIONS_TO_DECODE as usize);
-
-	let xcm = xcm::VersionedXcm::<()>::V3(vec![Instruction::ClearOrigin; xcm_size].into());
-
-	// this is the `BridgeMessage` from polkadot xcm builder, but it has no constructor
-	// or public fields, so just tuple
-	// (double encoding, because `.encode()` is called on original Xcm BLOB when it is pushed
-	// to the storage)
-	(location, xcm).encode().encode()
+	// else let's prepare successful message.
+	let msg = successful_dispatch_message_generator(expected_size);
+	assert!(msg.len() >= expected_size);
+	msg
 }
 
 /// Prepare proof of messages for the `receive_messages_proof` call.
@@ -89,7 +74,7 @@ fn prepare_inbound_message(
 /// function.
 pub fn prepare_message_proof_from_grandpa_chain<R, FI, B>(
 	params: MessageProofParams,
-	message_destination: InteriorMultiLocation,
+	message_generator: impl Fn(usize) -> MessagePayload,
 ) -> (FromBridgedChainMessagesProof<HashOf<BridgedChain<B>>>, Weight)
 where
 	R: pallet_bridge_grandpa::Config<FI, BridgedChain = UnderlyingChainOf<BridgedChain<B>>>,
@@ -102,7 +87,7 @@ where
 		params.message_nonces.clone(),
 		params.outbound_lane_data.clone(),
 		params.size,
-		prepare_inbound_message(&params, message_destination),
+		prepare_inbound_message(&params, message_generator),
 		encode_all_messages,
 		encode_lane_data,
 	);
@@ -132,7 +117,7 @@ where
 /// `prepare_message_proof_from_grandpa_chain` function.
 pub fn prepare_message_proof_from_parachain<R, PI, B>(
 	params: MessageProofParams,
-	message_destination: InteriorMultiLocation,
+	message_generator: impl Fn(usize) -> Vec<u8>,
 ) -> (FromBridgedChainMessagesProof<HashOf<BridgedChain<B>>>, Weight)
 where
 	R: pallet_bridge_parachains::Config<PI>,
@@ -146,7 +131,7 @@ where
 		params.message_nonces.clone(),
 		params.outbound_lane_data.clone(),
 		params.size,
-		prepare_inbound_message(&params, message_destination),
+		prepare_inbound_message(&params, message_generator),
 		encode_all_messages,
 		encode_lane_data,
 	);
@@ -295,4 +280,45 @@ where
 	let bridged_header_hash = bridged_header.hash();
 	pallet_bridge_parachains::initialize_for_benchmarks::<R, PI, PC>(bridged_header);
 	(bridged_block_number, bridged_header_hash)
+}
+
+/// Returns callback which generates `BridgeMessage` from polkadot xcm builder based on `expected_message_size`.
+pub fn generate_xcm_builder_bridge_message_sample(
+	destination: InteriorMultiLocation,
+) -> impl Fn(usize) -> Vec<u8> {
+	move |expected_message_size| -> Vec<u8> {
+		// For XCM bridge hubs, it is the message that
+		// will be pushed further to some XCM queue (XCMP/UMP)
+		let location = xcm::VersionedInteriorMultiLocation::V3(destination);
+		let location_encoded_size = location.encoded_size();
+
+		// we don't need to be super-precise with `expected_size` here
+		let xcm_size = expected_message_size.saturating_sub(location_encoded_size);
+		let xcm_number_of_instructions =
+			xcm_size.saturating_div(Instruction::<()>::ClearOrigin.encoded_size()) + 1;
+		log::trace!(
+			target: "runtime::bridge-benchmarks",
+			"generate_xcm_builder_bridge_message_sample with expected_message_size: {}, location_encoded_size: {}, xcm_size: {}, xcm_number_of_instructions: {}, ClearOrigin.encoded_size: {}",
+			expected_message_size, location_encoded_size, xcm_size, xcm_number_of_instructions, Instruction::<()>::ClearOrigin.encoded_size(),
+		);
+
+		// XCM V3 introduced limit for max instructions
+		const MAX_INSTRUCTIONS_TO_DECODE: u32 = 100;
+		let xcm_number_of_instructions =
+			sp_std::cmp::min(xcm_number_of_instructions, MAX_INSTRUCTIONS_TO_DECODE as usize);
+		log::trace!(
+			target: "runtime::bridge-benchmarks",
+			"generate_xcm_builder_bridge_message_sample using xcm_number_of_instructions: {}", xcm_number_of_instructions
+		);
+
+		let xcm = xcm::VersionedXcm::<()>::V3(
+			vec![Instruction::ClearOrigin; xcm_number_of_instructions].into(),
+		);
+
+		// this is the `BridgeMessage` from polkadot xcm builder, but it has no constructor
+		// or public fields, so just tuple
+		// (double encoding, because `.encode()` is called on original Xcm BLOB when it is pushed
+		// to the storage)
+		(location, xcm).encode().encode()
+	}
 }
