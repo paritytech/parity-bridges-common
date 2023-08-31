@@ -73,6 +73,26 @@ services:
     depends_on:
       - relay-messages-millau-to-rialto-parachain-generator
 
+  detect-millau-to-rialto-parachain-equivocations:
+    <<: *sub-bridge-relay
+    environment:
+      RUST_LOG: bridge=trace
+    entrypoint: /entrypoints/detect-millau-to-rialto-parachain-equivocations-entrypoint.sh
+    ports:
+      - "11019:9616"
+    depends_on:
+      - relay-millau-rialto-parachain-1
+
+  detect-rialto-to-millau-equivocations:
+    <<: *sub-bridge-relay
+    environment:
+      RUST_LOG: bridge=trace
+    entrypoint: /entrypoints/detect-rialto-to-millau-equivocations-entrypoint.sh
+    ports:
+      - "11020:9616"
+    depends_on:
+      - relay-millau-rialto-parachain-1
+
   # Note: These are being overridden from the top level `monitoring` compose file.
   grafana-dashboard:
     environment:
