@@ -941,6 +941,7 @@ dependencies = [
  "frame-support",
  "parity-scale-codec",
  "scale-info",
+ "sp-runtime",
 ]
 
 [[package]]
@@ -983,6 +984,7 @@ dependencies = [
  "bp-runtime",
  "frame-support",
  "sp-api",
+ "sp-runtime",
  "sp-std 8.0.0 (git+https://github.com/paritytech/substrate?branch=master)",
 ]
 
@@ -995,6 +997,7 @@ dependencies = [
  "bp-runtime",
  "frame-support",
  "sp-api",
+ "sp-runtime",
  "sp-std 8.0.0 (git+https://github.com/paritytech/substrate?branch=master)",
 ]
 
@@ -1007,6 +1010,7 @@ dependencies = [
  "bp-runtime",
  "frame-support",
  "sp-api",
+ "sp-runtime",
  "sp-std 8.0.0 (git+https://github.com/paritytech/substrate?branch=master)",
 ]
 
@@ -1019,6 +1023,7 @@ dependencies = [
  "bp-runtime",
  "frame-support",
  "sp-api",
+ "sp-runtime",
  "sp-std 8.0.0 (git+https://github.com/paritytech/substrate?branch=master)",
 ]
 
@@ -1207,6 +1212,7 @@ dependencies = [
  "hash-db",
  "hex-literal 0.4.1",
  "impl-trait-for-tuples",
+ "log",
  "num-traits",
  "parity-scale-codec",
  "scale-info",
@@ -3999,7 +4005,7 @@ checksum = "d2411eed028cdf8c8034eaf21f9915f956b6c3abec4d4c7949ee67f0721127bd"
 dependencies = [
  "futures-io",
  "rustls 0.20.8",
- "webpki 0.22.0",
+ "webpki 0.22.1",
 ]
 
 [[package]]
@@ -5653,7 +5659,7 @@ dependencies = [
  "ring",
  "rustls 0.20.8",
  "thiserror",
- "webpki 0.22.0",
+ "webpki 0.22.1",
  "x509-parser 0.14.0",
  "yasna",
 ]
@@ -9870,7 +9876,7 @@ dependencies = [
  "thiserror",
  "tinyvec",
  "tracing",
- "webpki 0.22.0",
+ "webpki 0.22.1",
 ]
 
 [[package]]
@@ -10992,7 +10998,7 @@ dependencies = [
  "log",
  "ring",
  "sct 0.7.0",
- "webpki 0.22.0",
+ "webpki 0.22.1",
 ]
 
 [[package]]
@@ -14727,7 +14733,7 @@ checksum = "c43ee83903113e03984cb9e5cebe6c04a5116269e900e3ddba8f068a62adda59"
 dependencies = [
  "rustls 0.20.8",
  "tokio",
- "webpki 0.22.0",
+ "webpki 0.22.1",
 ]
 
 [[package]]
@@ -15103,7 +15109,7 @@ version = "1.6.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "97fee6b57c6a41524a810daee9286c02d7752c4253064d0b05472833a438f675"
 dependencies = [
- "cfg-if 1.0.0",
+ "cfg-if 0.1.10",
  "digest 0.10.7",
  "rand 0.8.5",
  "static_assertions",
@@ -15728,9 +15734,9 @@ dependencies = [
 
 [[package]]
 name = "webpki"
-version = "0.22.0"
+version = "0.22.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f095d78192e208183081cc07bc5515ef55216397af48b873e5edcd72637fa1bd"
+checksum = "f0e74f82d49d545ad128049b7e88f6576df2da6b02e9ce565c6f533be576957e"
 dependencies = [
  "ring",
  "untrusted",
@@ -15742,7 +15748,7 @@ version = "0.22.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b6c71e40d7d2c34a5106301fb632274ca37242cd0c9d3e64dbece371a40a2d87"
 dependencies = [
- "webpki 0.22.0",
+ "webpki 0.22.1",
 ]
 
 [[package]]
