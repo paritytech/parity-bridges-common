@@ -114,9 +114,9 @@ pub mod pallet {
 		type FeeAsset: Get<AssetId>;
 	}
 
-	/// A type alias for `ToBridgeHubSender` ticket. Such tickets are saved into runtime storage when
-	/// message is sent over suspended bridge. Later, when bridge is resumed, tickets are actually
-	/// delivered to the sibling/child bridge hub.
+	/// A type alias for `ToBridgeHubSender` ticket. Such tickets are saved into runtime storage
+	/// when message is sent over suspended bridge. Later, when bridge is resumed, tickets are
+	/// actually delivered to the sibling/child bridge hub.
 	pub type ToBridgeHubTicket<T, I> = <<T as Config<I>>::ToBridgeHubSender as SendXcm>::Ticket;
 
 	#[pallet::pallet]
