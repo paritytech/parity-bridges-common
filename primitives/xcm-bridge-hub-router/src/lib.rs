@@ -71,6 +71,7 @@ impl<BlockNumber> Bridge<BlockNumber> {
 
 	/// Returns range of all currently suspended messages.
 	pub fn suspended_messages(&self) -> RangeInclusive<u64> {
+		#[allow(clippy::reversed_empty_ranges)]
 		self.suspended_messages.map(|(start, end)| start..=end).unwrap_or(1..=0)
 	}
 }
