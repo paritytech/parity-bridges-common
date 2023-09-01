@@ -33,7 +33,7 @@ impl CliEncodeMessage for RialtoParachain {
 			anyhow::format_err!("Unsupported target chain: {:?}", target)
 		);
 
-		Ok(pallet_xcm_bridge_hub::Pallet::<
+		Ok(pallet_xcm_bridge_hub::PalletAsHaulBlobExporter::<
 			rialto_parachain_runtime::Runtime,
 			rialto_parachain_runtime::WithMillauXcmBridgeHubInstance,
 		>::validate(
@@ -45,7 +45,7 @@ impl CliEncodeMessage for RialtoParachain {
 		)
 		.map_err(|e| anyhow::format_err!("Failed to prepare outbound message: {:?}", e))?
 		.0
-		 .1)
+		 .0)
 	}
 
 	fn encode_execute_xcm(

@@ -556,7 +556,6 @@ impl pallet_xcm_bridge_hub::Config<WithRialtoXcmBridgeHubInstance> for Runtime {
 	type BridgedNetworkId = xcm_config::RialtoNetwork;
 	type BridgeMessagesPalletInstance = WithRialtoMessagesInstance;
 
-	type MaxSuspendedBridges = ConstU32<1>;
 	type OpenBridgeOrigin = frame_support::traits::NeverEnsureOrigin<xcm::latest::MultiLocation>;
 	type BridgeOriginAccountIdConverter = xcm_config::SovereignAccountOf;
 
@@ -578,7 +577,6 @@ impl pallet_xcm_bridge_hub::Config<WithRialtoParachainXcmBridgeHubInstance> for 
 	type BridgedNetworkId = xcm_config::RialtoParachainNetwork;
 	type BridgeMessagesPalletInstance = WithRialtoParachainMessagesInstance;
 
-	type MaxSuspendedBridges = ConstU32<1>;
 	type OpenBridgeOrigin = frame_support::traits::NeverEnsureOrigin<xcm::latest::MultiLocation>;
 	type BridgeOriginAccountIdConverter = xcm_config::SovereignAccountOf;
 
@@ -1066,6 +1064,7 @@ impl_runtime_apis! {
 			use bp_messages::{
 				source_chain::FromBridgedChainMessagesDeliveryProof,
 				target_chain::FromBridgedChainMessagesProof,
+				LaneId,
 			};
 			use bp_runtime::Chain;
 			use bridge_runtime_common::messages_benchmarking::{
@@ -1094,6 +1093,10 @@ impl_runtime_apis! {
 			};
 
 			impl MessagesConfig<WithRialtoParachainMessagesInstance> for Runtime {
+				fn bench_lane_id() -> LaneId {
+					rialto_parachain_messages::Lane::get()
+				}
+
 				fn prepare_message_proof(
 					params: MessageProofParams,
 				) -> (FromBridgedChainMessagesProof<bp_rialto_parachain::Hash>, Weight) {
@@ -1125,6 +1128,10 @@ impl_runtime_apis! {
 			}
 
 			impl MessagesConfig<WithRialtoMessagesInstance> for Runtime {
+				fn bench_lane_id() -> LaneId {
+					rialto_messages::Lane::get()
+				}
+
 				fn prepare_message_proof(
 					params: MessageProofParams,
 				) -> (FromBridgedChainMessagesProof<bp_rialto::Hash>, Weight) {

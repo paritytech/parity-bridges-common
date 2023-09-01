@@ -16,7 +16,8 @@
 
 //! Types used to connect to the BridgeHub-Wococo-Substrate parachain.
 
-use bp_bridge_hub_wococo::{BridgeHubSignedExtension, SignedExtension, AVERAGE_BLOCK_INTERVAL};
+use bp_bridge_hub_wococo::{SignedExtension, AVERAGE_BLOCK_INTERVAL};
+use bp_polkadot_core::SuffixedCommonSignedExtensionExt;
 use codec::Encode;
 use relay_substrate_client::{
 	Chain, ChainWithBalances, ChainWithMessages, ChainWithTransactions, ChainWithUtilityPallet,
@@ -81,6 +82,7 @@ impl ChainWithTransactions for BridgeHubWococo {
 				param.genesis_hash,
 				unsigned.nonce,
 				unsigned.tip,
+				(((), ()), ((), ())),
 			),
 		)?;
 

@@ -1,4 +1,4 @@
-# Exposed ports: 10816, 10916, 11016, 11017, 11018
+# Exposed ports: 10100-10106
 
 version: '3.5'
 services:
@@ -27,7 +27,7 @@ services:
     environment:
       RUST_LOG: rpc=trace,bridge=trace
     ports:
-      - "10816:9616"
+      - "10100:9616"
     depends_on: &all-nodes
       - millau-node-alice
       - millau-node-bob
@@ -46,11 +46,11 @@ services:
       EXT_MILLAU_RELAY_ACCOUNT_HEADERS_OVERRIDE: //RialtoParachain.RialtoHeadersRelay2
       EXT_RIALTO_PARACHAIN_RELAY_ACCOUNT: //Millau.HeadersAndMessagesRelay2
     ports:
-      - "10916:9616"
+      - "10101:9616"
   relay-messages-millau-to-rialto-parachain-generator:
     <<: *sub-bridge-relay
     ports:
-      - "11016:9616"
+      - "10102:9616"
     entrypoint: /entrypoints/relay-messages-to-rialto-parachain-generator-entrypoint.sh
     depends_on:
       - relay-millau-rialto-parachain-1
@@ -59,7 +59,7 @@ services:
     <<: *sub-bridge-relay
     entrypoint: /entrypoints/relay-messages-to-millau-generator-entrypoint.sh
     ports:
-      - "11017:9616"
+      - "10103:9616"
     depends_on:
       - relay-millau-rialto-parachain-1
 
@@ -69,9 +69,29 @@ services:
       RUST_LOG: bridge=trace
     entrypoint: /entrypoints/relay-messages-to-rialto-parachain-resubmitter-entrypoint.sh
     ports:
-      - "11018:9616"
+      - "10104:9616"
     depends_on:
       - relay-messages-millau-to-rialto-parachain-generator
+
+  detect-millau-to-rialto-parachain-equivocations:
+    <<: *sub-bridge-relay
+    environment:
+      RUST_LOG: bridge=trace
+    entrypoint: /entrypoints/detect-millau-to-rialto-parachain-equivocations-entrypoint.sh
+    ports:
+      - "10105:9616"
+    depends_on:
+      - relay-millau-rialto-parachain-1
+
+  detect-rialto-to-millau-equivocations:
+    <<: *sub-bridge-relay
+    environment:
+      RUST_LOG: bridge=trace
+    entrypoint: /entrypoints/detect-rialto-to-millau-equivocations-entrypoint.sh
+    ports:
+      - "10106:9616"
+    depends_on:
+      - relay-millau-rialto-parachain-1
 
   # Note: These are being overridden from the top level `monitoring` compose file.
   grafana-dashboard:

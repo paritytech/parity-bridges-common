@@ -23,6 +23,7 @@ use bp_messages::{
 	ChainWithMessages, LaneId, MessageNonce,
 };
 use bp_runtime::{messages::MessageDispatchResult, Chain, ChainId};
+use bp_xcm_bridge_hub::{BridgeId, LocalXcmChannelManager};
 use codec::Encode;
 use frame_support::{
 	parameter_types,
@@ -107,7 +108,7 @@ impl pallet_balances::Config for TestRuntime {
 
 impl pallet_bridge_messages::Config for TestRuntime {
 	type RuntimeEvent = RuntimeEvent;
-	type WeightInfo = ();
+	type WeightInfo = TestMessagesWeights;
 
 	type ThisChain = ThisChain;
 	type BridgedChain = BridgedChain;
@@ -121,6 +122,49 @@ impl pallet_bridge_messages::Config for TestRuntime {
 	type OnMessagesDelivered = ();
 }
 
+pub struct TestMessagesWeights;
+
+impl pallet_bridge_messages::WeightInfo for TestMessagesWeights {
+	fn receive_single_message_proof() -> Weight {
+		Weight::zero()
+	}
+	fn receive_n_messages_proof(_n: u32) -> Weight {
+		Weight::zero()
+	}
+	fn receive_single_message_proof_with_outbound_lane_state() -> Weight {
+		Weight::zero()
+	}
+	fn receive_single_n_bytes_message_proof(_n: u32) -> Weight {
+		Weight::zero()
+	}
+	fn receive_delivery_proof_for_single_message() -> Weight {
+		Weight::zero()
+	}
+	fn receive_delivery_proof_for_two_messages_by_single_relayer() -> Weight {
+		Weight::zero()
+	}
+	fn receive_delivery_proof_for_two_messages_by_two_relayers() -> Weight {
+		Weight::zero()
+	}
+	fn receive_single_n_bytes_message_proof_with_dispatch(_n: u32) -> Weight {
+		Weight::from_parts(1, 0)
+	}
+}
+
+impl pallet_bridge_messages::WeightInfoExt for TestMessagesWeights {
+	fn expected_extra_storage_proof_size() -> u32 {
+		0
+	}
+
+	fn receive_messages_proof_overhead_from_runtime() -> Weight {
+		Weight::zero()
+	}
+
+	fn receive_messages_delivery_proof_overhead_from_runtime() -> Weight {
+		Weight::zero()
+	}
+}
+
 parameter_types! {
 	pub const RelayNetwork: NetworkId = NetworkId::Kusama;
 	pub const BridgedRelayNetwork: NetworkId = NetworkId::Polkadot;
@@ -130,7 +174,6 @@ parameter_types! {
 		GlobalConsensus(RelayNetwork::get()),
 		Parachain(THIS_BRIDGE_HUB_ID),
 	);
-	pub const MaxSuspendedBridges: u32 = 2;
 	pub const Penalty: Balance = 1_000;
 }
 
@@ -220,22 +263,62 @@ impl pallet_xcm_bridge_hub::Config for TestRuntime {
 	type BridgedNetworkId = BridgedRelayNetwork;
 	type BridgeMessagesPalletInstance = ();
 
-	type MaxSuspendedBridges = MaxSuspendedBridges;
 	type OpenBridgeOrigin = OpenBridgeOrigin;
 	type BridgeOriginAccountIdConverter = LocationToAccountId;
 
 	type BridgeReserve = BridgeReserve;
 	type NativeCurrency = Balances;
 
-	type LocalXcmChannelManager = ();
+	type LocalXcmChannelManager = TestLocalXcmChannelManager;
 	type BlobDispatcher = TestBlobDispatcher;
 	type MessageExportPrice = ();
 }
 
+pub struct TestLocalXcmChannelManager;
+
+impl TestLocalXcmChannelManager {
+	pub fn make_congested() {
+		frame_support::storage::unhashed::put(b"TestLocalXcmChannelManager.Congested", &true);
+	}
+
+	pub fn is_bridge_suspened() -> bool {
+		frame_support::storage::unhashed::get_or_default(b"TestLocalXcmChannelManager.Suspended")
+	}
+
+	pub fn is_bridge_resumed() -> bool {
+		frame_support::storage::unhashed::get_or_default(b"TestLocalXcmChannelManager.Resumed")
+	}
+}
+
+impl LocalXcmChannelManager for TestLocalXcmChannelManager {
+	type Error = ();
+
+	fn is_congested(_with: &MultiLocation) -> bool {
+		frame_support::storage::unhashed::get_or_default(b"TestLocalXcmChannelManager.Congested")
+	}
+
+	fn suspend_bridge(_local_origin: &MultiLocation, _bridge: BridgeId) -> Result<(), Self::Error> {
+		frame_support::storage::unhashed::put(b"TestLocalXcmChannelManager.Suspended", &true);
+		Ok(())
+	}
+
+	fn resume_bridge(_local_origin: &MultiLocation, _bridge: BridgeId) -> Result<(), Self::Error> {
+		frame_support::storage::unhashed::put(b"TestLocalXcmChannelManager.Resumed", &true);
+		Ok(())
+	}
+}
+
 pub struct TestBlobDispatcher;
+
+impl TestBlobDispatcher {
+	pub fn is_dispatched() -> bool {
+		frame_support::storage::unhashed::get_or_default(b"TestBlobDispatcher.Dispatched")
+	}
+}
 
 impl DispatchBlob for TestBlobDispatcher {
 	fn dispatch_blob(_blob: Vec<u8>) -> Result<(), DispatchBlobError> {
+		frame_support::storage::unhashed::put(b"TestBlobDispatcher.Dispatched", &true);
 		Ok(())
 	}
 }

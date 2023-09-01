@@ -70,6 +70,7 @@ use xcm_builder::DispatchBlob;
 use xcm_executor::traits::ConvertLocation;
 
 pub use dispatcher::XcmBlobMessageDispatchResult;
+pub use exporter::PalletAsHaulBlobExporter;
 pub use pallet::*;
 
 mod dispatcher;
@@ -105,10 +106,6 @@ pub mod pallet {
 		/// Associated messages pallet instance that bridges us with the
 		/// `BridgedNetworkId` consensus.
 		type BridgeMessagesPalletInstance: 'static;
-
-		/// Maximal number of suspended bridges.
-		#[pallet::constant]
-		type MaxSuspendedBridges: Get<u32>;
 
 		/// A set of XCM locations within local consensus system that are allowed to open
 		/// bridges with remote destinations.
@@ -323,10 +320,6 @@ pub mod pallet {
 			inbound_lane.purge();
 			outbound_lane.purge();
 			Bridges::<T, I>::remove(locations.bridge_id);
-			SuspendedBridges::<T, I>::mutate(|suspended_bridges| {
-				suspended_bridges.retain(|b| *b != locations.bridge_id);
-				// TODO: https://github.com/paritytech/parity-bridges-common/issues/2006 send resume signal or not???
-			});
 
 			// unreserve remaining amount
 			let failed_to_unreserve =
@@ -399,12 +392,6 @@ pub mod pallet {
 	#[pallet::getter(fn bridge)]
 	pub type Bridges<T: Config<I>, I: 'static = ()> =
 		StorageMap<_, Identity, BridgeId, BridgeOf<T, I>>;
-
-	/// All currently suspended bridges.
-	#[pallet::storage]
-	#[pallet::getter(fn bridges_by_local_origin)]
-	pub type SuspendedBridges<T: Config<I>, I: 'static = ()> =
-		StorageValue<_, BoundedVec<BridgeId, T::MaxSuspendedBridges>, ValueQuery>;
 
 	#[pallet::genesis_config]
 	#[derive(DefaultNoBound)]

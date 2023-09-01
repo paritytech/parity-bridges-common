@@ -591,7 +591,6 @@ impl pallet_xcm_bridge_hub::Config<WithMillauXcmBridgeHubInstance> for Runtime {
 	type BridgedNetworkId = MillauNetwork;
 	type BridgeMessagesPalletInstance = WithMillauMessagesInstance;
 
-	type MaxSuspendedBridges = ConstU32<1>;
 	type OpenBridgeOrigin = frame_support::traits::NeverEnsureOrigin<xcm::latest::MultiLocation>;
 	type BridgeOriginAccountIdConverter = LocationToAccountId;
 
@@ -871,10 +870,11 @@ mod tests {
 		MessageKey, OutboundLaneData,
 	};
 	use bp_runtime::Chain;
-	use bridge_runtime_common::integrity::check_additional_signed;
+	use bp_xcm_bridge_hub::{Bridge, BridgeState};
 	use codec::Encode;
 	use pallet_bridge_messages::OutboundLanes;
-	use sp_runtime::generic::Era;
+	use pallet_xcm_bridge_hub::Bridges;
+	use sp_runtime::{generic::Era, traits::Zero};
 	use xcm_executor::XcmExecutor;
 
 	fn new_test_ext() -> sp_io::TestExternalities {
@@ -904,7 +904,17 @@ mod tests {
 	fn xcm_messages_to_millau_are_sent_using_bridge_exporter() {
 		new_test_ext().execute_with(|| {
 			// ensure that the there are no messages queued
-			let lane_id = crate::millau_messages::Bridge::get().lane_id();
+			let bridge_id = crate::millau_messages::Bridge::get();
+			let lane_id = bridge_id.lane_id();
+			Bridges::<Runtime, WithMillauXcmBridgeHubInstance>::insert(
+				bridge_id,
+				Bridge {
+					bridge_origin_relative_location: Box::new(MultiLocation::new(0, Here).into()),
+					state: BridgeState::Opened,
+					bridge_owner_account: [0u8; 32].into(),
+					reserve: 0,
+				},
+			);
 			OutboundLanes::<Runtime, WithMillauMessagesInstance>::insert(
 				lane_id,
 				OutboundLaneData::opened(),
@@ -968,24 +978,36 @@ mod tests {
 
 	#[test]
 	fn ensure_signed_extension_definition_is_correct() {
-		let payload: SignedExtra = (
-			frame_system::CheckNonZeroSender::new(),
-			frame_system::CheckSpecVersion::new(),
-			frame_system::CheckTxVersion::new(),
-			frame_system::CheckGenesis::new(),
-			frame_system::CheckEra::from(Era::Immortal),
-			frame_system::CheckNonce::from(10),
-			frame_system::CheckWeight::new(),
-			pallet_transaction_payment::ChargeTransactionPayment::from(10),
-			BridgeRejectObsoleteHeadersAndMessages,
-			DummyBridgeRefundMillauMessages,
-		);
-		let indirect_payload = bp_rialto_parachain::SignedExtension::new(
-			((), (), (), (), Era::Immortal, 10.into(), (), 10.into(), (), ()),
-			None,
-		);
-		assert_eq!(payload.encode(), indirect_payload.encode());
+		use bp_polkadot_core::SuffixedCommonSignedExtensionExt;
 
-		check_additional_signed::<SignedExtra, bp_rialto_parachain::SignedExtension>();
+		sp_io::TestExternalities::default().execute_with(|| {
+			frame_system::BlockHash::<Runtime>::insert(BlockNumber::zero(), Hash::default());
+			let payload: SignedExtra = (
+				frame_system::CheckNonZeroSender::new(),
+				frame_system::CheckSpecVersion::new(),
+				frame_system::CheckTxVersion::new(),
+				frame_system::CheckGenesis::new(),
+				frame_system::CheckEra::from(Era::Immortal),
+				frame_system::CheckNonce::from(10),
+				frame_system::CheckWeight::new(),
+				pallet_transaction_payment::ChargeTransactionPayment::from(10),
+				BridgeRejectObsoleteHeadersAndMessages,
+				DummyBridgeRefundMillauMessages,
+			);
+			let indirect_payload = bp_rialto_parachain::SignedExtension::from_params(
+				VERSION.spec_version,
+				VERSION.transaction_version,
+				bp_runtime::TransactionEra::Immortal,
+				System::block_hash(BlockNumber::zero()),
+				10,
+				10,
+				(((), ()), ((), ())),
+			);
+			assert_eq!(payload.encode(), indirect_payload.encode());
+			assert_eq!(
+				payload.additional_signed().unwrap().encode(),
+				indirect_payload.additional_signed().unwrap().encode()
+			)
+		});
 	}
 }

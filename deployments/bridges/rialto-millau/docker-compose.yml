@@ -1,4 +1,4 @@
-# Exposed ports: 10016, 10116, 10216, 10316, 10416, 10516, 10716
+# Exposed ports: 10000-10005
 
 version: '3.5'
 services:
@@ -28,7 +28,7 @@ services:
       RUST_LOG: rpc=trace,bridge=trace
       GLOBAL_DEPLOYMENTS: $GLOBAL_DEPLOYMENTS
     ports:
-      - "10016:9616"
+      - "10000:9616"
     depends_on: &all-nodes
       - millau-node-alice
       - millau-node-bob
@@ -48,7 +48,7 @@ services:
       RUST_LOG: bridge=trace
     entrypoint: /entrypoints/relay-messages-to-rialto-generator-entrypoint.sh
     ports:
-      - "10216:9616"
+      - "10001:9616"
     depends_on:
       - relay-millau-rialto
 
@@ -58,7 +58,7 @@ services:
       RUST_LOG: bridge=trace
     entrypoint: /entrypoints/relay-messages-to-rialto-resubmitter-entrypoint.sh
     ports:
-      - "10316:9616"
+      - "10002:9616"
     depends_on:
       - relay-messages-millau-to-rialto-generator
 
@@ -68,7 +68,27 @@ services:
       RUST_LOG: bridge=trace
     entrypoint: /entrypoints/relay-messages-to-millau-generator-entrypoint.sh
     ports:
-      - "10516:9616"
+      - "10003:9616"
+    depends_on:
+      - relay-millau-rialto
+
+  detect-millau-to-rialto-equivocations:
+    <<: *sub-bridge-relay
+    environment:
+      RUST_LOG: bridge=trace
+    entrypoint: /entrypoints/detect-millau-to-rialto-equivocations-entrypoint.sh
+    ports:
+      - "10004:9616"
+    depends_on:
+      - relay-millau-rialto
+
+  detect-rialto-to-millau-equivocations:
+    <<: *sub-bridge-relay
+    environment:
+      RUST_LOG: bridge=trace
+    entrypoint: /entrypoints/detect-rialto-to-millau-equivocations-entrypoint.sh
+    ports:
+      - "10005:9616"
     depends_on:
       - relay-millau-rialto
 
