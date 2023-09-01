@@ -42,7 +42,7 @@ use xcm::v3::prelude::*;
 /// Prepare inbound bridge message according to given message proof parameters.
 fn prepare_inbound_message(
 	params: &MessageProofParams,
-	successful_dispatch_message_generator: impl Fn(usize) -> MessagePayload,
+	successful_dispatch_message_generator: &impl Fn(usize) -> MessagePayload,
 ) -> MessagePayload {
 	let expected_size = params.proof_params.db_size.unwrap_or(0) as usize;
 
@@ -90,7 +90,7 @@ where
 			params.message_nonces.clone(),
 			params.outbound_lane_data.clone(),
 			params.proof_params,
-			|_| prepare_inbound_message(&params, message_generator),
+			|_| prepare_inbound_message(&params, &message_generator),
 			encode_all_messages,
 			encode_lane_data,
 			false,
@@ -137,7 +137,7 @@ where
 			params.message_nonces.clone(),
 			params.outbound_lane_data.clone(),
 			params.proof_params,
-			|_| prepare_inbound_message(&params, message_generator),
+			|_| prepare_inbound_message(&params, &message_generator),
 			encode_all_messages,
 			encode_lane_data,
 			false,
