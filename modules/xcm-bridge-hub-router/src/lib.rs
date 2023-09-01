@@ -447,7 +447,7 @@ where
 
 		// compute bridge id from universal locations
 		let bridge_destination_relative_location =
-			dest.as_ref().map(|dest| dest.clone()).ok_or(SendError::MissingArgument)?;
+			dest.as_ref().copied().ok_or(SendError::MissingArgument)?;
 		let bridge_origin_universal_location = T::UniversalLocation::get();
 		let bridge_destination_universal_location: InteriorMultiLocation =
 			bridge_origin_universal_location
@@ -476,7 +476,7 @@ where
 		// payment for passing through this queue.
 		let (bridge_id, message_size, ticket) = ticket;
 		let mut bridge =
-			Bridges::<T, I>::get(bridge_id).ok_or_else(|| SendError::Transport("UnknownBridge"))?;
+			Bridges::<T, I>::get(bridge_id).ok_or(SendError::Transport("UnknownBridge"))?;
 		let xcm_hash = if bridge.is_suspended() {
 			// TODO: this is the most worrysome code here - I'm not sure that it is ok to encode and
 			// save the **ticket**. Maybe we need to support just some ticket portion and then

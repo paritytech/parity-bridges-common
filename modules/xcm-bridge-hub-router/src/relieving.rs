@@ -41,14 +41,14 @@ where
 			return (Weight::zero(), None)
 		}
 
-		let original_remaining_weight = remaining_weight.clone();
+		let original_remaining_weight = remaining_weight;
 		let db_weight = T::DbWeight::get();
 		let minimal_required_weight_for_bridge =
 			T::WeightInfo::minimal_weight_to_process_relieving_bridge(&db_weight);
 		loop {
 			// select next relieving bridge
 			let bridge_id = match queue.current() {
-				Some(bridge_id) => bridge_id.clone(),
+				Some(bridge_id) => bridge_id,
 				None => {
 					// corrupted storage? let's restart iteration
 					log::debug!(
@@ -99,7 +99,7 @@ where
 		bridge_id: BridgeId,
 		mut remaining_weight: Weight,
 	) -> Result<(bool, Weight), Weight> {
-		let original_remaining_weight = remaining_weight.clone();
+		let original_remaining_weight = remaining_weight;
 		let db_weight = T::DbWeight::get();
 		Bridges::<T, I>::mutate(bridge_id, |bridge| {
 			// if there's no such bridge, we don't need to service it
@@ -250,7 +250,7 @@ mod tests {
 		Bridges::<TestRuntime, ()>::insert(
 			bridge_id,
 			Bridge {
-				bridge_fee_factor: MINIMAL_DELIVERY_FEE_FACTOR.into(),
+				bridge_fee_factor: MINIMAL_DELIVERY_FEE_FACTOR,
 				bridge_resumed_at: Some(0),
 				suspended_messages: Some((1, suspended_messages)),
 			},
