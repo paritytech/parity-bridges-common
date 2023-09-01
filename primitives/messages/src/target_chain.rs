@@ -1,4 +1,4 @@
-// Copyright 2019-2021 Parity Technologies (UK) Ltd.
+// Copyright (C) Parity Technologies (UK) Ltd.
 // This file is part of Parity Bridges Common.
 
 // Parity Bridges Common is free software: you can redistribute it and/or modify
@@ -20,8 +20,9 @@ use crate::{LaneId, Message, MessageKey, MessageNonce, MessagePayload, OutboundL
 
 use bp_runtime::{messages::MessageDispatchResult, Size, UnverifiedStorageProof};
 use codec::{Decode, Encode, Error as CodecError};
-use frame_support::{weights::Weight, RuntimeDebug};
+use frame_support::weights::Weight;
 use scale_info::TypeInfo;
+use sp_core::RuntimeDebug;
 use sp_std::{fmt::Debug, marker::PhantomData, prelude::*};
 
 /// Messages proof from bridged chain.

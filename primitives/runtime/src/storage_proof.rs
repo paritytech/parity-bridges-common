@@ -1,4 +1,4 @@
-// Copyright 2019-2023 Parity Technologies (UK) Ltd.
+// Copyright (C) Parity Technologies (UK) Ltd.
 // This file is part of Parity Bridges Common.
 
 // Parity Bridges Common is free software: you can redistribute it and/or modify
@@ -16,9 +16,9 @@
 
 //! Logic for working with storage proofs.
 
-use frame_support::{PalletError, StateVersion};
+use frame_support::PalletError;
 use sp_core::{storage::TrackedStorageKey, RuntimeDebug};
-use sp_runtime::SaturatedConversion;
+use sp_runtime::{SaturatedConversion, StateVersion};
 use sp_std::{default::Default, vec, vec::Vec};
 use sp_trie::{
 	generate_trie_proof, verify_trie_proof, LayoutV0, LayoutV1, StorageProof, TrieDBBuilder,

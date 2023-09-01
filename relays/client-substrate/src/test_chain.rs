@@ -23,7 +23,8 @@
 
 use crate::{Chain, ChainWithBalances};
 use bp_runtime::ChainId;
-use frame_support::{weights::Weight, StateVersion};
+use frame_support::weights::Weight;
+use sp_runtime::StateVersion;
 use std::time::Duration;
 
 /// Chain that may be used in tests.

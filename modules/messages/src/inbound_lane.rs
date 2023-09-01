@@ -1,4 +1,4 @@
-// Copyright 2019-2021 Parity Technologies (UK) Ltd.
+// Copyright (C) Parity Technologies (UK) Ltd.
 // This file is part of Parity Bridges Common.
 
 // Parity Bridges Common is free software: you can redistribute it and/or modify
@@ -25,8 +25,8 @@ use bp_messages::{
 };
 use bp_runtime::AccountIdOf;
 use codec::{Decode, Encode, EncodeLike, MaxEncodedLen};
-use frame_support::RuntimeDebug;
 use scale_info::{Type, TypeInfo};
+use sp_runtime::RuntimeDebug;
 use sp_std::prelude::PartialEq;
 
 /// Inbound lane storage.

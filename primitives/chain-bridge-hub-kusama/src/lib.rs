@@ -1,4 +1,4 @@
-// Copyright 2022 Parity Technologies (UK) Ltd.
+// Copyright (C) Parity Technologies (UK) Ltd.
 // This file is part of Parity Bridges Common.
 
 // Parity Bridges Common is free software: you can redistribute it and/or modify
@@ -28,8 +28,8 @@ use bp_runtime::{
 use frame_support::{
 	dispatch::DispatchClass,
 	sp_runtime::{MultiAddress, MultiSigner},
-	RuntimeDebug, StateVersion,
 };
+use sp_runtime::{RuntimeDebug, StateVersion};
 use sp_std::prelude::Vec;
 
 /// BridgeHubKusama parachain.

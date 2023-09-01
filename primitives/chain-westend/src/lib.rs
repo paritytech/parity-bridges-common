@@ -20,7 +20,8 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
 pub use bp_polkadot_core::*;
-use frame_support::{sp_std, StateVersion};
+use frame_support::sp_std;
+use sp_runtime::StateVersion;
 use sp_std::prelude::*;
 
 use bp_header_chain::ChainWithGrandpa;
