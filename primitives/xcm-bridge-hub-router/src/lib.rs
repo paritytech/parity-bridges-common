@@ -50,6 +50,11 @@ impl<BlockNumber> Bridge<BlockNumber> {
 		self.bridge_resumed_at.is_none()
 	}
 
+	/// Returns true if bridge is currently relieving.
+	pub fn is_relieving(&self) -> bool {
+		!self.is_suspended() && self.suspended_messages.is_some()
+	}
+
 	/// Selects and returns index for next suspended message.
 	pub fn select_next_suspended_message_index(&mut self) -> u64 {
 		match self.suspended_messages {
@@ -95,10 +100,17 @@ impl<MaxBridges: Get<u32>> RelievingBridgesQueue<MaxBridges> {
 			current: 0,
 			bridges: {
 				let mut bridges = BoundedVec::new();
+				debug_assert!(MaxBridges::get() != 0);
 				bridges.force_push(bridge_id);
 				bridges
 			},
 		}
+	}
+
+	/// Creates a queue with given item. Returns `None` if there are more than `MaxBridges`
+	/// suspended bridges.
+	pub fn with_bridges(bridges: Vec<BridgeId>) -> Option<Self> {
+		Some(RelievingBridgesQueue { current: 0, bridges: BoundedVec::try_from(bridges).ok()? })
 	}
 
 	/// Push another bridges onto the queue.

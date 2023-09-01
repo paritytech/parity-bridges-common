@@ -189,7 +189,7 @@ pub mod pallet {
 				let (used_weight, queue) = Self::service_relieving_bridges(queue, remaining_weight);
 				*relieving_bridges =
 					queue.and_then(|queue| if queue.is_empty() { None } else { Some(queue) });
-				used_weight
+				used_weight.saturating_add(read_and_write_weight)
 			})
 		}
 	}
