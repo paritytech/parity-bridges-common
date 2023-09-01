@@ -45,8 +45,8 @@ use xcm::v3::prelude::*;
 /// Prepare inbound bridge message according to given message proof parameters.
 fn prepare_inbound_message(
 	params: &MessageProofParams,
-	successful_dispatch_message_generator: impl Fn(usize) -> Vec<u8>,
-) -> Vec<u8> {
+	successful_dispatch_message_generator: impl Fn(usize) -> MessagePayload,
+) -> MessagePayload {
 	// we only care about **this** message size when message proof needs to be `Minimal`
 	let expected_size = match params.size {
 		StorageProofSize::Minimal(size) => size as usize,
@@ -122,7 +122,7 @@ where
 /// `prepare_message_proof_from_grandpa_chain` function.
 pub fn prepare_message_proof_from_parachain<R, PI, B>(
 	params: MessageProofParams,
-	message_generator: impl Fn(usize) -> Vec<u8>,
+	message_generator: impl Fn(usize) -> MessagePayload,
 ) -> (FromBridgedChainMessagesProof<HashOf<BridgedChain<B>>>, Weight)
 where
 	R: pallet_bridge_parachains::Config<PI>,
@@ -291,8 +291,8 @@ where
 /// `expected_message_size` for benchmark.
 pub fn generate_xcm_builder_bridge_message_sample(
 	destination: InteriorMultiLocation,
-) -> impl Fn(usize) -> Vec<u8> {
-	move |expected_message_size| -> Vec<u8> {
+) -> impl Fn(usize) -> MessagePayload {
+	move |expected_message_size| -> MessagePayload {
 		// For XCM bridge hubs, it is the message that
 		// will be pushed further to some XCM queue (XCMP/UMP)
 		let location = xcm::VersionedInteriorMultiLocation::V3(destination);
