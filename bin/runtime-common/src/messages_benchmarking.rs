@@ -60,7 +60,12 @@ fn prepare_inbound_message(
 
 	// else let's prepare successful message.
 	let msg = successful_dispatch_message_generator(expected_size);
-	assert!(msg.len() >= expected_size);
+	assert!(
+		msg.len() >= expected_size,
+		"msg.len(): {} does not match expected_size: {}",
+		expected_size,
+		msg.len()
+	);
 	msg
 }
 
@@ -282,7 +287,8 @@ where
 	(bridged_block_number, bridged_header_hash)
 }
 
-/// Returns callback which generates `BridgeMessage` from polkadot xcm builder based on `expected_message_size`.
+/// Returns callback which generates `BridgeMessage` from polkadot xcm builder based on
+/// `expected_message_size` for benchmark.
 pub fn generate_xcm_builder_bridge_message_sample(
 	destination: InteriorMultiLocation,
 ) -> impl Fn(usize) -> Vec<u8> {
@@ -294,25 +300,32 @@ pub fn generate_xcm_builder_bridge_message_sample(
 
 		// we don't need to be super-precise with `expected_size` here
 		let xcm_size = expected_message_size.saturating_sub(location_encoded_size);
-		let xcm_number_of_instructions =
-			xcm_size.saturating_div(Instruction::<()>::ClearOrigin.encoded_size()) + 1;
-		log::trace!(
-			target: "runtime::bridge-benchmarks",
-			"generate_xcm_builder_bridge_message_sample with expected_message_size: {}, location_encoded_size: {}, xcm_size: {}, xcm_number_of_instructions: {}, ClearOrigin.encoded_size: {}",
-			expected_message_size, location_encoded_size, xcm_size, xcm_number_of_instructions, Instruction::<()>::ClearOrigin.encoded_size(),
+		let xcm_data_size = xcm_size.saturating_sub(
+			xcm::v3::Instruction::<()>::ExpectPallet {
+				index: 0,
+				name: vec![],
+				module_name: vec![],
+				crate_major: 0,
+				min_crate_minor: 0,
+			}
+			.encoded_size(),
 		);
 
-		// XCM V3 introduced limit for max instructions
-		const MAX_INSTRUCTIONS_TO_DECODE: u32 = 100;
-		let xcm_number_of_instructions =
-			sp_std::cmp::min(xcm_number_of_instructions, MAX_INSTRUCTIONS_TO_DECODE as usize);
 		log::trace!(
 			target: "runtime::bridge-benchmarks",
-			"generate_xcm_builder_bridge_message_sample using xcm_number_of_instructions: {}", xcm_number_of_instructions
+			"generate_xcm_builder_bridge_message_sample with expected_message_size: {}, location_encoded_size: {}, xcm_size: {}, xcm_data_size: {}",
+			expected_message_size, location_encoded_size, xcm_size, xcm_data_size,
 		);
 
 		let xcm = xcm::VersionedXcm::<()>::V3(
-			vec![Instruction::ClearOrigin; xcm_number_of_instructions].into(),
+			vec![xcm::v3::Instruction::<()>::ExpectPallet {
+				index: 0,
+				name: vec![42; xcm_data_size],
+				module_name: vec![],
+				crate_major: 0,
+				min_crate_minor: 0,
+			}]
+			.into(),
 		);
 
 		// this is the `BridgeMessage` from polkadot xcm builder, but it has no constructor
