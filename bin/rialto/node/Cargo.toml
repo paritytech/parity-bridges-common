@@ -1,3 +1,11 @@
+[[bin]]
+name = "rialto-bridge-node-execute-worker"
+path = "src/workers/execute-worker.rs"
+
+[[bin]]
+name = "rialto-bridge-node-prepare-worker"
+path = "src/workers/prepare-worker.rs"
+
 [package]
 name = "rialto-bridge-node"
 description = "Substrate node compatible with Rialto runtime"
@@ -34,6 +42,9 @@ sp-runtime = { git = "https://github.com/paritytech/polkadot-sdk", branch = "mas
 
 # Polkadot Dependencies
 polkadot-node-core-pvf = { git = "https://github.com/paritytech/polkadot-sdk", branch = "master" }
+polkadot-node-core-pvf-common = { git = "https://github.com/paritytech/polkadot-sdk", branch = "master" }
+polkadot-node-core-pvf-execute-worker = { git = "https://github.com/paritytech/polkadot-sdk", branch = "master" }
+polkadot-node-core-pvf-prepare-worker = { git = "https://github.com/paritytech/polkadot-sdk", branch = "master" }
 polkadot-primitives = { git = "https://github.com/paritytech/polkadot-sdk", branch = "master" }
 polkadot-runtime-parachains = { git = "https://github.com/paritytech/polkadot-sdk", branch = "master" }
 polkadot-service = { git = "https://github.com/paritytech/polkadot-sdk", branch = "master", default-features = false, features = [ "full-node", "polkadot-native" ] }

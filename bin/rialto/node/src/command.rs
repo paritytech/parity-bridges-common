@@ -169,7 +169,10 @@ pub fn run() -> sc_cli::Result<()> {
 						telemetry_worker_handle: None,
 						node_version: None,
 						workers_path: None,
-						workers_names: None,
+						workers_names: Some((
+							"rialto-bridge-node-prepare-worker".to_string(),
+							"rialto-bridge-node-execute-worker".to_string(),
+						)),
 						overseer_gen: polkadot_service::overseer::RealOverseerGen,
 						overseer_message_channel_capacity_override: None,
 						malus_finality_delay: None,
