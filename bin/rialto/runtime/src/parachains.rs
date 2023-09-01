@@ -135,6 +135,11 @@ impl parachains_paras::WeightInfo for ParasWeightInfo {
 	fn force_set_current_head(_s: u32) -> Weight {
 		Weight::zero()
 	}
+
+	fn force_set_most_recent_context() -> Weight {
+		Weight::zero()
+	}
+
 	fn force_schedule_code_upgrade(_c: u32) -> Weight {
 		Weight::zero()
 	}
