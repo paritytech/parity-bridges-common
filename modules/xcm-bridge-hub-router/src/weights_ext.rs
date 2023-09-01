@@ -22,26 +22,6 @@ use frame_support::weights::{RuntimeDbWeight, Weight};
 
 /// Extended weight info.
 pub trait WeightInfoExt: WeightInfo {
-	/// TODO: move me to benchmarks.
-	fn relieving_bridges_read_weight() -> Weight {
-		Weight::zero() // TODO
-	}
-
-	/// TOOD: move me to benchmarks
-	fn bridge_read_weight() -> Weight {
-		Weight::zero() // TODO
-	}
-
-	/// TODO: move me to benchmarks.
-	fn suspended_message_read_weight() -> Weight {
-		Weight::zero() // TODO
-	}
-
-	/// TODO: move me to benchmarks
-	fn to_bridge_hub_deliver_weight() -> Weight {
-		Weight::zero() // TODO
-	}
-
 	/// Returns minimal weight required to processing suspended messages from `on_idle`.
 	fn minimal_weight_to_process_suspended_messages(db_weight: &RuntimeDbWeight) -> Weight {
 		// we need to read a list of relieving bridges

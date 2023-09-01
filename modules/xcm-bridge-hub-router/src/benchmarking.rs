@@ -18,11 +18,17 @@
 
 #![cfg(feature = "runtime-benchmarks")]
 
-use crate::{DeliveryFeeFactor, InitialFactor, MINIMAL_DELIVERY_FEE_FACTOR};
+use crate::{
+	Bridges, CongestionFeeFactor, RelievingBridges, SuspendedMessages, ToBridgeHubTicket,
+	MINIMAL_DELIVERY_FEE_FACTOR,
+};
 
+use bp_xcm_bridge_hub_router::BridgeId;
+use codec::Decode;
 use frame_benchmarking::benchmarks_instance_pallet;
-use frame_support::traits::{Get, Hooks};
+use frame_support::traits::Hooks;
 use sp_runtime::traits::Zero;
+use xcm::latest::prelude::*;
 
 /// Pallet we're benchmarking here.
 pub struct Pallet<T: Config<I>, I: 'static = ()>(crate::Pallet<T, I>);
@@ -31,19 +37,50 @@ pub struct Pallet<T: Config<I>, I: 'static = ()>(crate::Pallet<T, I>);
 pub trait Config<I: 'static>: crate::Config<I> {
 	/// Fill up queue so it becomes congested.
 	fn make_congested();
+	/// Prepare a valid ticket for `Self::ToBridgeHubSender`.
+	fn to_bridge_hub_ticket() -> ToBridgeHubTicket<Self, I>;
 }
 
 benchmarks_instance_pallet! {
+	where_clause {
+		where
+			ToBridgeHubTicket<T, I>: Decode,
+	}
+
 	on_initialize_when_non_congested {
-		DeliveryFeeFactor::<T, I>::put(MINIMAL_DELIVERY_FEE_FACTOR + MINIMAL_DELIVERY_FEE_FACTOR);
+		CongestionFeeFactor::<T, I>::put(MINIMAL_DELIVERY_FEE_FACTOR + MINIMAL_DELIVERY_FEE_FACTOR);
 	}: {
 		crate::Pallet::<T, I>::on_initialize(Zero::zero())
 	}
 
 	on_initialize_when_congested {
-		DeliveryFeeFactor::<T, I>::put(MINIMAL_DELIVERY_FEE_FACTOR + MINIMAL_DELIVERY_FEE_FACTOR);
+		CongestionFeeFactor::<T, I>::put(MINIMAL_DELIVERY_FEE_FACTOR + MINIMAL_DELIVERY_FEE_FACTOR);
 		T::make_congested();
 	}: {
 		crate::Pallet::<T, I>::on_initialize(Zero::zero())
+	}
+
+	to_bridge_hub_deliver_weight {
+		let ticket = T::to_bridge_hub_ticket();
+	}: {
+		T::ToBridgeHubSender::deliver(ticket).expect("Invalid ticket")
+	}
+
+	bridge_read_weight {
+		// since we are using `MaxEncodedLen` approach, we don't care about actual value of `Bridge`
+	}: {
+		Bridges::<T, I>::get(BridgeId::new(&Here.into(), &Here.into()))
+	}
+
+	relieving_bridges_read_weight {
+		// since we are using `MaxEncodedLen` approach, we don't care about actual value of `RelievingBridges`
+	}: {
+		RelievingBridges::<T, I>::get()
+	}
+
+	suspended_message_read_weight {
+		// since we are using `MaxEncodedLen` approach, we don't care about actual value of `SuspendedMessage`
+	}: {
+		SuspendedMessages::<T, I>::get(BridgeId::new(&Here.into(), &Here.into()), 1)
 	}
 }

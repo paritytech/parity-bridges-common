@@ -34,9 +34,9 @@ use bp_xcm_bridge_hub_router::{
 	bridge_id_from_locations, Bridge, BridgeId, LocalXcmChannelManager, RelievingBridgesQueue,
 };
 use codec::{Codec, Encode};
-use frame_support::traits::Get;
-use sp_core::blake2_256;
+use frame_support::{traits::Get, Hashable};
 use sp_runtime::{BoundedVec, FixedPointNumber, FixedU128, SaturatedConversion, Saturating};
+use sp_std::boxed::Box;
 use xcm::prelude::*;
 use xcm_builder::{ExporterFor, SovereignPaidRemoteExporter};
 
@@ -483,7 +483,7 @@ where
 			// reconstruct the ticket?
 			let encoded_ticket = ticket.encode();
 			// TODO: not sure if there's some consistency for computing that?
-			let xcm_hash = blake2_256(&encoded_ticket);
+			let xcm_hash = encoded_ticket.blake2_256();
 			let suspended_message = BoundedVec::<_, _>::try_from(encoded_ticket)
 				.map_err(|_| SendError::Transport("TooLargeTicket"))?;
 			let message_index = bridge.select_next_suspended_message_index();

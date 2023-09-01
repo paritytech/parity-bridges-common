@@ -17,7 +17,7 @@
 //! Code used to process relieving bridges and their suspended messages.
 
 use crate::{
-	Bridges, Config, Pallet, SuspendedMessages, ToBridgeHubTicket, WeightInfoExt,
+	Bridges, Config, Pallet, SuspendedMessages, ToBridgeHubTicket, WeightInfo, WeightInfoExt,
 	HARD_SUSPENDED_MESSAGE_SIZE_LIMIT, LOG_TARGET,
 };
 
@@ -38,9 +38,9 @@ where
 	) -> (Weight, Option<RelievingBridgesQueue<T::MaxBridges>>) {
 		// it is already checked in `on_idle`, but let's repeat
 		if queue.is_empty() {
-			return (Weight::zero(), None);
+			return (Weight::zero(), None)
 		}
-		
+
 		let original_remaining_weight = remaining_weight.clone();
 		let db_weight = T::DbWeight::get();
 		let minimal_required_weight_for_bridge =
@@ -209,34 +209,26 @@ mod tests {
 	use super::*;
 
 	#[test]
-	fn relieving_bridges_are_not_serviced_if_weight_is_not_enough() {
-	}
+	fn relieving_bridges_are_not_serviced_if_weight_is_not_enough() {}
 
 	#[test]
-	fn relieving_bridges_are_deleted_if_empty() {
-	}
+	fn relieving_bridges_are_deleted_if_empty() {}
 
 	#[test]
-	fn used_weight_when_no_relieved_bridges() {
-	}
+	fn used_weight_when_no_relieved_bridges() {}
 
 	#[test]
-	fn iteration_restarts_when_current_index_is_invalid() {
-	}
+	fn iteration_restarts_when_current_index_is_invalid() {}
 
 	#[test]
-	fn bridge_is_removed_from_relieving_if_it_is_missing_from_the_storage() {
-	}
+	fn bridge_is_removed_from_relieving_if_it_is_missing_from_the_storage() {}
 
 	#[test]
-	fn used_weight_when_message_is_missing_from_the_storage() {
-	}
+	fn used_weight_when_message_is_missing_from_the_storage() {}
 
 	#[test]
-	fn used_weight_when_we_fail_to_decode_ticket() {
-	}
+	fn used_weight_when_we_fail_to_decode_ticket() {}
 
 	#[test]
-	fn relieving_bridges_are_serviced() {
-	}
+	fn relieving_bridges_are_serviced() {}
 }

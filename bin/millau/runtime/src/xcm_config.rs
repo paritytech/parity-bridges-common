@@ -103,7 +103,22 @@ parameter_types! {
 }
 
 /// The XCM router. We are not sending messages to sibling/parent/child chains here.
-pub type XcmRouter = ();
+pub struct XcmRouter;
+
+impl SendXcm for XcmRouter {
+	type Ticket = ();
+
+	fn validate(
+		_dest: &mut Option<MultiLocation>,
+		_xcm: &mut Option<Xcm<()>>,
+	) -> SendResult<Self::Ticket> {
+		Ok(((), Default::default()))
+	}
+
+	fn deliver(_ticket: Self::Ticket) -> Result<XcmHash, SendError> {
+		Ok(Default::default())
+	}
+}
 
 /// The barriers one of which must be passed for an XCM message to be executed.
 pub type Barrier = (
