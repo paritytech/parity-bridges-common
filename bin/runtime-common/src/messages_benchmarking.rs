@@ -287,7 +287,7 @@ where
 	(bridged_block_number, bridged_header_hash)
 }
 
-/// Returns callback which generates `BridgeMessage` from polkadot xcm builder based on
+/// Returns callback which generates `BridgeMessage` from Polkadot XCM builder based on
 /// `expected_message_size` for benchmark.
 pub fn generate_xcm_builder_bridge_message_sample(
 	destination: InteriorMultiLocation,
