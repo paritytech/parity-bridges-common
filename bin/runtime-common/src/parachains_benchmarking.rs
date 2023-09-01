@@ -1,4 +1,4 @@
-// Copyright 2019-2021 Parity Technologies (UK) Ltd.
+// Copyright (C) Parity Technologies (UK) Ltd.
 // This file is part of Parity Bridges Common.
 
 // Parity Bridges Common is free software: you can redistribute it and/or modify
@@ -24,9 +24,10 @@ use bp_parachains::parachain_head_storage_key_at_source;
 use bp_polkadot_core::parachains::{ParaHash, ParaHead, ParaHeadsProof, ParaId};
 use bp_runtime::{grow_storage_value, Chain, UnverifiedStorageProof, UnverifiedStorageProofParams};
 use codec::Encode;
-use frame_support::{traits::Get, StateVersion};
+use frame_support::traits::Get;
 use pallet_bridge_grandpa::BridgedChain;
 use pallet_bridge_parachains::{RelayBlockHash, RelayBlockHasher, RelayBlockNumber};
+use sp_runtime::StateVersion;
 use sp_std::prelude::*;
 use sp_trie::{LayoutV0, LayoutV1, MemoryDB, TrieConfiguration, TrieDBMutBuilder, TrieMut};
 

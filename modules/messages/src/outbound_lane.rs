@@ -1,4 +1,4 @@
-// Copyright 2019-2021 Parity Technologies (UK) Ltd.
+// Copyright (C) Parity Technologies (UK) Ltd.
 // This file is part of Parity Bridges Common.
 
 // Parity Bridges Common is free software: you can redistribute it and/or modify
@@ -23,8 +23,9 @@ use bp_messages::{
 	OutboundLaneData, UnrewardedRelayer, VerificationError,
 };
 use codec::{Decode, Encode};
-use frame_support::{traits::Get, BoundedVec, PalletError, RuntimeDebug};
+use frame_support::{traits::Get, BoundedVec, PalletError};
 use scale_info::TypeInfo;
+use sp_runtime::RuntimeDebug;
 use sp_std::{collections::vec_deque::VecDeque, marker::PhantomData, ops::RangeInclusive};
 
 /// Outbound lane storage.
