@@ -502,6 +502,7 @@ construct_runtime!(
 		ParaSessionInfo: polkadot_runtime_parachains::session_info::{Pallet, Storage},
 		ParasDisputes: polkadot_runtime_parachains::disputes::{Pallet, Call, Storage, Event<T>},
 		ParasSlashing: polkadot_runtime_parachains::disputes::slashing::{Pallet, Call, Storage, ValidateUnsigned},
+		ParaAssignmentProvider: polkadot_runtime_parachains::assigner_parachains::{Pallet},
 		MessageQueue: pallet_message_queue::{Pallet, Call, Storage, Event<T>},
 
 		// Parachain Onboarding Pallets

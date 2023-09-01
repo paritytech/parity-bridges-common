@@ -17,8 +17,9 @@
 //! Parachains support in Rialto runtime.
 
 use crate::{
-	xcm_config, AccountId, Babe, Balance, Balances, BlockNumber, Registrar, Runtime, RuntimeCall,
-	RuntimeEvent, RuntimeOrigin, ShiftSessionManager, Slots, UncheckedExtrinsic,
+	xcm_config, AccountId, Babe, Balance, Balances, BlockNumber, ParaAssignmentProvider, Registrar,
+	Runtime, RuntimeCall, RuntimeEvent, RuntimeOrigin, ShiftSessionManager, Slots,
+	UncheckedExtrinsic,
 };
 
 use frame_support::{
@@ -176,7 +177,11 @@ impl parachains_paras_inherent::Config for Runtime {
 	type WeightInfo = parachains_paras_inherent::TestWeightInfo;
 }
 
-impl parachains_scheduler::Config for Runtime {}
+impl polkadot_runtime_parachains::assigner_parachains::Config for Runtime {}
+
+impl parachains_scheduler::Config for Runtime {
+	type AssignmentProvider = ParaAssignmentProvider;
+}
 
 impl parachains_session_info::Config for Runtime {
 	type ValidatorSet = ShiftSessionManager;
