@@ -438,7 +438,7 @@ mod tests {
 		let dispatch_result = XcmRialtoBridgeHub::dispatch(incoming_message);
 		assert!(matches!(
 			dispatch_result.dispatch_level_result,
-			pallet_xcm_bridge_hub::XcmBlobMessageDispatchResult::NotDispatched(_),
+			pallet_xcm_bridge_hub::XcmBlobMessageDispatchResult::Dispatched,
 		));
 	}
 
@@ -452,7 +452,7 @@ mod tests {
 		let dispatch_result = XcmRialtoParachainBridgeHub::dispatch(incoming_message);
 		assert!(matches!(
 			dispatch_result.dispatch_level_result,
-			pallet_xcm_bridge_hub::XcmBlobMessageDispatchResult::NotDispatched(_),
+			pallet_xcm_bridge_hub::XcmBlobMessageDispatchResult::Dispatched,
 		));
 	}
 }

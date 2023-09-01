@@ -22,7 +22,7 @@ use codec::{Decode, Encode, MaxEncodedLen};
 use frame_support::{EqNoBound, PartialEqNoBound};
 use scale_info::TypeInfo;
 use sp_runtime::{traits::Get, BoundedVec, FixedU128, RuntimeDebug};
-use sp_std::ops::RangeInclusive;
+use sp_std::{ops::RangeInclusive, vec::Vec};
 
 pub use bp_xcm_bridge_hub::{
 	bridge_id_from_locations, bridge_locations, BridgeId, LocalXcmChannelManager,
