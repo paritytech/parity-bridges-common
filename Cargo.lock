@@ -964,6 +964,7 @@ dependencies = [
  "bp-runtime",
  "frame-support",
  "sp-api",
+ "sp-runtime",
  "sp-std 8.0.0 (git+https://github.com/paritytech/substrate?branch=master)",
 ]
 
@@ -976,6 +977,7 @@ dependencies = [
  "bp-runtime",
  "frame-support",
  "sp-api",
+ "sp-runtime",
  "sp-std 8.0.0 (git+https://github.com/paritytech/substrate?branch=master)",
 ]
 
@@ -988,6 +990,7 @@ dependencies = [
  "bp-runtime",
  "frame-support",
  "sp-api",
+ "sp-runtime",
  "sp-std 8.0.0 (git+https://github.com/paritytech/substrate?branch=master)",
 ]
 
@@ -1000,6 +1003,7 @@ dependencies = [
  "bp-runtime",
  "frame-support",
  "sp-api",
+ "sp-runtime",
  "sp-std 8.0.0 (git+https://github.com/paritytech/substrate?branch=master)",
 ]
 
@@ -1177,6 +1181,7 @@ dependencies = [
  "bp-runtime",
  "frame-support",
  "sp-api",
+ "sp-runtime",
  "sp-std 8.0.0 (git+https://github.com/paritytech/substrate?branch=master)",
 ]
 
@@ -1189,6 +1194,7 @@ dependencies = [
  "hash-db",
  "hex-literal 0.4.1",
  "impl-trait-for-tuples",
+ "log",
  "num-traits",
  "parity-scale-codec",
  "scale-info",
@@ -1230,6 +1236,7 @@ dependencies = [
  "bp-runtime",
  "frame-support",
  "sp-api",
+ "sp-runtime",
  "sp-std 8.0.0 (git+https://github.com/paritytech/substrate?branch=master)",
 ]
 
