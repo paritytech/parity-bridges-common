@@ -301,6 +301,7 @@ pub fn generate_xcm_builder_bridge_message_sample(
 		// we don't need to be super-precise with `expected_size` here
 		let xcm_size = expected_message_size.saturating_sub(location_encoded_size);
 		let xcm_data_size = xcm_size.saturating_sub(
+			// minus empty instruction size
 			xcm::v3::Instruction::<()>::ExpectPallet {
 				index: 0,
 				name: vec![],
