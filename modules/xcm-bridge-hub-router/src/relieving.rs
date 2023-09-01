@@ -36,6 +36,11 @@ where
 		mut queue: RelievingBridgesQueue<T::MaxBridges>,
 		mut remaining_weight: Weight,
 	) -> (Weight, Option<RelievingBridgesQueue<T::MaxBridges>>) {
+		// it is already checked in `on_idle`, but let's repeat
+		if queue.is_empty() {
+			return (Weight::zero(), None);
+		}
+		
 		let original_remaining_weight = remaining_weight.clone();
 		let db_weight = T::DbWeight::get();
 		let minimal_required_weight_for_bridge =
@@ -196,5 +201,42 @@ where
 		}
 
 		used_weight.saturating_add(T::WeightInfo::to_bridge_hub_deliver_weight())
+	}
+}
+
+#[cfg(test)]
+mod tests {
+	use super::*;
+
+	#[test]
+	fn relieving_bridges_are_not_serviced_if_weight_is_not_enough() {
+	}
+
+	#[test]
+	fn relieving_bridges_are_deleted_if_empty() {
+	}
+
+	#[test]
+	fn used_weight_when_no_relieved_bridges() {
+	}
+
+	#[test]
+	fn iteration_restarts_when_current_index_is_invalid() {
+	}
+
+	#[test]
+	fn bridge_is_removed_from_relieving_if_it_is_missing_from_the_storage() {
+	}
+
+	#[test]
+	fn used_weight_when_message_is_missing_from_the_storage() {
+	}
+
+	#[test]
+	fn used_weight_when_we_fail_to_decode_ticket() {
+	}
+
+	#[test]
+	fn relieving_bridges_are_serviced() {
 	}
 }
