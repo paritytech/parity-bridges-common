@@ -25,7 +25,7 @@ use bp_runtime::{
 	UnverifiedStorageProof, UnverifiedStorageProofParams,
 };
 use codec::Encode;
-use frame_support::StateVersion;
+use sp_runtime::StateVersion;
 use sp_std::{ops::RangeInclusive, prelude::*};
 use sp_trie::{LayoutV0, LayoutV1, MemoryDB, TrieConfiguration, TrieDBMutBuilder, TrieMut};
 

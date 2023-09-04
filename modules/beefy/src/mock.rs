@@ -24,14 +24,12 @@ use crate::{
 use bp_beefy::{BeefyValidatorSignatureOf, ChainWithBeefy, Commitment, MmrDataOrHash};
 use bp_runtime::{BasicOperatingMode, Chain, ChainId};
 use codec::Encode;
-use frame_support::{
-	construct_runtime, parameter_types, traits::ConstU64, weights::Weight, StateVersion,
-};
+use frame_support::{construct_runtime, parameter_types, traits::ConstU64, weights::Weight};
 use sp_core::{sr25519::Signature, Pair};
 use sp_runtime::{
 	testing::{Header, H256},
 	traits::{BlakeTwo256, Hash, IdentityLookup},
-	Perbill,
+	Perbill, StateVersion,
 };
 
 pub use sp_consensus_beefy::ecdsa_crypto::{AuthorityId as BeefyId, Pair as BeefyPair};

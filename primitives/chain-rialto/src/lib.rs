@@ -28,13 +28,12 @@ use bp_runtime::{decl_bridge_finality_runtime_apis, decl_bridge_runtime_apis, Ch
 use frame_support::{
 	dispatch::DispatchClass,
 	weights::{constants::WEIGHT_REF_TIME_PER_SECOND, IdentityFee, Weight},
-	StateVersion,
 };
 use frame_system::limits;
 use sp_core::Hasher as HasherT;
 use sp_runtime::{
 	traits::{BlakeTwo256, IdentifyAccount, Verify},
-	MultiSignature, MultiSigner, Perbill, RuntimeDebug,
+	MultiSignature, MultiSigner, Perbill, RuntimeDebug, StateVersion,
 };
 use sp_std::prelude::*;
 

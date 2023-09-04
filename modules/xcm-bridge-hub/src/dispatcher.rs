@@ -30,7 +30,7 @@ use bp_messages::{
 use bp_runtime::messages::MessageDispatchResult;
 use bp_xcm_bridge_hub::{BridgeId, LocalXcmChannelManager, XcmAsPlainPayload};
 use codec::{Decode, Encode};
-use frame_support::{dispatch::Weight, CloneNoBound, EqNoBound, PartialEqNoBound};
+use frame_support::{weights::Weight, CloneNoBound, EqNoBound, PartialEqNoBound};
 use pallet_bridge_messages::{Config as BridgeMessagesConfig, WeightInfoExt};
 use scale_info::TypeInfo;
 use sp_runtime::SaturatedConversion;

@@ -23,11 +23,11 @@ pub use bp_polkadot_core::*;
 pub use bp_rococo::{
 	MAX_AUTHORITIES_COUNT, MAX_NESTED_PARACHAIN_HEAD_DATA_SIZE, PARAS_PALLET_NAME,
 };
-use frame_support::StateVersion;
 
 use bp_header_chain::ChainWithGrandpa;
 use bp_runtime::{decl_bridge_finality_runtime_apis, Chain, ChainId};
 use frame_support::weights::Weight;
+use sp_runtime::StateVersion;
 use sp_std::prelude::Vec;
 
 /// Wococo Chain

@@ -35,13 +35,12 @@ use codec::Encode;
 use frame_support::{
 	parameter_types,
 	weights::{ConstantMultiplier, IdentityFee, RuntimeDbWeight, Weight},
-	StateVersion,
 };
 use pallet_transaction_payment::Multiplier;
 use sp_runtime::{
 	testing::H256,
 	traits::{BlakeTwo256, ConstU32, ConstU64, ConstU8, IdentityLookup},
-	FixedPointNumber, Perquintill,
+	FixedPointNumber, Perquintill, StateVersion,
 };
 
 /// Account identifier at `ThisChain`.

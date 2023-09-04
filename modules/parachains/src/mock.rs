@@ -17,13 +17,11 @@
 use bp_header_chain::ChainWithGrandpa;
 use bp_polkadot_core::parachains::ParaId;
 use bp_runtime::{Chain, ChainId, Parachain};
-use frame_support::{
-	construct_runtime, parameter_types, traits::ConstU32, weights::Weight, StateVersion,
-};
+use frame_support::{construct_runtime, parameter_types, traits::ConstU32, weights::Weight};
 use sp_runtime::{
 	testing::H256,
 	traits::{BlakeTwo256, Header as HeaderT, IdentityLookup},
-	MultiSignature, Perbill,
+	MultiSignature, Perbill, StateVersion,
 };
 
 use crate as pallet_bridge_parachains;

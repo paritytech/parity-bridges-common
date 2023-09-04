@@ -29,14 +29,13 @@ use frame_support::{
 	parameter_types,
 	traits::{EnsureOrigin, OriginTrait},
 	weights::RuntimeDbWeight,
-	StateVersion,
 };
-use polkadot_parachain::primitives::Sibling;
+use polkadot_parachain_primitives::primitives::Sibling;
 use sp_core::H256;
 use sp_runtime::{
 	testing::Header as SubstrateHeader,
 	traits::{BlakeTwo256, ConstU32, IdentityLookup},
-	AccountId32, BuildStorage,
+	AccountId32, BuildStorage, StateVersion,
 };
 use xcm::prelude::*;
 use xcm_builder::{DispatchBlob, DispatchBlobError, ParentIsPreset, SiblingParachainConvertsVia};
