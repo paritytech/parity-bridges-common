@@ -41,7 +41,7 @@ WORKDIR /home/user
 ARG PROFILE=release
 ARG PROJECT=substrate-relay
 
-COPY --chown=user:user ./target/${PROFILE}/${PROJECT} ./
+COPY --chown=user:user ./target/${PROFILE}/${PROJECT}* ./
 
 # check if executable works in this container
 RUN ./${PROJECT} --version
