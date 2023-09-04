@@ -18,15 +18,14 @@
 
 use crate as pallet_xcm_bridge_hub_router;
 
-use bp_xcm_bridge_hub::{BridgeId, LocalXcmChannelManager};
-use frame_support::{construct_runtime, parameter_types};
+use bp_xcm_bridge_hub_router::{BridgeId, LocalXcmChannelManager};
+use frame_support::{construct_runtime, parameter_types, weights::RuntimeDbWeight};
 use sp_core::H256;
 use sp_runtime::{
-	traits::{BlakeTwo256, ConstU128, IdentityLookup},
+	traits::{BlakeTwo256, ConstU128, ConstU32, IdentityLookup},
 	BuildStorage,
 };
 use xcm::prelude::*;
-use xcm_builder::NetworkExportTable;
 
 pub type AccountId = u64;
 type Block = frame_system::mocking::MockBlock<TestRuntime>;
@@ -52,11 +51,7 @@ parameter_types! {
 	pub UniversalLocation: InteriorMultiLocation = X2(GlobalConsensus(ThisNetworkId::get()), Parachain(1000));
 	pub SiblingBridgeHubLocation: MultiLocation = ParentThen(X1(Parachain(1002))).into();
 	pub BridgeFeeAsset: AssetId = MultiLocation::parent().into();
-	pub BridgeTable: Vec<(NetworkId, MultiLocation, Option<MultiAsset>)> = vec![(
-		BridgedNetworkId::get(),
-		SiblingBridgeHubLocation::get(),
-		Some((BridgeFeeAsset::get(), BASE_FEE).into()),
-	)];
+	pub const DbWeight: RuntimeDbWeight = RuntimeDbWeight { read: 1, write: 2 };
 }
 
 impl frame_system::Config for TestRuntime {
@@ -79,23 +74,27 @@ impl frame_system::Config for TestRuntime {
 	type SystemWeightInfo = ();
 	type BlockWeights = ();
 	type BlockLength = ();
-	type DbWeight = ();
+	type DbWeight = DbWeight;
 	type SS58Prefix = ();
 	type OnSetCode = ();
 	type MaxConsumers = frame_support::traits::ConstU32<16>;
 }
 
+pub type TestWeightInfo = crate::weights::BridgeWeight<TestRuntime>;
+
 impl pallet_xcm_bridge_hub_router::Config<()> for TestRuntime {
-	type WeightInfo = ();
+	type WeightInfo = TestWeightInfo;
+
+	type MaxBridges = ConstU32<2>;
 
 	type UniversalLocation = UniversalLocation;
 	type SiblingBridgeHubLocation = SiblingBridgeHubLocation;
 	type BridgedNetworkId = BridgedNetworkId;
-	type Bridges = NetworkExportTable<BridgeTable>;
 
 	type ToBridgeHubSender = TestToBridgeHubSender;
 	type LocalXcmChannelManager = TestLocalXcmChannelManager;
 
+	type BaseFee = ConstU128<BASE_FEE>;
 	type ByteFee = ConstU128<BYTE_FEE>;
 	type FeeAsset = BridgeFeeAsset;
 }
@@ -108,14 +107,16 @@ impl TestToBridgeHubSender {
 	}
 }
 
+type TestTicket = Vec<u8>;
+
 impl SendXcm for TestToBridgeHubSender {
-	type Ticket = ();
+	type Ticket = TestTicket;
 
 	fn validate(
 		_destination: &mut Option<MultiLocation>,
 		_message: &mut Option<Xcm<()>>,
 	) -> SendResult<Self::Ticket> {
-		Ok(((), (BridgeFeeAsset::get(), HRMP_FEE).into()))
+		Ok((vec![42], (BridgeFeeAsset::get(), HRMP_FEE).into()))
 	}
 
 	fn deliver(_ticket: Self::Ticket) -> Result<XcmHash, SendError> {

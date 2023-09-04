@@ -102,7 +102,22 @@ parameter_types! {
 }
 
 /// The XCM router. We are not sending messages to sibling/parent/child chains here.
-pub type XcmRouter = ();
+pub struct XcmRouter;
+
+impl SendXcm for XcmRouter {
+	type Ticket = ();
+
+	fn validate(
+		_dest: &mut Option<MultiLocation>,
+		_xcm: &mut Option<Xcm<()>>,
+	) -> SendResult<Self::Ticket> {
+		Ok(((), Default::default()))
+	}
+
+	fn deliver(_ticket: Self::Ticket) -> Result<XcmHash, SendError> {
+		Ok(Default::default())
+	}
+}
 
 /// The barriers one of which must be passed for an XCM message to be executed.
 pub type Barrier = (
@@ -423,7 +438,7 @@ mod tests {
 		let dispatch_result = XcmRialtoBridgeHub::dispatch(incoming_message);
 		assert!(matches!(
 			dispatch_result.dispatch_level_result,
-			pallet_xcm_bridge_hub::XcmBlobMessageDispatchResult::NotDispatched(_),
+			pallet_xcm_bridge_hub::XcmBlobMessageDispatchResult::Dispatched,
 		));
 	}
 
@@ -437,7 +452,7 @@ mod tests {
 		let dispatch_result = XcmRialtoParachainBridgeHub::dispatch(incoming_message);
 		assert!(matches!(
 			dispatch_result.dispatch_level_result,
-			pallet_xcm_bridge_hub::XcmBlobMessageDispatchResult::NotDispatched(_),
+			pallet_xcm_bridge_hub::XcmBlobMessageDispatchResult::Dispatched,
 		));
 	}
 }

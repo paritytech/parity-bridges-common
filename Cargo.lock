@@ -1267,6 +1267,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "bp-xcm-bridge-hub-router"
+version = "0.1.0"
+dependencies = [
+ "bp-xcm-bridge-hub",
+ "frame-support",
+ "parity-scale-codec",
+ "scale-info",
+ "sp-runtime",
+ "sp-std 8.0.0 (git+https://github.com/paritytech/substrate?branch=master)",
+]
+
+[[package]]
 name = "bridge-runtime-common"
 version = "0.1.0"
 dependencies = [
@@ -7982,7 +7994,8 @@ dependencies = [
 name = "pallet-xcm-bridge-hub-router"
 version = "0.1.0"
 dependencies = [
- "bp-xcm-bridge-hub",
+ "bp-runtime",
+ "bp-xcm-bridge-hub-router",
  "frame-benchmarking",
  "frame-support",
  "frame-system",
