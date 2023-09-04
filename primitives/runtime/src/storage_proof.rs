@@ -108,7 +108,7 @@ impl UnverifiedStorageProof {
 		let keys: Vec<_> = entries.iter().map(|(key, _)| key.clone()).collect();
 		let entries: Vec<_> =
 			entries.iter().cloned().map(|(key, val)| (None, vec![(key, val)])).collect();
-		let backend = sp_state_machine::TrieBackend::<sp_trie::MemoryDB<H>, H>::from((
+		let backend = sp_state_machine::TrieBackend::<sp_trie::PrefixedMemoryDB<H>, H>::from((
 			entries,
 			state_version,
 		));

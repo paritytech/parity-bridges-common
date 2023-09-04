@@ -20,22 +20,22 @@ pallet-bridge-messages = { path = "../messages", default-features = false }
 
 # Substrate Dependencies
 
-frame-support = { git = "https://github.com/paritytech/substrate", branch = "master", default-features = false }
-frame-system = { git = "https://github.com/paritytech/substrate", branch = "master", default-features = false }
-sp-core = { git = "https://github.com/paritytech/substrate", branch = "master", default-features = false }
-sp-runtime = { git = "https://github.com/paritytech/substrate", branch = "master", default-features = false }
-sp-std = { git = "https://github.com/paritytech/substrate", branch = "master", default-features = false }
+frame-support = { git = "https://github.com/paritytech/polkadot-sdk", branch = "master", default-features = false }
+frame-system = { git = "https://github.com/paritytech/polkadot-sdk", branch = "master", default-features = false }
+sp-core = { git = "https://github.com/paritytech/polkadot-sdk", branch = "master", default-features = false }
+sp-runtime = { git = "https://github.com/paritytech/polkadot-sdk", branch = "master", default-features = false }
+sp-std = { git = "https://github.com/paritytech/polkadot-sdk", branch = "master", default-features = false }
 
 # Polkadot Dependencies
 
-xcm = { git = "https://github.com/paritytech/polkadot", branch = "master", default-features = false }
-xcm-builder = { git = "https://github.com/paritytech/polkadot", branch = "master", default-features = false }
-xcm-executor = { git = "https://github.com/paritytech/polkadot", branch = "master", default-features = false }
+xcm = { package = "staging-xcm", git = "https://github.com/paritytech/polkadot-sdk", branch = "master", default-features = false }
+xcm-builder = { package = "staging-xcm-builder", git = "https://github.com/paritytech/polkadot-sdk", branch = "master", default-features = false }
+xcm-executor = { package = "staging-xcm-executor", git = "https://github.com/paritytech/polkadot-sdk", branch = "master", default-features = false }
 
 [dev-dependencies]
-pallet-balances = { git = "https://github.com/paritytech/substrate", branch = "master" }
-polkadot-parachain = { git = "https://github.com/paritytech/polkadot", branch = "master" }
-sp-io = { git = "https://github.com/paritytech/substrate", branch = "master" }
+pallet-balances = { git = "https://github.com/paritytech/polkadot-sdk", branch = "master" }
+polkadot-parachain-primitives = { git = "https://github.com/paritytech/polkadot-sdk", branch = "master" }
+sp-io = { git = "https://github.com/paritytech/polkadot-sdk", branch = "master" }
 
 [features]
 default = ["std"]

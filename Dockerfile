@@ -45,7 +45,7 @@ WORKDIR /home/user
 
 ARG PROJECT=substrate-relay
 
-COPY --chown=user:user --from=builder /parity-bridges-common/target/release/${PROJECT} ./
+COPY --chown=user:user --from=builder /parity-bridges-common/target/release/${PROJECT}* ./
 COPY --chown=user:user --from=builder /parity-bridges-common/deployments/local-scripts/bridge-entrypoint.sh ./
 
 # check if executable works in this container

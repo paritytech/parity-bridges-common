@@ -22,11 +22,10 @@
 use bp_messages::LaneId;
 use bp_runtime::{AccountIdOf, BalanceOf, Chain};
 use codec::{Decode, Encode, MaxEncodedLen};
-use frame_support::{
-	ensure, CloneNoBound, PalletError, PartialEqNoBound, RuntimeDebug, RuntimeDebugNoBound,
-};
+use frame_support::{ensure, CloneNoBound, PalletError, PartialEqNoBound, RuntimeDebugNoBound};
 use scale_info::TypeInfo;
 use serde::{Deserialize, Serialize};
+use sp_runtime::RuntimeDebug;
 use sp_std::boxed::Box;
 use xcm::{latest::prelude::*, VersionedInteriorMultiLocation, VersionedMultiLocation};
 
