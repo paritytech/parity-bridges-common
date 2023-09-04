@@ -12,15 +12,15 @@ async-trait = "0.1"
 codec = { package = "parity-scale-codec", version = "3.1.5" }
 futures = "0.3.28"
 hex = "0.4"
-log = "0.4.17"
+log = "0.4.20"
 num-format = "0.4"
 num-traits = "0.2"
 rbtag = "0.3"
 rustc-hex = "2.1"
 structopt = "0.3"
-signal-hook = "0.3.15"
+signal-hook = "0.3.16"
 signal-hook-async-std = "0.2.2"
-strum = { version = "0.24.1", features = ["derive"] }
+strum = { version = "0.25.0", features = ["derive"] }
 
 # Bridge dependencies
 bp-header-chain = { path = "../../primitives/header-chain" }
@@ -59,21 +59,21 @@ substrate-relay-helper = { path = "../lib-substrate-relay" }
 
 # Substrate Dependencies
 
-frame-support = { git = "https://github.com/paritytech/substrate", branch = "master" }
-sp-core = { git = "https://github.com/paritytech/substrate", branch = "master" }
-sp-runtime = { git = "https://github.com/paritytech/substrate", branch = "master" }
+frame-support = { git = "https://github.com/paritytech/polkadot-sdk", branch = "master" }
+sp-core = { git = "https://github.com/paritytech/polkadot-sdk", branch = "master" }
+sp-runtime = { git = "https://github.com/paritytech/polkadot-sdk", branch = "master" }
 
 # Polkadot Dependencies
-polkadot-parachain = { git = "https://github.com/paritytech/polkadot", branch = "master" }
-polkadot-primitives = { git = "https://github.com/paritytech/polkadot", branch = "master" }
-polkadot-runtime-common = { git = "https://github.com/paritytech/polkadot", branch = "master" }
-polkadot-runtime-parachains = { git = "https://github.com/paritytech/polkadot", branch = "master" }
-xcm = { git = "https://github.com/paritytech/polkadot", branch = "master" }
-xcm-executor = { git = "https://github.com/paritytech/polkadot", branch = "master" }
+polkadot-parachain-primitives = { git = "https://github.com/paritytech/polkadot-sdk", branch = "master" }
+polkadot-primitives = { git = "https://github.com/paritytech/polkadot-sdk", branch = "master" }
+polkadot-runtime-common = { git = "https://github.com/paritytech/polkadot-sdk", branch = "master" }
+polkadot-runtime-parachains = { git = "https://github.com/paritytech/polkadot-sdk", branch = "master" }
+xcm = { package = "staging-xcm", git = "https://github.com/paritytech/polkadot-sdk", branch = "master" }
+xcm-executor = { package = "staging-xcm-executor", git = "https://github.com/paritytech/polkadot-sdk", branch = "master" }
 
 [dev-dependencies]
 bp-test-utils = { path = "../../primitives/test-utils" }
 hex-literal = "0.4"
-sp-keyring = { git = "https://github.com/paritytech/substrate", branch = "master" }
-tempfile = "3.5"
+sp-keyring = { git = "https://github.com/paritytech/polkadot-sdk", branch = "master" }
+tempfile = "3.8"
 finality-grandpa = { version = "0.16.2" }

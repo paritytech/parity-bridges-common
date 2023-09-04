@@ -44,14 +44,13 @@ use frame_support::{
 	parameter_types,
 	traits::ConstU64,
 	weights::{constants::RocksDbWeight, Weight},
-	StateVersion,
 };
 use scale_info::TypeInfo;
 use sp_core::H256;
 use sp_runtime::{
 	testing::Header as SubstrateHeader,
 	traits::{BlakeTwo256, ConstU32, IdentityLookup},
-	BuildStorage, Perbill,
+	BuildStorage, Perbill, StateVersion,
 };
 use std::{collections::VecDeque, ops::RangeInclusive};
 
