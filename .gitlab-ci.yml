@@ -240,6 +240,10 @@ build:
     - mkdir -p ./artifacts
     - strip ./target/release/rialto-bridge-node
     - mv -v ./target/release/rialto-bridge-node ./artifacts/
+    - strip ./target/release/rialto-bridge-node-execute-worker
+    - mv -v ./target/release/rialto-bridge-node-execute-worker ./artifacts/
+    - strip ./target/release/rialto-bridge-node-prepare-worker
+    - mv -v ./target/release/rialto-bridge-node-prepare-worker ./artifacts/
     - strip ./target/release/rialto-parachain-collator
     - mv -v ./target/release/rialto-parachain-collator ./artifacts/
     - strip ./target/release/millau-bridge-node
