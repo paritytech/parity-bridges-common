@@ -26,7 +26,7 @@ WORKDIR /home/user
 
 ARG PROJECT=substrate-relay
 
-COPY --chown=user:user ./${PROJECT} ./
+COPY --chown=user:user ./${PROJECT}* ./
 COPY --chown=user:user ./bridge-entrypoint.sh ./
 
 # check if executable works in this container
