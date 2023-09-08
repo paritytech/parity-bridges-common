@@ -42,10 +42,12 @@ pub const FERDIE: Account = Account(5);
 pub struct Account(pub u16);
 
 impl Account {
+	/// Returns public key of this account.
 	pub fn public(&self) -> VerifyingKey {
 		self.pair().verifying_key()
 	}
 
+	/// Returns key pair, used to sign data on behalf of this account.
 	pub fn pair(&self) -> SigningKey {
 		let data = self.0.encode();
 		let mut bytes = [0_u8; 32];
