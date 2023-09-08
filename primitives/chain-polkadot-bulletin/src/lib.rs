@@ -20,6 +20,7 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
 use bp_header_chain::ChainWithGrandpa;
+use bp_messages::{ChainWithMessages, MessageNonce};
 use bp_runtime::{
 	decl_bridge_finality_runtime_apis, decl_bridge_messages_runtime_apis, Chain, ChainId,
 };
@@ -51,6 +52,16 @@ pub const WITH_POLKADOT_BULLETIN_MESSAGES_PALLET_NAME: &str = "BridgePolkadotBul
 // There are fewer system operations on this chain (e.g. staking, governance, etc.). Use a higher
 // percentage of the block for data storage.
 const NORMAL_DISPATCH_RATIO: Perbill = Perbill::from_percent(90);
+
+// Re following constants - we are using the same values at Cumulus parachains. They are limited
+// by the maximal transaction weight/size. Since block limits at Bulletin Chain are larger than
+// at the Cumulus Bridgeg Hubs, we could reuse the same values.
+
+/// Maximal number of unrewarded relayer entries at inbound lane for Cumulus-based parachains.
+pub const MAX_UNREWARDED_RELAYERS_IN_CONFIRMATION_TX: MessageNonce = 1024;
+
+/// Maximal number of unconfirmed messages at inbound lane for Cumulus-based parachains.
+pub const MAX_UNCONFIRMED_MESSAGES_IN_CONFIRMATION_TX: MessageNonce = 4096;
 
 parameter_types! {
 	/// We allow for 2 seconds of compute with a 6 second average block time.
@@ -104,6 +115,16 @@ impl ChainWithGrandpa for PolkadotBulletin {
 		REASONABLE_HEADERS_IN_JUSTIFICATON_ANCESTRY;
 	const MAX_HEADER_SIZE: u32 = MAX_HEADER_SIZE;
 	const AVERAGE_HEADER_SIZE_IN_JUSTIFICATION: u32 = AVERAGE_HEADER_SIZE_IN_JUSTIFICATION;
+}
+
+impl ChainWithMessages for PolkadotBulletin {
+	const WITH_CHAIN_MESSAGES_PALLET_NAME: &'static str =
+		WITH_POLKADOT_BULLETIN_MESSAGES_PALLET_NAME;
+
+	const MAX_UNREWARDED_RELAYERS_IN_CONFIRMATION_TX: MessageNonce =
+		MAX_UNREWARDED_RELAYERS_IN_CONFIRMATION_TX;
+	const MAX_UNCONFIRMED_MESSAGES_IN_CONFIRMATION_TX: MessageNonce =
+		MAX_UNCONFIRMED_MESSAGES_IN_CONFIRMATION_TX;
 }
 
 decl_bridge_finality_runtime_apis!(polkadot_bulletin);
