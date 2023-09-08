@@ -18,9 +18,7 @@
 // RuntimeApi generated functions
 #![allow(clippy::too_many_arguments)]
 
-use bp_messages::{
-	InboundMessageDetails, LaneId, MessageNonce, MessagePayload, OutboundMessageDetails,
-};
+use bp_messages::MessageNonce;
 use bp_runtime::{decl_bridge_runtime_apis, Chain, Parachain};
 use frame_support::{
 	dispatch::DispatchClass,

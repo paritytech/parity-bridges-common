@@ -34,6 +34,7 @@ members = [
 	"primitives/chain-kusama",
 	"primitives/chain-millau",
 	"primitives/chain-polkadot",
+	"primitives/chain-polkadot-bulletin",
 	"primitives/chain-rialto",
 	"primitives/chain-rialto-parachain",
 	"primitives/chain-rococo",
