@@ -1315,6 +1315,21 @@ dependencies = [
 ]
 
 [[package]]
+name = "bp-polkadot-bulletin"
+version = "0.1.0"
+dependencies = [
+ "bp-header-chain",
+ "bp-messages",
+ "bp-polkadot-core",
+ "bp-runtime",
+ "frame-support",
+ "frame-system",
+ "sp-api",
+ "sp-runtime",
+ "sp-std 8.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
+]
+
+[[package]]
 name = "bp-polkadot-core"
 version = "0.1.0"
 dependencies = [
