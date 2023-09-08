@@ -371,10 +371,10 @@ macro_rules! decl_bridge_messages_runtime_apis {
 						/// If some (or all) messages are missing from the storage, they'll also will
 						/// be missing from the resulting vector. The vector is ordered by the nonce.
 						fn message_details(
-							lane: LaneId,
-							begin: MessageNonce,
-							end: MessageNonce,
-						) -> Vec<OutboundMessageDetails>;
+							lane: bp_messages::LaneId,
+							begin: bp_messages::MessageNonce,
+							end: bp_messages::MessageNonce,
+						) -> Vec<bp_messages::OutboundMessageDetails>;
 					}
 
 					/// Inbound message lane API for messages sent by this chain.
@@ -387,9 +387,9 @@ macro_rules! decl_bridge_messages_runtime_apis {
 					pub trait [<From $chain:camel InboundLaneApi>] {
 						/// Return details of given inbound messages.
 						fn message_details(
-							lane: LaneId,
-							messages: Vec<(MessagePayload, OutboundMessageDetails)>,
-						) -> Vec<InboundMessageDetails>;
+							lane: bp_messages::LaneId,
+							messages: Vec<(bp_messages::MessagePayload, bp_messages::OutboundMessageDetails)>,
+						) -> Vec<bp_messages::InboundMessageDetails>;
 					}
 				}
 			}
