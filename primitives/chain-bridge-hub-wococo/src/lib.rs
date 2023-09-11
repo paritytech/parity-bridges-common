@@ -27,7 +27,6 @@ use bp_runtime::{
 };
 use frame_support::dispatch::DispatchClass;
 use sp_runtime::{RuntimeDebug, StateVersion};
-use sp_std::prelude::Vec;
 
 /// BridgeHubWococo parachain.
 #[derive(RuntimeDebug)]

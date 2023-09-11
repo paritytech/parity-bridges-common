@@ -25,7 +25,6 @@ use bp_header_chain::ChainWithGrandpa;
 use bp_runtime::{decl_bridge_finality_runtime_apis, Chain, ChainId};
 use frame_support::weights::Weight;
 use sp_runtime::StateVersion;
-use sp_std::prelude::Vec;
 
 /// Rococo Chain
 pub struct Rococo;

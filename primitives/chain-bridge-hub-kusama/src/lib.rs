@@ -30,7 +30,6 @@ use frame_support::{
 	sp_runtime::{MultiAddress, MultiSigner},
 };
 use sp_runtime::{RuntimeDebug, StateVersion};
-use sp_std::prelude::Vec;
 
 /// BridgeHubKusama parachain.
 #[derive(RuntimeDebug)]
