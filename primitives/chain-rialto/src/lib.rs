@@ -32,7 +32,6 @@ use sp_runtime::{
 	traits::{BlakeTwo256, IdentifyAccount, Verify},
 	MultiSignature, MultiSigner, Perbill, RuntimeDebug, StateVersion,
 };
-use sp_std::prelude::*;
 
 /// Number of extra bytes (excluding size of storage value itself) of storage proof, built at
 /// Rialto chain. This mostly depends on number of entries (and their density) in the storage trie.
