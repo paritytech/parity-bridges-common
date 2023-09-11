@@ -15,19 +15,15 @@
 // along with Parity Bridges Common.  If not, see <http://www.gnu.org/licenses/>.
 
 use crate::{
-	reporter::EquivocationsReporter, EquivocationDetectionPipeline, HeaderFinalityInfo,
-	SourceClient, TargetClient,
+	handle_client_error, reporter::EquivocationsReporter, EquivocationDetectionPipeline,
+	HeaderFinalityInfo, SourceClient, TargetClient,
 };
 
 use bp_header_chain::{FinalityProof, FindEquivocations};
 use finality_relay::{FinalityProofsBuf, FinalityProofsStream};
 use futures::{select, FutureExt};
 use num_traits::Saturating;
-use relay_utils::{
-	metrics::MetricsParams,
-	relay_loop::{reconnect_failed_client, RECONNECT_DELAY},
-	FailedClient, MaybeConnectionError,
-};
+use relay_utils::{metrics::MetricsParams, FailedClient};
 use std::{future::Future, time::Duration};
 
 /// The context needed for finding equivocations inside finality proofs and reporting them.
@@ -85,34 +81,6 @@ struct EquivocationDetectionLoop<
 impl<P: EquivocationDetectionPipeline, SC: SourceClient<P>, TC: TargetClient<P>>
 	EquivocationDetectionLoop<P, SC, TC>
 {
-	async fn handle_source_error(&mut self, e: SC::Error) {
-		if e.is_connection_error() {
-			reconnect_failed_client(
-				FailedClient::Source,
-				RECONNECT_DELAY,
-				&mut self.source_client,
-				&mut self.target_client,
-			)
-			.await;
-		} else {
-			async_std::task::sleep(RECONNECT_DELAY).await;
-		}
-	}
-
-	async fn handle_target_error(&mut self, e: TC::Error) {
-		if e.is_connection_error() {
-			reconnect_failed_client(
-				FailedClient::Target,
-				RECONNECT_DELAY,
-				&mut self.source_client,
-				&mut self.target_client,
-			)
-			.await;
-		} else {
-			async_std::task::sleep(RECONNECT_DELAY).await;
-		}
-	}
-
 	async fn ensure_finality_proofs_stream(&mut self) {
 		match self.finality_proofs_stream.ensure_stream(&self.source_client).await {
 			Ok(_) => {},
@@ -124,7 +92,7 @@ impl<P: EquivocationDetectionPipeline, SC: SourceClient<P>, TC: TargetClient<P>>
 				);
 
 				// Reconnect to the source client if needed
-				self.handle_source_error(e).await
+				handle_client_error(&mut self.source_client, e).await;
 			},
 		}
 	}
@@ -140,7 +108,7 @@ impl<P: EquivocationDetectionPipeline, SC: SourceClient<P>, TC: TargetClient<P>>
 				);
 
 				// Reconnect target client and move on
-				self.handle_target_error(e).await;
+				handle_client_error(&mut self.target_client, e).await;
 
 				None
 			},
@@ -168,7 +136,7 @@ impl<P: EquivocationDetectionPipeline, SC: SourceClient<P>, TC: TargetClient<P>>
 				);
 
 				// Reconnect target client if needed and move on.
-				self.handle_target_error(e).await;
+				handle_client_error(&mut self.target_client, e).await;
 				None
 			},
 		}
@@ -191,7 +159,7 @@ impl<P: EquivocationDetectionPipeline, SC: SourceClient<P>, TC: TargetClient<P>>
 				);
 
 				// Reconnect in case of a connection error.
-				self.handle_target_error(e).await;
+				handle_client_error(&mut self.target_client, e).await;
 				// And move on to the next block.
 				vec![]
 			},
@@ -209,7 +177,7 @@ impl<P: EquivocationDetectionPipeline, SC: SourceClient<P>, TC: TargetClient<P>>
 				);
 
 				// Reconnect source client and move on
-				self.handle_source_error(e).await;
+				handle_client_error(&mut self.source_client, e).await;
 			},
 		}
 	}
