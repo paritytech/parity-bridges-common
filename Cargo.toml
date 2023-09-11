@@ -55,6 +55,7 @@ members = [
 	"relays/client-kusama",
 	"relays/client-millau",
 	"relays/client-polkadot",
+	"relays/client-polkadot-bulletin",
 	"relays/client-rialto",
 	"relays/client-rialto-parachain",
 	"relays/client-rococo",
