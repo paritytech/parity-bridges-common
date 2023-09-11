@@ -27,7 +27,6 @@ use bp_runtime::{
 };
 use frame_support::weights::Weight;
 use sp_runtime::StateVersion;
-use sp_std::prelude::Vec;
 
 /// Polkadot Chain
 pub struct Polkadot;
