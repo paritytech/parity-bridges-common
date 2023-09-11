@@ -16,7 +16,7 @@
 
 //! Types used to connect to the Polkadot Bulletin chain.
 
-//mod codegen_runtime;
+mod codegen_runtime;
 
 use bp_polkadot_bulletin::POLKADOT_BULLETIN_SYNCED_HEADERS_GRANDPA_INFO_METHOD;
 use codec::Encode;
@@ -29,11 +29,10 @@ use sp_runtime::{generic::SignedPayload, traits::IdentifyAccount, MultiAddress};
 use sp_session::MembershipProof;
 use std::time::Duration;
 
-//pub use codegen_runtime::api::runtime_types;
+pub use codegen_runtime::api::runtime_types;
 
-//pub type RuntimeCall = runtime_types::polkadot_runtime::RuntimeCall;
-
-//pub type GrandpaCall = runtime_types::pallet_grandpa::pallet::Call;
+/// Call of the Polkadot Bulletin Chain runtime.
+pub type RuntimeCall = runtime_types::polkadot_bulletin_chain_runtime::RuntimeCall;
 
 /// Polkadot header id.
 pub type HeaderId =
@@ -69,12 +68,6 @@ impl ChainWithGrandpa for PolkadotBulletin {
 
 	type KeyOwnerProof = MembershipProof;
 }
-
-/*impl ChainWithBalances for Polkadot {
-	fn account_info_storage_key(account_id: &Self::AccountId) -> StorageKey {
-		AccountInfoStorageMapKeyProvider::final_key(account_id)
-	}
-}*/
 
 impl ChainWithTransactions for PolkadotBulletin {
 	type AccountKeyPair = sp_core::sr25519::Pair;

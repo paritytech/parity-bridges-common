@@ -10617,7 +10617,10 @@ dependencies = [
 name = "relay-polkadot-bulletin-client"
 version = "0.1.0"
 dependencies = [
+ "bp-header-chain",
+ "bp-messages",
  "bp-polkadot-bulletin",
+ "bp-polkadot-core",
  "parity-scale-codec",
  "relay-substrate-client",
  "relay-utils",
