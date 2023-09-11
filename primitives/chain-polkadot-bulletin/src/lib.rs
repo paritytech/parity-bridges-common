@@ -21,9 +21,7 @@
 
 use bp_header_chain::ChainWithGrandpa;
 use bp_messages::MessageNonce;
-use bp_runtime::{
-	decl_bridge_finality_runtime_apis, decl_bridge_messages_runtime_apis, Chain,
-};
+use bp_runtime::{decl_bridge_finality_runtime_apis, decl_bridge_messages_runtime_apis, Chain};
 use frame_support::{
 	dispatch::DispatchClass,
 	parameter_types,

@@ -31,7 +31,6 @@ use sp_runtime::{
 	traits::{BlakeTwo256, IdentifyAccount, Verify},
 	MultiSignature, MultiSigner, Perbill,
 };
-use sp_std::vec::Vec;
 
 /// Identifier of RialtoParachain in the Rialto relay chain.
 ///
