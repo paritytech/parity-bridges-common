@@ -1324,6 +1324,8 @@ dependencies = [
  "bp-runtime",
  "frame-support",
  "frame-system",
+ "parity-scale-codec",
+ "scale-info",
  "sp-api",
  "sp-runtime",
  "sp-std 8.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
@@ -10522,6 +10524,7 @@ dependencies = [
  "bp-kusama",
  "bp-messages",
  "bp-parachains",
+ "bp-polkadot-bulletin",
  "bp-polkadot-core",
  "bp-runtime",
  "parity-scale-codec",
@@ -10608,6 +10611,26 @@ dependencies = [
  "sp-core",
  "sp-runtime",
  "sp-session",
+]
+
+[[package]]
+name = "relay-polkadot-bulletin-client"
+version = "0.1.0"
+dependencies = [
+ "bp-header-chain",
+ "bp-messages",
+ "bp-polkadot-bulletin",
+ "bp-polkadot-core",
+ "parity-scale-codec",
+ "relay-substrate-client",
+ "relay-utils",
+ "scale-info",
+ "sp-consensus-grandpa",
+ "sp-core",
+ "sp-runtime",
+ "sp-session",
+ "sp-weights",
+ "subxt",
 ]
 
 [[package]]
