@@ -21,8 +21,8 @@ mod codegen_runtime;
 use bp_polkadot_bulletin::POLKADOT_BULLETIN_SYNCED_HEADERS_GRANDPA_INFO_METHOD;
 use codec::Encode;
 use relay_substrate_client::{
-	Chain, ChainWithGrandpa, ChainWithTransactions, Error as SubstrateError, SignParam,
-	UnderlyingChainProvider, UnsignedTransaction,
+	Chain, ChainWithGrandpa, ChainWithMessages, ChainWithTransactions, Error as SubstrateError,
+	SignParam, UnderlyingChainProvider, UnsignedTransaction,
 };
 use sp_core::Pair;
 use sp_runtime::{generic::SignedPayload, traits::IdentifyAccount, MultiAddress};
@@ -33,6 +33,12 @@ pub use codegen_runtime::api::runtime_types;
 
 /// Call of the Polkadot Bulletin Chain runtime.
 pub type RuntimeCall = runtime_types::polkadot_bulletin_chain_runtime::RuntimeCall;
+/// Call of the with-PolkadotBridgeHub bridge GRANDPA pallet.
+pub type BridgePolkadotGrandpaCall = runtime_types::pallet_bridge_grandpa::pallet::Call;
+/// Call of the with-PolkadotBridgeHub bridge parachains pallet.
+pub type BridgePolkadotParachainsCall = runtime_types::pallet_bridge_parachains::pallet::Call;
+/// Call of the with-PolkadotBridgeHub bridge messages pallet.
+pub type BridgePolkadotBridgeHubMessagesCall = runtime_types::pallet_bridge_messages::pallet::Call;
 
 /// Polkadot header id.
 pub type HeaderId =
@@ -59,7 +65,7 @@ impl Chain for PolkadotBulletin {
 	const AVERAGE_BLOCK_INTERVAL: Duration = Duration::from_secs(6);
 
 	type SignedBlock = bp_polkadot_bulletin::SignedBlock;
-	type Call = (); // TODO: RuntimeCall;
+	type Call = RuntimeCall;
 }
 
 impl ChainWithGrandpa for PolkadotBulletin {
@@ -67,6 +73,15 @@ impl ChainWithGrandpa for PolkadotBulletin {
 		POLKADOT_BULLETIN_SYNCED_HEADERS_GRANDPA_INFO_METHOD;
 
 	type KeyOwnerProof = MembershipProof;
+}
+
+impl ChainWithMessages for PolkadotBulletin {
+	const WITH_CHAIN_RELAYERS_PALLET_NAME: Option<&'static str> = None; // TODO
+
+	const TO_CHAIN_MESSAGE_DETAILS_METHOD: &'static str =
+		bp_polkadot_bulletin::TO_POLKADOT_BULLETIN_MESSAGE_DETAILS_METHOD;
+	const FROM_CHAIN_MESSAGE_DETAILS_METHOD: &'static str =
+		bp_polkadot_bulletin::FROM_POLKADOT_BULLETIN_MESSAGE_DETAILS_METHOD;
 }
 
 impl ChainWithTransactions for PolkadotBulletin {
