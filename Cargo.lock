@@ -14598,6 +14598,7 @@ dependencies = [
  "relay-bridge-hub-wococo-client",
  "relay-kusama-client",
  "relay-millau-client",
+ "relay-polkadot-bulletin-client",
  "relay-polkadot-client",
  "relay-rialto-client",
  "relay-rialto-parachain-client",
