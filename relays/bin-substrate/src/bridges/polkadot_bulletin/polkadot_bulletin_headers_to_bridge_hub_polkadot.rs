@@ -17,7 +17,8 @@
 //! PolkadotBulletin-to-BridgeHubPolkadot headers sync entrypoint.
 
 use crate::cli::bridge::{
-	CliBridgeBase, RelayToRelayEquivocationDetectionCliBridge, RelayToRelayHeadersCliBridge,
+	CliBridgeBase, MessagesCliBridge, RelayToRelayEquivocationDetectionCliBridge,
+	RelayToRelayHeadersCliBridge,
 };
 
 use async_trait::async_trait;
@@ -93,4 +94,8 @@ impl RelayToRelayHeadersCliBridge for PolkadotBulletinToBridgeHubPolkadotCliBrid
 
 impl RelayToRelayEquivocationDetectionCliBridge for PolkadotBulletinToBridgeHubPolkadotCliBridge {
 	type Equivocation = PolkadotBulletinFinalityToBridgeHubPolkadot;
+}
+
+impl MessagesCliBridge for PolkadotBulletinToBridgeHubPolkadotCliBridge {
+	type MessagesLane = crate::bridges::polkadot_bulletin::polkadot_bulletin_messages_to_bridge_hub_polkadot::PolkadotBulletinMessagesToBridgeHubPolkadotMessageLane;
 }

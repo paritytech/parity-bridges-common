@@ -21,10 +21,10 @@ mod codegen_runtime;
 use bp_polkadot_bulletin::POLKADOT_BULLETIN_SYNCED_HEADERS_GRANDPA_INFO_METHOD;
 use codec::Encode;
 use relay_substrate_client::{
-	Chain, ChainWithGrandpa, ChainWithMessages, ChainWithTransactions, Error as SubstrateError,
-	SignParam, UnderlyingChainProvider, UnsignedTransaction,
+	Chain, ChainWithBalances, ChainWithGrandpa, ChainWithMessages, ChainWithTransactions,
+	Error as SubstrateError, SignParam, UnderlyingChainProvider, UnsignedTransaction,
 };
-use sp_core::Pair;
+use sp_core::{storage::StorageKey, Pair};
 use sp_runtime::{generic::SignedPayload, traits::IdentifyAccount, MultiAddress};
 use sp_session::MembershipProof;
 use std::time::Duration;
@@ -84,6 +84,13 @@ impl ChainWithMessages for PolkadotBulletin {
 		bp_polkadot_bulletin::TO_POLKADOT_BULLETIN_MESSAGE_DETAILS_METHOD;
 	const FROM_CHAIN_MESSAGE_DETAILS_METHOD: &'static str =
 		bp_polkadot_bulletin::FROM_POLKADOT_BULLETIN_MESSAGE_DETAILS_METHOD;
+}
+
+impl ChainWithBalances for PolkadotBulletin {
+	fn account_info_storage_key(_account_id: &Self::AccountId) -> StorageKey {
+		// no balances at this chain
+		StorageKey(vec![])
+	}
 }
 
 impl ChainWithTransactions for PolkadotBulletin {

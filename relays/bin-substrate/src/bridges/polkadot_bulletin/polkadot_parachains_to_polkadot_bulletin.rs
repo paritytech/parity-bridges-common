@@ -71,5 +71,5 @@ impl CliBridgeBase for PolkadotToPolkadotBulletinCliBridge {
 
 impl MessagesCliBridge for PolkadotToPolkadotBulletinCliBridge {
 	type MessagesLane =
-	crate::bridges::polkadot_bulletin::bridge_hub_polkadot_messages_to_polkadot_bulletin::BridgeHubPolkadotMessagesToPolkadotBulletinMessageLane;
+		crate::bridges::polkadot_bulletin::bridge_hub_polkadot_messages_to_polkadot_bulletin::BridgeHubPolkadotMessagesToPolkadotBulletinMessageLane;
 }

@@ -44,6 +44,10 @@ use crate::{
 			kusama_parachains_to_bridge_hub_polkadot::BridgeHubKusamaToBridgeHubPolkadotCliBridge,
 			polkadot_parachains_to_bridge_hub_kusama::BridgeHubPolkadotToBridgeHubKusamaCliBridge,
 		},
+		polkadot_bulletin::{
+			polkadot_bulletin_headers_to_bridge_hub_polkadot::PolkadotBulletinToBridgeHubPolkadotCliBridge,
+			polkadot_parachains_to_polkadot_bulletin::PolkadotToPolkadotBulletinCliBridge,
+		},
 		rialto_millau::{
 			millau_headers_to_rialto::MillauToRialtoCliBridge,
 			rialto_headers_to_millau::RialtoToMillauCliBridge,
@@ -202,6 +206,7 @@ declare_chain_cli_schema!(Kusama, kusama);
 declare_chain_cli_schema!(BridgeHubKusama, bridge_hub_kusama);
 declare_chain_cli_schema!(Polkadot, polkadot);
 declare_chain_cli_schema!(BridgeHubPolkadot, bridge_hub_polkadot);
+declare_chain_cli_schema!(PolkadotBulletin, polkadot_bulletin);
 // Means to override signers of different layer transactions.
 declare_chain_cli_schema!(MillauHeadersToRialto, millau_headers_to_rialto);
 declare_chain_cli_schema!(MillauHeadersToRialtoParachain, millau_headers_to_rialto_parachain);
@@ -227,11 +232,21 @@ declare_chain_cli_schema!(
 	PolkadotParachainsToBridgeHubKusama,
 	polkadot_parachains_to_bridge_hub_kusama
 );
+declare_chain_cli_schema!(
+	PolkadotBulletinHeadersToBridgeHubPolkadot,
+	polkadot_bulletin_headers_to_bridge_hub_polkadot
+);
+declare_chain_cli_schema!(PolkadotHeadersToPolkadotBulletin, polkadot_headers_to_polkadot_bulletin);
+declare_chain_cli_schema!(
+	PolkadotParachainsToPolkadotBulletin,
+	polkadot_parachains_to_polkadot_bulletin
+);
 // All supported bridges.
 declare_relay_to_relay_bridge_schema!(Millau, Rialto);
 declare_relay_to_parachain_bridge_schema!(Millau, RialtoParachain, Rialto);
 declare_parachain_to_parachain_bridge_schema!(BridgeHubRococo, Rococo, BridgeHubWococo, Wococo);
 declare_parachain_to_parachain_bridge_schema!(BridgeHubKusama, Kusama, BridgeHubPolkadot, Polkadot);
+declare_relay_to_parachain_bridge_schema!(PolkadotBulletin, BridgeHubPolkadot, Polkadot);
 
 /// Base portion of the bidirectional complex relay.
 ///
@@ -504,6 +519,32 @@ impl Full2WayBridge for BridgeHubKusamaBridgeHubPolkadotFull2WayBridge {
 	}
 }
 
+/// PolkadotBulletin <> BridgeHubPolkadot complex relay.
+pub struct PolkadotBulletinBridgeHubPolkadotFull2WayBridge {
+	base: <Self as Full2WayBridge>::Base,
+}
+
+#[async_trait]
+impl Full2WayBridge for PolkadotBulletinBridgeHubPolkadotFull2WayBridge {
+	type Base = RelayToParachainBridge<Self::L2R, Self::R2L>;
+	type Left = relay_polkadot_bulletin_client::PolkadotBulletin;
+	type Right = relay_bridge_hub_polkadot_client::BridgeHubPolkadot;
+	type L2R = PolkadotBulletinToBridgeHubPolkadotCliBridge;
+	type R2L = PolkadotToPolkadotBulletinCliBridge;
+
+	fn new(base: Self::Base) -> anyhow::Result<Self> {
+		Ok(Self { base })
+	}
+
+	fn base(&self) -> &Self::Base {
+		&self.base
+	}
+
+	fn mut_base(&mut self) -> &mut Self::Base {
+		&mut self.base
+	}
+}
+
 /// Complex headers+messages relay.
 #[derive(Debug, PartialEq, StructOpt)]
 pub enum RelayHeadersAndMessages {
@@ -515,6 +556,8 @@ pub enum RelayHeadersAndMessages {
 	BridgeHubRococoBridgeHubWococo(BridgeHubRococoBridgeHubWococoHeadersAndMessages),
 	/// BridgeHubKusama <> BridgeHubPolkadot relay.
 	BridgeHubKusamaBridgeHubPolkadot(BridgeHubKusamaBridgeHubPolkadotHeadersAndMessages),
+	/// PolkadotBulletin <> BridgeHubPolkadot relay.
+	PolkadotBulletinBridgeHubPolkadot(PolkadotBulletinBridgeHubPolkadotHeadersAndMessages),
 }
 
 impl RelayHeadersAndMessages {
@@ -533,6 +576,10 @@ impl RelayHeadersAndMessages {
 					.await,
 			RelayHeadersAndMessages::BridgeHubKusamaBridgeHubPolkadot(params) =>
 				BridgeHubKusamaBridgeHubPolkadotFull2WayBridge::new(params.into_bridge().await?)?
+					.run()
+					.await,
+			RelayHeadersAndMessages::PolkadotBulletinBridgeHubPolkadot(params) =>
+				PolkadotBulletinBridgeHubPolkadotFull2WayBridge::new(params.into_bridge().await?)?
 					.run()
 					.await,
 		}
