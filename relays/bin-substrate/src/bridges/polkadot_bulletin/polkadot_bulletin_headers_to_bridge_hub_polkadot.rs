@@ -17,14 +17,13 @@
 //! PolkadotBulletin-to-BridgeHubPolkadot headers sync entrypoint.
 
 use crate::cli::bridge::{
-	CliBridgeBase,
-	/* RelayToRelayEquivocationDetectionCliBridge, */ RelayToRelayHeadersCliBridge,
+	CliBridgeBase, RelayToRelayEquivocationDetectionCliBridge, RelayToRelayHeadersCliBridge,
 };
 
 use async_trait::async_trait;
 use relay_substrate_client::{AccountKeyPairOf, Client};
 use substrate_relay_helper::{
-	/* equivocation::SubstrateEquivocationDetectionPipeline, */
+	equivocation::SubstrateEquivocationDetectionPipeline,
 	finality::SubstrateFinalitySyncPipeline,
 	finality_base::{engine::Grandpa as GrandpaFinalityEngine, SubstrateFinalityPipeline},
 	TransactionParams,
@@ -41,12 +40,12 @@ substrate_relay_helper::generate_submit_finality_proof_call_builder!(
 	relay_bridge_hub_polkadot_client::runtime::BridgePolkadotBulletinGrandpaCall::submit_finality_proof
 );
 
-//substrate_relay_helper::generate_report_equivocation_call_builder!(
-//	PolkadotBulletinFinalityToBridgeHubPolkadot,
-//	ReportEquivocationCallBuilder,
-//	relay_polkadot_bulletin_client::RuntimeCall::Grandpa,
-//	relay_polkadot_bulletin_client::BridgePolkadotGrandpaCall::report_equivocation
-//);
+substrate_relay_helper::generate_report_equivocation_call_builder!(
+	PolkadotBulletinFinalityToBridgeHubPolkadot,
+	ReportEquivocationCallBuilder,
+	relay_polkadot_bulletin_client::RuntimeCall::Grandpa,
+	relay_polkadot_bulletin_client::GrandpaCall::report_equivocation
+);
 
 #[async_trait]
 impl SubstrateFinalityPipeline for PolkadotBulletinFinalityToBridgeHubPolkadot {
@@ -75,10 +74,10 @@ impl SubstrateFinalitySyncPipeline for PolkadotBulletinFinalityToBridgeHubPolkad
 	}
 }
 
-//#[async_trait]
-//impl SubstrateEquivocationDetectionPipeline for PolkadotBulletinFinalityToBridgeHubPolkadot {
-//	type ReportEquivocationCallBuilder = ReportEquivocationCallBuilder;
-//}
+#[async_trait]
+impl SubstrateEquivocationDetectionPipeline for PolkadotBulletinFinalityToBridgeHubPolkadot {
+	type ReportEquivocationCallBuilder = ReportEquivocationCallBuilder;
+}
 
 /// `PolkadotBulletin` to BridgeHub `Polkadot` bridge definition.
 pub struct PolkadotBulletinToBridgeHubPolkadotCliBridge {}
@@ -92,6 +91,6 @@ impl RelayToRelayHeadersCliBridge for PolkadotBulletinToBridgeHubPolkadotCliBrid
 	type Finality = PolkadotBulletinFinalityToBridgeHubPolkadot;
 }
 
-//impl RelayToRelayEquivocationDetectionCliBridge for PolkadotBulletinToBridgeHubPolkadotCliBridge
-// { 	type Equivocation = PolkadotBulletinFinalityToBridgeHubPolkadot;
-//}
+impl RelayToRelayEquivocationDetectionCliBridge for PolkadotBulletinToBridgeHubPolkadotCliBridge {
+	type Equivocation = PolkadotBulletinFinalityToBridgeHubPolkadot;
+}
