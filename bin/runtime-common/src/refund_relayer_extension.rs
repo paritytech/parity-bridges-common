@@ -248,7 +248,7 @@ where
 	type Refund: RefundCalculator<Balance = <Self::Runtime as RelayersConfig>::Reward>;
 	/// Priority boost calculator.
 	type Priority: Get<TransactionPriority>;
-	/// Signed extension uniqeu identifier.
+	/// Signed extension unique identifier.
 	type Id: StaticStrProvider;
 
 	/// Unpack batch runtime call.
