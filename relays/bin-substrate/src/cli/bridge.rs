@@ -35,6 +35,8 @@ pub enum FullBridge {
 	BridgeHubWococoToBridgeHubRococo,
 	BridgeHubKusamaToBridgeHubPolkadot,
 	BridgeHubPolkadotToBridgeHubKusama,
+	PolkadotBulletinToBridgeHubPolkadot,
+	BridgeHubPolkadotToPolkadotBulletin,
 }
 
 /// Minimal bridge representation that can be used from the CLI.
