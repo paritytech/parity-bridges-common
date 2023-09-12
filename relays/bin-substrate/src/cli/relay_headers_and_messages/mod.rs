@@ -519,7 +519,7 @@ impl Full2WayBridge for BridgeHubKusamaBridgeHubPolkadotFull2WayBridge {
 	}
 }
 
-/// PolkadotBulletin <> BridgeHubPolkadot complex relay.
+/// `PolkadotBulletin` <> `BridgeHubPolkadot` complex relay.
 pub struct PolkadotBulletinBridgeHubPolkadotFull2WayBridge {
 	base: <Self as Full2WayBridge>::Base,
 }
@@ -556,7 +556,7 @@ pub enum RelayHeadersAndMessages {
 	BridgeHubRococoBridgeHubWococo(BridgeHubRococoBridgeHubWococoHeadersAndMessages),
 	/// BridgeHubKusama <> BridgeHubPolkadot relay.
 	BridgeHubKusamaBridgeHubPolkadot(BridgeHubKusamaBridgeHubPolkadotHeadersAndMessages),
-	/// PolkadotBulletin <> BridgeHubPolkadot relay.
+	/// `PolkadotBulletin` <> `BridgeHubPolkadot` relay.
 	PolkadotBulletinBridgeHubPolkadot(PolkadotBulletinBridgeHubPolkadotHeadersAndMessages),
 }
 

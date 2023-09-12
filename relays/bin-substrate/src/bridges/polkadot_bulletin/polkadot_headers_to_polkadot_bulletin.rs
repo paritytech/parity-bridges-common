@@ -29,7 +29,7 @@ use substrate_relay_helper::{
 	TransactionParams,
 };
 
-/// Description of Polkadot -> PolkadotBulletin finalized headers bridge.
+/// Description of Polkadot -> `PolkadotBulletin` finalized headers bridge.
 #[derive(Clone, Debug)]
 pub struct PolkadotFinalityToPolkadotBulletin;
 
