@@ -120,6 +120,7 @@ impl parachains_paras::Config for Runtime {
 	type UnsignedPriority = ParasUnsignedPriority;
 	type QueueFootprinter = crate::Inclusion;
 	type NextSessionRotation = Babe;
+	type OnNewHead = ();
 }
 
 /// Test weight for the `Paras` pallet.
