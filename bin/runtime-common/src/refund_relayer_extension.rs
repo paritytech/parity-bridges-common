@@ -694,7 +694,6 @@ where
 		Ok(call)
 	}
 
-	/// Additional checks for call result.
 	fn additional_call_result_check(relayer: &Runtime::AccountId, call_info: &CallInfo) -> bool {
 		// check if parachain state has been updated
 		if let Some(para_proof_info) = call_info.submit_parachain_heads_info() {
@@ -714,6 +713,113 @@ where
 			}
 		}
 
+		true
+	}
+}
+
+/// Signed extension that refunds a relayer for new messages coming from a standalone (GRANDPA)
+/// chain.
+///
+/// Also refunds relayer for successful finality delivery if it comes in batch (`utility.batchAll`)
+/// with message delivery transaction. Batch may deliver either both relay chain header and
+/// parachain head, or just parachain head. Corresponding headers must be used in messages
+/// proof verification.
+///
+/// Extension does not refund transaction tip due to security reasons.
+#[derive(
+	DefaultNoBound,
+	CloneNoBound,
+	Decode,
+	Encode,
+	EqNoBound,
+	PartialEqNoBound,
+	RuntimeDebugNoBound,
+	TypeInfo,
+)]
+#[scale_info(skip_type_params(Runtime, GrandpaInstance, Msgs, Refund, Priority, Id))]
+pub struct RefundBridgedGrandpaMessages<Runtime, GrandpaInstance, Msgs, Refund, Priority, Id>(
+	PhantomData<(
+		// runtime with `frame-utility`, `pallet-bridge-grandpa`,
+		// `pallet-bridge-messages` and `pallet-bridge-relayers` pallets deployed
+		Runtime,
+		// bridge GRANDPA pallet instance, used to track bridged chain state
+		GrandpaInstance,
+		// implementation of `RefundableMessagesLaneId` trait, which specifies the instance of
+		// the used `pallet-bridge-messages` pallet and the lane within this pallet
+		Msgs,
+		// implementation of the `RefundCalculator` trait, that is used to compute refund that
+		// we give to relayer for his transaction
+		Refund,
+		// getter for per-message `TransactionPriority` boost that we give to message
+		// delivery transactions
+		Priority,
+		// the runtime-unique identifier of this signed extension
+		Id,
+	)>,
+);
+
+impl<Runtime, GrandpaInstance, Msgs, Refund, Priority, Id> RefundSignedExtension
+	for RefundBridgedGrandpaMessages<Runtime, GrandpaInstance, Msgs, Refund, Priority, Id>
+where
+	Self: 'static + Send + Sync,
+	Runtime: UtilityConfig<RuntimeCall = CallOf<Runtime>>
+		+ BoundedBridgeGrandpaConfig<GrandpaInstance>
+		+ MessagesConfig<Msgs::Instance>
+		+ RelayersConfig,
+	GrandpaInstance: 'static,
+	Msgs: RefundableMessagesLaneId,
+	Refund: RefundCalculator<Balance = Runtime::Reward>,
+	Priority: Get<TransactionPriority>,
+	Id: StaticStrProvider,
+	CallOf<Runtime>: Dispatchable<Info = DispatchInfo, PostInfo = PostDispatchInfo>
+		+ IsSubType<CallableCallFor<UtilityPallet<Runtime>, Runtime>>
+		+ GrandpaCallSubType<Runtime, GrandpaInstance>
+		+ MessagesCallSubType<Runtime, Msgs::Instance>,
+{
+	type Runtime = Runtime;
+	type GrandpaInstance = GrandpaInstance;
+	type Msgs = Msgs;
+	type Refund = Refund;
+	type Priority = Priority;
+	type Id = Id;
+
+	fn expand_call<'a>(call: &'a CallOf<Runtime>) -> Vec<&'a CallOf<Runtime>> {
+		match call.is_sub_type() {
+			Some(UtilityCall::<Runtime>::batch_all { ref calls }) if calls.len() <= 2 =>
+				calls.iter().collect(),
+			Some(_) => vec![],
+			None => vec![call],
+		}
+	}
+
+	fn parse_and_check_for_obsolete_call(
+		call: &CallOf<Runtime>,
+	) -> Result<Option<CallInfo>, TransactionValidityError> {
+		let calls = Self::expand_call(call);
+		let total_calls = calls.len();
+		let mut calls = calls.into_iter().map(Self::check_obsolete_parsed_call).rev();
+
+		let msgs_call = calls.next().transpose()?.and_then(|c| c.call_info_for(Msgs::Id::get()));
+		let relay_finality_call =
+			calls.next().transpose()?.and_then(|c| c.submit_finality_proof_info());
+
+		Ok(match (total_calls, relay_finality_call, msgs_call) {
+			(2, Some(relay_finality_call), Some(msgs_call)) =>
+				Some(CallInfo::RelayFinalityAndMsgs(relay_finality_call, msgs_call)),
+			(1, None, Some(msgs_call)) => Some(CallInfo::Msgs(msgs_call)),
+			_ => None,
+		})
+	}
+
+	fn check_obsolete_parsed_call(
+		call: &CallOf<Runtime>,
+	) -> Result<&CallOf<Runtime>, TransactionValidityError> {
+		call.check_obsolete_submit_finality_proof()?;
+		call.check_obsolete_call()?;
+		Ok(call)
+	}
+
+	fn additional_call_result_check(_relayer: &Runtime::AccountId, _call_info: &CallInfo) -> bool {
 		true
 	}
 }
@@ -768,6 +874,15 @@ mod tests {
 
 	bp_runtime::generate_static_str_provider!(TestExtension);
 
+	type TestGrandpaExtensionProvider = RefundBridgedGrandpaMessages<
+		TestRuntime,
+		(),
+		RefundableMessagesLane<TestRuntime, (), TestLaneId>,
+		ActualFeeRefund<TestRuntime>,
+		ConstU64<1>,
+		StrTestExtension,
+	>;
+	type TestGrandpaExtension = RefundSignedExtensionAdapter<TestGrandpaExtensionProvider>;
 	type TestExtensionProvider = RefundBridgedParachainMessages<
 		TestRuntime,
 		DefaultRefundableParachainId<(), TestParachain>,
@@ -929,6 +1044,30 @@ mod tests {
 		})
 	}
 
+	fn relay_finality_and_delivery_batch_call(
+		relay_header_number: RelayBlockNumber,
+		best_message: MessageNonce,
+	) -> RuntimeCall {
+		RuntimeCall::Utility(UtilityCall::batch_all {
+			calls: vec![
+				submit_relay_header_call(relay_header_number),
+				message_delivery_call(best_message),
+			],
+		})
+	}
+
+	fn relay_finality_and_confirmation_batch_call(
+		relay_header_number: RelayBlockNumber,
+		best_message: MessageNonce,
+	) -> RuntimeCall {
+		RuntimeCall::Utility(UtilityCall::batch_all {
+			calls: vec![
+				submit_relay_header_call(relay_header_number),
+				message_confirmation_call(best_message),
+			],
+		})
+	}
+
 	fn all_finality_and_delivery_batch_call(
 		relay_header_number: RelayBlockNumber,
 		parachain_head_at_relay_header_number: RelayBlockNumber,
@@ -1001,6 +1140,52 @@ mod tests {
 					at_relay_block_number: 200,
 					para_id: ParaId(TestParachain::get()),
 					para_head_hash: [200u8; 32].into(),
+				},
+				MessagesCallInfo::ReceiveMessagesDeliveryProof(ReceiveMessagesDeliveryProofInfo(
+					BaseMessagesProofInfo {
+						lane_id: test_lane_id(),
+						bundled_range: 101..=200,
+						best_stored_nonce: 100,
+					},
+				)),
+			),
+		}
+	}
+
+	fn relay_finality_pre_dispatch_data() -> PreDispatchData<ThisChainAccountId> {
+		PreDispatchData {
+			relayer: relayer_account_at_this_chain(),
+			call_info: CallInfo::RelayFinalityAndMsgs(
+				SubmitFinalityProofInfo {
+					block_number: 200,
+					extra_weight: Weight::zero(),
+					extra_size: 0,
+				},
+				MessagesCallInfo::ReceiveMessagesProof(ReceiveMessagesProofInfo {
+					base: BaseMessagesProofInfo {
+						lane_id: test_lane_id(),
+						bundled_range: 101..=200,
+						best_stored_nonce: 100,
+					},
+					unrewarded_relayers: UnrewardedRelayerOccupation {
+						free_relayer_slots:
+							BridgedUnderlyingChain::MAX_UNREWARDED_RELAYERS_IN_CONFIRMATION_TX,
+						free_message_slots:
+							BridgedUnderlyingChain::MAX_UNCONFIRMED_MESSAGES_IN_CONFIRMATION_TX,
+					},
+				}),
+			),
+		}
+	}
+
+	fn relay_finality_confirmation_pre_dispatch_data() -> PreDispatchData<ThisChainAccountId> {
+		PreDispatchData {
+			relayer: relayer_account_at_this_chain(),
+			call_info: CallInfo::RelayFinalityAndMsgs(
+				SubmitFinalityProofInfo {
+					block_number: 200,
+					extra_weight: Weight::zero(),
+					extra_size: 0,
 				},
 				MessagesCallInfo::ReceiveMessagesDeliveryProof(ReceiveMessagesDeliveryProofInfo(
 					BaseMessagesProofInfo {
@@ -1117,6 +1302,12 @@ mod tests {
 		extension.validate(&relayer_account_at_this_chain(), &call, &DispatchInfo::default(), 0)
 	}
 
+	fn run_grandpa_validate(call: RuntimeCall) -> TransactionValidity {
+		let extension: TestGrandpaExtension =
+			RefundSignedExtensionAdapter(RefundBridgedGrandpaMessages(PhantomData));
+		extension.validate(&relayer_account_at_this_chain(), &call, &DispatchInfo::default(), 0)
+	}
+
 	fn run_validate_ignore_priority(call: RuntimeCall) -> TransactionValidity {
 		run_validate(call).map(|mut tx| {
 			tx.priority = 0;
@@ -1129,6 +1320,14 @@ mod tests {
 	) -> Result<Option<PreDispatchData<ThisChainAccountId>>, TransactionValidityError> {
 		let extension: TestExtension =
 			RefundSignedExtensionAdapter(RefundBridgedParachainMessages(PhantomData));
+		extension.pre_dispatch(&relayer_account_at_this_chain(), &call, &DispatchInfo::default(), 0)
+	}
+
+	fn run_grandpa_pre_dispatch(
+		call: RuntimeCall,
+	) -> Result<Option<PreDispatchData<ThisChainAccountId>>, TransactionValidityError> {
+		let extension: TestGrandpaExtension =
+			RefundSignedExtensionAdapter(RefundBridgedGrandpaMessages(PhantomData));
 		extension.pre_dispatch(&relayer_account_at_this_chain(), &call, &DispatchInfo::default(), 0)
 	}
 
@@ -1823,6 +2022,177 @@ mod tests {
 					Ok(())
 				),
 				RelayerAccountAction::None,
+			);
+		});
+	}
+
+	#[test]
+	fn grandpa_ext_only_parses_valid_batches() {
+		run_test(|| {
+			initialize_environment(100, 100, 100);
+
+			// relay + parachain + message delivery calls batch is ignored
+			assert_eq!(
+				TestGrandpaExtensionProvider::parse_and_check_for_obsolete_call(
+					&all_finality_and_delivery_batch_call(200, 200, 200)
+				),
+				Ok(None),
+			);
+
+			// relay + parachain + message confirmation calls batch is ignored
+			assert_eq!(
+				TestGrandpaExtensionProvider::parse_and_check_for_obsolete_call(
+					&all_finality_and_confirmation_batch_call(200, 200, 200)
+				),
+				Ok(None),
+			);
+
+			// parachain + message delivery call batch is ignored
+			assert_eq!(
+				TestGrandpaExtensionProvider::parse_and_check_for_obsolete_call(
+					&parachain_finality_and_delivery_batch_call(200, 200)
+				),
+				Ok(None),
+			);
+
+			// parachain + message confirmation call batch is ignored
+			assert_eq!(
+				TestGrandpaExtensionProvider::parse_and_check_for_obsolete_call(
+					&parachain_finality_and_confirmation_batch_call(200, 200)
+				),
+				Ok(None),
+			);
+
+			// relay + message delivery call batch is accepted
+			assert_eq!(
+				TestGrandpaExtensionProvider::parse_and_check_for_obsolete_call(
+					&relay_finality_and_delivery_batch_call(200, 200)
+				),
+				Ok(Some(relay_finality_pre_dispatch_data().call_info)),
+			);
+
+			// relay + message confirmation call batch is accepted
+			assert_eq!(
+				TestGrandpaExtensionProvider::parse_and_check_for_obsolete_call(
+					&relay_finality_and_confirmation_batch_call(200, 200)
+				),
+				Ok(Some(relay_finality_confirmation_pre_dispatch_data().call_info)),
+			);
+
+			// message delivery call batch is accepted
+			assert_eq!(
+				TestGrandpaExtensionProvider::parse_and_check_for_obsolete_call(
+					&message_delivery_call(200)
+				),
+				Ok(Some(delivery_pre_dispatch_data().call_info)),
+			);
+
+			// message confirmation call batch is accepted
+			assert_eq!(
+				TestGrandpaExtensionProvider::parse_and_check_for_obsolete_call(
+					&message_confirmation_call(200)
+				),
+				Ok(Some(confirmation_pre_dispatch_data().call_info)),
+			);
+		});
+	}
+
+	#[test]
+	fn grandpa_ext_rejects_batch_with_obsolete_relay_chain_header() {
+		run_test(|| {
+			initialize_environment(100, 100, 100);
+
+			assert_eq!(
+				run_grandpa_pre_dispatch(relay_finality_and_delivery_batch_call(100, 200)),
+				Err(TransactionValidityError::Invalid(InvalidTransaction::Stale)),
+			);
+
+			assert_eq!(
+				run_grandpa_validate(relay_finality_and_delivery_batch_call(100, 200)),
+				Err(TransactionValidityError::Invalid(InvalidTransaction::Stale)),
+			);
+		});
+	}
+
+	#[test]
+	fn grandpa_ext_rejects_calls_with_obsolete_messages() {
+		run_test(|| {
+			initialize_environment(100, 100, 100);
+
+			assert_eq!(
+				run_grandpa_pre_dispatch(relay_finality_and_delivery_batch_call(200, 100)),
+				Err(TransactionValidityError::Invalid(InvalidTransaction::Stale)),
+			);
+			assert_eq!(
+				run_grandpa_pre_dispatch(relay_finality_and_confirmation_batch_call(200, 100)),
+				Err(TransactionValidityError::Invalid(InvalidTransaction::Stale)),
+			);
+
+			assert_eq!(
+				run_grandpa_validate(relay_finality_and_delivery_batch_call(200, 100)),
+				Err(TransactionValidityError::Invalid(InvalidTransaction::Stale)),
+			);
+			assert_eq!(
+				run_grandpa_validate(relay_finality_and_confirmation_batch_call(200, 100)),
+				Err(TransactionValidityError::Invalid(InvalidTransaction::Stale)),
+			);
+
+			assert_eq!(
+				run_grandpa_pre_dispatch(message_delivery_call(100)),
+				Err(TransactionValidityError::Invalid(InvalidTransaction::Stale)),
+			);
+			assert_eq!(
+				run_grandpa_pre_dispatch(message_confirmation_call(100)),
+				Err(TransactionValidityError::Invalid(InvalidTransaction::Stale)),
+			);
+
+			assert_eq!(
+				run_grandpa_validate(message_delivery_call(100)),
+				Err(TransactionValidityError::Invalid(InvalidTransaction::Stale)),
+			);
+			assert_eq!(
+				run_grandpa_validate(message_confirmation_call(100)),
+				Err(TransactionValidityError::Invalid(InvalidTransaction::Stale)),
+			);
+		});
+	}
+
+	#[test]
+	fn grandpa_ext_accepts_calls_with_new_messages() {
+		run_test(|| {
+			initialize_environment(100, 100, 100);
+
+			assert_eq!(
+				run_grandpa_pre_dispatch(relay_finality_and_delivery_batch_call(200, 200)),
+				Ok(Some(relay_finality_pre_dispatch_data()),)
+			);
+			assert_eq!(
+				run_grandpa_pre_dispatch(relay_finality_and_confirmation_batch_call(200, 200)),
+				Ok(Some(relay_finality_confirmation_pre_dispatch_data())),
+			);
+
+			assert_eq!(
+				run_grandpa_validate(relay_finality_and_delivery_batch_call(200, 200)),
+				Ok(Default::default()),
+			);
+			assert_eq!(
+				run_grandpa_validate(relay_finality_and_confirmation_batch_call(200, 200)),
+				Ok(Default::default()),
+			);
+
+			assert_eq!(
+				run_grandpa_pre_dispatch(message_delivery_call(200)),
+				Ok(Some(delivery_pre_dispatch_data())),
+			);
+			assert_eq!(
+				run_grandpa_pre_dispatch(message_confirmation_call(200)),
+				Ok(Some(confirmation_pre_dispatch_data())),
+			);
+
+			assert_eq!(run_grandpa_validate(message_delivery_call(200)), Ok(Default::default()),);
+			assert_eq!(
+				run_grandpa_validate(message_confirmation_call(200)),
+				Ok(Default::default()),
 			);
 		});
 	}
