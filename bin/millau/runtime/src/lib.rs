@@ -87,8 +87,8 @@ pub use pallet_xcm::Call as XcmCall;
 use bridge_runtime_common::{
 	generate_bridge_reject_obsolete_headers_and_messages,
 	refund_relayer_extension::{
-		ActualFeeRefund, RefundBridgedParachainMessages, RefundableMessagesLane,
-		RefundableParachain,
+		ActualFeeRefund, RefundBridgedParachainMessages, RefundSignedExtensionAdapter,
+		RefundableMessagesLane, RefundableParachain,
 	},
 };
 #[cfg(any(feature = "std", test))]
@@ -656,17 +656,19 @@ generate_bridge_reject_obsolete_headers_and_messages! {
 bp_runtime::generate_static_str_provider!(BridgeRefundRialtoPara2000Lane0Msgs);
 /// Signed extension that refunds relayers that are delivering messages from the Rialto parachain.
 pub type PriorityBoostPerMessage = ConstU64<351_343_108>;
-pub type BridgeRefundRialtoParachainMessages = RefundBridgedParachainMessages<
-	Runtime,
-	RefundableParachain<WithRialtoParachainsInstance, bp_rialto_parachain::RialtoParachain>,
-	RefundableMessagesLane<
+pub type BridgeRefundRialtoParachainMessages = RefundSignedExtensionAdapter<
+	RefundBridgedParachainMessages<
 		Runtime,
-		WithRialtoParachainMessagesInstance,
-		rialto_parachain_messages::Lane,
+		RefundableParachain<WithRialtoParachainsInstance, bp_rialto_parachain::RialtoParachain>,
+		RefundableMessagesLane<
+			Runtime,
+			WithRialtoParachainMessagesInstance,
+			rialto_parachain_messages::Lane,
+		>,
+		ActualFeeRefund<Runtime>,
+		PriorityBoostPerMessage,
+		StrBridgeRefundRialtoPara2000Lane0Msgs,
 	>,
-	ActualFeeRefund<Runtime>,
-	PriorityBoostPerMessage,
-	StrBridgeRefundRialtoPara2000Lane0Msgs,
 >;
 
 /// The address format for describing accounts.
