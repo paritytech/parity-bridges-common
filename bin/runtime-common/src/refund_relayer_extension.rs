@@ -252,7 +252,7 @@ where
 	type Id: StaticStrProvider;
 
 	/// Unpack batch runtime call.
-	fn expand_call<'a>(call: &'a CallOf<Self::Runtime>) -> Vec<&'a CallOf<Self::Runtime>>;
+	fn expand_call(call: &CallOf<Self::Runtime>) -> Vec<&CallOf<Self::Runtime>>;
 
 	/// Given runtime call, check if it has supported format. Additionally, check if any of
 	/// (optionally batched) calls are obsolete and we shall reject the transaction.
@@ -650,7 +650,7 @@ where
 	type Priority = Priority;
 	type Id = Id;
 
-	fn expand_call<'a>(call: &'a CallOf<Runtime>) -> Vec<&'a CallOf<Runtime>> {
+	fn expand_call(call: &CallOf<Runtime>) -> Vec<&CallOf<Runtime>> {
 		match call.is_sub_type() {
 			Some(UtilityCall::<Runtime>::batch_all { ref calls }) if calls.len() <= 3 =>
 				calls.iter().collect(),
