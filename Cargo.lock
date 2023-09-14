@@ -1841,9 +1841,9 @@ dependencies = [
 
 [[package]]
 name = "clap"
-version = "4.4.2"
+version = "4.4.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6a13b88d2c62ff462f88e4a121f17a82c1af05693a2f192b5c38d14de73c19f6"
+checksum = "84ed82781cea27b43c9b106a979fe450a13a31aab0500595fb3fc06616de08e6"
 dependencies = [
  "clap_builder",
  "clap_derive",
@@ -2324,7 +2324,7 @@ name = "cumulus-client-cli"
 version = "0.1.0"
 source = "git+https://github.com/paritytech/polkadot-sdk?branch=master#830fde2a60d60e214d95b3c9da6b6a11bbccf707"
 dependencies = [
- "clap 4.4.2",
+ "clap 4.4.3",
  "parity-scale-codec",
  "sc-chain-spec",
  "sc-cli",
@@ -3959,7 +3959,7 @@ dependencies = [
  "Inflector",
  "array-bytes",
  "chrono",
- "clap 4.4.2",
+ "clap 4.4.3",
  "comfy-table",
  "frame-benchmarking",
  "frame-support",
@@ -6402,7 +6402,7 @@ version = "0.1.0"
 dependencies = [
  "bp-messages",
  "bridge-runtime-common",
- "clap 4.4.2",
+ "clap 4.4.3",
  "frame-benchmarking",
  "frame-benchmarking-cli",
  "futures",
@@ -6813,7 +6813,7 @@ name = "node-inspect"
 version = "0.9.0-dev"
 source = "git+https://github.com/paritytech/polkadot-sdk?branch=master#830fde2a60d60e214d95b3c9da6b6a11bbccf707"
 dependencies = [
- "clap 4.4.2",
+ "clap 4.4.3",
  "parity-scale-codec",
  "sc-cli",
  "sc-client-api",
@@ -8705,7 +8705,7 @@ name = "polkadot-cli"
 version = "1.0.0"
 source = "git+https://github.com/paritytech/polkadot-sdk?branch=master#830fde2a60d60e214d95b3c9da6b6a11bbccf707"
 dependencies = [
- "clap 4.4.2",
+ "clap 4.4.3",
  "frame-benchmarking-cli",
  "futures",
  "log",
@@ -10836,7 +10836,7 @@ version = "0.1.0"
 dependencies = [
  "bp-messages",
  "bridge-runtime-common",
- "clap 4.4.2",
+ "clap 4.4.3",
  "frame-benchmarking",
  "frame-benchmarking-cli",
  "frame-support",
@@ -10869,7 +10869,7 @@ version = "0.1.0"
 dependencies = [
  "bp-messages",
  "bridge-runtime-common",
- "clap 4.4.2",
+ "clap 4.4.3",
  "cumulus-client-cli",
  "cumulus-client-consensus-aura",
  "cumulus-client-consensus-common",
@@ -11569,7 +11569,7 @@ source = "git+https://github.com/paritytech/polkadot-sdk?branch=master#830fde2a6
 dependencies = [
  "array-bytes",
  "chrono",
- "clap 4.4.2",
+ "clap 4.4.3",
  "fdlimit",
  "futures",
  "libp2p-identity",
@@ -12381,7 +12381,7 @@ name = "sc-storage-monitor"
 version = "0.1.0"
 source = "git+https://github.com/paritytech/polkadot-sdk?branch=master#830fde2a60d60e214d95b3c9da6b6a11bbccf707"
 dependencies = [
- "clap 4.4.2",
+ "clap 4.4.3",
  "fs4",
  "log",
  "sc-client-db",
@@ -15522,7 +15522,7 @@ version = "0.10.0-dev"
 source = "git+https://github.com/paritytech/polkadot-sdk?branch=master#830fde2a60d60e214d95b3c9da6b6a11bbccf707"
 dependencies = [
  "async-trait",
- "clap 4.4.2",
+ "clap 4.4.3",
  "frame-remote-externalities",
  "hex",
  "log",
