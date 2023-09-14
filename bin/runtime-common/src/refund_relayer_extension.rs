@@ -876,7 +876,7 @@ mod tests {
 	type TestGrandpaExtensionProvider = RefundBridgedGrandpaMessages<
 		TestRuntime,
 		(),
-		RefundableMessagesLane<TestRuntime, (), TestLaneId>,
+		RefundableMessagesLane<(), TestLaneId>,
 		ActualFeeRefund<TestRuntime>,
 		ConstU64<1>,
 		StrTestExtension,
@@ -1159,15 +1159,13 @@ mod tests {
 				},
 				MessagesCallInfo::ReceiveMessagesProof(ReceiveMessagesProofInfo {
 					base: BaseMessagesProofInfo {
-						lane_id: test_lane_id(),
+						lane_id: TEST_LANE_ID,
 						bundled_range: 101..=200,
 						best_stored_nonce: 100,
 					},
 					unrewarded_relayers: UnrewardedRelayerOccupation {
-						free_relayer_slots:
-							BridgedUnderlyingChain::MAX_UNREWARDED_RELAYERS_IN_CONFIRMATION_TX,
-						free_message_slots:
-							BridgedUnderlyingChain::MAX_UNCONFIRMED_MESSAGES_IN_CONFIRMATION_TX,
+						free_relayer_slots: MaxUnrewardedRelayerEntriesAtInboundLane::get(),
+						free_message_slots: MaxUnconfirmedMessagesAtInboundLane::get(),
 					},
 				}),
 			),
@@ -1185,7 +1183,7 @@ mod tests {
 				},
 				MessagesCallInfo::ReceiveMessagesDeliveryProof(ReceiveMessagesDeliveryProofInfo(
 					BaseMessagesProofInfo {
-						lane_id: test_lane_id(),
+						lane_id: TEST_LANE_ID,
 						bundled_range: 101..=200,
 						best_stored_nonce: 100,
 					},
