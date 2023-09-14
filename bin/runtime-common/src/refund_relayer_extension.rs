@@ -783,7 +783,7 @@ where
 	type Priority = Priority;
 	type Id = Id;
 
-	fn expand_call(call: &CallOf<Runtime>) -> Vec<CallOf<Runtime>> {
+	fn expand_call(call: &CallOf<Runtime>) -> Vec<&CallOf<Runtime>> {
 		match call.is_sub_type() {
 			Some(UtilityCall::<Runtime>::batch_all { ref calls }) if calls.len() <= 2 =>
 				calls.iter().collect(),
