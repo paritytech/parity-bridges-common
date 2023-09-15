@@ -148,7 +148,7 @@ impl SourceClientBase<TestEquivocationDetectionPipeline> for TestSourceClient {
 	type FinalityProofsStream = Pin<Box<dyn Stream<Item = TestFinalityProof> + 'static + Send>>;
 
 	async fn finality_proofs(&self) -> Result<Self::FinalityProofsStream, Self::Error> {
-		let finality_proofs = std::mem::replace(&mut *self.finality_proofs.lock().unwrap(), vec![]);
+		let finality_proofs = std::mem::take(&mut *self.finality_proofs.lock().unwrap());
 		Ok(futures::stream::iter(finality_proofs).boxed())
 	}
 }
@@ -188,7 +188,7 @@ impl SourceClient<TestEquivocationDetectionPipeline> for TestSourceClient {
 			.lock()
 			.unwrap()
 			.entry(at)
-			.or_insert(vec![])
+			.or_default()
 			.push(equivocation);
 
 		Ok(TestTransactionTracker::default())
