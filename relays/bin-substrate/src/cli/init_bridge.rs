@@ -244,9 +244,14 @@ impl BridgeInitializer for PolkadotToPolkadotBulletinCliBridge {
 	fn encode_init_bridge(
 		init_data: <Self::Engine as Engine<Self::Source>>::InitializationData,
 	) -> <Self::Target as Chain>::Call {
-		relay_polkadot_bulletin_client::RuntimeCall::BridgePolkadotGrandpa(
-			relay_polkadot_bulletin_client::BridgePolkadotGrandpaCall::initialize { init_data },
-		)
+		type RuntimeCall = relay_polkadot_bulletin_client::RuntimeCall;
+		type BridgePolkadotGrandpaCall = relay_polkadot_bulletin_client::BridgePolkadotGrandpaCall;
+		type SudoCall = relay_polkadot_bulletin_client::SudoCall;
+
+		let initialize_call =
+			RuntimeCall::BridgePolkadotGrandpa(BridgePolkadotGrandpaCall::initialize { init_data });
+
+		RuntimeCall::Sudo(SudoCall::sudo { call: Box::new(initialize_call) })
 	}
 }
 

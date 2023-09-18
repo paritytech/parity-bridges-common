@@ -81,7 +81,9 @@ use relay_substrate_client::{
 use relay_utils::metrics::MetricsParams;
 use sp_core::Pair;
 use substrate_relay_helper::{
-	messages::MessagesRelayParams, on_demand::OnDemandRelay, TaggedAccount, TransactionParams,
+	messages::{MessagesRelayLimits, MessagesRelayParams},
+	on_demand::OnDemandRelay,
+	TaggedAccount, TransactionParams,
 };
 
 /// Parameters that have the same names across all bridges.
@@ -180,6 +182,7 @@ where
 		source_to_target_headers_relay: Arc<dyn OnDemandRelay<Source, Target>>,
 		target_to_source_headers_relay: Arc<dyn OnDemandRelay<Target, Source>>,
 		lane_id: LaneId,
+		maybe_limits: Option<MessagesRelayLimits>,
 	) -> MessagesRelayParams<Bridge::MessagesLane, DefaultClient<Source>, DefaultClient<Target>> {
 		MessagesRelayParams {
 			source_client: self.source.client.clone(),
@@ -189,6 +192,7 @@ where
 			source_to_target_headers_relay: Some(source_to_target_headers_relay),
 			target_to_source_headers_relay: Some(target_to_source_headers_relay),
 			lane_id,
+			limits: maybe_limits,
 			metrics_params: self.metrics_params.clone().disable(),
 		}
 	}
@@ -387,6 +391,7 @@ where
 				left_to_right_on_demand_headers.clone(),
 				right_to_left_on_demand_headers.clone(),
 				lane,
+				Self::L2R::maybe_messages_limits(),
 			))
 			.map_err(|e| anyhow::format_err!("{}", e))
 			.boxed();
@@ -400,6 +405,7 @@ where
 				right_to_left_on_demand_headers.clone(),
 				left_to_right_on_demand_headers.clone(),
 				lane,
+				Self::R2L::maybe_messages_limits(),
 			))
 			.map_err(|e| anyhow::format_err!("{}", e))
 			.boxed();
