@@ -97,6 +97,7 @@ where
 			source_to_target_headers_relay: None,
 			target_to_source_headers_relay: None,
 			lane_id: data.lane.into(),
+			limits: Self::maybe_messages_limits(),
 			metrics_params: data.prometheus_params.into_metrics_params()?,
 		})
 		.await
