@@ -33,6 +33,8 @@ pub use codegen_runtime::api::runtime_types;
 
 /// Call of the Polkadot Bulletin Chain runtime.
 pub type RuntimeCall = runtime_types::polkadot_bulletin_chain_runtime::RuntimeCall;
+/// Call of the Sudo pallet.
+pub type SudoCall = runtime_types::pallet_sudo::pallet::Call;
 /// Call of the GRANDPA pallet.
 pub type GrandpaCall = runtime_types::pallet_grandpa::pallet::Call;
 /// Call of the with-PolkadotBridgeHub bridge GRANDPA pallet.
