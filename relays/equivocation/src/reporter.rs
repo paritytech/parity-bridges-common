@@ -87,7 +87,7 @@ mod tests {
 	use super::*;
 	use crate::mock::*;
 	use relay_utils::HeaderId;
-	use std::{sync::Mutex, time::Duration};
+	use std::sync::Mutex;
 
 	#[async_std::test]
 	async fn process_pending_reports_works() {
@@ -109,7 +109,7 @@ mod tests {
 					}),
 					Box::pin(async {
 						polled_reports.lock().unwrap().push(3);
-						async_std::task::sleep(Duration::from_secs(100)).await;
+						std::future::pending::<()>().await;
 						finished_reports.lock().unwrap().push(3);
 						TrackedTransactionStatus::Finalized(HeaderId(3, 3))
 					}),
