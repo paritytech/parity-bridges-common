@@ -14019,6 +14019,7 @@ dependencies = [
  "bp-messages",
  "bp-millau",
  "bp-parachains",
+ "bp-polkadot-bulletin",
  "bp-polkadot-core",
  "bp-rialto",
  "bp-rialto-parachain",

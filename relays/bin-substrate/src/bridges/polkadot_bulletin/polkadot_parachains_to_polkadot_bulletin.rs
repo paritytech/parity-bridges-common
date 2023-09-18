@@ -17,10 +17,13 @@
 //! Polkadot-to-PolkadotBulletin parachains sync entrypoint.
 
 use crate::cli::bridge::{CliBridgeBase, MessagesCliBridge, ParachainToRelayHeadersCliBridge};
+
 use bp_polkadot_core::parachains::{ParaHash, ParaHeadsProof, ParaId};
+use bp_runtime::Chain;
 use relay_substrate_client::{CallOf, HeaderIdOf};
-use substrate_relay_helper::parachains::{
-	SubmitParachainHeadsCallBuilder, SubstrateParachainsPipeline,
+use substrate_relay_helper::{
+	messages_lane::MessagesRelayLimits,
+	parachains::{SubmitParachainHeadsCallBuilder, SubstrateParachainsPipeline},
 };
 
 /// Polkadot-to-PolkadotBulletin parachain sync description.
@@ -72,4 +75,18 @@ impl CliBridgeBase for PolkadotToPolkadotBulletinCliBridge {
 impl MessagesCliBridge for PolkadotToPolkadotBulletinCliBridge {
 	type MessagesLane =
 		crate::bridges::polkadot_bulletin::bridge_hub_polkadot_messages_to_polkadot_bulletin::BridgeHubPolkadotMessagesToPolkadotBulletinMessageLane;
+
+	fn maybe_messages_limits() -> Option<MessagesRelayLimits> {
+		// Polkadot Bulletin chain is missing the `TransactionPayment` runtime API (as well as the
+		// transaction payment pallet itself), so we can't estimate limits using runtime calls.
+		// Let's do it here.
+		//
+		// Folloiung constants are just safe **underestimations**. Normally, we are able to deliver
+		// and dispatch thousands of messages in the same transaction.
+		Some(MessagesRelayLimits {
+			max_messages_in_single_batch: 128,
+			max_messages_weight_in_single_batch:
+				bp_polkadot_bulletin::PolkadotBulletin::max_extrinsic_weight() / 20,
+		})
+	}
 }
