@@ -8,3 +8,12 @@ cargo run --bin runtime-codegen -- --from-node-url "wss://kusama-rpc.polkadot.io
 cargo run --bin runtime-codegen -- --from-node-url "wss://rpc.polkadot.io:443" > ../../relays/client-polkadot/src/codegen_runtime.rs
 cd -
 cargo fmt --all
+
+# Uncomment to update other runtimes
+
+# Polkadot Bulletin Chain:
+#
+# git clone https://github.com/zdave-parity/polkadot-bulletin-chain.git
+# cd polkadot-bulletin-chain
+# cargo run
+# cargo run --bin runtime-codegen -- --from-node-url "ws://127.0.0.1:9944" > ../../relays/client-polkadot-bulletin/src/codegen_runtime.rs
