@@ -1333,6 +1333,23 @@ dependencies = [
 ]
 
 [[package]]
+name = "bp-polkadot-bulletin"
+version = "0.1.0"
+dependencies = [
+ "bp-header-chain",
+ "bp-messages",
+ "bp-polkadot-core",
+ "bp-runtime",
+ "frame-support",
+ "frame-system",
+ "parity-scale-codec",
+ "scale-info",
+ "sp-api",
+ "sp-runtime",
+ "sp-std 8.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
+]
+
+[[package]]
 name = "bp-polkadot-core"
 version = "0.1.0"
 dependencies = [
@@ -10476,6 +10493,7 @@ dependencies = [
  "bp-kusama",
  "bp-messages",
  "bp-parachains",
+ "bp-polkadot-bulletin",
  "bp-polkadot-core",
  "bp-runtime",
  "bridge-runtime-common",
@@ -10569,6 +10587,28 @@ dependencies = [
  "sp-core",
  "sp-runtime",
  "sp-session",
+]
+
+[[package]]
+name = "relay-polkadot-bulletin-client"
+version = "0.1.0"
+dependencies = [
+ "bp-header-chain",
+ "bp-messages",
+ "bp-polkadot-bulletin",
+ "bp-polkadot-core",
+ "bp-runtime",
+ "bridge-runtime-common",
+ "parity-scale-codec",
+ "relay-substrate-client",
+ "relay-utils",
+ "scale-info",
+ "sp-consensus-grandpa",
+ "sp-core",
+ "sp-runtime",
+ "sp-session",
+ "sp-weights",
+ "subxt",
 ]
 
 [[package]]
@@ -14500,6 +14540,7 @@ dependencies = [
  "bp-messages",
  "bp-millau",
  "bp-parachains",
+ "bp-polkadot-bulletin",
  "bp-polkadot-core",
  "bp-rialto",
  "bp-rialto-parachain",
@@ -14529,6 +14570,7 @@ dependencies = [
  "relay-bridge-hub-wococo-client",
  "relay-kusama-client",
  "relay-millau-client",
+ "relay-polkadot-bulletin-client",
  "relay-polkadot-client",
  "relay-rialto-client",
  "relay-rialto-parachain-client",
