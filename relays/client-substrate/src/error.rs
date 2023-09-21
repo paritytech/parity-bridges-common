@@ -196,7 +196,7 @@ pub enum Error {
 		/// Underlying error.
 		error: Box<Error>,
 	},
-	/// Headers of the chain are finalized in an unordered manner. Maybe chain has been
+	/// Headers of the chain are finalized out of order. Maybe chain has been
 	/// restarted?
 	#[error("Finalized headers of {chain} are unordered: previously finalized {prev_number} vs new {next_number}")]
 	UnorderedFinalizedHeaders {
