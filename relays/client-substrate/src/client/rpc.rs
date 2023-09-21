@@ -209,6 +209,7 @@ impl<C: Chain> RpcClient<C> {
 		.await
 	}
 
+	/// Subscribe to finality justifications.
 	async fn subscribe_finality_justifications<Fut>(
 		&self,
 		gadget_name: &str,
@@ -224,6 +225,27 @@ impl<C: Chain> RpcClient<C> {
 
 		Ok(Subscription::new_forwarded(
 			StreamDescription::new(format!("{} justifications", gadget_name), C::NAME.into()),
+			subscription,
+		))
+	}
+
+	/// Subscribe to headers stream.
+	async fn subscribe_headers<Fut>(
+		&self,
+		stream_name: &str,
+		do_subscribe: impl FnOnce(Arc<WsClient>) -> Fut + Send + 'static,
+		map_err: impl FnOnce(Error) -> Error,
+	) -> Result<Subscription<HeaderOf<C>>>
+	where
+		Fut: Future<Output = RpcResult<RpcSubscription<HeaderOf<C>>>> + Send,
+	{
+		let subscription = self
+			.jsonrpsee_execute(move |client| async move { Ok(do_subscribe(client).await?) })
+			.map_err(map_err)
+			.await?;
+
+		Ok(Subscription::new_forwarded(
+			StreamDescription::new(format!("{} headers", stream_name), C::NAME.into()),
 			subscription,
 		))
 	}
@@ -309,6 +331,26 @@ impl<C: Chain> Client<C> for RpcClient<C> {
 		})
 		.await
 		.map_err(|e| Error::failed_to_read_best_header::<C>(e))
+	}
+
+	async fn subscribe_best_headers(&self) -> Result<Subscription<HeaderOf<C>>> {
+		self.subscribe_headers(
+			"best headers",
+			move |client| async move { SubstrateChainClient::<C>::subscribe_new_heads(&*client).await },
+			|e| Error::failed_to_subscribe_best_headers::<C>(e),
+		)
+		.await
+	}
+
+	async fn subscribe_finalized_headers(&self) -> Result<Subscription<HeaderOf<C>>> {
+		self.subscribe_headers(
+			"best finalized headers",
+			move |client| async move {
+				SubstrateChainClient::<C>::subscribe_finalized_heads(&*client).await
+			},
+			|e| Error::failed_to_subscribe_finalized_headers::<C>(e),
+		)
+		.await
 	}
 
 	async fn subscribe_grandpa_finality_justifications(&self) -> Result<Subscription<Bytes>>
