@@ -24,7 +24,7 @@ use crate::{
 	HashOf, HeaderIdOf, HeaderOf, NonceOf, SignedBlockOf, SimpleRuntimeVersion, Subscription,
 	TransactionTracker, UnsignedTransaction, ANCIENT_BLOCK_THRESHOLD,
 };
-use std::{future::Future, task::Poll};
+use std::{cmp::Ordering, future::Future, task::Poll};
 
 use async_std::{
 	sync::{Arc, Mutex, RwLock},
@@ -190,16 +190,20 @@ impl<C: Chain, B: Client<C>> CachingClient<C, B> {
 							ok_or_else(|| Error::ChannelError(format!("Finalized headers subscription for {} has finished", C::NAME)))?;
 						let new_finalized_header_number = *new_finalized_header.number();
 						let last_finalized_header_number = *last_finalized_header.number();
-						if new_finalized_header_number > last_finalized_header_number {
-							let new_finalized_header_hash = new_finalized_header.hash();
-							header_by_hash_cache.write().await.insert(new_finalized_header_hash, new_finalized_header.clone());
-							*best_finalized_header.write().await = Some(new_finalized_header.clone());
-							last_finalized_header = new_finalized_header;
-						} else if new_finalized_header_number < last_finalized_header_number {
-							return Err(Error::unordered_finalized_headers::<C>(
-								new_finalized_header_number,
-								last_finalized_header_number,
-							));
+						match new_finalized_header_number.cmp(&last_finalized_header_number) {
+							Ordering::Greater => {
+								let new_finalized_header_hash = new_finalized_header.hash();
+								header_by_hash_cache.write().await.insert(new_finalized_header_hash, new_finalized_header.clone());
+								*best_finalized_header.write().await = Some(new_finalized_header.clone());
+								last_finalized_header = new_finalized_header;
+							},
+							Ordering::Less => {
+								return Err(Error::unordered_finalized_headers::<C>(
+									new_finalized_header_number,
+									last_finalized_header_number,
+								));
+							},
+							_ => (),
 						}
 					},
 				}
@@ -208,7 +212,7 @@ impl<C: Chain, B: Client<C>> CachingClient<C, B> {
 	}
 
 	/// Ensure that the background task is active.
-	async fn ensure_background_task_active<'a>(&'a self) -> Result<()> {
+	async fn ensure_background_task_active(&self) -> Result<()> {
 		let mut background_task_handle = self.data.background_task_handle.lock().await;
 		if let Poll::Ready(result) = futures::poll!(&mut *background_task_handle) {
 			return Err(Error::ChannelError(format!(
