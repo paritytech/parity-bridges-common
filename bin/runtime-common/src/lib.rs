@@ -19,15 +19,14 @@
 #![warn(missing_docs)]
 #![cfg_attr(not(feature = "std"), no_std)]
 
-use crate::messages_call_ext::MessagesCallSubType;
 use pallet_bridge_grandpa::CallSubType as GrandpaCallSubType;
+use pallet_bridge_messages::CallSubType as MessagesCallSubType;
 use pallet_bridge_parachains::CallSubType as ParachainsCallSubtype;
 use sp_runtime::transaction_validity::TransactionValidity;
 use xcm::v3::NetworkId;
 
 pub mod messages_api;
 pub mod messages_benchmarking;
-pub mod messages_call_ext;
 pub mod parachains_benchmarking;
 pub mod priority_calculator;
 pub mod refund_relayer_extension;
