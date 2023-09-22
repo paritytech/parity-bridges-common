@@ -17,12 +17,13 @@
 //! Signed extension for the `pallet-bridge-messages` that is able to reject obsolete
 //! (and some other invalid) transactions.
 
+use crate::{BridgedChainOf, Config, InboundLanes, OutboundLanes, Pallet, LOG_TARGET};
+
 use bp_messages::{
 	target_chain::MessageDispatch, ChainWithMessages, InboundLaneData, LaneId, MessageNonce,
 };
 use bp_runtime::AccountIdOf;
 use frame_support::{dispatch::CallableCallFor, traits::IsSubType};
-use pallet_bridge_messages::{BridgedChainOf, Config, Pallet};
 use sp_runtime::{transaction_validity::TransactionValidity, RuntimeDebug};
 use sp_std::ops::RangeInclusive;
 
@@ -146,11 +147,10 @@ impl<T: Config<I>, I: 'static> CallHelper<T, I> {
 	pub fn was_successful(info: &CallInfo) -> bool {
 		match info {
 			CallInfo::ReceiveMessagesProof(info) => {
-				let inbound_lane_data =
-					match pallet_bridge_messages::InboundLanes::<T, I>::get(info.base.lane_id) {
-						Some(inbound_lane_data) => inbound_lane_data,
-						None => return false,
-					};
+				let inbound_lane_data = match InboundLanes::<T, I>::get(info.base.lane_id) {
+					Some(inbound_lane_data) => inbound_lane_data,
+					None => return false,
+				};
 				if info.base.bundled_range.is_empty() {
 					let post_occupation =
 						unrewarded_relayers_occupation::<T, I>(&inbound_lane_data);
@@ -165,11 +165,10 @@ impl<T: Config<I>, I: 'static> CallHelper<T, I> {
 				inbound_lane_data.last_delivered_nonce() == *info.base.bundled_range.end()
 			},
 			CallInfo::ReceiveMessagesDeliveryProof(info) => {
-				let outbound_lane_data =
-					match pallet_bridge_messages::OutboundLanes::<T, I>::get(info.0.lane_id) {
-						Some(outbound_lane_data) => outbound_lane_data,
-						None => return false,
-					};
+				let outbound_lane_data = match OutboundLanes::<T, I>::get(info.0.lane_id) {
+					Some(outbound_lane_data) => outbound_lane_data,
+					None => return false,
+				};
 				outbound_lane_data.latest_received_nonce == *info.0.bundled_range.end()
 			},
 		}
@@ -177,7 +176,7 @@ impl<T: Config<I>, I: 'static> CallHelper<T, I> {
 }
 
 /// Trait representing a call that is a sub type of `pallet_bridge_messages::Call`.
-pub trait MessagesCallSubType<T: Config<I, RuntimeCall = Self>, I: 'static>:
+pub trait CallSubType<T: Config<I, RuntimeCall = Self>, I: 'static>:
 	IsSubType<CallableCallFor<Pallet<T, I>, T>>
 {
 	/// Create a new instance of `ReceiveMessagesProofInfo` from a `ReceiveMessagesProof` call.
@@ -204,15 +203,13 @@ impl<
 		Call: IsSubType<CallableCallFor<Pallet<T, I>, T>>,
 		T: frame_system::Config<RuntimeCall = Call> + Config<I>,
 		I: 'static,
-	> MessagesCallSubType<T, I> for T::RuntimeCall
+	> CallSubType<T, I> for T::RuntimeCall
 {
 	fn receive_messages_proof_info(&self) -> Option<ReceiveMessagesProofInfo> {
-		if let Some(pallet_bridge_messages::Call::<T, I>::receive_messages_proof {
-			ref proof,
-			..
-		}) = self.is_sub_type()
+		if let Some(crate::Call::<T, I>::receive_messages_proof { ref proof, .. }) =
+			self.is_sub_type()
 		{
-			let inbound_lane_data = pallet_bridge_messages::InboundLanes::<T, I>::get(proof.lane)?;
+			let inbound_lane_data = InboundLanes::<T, I>::get(proof.lane)?;
 
 			return Some(ReceiveMessagesProofInfo {
 				base: BaseMessagesProofInfo {
@@ -230,14 +227,13 @@ impl<
 	}
 
 	fn receive_messages_delivery_proof_info(&self) -> Option<ReceiveMessagesDeliveryProofInfo> {
-		if let Some(pallet_bridge_messages::Call::<T, I>::receive_messages_delivery_proof {
+		if let Some(crate::Call::<T, I>::receive_messages_delivery_proof {
 			ref proof,
 			ref relayers_state,
 			..
 		}) = self.is_sub_type()
 		{
-			let outbound_lane_data =
-				pallet_bridge_messages::OutboundLanes::<T, I>::get(proof.lane)?;
+			let outbound_lane_data = OutboundLanes::<T, I>::get(proof.lane)?;
 
 			return Some(ReceiveMessagesDeliveryProofInfo(BaseMessagesProofInfo {
 				lane_id: proof.lane,
@@ -283,7 +279,7 @@ impl<
 					.is_obsolete(T::MessageDispatch::is_active(proof_info.base.lane_id)) =>
 			{
 				log::trace!(
-					target: pallet_bridge_messages::LOG_TARGET,
+					target: LOG_TARGET,
 					"Rejecting obsolete messages delivery transaction: {:?}",
 					proof_info
 				);
@@ -294,7 +290,7 @@ impl<
 				if proof_info.is_obsolete() =>
 			{
 				log::trace!(
-					target: pallet_bridge_messages::LOG_TARGET,
+					target: LOG_TARGET,
 					"Rejecting obsolete messages confirmation transaction: {:?}",
 					proof_info,
 				);
@@ -328,10 +324,7 @@ fn unrewarded_relayers_occupation<T: Config<I>, I: 'static>(
 #[cfg(test)]
 mod tests {
 	use super::*;
-	use crate::{
-		messages_call_ext::MessagesCallSubType,
-		mock::{BridgedUnderlyingChain, DummyMessageDispatch, TestRuntime, ThisChainRuntimeCall},
-	};
+	use crate::tests::mock::*;
 	use bp_messages::{
 		source_chain::FromBridgedChainMessagesDeliveryProof,
 		target_chain::FromBridgedChainMessagesProof, DeliveredMessages, InboundLaneData, LaneState,
@@ -344,38 +337,30 @@ mod tests {
 	}
 
 	fn fill_unrewarded_relayers() {
-		let mut inbound_lane_state =
-			pallet_bridge_messages::InboundLanes::<TestRuntime>::get(test_lane_id()).unwrap();
-		for n in 0..BridgedUnderlyingChain::MAX_UNREWARDED_RELAYERS_IN_CONFIRMATION_TX {
+		let mut inbound_lane_state = InboundLanes::<TestRuntime>::get(test_lane_id()).unwrap();
+		for n in 0..BridgedChain::MAX_UNREWARDED_RELAYERS_IN_CONFIRMATION_TX {
 			inbound_lane_state.relayers.push_back(UnrewardedRelayer {
 				relayer: Default::default(),
 				messages: DeliveredMessages { begin: n + 1, end: n + 1 },
 			});
 		}
-		pallet_bridge_messages::InboundLanes::<TestRuntime>::insert(
-			test_lane_id(),
-			inbound_lane_state,
-		);
+		InboundLanes::<TestRuntime>::insert(test_lane_id(), inbound_lane_state);
 	}
 
 	fn fill_unrewarded_messages() {
-		let mut inbound_lane_state =
-			pallet_bridge_messages::InboundLanes::<TestRuntime>::get(test_lane_id()).unwrap();
+		let mut inbound_lane_state = InboundLanes::<TestRuntime>::get(test_lane_id()).unwrap();
 		inbound_lane_state.relayers.push_back(UnrewardedRelayer {
 			relayer: Default::default(),
 			messages: DeliveredMessages {
 				begin: 1,
-				end: BridgedUnderlyingChain::MAX_UNCONFIRMED_MESSAGES_IN_CONFIRMATION_TX,
+				end: BridgedChain::MAX_UNCONFIRMED_MESSAGES_IN_CONFIRMATION_TX,
 			},
 		});
-		pallet_bridge_messages::InboundLanes::<TestRuntime>::insert(
-			test_lane_id(),
-			inbound_lane_state,
-		);
+		InboundLanes::<TestRuntime>::insert(test_lane_id(), inbound_lane_state);
 	}
 
 	fn deliver_message_10() {
-		pallet_bridge_messages::InboundLanes::<TestRuntime>::insert(
+		InboundLanes::<TestRuntime>::insert(
 			test_lane_id(),
 			bp_messages::InboundLaneData {
 				state: LaneState::Opened,
@@ -389,35 +374,26 @@ mod tests {
 		nonces_start: bp_messages::MessageNonce,
 		nonces_end: bp_messages::MessageNonce,
 	) -> bool {
-		ThisChainRuntimeCall::BridgeMessages(
-			pallet_bridge_messages::Call::<TestRuntime, ()>::receive_messages_proof {
-				relayer_id_at_bridged_chain: 42,
-				messages_count: nonces_end.checked_sub(nonces_start).map(|x| x + 1).unwrap_or(0)
-					as u32,
-				dispatch_weight: frame_support::weights::Weight::zero(),
-				proof: Box::new(FromBridgedChainMessagesProof {
-					bridged_header_hash: Default::default(),
-					storage: Default::default(),
-					lane: test_lane_id(),
-					nonces_start,
-					nonces_end,
-				}),
-			},
-		)
+		RuntimeCall::Messages(crate::Call::<TestRuntime, ()>::receive_messages_proof {
+			relayer_id_at_bridged_chain: 42,
+			messages_count: nonces_end.checked_sub(nonces_start).map(|x| x + 1).unwrap_or(0) as u32,
+			dispatch_weight: frame_support::weights::Weight::zero(),
+			proof: Box::new(FromBridgedChainMessagesProof {
+				bridged_header_hash: Default::default(),
+				storage: Default::default(),
+				lane: test_lane_id(),
+				nonces_start,
+				nonces_end,
+			}),
+		})
 		.check_obsolete_call()
 		.is_ok()
 	}
 
 	fn run_test<T>(test: impl Fn() -> T) -> T {
 		sp_io::TestExternalities::new(Default::default()).execute_with(|| {
-			pallet_bridge_messages::InboundLanes::<TestRuntime>::insert(
-				test_lane_id(),
-				InboundLaneData::opened(),
-			);
-			pallet_bridge_messages::OutboundLanes::<TestRuntime>::insert(
-				test_lane_id(),
-				OutboundLaneData::opened(),
-			);
+			InboundLanes::<TestRuntime>::insert(test_lane_id(), InboundLaneData::opened());
+			OutboundLanes::<TestRuntime>::insert(test_lane_id(), OutboundLaneData::opened());
 			test()
 		})
 	}
@@ -469,7 +445,7 @@ mod tests {
 			// => tx is accepted
 			deliver_message_10();
 
-			DummyMessageDispatch::deactivate(test_lane_id());
+			TestMessageDispatch::deactivate(test_lane_id());
 			assert!(!validate_message_delivery(11, 15));
 		});
 	}
@@ -499,8 +475,8 @@ mod tests {
 		run_test(|| {
 			fill_unrewarded_messages();
 			assert!(validate_message_delivery(
-				BridgedUnderlyingChain::MAX_UNCONFIRMED_MESSAGES_IN_CONFIRMATION_TX,
-				BridgedUnderlyingChain::MAX_UNCONFIRMED_MESSAGES_IN_CONFIRMATION_TX - 1
+				BridgedChain::MAX_UNCONFIRMED_MESSAGES_IN_CONFIRMATION_TX,
+				BridgedChain::MAX_UNCONFIRMED_MESSAGES_IN_CONFIRMATION_TX - 1
 			));
 		});
 	}
@@ -516,7 +492,7 @@ mod tests {
 	}
 
 	fn confirm_message_10() {
-		pallet_bridge_messages::OutboundLanes::<TestRuntime>::insert(
+		OutboundLanes::<TestRuntime>::insert(
 			test_lane_id(),
 			bp_messages::OutboundLaneData {
 				state: LaneState::Opened,
@@ -528,19 +504,14 @@ mod tests {
 	}
 
 	fn validate_message_confirmation(last_delivered_nonce: bp_messages::MessageNonce) -> bool {
-		ThisChainRuntimeCall::BridgeMessages(
-			pallet_bridge_messages::Call::<TestRuntime>::receive_messages_delivery_proof {
-				proof: FromBridgedChainMessagesDeliveryProof {
-					bridged_header_hash: Default::default(),
-					storage_proof: Default::default(),
-					lane: test_lane_id(),
-				},
-				relayers_state: UnrewardedRelayersState {
-					last_delivered_nonce,
-					..Default::default()
-				},
+		RuntimeCall::Messages(crate::Call::<TestRuntime>::receive_messages_delivery_proof {
+			proof: FromBridgedChainMessagesDeliveryProof {
+				bridged_header_hash: Default::default(),
+				storage_proof: Default::default(),
+				lane: test_lane_id(),
 			},
-		)
+			relayers_state: UnrewardedRelayersState { last_delivered_nonce, ..Default::default() },
+		})
 		.check_obsolete_call()
 		.is_ok()
 	}
@@ -600,7 +571,7 @@ mod tests {
 					free_message_slots: if is_empty {
 						0
 					} else {
-						BridgedUnderlyingChain::MAX_UNCONFIRMED_MESSAGES_IN_CONFIRMATION_TX
+						BridgedChain::MAX_UNCONFIRMED_MESSAGES_IN_CONFIRMATION_TX
 					},
 				},
 			},
