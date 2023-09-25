@@ -14,25 +14,10 @@
 // You should have received a copy of the GNU General Public License
 // along with Parity Bridges Common.  If not, see <http://www.gnu.org/licenses/>.
 
-use crate::{Config, Pallet, RelayBlockNumber};
-use bp_parachains::BestParaHeadHash;
-use bp_polkadot_core::parachains::{ParaHash, ParaId};
+use crate::{Config, Pallet};
+use bp_parachains::{BestParaHeadHash, SubmitParachainHeadsInfo};
 use frame_support::{dispatch::CallableCallFor, traits::IsSubType};
-use sp_runtime::{
-	transaction_validity::{InvalidTransaction, TransactionValidity, ValidTransaction},
-	RuntimeDebug,
-};
-
-/// Info about a `SubmitParachainHeads` call which tries to update a single parachain.
-#[derive(PartialEq, RuntimeDebug)]
-pub struct SubmitParachainHeadsInfo {
-	/// Number of the finalized relay block that has been used to prove parachain finality.
-	pub at_relay_block_number: RelayBlockNumber,
-	/// Parachain identifier.
-	pub para_id: ParaId,
-	/// Hash of the bundled parachain head.
-	pub para_head_hash: ParaHash,
-}
+use sp_runtime::transaction_validity::{InvalidTransaction, TransactionValidity, ValidTransaction};
 
 /// Helper struct that provides methods for working with the `SubmitParachainHeads` call.
 pub struct SubmitParachainHeadsHelper<T: Config<I>, I: 'static> {
