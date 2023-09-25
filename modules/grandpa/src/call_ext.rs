@@ -15,41 +15,17 @@
 // along with Parity Bridges Common.  If not, see <http://www.gnu.org/licenses/>.
 
 use crate::{weights::WeightInfo, BridgedBlockNumber, BridgedHeader, Config, Error, Pallet};
-use bp_header_chain::{justification::GrandpaJustification, ChainWithGrandpa};
+use bp_header_chain::{
+	justification::GrandpaJustification, ChainWithGrandpa, SubmitFinalityProofInfo,
+};
 use bp_runtime::BlockNumberOf;
 use codec::Encode;
 use frame_support::{dispatch::CallableCallFor, traits::IsSubType, weights::Weight};
 use sp_runtime::{
-	traits::{Header, Zero},
+	traits::Header,
 	transaction_validity::{InvalidTransaction, TransactionValidity, ValidTransaction},
-	RuntimeDebug, SaturatedConversion,
+	SaturatedConversion,
 };
-
-/// Info about a `SubmitParachainHeads` call which tries to update a single parachain.
-#[derive(Copy, Clone, PartialEq, RuntimeDebug)]
-pub struct SubmitFinalityProofInfo<N> {
-	/// Number of the finality target.
-	pub block_number: N,
-	/// Extra weight that we assume is included in the call.
-	///
-	/// We have some assumptions about headers and justifications of the bridged chain.
-	/// We know that if our assumptions are correct, then the call must not have the
-	/// weight above some limit. The fee paid for weight above that limit, is never refunded.
-	pub extra_weight: Weight,
-	/// Extra size (in bytes) that we assume are included in the call.
-	///
-	/// We have some assumptions about headers and justifications of the bridged chain.
-	/// We know that if our assumptions are correct, then the call must not have the
-	/// weight above some limit. The fee paid for bytes above that limit, is never refunded.
-	pub extra_size: u32,
-}
-
-impl<N> SubmitFinalityProofInfo<N> {
-	/// Returns `true` if call size/weight is below our estimations for regular calls.
-	pub fn fits_limits(&self) -> bool {
-		self.extra_weight.is_zero() && self.extra_size.is_zero()
-	}
-}
 
 /// Helper struct that provides methods for working with the `SubmitFinalityProof` call.
 pub struct SubmitFinalityProofHelper<T: Config<I>, I: 'static> {

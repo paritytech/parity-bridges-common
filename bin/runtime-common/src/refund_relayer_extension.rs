@@ -19,7 +19,9 @@
 //! with calls that are: delivering new messsage and all necessary underlying headers
 //! (parachain or relay chain).
 
-use bp_messages::{ChainWithMessages, LaneId, MessageNonce};
+use bp_header_chain::SubmitFinalityProofInfo;
+use bp_messages::{ChainWithMessages, LaneId, MessageNonce, MessagesCallInfo};
+use bp_parachains::SubmitParachainHeadsInfo;
 use bp_relayers::{RewardsAccountOwner, RewardsAccountParams};
 use bp_runtime::{Chain, Parachain, ParachainIdOf, RangeInclusiveExt, StaticStrProvider};
 use codec::{Codec, Decode, Encode};
@@ -31,15 +33,13 @@ use frame_support::{
 };
 use pallet_bridge_grandpa::{
 	CallSubType as GrandpaCallSubType, Config as GrandpaConfig, SubmitFinalityProofHelper,
-	SubmitFinalityProofInfo,
 };
 use pallet_bridge_messages::{
-	CallHelper as MessagesCallHelper, CallInfo as MessagesCallInfo,
-	CallSubType as MessagesCallSubType, Config as MessagesConfig,
+	CallHelper as MessagesCallHelper, CallSubType as MessagesCallSubType, Config as MessagesConfig,
 };
 use pallet_bridge_parachains::{
 	BoundedBridgeGrandpaConfig, CallSubType as ParachainsCallSubType, Config as ParachainsConfig,
-	RelayBlockNumber, SubmitParachainHeadsHelper, SubmitParachainHeadsInfo,
+	RelayBlockNumber, SubmitParachainHeadsHelper,
 };
 use pallet_bridge_relayers::{
 	Config as RelayersConfig, Pallet as RelayersPallet, WeightInfoExt as _,
@@ -830,8 +830,9 @@ mod tests {
 	use crate::mock::*;
 	use bp_messages::{
 		source_chain::FromBridgedChainMessagesDeliveryProof,
-		target_chain::FromBridgedChainMessagesProof, InboundLaneData, MessageNonce,
-		OutboundLaneData, UnrewardedRelayersState,
+		target_chain::FromBridgedChainMessagesProof, BaseMessagesProofInfo, InboundLaneData,
+		MessageNonce, OutboundLaneData, ReceiveMessagesDeliveryProofInfo, ReceiveMessagesProofInfo,
+		UnrewardedRelayerOccupation, UnrewardedRelayersState,
 	};
 	use bp_parachains::{BestParaHeadHash, ParaInfo};
 	use bp_polkadot_core::parachains::{ParaHeadsProof, ParaId};
@@ -843,10 +844,7 @@ mod tests {
 		weights::Weight,
 	};
 	use pallet_bridge_grandpa::{Call as GrandpaCall, StoredAuthoritySet};
-	use pallet_bridge_messages::{
-		BaseMessagesProofInfo, Call as MessagesCall, ReceiveMessagesDeliveryProofInfo,
-		ReceiveMessagesProofInfo, UnrewardedRelayerOccupation,
-	};
+	use pallet_bridge_messages::Call as MessagesCall;
 	use pallet_bridge_parachains::{Call as ParachainsCall, RelayBlockHash};
 	use sp_runtime::{
 		traits::{ConstU64, Header as HeaderT},
