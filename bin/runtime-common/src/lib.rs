@@ -28,10 +28,6 @@ use xcm::v3::NetworkId;
 pub mod messages_api;
 pub mod messages_benchmarking;
 pub mod parachains_benchmarking;
-pub mod priority_calculator;
-pub mod refund_relayer_extension;
-
-mod mock;
 
 #[cfg(feature = "integrity-test")]
 pub mod integrity;

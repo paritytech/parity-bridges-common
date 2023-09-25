@@ -12,12 +12,16 @@ scale-info = { version = "2.9.0", default-features = false, features = ["bit-vec
 
 # Bridge Dependencies
 
+bp-header-chain = { path = "../header-chain", default-features = false }
 bp-messages = { path = "../messages", default-features = false }
+bp-parachains = { path = "../parachains", default-features = false }
 bp-runtime = { path = "../runtime", default-features = false }
 
 # Substrate Dependencies
 
 frame-support = { git = "https://github.com/paritytech/polkadot-sdk", branch = "master", default-features = false }
+frame-system = { git = "https://github.com/paritytech/polkadot-sdk", branch = "master", default-features = false }
+pallet-utility = { git = "https://github.com/paritytech/polkadot-sdk", branch = "master", default-features = false }
 sp-runtime = { git = "https://github.com/paritytech/polkadot-sdk", branch = "master", default-features = false }
 sp-std = { git = "https://github.com/paritytech/polkadot-sdk", branch = "master", default-features = false }
 
@@ -28,9 +32,15 @@ hex-literal = "0.4"
 [features]
 default = [ "std" ]
 std = [
+	"bp-header-chain/std",
 	"bp-messages/std",
+	"bp-parachains/std",
 	"bp-runtime/std",
+	"codec/std",
 	"frame-support/std",
+	"frame-system/std",
+	"pallet-utility/std",
+	"scale-info/std",
 	"sp-runtime/std",
 	"sp-std/std",
 ]
