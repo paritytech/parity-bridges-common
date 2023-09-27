@@ -34,14 +34,14 @@ use sp_core::storage::StorageKey;
 use sp_runtime::{traits::Header as HeaderT, RuntimeDebug};
 use sp_std::{marker::PhantomData, prelude::*};
 
-mod call_info;
-
 /// Block hash of the bridged relay chain.
 pub type RelayBlockHash = bp_polkadot_core::Hash;
 /// Block number of the bridged relay chain.
 pub type RelayBlockNumber = bp_polkadot_core::BlockNumber;
 /// Hasher of the bridged relay chain.
 pub type RelayBlockHasher = bp_polkadot_core::Hasher;
+
+mod call_info;
 
 /// Best known parachain head hash.
 #[derive(Clone, Decode, Encode, MaxEncodedLen, PartialEq, RuntimeDebug, TypeInfo)]
