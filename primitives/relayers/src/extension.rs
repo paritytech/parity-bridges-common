@@ -191,31 +191,3 @@ impl<Runtime: frame_system::Config> BatchCallUnpacker<Runtime> for () {
 		vec![call]
 	}
 }
-
-/*
-impl<T: pallet_utility::Config> RuntimeMaybeWithUtilityPallet for T {}
-
-impl<T: !pallet_utility::Config> RuntimeMaybeWithUtilityPallet for T {}
-*/
-/*
-WithGrandpaChainExtensionConfig<
-	RuntimeWithUtilityPallet<Runtime>,
-	WithKusamaMessagesPalletInstance,
-	PriorityBoostPerMessage,
-	ComputeRefundUsingTransactionPaymentPallet,
->;
-
-WithGrandpaChainExtensionConfig<
-	RuntimeWithMessagesPallet<
-		RuntimeWithGrandpaPallet<
-			RuntimeWithUtilityPallet<Runtime>,
-			WithKusamaGrandpaInstance,
-		>,
-		WithKusamaMessagesInstance,
-	>,
-	RuntimeWithUtilityPallet<Runtime>,
-	WithKusamaMessagesPalletInstance,
-	PriorityBoostPerMessage,
-	ComputeRefundUsingTransactionPaymentPallet,
->;
-*/

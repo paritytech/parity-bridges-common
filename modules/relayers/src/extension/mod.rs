@@ -78,7 +78,11 @@ pub enum RelayerAccountAction<AccountId, Reward> {
 	Slash(AccountId, RewardsAccountParams),
 }
 
-/// TODO
+/// A signed extension, built around `pallet-bridge-relayers`.
+///
+/// It may be incorporated into runtime to refund relayers for submitting correct
+/// message delivery and confirmation transactions, optionally batched with required
+/// finality proofs.
 #[derive(
 	DefaultNoBound,
 	CloneNoBound,
