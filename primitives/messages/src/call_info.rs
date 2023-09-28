@@ -154,7 +154,7 @@ pub enum MessagesCallInfo {
 }
 
 impl MessagesCallInfo {
-	/// Returns lanem used by the call.
+	/// Returns lane, used by the call.
 	pub fn lane_id(&self) -> LaneId {
 		match *self {
 			Self::ReceiveMessagesProof(ref info) => info.base.lane_id,

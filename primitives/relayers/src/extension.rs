@@ -114,10 +114,10 @@ pub struct ExtensionCallData {
 /// of the messages pallet to add a separate signed extension to runtime. So it must
 /// have a separate configuration.
 pub trait ExtensionConfig {
-	/// Unique identifier of the signed extrenion that will use this configuration.
+	/// Unique identifier of the signed extension that will use this configuration.
 	type IdProvider: StaticStrProvider;
 	/// Runtime that optionally supports batched calls. We assume that batched call
-	/// succeeds iff all of its nested calls succeed.
+	/// succeeds if and only if all of its nested calls succeed.
 	type Runtime: frame_system::Config;
 	/// Batch calls unpacker.
 	type BatchCallUnpacker: BatchCallUnpacker<Self::Runtime>;

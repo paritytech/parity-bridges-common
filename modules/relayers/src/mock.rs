@@ -307,19 +307,15 @@ impl pallet_bridge_relayers::Config for TestRuntime {
 #[cfg(feature = "runtime-benchmarks")]
 impl pallet_bridge_relayers::benchmarking::Config for TestRuntime {
 	fn prepare_rewards_account(account_params: RewardsAccountParams, reward: ThisChainBalance) {
-		let rewards_account = bp_relayers::PayRewardFromAccount::<
-			ThisChainBalances,
-			ThisChainAccountId,
-		>::rewards_account(account_params);
+		let rewards_account =
+			bp_relayers::PayRewardFromAccount::<Balances, ThisChainAccountId>::rewards_account(
+				account_params,
+			);
 		Self::deposit_account(rewards_account, reward);
 	}
 
-	fn deposit_account(account: Self::ThisChainAccountId, ThisChainBalance: Self::Reward) {
-		ThisChainBalances::mint_into(
-			&account,
-			ThisChainBalance.saturating_add(ExistentialDeposit::get()),
-		)
-		.unwrap();
+	fn deposit_account(account: Self::AccountId, balance: Self::Reward) {
+		Balances::mint_into(&account, balance.saturating_add(ExistentialDeposit::get())).unwrap();
 	}
 }
 
