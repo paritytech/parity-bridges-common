@@ -13,30 +13,37 @@ scale-info = { version = "2.9.0", default-features = false, features = ["derive"
 
 # Bridge dependencies
 
+bp-header-chain = { path = "../../primitives/header-chain", default-features = false }
 bp-messages = { path = "../../primitives/messages", default-features = false }
 bp-relayers = { path = "../../primitives/relayers", default-features = false }
 bp-runtime = { path = "../../primitives/runtime", default-features = false }
+pallet-bridge-grandpa = { path = "../grandpa", default-features = false }
 pallet-bridge-messages = { path = "../messages", default-features = false }
+pallet-bridge-parachains = { path = "../parachains", default-features = false }
 
 # Substrate Dependencies
 
 frame-benchmarking = { git = "https://github.com/paritytech/polkadot-sdk", branch = "master", default-features = false, optional = true }
 frame-support = { git = "https://github.com/paritytech/polkadot-sdk", branch = "master", default-features = false }
 frame-system = { git = "https://github.com/paritytech/polkadot-sdk", branch = "master", default-features = false }
+pallet-transaction-payment = { git = "https://github.com/paritytech/polkadot-sdk", branch = "master", default-features = false }
 sp-arithmetic = { git = "https://github.com/paritytech/polkadot-sdk", branch = "master", default-features = false }
 sp-runtime = { git = "https://github.com/paritytech/polkadot-sdk", branch = "master", default-features = false }
 sp-std = { git = "https://github.com/paritytech/polkadot-sdk", branch = "master", default-features = false }
 
 [dev-dependencies]
-bp-runtime = { path = "../../primitives/runtime" }
+bp-parachains = { path = "../../primitives/parachains" }
+bp-polkadot-core = { path = "../../primitives/polkadot-core" }
+bp-test-utils = { path = "../../primitives/test-utils" }
 pallet-balances = { git = "https://github.com/paritytech/polkadot-sdk", branch = "master" }
+pallet-utility = { git = "https://github.com/paritytech/polkadot-sdk", branch = "master" }
 sp-core = { git = "https://github.com/paritytech/polkadot-sdk", branch = "master" }
 sp-io = { git = "https://github.com/paritytech/polkadot-sdk", branch = "master" }
-sp-runtime = { git = "https://github.com/paritytech/polkadot-sdk", branch = "master" }
 
 [features]
 default = [ "std" ]
 std = [
+	"bp-header-chain/std",
 	"bp-messages/std",
 	"bp-relayers/std",
 	"bp-runtime/std",
@@ -45,7 +52,10 @@ std = [
 	"frame-support/std",
 	"frame-system/std",
 	"log/std",
+	"pallet-bridge-grandpa/std",
 	"pallet-bridge-messages/std",
+	"pallet-bridge-parachains/std",
+	"pallet-transaction-payment/std",
 	"scale-info/std",
 	"sp-arithmetic/std",
 	"sp-runtime/std",
@@ -56,13 +66,18 @@ runtime-benchmarks = [
 	"frame-support/runtime-benchmarks",
 	"frame-system/runtime-benchmarks",
 	"pallet-balances/runtime-benchmarks",
+	"pallet-bridge-grandpa/runtime-benchmarks",
 	"pallet-bridge-messages/runtime-benchmarks",
+	"pallet-bridge-parachains/runtime-benchmarks",
 	"sp-runtime/runtime-benchmarks",
 ]
 try-runtime = [
 	"frame-support/try-runtime",
 	"frame-system/try-runtime",
 	"pallet-balances/try-runtime",
+	"pallet-bridge-grandpa/try-runtime",
 	"pallet-bridge-messages/try-runtime",
+	"pallet-bridge-parachains/try-runtime",
 	"sp-runtime/try-runtime",
 ]
+integrity-test = []

@@ -75,6 +75,7 @@ xcm-executor = { package = "staging-xcm-executor", git = "https://github.com/par
 [dev-dependencies]
 bridge-runtime-common = { path = "../../runtime-common", features = ["integrity-test", "std"] }
 env_logger = "0.10"
+pallet-bridge-relayers = { path = "../../../modules/relayers", features = ["integrity-test", "std"] }
 static_assertions = "1.1"
 
 [build-dependencies]

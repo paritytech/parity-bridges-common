@@ -35,13 +35,13 @@ pub use stake_adapter::StakeAndSlashNamed;
 pub use weights::WeightInfo;
 pub use weights_ext::WeightInfoExt;
 
-pub mod benchmarking;
-
 mod mock;
 mod payment_adapter;
 mod stake_adapter;
 mod weights_ext;
 
+pub mod benchmarking;
+pub mod extension;
 pub mod weights;
 
 /// The target that will be used when publishing logs related to this pallet.
@@ -538,7 +538,7 @@ mod tests {
 				System::<TestRuntime>::events().last(),
 				Some(&EventRecord {
 					phase: Phase::Initialization,
-					event: TestEvent::Relayers(RewardPaid {
+					event: TestEvent::BridgeRelayers(RewardPaid {
 						relayer: REGULAR_RELAYER,
 						rewards_account_params: test_reward_account_param(),
 						reward: 100
@@ -552,7 +552,8 @@ mod tests {
 	#[test]
 	fn pay_reward_from_account_actually_pays_reward() {
 		type Balances = pallet_balances::Pallet<TestRuntime>;
-		type PayLaneRewardFromAccount = bp_relayers::PayRewardFromAccount<Balances, AccountId>;
+		type PayLaneRewardFromAccount =
+			bp_relayers::PayRewardFromAccount<Balances, ThisChainAccountId>;
 
 		run_test(|| {
 			let in_lane_0 = RewardsAccountParams::new(
@@ -633,7 +634,7 @@ mod tests {
 				System::<TestRuntime>::events().last(),
 				Some(&EventRecord {
 					phase: Phase::Initialization,
-					event: TestEvent::Relayers(Event::RegistrationUpdated {
+					event: TestEvent::BridgeRelayers(Event::RegistrationUpdated {
 						relayer: REGISTER_RELAYER,
 						registration: Registration { valid_till: 150, stake: Stake::get() },
 					}),
@@ -701,7 +702,7 @@ mod tests {
 				System::<TestRuntime>::events().last(),
 				Some(&EventRecord {
 					phase: Phase::Initialization,
-					event: TestEvent::Relayers(Event::RegistrationUpdated {
+					event: TestEvent::BridgeRelayers(Event::RegistrationUpdated {
 						relayer: REGISTER_RELAYER,
 						registration: Registration { valid_till: 150, stake: Stake::get() }
 					}),
@@ -765,7 +766,7 @@ mod tests {
 				System::<TestRuntime>::events().last(),
 				Some(&EventRecord {
 					phase: Phase::Initialization,
-					event: TestEvent::Relayers(Event::RegistrationUpdated {
+					event: TestEvent::BridgeRelayers(Event::RegistrationUpdated {
 						relayer: REGISTER_RELAYER,
 						registration: Registration { valid_till: 150, stake: Stake::get() }
 					}),
@@ -827,7 +828,9 @@ mod tests {
 				System::<TestRuntime>::events().last(),
 				Some(&EventRecord {
 					phase: Phase::Initialization,
-					event: TestEvent::Relayers(Event::Deregistered { relayer: REGISTER_RELAYER }),
+					event: TestEvent::BridgeRelayers(Event::Deregistered {
+						relayer: REGISTER_RELAYER
+					}),
 					topics: vec![],
 				}),
 			);

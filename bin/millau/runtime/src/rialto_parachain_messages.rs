@@ -103,7 +103,7 @@ mod tests {
 			},
 		});
 
-		bridge_runtime_common::priority_calculator::ensure_priority_boost_is_sane::<
+		pallet_bridge_relayers::extension::ensure_priority_boost_is_sane::<
 			Runtime,
 			WithRialtoParachainMessagesInstance,
 			PriorityBoostPerMessage,
