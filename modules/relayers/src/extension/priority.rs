@@ -68,14 +68,14 @@ where
 {
 	// if there are no relayers, explicitly registered at this lane, noone gets additional
 	// priority boost
-	let lane_relayers = RelayersPallet::<R>::lane_relayers(&lane_id);
+	let lane_relayers = RelayersPallet::<R>::lane_relayers(lane_id);
 	let lane_relayers_len: BlockNumberFor<R> = (lane_relayers.len() as u32).into();
 	if lane_relayers_len.is_zero() {
 		return 0
 	}
 
 	// we can't deal with slots shorter than 1 block
-	let slot_length: BlockNumberFor<R> = R::SlotLength::get().into();
+	let slot_length: BlockNumberFor<R> = R::SlotLength::get();
 	if slot_length < One::one() {
 		return 0
 	}

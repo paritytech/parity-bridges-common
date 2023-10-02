@@ -300,7 +300,7 @@ where
 		let priority_boost = priority::compute_priority_boost::<R>(
 			parsed_call.messages_call_info().lane_id(),
 			bundled_messages,
-			&who,
+			who,
 		);
 		let valid_transaction = ValidTransactionBuilder::default().priority(priority_boost);
 
