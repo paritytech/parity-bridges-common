@@ -39,16 +39,21 @@
 
 use crate::RewardsAccountParams;
 
+use bp_messages::LaneId;
 use codec::{Decode, Encode, MaxEncodedLen};
+use frame_support::{CloneNoBound, PartialEqNoBound, RuntimeDebugNoBound};
 use scale_info::TypeInfo;
+use sp_arithmetic::traits::BaseArithmetic;
 use sp_runtime::{
 	traits::{Get, Zero},
-	DispatchError, DispatchResult,
+	BoundedVec, DispatchError, DispatchResult, Saturating,
 };
+use sp_std::fmt::Debug;
 
 /// Relayer registration.
-#[derive(Copy, Clone, Debug, Decode, Encode, Eq, PartialEq, TypeInfo, MaxEncodedLen)]
-pub struct Registration<BlockNumber, Balance> {
+#[derive(CloneNoBound, Decode, Encode, Eq, PartialEqNoBound, RuntimeDebugNoBound, TypeInfo, MaxEncodedLen)]
+#[scale_info(skip_type_params(BlockNumber, Balance, MaxLanesPerRelayer))]
+pub struct Registration<BlockNumber: Clone + Debug + PartialEq, Balance: Clone + Debug + PartialEq, MaxLanesPerRelayer: Get<u32>> {
 	/// The last block number, where this registration is considered active.
 	///
 	/// Relayer has an option to renew his registration (this may be done before it
@@ -60,9 +65,62 @@ pub struct Registration<BlockNumber, Balance> {
 	pub valid_till: BlockNumber,
 	/// Active relayer stake, which is mapped to the relayer reserved balance.
 	///
-	/// If `stake` is less than the [`StakeAndSlash::RequiredStake`], the registration
-	/// is considered inactive even if `valid_till + 1` is not yet reached.
+	/// If `stake` is less than the [`StakeAndSlash::RequiredStake`] plus additional
+	/// [`StakeAndSlash::RequiredStake`] for every entry in the `lanes` vector, the
+	/// registration is considered inactive even if `valid_till + 1` is not yet reached.
 	pub stake: Balance,
+	/// All lanes, where relayer has explicitly registered itself for additional
+	/// priority boost.
+	///
+	/// Relayer pays additional [`StakeAndSlash::RequiredStake`] for every lane.
+	pub lanes: BoundedVec<LaneId, MaxLanesPerRelayer>,
+}
+
+impl<BlockNumber: Clone + Copy + Debug + PartialEq + PartialOrd + Saturating, Balance: BaseArithmetic + Clone + Debug + PartialEq + Zero, MaxLanesPerRelayer: Get<u32>> Registration<BlockNumber, Balance, MaxLanesPerRelayer> {
+	/// Creates new empty registration that ends at given block.
+	pub fn new(valid_till: BlockNumber) -> Self {
+		Registration { valid_till, stake: Zero::zero(), lanes: BoundedVec::new() }
+	}
+
+	/// Returns minimal stake that the relayer need to have in reserve to be
+	/// considered active.
+	pub fn required_stake(
+		&self,
+		base_stake: Balance,
+		stake_per_lane: Balance,
+	) -> Balance {
+		stake_per_lane
+			.saturating_mul(Balance::try_from(self.lanes.len()).unwrap_or(Balance::max_value()))
+			.saturating_add(base_stake)
+	}
+
+	/// Returns `true` if registration is active. In other words, if registration
+	///
+	/// - has stake larger or equal to required;
+	///
+	/// - is valid for another `required_registration_lease` blocks.
+	pub fn is_active(
+		&self,
+		base_stake: Balance,
+		stake_per_lane: Balance,
+		current_block_number: BlockNumber,
+		required_registration_lease: BlockNumber,
+	) -> bool {
+		// registration is inactive if relayer stake is less than required
+		if self.stake < self.required_stake(base_stake, stake_per_lane) {
+			return false
+		}
+
+		// registration is inactive if it ends soon
+		let remaining_lease = self
+			.valid_till
+			.saturating_sub(current_block_number);
+		if remaining_lease <= required_registration_lease {
+			return false
+		}
+
+		true
+	}
 }
 
 /// Relayer stake-and-slash mechanism.

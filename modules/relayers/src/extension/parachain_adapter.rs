@@ -92,10 +92,14 @@ where
 	type Runtime = R;
 	type BatchCallUnpacker = BCU;
 	type BridgeMessagesPalletInstance = MI;
-	type PriorityBoostPerMessage = P;
 	type Reward = R::Reward;
 	type RemoteGrandpaChainBlockNumber =
 		pallet_bridge_grandpa::BridgedBlockNumber<R, R::BridgesGrandpaPalletInstance>;
+
+	type SlotLength = sp_runtime::traits::ConstU32<32>; // TODO
+
+	type PriorityBoostForLaneRelayer = sp_runtime::traits::ConstU64<1>; // TODO
+	type PriorityBoostPerMessage = P;
 
 	fn parse_and_check_for_obsolete_call(
 		call: &R::RuntimeCall,

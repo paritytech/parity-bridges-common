@@ -22,12 +22,60 @@
 //! single message with nonce `N`, then the transaction with nonces `N..=N+100` will
 //! be rejected. This can lower bridge throughput down to one message per block.
 
-use bp_messages::MessageNonce;
+use crate::{Config as RelayersConfig, Pallet as RelayersPallet};
+
+use bp_messages::{LaneId, MessageNonce};
+use bp_relayers::ExtensionConfig;
 use frame_support::traits::Get;
-use sp_runtime::transaction_validity::TransactionPriority;
+use frame_system::{pallet_prelude::BlockNumberFor, Pallet as SystemPallet};
+use sp_runtime::{traits::{One, Zero}, transaction_validity::TransactionPriority};
 
 // reexport everything from `integrity_tests` module
 pub use integrity_tests::*;
+
+/// Compute priority boost for message delivery transaction that delivers
+/// given number of messages.
+pub fn maybe_lane_relayer_boost<Runtime, Config>(
+	lane_id: LaneId,
+	relayer: &Runtime::AccountId,
+) -> TransactionPriority
+where
+	Runtime: RelayersConfig,
+	Config: ExtensionConfig<Runtime = Runtime>,
+	usize: TryFrom<BlockNumberFor<Runtime>>,
+{
+	// if there are no relayers, explicitly registered at this lane, noone gets additional
+	// priority boost
+	let lane_relayers = RelayersPallet::<Runtime>::lane_relayers(&lane_id);
+	let lane_relayers_len: BlockNumberFor<Runtime> = (lane_relayers.len() as u32).into();
+	if lane_relayers_len.is_zero() {
+		return 0;
+	}
+
+	// we can't deal with slots shorter than 1 block
+	let slot_length: BlockNumberFor<Runtime> = Config::SlotLength::get().into();
+	if slot_length < One::one() {
+		return 0;
+	}
+
+	// let's compute current slot number
+	let current_block_number = SystemPallet::<Runtime>::block_number();
+	let slot = current_block_number / slot_length;
+
+	// and then get the relayer for that slot
+	let slot_relayer = match usize::try_from(slot % lane_relayers_len) {
+		Ok(slot_relayer_index) => &lane_relayers[slot_relayer_index],
+		Err(_) => return 0,
+	};
+
+	// if message delivery transaction is submitted by the relayer, assigned to the current
+	// slot, let's boost the transaction priority
+	if relayer != slot_relayer {
+		return 0;
+	}
+
+	Config::PriorityBoostForLaneRelayer::get()
+}
 
 /// Compute priority boost for message delivery transaction that delivers
 /// given number of messages.

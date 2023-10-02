@@ -301,6 +301,11 @@ impl pallet_bridge_relayers::Config for TestRuntime {
 	type Reward = ThisChainBalance;
 	type PaymentProcedure = TestPaymentProcedure;
 	type StakeAndSlash = TestStakeAndSlash;
+
+	type MaxLaneRelayersChanges = ConstU32<4>;
+	type MaxLanesPerRelayer = ConstU32<4>;
+	type MaxRelayersPerLane = ConstU32<4>;
+
 	type WeightInfo = ();
 }
 

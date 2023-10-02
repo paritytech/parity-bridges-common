@@ -22,6 +22,7 @@ bp-runtime = { path = "../runtime", default-features = false }
 frame-support = { git = "https://github.com/paritytech/polkadot-sdk", branch = "master", default-features = false }
 frame-system = { git = "https://github.com/paritytech/polkadot-sdk", branch = "master", default-features = false }
 pallet-utility = { git = "https://github.com/paritytech/polkadot-sdk", branch = "master", default-features = false }
+sp-arithmetic = { git = "https://github.com/paritytech/polkadot-sdk", branch = "master", default-features = false }
 sp-runtime = { git = "https://github.com/paritytech/polkadot-sdk", branch = "master", default-features = false }
 sp-std = { git = "https://github.com/paritytech/polkadot-sdk", branch = "master", default-features = false }
 
@@ -41,6 +42,7 @@ std = [
 	"frame-system/std",
 	"pallet-utility/std",
 	"scale-info/std",
+	"sp-arithmetic/std",
 	"sp-runtime/std",
 	"sp-std/std",
 ]

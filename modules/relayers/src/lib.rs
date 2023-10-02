@@ -14,20 +14,41 @@
 // You should have received a copy of the GNU General Public License
 // along with Parity Bridges Common.  If not, see <http://www.gnu.org/licenses/>.
 
-//! Runtime module that is used to store relayer rewards and (in the future) to
-//! coordinate relations between relayers.
+//! Runtime module that is used to store relayer rewards and to coordinate relations
+//! between relayers.
+
+// TODO: allow bridge owners to add "protected" relayers that have a guaranteed slot in the lane relayers
+// TODO: or else ONLY allow bridge owners to add registered relayers (through XCM calls)???
+
+// TODO: lane registration must be time-limited to force relayers to renew it and drop relayers that have stopped
+// working. Otherwise one relayer may fill up all lane slots for a fixed returnable sum.
+//
+// Or we may introduce some fine for relayer for not delivering messages. This is near to impossible though.
+//
+// Or we may allow to buy lane registration using relayer rewards only - i.e. has has delivered 100 messages
+// and reward is 100 DOTs. He could reserve his 100 DOTs to buy lane registration slots. Every slot costs 1 DOT.
+// So after 100 slots, the registration becomes inactive. And he must renew it. 
+
+// TODO: additionally we could add a reward market - i.e. now we have boosts:
+// `messages_count * per_message + per_lane`. We could add another boost if relayer wants to receive lower reward.
+// E.g. if normal reward is 1 DOT per message but relayers claims that he could deliver 10 messages in exchange of
+// 1 DOT, we will prefer such transaction over transaction with 10 DOTs reward.
 
 #![cfg_attr(not(feature = "std"), no_std)]
 #![warn(missing_docs)]
 
+use bp_messages::LaneId;
 use bp_relayers::{
 	PaymentProcedure, Registration, RelayerRewardsKeyProvider, RewardsAccountParams, StakeAndSlash,
 };
 use bp_runtime::StorageDoubleMapKeyProvider;
-use frame_support::fail;
+use codec::{Decode, Encode, MaxEncodedLen};
+use frame_support::{DefaultNoBound, fail};
+use frame_system::Pallet as SystemPallet;
 use sp_arithmetic::traits::{AtLeast32BitUnsigned, Zero};
-use sp_runtime::{traits::CheckedSub, Saturating};
-use sp_std::marker::PhantomData;
+use scale_info::TypeInfo;
+use sp_runtime::{traits::CheckedSub, BoundedVec, RuntimeDebug, Saturating};
+use sp_std::{collections::vec_deque::VecDeque, marker::PhantomData};
 
 pub use pallet::*;
 pub use payment_adapter::DeliveryConfirmationPaymentsAdapter;
@@ -53,6 +74,39 @@ pub mod pallet {
 	use frame_support::pallet_prelude::*;
 	use frame_system::pallet_prelude::*;
 
+	/// An action that needs to be performed for relayer at given lane.
+	#[derive(Clone, Decode, Encode, Eq, PartialEq, RuntimeDebug, TypeInfo, MaxEncodedLen)]
+	#[scale_info(skip_type_params(AccountId))]
+	pub enum LaneRelayerAction<AccountId> {
+		/// Add relayer to the set.
+		Add(AccountId),
+		/// Remove relayer from the set.
+		Remove(AccountId),
+	}
+
+	/// A scheduled change of relayers set at given lane.
+	#[derive(Clone, Decode, Encode, Eq, PartialEq, RuntimeDebug, TypeInfo, MaxEncodedLen)]
+	#[scale_info(skip_type_params(BlockNumber, AccountId))]
+	pub struct LaneRelayersChange<BlockNumber, AccountId> {
+		/// Change at given block.
+		pub at: BlockNumber,
+		/// Change relayers set at given lane.
+		pub lane_id: LaneId,
+		/// Relayer action.
+		pub action: LaneRelayerAction<AccountId>,
+	}
+
+	/// 
+	#[derive(Clone, Decode, DefaultNoBound, Encode, Eq, PartialEq, RuntimeDebug, TypeInfo)]
+	#[scale_info(skip_type_params(T))]
+	pub struct BoundedLaneRelayersChanges<T: Config>(pub VecDeque<LaneRelayersChange<BlockNumberFor<T>, T::AccountId>>);
+
+	impl<T: Config> MaxEncodedLen for BoundedLaneRelayersChanges<T> {
+		fn max_encoded_len() -> usize {
+			BoundedVec::<T::AccountId, T::MaxLaneRelayersChanges>::max_encoded_len()
+		}
+	}
+
 	/// `RelayerRewardsKeyProvider` for given configuration.
 	type RelayerRewardsKeyProviderOf<T> =
 		RelayerRewardsKeyProvider<<T as frame_system::Config>::AccountId, <T as Config>::Reward>;
@@ -67,12 +121,52 @@ pub mod pallet {
 		type PaymentProcedure: PaymentProcedure<Self::AccountId, Self::Reward>;
 		/// Stake and slash scheme.
 		type StakeAndSlash: StakeAndSlash<Self::AccountId, BlockNumberFor<Self>, Self::Reward>;
+
+		/// TODO
+		#[pallet::constant]
+		type MaxLanesPerRelayer: Get<u32>;
+		/// Maximal number of relayers that can register themselves on a single lane.
+		#[pallet::constant]
+		type MaxRelayersPerLane: Get<u32>;
+		/// TODO
+		#[pallet::constant]
+		type MaxLaneRelayersChanges: Get<u32>;
+
 		/// Pallet call weights.
 		type WeightInfo: WeightInfoExt;
 	}
 
 	#[pallet::pallet]
 	pub struct Pallet<T>(PhantomData<T>);
+
+	#[pallet::hooks]
+	impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {
+		fn on_initialize(n: BlockNumberFor<T>) -> Weight {
+			LaneRelayersChanges::<T>::mutate(|changes| {
+				while let Some(change) = changes.0.pop_front() {
+					if change.at > n {
+						changes.0.push_front(change);
+						return;
+					}
+
+					LaneRelayers::<T>::mutate(change.lane_id, |lane_relayers| {
+						match change.action {
+							LaneRelayerAction::Add(relayer) => {
+								if let Err(_) = lane_relayers.try_push(relayer) {
+									// TODO
+								}
+							},
+							LaneRelayerAction::Remove(relayer) => {
+								lane_relayers.retain(|r| *r != relayer);
+							},
+						}
+					});
+				}
+			});
+
+			Weight::zero() // TODO
+		}
+	}
 
 	#[pallet::call]
 	impl<T: Config> Pallet<T> {
@@ -115,6 +209,13 @@ pub mod pallet {
 		/// Register relayer or update its registration.
 		///
 		/// Registration allows relayer to get priority boost for its message delivery transactions.
+		/// Honest block authors will choose prioritized transactions when there are transactions
+		/// from registered and unregistered relayers. However, registered relayers take additional
+		/// responsibility to submit only valid transactions. If they submit an invalid transaction,
+		/// their stake will be slashed and registration will be lost.
+		///
+		/// Relayers may get additional priority boost by registering their intention to relay
+		/// messages at given lanes, using `register_at_lane` method.
 		#[pallet::call_index(1)]
 		#[pallet::weight(T::WeightInfo::register())]
 		pub fn register(origin: OriginFor<T>, valid_till: BlockNumberFor<T>) -> DispatchResult {
@@ -130,7 +231,8 @@ pub mod pallet {
 
 			RegisteredRelayers::<T>::try_mutate(&relayer, |maybe_registration| -> DispatchResult {
 				let mut registration = maybe_registration
-					.unwrap_or_else(|| Registration { valid_till, stake: Zero::zero() });
+					.take()
+					.unwrap_or_else(|| Registration::new(valid_till));
 
 				// new `valid_till` must be larger (or equal) than the old one
 				ensure!(
@@ -139,32 +241,20 @@ pub mod pallet {
 				);
 				registration.valid_till = valid_till;
 
-				// regarding stake, there are three options:
-				// - if relayer stake is larger than required stake, we may do unreserve
-				// - if relayer stake equals to required stake, we do nothing
-				// - if relayer stake is smaller than required stake, we do additional reserve
-				let required_stake = Pallet::<T>::required_stake();
-				if let Some(to_unreserve) = registration.stake.checked_sub(&required_stake) {
-					Self::do_unreserve(&relayer, to_unreserve)?;
-				} else if let Some(to_reserve) = required_stake.checked_sub(&registration.stake) {
-					T::StakeAndSlash::reserve(&relayer, to_reserve).map_err(|e| {
-						log::trace!(
-							target: LOG_TARGET,
-							"Failed to reserve {:?} on relayer {:?} account: {:?}",
-							to_reserve,
-							relayer,
-							e,
-						);
-
-						Error::<T>::FailedToReserve
-					})?;
-				}
-				registration.stake = required_stake;
+				// reserve stake on relayer account
+				registration.stake = Self::update_relayer_stake(
+					&relayer,
+					registration.stake,
+					registration.required_stake(
+						Self::base_stake(),
+						Self::stake_per_lane(),
+					),
+				)?;
 
 				log::trace!(target: LOG_TARGET, "Successfully registered relayer: {:?}", relayer);
 				Self::deposit_event(Event::<T>::RegistrationUpdated {
 					relayer: relayer.clone(),
-					registration,
+					registration: registration.clone(),
 				});
 
 				*maybe_registration = Some(registration);
@@ -176,7 +266,9 @@ pub mod pallet {
 		/// `Deregister` relayer.
 		///
 		/// After this call, message delivery transactions of the relayer won't get any priority
-		/// boost.
+		/// boost. Keep in mind that the relayer can't deregister until `valid_till` block, which
+		/// he has specified in the registration call. The relayer is also unregistered from all
+		/// lanes, where he has explicitly registered using `register_at_lane`.
 		#[pallet::call_index(2)]
 		#[pallet::weight(T::WeightInfo::deregister())]
 		pub fn deregister(origin: OriginFor<T>) -> DispatchResult {
@@ -194,10 +286,18 @@ pub mod pallet {
 					Error::<T>::RegistrationIsStillActive,
 				);
 
+				// we can't deregister relayer that has registered itself for some lanes
+				ensure!(
+					registration.lanes.is_empty(),
+					Error::<T>::HasLaneRegistrations,
+				);
+
 				// if stake is non-zero, we should do unreserve
-				if !registration.stake.is_zero() {
-					Self::do_unreserve(&relayer, registration.stake)?;
-				}
+				Self::update_relayer_stake(
+					&relayer,
+					registration.stake,
+					Zero::zero(),
+				)?;
 
 				log::trace!(target: LOG_TARGET, "Successfully deregistered relayer: {:?}", relayer);
 				Self::deposit_event(Event::<T>::Deregistered { relayer: relayer.clone() });
@@ -206,6 +306,134 @@ pub mod pallet {
 
 				Ok(())
 			})
+		}
+
+		/// Register relayer intention to serve given messages lane.
+		///
+		/// Relayer that registers itself at given message lane 
+		#[pallet::call_index(3)]
+		#[pallet::weight(Weight::zero())] // TODO
+		pub fn register_at_lane(origin: OriginFor<T>, lane: LaneId) -> DispatchResult {
+			let relayer = ensure_signed(origin)?;
+
+			RegisteredRelayers::<T>::try_mutate(&relayer.clone(), move |maybe_registration| -> DispatchResult {
+				let mut registration = match maybe_registration.take() {
+					Some(registration) => registration,
+					None => fail!(Error::<T>::NotRegistered),
+				};
+
+				// cannot add another lane registration if registration is inactive
+				let current_block_number = SystemPallet::<T>::block_number();
+				ensure!(
+					registration.is_active(
+						Self::base_stake(),
+						Self::stake_per_lane(),
+						SystemPallet::<T>::block_number(),
+						Self::required_registration_lease(),
+					),
+					Error::<T>::RegistrationIsInactive,
+				);
+
+				// cannot add duplicate lane registration
+				ensure!(!registration.lanes.contains(&lane), Error::<T>::DuplicateLaneRegistration);
+
+				// cannot have more than `MaxRelayersPerLane` relayers at lane
+				LaneRelayers::<T>::try_mutate(lane, |lane_relayers| {
+					ensure!(lane_relayers.try_push(relayer.clone()).is_ok(), Error::<T>::TooManyLaneRelayersAtLane);
+					Ok::<_, Error<T>>(())
+				})?;
+
+				// cannot add another lane registration if relayer has already max allowed
+				// lane registrations
+				ensure!(registration.lanes.try_push(lane).is_ok(), Error::<T>::TooManyLaneRegistrations);
+
+				// the relayer need to stake additional amount for every additional lane
+				registration.stake = Self::update_relayer_stake(
+					&relayer,
+					registration.stake,
+					registration.required_stake(
+						Self::base_stake(),
+						Self::stake_per_lane(),
+					),
+				)?;
+
+				// schedule lane relayers set change
+				LaneRelayersChanges::<T>::try_mutate(|changes| {
+					ensure!(
+						changes.0.len() <= T::MaxLaneRelayersChanges::get() as usize,
+						Error::<T>::TooManyScheduledChanges,
+					);
+					changes.0.push_back(LaneRelayersChange {
+						at: current_block_number.saturating_add(100u32.into()), // TODO
+						lane_id: lane,
+						action: LaneRelayerAction::Add(relayer), 
+					});
+					Ok::<_, Error<T>>(())
+				})?;
+
+				*maybe_registration = Some(registration);
+
+				Ok(())
+			})?;
+
+			Ok(())
+		}
+
+		/// TODO
+		#[pallet::call_index(4)]
+		#[pallet::weight(Weight::zero())] // TODO
+		pub fn deregister_at_lane(origin: OriginFor<T>, lane: LaneId) -> DispatchResult {
+			let relayer = ensure_signed(origin)?;
+
+			RegisteredRelayers::<T>::try_mutate(&relayer.clone(), move |maybe_registration| -> DispatchResult {
+				let mut registration = match maybe_registration.take() {
+					Some(registration) => registration,
+					None => fail!(Error::<T>::NotRegistered),
+				};
+
+				// ensure that the relayer has lane registration
+				ensure!(registration.lanes.contains(&lane), Error::<T>::UnregisteredAtLane);
+
+				// cannot have more than `MaxRelayersPerLane` relayers at lane
+				LaneRelayers::<T>::try_mutate(lane, |lane_relayers| {
+					ensure!(lane_relayers.try_push(relayer.clone()).is_ok(), Error::<T>::TooManyLaneRelayersAtLane);
+					Ok::<_, Error<T>>(())
+				})?;
+
+				// cannot add another lane registration if relayer has already max allowed
+				// lane registrations
+				ensure!(registration.lanes.try_push(lane).is_ok(), Error::<T>::TooManyLaneRegistrations);
+
+				// the relayer need to stake additional amount for every additional lane
+				registration.stake = Self::update_relayer_stake(
+					&relayer,
+					registration.stake,
+					registration.required_stake(
+						Self::base_stake(),
+						Self::stake_per_lane(),
+					),
+				)?;
+
+				// schedule lane relayers set change
+				LaneRelayersChanges::<T>::try_mutate(|changes| {
+					ensure!(
+						changes.0.len() <= T::MaxLaneRelayersChanges::get() as usize,
+						Error::<T>::TooManyScheduledChanges,
+					);
+					changes.0.push_back(LaneRelayersChange {
+						at: current_block_number.saturating_add(100u32.into()), // TODO
+						lane_id: lane,
+						action: LaneRelayerAction::Add(relayer), 
+					});
+					Ok::<_, Error<T>>(())
+				})?;
+
+				*maybe_registration = Some(registration);
+
+				Ok(())
+			})?;
+
+			Ok(())
 		}
 	}
 
@@ -216,25 +444,15 @@ pub mod pallet {
 		/// it'll return false if registered stake is lower than required or if remaining lease
 		/// is less than `RequiredRegistrationLease`.
 		pub fn is_registration_active(relayer: &T::AccountId) -> bool {
-			let registration = match Self::registered_relayer(relayer) {
-				Some(registration) => registration,
-				None => return false,
-			};
-
-			// registration is inactive if relayer stake is less than required
-			if registration.stake < Self::required_stake() {
-				return false
+			match Self::registered_relayer(relayer) {
+				Some(registration) => registration.is_active(
+					Self::base_stake(),
+					Self::stake_per_lane(),
+					SystemPallet::<T>::block_number(),
+					Self::required_registration_lease(),
+				),
+				None => false,
 			}
-
-			// registration is inactive if it ends soon
-			let remaining_lease = registration
-				.valid_till
-				.saturating_sub(frame_system::Pallet::<T>::block_number());
-			if remaining_lease <= Self::required_registration_lease() {
-				return false
-			}
-
-			true
 		}
 
 		/// Slash and `deregister` relayer. This function slashes all staked balance.
@@ -338,8 +556,8 @@ pub mod pallet {
 			>>::RequiredRegistrationLease::get()
 		}
 
-		/// Return required stake.
-		pub(crate) fn required_stake() -> T::Reward {
+		/// Return required base stake.
+		pub(crate) fn base_stake() -> T::Reward {
 			<T::StakeAndSlash as StakeAndSlash<
 				T::AccountId,
 				BlockNumberFor<T>,
@@ -347,22 +565,54 @@ pub mod pallet {
 			>>::RequiredStake::get()
 		}
 
-		/// `Unreserve` given amount on relayer account.
-		fn do_unreserve(relayer: &T::AccountId, amount: T::Reward) -> DispatchResult {
-			let failed_to_unreserve = T::StakeAndSlash::unreserve(relayer, amount);
-			if !failed_to_unreserve.is_zero() {
-				log::trace!(
-					target: LOG_TARGET,
-					"Failed to unreserve {:?}/{:?} on relayer {:?} account",
-					failed_to_unreserve,
-					amount,
-					relayer,
-				);
+		/// Return required stake per lane.
+		pub(crate) fn stake_per_lane() -> T::Reward {
+			<T::StakeAndSlash as StakeAndSlash<
+				T::AccountId,
+				BlockNumberFor<T>,
+				T::Reward,
+			>>::RequiredStake::get() // TODO
+		}
 
-				fail!(Error::<T>::FailedToUnreserve)
+		/// Update relayer stake.
+		fn update_relayer_stake(
+			relayer: &T::AccountId,
+			current_stake: T::Reward,
+			required_stake: T::Reward,
+		) -> Result<T::Reward, sp_runtime::DispatchError> {
+			// regarding stake, there are three options:
+			// - if relayer stake is larger than required stake, we may do unreserve
+			// - if relayer stake equals to required stake, we do nothing
+			// - if relayer stake is smaller than required stake, we do additional reserve
+			if let Some(to_unreserve) = current_stake.checked_sub(&required_stake) {
+				let failed_to_unreserve = T::StakeAndSlash::unreserve(relayer, to_unreserve);
+				if !failed_to_unreserve.is_zero() {
+					log::trace!(
+						target: LOG_TARGET,
+						"Failed to unreserve {:?}/{:?} on relayer {:?} account",
+						failed_to_unreserve,
+						to_unreserve,
+						relayer,
+					);
+	
+					fail!(Error::<T>::FailedToUnreserve)
+				}
+			} else if let Some(to_reserve) = required_stake.checked_sub(&current_stake) {
+				let reserve_result = T::StakeAndSlash::reserve(&relayer, to_reserve);
+				if let Err(e) = reserve_result {
+					log::trace!(
+						target: LOG_TARGET,
+						"Failed to reserve {:?} on relayer {:?} account: {:?}",
+						to_reserve,
+						relayer,
+						e,
+					);
+
+					fail!(Error::<T>::FailedToReserve)
+				}
 			}
-
-			Ok(())
+			
+			Ok(required_stake)
 		}
 	}
 
@@ -383,7 +633,7 @@ pub mod pallet {
 			/// Relayer account that has been registered.
 			relayer: T::AccountId,
 			/// Relayer registration.
-			registration: Registration<BlockNumberFor<T>, T::Reward>,
+			registration: Registration<BlockNumberFor<T>, T::Reward, T::MaxLanesPerRelayer>,
 		},
 		/// Relayer has been `deregistered`.
 		Deregistered {
@@ -395,7 +645,7 @@ pub mod pallet {
 			/// Relayer account that has been `deregistered`.
 			relayer: T::AccountId,
 			/// Registration that was removed.
-			registration: Registration<BlockNumberFor<T>, T::Reward>,
+			registration: Registration<BlockNumberFor<T>, T::Reward, T::MaxLanesPerRelayer>,
 		},
 	}
 
@@ -418,6 +668,20 @@ pub mod pallet {
 		NotRegistered,
 		/// Failed to `deregister` relayer, because lease is still active.
 		RegistrationIsStillActive,
+		/// Failed to `deregister` relayer, because he has registered himself as a
+		/// relayer at some lanes using `register_at_lane`. Lane registrations must
+		/// be explicitly removed using `deregister_at_lane`
+		HasLaneRegistrations,
+		/// Failed to perform required action, because relayer registration is inactive.
+		RegistrationIsInactive,
+		/// Relayer is trying to register twice on the same lane.
+		DuplicateLaneRegistration,
+		/// Relayer has too many lane registrations.
+		TooManyLaneRegistrations,
+		///
+		TooManyScheduledChanges,
+		///
+		TooManyLaneRelayersAtLane,
 	}
 
 	/// Map of the relayer => accumulated reward.
@@ -445,8 +709,32 @@ pub mod pallet {
 		_,
 		Blake2_128Concat,
 		T::AccountId,
-		Registration<BlockNumberFor<T>, T::Reward>,
+		Registration<BlockNumberFor<T>, T::Reward, T::MaxLanesPerRelayer>,
 		OptionQuery,
+	>;
+
+	/// A set of relayers that have explicitly registered themselves at a given lane.
+	///
+	/// Every relayer inside this set receives additional priority boost when it submits
+	/// message delivers messages at given lane. The boost only happens inside the slot,
+	/// assigned to relayer.
+	#[pallet::storage]
+	#[pallet::getter(fn lane_relayers)]
+	pub type LaneRelayers<T: Config> = StorageMap<
+		_,
+		Identity,
+		LaneId,
+		BoundedVec<T::AccountId, T::MaxRelayersPerLane>,
+		ValueQuery,
+	>;
+
+	/// Scheduled changes of the `LaneRelayers` map.
+	#[pallet::storage]
+	#[pallet::getter(fn lane_relayers_changes)]
+	pub type LaneRelayersChanges<T: Config> = StorageValue<
+		_,
+		BoundedLaneRelayersChanges<T>,
+		ValueQuery,
 	>;
 }
 
@@ -627,7 +915,7 @@ mod tests {
 			assert_eq!(Balances::reserved_balance(REGISTER_RELAYER), Stake::get());
 			assert_eq!(
 				Pallet::<TestRuntime>::registered_relayer(REGISTER_RELAYER),
-				Some(Registration { valid_till: 150, stake: Stake::get() }),
+				Some(Registration { valid_till: 150, stake: Stake::get(), lanes: BoundedVec::new() }),
 			);
 
 			assert_eq!(
@@ -636,7 +924,7 @@ mod tests {
 					phase: Phase::Initialization,
 					event: TestEvent::BridgeRelayers(Event::RegistrationUpdated {
 						relayer: REGISTER_RELAYER,
-						registration: Registration { valid_till: 150, stake: Stake::get() },
+						registration: Registration { valid_till: 150, stake: Stake::get(), lanes: BoundedVec::new() },
 					}),
 					topics: vec![],
 				}),
@@ -664,7 +952,7 @@ mod tests {
 		run_test(|| {
 			RegisteredRelayers::<TestRuntime>::insert(
 				REGISTER_RELAYER,
-				Registration { valid_till: 150, stake: Stake::get() + 1 },
+				Registration { valid_till: 150, stake: Stake::get() + 1, lanes: BoundedVec::new() },
 			);
 
 			assert_noop!(
@@ -681,7 +969,7 @@ mod tests {
 
 			RegisteredRelayers::<TestRuntime>::insert(
 				REGISTER_RELAYER,
-				Registration { valid_till: 150, stake: Stake::get() + 1 },
+				Registration { valid_till: 150, stake: Stake::get() + 1, lanes: BoundedVec::new() },
 			);
 			TestStakeAndSlash::reserve(&REGISTER_RELAYER, Stake::get() + 1).unwrap();
 			assert_eq!(Balances::reserved_balance(REGISTER_RELAYER), Stake::get() + 1);
@@ -695,7 +983,7 @@ mod tests {
 			assert_eq!(Balances::free_balance(REGISTER_RELAYER), free_balance + 1);
 			assert_eq!(
 				Pallet::<TestRuntime>::registered_relayer(REGISTER_RELAYER),
-				Some(Registration { valid_till: 150, stake: Stake::get() }),
+				Some(Registration { valid_till: 150, stake: Stake::get(), lanes: BoundedVec::new() }),
 			);
 
 			assert_eq!(
@@ -704,7 +992,7 @@ mod tests {
 					phase: Phase::Initialization,
 					event: TestEvent::BridgeRelayers(Event::RegistrationUpdated {
 						relayer: REGISTER_RELAYER,
-						registration: Registration { valid_till: 150, stake: Stake::get() }
+						registration: Registration { valid_till: 150, stake: Stake::get(), lanes: BoundedVec::new() }
 					}),
 					topics: vec![],
 				}),
@@ -728,7 +1016,7 @@ mod tests {
 		run_test(|| {
 			RegisteredRelayers::<TestRuntime>::insert(
 				REGISTER_RELAYER,
-				Registration { valid_till: 150, stake: Stake::get() - 1 },
+				Registration { valid_till: 150, stake: Stake::get() - 1, lanes: BoundedVec::new() },
 			);
 			Balances::set_balance(&REGISTER_RELAYER, 0);
 
@@ -746,7 +1034,7 @@ mod tests {
 
 			RegisteredRelayers::<TestRuntime>::insert(
 				REGISTER_RELAYER,
-				Registration { valid_till: 150, stake: Stake::get() - 1 },
+				Registration { valid_till: 150, stake: Stake::get() - 1, lanes: BoundedVec::new() },
 			);
 			TestStakeAndSlash::reserve(&REGISTER_RELAYER, Stake::get() - 1).unwrap();
 
@@ -759,7 +1047,7 @@ mod tests {
 			assert_eq!(Balances::free_balance(REGISTER_RELAYER), free_balance - 1);
 			assert_eq!(
 				Pallet::<TestRuntime>::registered_relayer(REGISTER_RELAYER),
-				Some(Registration { valid_till: 150, stake: Stake::get() }),
+				Some(Registration { valid_till: 150, stake: Stake::get(), lanes: BoundedVec::new() }),
 			);
 
 			assert_eq!(
@@ -768,7 +1056,7 @@ mod tests {
 					phase: Phase::Initialization,
 					event: TestEvent::BridgeRelayers(Event::RegistrationUpdated {
 						relayer: REGISTER_RELAYER,
-						registration: Registration { valid_till: 150, stake: Stake::get() }
+						registration: Registration { valid_till: 150, stake: Stake::get(), lanes: BoundedVec::new() }
 					}),
 					topics: vec![],
 				}),
@@ -849,7 +1137,7 @@ mod tests {
 		run_test(|| {
 			RegisteredRelayers::<TestRuntime>::insert(
 				REGISTER_RELAYER,
-				Registration { valid_till: 150, stake: Stake::get() - 1 },
+				Registration { valid_till: 150, stake: Stake::get() - 1, lanes: BoundedVec::new() },
 			);
 			assert!(!Pallet::<TestRuntime>::is_registration_active(&REGISTER_RELAYER));
 		});
@@ -862,7 +1150,7 @@ mod tests {
 
 			RegisteredRelayers::<TestRuntime>::insert(
 				REGISTER_RELAYER,
-				Registration { valid_till: 150, stake: Stake::get() },
+				Registration { valid_till: 150, stake: Stake::get(), lanes: BoundedVec::new() },
 			);
 			assert!(!Pallet::<TestRuntime>::is_registration_active(&REGISTER_RELAYER));
 		});
@@ -875,7 +1163,7 @@ mod tests {
 
 			RegisteredRelayers::<TestRuntime>::insert(
 				REGISTER_RELAYER,
-				Registration { valid_till: 151, stake: Stake::get() },
+				Registration { valid_till: 151, stake: Stake::get(), lanes: BoundedVec::new() },
 			);
 			assert!(Pallet::<TestRuntime>::is_registration_active(&REGISTER_RELAYER));
 		});
