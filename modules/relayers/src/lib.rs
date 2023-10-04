@@ -291,10 +291,6 @@ pub mod pallet {
 				// let's try to claim a slot in the next set
 				LaneRelayers::<T>::try_mutate(lane, |lane_relayers| {
 					ensure!(
-						!lane_relayers.next_set_contains(relayer.clone()),
-						Error::<T>::AlreadyRegisteredAtLane,
-					);
-					ensure!(
 						lane_relayers.next_set_try_push(relayer.clone(), expected_reward),
 						Error::<T>::TooLargeRewardToOccupyAnEntry,
 					);
@@ -337,37 +333,23 @@ pub mod pallet {
 				};
 
 				// ensure that the relayer has lane registration
-				ensure!(registration.lanes.contains(&lane), Error::<T>::UnregisteredAtLane);
+				// ensure!(registration.lanes.remove(&lane), Error::<T>::UnregisteredAtLane);
 
 				// remove relayer from the `next_set` of lane relayers. So relayer is still
 				LaneRelayers::<T>::try_mutate(lane, |lane_relayers| {
 					ensure!(
-						lane_relayers.next_set_ctry_remove(relayer.clone()),
+						lane_relayers.next_set_try_remove(&relayer),
 						Error::<T>::NotRegisteredAtLane,
 					);
 					Ok::<_, Error<T>>(())
 				})?;
-
-				// cannot add another lane registration if relayer has already max allowed
-				// lane registrations
-				ensure!(registration.lanes.try_push(lane).is_ok(), Error::<T>::TooManyLaneRegistrations);
-
-				// the relayer need to stake additional amount for every additional lane
-				registration.stake = Self::update_relayer_stake(
-					&relayer,
-					registration.stake,
-					registration.required_stake(
-						Self::base_stake(),
-						Self::stake_per_lane(),
-					),
-				)?;
 
 				*maybe_registration = Some(registration);
 
 				Ok(())
 			})?;
 
-			Ok(())*/
+			Ok(())
 		}
 	}
 
