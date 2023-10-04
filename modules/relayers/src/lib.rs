@@ -34,6 +34,8 @@
 // E.g. if normal reward is 1 DOT per message but relayers claims that he could deliver 10 messages in exchange of
 // 1 DOT, we will prefer such transaction over transaction with 10 DOTs reward.
 
+// TODO: better (easier code) handling of reserved funds. Separate calls?
+
 #![cfg_attr(not(feature = "std"), no_std)]
 #![warn(missing_docs)]
 
@@ -74,39 +76,6 @@ pub mod pallet {
 	use frame_support::pallet_prelude::*;
 	use frame_system::pallet_prelude::*;
 
-	/// An action that needs to be performed for relayer at given lane.
-	#[derive(Clone, Decode, Encode, Eq, PartialEq, RuntimeDebug, TypeInfo, MaxEncodedLen)]
-	#[scale_info(skip_type_params(AccountId))]
-	pub enum LaneRelayerAction<AccountId> {
-		/// Add relayer to the set.
-		Add(AccountId),
-		/// Remove relayer from the set.
-		Remove(AccountId),
-	}
-
-	/// A scheduled change of relayers set at given lane.
-	#[derive(Clone, Decode, Encode, Eq, PartialEq, RuntimeDebug, TypeInfo, MaxEncodedLen)]
-	#[scale_info(skip_type_params(BlockNumber, AccountId))]
-	pub struct LaneRelayersChange<BlockNumber, AccountId> {
-		/// Change at given block.
-		pub at: BlockNumber,
-		/// Change relayers set at given lane.
-		pub lane_id: LaneId,
-		/// Relayer action.
-		pub action: LaneRelayerAction<AccountId>,
-	}
-
-	/// 
-	#[derive(Clone, Decode, DefaultNoBound, Encode, Eq, PartialEq, RuntimeDebug, TypeInfo)]
-	#[scale_info(skip_type_params(T))]
-	pub struct BoundedLaneRelayersChanges<T: Config>(pub VecDeque<LaneRelayersChange<BlockNumberFor<T>, T::AccountId>>);
-
-	impl<T: Config> MaxEncodedLen for BoundedLaneRelayersChanges<T> {
-		fn max_encoded_len() -> usize {
-			BoundedVec::<T::AccountId, T::MaxLaneRelayersChanges>::max_encoded_len()
-		}
-	}
-
 	/// `RelayerRewardsKeyProvider` for given configuration.
 	type RelayerRewardsKeyProviderOf<T> =
 		RelayerRewardsKeyProvider<<T as frame_system::Config>::AccountId, <T as Config>::Reward>;
@@ -119,6 +88,7 @@ pub mod pallet {
 		type Reward: AtLeast32BitUnsigned + Copy + Member + Parameter + MaxEncodedLen;
 		/// Pay rewards scheme.
 		type PaymentProcedure: PaymentProcedure<Self::AccountId, Self::Reward>;
+
 		/// Stake and slash scheme.
 		type StakeAndSlash: StakeAndSlash<Self::AccountId, BlockNumberFor<Self>, Self::Reward>;
 
@@ -128,9 +98,6 @@ pub mod pallet {
 		/// Maximal number of relayers that can register themselves on a single lane.
 		#[pallet::constant]
 		type MaxRelayersPerLane: Get<u32>;
-		/// TODO
-		#[pallet::constant]
-		type MaxLaneRelayersChanges: Get<u32>;
 
 		/// Pallet call weights.
 		type WeightInfo: WeightInfoExt;
@@ -138,35 +105,6 @@ pub mod pallet {
 
 	#[pallet::pallet]
 	pub struct Pallet<T>(PhantomData<T>);
-
-	#[pallet::hooks]
-	impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {
-		fn on_initialize(n: BlockNumberFor<T>) -> Weight {
-			LaneRelayersChanges::<T>::mutate(|changes| {
-				while let Some(change) = changes.0.pop_front() {
-					if change.at > n {
-						changes.0.push_front(change);
-						return;
-					}
-
-					LaneRelayers::<T>::mutate(change.lane_id, |lane_relayers| {
-						match change.action {
-							LaneRelayerAction::Add(relayer) => {
-								if let Err(_) = lane_relayers.try_push(relayer) {
-									// TODO
-								}
-							},
-							LaneRelayerAction::Remove(relayer) => {
-								lane_relayers.retain(|r| *r != relayer);
-							},
-						}
-					});
-				}
-			});
-
-			Weight::zero() // TODO
-		}
-	}
 
 	#[pallet::call]
 	impl<T: Config> Pallet<T> {
@@ -310,19 +248,28 @@ pub mod pallet {
 
 		/// Register relayer intention to serve given messages lane.
 		///
-		/// Relayer that registers itself at given message lane 
+		/// Relayer that registers itself at given message lane gets a priority boost for his message
+		/// delivery transactions, **verified** at his slots (consecutive range of blocks).
 		#[pallet::call_index(3)]
 		#[pallet::weight(Weight::zero())] // TODO
-		pub fn register_at_lane(origin: OriginFor<T>, lane: LaneId) -> DispatchResult {
+		pub fn register_at_lane(
+			origin: OriginFor<T>,
+			lane: LaneId,
+		) -> DispatchResult {
 			let relayer = ensure_signed(origin)?;
 
+			// TODO: we probably need a way for bridge owners (sibling/parent chains) to at least set a maximal
+			// possible reward for their lane over XCM? + maybe change relayers set? This way they could implement
+			// their own incentivization mechanisms by setting reward to zero and changing relayers set on their own.
+
 			RegisteredRelayers::<T>::try_mutate(&relayer.clone(), move |maybe_registration| -> DispatchResult {
+				// we only allow registered relayers to have priority boosts
 				let mut registration = match maybe_registration.take() {
 					Some(registration) => registration,
 					None => fail!(Error::<T>::NotRegistered),
 				};
 
-				// cannot add another lane registration if registration is inactive
+				// cannot add another lane registration if "base" registration is inactive
 				let current_block_number = SystemPallet::<T>::block_number();
 				ensure!(
 					registration.is_active(
@@ -334,18 +281,25 @@ pub mod pallet {
 					Error::<T>::RegistrationIsInactive,
 				);
 
-				// cannot add duplicate lane registration
-				ensure!(!registration.lanes.contains(&lane), Error::<T>::DuplicateLaneRegistration);
-
-				// cannot have more than `MaxRelayersPerLane` relayers at lane
-				LaneRelayers::<T>::try_mutate(lane, |lane_relayers| {
-					ensure!(lane_relayers.try_push(relayer.clone()).is_ok(), Error::<T>::TooManyLaneRelayersAtLane);
-					Ok::<_, Error<T>>(())
-				})?;
-
 				// cannot add another lane registration if relayer has already max allowed
 				// lane registrations
-				ensure!(registration.lanes.try_push(lane).is_ok(), Error::<T>::TooManyLaneRegistrations);
+				if !registration.lanes.contains(&lane) {
+					ensure!(registration.lanes.try_push(lane).is_ok(), Error::<T>::TooManyLaneRegistrations);
+				}
+
+				// TODO: ideally we shall use the candle auction here (similar to parachain slot auctions)
+				// let's try to claim a slot in the next set
+				LaneRelayers::<T>::try_mutate(lane, |lane_relayers| {
+					ensure!(
+						!lane_relayers.next_set_contains(relayer.clone()),
+						Error::<T>::AlreadyRegisteredAtLane,
+					);
+					ensure!(
+						lane_relayers.next_set_try_push(relayer.clone(), expected_reward),
+						Error::<T>::TooLargeRewardToOccupyAnEntry,
+					);
+					Ok::<_, Error<T>>(())
+				})?;
 
 				// the relayer need to stake additional amount for every additional lane
 				registration.stake = Self::update_relayer_stake(
@@ -357,19 +311,8 @@ pub mod pallet {
 					),
 				)?;
 
-				// schedule lane relayers set change
-				LaneRelayersChanges::<T>::try_mutate(|changes| {
-					ensure!(
-						changes.0.len() <= T::MaxLaneRelayersChanges::get() as usize,
-						Error::<T>::TooManyScheduledChanges,
-					);
-					changes.0.push_back(LaneRelayersChange {
-						at: current_block_number.saturating_add(100u32.into()), // TODO
-						lane_id: lane,
-						action: LaneRelayerAction::Add(relayer), 
-					});
-					Ok::<_, Error<T>>(())
-				})?;
+				// cannot add duplicate lane registration
+				// ensure!(!registration.lanes.contains(&lane), Error::<T>::DuplicateLaneRegistration);
 
 				*maybe_registration = Some(registration);
 
@@ -386,6 +329,8 @@ pub mod pallet {
 			let relayer = ensure_signed(origin)?;
 
 			RegisteredRelayers::<T>::try_mutate(&relayer.clone(), move |maybe_registration| -> DispatchResult {
+				// if relayer doesn't have a basic registration, we know that he is not registered
+				// at the lane as well
 				let mut registration = match maybe_registration.take() {
 					Some(registration) => registration,
 					None => fail!(Error::<T>::NotRegistered),
@@ -394,9 +339,12 @@ pub mod pallet {
 				// ensure that the relayer has lane registration
 				ensure!(registration.lanes.contains(&lane), Error::<T>::UnregisteredAtLane);
 
-				// cannot have more than `MaxRelayersPerLane` relayers at lane
+				// remove relayer from the `next_set` of lane relayers. So relayer is still
 				LaneRelayers::<T>::try_mutate(lane, |lane_relayers| {
-					ensure!(lane_relayers.try_push(relayer.clone()).is_ok(), Error::<T>::TooManyLaneRelayersAtLane);
+					ensure!(
+						lane_relayers.next_set_ctry_remove(relayer.clone()),
+						Error::<T>::NotRegisteredAtLane,
+					);
 					Ok::<_, Error<T>>(())
 				})?;
 
@@ -414,26 +362,12 @@ pub mod pallet {
 					),
 				)?;
 
-				// schedule lane relayers set change
-				LaneRelayersChanges::<T>::try_mutate(|changes| {
-					ensure!(
-						changes.0.len() <= T::MaxLaneRelayersChanges::get() as usize,
-						Error::<T>::TooManyScheduledChanges,
-					);
-					changes.0.push_back(LaneRelayersChange {
-						at: current_block_number.saturating_add(100u32.into()), // TODO
-						lane_id: lane,
-						action: LaneRelayerAction::Add(relayer), 
-					});
-					Ok::<_, Error<T>>(())
-				})?;
-
 				*maybe_registration = Some(registration);
 
 				Ok(())
 			})?;
 
-			Ok(())
+			Ok(())*/
 		}
 	}
 

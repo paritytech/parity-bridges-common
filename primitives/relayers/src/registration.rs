@@ -73,6 +73,10 @@ pub struct Registration<BlockNumber: Clone + Debug + PartialEq, Balance: Clone +
 	/// priority boost.
 	///
 	/// Relayer pays additional [`StakeAndSlash::RequiredStake`] for every lane.
+	///
+	/// The entry in this vector does not guarantee that the relayer is actually in
+	/// the active or the next set of relayers at given lane. It only says that the
+	/// relayer has tried to register at the lane.
 	pub lanes: BoundedVec<LaneId, MaxLanesPerRelayer>,
 }
 

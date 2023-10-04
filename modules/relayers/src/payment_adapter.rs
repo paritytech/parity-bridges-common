@@ -73,14 +73,14 @@ fn register_relayers_rewards<T: Config>(
 	confirmation_relayer: &T::AccountId,
 	relayers_rewards: RelayersRewards<T::AccountId>,
 	lane_id: RewardsAccountParams,
-	delivery_fee: T::Reward,
+	message_delivery_reward: T::Reward,
 ) {
 	// reward every relayer except `confirmation_relayer`
 	let mut confirmation_relayer_reward = T::Reward::zero();
 	for (relayer, messages) in relayers_rewards {
 		// sane runtime configurations guarantee that the number of messages will be below
 		// `u32::MAX`
-		let relayer_reward = T::Reward::saturated_from(messages).saturating_mul(delivery_fee);
+		let relayer_reward = T::Reward::saturated_from(messages).saturating_mul(message_delivery_reward);
 
 		if relayer != *confirmation_relayer {
 			Pallet::<T>::register_relayer_reward(lane_id, &relayer, relayer_reward);
