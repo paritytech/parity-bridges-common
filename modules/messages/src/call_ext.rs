@@ -24,7 +24,7 @@ use bp_messages::{
 	LaneId, MessageNonce, MessagesCallInfo, ReceiveMessagesDeliveryProofInfo,
 	ReceiveMessagesProofInfo, UnrewardedRelayerOccupation,
 };
-use bp_runtime::AccountIdOf;
+use bp_runtime::{AccountIdOf, OwnedBridgeModule};
 use frame_support::{dispatch::CallableCallFor, traits::IsSubType};
 use sp_runtime::transaction_validity::TransactionValidity;
 
@@ -169,7 +169,17 @@ impl<
 	}
 
 	fn check_obsolete_call(&self) -> TransactionValidity {
+		let is_pallet_halted = Pallet::<T, I>::ensure_not_halted().is_err();
 		match self.call_info() {
+			Some(proof_info) if is_pallet_halted => {
+				log::trace!(
+					target: LOG_TARGET,
+					"Rejecting messages transaction on halted pallet: {:?}",
+					proof_info
+				);
+
+				return sp_runtime::transaction_validity::InvalidTransaction::Call.into()
+			},
 			Some(MessagesCallInfo::ReceiveMessagesProof(proof_info))
 				if proof_info
 					.is_obsolete(T::MessageDispatch::is_active(proof_info.base.lane_id)) =>
