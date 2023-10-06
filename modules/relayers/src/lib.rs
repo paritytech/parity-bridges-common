@@ -18,27 +18,9 @@
 //! between relayers.
 
 // TODO: allow bridge owners to add "protected" relayers that have a guaranteed slot in the lane
-// relayers TODO: or else ONLY allow bridge owners to add registered relayers (through XCM calls)???
+// relayers
 
-// TODO: lane registration must be time-limited to force relayers to renew it and drop relayers that
-// have stopped working. Otherwise one relayer may fill up all lane slots for a fixed returnable
-// sum.
-//
-// Or we may introduce some fine for relayer for not delivering messages. This is near to impossible
-// though.
-//
-// Or we may allow to buy lane registration using relayer rewards only - i.e. has has delivered 100
-// messages and reward is 100 DOTs. He could reserve his 100 DOTs to buy lane registration slots.
-// Every slot costs 1 DOT. So after 100 slots, the registration becomes inactive. And he must renew
-// it.
-
-// TODO: additionally we could add a reward market - i.e. now we have boosts:
-// `messages_count * per_message + per_lane`. We could add another boost if relayer wants to receive
-// lower reward. E.g. if normal reward is 1 DOT per message but relayers claims that he could
-// deliver 10 messages in exchange of 1 DOT, we will prefer such transaction over transaction with
-// 10 DOTs reward.
-
-// TODO: better (easier code) handling of reserved funds. Separate calls?
+// TODO: or else ONLY allow bridge owners to add registered relayers (through XCM calls)???
 
 #![cfg_attr(not(feature = "std"), no_std)]
 #![warn(missing_docs)]
