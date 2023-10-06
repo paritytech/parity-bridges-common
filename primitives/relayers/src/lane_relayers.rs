@@ -77,7 +77,7 @@ pub struct LaneRelayersSet<AccountId, BlockNumber, Reward, MaxRelayersPerLane: G
 }
 
 impl<AccountId, BlockNumber, Reward, MaxRelayersPerLane> LaneRelayersSet<AccountId, BlockNumber, Reward, MaxRelayersPerLane> where
-	AccountId: PartialOrd,	
+	AccountId: Clone + PartialOrd,	
 	BlockNumber: Copy + Zero,
 	Reward: Copy + Ord,
 	MaxRelayersPerLane: Get<u32>,
@@ -128,7 +128,8 @@ impl<AccountId, BlockNumber, Reward, MaxRelayersPerLane> LaneRelayersSet<Account
 	///
 	/// The [`Self::active_set`] is replaced with the [`Self::next_set`].
 	pub fn activate_next_set(&mut self, new_next_set_may_enact_at: BlockNumber, is_relayer_active: impl Fn(&AccountId) -> bool) {
-		unimplemented!("TODO")
+		self.active_set = self.next_set.clone();
+		// TODO
 	}
 
 	fn select_position_in_next_set(&self, reward: Reward) -> usize {
@@ -264,7 +265,7 @@ mod tests {
 		);
 
 		// update expected reward of existing relayer => the set order is changed
-		assert!(!relayers.next_set_try_push(8, 2));
+		assert!(relayers.next_set_try_push(8, 2));
 		assert_eq!(
 			relayers.next_set.as_slice(),
 			&[

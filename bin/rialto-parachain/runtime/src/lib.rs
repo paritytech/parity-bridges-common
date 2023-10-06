@@ -34,7 +34,9 @@ use sp_api::impl_runtime_apis;
 use sp_core::{crypto::KeyTypeId, ConstBool, OpaqueMetadata};
 use sp_runtime::{
 	create_runtime_str, generic, impl_opaque_keys,
-	traits::{AccountIdLookup, Block as BlockT, ConstU128, DispatchInfoOf, SignedExtension},
+	traits::{
+		AccountIdLookup, Block as BlockT, ConstU128, ConstU64, DispatchInfoOf, SignedExtension,
+	},
 	transaction_validity::{TransactionSource, TransactionValidity, TransactionValidityError},
 	ApplyExtrinsicResult,
 };
@@ -539,6 +541,10 @@ impl pallet_bridge_relayers::Config for Runtime {
 	type PaymentProcedure =
 		bp_relayers::PayRewardFromAccount<pallet_balances::Pallet<Runtime>, AccountId>;
 	type StakeAndSlash = ();
+	type MaxRelayersPerLane = ConstU32<16>;
+	type SlotLength = ConstU32<16>;
+	type PriorityBoostPerMessage = ConstU64<0>;
+	type PriorityBoostForLaneRelayer = ConstU64<0>;
 	type WeightInfo = ();
 }
 

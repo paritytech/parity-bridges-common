@@ -99,6 +99,34 @@ pub mod pallet {
 		#[pallet::constant]
 		type MaxRelayersPerLane: Get<u32>;
 
+		/// Length of slots in chain blocks.
+		///
+		/// Registered relayer may explicitly register himself at some lane to get priority boost
+		/// for message delivery transactions on that lane (that is done using `register_at_lane`
+		/// pallet call). All relayers, registered at the lane form an ordered queue and only
+		/// relayer at the head of that queue receives a boost at his slot (which has a length of
+		/// `SlotLength` blocks). Then the "best" relayer is removed and pushed to the tail of the
+		/// queue and next relayer gets the boost during next `SlotLength` blocks. And so on...
+		///
+		/// Shall not be too low to have an effect, because there's some (at least one block) lag
+		/// between moments when priority is computed and when active slot changes.
+		type SlotLength: Get<BlockNumberFor<Self>>;
+		/// Priority boost that the registered relayer gets for every additional message in the
+		/// message delivery transaction.
+		type PriorityBoostPerMessage: Get<TransactionPriority>;
+		/// Additional priority boost, that is added to regular `PriorityBoostPerMessage` boost for
+		/// message delivery transactions, submitted by relayer at the head of the lane relayers
+		/// queue.
+		///
+		/// In other words, if relayer has registered at some `lane`, using `register_at_lane` call
+		/// AND he is currently at the head of the lane relayers queue, his message delivery
+		/// transaction will get the following additional priority boost:
+		///
+		/// ```nocompile
+		/// T::PriorityBoostForLaneRelayer::get() + T::PriorityBoostPerMessage::get() * (msgs - 1)
+		/// ```
+		type PriorityBoostForLaneRelayer: Get<TransactionPriority>;
+
 		/// Pallet call weights.
 		type WeightInfo: WeightInfoExt;
 	}

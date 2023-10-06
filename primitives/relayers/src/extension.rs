@@ -26,11 +26,7 @@ use frame_support::{
 };
 use frame_system::Config as SystemConfig;
 use pallet_utility::{Call as UtilityCall, Pallet as UtilityPallet};
-use sp_runtime::{
-	traits::Get,
-	transaction_validity::{TransactionPriority, TransactionValidityError},
-	RuntimeDebug,
-};
+use sp_runtime::{transaction_validity::TransactionValidityError, RuntimeDebug};
 use sp_std::{fmt::Debug, marker::PhantomData, vec, vec::Vec};
 
 /// Type of the call that the signed extension recognizes.
@@ -130,18 +126,6 @@ pub trait ExtensionConfig {
 	/// parachain, it must be its parent relay chain. If we are bridging with the
 	/// GRANDPA chain, it must be it.
 	type RemoteGrandpaChainBlockNumber: Clone + Copy + Debug;
-
-	// TODO: all constants below must be a part of the pallet configuration
-
-	/// TODO
-	type SlotLength: Get<u32>;
-
-	/// Additional priority boost that is added to base message delivery transaction
-	/// priority, submitted by the relayer, assigned to given lane at given slot.
-	type PriorityBoostForLaneRelayer: Get<TransactionPriority>;
-	/// Additional priority that is added to base message delivery transaction priority
-	/// for every additional bundled message.
-	type PriorityBoostPerMessage: Get<TransactionPriority>;
 
 	/// Given runtime call, check if it is supported by the signed extension. Additionally,
 	/// check if call (or any of batched calls) are obsolete.

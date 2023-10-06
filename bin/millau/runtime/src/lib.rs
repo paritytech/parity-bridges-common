@@ -399,6 +399,10 @@ impl pallet_bridge_relayers::Config for Runtime {
 		ConstU64<1_000>,
 		ConstU64<8>,
 	>;
+	type MaxRelayersPerLane = ConstU32<16>;
+	type SlotLength = ConstU64<16>;
+	type PriorityBoostPerMessage = PriorityBoostPerMessage;
+	type PriorityBoostForLaneRelayer = ConstU64<0>;
 	type WeightInfo = ();
 }
 
@@ -660,7 +664,6 @@ pub type BridgeRefundRialtoParachainMessages =
 			bp_relayers::RuntimeWithUtilityPallet<Runtime>,
 			WithRialtoParachainsInstance,
 			WithRialtoParachainMessagesInstance,
-			PriorityBoostPerMessage,
 		>,
 	>;
 

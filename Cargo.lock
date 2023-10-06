@@ -217,9 +217,9 @@ dependencies = [
 
 [[package]]
 name = "anstream"
-version = "0.5.0"
+version = "0.6.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b1f58811cfac344940f1a400b6e6231ce35171f614f26439e80f8c1465c5cc0c"
+checksum = "2ab91ebe16eb252986481c5b62f6098f3b698a45e34b5b98200cf20dd2484a44"
 dependencies = [
  "anstyle",
  "anstyle-parse",
@@ -255,9 +255,9 @@ dependencies = [
 
 [[package]]
 name = "anstyle-wincon"
-version = "2.1.0"
+version = "3.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "58f54d10c6dfa51283a066ceab3ec1ab78d13fae00aa49243a45e4571fb79dfd"
+checksum = "f0699d10d2f4d628a98ee7b57b289abbc98ff3bad977cb3152709d4bf2330628"
 dependencies = [
  "anstyle",
  "windows-sys 0.48.0",
@@ -1845,9 +1845,9 @@ dependencies = [
 
 [[package]]
 name = "clap"
-version = "4.4.4"
+version = "4.4.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b1d7b8d5ec32af0fadc644bf1fd509a688c2103b185644bb1e29d164e0703136"
+checksum = "d04704f56c2cde07f43e8e2c154b43f216dc5c92fc98ada720177362f953b956"
 dependencies = [
  "clap_builder",
  "clap_derive",
@@ -1855,9 +1855,9 @@ dependencies = [
 
 [[package]]
 name = "clap_builder"
-version = "4.4.4"
+version = "4.4.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5179bb514e4d7c2051749d8fcefa2ed6d06a9f4e6d69faf3805f5d80b8cf8d56"
+checksum = "0e231faeaca65ebd1ea3c737966bf858971cd38c3849107aa3ea7de90a804e45"
 dependencies = [
  "anstream",
  "anstyle",
@@ -2329,7 +2329,7 @@ name = "cumulus-client-cli"
 version = "0.1.0"
 source = "git+https://github.com/paritytech/polkadot-sdk?branch=master#cc39edd5a84ce14f5a5bfbf3cb949086d18e2c87"
 dependencies = [
- "clap 4.4.4",
+ "clap 4.4.6",
  "parity-scale-codec",
  "sc-chain-spec",
  "sc-cli",
@@ -3952,7 +3952,7 @@ dependencies = [
  "Inflector",
  "array-bytes",
  "chrono",
- "clap 4.4.4",
+ "clap 4.4.6",
  "comfy-table",
  "frame-benchmarking",
  "frame-support",
@@ -5185,9 +5185,8 @@ version = "0.16.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7d291e3a5818a2384645fd9756362e6d89cf0541b0b916fa7702ea4a9833608e"
 dependencies = [
- "jsonrpsee-client-transport 0.16.2",
  "jsonrpsee-core 0.16.2",
- "jsonrpsee-http-client",
+ "jsonrpsee-http-client 0.16.2",
  "jsonrpsee-proc-macros 0.16.2",
  "jsonrpsee-server",
  "jsonrpsee-types 0.16.2",
@@ -5206,6 +5205,18 @@ dependencies = [
  "jsonrpsee-types 0.17.1",
  "jsonrpsee-ws-client 0.17.1",
  "tracing",
+]
+
+[[package]]
+name = "jsonrpsee"
+version = "0.20.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9ad9b31183a8bcbe843e32ca8554ad2936633548d95a7bb6a8e14c767dea6b05"
+dependencies = [
+ "jsonrpsee-client-transport 0.20.1",
+ "jsonrpsee-core 0.20.1",
+ "jsonrpsee-http-client 0.20.1",
+ "jsonrpsee-types 0.20.1",
 ]
 
 [[package]]
@@ -5246,6 +5257,26 @@ dependencies = [
  "tokio-rustls 0.24.1",
  "tokio-util",
  "tracing",
+]
+
+[[package]]
+name = "jsonrpsee-client-transport"
+version = "0.20.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "97f2743cad51cc86b0dbfe316309eeb87a9d96a3d7f4dd7a99767c4b5f065335"
+dependencies = [
+ "futures-util",
+ "http",
+ "jsonrpsee-core 0.20.1",
+ "pin-project",
+ "rustls-native-certs",
+ "soketto",
+ "thiserror",
+ "tokio",
+ "tokio-rustls 0.24.1",
+ "tokio-util",
+ "tracing",
+ "url",
 ]
 
 [[package]]
@@ -5299,6 +5330,28 @@ dependencies = [
 ]
 
 [[package]]
+name = "jsonrpsee-core"
+version = "0.20.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "35dc957af59ce98373bcdde0c1698060ca6c2d2e9ae357b459c7158b6df33330"
+dependencies = [
+ "anyhow",
+ "async-lock",
+ "async-trait",
+ "beef",
+ "futures-timer",
+ "futures-util",
+ "hyper",
+ "jsonrpsee-types 0.20.1",
+ "rustc-hash",
+ "serde",
+ "serde_json",
+ "thiserror",
+ "tokio",
+ "tracing",
+]
+
+[[package]]
 name = "jsonrpsee-http-client"
 version = "0.16.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -5315,6 +5368,26 @@ dependencies = [
  "thiserror",
  "tokio",
  "tracing",
+]
+
+[[package]]
+name = "jsonrpsee-http-client"
+version = "0.20.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0dd865d0072764cb937b0110a92b5f53e995f7101cb346beca03d93a2dea79de"
+dependencies = [
+ "async-trait",
+ "hyper",
+ "hyper-rustls 0.24.1",
+ "jsonrpsee-core 0.20.1",
+ "jsonrpsee-types 0.20.1",
+ "serde",
+ "serde_json",
+ "thiserror",
+ "tokio",
+ "tower",
+ "tracing",
+ "url",
 ]
 
 [[package]]
@@ -5384,6 +5457,20 @@ name = "jsonrpsee-types"
 version = "0.17.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "dd301ccc3e08718393432d1961539d78c4580dcca86014dfe6769c308b2c08b2"
+dependencies = [
+ "anyhow",
+ "beef",
+ "serde",
+ "serde_json",
+ "thiserror",
+ "tracing",
+]
+
+[[package]]
+name = "jsonrpsee-types"
+version = "0.20.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "fa9e25aec855b2a7d3ed90fded6c41e8c3fb72b63f071e1be3f0004eba19b625"
 dependencies = [
  "anyhow",
  "beef",
@@ -6395,7 +6482,7 @@ version = "0.1.0"
 dependencies = [
  "bp-messages",
  "bridge-runtime-common",
- "clap 4.4.4",
+ "clap 4.4.6",
  "frame-benchmarking",
  "frame-benchmarking-cli",
  "futures",
@@ -6806,7 +6893,7 @@ name = "node-inspect"
 version = "0.9.0-dev"
 source = "git+https://github.com/paritytech/polkadot-sdk?branch=master#cc39edd5a84ce14f5a5bfbf3cb949086d18e2c87"
 dependencies = [
- "clap 4.4.4",
+ "clap 4.4.6",
  "parity-scale-codec",
  "sc-cli",
  "sc-client-api",
@@ -8708,7 +8795,7 @@ name = "polkadot-cli"
 version = "1.0.0"
 source = "git+https://github.com/paritytech/polkadot-sdk?branch=master#cc39edd5a84ce14f5a5bfbf3cb949086d18e2c87"
 dependencies = [
- "clap 4.4.4",
+ "clap 4.4.6",
  "frame-benchmarking-cli",
  "futures",
  "log",
@@ -10844,7 +10931,7 @@ version = "0.1.0"
 dependencies = [
  "bp-messages",
  "bridge-runtime-common",
- "clap 4.4.4",
+ "clap 4.4.6",
  "frame-benchmarking",
  "frame-benchmarking-cli",
  "frame-support",
@@ -10877,7 +10964,7 @@ version = "0.1.0"
 dependencies = [
  "bp-messages",
  "bridge-runtime-common",
- "clap 4.4.4",
+ "clap 4.4.6",
  "cumulus-client-cli",
  "cumulus-client-consensus-aura",
  "cumulus-client-consensus-common",
@@ -11578,7 +11665,7 @@ source = "git+https://github.com/paritytech/polkadot-sdk?branch=master#cc39edd5a
 dependencies = [
  "array-bytes",
  "chrono",
- "clap 4.4.4",
+ "clap 4.4.6",
  "fdlimit",
  "futures",
  "libp2p-identity",
@@ -12390,7 +12477,7 @@ name = "sc-storage-monitor"
 version = "0.1.0"
 source = "git+https://github.com/paritytech/polkadot-sdk?branch=master#cc39edd5a84ce14f5a5bfbf3cb949086d18e2c87"
 dependencies = [
- "clap 4.4.4",
+ "clap 4.4.6",
  "fs4",
  "log",
  "sc-client-db",
@@ -14751,10 +14838,11 @@ checksum = "734676eb262c623cec13c3155096e08d1f8f29adce39ba17948b18dad1e54142"
 
 [[package]]
 name = "subxt"
-version = "0.31.0"
+version = "0.32.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b9d140449e7d967b21b0ae386cdc6bd5933ade38613866bb40bb2c6df79638a4"
+checksum = "86ad149b178bedc983532ed795e0024dcdcb802a7f93377172c8aa6a3429590f"
 dependencies = [
+ "async-trait",
  "base58",
  "blake2",
  "derivative",
@@ -14763,7 +14851,7 @@ dependencies = [
  "futures",
  "hex",
  "impl-serde",
- "jsonrpsee 0.16.2",
+ "jsonrpsee 0.20.1",
  "parity-scale-codec",
  "primitive-types",
  "scale-bits",
@@ -14783,14 +14871,14 @@ dependencies = [
 
 [[package]]
 name = "subxt-codegen"
-version = "0.31.0"
+version = "0.32.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9af52575d54de7b9528601788f2876b41965e3e473d137c9c61c1ac35aeeaa3b"
+checksum = "b82d423038ed4e49b1b337b174c6c2a0a01d1f7d60d8094bfa2c1bce29ac41aa"
 dependencies = [
  "frame-metadata 16.0.0",
  "heck 0.4.1",
  "hex",
- "jsonrpsee 0.16.2",
+ "jsonrpsee 0.20.1",
  "parity-scale-codec",
  "proc-macro2 1.0.67",
  "quote 1.0.33",
@@ -14803,9 +14891,9 @@ dependencies = [
 
 [[package]]
 name = "subxt-lightclient"
-version = "0.31.0"
+version = "0.32.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6aa72c1cb7e06772efa1476949c3f0e83718c79c1b2615eb510c076b012e9c84"
+checksum = "5d3aba25e5309150ae74dd75badac9780814292332cfdd79827aff56b354f763"
 dependencies = [
  "futures",
  "futures-util",
@@ -14820,9 +14908,9 @@ dependencies = [
 
 [[package]]
 name = "subxt-macro"
-version = "0.31.0"
+version = "0.32.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "afe9f7e2994a20ab9748a9a040a3fe96054faa219a60ed21af51b9ab9e5f7da6"
+checksum = "5a32cb896b742c5cc269a3a4da7f090f61e2b8552c7337f5e038e63a9301ea44"
 dependencies = [
  "darling 0.20.3",
  "proc-macro-error",
@@ -14832,9 +14920,9 @@ dependencies = [
 
 [[package]]
 name = "subxt-metadata"
-version = "0.31.0"
+version = "0.32.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "880017c466f66af10e1c9b28cfa4cb2e4f59ab1bfe0b0f7250f7aca6e9d593b0"
+checksum = "9928f1b9679351800285f4acab6980d2b8e04b7a6decfbf71e258ee6e74a2dc8"
 dependencies = [
  "frame-metadata 16.0.0",
  "parity-scale-codec",
@@ -14975,9 +15063,9 @@ dependencies = [
 
 [[package]]
 name = "thiserror"
-version = "1.0.48"
+version = "1.0.49"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9d6d7a740b8a666a7e828dd00da9c0dc290dff53154ea77ac109281de90589b7"
+checksum = "1177e8c6d7ede7afde3585fd2513e611227efd6481bd78d2e82ba1ce16557ed4"
 dependencies = [
  "thiserror-impl",
 ]
@@ -15004,9 +15092,9 @@ dependencies = [
 
 [[package]]
 name = "thiserror-impl"
-version = "1.0.48"
+version = "1.0.49"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "49922ecae66cc8a249b77e68d1d0623c1b2c514f0060c27cdc68bd62a1219d35"
+checksum = "10712f02019e9288794769fba95cd6847df9874d49d871d062172f9dd41bc4cc"
 dependencies = [
  "proc-macro2 1.0.67",
  "quote 1.0.33",
@@ -15304,6 +15392,10 @@ version = "0.4.13"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b8fa9be0de6cf49e536ce1851f987bd21a43b771b09473c3549a6c853db37c1c"
 dependencies = [
+ "futures-core",
+ "futures-util",
+ "pin-project",
+ "pin-project-lite 0.2.12",
  "tower-layer",
  "tower-service",
  "tracing",
@@ -15531,7 +15623,7 @@ version = "0.10.0-dev"
 source = "git+https://github.com/paritytech/polkadot-sdk?branch=master#cc39edd5a84ce14f5a5bfbf3cb949086d18e2c87"
 dependencies = [
  "async-trait",
- "clap 4.4.4",
+ "clap 4.4.6",
  "frame-remote-externalities",
  "hex",
  "log",
