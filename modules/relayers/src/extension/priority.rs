@@ -283,7 +283,7 @@ mod tests {
 			assert!(relayers_set.next_set_try_push(relayer1, 0));
 			assert!(relayers_set.next_set_try_push(relayer2, 0));
 			assert!(relayers_set.next_set_try_push(relayer3, 0));
-			relayers_set.activate_next_set(0, |_| true);
+			relayers_set.activate_next_set(0);
 			LaneRelayers::<TestRuntime>::insert(lane_id, relayers_set);
 
 			// at blocks 1..=SlotLength relayer1 gets the boost

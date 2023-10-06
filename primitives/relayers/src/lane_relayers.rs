@@ -134,13 +134,9 @@ where
 	/// Activate next set of relayers.
 	///
 	/// The [`Self::active_set`] is replaced with the [`Self::next_set`].
-	pub fn activate_next_set(
-		&mut self,
-		new_next_set_may_enact_at: BlockNumber,
-		is_relayer_active: impl Fn(&AccountId) -> bool,
-	) {
+	pub fn activate_next_set(&mut self, new_next_set_may_enact_at: BlockNumber) {
 		self.active_set = self.next_set.clone();
-		// TODO
+		self.next_set_may_enact_at = new_next_set_may_enact_at;
 	}
 
 	fn select_position_in_next_set(&self, reward: Reward) -> usize {

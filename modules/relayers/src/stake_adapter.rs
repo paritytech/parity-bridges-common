@@ -28,21 +28,23 @@ use sp_std::{fmt::Debug, marker::PhantomData};
 ///
 /// **WARNING**: this implementation assumes that the relayers pallet is configured to
 /// use the [`bp_relayers::PayRewardFromAccount`] as its relayers payment scheme.
-pub struct StakeAndSlashNamed<AccountId, BlockNumber, Currency, ReserveId, Stake, Lease>(
-	PhantomData<(AccountId, BlockNumber, Currency, ReserveId, Stake, Lease)>,
+pub struct StakeAndSlashNamed<AccountId, BlockNumber, Currency, ReserveId, Stake, LaneStake, Lease>(
+	PhantomData<(AccountId, BlockNumber, Currency, ReserveId, Stake, LaneStake, Lease)>,
 );
 
-impl<AccountId, BlockNumber, Currency, ReserveId, Stake, Lease>
+impl<AccountId, BlockNumber, Currency, ReserveId, Stake, LaneStake, Lease>
 	StakeAndSlash<AccountId, BlockNumber, Currency::Balance>
-	for StakeAndSlashNamed<AccountId, BlockNumber, Currency, ReserveId, Stake, Lease>
+	for StakeAndSlashNamed<AccountId, BlockNumber, Currency, ReserveId, Stake, LaneStake, Lease>
 where
 	AccountId: Codec + Debug,
 	Currency: NamedReservableCurrency<AccountId>,
 	ReserveId: Get<Currency::ReserveIdentifier>,
 	Stake: Get<Currency::Balance>,
+	LaneStake: Get<Currency::Balance>,
 	Lease: Get<BlockNumber>,
 {
 	type RequiredStake = Stake;
+	type RequiredLaneStake = LaneStake;
 	type RequiredRegistrationLease = Lease;
 
 	fn reserve(relayer: &AccountId, amount: Currency::Balance) -> DispatchResult {

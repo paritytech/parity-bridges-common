@@ -161,6 +161,7 @@ pub type TestStakeAndSlash = pallet_bridge_relayers::StakeAndSlashNamed<
 	Balances,
 	ReserveId,
 	Stake,
+	LaneStake,
 	Lease,
 >;
 
@@ -184,6 +185,7 @@ parameter_types! {
 	pub const ExistentialDeposit: ThisChainBalance = 1;
 	pub const ReserveId: [u8; 8] = *b"brdgrlrs";
 	pub const Stake: ThisChainBalance = 1_000;
+	pub const LaneStake: ThisChainBalance = 100;
 	pub const Lease: ThisChainBlockNumber = 8;
 	pub const TargetBlockFullness: Perquintill = Perquintill::from_percent(25);
 	pub const TransactionBaseFee: ThisChainBalance = 0;

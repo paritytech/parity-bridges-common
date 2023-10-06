@@ -274,6 +274,8 @@ pub mod pallet {
 		///
 		/// Relayer that registers itself at given message lane gets a priority boost for his
 		/// message delivery transactions, **verified** at his slots (consecutive range of blocks).
+		///
+		/// Every additional lane registration requires
 		#[pallet::call_index(3)]
 		#[pallet::weight(Weight::zero())] // TODO
 		pub fn register_at_lane(
@@ -315,10 +317,12 @@ pub mod pallet {
 						Error::<T>::FailedToRegisterAtLane
 					);
 
-					// TODO: ideally we shall use the candle auction here (similar to parachain slot
-					// auctions) let's try to claim a slot in the next set
-					LaneRelayers::<T>::try_mutate(lane, |lane_relayers_ref| {
-						let mut lane_relayers = match lane_relayers_ref.take() {
+					// TODO: ideally we shall use the candle auction for relayers selection (similar to
+					// parachain slot auctions) rather than a fixed interval
+
+					// let's try to claim a slot in the next set
+					LaneRelayers::<T>::try_mutate(lane, |maybe_lane_relayers| {
+						let mut lane_relayers = match maybe_lane_relayers.take() {
 							Some(lane_relayers) => lane_relayers,
 							None => {
 								// TODO: give some time for initial elections
@@ -342,7 +346,7 @@ pub mod pallet {
 							Error::<T>::TooLargeRewardToOccupyAnEntry,
 						);
 
-						*lane_relayers_ref = Some(lane_relayers);
+						*maybe_lane_relayers = Some(lane_relayers);
 
 						Ok::<_, Error<T>>(())
 					})?;
@@ -444,9 +448,7 @@ pub mod pallet {
 				);
 
 				let new_next_set_may_enact_at = current_block_number.saturating_add(4u32.into()); // TODO
-				lane_relayers.activate_next_set(new_next_set_may_enact_at, |relayer| {
-					Self::is_registration_active(relayer)
-				});
+				lane_relayers.activate_next_set(new_next_set_may_enact_at);
 
 				*lane_relayers_ref = Some(lane_relayers);
 
@@ -589,7 +591,7 @@ pub mod pallet {
 				T::AccountId,
 				BlockNumberFor<T>,
 				T::Reward,
-			>>::RequiredStake::get() // TODO
+			>>::RequiredLaneStake::get()
 		}
 
 		/// Update relayer stake.

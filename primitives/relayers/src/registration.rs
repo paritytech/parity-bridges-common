@@ -190,8 +190,12 @@ impl<
 
 /// Relayer stake-and-slash mechanism.
 pub trait StakeAndSlash<AccountId, BlockNumber, Balance> {
-	/// The stake that the relayer must have to have its transactions boosted.
+	/// The stake that the relayer must have to have its message delivery transactions boosted.
 	type RequiredStake: Get<Balance>;
+	/// Additional stake that the relayer must have for every additional lane, where he wants to
+	/// get an extra boost (in addition to `[Self::RequiredStake]`) for message delivery transactions.
+	type RequiredLaneStake: Get<Balance>;
+
 	/// Required **remaining** registration lease to be able to get transaction priority boost.
 	///
 	/// If the difference between registration's `valid_till` and the current block number
@@ -224,6 +228,7 @@ where
 	BlockNumber: Default,
 {
 	type RequiredStake = ();
+	type RequiredLaneStake = ();
 	type RequiredRegistrationLease = ();
 
 	fn reserve(_relayer: &AccountId, _amount: Balance) -> DispatchResult {
