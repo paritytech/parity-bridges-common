@@ -17,22 +17,26 @@
 //! Runtime module that is used to store relayer rewards and to coordinate relations
 //! between relayers.
 
-// TODO: allow bridge owners to add "protected" relayers that have a guaranteed slot in the lane relayers
-// TODO: or else ONLY allow bridge owners to add registered relayers (through XCM calls)???
+// TODO: allow bridge owners to add "protected" relayers that have a guaranteed slot in the lane
+// relayers TODO: or else ONLY allow bridge owners to add registered relayers (through XCM calls)???
 
-// TODO: lane registration must be time-limited to force relayers to renew it and drop relayers that have stopped
-// working. Otherwise one relayer may fill up all lane slots for a fixed returnable sum.
+// TODO: lane registration must be time-limited to force relayers to renew it and drop relayers that
+// have stopped working. Otherwise one relayer may fill up all lane slots for a fixed returnable
+// sum.
 //
-// Or we may introduce some fine for relayer for not delivering messages. This is near to impossible though.
+// Or we may introduce some fine for relayer for not delivering messages. This is near to impossible
+// though.
 //
-// Or we may allow to buy lane registration using relayer rewards only - i.e. has has delivered 100 messages
-// and reward is 100 DOTs. He could reserve his 100 DOTs to buy lane registration slots. Every slot costs 1 DOT.
-// So after 100 slots, the registration becomes inactive. And he must renew it.
+// Or we may allow to buy lane registration using relayer rewards only - i.e. has has delivered 100
+// messages and reward is 100 DOTs. He could reserve his 100 DOTs to buy lane registration slots.
+// Every slot costs 1 DOT. So after 100 slots, the registration becomes inactive. And he must renew
+// it.
 
 // TODO: additionally we could add a reward market - i.e. now we have boosts:
-// `messages_count * per_message + per_lane`. We could add another boost if relayer wants to receive lower reward.
-// E.g. if normal reward is 1 DOT per message but relayers claims that he could deliver 10 messages in exchange of
-// 1 DOT, we will prefer such transaction over transaction with 10 DOTs reward.
+// `messages_count * per_message + per_lane`. We could add another boost if relayer wants to receive
+// lower reward. E.g. if normal reward is 1 DOT per message but relayers claims that he could
+// deliver 10 messages in exchange of 1 DOT, we will prefer such transaction over transaction with
+// 10 DOTs reward.
 
 // TODO: better (easier code) handling of reserved funds. Separate calls?
 
@@ -41,13 +45,17 @@
 
 use bp_messages::LaneId;
 use bp_relayers::{
-	LaneRelayersSet, PaymentProcedure, Registration, RelayerRewardsKeyProvider, RewardsAccountParams, StakeAndSlash,
+	LaneRelayersSet, PaymentProcedure, Registration, RelayerRewardsKeyProvider,
+	RewardsAccountParams, StakeAndSlash,
 };
 use bp_runtime::StorageDoubleMapKeyProvider;
 use frame_support::fail;
 use frame_system::Pallet as SystemPallet;
 use sp_arithmetic::traits::{AtLeast32BitUnsigned, Zero};
-use sp_runtime::{traits::{CheckedSub, One}, Saturating};
+use sp_runtime::{
+	traits::{CheckedSub, One},
+	Saturating,
+};
 use sp_std::marker::PhantomData;
 
 pub use pallet::*;
@@ -194,9 +202,8 @@ pub mod pallet {
 			);
 
 			RegisteredRelayers::<T>::try_mutate(&relayer, |maybe_registration| -> DispatchResult {
-				let mut registration = maybe_registration
-					.take()
-					.unwrap_or_else(|| Registration::new(valid_till));
+				let mut registration =
+					maybe_registration.take().unwrap_or_else(|| Registration::new(valid_till));
 
 				// new `valid_till` must be larger (or equal) than the old one
 				ensure!(
@@ -209,10 +216,7 @@ pub mod pallet {
 				registration.set_stake(Self::update_relayer_stake(
 					&relayer,
 					registration.current_stake(),
-					registration.required_stake(
-						Self::base_stake(),
-						Self::stake_per_lane(),
-					),
+					registration.required_stake(Self::base_stake(), Self::stake_per_lane()),
 				)?);
 
 				log::trace!(target: LOG_TARGET, "Successfully registered relayer: {:?}", relayer);
@@ -247,16 +251,15 @@ pub mod pallet {
 				// we can't deregister until `valid_till + 1` block and while relayer has active
 				// lane registerations
 				ensure!(
-					registration.valid_till().map(|valid_till| valid_till < frame_system::Pallet::<T>::block_number()).unwrap_or(false),
+					registration
+						.valid_till()
+						.map(|valid_till| valid_till < frame_system::Pallet::<T>::block_number())
+						.unwrap_or(false),
 					Error::<T>::RegistrationIsStillActive,
 				);
 
 				// if stake is non-zero, we should do unreserve
-				Self::update_relayer_stake(
-					&relayer,
-					registration.current_stake(),
-					Zero::zero(),
-				)?;
+				Self::update_relayer_stake(&relayer, registration.current_stake(), Zero::zero())?;
 
 				log::trace!(target: LOG_TARGET, "Successfully deregistered relayer: {:?}", relayer);
 				Self::deposit_event(Event::<T>::Deregistered { relayer: relayer.clone() });
@@ -269,8 +272,8 @@ pub mod pallet {
 
 		/// Register relayer intention to serve given messages lane.
 		///
-		/// Relayer that registers itself at given message lane gets a priority boost for his message
-		/// delivery transactions, **verified** at his slots (consecutive range of blocks).
+		/// Relayer that registers itself at given message lane gets a priority boost for his
+		/// message delivery transactions, **verified** at his slots (consecutive range of blocks).
 		#[pallet::call_index(3)]
 		#[pallet::weight(Weight::zero())] // TODO
 		pub fn register_at_lane(
@@ -280,76 +283,86 @@ pub mod pallet {
 		) -> DispatchResult {
 			let relayer = ensure_signed(origin)?;
 
-			// TODO: we probably need a way for bridge owners (sibling/parent chains) to at least set a maximal
-			// possible reward for their lane over XCM? + maybe change relayers set? This way they could implement
-			// their own incentivization mechanisms by setting reward to zero and changing relayers set on their own.
+			// TODO: we probably need a way for bridge owners (sibling/parent chains) to at least
+			// set a maximal possible reward for their lane over XCM? + maybe change relayers set?
+			// This way they could implement their own incentivization mechanisms by setting reward
+			// to zero and changing relayers set on their own.
 
 			// TODO: check that `expected_reward` makes sense
 
-			RegisteredRelayers::<T>::try_mutate(&relayer.clone(), move |maybe_registration| -> DispatchResult {
-				// we only allow registered relayers to have priority boosts
-				let mut registration = match maybe_registration.take() {
-					Some(registration) => registration,
-					None => fail!(Error::<T>::NotRegistered),
-				};
-
-				// cannot add another lane registration if "base" registration is inactive
-				ensure!(
-					registration.is_active(
-						SystemPallet::<T>::block_number(),
-						Self::required_registration_lease(),
-					),
-					Error::<T>::RegistrationIsInactive,
-				);
-
-				// cannot add another lane registration if relayer has already max allowed
-				// lane registrations
-				ensure!(registration.register_at_lane(lane), Error::<T>::FailedToRegisterAtLane);
-
-				// TODO: ideally we shall use the candle auction here (similar to parachain slot auctions)
-				// let's try to claim a slot in the next set
-				LaneRelayers::<T>::try_mutate(lane, |lane_relayers_ref| {
-					let mut lane_relayers = match lane_relayers_ref.take() {
-						Some(lane_relayers) => lane_relayers,
-						None => {
-							// TODO: give some time for initial elections
-							// TODO: what if all relayers that have registered for the next set then call `deregister_at_lane`
-							//       before `next_set` activates? This could be used by malicious relayers - they could fill
-							//       the whole `next_set` and then clear it right before it is enacted. Think we shall allow more
-							//       entries in the `mnext_set` so that it'll be harder for the attacker to fill the full queue.
-							LaneRelayersSet::empty(
-								SystemPallet::<T>::block_number().saturating_add(One::one()).saturating_add(4u32.into()), // TODO
-							)
-						}
+			RegisteredRelayers::<T>::try_mutate(
+				&relayer.clone(),
+				move |maybe_registration| -> DispatchResult {
+					// we only allow registered relayers to have priority boosts
+					let mut registration = match maybe_registration.take() {
+						Some(registration) => registration,
+						None => fail!(Error::<T>::NotRegistered),
 					};
 
+					// cannot add another lane registration if "base" registration is inactive
 					ensure!(
-						lane_relayers.next_set_try_push(relayer.clone(), expected_reward),
-						Error::<T>::TooLargeRewardToOccupyAnEntry,
+						registration.is_active(
+							SystemPallet::<T>::block_number(),
+							Self::required_registration_lease(),
+						),
+						Error::<T>::RegistrationIsInactive,
 					);
 
-					*lane_relayers_ref = Some(lane_relayers);
+					// cannot add another lane registration if relayer has already max allowed
+					// lane registrations
+					ensure!(
+						registration.register_at_lane(lane),
+						Error::<T>::FailedToRegisterAtLane
+					);
 
-					Ok::<_, Error<T>>(())
-				})?;
+					// TODO: ideally we shall use the candle auction here (similar to parachain slot
+					// auctions) let's try to claim a slot in the next set
+					LaneRelayers::<T>::try_mutate(lane, |lane_relayers_ref| {
+						let mut lane_relayers = match lane_relayers_ref.take() {
+							Some(lane_relayers) => lane_relayers,
+							None => {
+								// TODO: give some time for initial elections
+								// TODO: what if all relayers that have registered for the next set
+								// then call `deregister_at_lane`       before `next_set` activates?
+								// This could be used by malicious relayers - they could fill
+								//       the whole `next_set` and then clear it right before it is
+								// enacted. Think we shall allow more       entries in the
+								// `mnext_set` so that it'll be harder for the attacker to fill the
+								// full queue.
+								LaneRelayersSet::empty(
+									SystemPallet::<T>::block_number()
+										.saturating_add(One::one())
+										.saturating_add(4u32.into()), // TODO
+								)
+							},
+						};
 
-				// the relayer need to stake additional amount for every additional lane
-				registration.set_stake(Self::update_relayer_stake(
-					&relayer,
-					registration.current_stake(),
-					registration.required_stake(
-						Self::base_stake(),
-						Self::stake_per_lane(),
-					),
-				)?);
+						ensure!(
+							lane_relayers.next_set_try_push(relayer.clone(), expected_reward),
+							Error::<T>::TooLargeRewardToOccupyAnEntry,
+						);
 
-				// cannot add duplicate lane registration
-				// ensure!(!registration.lanes.contains(&lane), Error::<T>::DuplicateLaneRegistration);
+						*lane_relayers_ref = Some(lane_relayers);
 
-				*maybe_registration = Some(registration);
+						Ok::<_, Error<T>>(())
+					})?;
 
-				Ok(())
-			})?;
+					// the relayer need to stake additional amount for every additional lane
+					registration.set_stake(Self::update_relayer_stake(
+						&relayer,
+						registration.current_stake(),
+						registration.required_stake(Self::base_stake(), Self::stake_per_lane()),
+					)?);
+
+					// cannot add duplicate lane registration
+					// ensure!(!registration.lanes.contains(&lane),
+					// Error::<T>::DuplicateLaneRegistration);
+
+					*maybe_registration = Some(registration);
+
+					Ok(())
+				},
+			)?;
 
 			Ok(())
 		}
@@ -360,38 +373,41 @@ pub mod pallet {
 		pub fn deregister_at_lane(origin: OriginFor<T>, lane: LaneId) -> DispatchResult {
 			let relayer = ensure_signed(origin)?;
 
-			RegisteredRelayers::<T>::try_mutate(&relayer.clone(), move |maybe_registration| -> DispatchResult {
-				// if relayer doesn't have a basic registration, we know that he is not registered
-				// at the lane as well
-				let mut registration = match maybe_registration.take() {
-					Some(registration) => registration,
-					None => fail!(Error::<T>::NotRegistered),
-				};
-
-				// remove relayer from the `next_set` of lane relayers. So relayer is still
-				LaneRelayers::<T>::try_mutate(lane, |lane_relayers_ref| {
-					let mut lane_relayers = match lane_relayers_ref.take() {
-						Some(lane_relayers) => lane_relayers,
-						None => fail!(Error::<T>::NotRegisteredAtLane),
+			RegisteredRelayers::<T>::try_mutate(
+				&relayer.clone(),
+				move |maybe_registration| -> DispatchResult {
+					// if relayer doesn't have a basic registration, we know that he is not
+					// registered at the lane as well
+					let mut registration = match maybe_registration.take() {
+						Some(registration) => registration,
+						None => fail!(Error::<T>::NotRegistered),
 					};
 
-					ensure!(
-						lane_relayers.next_set_try_remove(&relayer),
-						Error::<T>::NotRegisteredAtLane,
-					);
+					// remove relayer from the `next_set` of lane relayers. So relayer is still
+					LaneRelayers::<T>::try_mutate(lane, |lane_relayers_ref| {
+						let mut lane_relayers = match lane_relayers_ref.take() {
+							Some(lane_relayers) => lane_relayers,
+							None => fail!(Error::<T>::NotRegisteredAtLane),
+						};
 
-					*lane_relayers_ref = Some(lane_relayers);
+						ensure!(
+							lane_relayers.next_set_try_remove(&relayer),
+							Error::<T>::NotRegisteredAtLane,
+						);
 
-					Ok::<_, Error<T>>(())
-				})?;
+						*lane_relayers_ref = Some(lane_relayers);
 
-				// ensure that the relayer has lane registration
-				registration.deregister_at_lane(lane);
+						Ok::<_, Error<T>>(())
+					})?;
 
-				*maybe_registration = Some(registration);
+					// ensure that the relayer has lane registration
+					registration.deregister_at_lane(lane);
 
-				Ok(())
-			})?;
+					*maybe_registration = Some(registration);
+
+					Ok(())
+				},
+			)?;
 
 			Ok(())
 		}
@@ -399,15 +415,18 @@ pub mod pallet {
 		// TODO: add another `obsolete` extension for this call of the relayers pallet?
 		/// Enact next set of relayers at a given lane.
 		///
-		/// This will replace the set of active relayers with the next scheduled set, for given lane. Anyone could
-		/// call this method at any point. If the set will be changed, the cost of transaction will be refunded to
-		/// the submitter. We do not provide any on-chain means to sync between relayers on who will submit this
-		/// transaction, so first transaction from anyone will be accepted and it will have the zero cost. All
-		/// subsequent transactions will be paid. We suggest the first relayer from the `next_set` to submit this
-		/// transaction.
+		/// This will replace the set of active relayers with the next scheduled set, for given
+		/// lane. Anyone could call this method at any point. If the set will be changed, the cost
+		/// of transaction will be refunded to the submitter. We do not provide any on-chain means
+		/// to sync between relayers on who will submit this transaction, so first transaction from
+		/// anyone will be accepted and it will have the zero cost. All subsequent transactions will
+		/// be paid. We suggest the first relayer from the `next_set` to submit this transaction.
 		#[pallet::call_index(5)]
 		#[pallet::weight(Weight::zero())] // TODO
-		pub fn enact_next_relayers_set_at_lane(origin: OriginFor<T>, lane: LaneId) -> DispatchResult {
+		pub fn enact_next_relayers_set_at_lane(
+			origin: OriginFor<T>,
+			lane: LaneId,
+		) -> DispatchResult {
 			let _ = ensure_signed(origin)?;
 
 			// remove relayer from the `next_set` of lane relayers. So relayer is still
@@ -425,10 +444,9 @@ pub mod pallet {
 				);
 
 				let new_next_set_may_enact_at = current_block_number.saturating_add(4u32.into()); // TODO
-				lane_relayers.activate_next_set(
-					new_next_set_may_enact_at,
-					|relayer| Self::is_registration_active(relayer)
-				);
+				lane_relayers.activate_next_set(new_next_set_may_enact_at, |relayer| {
+					Self::is_registration_active(relayer)
+				});
 
 				*lane_relayers_ref = Some(lane_relayers);
 
@@ -594,7 +612,7 @@ pub mod pallet {
 						to_unreserve,
 						relayer,
 					);
-	
+
 					fail!(Error::<T>::FailedToUnreserve)
 				}
 			} else if let Some(to_reserve) = required_stake.checked_sub(&current_stake) {
@@ -611,7 +629,7 @@ pub mod pallet {
 					fail!(Error::<T>::FailedToReserve)
 				}
 			}
-			
+
 			Ok(required_stake)
 		}
 	}
@@ -753,7 +771,10 @@ mod tests {
 		System::<TestRuntime>::reset_events();
 	}
 
-	fn registration(valid_till: ThisChainBlockNumber, stake: ThisChainBalance) -> Registration<ThisChainBlockNumber, ThisChainBalance, MaxLanesPerRelayer> {
+	fn registration(
+		valid_till: ThisChainBlockNumber,
+		stake: ThisChainBalance,
+	) -> Registration<ThisChainBlockNumber, ThisChainBalance, MaxLanesPerRelayer> {
 		let mut registration = Registration::new(valid_till);
 		registration.set_stake(stake);
 		registration
@@ -970,7 +991,7 @@ mod tests {
 
 			RegisteredRelayers::<TestRuntime>::insert(
 				REGISTER_RELAYER,
-				registration(150, Stake::get() + 1)
+				registration(150, Stake::get() + 1),
 			);
 			TestStakeAndSlash::reserve(&REGISTER_RELAYER, Stake::get() + 1).unwrap();
 			assert_eq!(Balances::reserved_balance(REGISTER_RELAYER), Stake::get() + 1);
@@ -1035,7 +1056,7 @@ mod tests {
 
 			RegisteredRelayers::<TestRuntime>::insert(
 				REGISTER_RELAYER,
-				registration(150, Stake::get() - 1)
+				registration(150, Stake::get() - 1),
 			);
 			TestStakeAndSlash::reserve(&REGISTER_RELAYER, Stake::get() - 1).unwrap();
 
@@ -1138,7 +1159,7 @@ mod tests {
 		run_test(|| {
 			RegisteredRelayers::<TestRuntime>::insert(
 				REGISTER_RELAYER,
-				registration(150, Stake::get() - 1)
+				registration(150, Stake::get() - 1),
 			);
 			assert!(Pallet::<TestRuntime>::is_registration_active(&REGISTER_RELAYER));
 		});

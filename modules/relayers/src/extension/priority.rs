@@ -76,13 +76,13 @@ where
 	let active_lane_relayers = lane_relayers.active_relayers();
 	let lane_relayers_len: BlockNumberFor<R> = (active_lane_relayers.len() as u32).into();
 	if lane_relayers_len.is_zero() {
-		return 0;
+		return 0
 	}
 
 	// we can't deal with slots shorter than 1 block
 	let slot_length: BlockNumberFor<R> = R::SlotLength::get().into();
 	if slot_length < One::one() {
-		return 0;
+		return 0
 	}
 
 	// let's compute current slot number
@@ -98,7 +98,7 @@ where
 	// if message delivery transaction is submitted by the relayer, assigned to the current
 	// slot, let's boost the transaction priority
 	if relayer != slot_relayer.relayer() {
-		return 0;
+		return 0
 	}
 
 	R::PriorityBoostForLaneRelayer::get()

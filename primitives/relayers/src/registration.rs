@@ -51,9 +51,15 @@ use sp_runtime::{
 use sp_std::fmt::Debug;
 
 /// Relayer registration.
-#[derive(CloneNoBound, Decode, Encode, Eq, PartialEqNoBound, RuntimeDebugNoBound, TypeInfo, MaxEncodedLen)]
+#[derive(
+	CloneNoBound, Decode, Encode, Eq, PartialEqNoBound, RuntimeDebugNoBound, TypeInfo, MaxEncodedLen,
+)]
 #[scale_info(skip_type_params(MaxLanesPerRelayer))]
-pub struct Registration<BlockNumber: Clone + Debug + PartialEq, Balance: Clone + Debug + PartialEq, MaxLanesPerRelayer: Get<u32>> {
+pub struct Registration<
+	BlockNumber: Clone + Debug + PartialEq,
+	Balance: Clone + Debug + PartialEq,
+	MaxLanesPerRelayer: Get<u32>,
+> {
 	/// The last block number, where this registration is considered active.
 	///
 	/// Relayer has an option to renew his registration (this may be done before it
@@ -84,7 +90,12 @@ pub struct Registration<BlockNumber: Clone + Debug + PartialEq, Balance: Clone +
 	lanes: BoundedVec<LaneId, MaxLanesPerRelayer>,
 }
 
-impl<BlockNumber: Clone + Copy + Debug + PartialEq + PartialOrd + Saturating, Balance: BaseArithmetic + Clone + Debug + PartialEq + Zero, MaxLanesPerRelayer: Get<u32>> Registration<BlockNumber, Balance, MaxLanesPerRelayer> {
+impl<
+		BlockNumber: Clone + Copy + Debug + PartialEq + PartialOrd + Saturating,
+		Balance: BaseArithmetic + Clone + Debug + PartialEq + Zero,
+		MaxLanesPerRelayer: Get<u32>,
+	> Registration<BlockNumber, Balance, MaxLanesPerRelayer>
+{
 	/// Creates new empty registration that ends at given block.
 	pub fn new(valid_till: BlockNumber) -> Self {
 		Registration { valid_till, stake: Zero::zero(), lanes: BoundedVec::new() }
@@ -95,8 +106,9 @@ impl<BlockNumber: Clone + Copy + Debug + PartialEq + PartialOrd + Saturating, Ba
 	/// `None` is returned if current block number does not affect registration and
 	/// it shall be considered active regardless of it.
 	pub fn valid_till(&self) -> Option<BlockNumber> {
-		// TODO: could be used by attacker to bump their current transaction priority while lease ends. We need to prolong valid_till
-		// at least by [`StakeAndSlash::RequiredRegistrationLease`] if lane is removed 
+		// TODO: could be used by attacker to bump their current transaction priority while lease
+		// ends. We need to prolong valid_till at least by
+		// [`StakeAndSlash::RequiredRegistrationLease`] if lane is removed
 		if self.lanes.is_empty() {
 			Some(self.valid_till)
 		} else {
@@ -106,8 +118,9 @@ impl<BlockNumber: Clone + Copy + Debug + PartialEq + PartialOrd + Saturating, Ba
 
 	/// Returns the **actual** last block number, where this registration is considered active.
 	///
-	/// It returns the actual block number that was set by the relayer during registration. Normally, this
-	/// method shall not be used anywhere outside of the `pallet-bridge-relayers` calls.
+	/// It returns the actual block number that was set by the relayer during registration.
+	/// Normally, this method shall not be used anywhere outside of the `pallet-bridge-relayers`
+	/// calls.
 	pub fn valid_till_ignore_lanes(&self) -> BlockNumber {
 		self.valid_till
 	}
@@ -119,11 +132,7 @@ impl<BlockNumber: Clone + Copy + Debug + PartialEq + PartialOrd + Saturating, Ba
 
 	/// Returns minimal stake that the relayer need to have in reserve to be
 	/// considered active.
-	pub fn required_stake(
-		&self,
-		base_stake: Balance,
-		stake_per_lane: Balance,
-	) -> Balance {
+	pub fn required_stake(&self, base_stake: Balance, stake_per_lane: Balance) -> Balance {
 		stake_per_lane
 			.saturating_mul(Balance::try_from(self.lanes.len()).unwrap_or(Balance::max_value()))
 			.saturating_add(base_stake)

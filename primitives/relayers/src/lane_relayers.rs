@@ -18,7 +18,10 @@
 
 use codec::{Decode, Encode, MaxEncodedLen};
 use scale_info::TypeInfo;
-use sp_runtime::{traits::{Get, Zero}, BoundedVec, RuntimeDebug};
+use sp_runtime::{
+	traits::{Get, Zero},
+	BoundedVec, RuntimeDebug,
+};
 
 /// A relayer and the reward that it wants to receive for delivering a single message.
 #[derive(Clone, Decode, Encode, Eq, PartialEq, RuntimeDebug, TypeInfo, MaxEncodedLen)]
@@ -76,8 +79,10 @@ pub struct LaneRelayersSet<AccountId, BlockNumber, Reward, MaxRelayersPerLane: G
 	next_set: BoundedVec<RelayerAndReward<AccountId, Reward>, MaxRelayersPerLane>,
 }
 
-impl<AccountId, BlockNumber, Reward, MaxRelayersPerLane> LaneRelayersSet<AccountId, BlockNumber, Reward, MaxRelayersPerLane> where
-	AccountId: Clone + PartialOrd,	
+impl<AccountId, BlockNumber, Reward, MaxRelayersPerLane>
+	LaneRelayersSet<AccountId, BlockNumber, Reward, MaxRelayersPerLane>
+where
+	AccountId: Clone + PartialOrd,
 	BlockNumber: Copy + Zero,
 	Reward: Copy + Ord,
 	MaxRelayersPerLane: Get<u32>,
@@ -109,10 +114,12 @@ impl<AccountId, BlockNumber, Reward, MaxRelayersPerLane> LaneRelayersSet<Account
 		// first, remove existing entry for the same relayer from the set
 		self.next_set_try_remove(&relayer);
 		// now try to insert new entry into the queue
-		self.next_set.force_insert_keep_left(
-			self.select_position_in_next_set(reward),
-			RelayerAndReward { relayer, reward },
-		).is_ok()
+		self.next_set
+			.force_insert_keep_left(
+				self.select_position_in_next_set(reward),
+				RelayerAndReward { relayer, reward },
+			)
+			.is_ok()
 	}
 
 	/// Try remove relayer from the next set.
@@ -127,19 +134,28 @@ impl<AccountId, BlockNumber, Reward, MaxRelayersPerLane> LaneRelayersSet<Account
 	/// Activate next set of relayers.
 	///
 	/// The [`Self::active_set`] is replaced with the [`Self::next_set`].
-	pub fn activate_next_set(&mut self, new_next_set_may_enact_at: BlockNumber, is_relayer_active: impl Fn(&AccountId) -> bool) {
+	pub fn activate_next_set(
+		&mut self,
+		new_next_set_may_enact_at: BlockNumber,
+		is_relayer_active: impl Fn(&AccountId) -> bool,
+	) {
 		self.active_set = self.next_set.clone();
 		// TODO
 	}
 
 	fn select_position_in_next_set(&self, reward: Reward) -> usize {
-		// we need to insert new entry **after** the last entry with the same `reward`. Otherwise it may be used
-		// to push relayers our of the queue
+		// we need to insert new entry **after** the last entry with the same `reward`. Otherwise it
+		// may be used to push relayers our of the queue
 		let mut initial_position = self
 			.next_set
 			.binary_search_by_key(&reward, |entry| entry.reward)
 			.unwrap_or_else(|position| position);
-		while self.next_set.get(initial_position).map(|entry| entry.reward == reward).unwrap_or(false) {
+		while self
+			.next_set
+			.get(initial_position)
+			.map(|entry| entry.reward == reward)
+			.unwrap_or(false)
+		{
 			initial_position += 1;
 		}
 		initial_position
@@ -238,8 +254,8 @@ mod tests {
 			],
 		);
 
-		// insert couple of relayer that want the same reward as some relayer in the middle of the queue
-		// => they are inserted **after** existing relayers
+		// insert couple of relayer that want the same reward as some relayer in the middle of the
+		// queue => they are inserted **after** existing relayers
 		assert!(relayers.next_set_try_push(8, 10));
 		assert!(relayers.next_set_try_push(9, 10));
 		assert_eq!(
