@@ -21,7 +21,7 @@
 //! required finality proofs). This extension boosts priority of message delivery
 //! transactions, based on the number of bundled messages. So transaction with more
 //! messages has larger priority than the transaction with less messages.
-//! See `bridge_runtime_common::priority_calculator` for details;
+//! See [`crate::extension.rs`] for details.
 //!
 //! This encourages relayers to include more messages to their delivery transactions.
 //! At the same time, we are not verifying storage proofs before boosting
@@ -62,13 +62,17 @@ pub struct Registration<BlockNumber: Clone + Debug + PartialEq, Balance: Clone +
 	///
 	/// Please keep in mind that priority boost stops working some blocks before the
 	/// registration ends (see [`StakeAndSlash::RequiredRegistrationLease`]).
-	pub valid_till: BlockNumber,
+	///
+	/// Please also keep in mind that while relayer is registered at least at one lane,
+	/// the regisration is always considered active.
+	valid_till: BlockNumber,
 	/// Active relayer stake, which is mapped to the relayer reserved balance.
 	///
-	/// If `stake` is less than the [`StakeAndSlash::RequiredStake`] plus additional
-	/// [`StakeAndSlash::RequiredStake`] for every entry in the `lanes` vector, the
-	/// registration is considered inactive even if `valid_till + 1` is not yet reached.
-	pub stake: Balance,
+	/// The `stake` could be less than the [`StakeAndSlash::RequiredStake`] plus additional
+	/// [`StakeAndSlash::RequiredStake`] for every entry in the [`Self::lanes`] vector. In this
+	/// case, registration is still considered **ACTIVE**. The missing amount will be reserved
+	/// on the relayer account when he'll be modifying its registration in any way.
+	stake: Balance,
 	/// All lanes, where relayer has explicitly registered itself for additional
 	/// priority boost.
 	///
@@ -77,13 +81,40 @@ pub struct Registration<BlockNumber: Clone + Debug + PartialEq, Balance: Clone +
 	/// The entry in this vector does not guarantee that the relayer is actually in
 	/// the active or the next set of relayers at given lane. It only says that the
 	/// relayer has tried to register at the lane.
-	pub lanes: BoundedVec<LaneId, MaxLanesPerRelayer>,
+	lanes: BoundedVec<LaneId, MaxLanesPerRelayer>,
 }
 
 impl<BlockNumber: Clone + Copy + Debug + PartialEq + PartialOrd + Saturating, Balance: BaseArithmetic + Clone + Debug + PartialEq + Zero, MaxLanesPerRelayer: Get<u32>> Registration<BlockNumber, Balance, MaxLanesPerRelayer> {
 	/// Creates new empty registration that ends at given block.
 	pub fn new(valid_till: BlockNumber) -> Self {
 		Registration { valid_till, stake: Zero::zero(), lanes: BoundedVec::new() }
+	}
+
+	/// Returns the last block number, where this registration is considered active.
+	///
+	/// `None` is returned if current block number does not affect registration and
+	/// it shall be considered active regardless of it.
+	pub fn valid_till(&self) -> Option<BlockNumber> {
+		// TODO: could be used by attacker to bump their current transaction priority while lease ends. We need to prolong valid_till
+		// at least by [`StakeAndSlash::RequiredRegistrationLease`] if lane is removed 
+		if self.lanes.is_empty() {
+			Some(self.valid_till)
+		} else {
+			None
+		}
+	}
+
+	/// Returns the **actual** last block number, where this registration is considered active.
+	///
+	/// It returns the actual block number that was set by the relayer during registration. Normally, this
+	/// method shall not be used anywhere outside of the `pallet-bridge-relayers` calls.
+	pub fn valid_till_ignore_lanes(&self) -> BlockNumber {
+		self.valid_till
+	}
+
+	/// Returns active relayer stake, which is mapped to the relayer reserved balance.
+	pub fn current_stake(&self) -> Balance {
+		self.stake.clone()
 	}
 
 	/// Returns minimal stake that the relayer need to have in reserve to be
@@ -105,25 +136,46 @@ impl<BlockNumber: Clone + Copy + Debug + PartialEq + PartialOrd + Saturating, Ba
 	/// - is valid for another `required_registration_lease` blocks.
 	pub fn is_active(
 		&self,
-		base_stake: Balance,
-		stake_per_lane: Balance,
 		current_block_number: BlockNumber,
 		required_registration_lease: BlockNumber,
 	) -> bool {
-		// registration is inactive if relayer stake is less than required
-		if self.stake < self.required_stake(base_stake, stake_per_lane) {
-			return false
-		}
+		// if there are lane registrations, the registration is active
+		let valid_till = match self.valid_till() {
+			Some(valid_till) => valid_till,
+			None => return true,
+		};
 
 		// registration is inactive if it ends soon
-		let remaining_lease = self
-			.valid_till
-			.saturating_sub(current_block_number);
+		let remaining_lease = valid_till.saturating_sub(current_block_number);
 		if remaining_lease <= required_registration_lease {
 			return false
 		}
 
 		true
+	}
+
+	/// Set last block number, where this registration is considered active.
+	pub fn set_valid_till(&mut self, valid_till: BlockNumber) {
+		self.valid_till = valid_till;
+	}
+
+	/// Set stake amount. This amount is reserved on the relayer account.
+	pub fn set_stake(&mut self, stake: Balance) {
+		self.stake = stake;
+	}
+
+	/// Add another lane to the relayer registration.
+	pub fn register_at_lane(&mut self, lane: LaneId) -> bool {
+		if !self.lanes.contains(&lane) {
+			self.lanes.try_push(lane).is_ok()
+		} else {
+			true
+		}
+	}
+
+	/// Remove lane registration.
+	pub fn deregister_at_lane(&mut self, lane: LaneId) {
+		self.lanes.retain(|l| *l != lane);
 	}
 }
 
