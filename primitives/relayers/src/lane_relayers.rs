@@ -120,6 +120,13 @@ impl<AccountId, BlockNumber, Reward, MaxRelayersPerLane> LaneRelayersSet<Account
 		self.next_set.len() != len_before
 	}
 
+	/// Activate next set of relayers.
+	///
+	/// The [`Self::active_set`] is replaced with the [`Self::next_set`].
+	pub fn activate_next_set(&mut self, is_relayer_active: impl Fn(&AccountId) -> bool) {
+		unimplemented!("TODO")
+	}
+
 	fn select_position_in_next_set(&self, reward: Reward) -> usize {
 		// we need to insert new entry **after** the last entry with the same `reward`. Otherwise it may be used
 		// to push relayers our of the queue

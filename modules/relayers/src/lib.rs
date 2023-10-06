@@ -379,6 +379,44 @@ pub mod pallet {
 
 			Ok(())
 		}
+
+		// TODO: add another `obsolete` extension for this call of the relayers pallet?
+		/// Enact next set of relayers at a given lane.
+		///
+		/// This will replace the set of active relayers with the next scheduled set, for given lane. Anyone could
+		/// call this method at any point. If the set will be changed, the cost of transaction will be refunded to
+		/// the submitter. We do not provide any on-chain means to sync between relayers on who will submit this
+		/// transaction, so first transaction from anyone will be accepted and it will have the zero cost. All
+		/// subsequent transactions will be paid. We suggest the first relayer from the `next_set` to submit this
+		/// transaction.
+		#[pallet::call_index(5)]
+		#[pallet::weight(Weight::zero())] // TODO
+		pub fn enact_next_relayers_set_at_lane(origin: OriginFor<T>, lane: LaneId) -> DispatchResult {
+			// remove relayer from the `next_set` of lane relayers. So relayer is still
+			LaneRelayers::<T>::try_mutate(lane, |lane_relayers_ref| {
+				let mut lane_relayers = match lane_relayers_ref.take() {
+					Some(lane_relayers) => lane_relayers,
+					None => fail!(Error::<T>::NoRelayersAtLane),
+				};
+
+				// ensure that the current block number allows us to enact next set
+				let current_block_number = SystemPallet::<T>::block_number();
+				ensure!(
+					lane_relayers.next_set_may_enact_at() >= current_block_number,
+					Error::<T>::TooEarlyToActivateNextRelayersSet,
+				);
+
+				let next_next_set_may_enact_at = current_block_number.saturating_add(4); // TODO
+				lane_relayers.activate_next_set(
+					next_next_set_may_enact_at,
+					|relayer| Self::is_registration_active(relayer.relayer())
+				);
+
+				*lane_relayers_ref = Some(lane_relayers);
+
+				Ok::<_, Error<T>>(())
+			})?;
+		}
 	}
 
 	impl<T: Config> Pallet<T> {
