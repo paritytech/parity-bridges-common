@@ -52,7 +52,7 @@ use sp_std::fmt::Debug;
 
 /// Relayer registration.
 #[derive(CloneNoBound, Decode, Encode, Eq, PartialEqNoBound, RuntimeDebugNoBound, TypeInfo, MaxEncodedLen)]
-#[scale_info(skip_type_params(BlockNumber, Balance, MaxLanesPerRelayer))]
+#[scale_info(skip_type_params(MaxLanesPerRelayer))]
 pub struct Registration<BlockNumber: Clone + Debug + PartialEq, Balance: Clone + Debug + PartialEq, MaxLanesPerRelayer: Get<u32>> {
 	/// The last block number, where this registration is considered active.
 	///

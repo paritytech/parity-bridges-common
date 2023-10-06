@@ -22,7 +22,6 @@ use sp_runtime::{traits::{Get, Zero}, BoundedVec, RuntimeDebug};
 
 /// A relayer and the reward that it wants to receive for delivering a single message.
 #[derive(Clone, Decode, Encode, Eq, PartialEq, RuntimeDebug, TypeInfo, MaxEncodedLen)]
-#[scale_info(skip_type_params(AccountId, Reward))]
 pub struct RelayerAndReward<AccountId, Reward> {
 	/// A relayer account identifier.
 	relayer: AccountId,
@@ -79,8 +78,8 @@ pub struct LaneRelayersSet<AccountId, BlockNumber, Reward, MaxRelayersPerLane: G
 
 impl<AccountId, BlockNumber, Reward, MaxRelayersPerLane> LaneRelayersSet<AccountId, BlockNumber, Reward, MaxRelayersPerLane> where
 	AccountId: PartialOrd,	
-	BlockNumber: Zero,
-	Reward: Clone + Copy + Ord,
+	BlockNumber: Copy + Zero,
+	Reward: Copy + Ord,
 	MaxRelayersPerLane: Get<u32>,
 {
 	/// Creates new empty relayers set, where next sets enacts at given block.
@@ -91,6 +90,11 @@ impl<AccountId, BlockNumber, Reward, MaxRelayersPerLane> LaneRelayersSet<Account
 			active_set: BoundedVec::new(),
 			next_set: BoundedVec::new(),
 		}
+	}
+
+	/// Returns block, starting from which the [`Self::next_set`] may be enacted.
+	pub fn next_set_may_enact_at(&self) -> BlockNumber {
+		self.next_set_may_enact_at
 	}
 
 	/// Returns count of relayers in the active set.
@@ -123,7 +127,7 @@ impl<AccountId, BlockNumber, Reward, MaxRelayersPerLane> LaneRelayersSet<Account
 	/// Activate next set of relayers.
 	///
 	/// The [`Self::active_set`] is replaced with the [`Self::next_set`].
-	pub fn activate_next_set(&mut self, is_relayer_active: impl Fn(&AccountId) -> bool) {
+	pub fn activate_next_set(&mut self, new_next_set_may_enact_at: BlockNumber, is_relayer_active: impl Fn(&AccountId) -> bool) {
 		unimplemented!("TODO")
 	}
 

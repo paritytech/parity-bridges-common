@@ -406,16 +406,18 @@ pub mod pallet {
 					Error::<T>::TooEarlyToActivateNextRelayersSet,
 				);
 
-				let next_next_set_may_enact_at = current_block_number.saturating_add(4); // TODO
+				let new_next_set_may_enact_at = current_block_number.saturating_add(4u32.into()); // TODO
 				lane_relayers.activate_next_set(
-					next_next_set_may_enact_at,
-					|relayer| Self::is_registration_active(relayer.relayer())
+					new_next_set_may_enact_at,
+					|relayer| Self::is_registration_active(relayer)
 				);
 
 				*lane_relayers_ref = Some(lane_relayers);
 
 				Ok::<_, Error<T>>(())
 			})?;
+
+			Ok(())
 		}
 	}
 
@@ -668,6 +670,10 @@ pub mod pallet {
 		TooLargeRewardToOccupyAnEntry,
 		///
 		NotRegisteredAtLane,
+		///
+		NoRelayersAtLane,
+		///
+		TooEarlyToActivateNextRelayersSet,
 	}
 
 	/// Map of the relayer => accumulated reward.
