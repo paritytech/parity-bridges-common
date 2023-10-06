@@ -27,7 +27,7 @@
 //
 // Or we may allow to buy lane registration using relayer rewards only - i.e. has has delivered 100 messages
 // and reward is 100 DOTs. He could reserve his 100 DOTs to buy lane registration slots. Every slot costs 1 DOT.
-// So after 100 slots, the registration becomes inactive. And he must renew it. 
+// So after 100 slots, the registration becomes inactive. And he must renew it.
 
 // TODO: additionally we could add a reward market - i.e. now we have boosts:
 // `messages_count * per_message + per_lane`. We could add another boost if relayer wants to receive lower reward.
@@ -41,7 +41,7 @@
 
 use bp_messages::LaneId;
 use bp_relayers::{
-	PaymentProcedure, Registration, RelayerRewardsKeyProvider, RewardsAccountParams, StakeAndSlash,
+	LaneRelayersSet, PaymentProcedure, Registration, RelayerRewardsKeyProvider, RewardsAccountParams, StakeAndSlash,
 };
 use bp_runtime::StorageDoubleMapKeyProvider;
 use codec::{Decode, Encode, MaxEncodedLen};
@@ -49,7 +49,7 @@ use frame_support::{DefaultNoBound, fail};
 use frame_system::Pallet as SystemPallet;
 use sp_arithmetic::traits::{AtLeast32BitUnsigned, Zero};
 use scale_info::TypeInfo;
-use sp_runtime::{traits::CheckedSub, BoundedVec, RuntimeDebug, Saturating};
+use sp_runtime::{traits::{CheckedSub, One}, BoundedVec, RuntimeDebug, Saturating};
 use sp_std::{collections::vec_deque::VecDeque, marker::PhantomData};
 
 pub use pallet::*;
@@ -255,12 +255,15 @@ pub mod pallet {
 		pub fn register_at_lane(
 			origin: OriginFor<T>,
 			lane: LaneId,
+			expected_reward: T::Reward,
 		) -> DispatchResult {
 			let relayer = ensure_signed(origin)?;
 
 			// TODO: we probably need a way for bridge owners (sibling/parent chains) to at least set a maximal
 			// possible reward for their lane over XCM? + maybe change relayers set? This way they could implement
 			// their own incentivization mechanisms by setting reward to zero and changing relayers set on their own.
+
+			// TODO: check that `expected_reward` makes sense
 
 			RegisteredRelayers::<T>::try_mutate(&relayer.clone(), move |maybe_registration| -> DispatchResult {
 				// we only allow registered relayers to have priority boosts
@@ -289,11 +292,28 @@ pub mod pallet {
 
 				// TODO: ideally we shall use the candle auction here (similar to parachain slot auctions)
 				// let's try to claim a slot in the next set
-				LaneRelayers::<T>::try_mutate(lane, |lane_relayers| {
+				LaneRelayers::<T>::try_mutate(lane, |lane_relayers_ref| {
+					let mut lane_relayers = match lane_relayers_ref.take() {
+						Some(lane_relayers) => lane_relayers,
+						None => {
+							// TODO: give some time for initial elections
+							// TODO: what if all relayers that have registered for the next set then call `deregister_at_lane`
+							//       before `next_set` activates? This could be used by malicious relayers - they could fill
+							//       the whole `next_set` and then clear it right before it is enacted. Think we shall allow more
+							//       entries in the `mnext_set` so that it'll be harder for the attacker to fill the full queue.
+							LaneRelayersSet::empty(
+								SystemPallet::<T>::block_number().saturating_add(One::one()).saturating_add(4u32.into()), // TODO
+							)
+						}
+					};
+
 					ensure!(
 						lane_relayers.next_set_try_push(relayer.clone(), expected_reward),
 						Error::<T>::TooLargeRewardToOccupyAnEntry,
 					);
+
+					*lane_relayers_ref = Some(lane_relayers);
+
 					Ok::<_, Error<T>>(())
 				})?;
 
@@ -336,11 +356,19 @@ pub mod pallet {
 				// ensure!(registration.lanes.remove(&lane), Error::<T>::UnregisteredAtLane);
 
 				// remove relayer from the `next_set` of lane relayers. So relayer is still
-				LaneRelayers::<T>::try_mutate(lane, |lane_relayers| {
+				LaneRelayers::<T>::try_mutate(lane, |lane_relayers_ref| {
+					let mut lane_relayers = match lane_relayers_ref.take() {
+						Some(lane_relayers) => lane_relayers,
+						None => fail!(Error::<T>::NotRegisteredAtLane),
+					};
+
 					ensure!(
 						lane_relayers.next_set_try_remove(&relayer),
 						Error::<T>::NotRegisteredAtLane,
 					);
+
+					*lane_relayers_ref = Some(lane_relayers);
+
 					Ok::<_, Error<T>>(())
 				})?;
 
@@ -598,6 +626,10 @@ pub mod pallet {
 		TooManyScheduledChanges,
 		///
 		TooManyLaneRelayersAtLane,
+		///
+		TooLargeRewardToOccupyAnEntry,
+		///
+		NotRegisteredAtLane,
 	}
 
 	/// Map of the relayer => accumulated reward.
@@ -640,17 +672,8 @@ pub mod pallet {
 		_,
 		Identity,
 		LaneId,
-		BoundedVec<T::AccountId, T::MaxRelayersPerLane>,
-		ValueQuery,
-	>;
-
-	/// Scheduled changes of the `LaneRelayers` map.
-	#[pallet::storage]
-	#[pallet::getter(fn lane_relayers_changes)]
-	pub type LaneRelayersChanges<T: Config> = StorageValue<
-		_,
-		BoundedLaneRelayersChanges<T>,
-		ValueQuery,
+		LaneRelayersSet<T::AccountId, BlockNumberFor<T>, T::Reward, T::MaxRelayersPerLane>,
+		OptionQuery,
 	>;
 }
 

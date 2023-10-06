@@ -18,7 +18,7 @@
 
 use codec::{Decode, Encode, MaxEncodedLen};
 use scale_info::TypeInfo;
-use sp_runtime::{traits::Get, BoundedVec, RuntimeDebug};
+use sp_runtime::{traits::{Get, Zero}, BoundedVec, RuntimeDebug};
 
 /// A relayer and the reward that it wants to receive for delivering a single message.
 #[derive(Clone, Decode, Encode, Eq, PartialEq, RuntimeDebug, TypeInfo, MaxEncodedLen)]
@@ -28,6 +28,13 @@ pub struct RelayerAndReward<AccountId, Reward> {
 	relayer: AccountId,
 	/// A reward that is paid to relayer for delivering a single message.
 	reward: Reward,
+}
+
+impl<AccountId, Reward> RelayerAndReward<AccountId, Reward> {
+	/// Return relayer account identifier.
+	pub fn relayer(&self) -> &AccountId {
+		&self.relayer
+	}
 }
 
 /// A set of relayers that have explicitly registered themselves at a given lane.
@@ -48,8 +55,8 @@ pub struct RelayerAndReward<AccountId, Reward> {
 /// messages. Relayer, which agress to get a lower reward will likely to replace a "more greedy"
 /// relayer in the [`Self::next_set`].
 #[derive(Clone, Decode, Encode, Eq, PartialEq, RuntimeDebug, TypeInfo, MaxEncodedLen)]
-#[scale_info(skip_type_params(AccountId, BlockNumber, Reward))]
-pub struct LaneRelayers<AccountId, BlockNumber, Reward, MaxLaneRelayers: Get<u32>> {
+#[scale_info(skip_type_params(MaxRelayersPerLane))]
+pub struct LaneRelayersSet<AccountId, BlockNumber, Reward, MaxRelayersPerLane: Get<u32>> {
 	/// Number of block, where the active set has been enacted.
 	enacted_at: BlockNumber,
 	/// Number of block, where the active set may be replaced with the [`Self::next_set`].
@@ -62,30 +69,55 @@ pub struct LaneRelayers<AccountId, BlockNumber, Reward, MaxLaneRelayers: Get<u32
 	/// It is a circular queue. Every relayer in the queue is assigned the slot (fixed number
 	/// of blocks), starting from [`Self::enacted_at`]. Once the slot of last relayer ends,
 	/// next slot will be assigned to the first relayer and so on.
-	active_set: BoundedVec<RelayerAndReward<AccountId, Reward>, MaxLaneRelayers>,
+	active_set: BoundedVec<RelayerAndReward<AccountId, Reward>, MaxRelayersPerLane>,
 	/// Next set of lane relayers.
 	///
 	/// It is a bounded priority queue. Relayers that are working for larger reward are replaced
 	/// with relayers, that are working for smaller reward.
-	next_set: BoundedVec<RelayerAndReward<AccountId, Reward>, MaxLaneRelayers>,
+	next_set: BoundedVec<RelayerAndReward<AccountId, Reward>, MaxRelayersPerLane>,
 }
 
-impl<AccountId, BlockNumber, Reward, MaxLaneRelayers> LaneRelayers<AccountId, BlockNumber, Reward, MaxLaneRelayers> where
+impl<AccountId, BlockNumber, Reward, MaxRelayersPerLane> LaneRelayersSet<AccountId, BlockNumber, Reward, MaxRelayersPerLane> where
 	AccountId: PartialOrd,	
+	BlockNumber: Zero,
 	Reward: Clone + Copy + Ord,
-	MaxLaneRelayers: Get<u32>,
+	MaxRelayersPerLane: Get<u32>,
 {
-	/// Try insert relayer into next set.
+	/// Creates new empty relayers set, where next sets enacts at given block.
+	pub fn empty(next_set_may_enact_at: BlockNumber) -> Self {
+		LaneRelayersSet {
+			enacted_at: Zero::zero(),
+			next_set_may_enact_at,
+			active_set: BoundedVec::new(),
+			next_set: BoundedVec::new(),
+		}
+	}
+
+	/// Returns count of relayers in the active set.
+	pub fn active_relayers(&self) -> &[RelayerAndReward<AccountId, Reward>] {
+		self.active_set.as_slice()
+	}
+
+	/// Try insert relayer to the next set.
 	///
 	/// Returns `true` if relayer has been added to the set and false otherwise.
 	pub fn next_set_try_push(&mut self, relayer: AccountId, reward: Reward) -> bool {
 		// first, remove existing entry for the same relayer from the set
-		self.next_set.retain(|entry| entry.relayer != relayer);
+		self.next_set_try_remove(&relayer);
 		// now try to insert new entry into the queue
 		self.next_set.force_insert_keep_left(
 			self.select_position_in_next_set(reward),
 			RelayerAndReward { relayer, reward },
 		).is_ok()
+	}
+
+	/// Try remove relayer from the next set.
+	///
+	/// Returns `true` if relayer has been removed from the set.
+	pub fn next_set_try_remove(&mut self, relayer: &AccountId) -> bool {
+		let len_before = self.next_set.len();
+		self.next_set.retain(|entry| entry.relayer != *relayer);
+		self.next_set.len() != len_before
 	}
 
 	fn select_position_in_next_set(&self, reward: Reward) -> usize {
@@ -95,7 +127,7 @@ impl<AccountId, BlockNumber, Reward, MaxLaneRelayers> LaneRelayers<AccountId, Bl
 			.next_set
 			.binary_search_by_key(&reward, |entry| entry.reward)
 			.unwrap_or_else(|position| position);
-		while self.next_set.get(initial_position + 1).map(|entry| entry.reward == reward).unwrap_or(false) {
+		while self.next_set.get(initial_position).map(|entry| entry.reward == reward).unwrap_or(false) {
 			initial_position += 1;
 		}
 		initial_position
@@ -105,19 +137,131 @@ impl<AccountId, BlockNumber, Reward, MaxLaneRelayers> LaneRelayers<AccountId, Bl
 #[cfg(test)]
 mod tests {
 	use super::*;
+	use sp_runtime::traits::ConstU32;
 
 	const MAX_LANE_RELAYERS: u32 = 4;
-	type TestLaneRelayers = LaneRelayers<u64, u64, u64, ConstU32<MAX_LANE_RELAYERS>>;
+	type TestLaneRelayersSet = LaneRelayersSet<u32, u32, u32, ConstU32<MAX_LANE_RELAYERS>>;
 
 	#[test]
 	fn next_set_try_push_works() {
-		let mut relayers: TestLaneRelayers = LaneRelayers {
+		let mut relayers: TestLaneRelayersSet = LaneRelayersSet {
 			enacted_at: 0,
 			next_set_may_enact_at: 100,
 			active_set: vec![].try_into().unwrap(),
 			next_set: vec![].try_into().unwrap(),
 		};
 
-		// first `MAX_LANE_RELAYERS` are added
+		// first `MAX_LANE_RELAYERS` are simply filling the set
+		for i in 0..MAX_LANE_RELAYERS {
+			assert!(relayers.next_set_try_push(i, (MAX_LANE_RELAYERS - i) * 10));
+		}
+		assert_eq!(
+			relayers.next_set.as_slice(),
+			&[
+				RelayerAndReward { relayer: 3, reward: 10 },
+				RelayerAndReward { relayer: 2, reward: 20 },
+				RelayerAndReward { relayer: 1, reward: 30 },
+				RelayerAndReward { relayer: 0, reward: 40 },
+			],
+		);
+
+		// try to insert relayer who wants reward, that is larger than anyone in the set
+		// => the set is not changed
+		assert!(!relayers.next_set_try_push(4, 50));
+		assert_eq!(
+			relayers.next_set.as_slice(),
+			&[
+				RelayerAndReward { relayer: 3, reward: 10 },
+				RelayerAndReward { relayer: 2, reward: 20 },
+				RelayerAndReward { relayer: 1, reward: 30 },
+				RelayerAndReward { relayer: 0, reward: 40 },
+			],
+		);
+
+		// replace worst relayer in the set
+		assert!(relayers.next_set_try_push(5, 35));
+		assert_eq!(
+			relayers.next_set.as_slice(),
+			&[
+				RelayerAndReward { relayer: 3, reward: 10 },
+				RelayerAndReward { relayer: 2, reward: 20 },
+				RelayerAndReward { relayer: 1, reward: 30 },
+				RelayerAndReward { relayer: 5, reward: 35 },
+			],
+		);
+
+		// insert best relayer to the set, pushing worst relayer out of set
+		assert!(relayers.next_set_try_push(6, 5));
+		assert_eq!(
+			relayers.next_set.as_slice(),
+			&[
+				RelayerAndReward { relayer: 6, reward: 5 },
+				RelayerAndReward { relayer: 3, reward: 10 },
+				RelayerAndReward { relayer: 2, reward: 20 },
+				RelayerAndReward { relayer: 1, reward: 30 },
+			],
+		);
+
+		// insert best relayer to the set, pushing worst relayer out of set
+		assert!(relayers.next_set_try_push(6, 5));
+		assert_eq!(
+			relayers.next_set.as_slice(),
+			&[
+				RelayerAndReward { relayer: 6, reward: 5 },
+				RelayerAndReward { relayer: 3, reward: 10 },
+				RelayerAndReward { relayer: 2, reward: 20 },
+				RelayerAndReward { relayer: 1, reward: 30 },
+			],
+		);
+
+		// insert relayer to the middle of the set, pushing worst relayer out of set
+		assert!(relayers.next_set_try_push(7, 15));
+		assert_eq!(
+			relayers.next_set.as_slice(),
+			&[
+				RelayerAndReward { relayer: 6, reward: 5 },
+				RelayerAndReward { relayer: 3, reward: 10 },
+				RelayerAndReward { relayer: 7, reward: 15 },
+				RelayerAndReward { relayer: 2, reward: 20 },
+			],
+		);
+
+		// insert couple of relayer that want the same reward as some relayer in the middle of the queue
+		// => they are inserted **after** existing relayers
+		assert!(relayers.next_set_try_push(8, 10));
+		assert!(relayers.next_set_try_push(9, 10));
+		assert_eq!(
+			relayers.next_set.as_slice(),
+			&[
+				RelayerAndReward { relayer: 6, reward: 5 },
+				RelayerAndReward { relayer: 3, reward: 10 },
+				RelayerAndReward { relayer: 8, reward: 10 },
+				RelayerAndReward { relayer: 9, reward: 10 },
+			],
+		);
+
+		// insert next relayer, similar to previous => it isn't inserted
+		assert!(!relayers.next_set_try_push(10, 10));
+		assert_eq!(
+			relayers.next_set.as_slice(),
+			&[
+				RelayerAndReward { relayer: 6, reward: 5 },
+				RelayerAndReward { relayer: 3, reward: 10 },
+				RelayerAndReward { relayer: 8, reward: 10 },
+				RelayerAndReward { relayer: 9, reward: 10 },
+			],
+		);
+
+		// update expected reward of existing relayer => the set order is changed
+		assert!(!relayers.next_set_try_push(8, 2));
+		assert_eq!(
+			relayers.next_set.as_slice(),
+			&[
+				RelayerAndReward { relayer: 8, reward: 2 },
+				RelayerAndReward { relayer: 6, reward: 5 },
+				RelayerAndReward { relayer: 3, reward: 10 },
+				RelayerAndReward { relayer: 9, reward: 10 },
+			],
+		);
 	}
 }

@@ -23,7 +23,7 @@ pub use extension::{
 	BatchCallUnpacker, ExtensionCallData, ExtensionCallInfo, ExtensionConfig,
 	RuntimeWithUtilityPallet,
 };
-pub use lane_relayers::LaneRelayers;
+pub use lane_relayers::{LaneRelayersSet, RelayerAndReward};
 pub use registration::{Registration, StakeAndSlash};
 
 use bp_messages::LaneId;

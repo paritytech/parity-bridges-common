@@ -46,8 +46,12 @@ where
 {
 	// if there are no relayers, explicitly registered at this lane, noone gets additional
 	// priority boost
-	let lane_relayers = RelayersPallet::<Runtime>::lane_relayers(&lane_id);
-	let lane_relayers_len: BlockNumberFor<Runtime> = (lane_relayers.len() as u32).into();
+	let lane_relayers = match RelayersPallet::<Runtime>::lane_relayers(&lane_id) {
+		Some(lane_relayers) => lane_relayers,
+		None => return 0,
+	};
+	let active_lane_relayers = lane_relayers.active_relayers();
+	let lane_relayers_len: BlockNumberFor<Runtime> = (active_lane_relayers.len() as u32).into();
 	if lane_relayers_len.is_zero() {
 		return 0;
 	}
@@ -64,13 +68,13 @@ where
 
 	// and then get the relayer for that slot
 	let slot_relayer = match usize::try_from(slot % lane_relayers_len) {
-		Ok(slot_relayer_index) => &lane_relayers[slot_relayer_index],
+		Ok(slot_relayer_index) => &active_lane_relayers[slot_relayer_index],
 		Err(_) => return 0,
 	};
 
 	// if message delivery transaction is submitted by the relayer, assigned to the current
 	// slot, let's boost the transaction priority
-	if relayer != slot_relayer {
+	if relayer != slot_relayer.relayer() {
 		return 0;
 	}
 
