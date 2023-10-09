@@ -134,6 +134,9 @@ fn register_relayers_rewards<T: Config>(
 	reward_account: RewardsAccountParams,
 ) {
 	for (relayer, messages) in relayers_rewards {
+		// TODO: THIS IS WRONG - `LaneRelayers` is for relayers, which are delivering messages from BRIDGED to THIS
+		// chain and `register_relayers_rewards` is called for relayers that are delivering messages from THIS
+		// to BRIDGED chain
 		let message_delivery_reward = LaneRelayers::<T>::get(reward_account.lane_id())
 			.and_then(|lane_relayers| {
 				lane_relayers
