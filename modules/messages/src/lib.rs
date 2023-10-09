@@ -320,6 +320,7 @@ pub mod pallet {
 
 			// let's now deal with relayer payments
 			T::DeliveryPayments::pay_reward(
+				lane_id,
 				relayer_id_at_this_chain,
 				total_messages,
 				valid_messages,

@@ -129,6 +129,7 @@ pub trait DeliveryPayments<AccountId> {
 	/// `valid_messages` have been accepted. The post-dispatch transaction weight is the
 	/// `actual_weight`.
 	fn pay_reward(
+		lane_id: LaneId,
 		relayer: AccountId,
 		total_messages: MessageNonce,
 		valid_messages: MessageNonce,
@@ -158,6 +159,7 @@ impl<AccountId> DeliveryPayments<AccountId> for () {
 	type Error = &'static str;
 
 	fn pay_reward(
+		_lane_id: LaneId,
 		_relayer: AccountId,
 		_total_messages: MessageNonce,
 		_valid_messages: MessageNonce,

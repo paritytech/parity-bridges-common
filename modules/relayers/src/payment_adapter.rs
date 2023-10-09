@@ -16,15 +16,16 @@
 
 //! Code that allows relayers pallet to be used as a payment mechanism for the messages pallet.
 
-use crate::{Config, Pallet};
+use crate::{Config, LaneRelayers, Pallet};
 
 use bp_messages::{
 	source_chain::{DeliveryConfirmationPayments, RelayersRewards},
+	target_chain::DeliveryPayments,
 	LaneId, MessageNonce,
 };
 use bp_relayers::{RewardsAccountOwner, RewardsAccountParams};
 use bp_runtime::Chain;
-use frame_support::{sp_runtime::SaturatedConversion, traits::Get};
+use frame_support::{sp_runtime::SaturatedConversion, traits::Get, weights::Weight};
 use sp_arithmetic::traits::{Saturating, Zero};
 use sp_std::{collections::vec_deque::VecDeque, marker::PhantomData, ops::RangeInclusive};
 
@@ -65,6 +66,70 @@ where
 		);
 
 		rewarded_relayers as _
+	}
+}
+
+impl<T, MI, DeliveryReward> DeliveryPayments<T::AccountId>
+	for DeliveryConfirmationPaymentsAdapter<T, MI, DeliveryReward>
+where
+	T: Config + pallet_bridge_messages::Config<MI>,
+	MI: 'static,
+	DeliveryReward: Get<T::Reward>,
+{
+	type Error = &'static str;
+
+	fn pay_reward(
+		lane_id: LaneId,
+		relayer: T::AccountId,
+		_total_messages: MessageNonce,
+		valid_messages: MessageNonce,
+		_actual_weight: Weight,
+	) {
+		if valid_messages == 0 {
+			return
+		}
+
+		let _ = LaneRelayers::<T>::try_mutate(lane_id, |maybe_lane_relayers| {
+			if let Some(lane_relayers) = maybe_lane_relayers {
+				// if relayer is NOT in the active set, we don't want to do anything here
+				let relayer_in_active_set = lane_relayers
+					.active_relayers()
+					.iter()
+					.filter(|r| *r.relayer() == relayer)
+					.next()
+					.cloned();
+				let relayer_in_active_set = match relayer_in_active_set {
+					Some(relayer_in_active_set) => relayer_in_active_set,
+					None => return Err(()),
+				};
+
+				// if relayer is already in the active set, we don't want to do anything here
+				let is_in_next_set = lane_relayers
+					.next_relayers()
+					.iter()
+					.filter(|r| *r.relayer() == relayer)
+					.next()
+					.is_some();
+				if is_in_next_set {
+					return Err(())
+				}
+
+				// if relayer is not willoing to work on that lane anymore, we don't want to do
+				// anything here
+				let wants_to_work_on_lane = Pallet::<T>::registered_relayer(&relayer)
+					.map(|registration| registration.lanes().contains(&lane_id))
+					.unwrap_or(false);
+				if wants_to_work_on_lane {
+					return Err(())
+				}
+
+				if !lane_relayers.next_set_try_push(relayer, *relayer_in_active_set.reward()) {
+					return Err(())
+				}
+			}
+
+			Ok(())
+		});
 	}
 }
 

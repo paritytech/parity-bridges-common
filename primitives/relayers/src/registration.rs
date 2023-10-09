@@ -130,6 +130,11 @@ impl<
 		self.stake.clone()
 	}
 
+	/// Returns lanes that relayer is serving with priority.
+	pub fn lanes(&self) -> &[LaneId] {
+		self.lanes.as_slice()
+	}
+
 	/// Returns minimal stake that the relayer need to have in reserve to be
 	/// considered active.
 	pub fn required_stake(&self, base_stake: Balance, stake_per_lane: Balance) -> Balance {
@@ -193,7 +198,8 @@ pub trait StakeAndSlash<AccountId, BlockNumber, Balance> {
 	/// The stake that the relayer must have to have its message delivery transactions boosted.
 	type RequiredStake: Get<Balance>;
 	/// Additional stake that the relayer must have for every additional lane, where he wants to
-	/// get an extra boost (in addition to `[Self::RequiredStake]`) for message delivery transactions.
+	/// get an extra boost (in addition to `[Self::RequiredStake]`) for message delivery
+	/// transactions.
 	type RequiredLaneStake: Get<Balance>;
 
 	/// Required **remaining** registration lease to be able to get transaction priority boost.

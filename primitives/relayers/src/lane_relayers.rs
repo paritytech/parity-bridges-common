@@ -37,6 +37,11 @@ impl<AccountId, Reward> RelayerAndReward<AccountId, Reward> {
 	pub fn relayer(&self) -> &AccountId {
 		&self.relayer
 	}
+
+	/// Return expected relayer reward.
+	pub fn reward(&self) -> &Reward {
+		&self.reward
+	}
 }
 
 /// A set of relayers that have explicitly registered themselves at a given lane.
@@ -102,9 +107,14 @@ where
 		self.next_set_may_enact_at
 	}
 
-	/// Returns count of relayers in the active set.
+	/// Returns relayers in the active set.
 	pub fn active_relayers(&self) -> &[RelayerAndReward<AccountId, Reward>] {
 		self.active_set.as_slice()
+	}
+
+	/// Returns relayers in the next set.
+	pub fn next_relayers(&self) -> &[RelayerAndReward<AccountId, Reward>] {
+		self.next_set.as_slice()
 	}
 
 	/// Try insert relayer to the next set.
@@ -135,7 +145,11 @@ where
 	///
 	/// The [`Self::active_set`] is replaced with the [`Self::next_set`].
 	pub fn activate_next_set(&mut self, new_next_set_may_enact_at: BlockNumber) {
-		self.active_set = self.next_set.clone();
+		sp_std::mem::swap(&mut self.active_set, &mut self.next_set);
+		// we clear next set here. Relayers from the active set will be readded here if
+		// they deliver at least one message in epoch and their reward will be concurrent.
+		// Or else, they'll need to reregister manually.
+		self.next_set.clear();
 		self.next_set_may_enact_at = new_next_set_may_enact_at;
 	}
 

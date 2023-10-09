@@ -301,8 +301,8 @@ pub mod pallet {
 						Error::<T>::FailedToRegisterAtLane
 					);
 
-					// TODO: ideally we shall use the candle auction for relayers selection (similar to
-					// parachain slot auctions) rather than a fixed interval
+					// TODO: ideally we shall use the candle auction for relayers selection (similar
+					// to parachain slot auctions) rather than a fixed interval
 
 					// let's try to claim a slot in the next set
 					LaneRelayers::<T>::try_mutate(lane, |maybe_lane_relayers| {
