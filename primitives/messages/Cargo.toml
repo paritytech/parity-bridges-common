@@ -21,6 +21,7 @@ bp-header-chain = { path = "../header-chain", default-features = false }
 frame-support = { git = "https://github.com/paritytech/polkadot-sdk", branch = "master", default-features = false }
 sp-core = { git = "https://github.com/paritytech/polkadot-sdk", branch = "master", default-features = false }
 sp-io = { git = "https://github.com/paritytech/polkadot-sdk", branch = "master", default-features = false }
+sp-runtime = { git = "https://github.com/paritytech/polkadot-sdk", branch = "master", default-features = false }
 sp-std = { git = "https://github.com/paritytech/polkadot-sdk", branch = "master", default-features = false }
 
 [dev-dependencies]
@@ -38,5 +39,6 @@ std = [
 	"serde/std",
 	"sp-core/std",
     "sp-io/std",
+	"sp-runtime/std",
 	"sp-std/std",
 ]

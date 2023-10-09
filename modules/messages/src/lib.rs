@@ -60,12 +60,12 @@ use bp_messages::{
 		DeliveryPayments, DispatchMessage, FromBridgedChainMessagesProof, MessageDispatch,
 		ProvedLaneMessages, ProvedMessages,
 	},
-	ChainWithMessages, DeliveredMessages, InboundLaneData, InboundMessageDetails, LaneId,
+	ChainWithMessages, InboundLaneData, InboundMessageDetails, LaneId,
 	MessageKey, MessageNonce, MessagePayload, MessagesOperatingMode, OutboundLaneData,
 	OutboundMessageDetails, UnrewardedRelayersState, VerificationError,
 };
 use bp_runtime::{
-	AccountIdOf, BasicOperatingMode, HashOf, OwnedBridgeModule, PreComputedSize, RangeInclusiveExt,
+	AccountIdOf, BalanceOf, BasicOperatingMode, HashOf, OwnedBridgeModule, PreComputedSize, RangeInclusiveExt,
 	Size,
 };
 use codec::{Decode, Encode};
@@ -127,7 +127,7 @@ pub mod pallet {
 		type DeliveryPayments: DeliveryPayments<Self::AccountId>;
 		/// Handler for relayer payments that happen during message delivery confirmation
 		/// transaction.
-		type DeliveryConfirmationPayments: DeliveryConfirmationPayments<Self::AccountId>;
+		type DeliveryConfirmationPayments: DeliveryConfirmationPayments<AccountIdOf<ThisChainOf<Self, I>>, BalanceOf<ThisChainOf<Self, I>>>;
 		/// Delivery confirmation callback.
 		type OnMessagesDelivered: OnMessagesDelivered;
 
@@ -153,7 +153,7 @@ pub mod pallet {
 	}
 
 	#[pallet::call]
-	impl<T: Config<I>, I: 'static> Pallet<T, I> {
+	impl<T: Config<I>, I: 'static> Pallet<T, I> where T: frame_system::Config<AccountId = AccountIdOf<T::ThisChain>> {
 		/// Change `PalletOwner`.
 		///
 		/// May only be called either by root, or by `PalletOwner`.
@@ -382,12 +382,12 @@ pub mod pallet {
 				)
 				.map_err(Error::<T, I>::ReceivalConfirmation)?;
 
-			if let Some(confirmed_messages) = confirmed_messages {
+			if let Some(received_range) = confirmed_messages {
 				// emit 'delivered' event
-				let received_range = confirmed_messages.begin..=confirmed_messages.end;
 				Self::deposit_event(Event::MessagesDelivered {
 					lane_id,
-					messages: confirmed_messages,
+					messages_begin: *received_range.start(),
+					messages_end: *received_range.end(),
 				});
 
 				// if some new messages have been confirmed, reward relayers
@@ -453,8 +453,10 @@ pub mod pallet {
 		MessagesDelivered {
 			/// Lane for which the delivery has been confirmed.
 			lane_id: LaneId,
-			/// Delivered messages.
-			messages: DeliveredMessages,
+			/// Nonce of the first delivered message.
+			messages_begin: MessageNonce,
+			/// Nonce of the last delivered message.
+			messages_end: MessageNonce,
 		},
 	}
 
@@ -576,7 +578,7 @@ pub mod pallet {
 		/// Return inbound lane data.
 		pub fn inbound_lane_data(
 			lane: LaneId,
-		) -> Option<InboundLaneData<AccountIdOf<BridgedChainOf<T, I>>>> {
+		) -> Option<InboundLaneData<AccountIdOf<BridgedChainOf<T, I>>, BalanceOf<BridgedChainOf<T, I>>>> {
 			InboundLanes::<T, I>::get(lane).map(|lane| lane.0)
 		}
 	}

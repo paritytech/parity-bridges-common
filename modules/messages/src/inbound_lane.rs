@@ -23,16 +23,18 @@ use bp_messages::{
 	ChainWithMessages, DeliveredMessages, InboundLaneData, LaneId, LaneState, MessageKey,
 	MessageNonce, OutboundLaneData, ReceivalResult, UnrewardedRelayer,
 };
-use bp_runtime::AccountIdOf;
+use bp_runtime::{AccountIdOf, BalanceOf};
 use codec::{Decode, Encode, EncodeLike, MaxEncodedLen};
 use scale_info::{Type, TypeInfo};
-use sp_runtime::RuntimeDebug;
+use sp_runtime::{traits::{One, Saturating}, RuntimeDebug};
 use sp_std::prelude::PartialEq;
 
 /// Inbound lane storage.
 pub trait InboundLaneStorage {
 	/// Id of relayer on source chain.
 	type Relayer: Clone + PartialEq;
+	/// Balance of the source chain.
+	type Balance: Clone + One + PartialEq + Saturating;
 
 	/// Lane id.
 	fn id(&self) -> LaneId;
@@ -41,9 +43,9 @@ pub trait InboundLaneStorage {
 	/// Return maximal number of unconfirmed messages in inbound lane.
 	fn max_unconfirmed_messages(&self) -> MessageNonce;
 	/// Get lane data from the storage.
-	fn data(&self) -> InboundLaneData<Self::Relayer>;
+	fn data(&self) -> InboundLaneData<Self::Relayer, Self::Balance>;
 	/// Update lane data in the storage.
-	fn set_data(&mut self, data: InboundLaneData<Self::Relayer>);
+	fn set_data(&mut self, data: InboundLaneData<Self::Relayer, Self::Balance>);
 	/// Purge lane data from the storage.
 	fn purge(self);
 }
@@ -58,11 +60,11 @@ pub trait InboundLaneStorage {
 /// The encoding of this type matches encoding of the corresponding `MessageData`.
 #[derive(Encode, Decode, Clone, RuntimeDebug, PartialEq, Eq)]
 pub struct StoredInboundLaneData<T: Config<I>, I: 'static>(
-	pub InboundLaneData<AccountIdOf<BridgedChainOf<T, I>>>,
+	pub InboundLaneData<AccountIdOf<BridgedChainOf<T, I>>, BalanceOf<BridgedChainOf<T, I>>>,
 );
 
 impl<T: Config<I>, I: 'static> sp_std::ops::Deref for StoredInboundLaneData<T, I> {
-	type Target = InboundLaneData<AccountIdOf<BridgedChainOf<T, I>>>;
+	type Target = InboundLaneData<AccountIdOf<BridgedChainOf<T, I>>, BalanceOf<BridgedChainOf<T, I>>>;
 
 	fn deref(&self) -> &Self::Target {
 		&self.0
@@ -82,7 +84,7 @@ impl<T: Config<I>, I: 'static> Default for StoredInboundLaneData<T, I> {
 }
 
 impl<T: Config<I>, I: 'static> From<StoredInboundLaneData<T, I>>
-	for InboundLaneData<AccountIdOf<BridgedChainOf<T, I>>>
+	for InboundLaneData<AccountIdOf<BridgedChainOf<T, I>>, BalanceOf<BridgedChainOf<T, I>>>
 {
 	fn from(data: StoredInboundLaneData<T, I>) -> Self {
 		data.0
@@ -90,7 +92,7 @@ impl<T: Config<I>, I: 'static> From<StoredInboundLaneData<T, I>>
 }
 
 impl<T: Config<I>, I: 'static> EncodeLike<StoredInboundLaneData<T, I>>
-	for InboundLaneData<AccountIdOf<BridgedChainOf<T, I>>>
+	for InboundLaneData<AccountIdOf<BridgedChainOf<T, I>>, BalanceOf<BridgedChainOf<T, I>>>
 {
 }
 
@@ -98,13 +100,13 @@ impl<T: Config<I>, I: 'static> TypeInfo for StoredInboundLaneData<T, I> {
 	type Identity = Self;
 
 	fn type_info() -> Type {
-		InboundLaneData::<AccountIdOf<BridgedChainOf<T, I>>>::type_info()
+		InboundLaneData::<AccountIdOf<BridgedChainOf<T, I>>, BalanceOf<BridgedChainOf<T, I>>>::type_info()
 	}
 }
 
 impl<T: Config<I>, I: 'static> MaxEncodedLen for StoredInboundLaneData<T, I> {
 	fn max_encoded_len() -> usize {
-		InboundLaneData::<AccountIdOf<BridgedChainOf<T, I>>>::encoded_size_hint(
+		InboundLaneData::<AccountIdOf<BridgedChainOf<T, I>>, BalanceOf<BridgedChainOf<T, I>>>::encoded_size_hint(
 			BridgedChainOf::<T, I>::MAX_UNREWARDED_RELAYERS_IN_CONFIRMATION_TX as usize,
 		)
 		.unwrap_or(usize::MAX)
@@ -210,14 +212,15 @@ impl<S: InboundLaneStorage> InboundLane<S> {
 		});
 
 		// now let's update inbound lane storage
+		let relayer_reward_per_message = One::one(); // TODO: it must be returned by some callback!!!
 		match data.relayers.back_mut() {
-			Some(entry) if entry.relayer == *relayer_at_bridged_chain => {
+			Some(entry) if entry.relayer == *relayer_at_bridged_chain && entry.messages.reward == relayer_reward_per_message => {
 				entry.messages.note_dispatched_message();
 			},
 			_ => {
 				data.relayers.push_back(UnrewardedRelayer {
 					relayer: relayer_at_bridged_chain.clone(),
-					messages: DeliveredMessages::new(nonce),
+					messages: DeliveredMessages::new(nonce, relayer_reward_per_message),
 				});
 			},
 		};

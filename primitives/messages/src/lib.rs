@@ -24,16 +24,17 @@ use bp_runtime::{
 	messages::MessageDispatchResult, BasicOperatingMode, Chain, OperatingMode, RangeInclusiveExt,
 	StorageProofError, UnderlyingChainOf, UnderlyingChainProvider,
 };
-use codec::{Decode, Encode, MaxEncodedLen};
+use codec::{Compact, Decode, Encode, MaxEncodedLen};
 use frame_support::PalletError;
 // Weight is reexported to avoid additional frame-support dependencies in related crates.
 pub use frame_support::weights::Weight;
 use scale_info::TypeInfo;
 use serde::{Deserialize, Serialize};
-use source_chain::RelayersRewards;
+use source_chain::RelayersRewardsAtSource;
 use sp_core::{RuntimeDebug, TypeId, H256};
 use sp_io::hashing::blake2_256;
-use sp_std::{collections::vec_deque::VecDeque, ops::RangeInclusive, prelude::*};
+use sp_runtime::{traits::AtLeast32BitUnsigned, SaturatedConversion};
+use sp_std::{collections::{btree_map::Entry, vec_deque::VecDeque}, ops::RangeInclusive, prelude::*};
 
 pub use call_info::{
 	BaseMessagesProofInfo, BridgeMessagesCall, BridgeMessagesCallOf, MessagesCallInfo,
@@ -307,7 +308,7 @@ pub struct Message {
 
 /// Inbound lane data.
 #[derive(Encode, Decode, Clone, RuntimeDebug, PartialEq, Eq, TypeInfo)]
-pub struct InboundLaneData<RelayerId> {
+pub struct InboundLaneData<RelayerId, RewardAtSource> {
 	/// Inbound lane state.
 	///
 	/// If state is `Closed`, then all attempts to deliver messages to this end will fail.
@@ -330,7 +331,7 @@ pub struct InboundLaneData<RelayerId> {
 	/// When a relayer sends a single message, both of MessageNonces are the same.
 	/// When relayer sends messages in a batch, the first arg is the lowest nonce, second arg the
 	/// highest nonce. Multiple dispatches from the same relayer are allowed.
-	pub relayers: VecDeque<UnrewardedRelayer<RelayerId>>,
+	pub relayers: VecDeque<UnrewardedRelayer<RelayerId, RewardAtSource>>,
 
 	/// Nonce of the last message that
 	/// a) has been delivered to the target (this) chain and
@@ -343,7 +344,7 @@ pub struct InboundLaneData<RelayerId> {
 	pub last_confirmed_nonce: MessageNonce,
 }
 
-impl<RelayerId> Default for InboundLaneData<RelayerId> {
+impl<RelayerId, RewardAtSource> Default for InboundLaneData<RelayerId, RewardAtSource> {
 	fn default() -> Self {
 		InboundLaneData {
 			state: LaneState::Closed,
@@ -353,7 +354,7 @@ impl<RelayerId> Default for InboundLaneData<RelayerId> {
 	}
 }
 
-impl<RelayerId> InboundLaneData<RelayerId> {
+impl<RelayerId, RewardAtSource> InboundLaneData<RelayerId, RewardAtSource> {
 	/// Returns default inbound lane data with opened state.
 	pub fn opened() -> Self {
 		InboundLaneData { state: LaneState::Opened, ..Default::default() }
@@ -366,9 +367,12 @@ impl<RelayerId> InboundLaneData<RelayerId> {
 	pub fn encoded_size_hint(relayers_entries: usize) -> Option<usize>
 	where
 		RelayerId: MaxEncodedLen,
+		RewardAtSource: MaxEncodedLen,
 	{
 		relayers_entries
-			.checked_mul(UnrewardedRelayer::<RelayerId>::max_encoded_len())?
+			.checked_mul(UnrewardedRelayer::<RelayerId, RewardAtSource>::max_encoded_len())?
+			.checked_add(Compact::<u32>(relayers_entries as u32).encoded_size())?
+			.checked_add(LaneState::max_encoded_len())?
 			.checked_add(MessageNonce::max_encoded_len())
 	}
 
@@ -379,6 +383,7 @@ impl<RelayerId> InboundLaneData<RelayerId> {
 	pub fn encoded_size_hint_u32(relayers_entries: usize) -> u32
 	where
 		RelayerId: MaxEncodedLen,
+		RewardAtSource: MaxEncodedLen,
 	{
 		Self::encoded_size_hint(relayers_entries)
 			.and_then(|x| u32::try_from(x).ok())
@@ -436,11 +441,11 @@ pub struct InboundMessageDetails {
 /// This struct represents a continuous range of messages that have been delivered by the same
 /// relayer and whose confirmations are still pending.
 #[derive(Encode, Decode, Clone, RuntimeDebug, PartialEq, Eq, TypeInfo, MaxEncodedLen)]
-pub struct UnrewardedRelayer<RelayerId> {
-	/// Identifier of the relayer.
+pub struct UnrewardedRelayer<RelayerId, RewardAtSource> {
+	/// Identifier of the relayer at the source (sending) chain.
 	pub relayer: RelayerId,
 	/// Messages range, delivered by this relayer.
-	pub messages: DeliveredMessages,
+	pub messages: DeliveredMessages<RewardAtSource>,
 }
 
 /// Received messages with their dispatch result.
@@ -485,18 +490,22 @@ pub enum ReceivalResult<DispatchLevelResult> {
 
 /// Delivered messages with their dispatch result.
 #[derive(Clone, Default, Encode, Decode, RuntimeDebug, PartialEq, Eq, TypeInfo, MaxEncodedLen)]
-pub struct DeliveredMessages {
+pub struct DeliveredMessages<RewardAtSource> {
 	/// Nonce of the first message that has been delivered (inclusive).
 	pub begin: MessageNonce,
 	/// Nonce of the last message that has been delivered (inclusive).
 	pub end: MessageNonce,
+	/// Reward that needs to be paid at the source chain (during confirmation transaction)
+	/// for every delivered message in the `begin..=end` range. If reward has been paid at the
+	/// target chain, it may be zero.  
+	pub reward: RewardAtSource,
 }
 
-impl DeliveredMessages {
+impl<RewardAtSource> DeliveredMessages<RewardAtSource> {
 	/// Create new `DeliveredMessages` struct that confirms delivery of single nonce with given
 	/// dispatch result.
-	pub fn new(nonce: MessageNonce) -> Self {
-		DeliveredMessages { begin: nonce, end: nonce }
+	pub fn new(nonce: MessageNonce, reward: RewardAtSource) -> Self {
+		DeliveredMessages { begin: nonce, end: nonce, reward }
 	}
 
 	/// Return total count of delivered messages.
@@ -534,13 +543,13 @@ pub struct UnrewardedRelayersState {
 
 impl UnrewardedRelayersState {
 	/// Verify that the relayers state corresponds with the `InboundLaneData`.
-	pub fn is_valid<RelayerId>(&self, lane_data: &InboundLaneData<RelayerId>) -> bool {
+	pub fn is_valid<RelayerId, RewardAtSource>(&self, lane_data: &InboundLaneData<RelayerId, RewardAtSource>) -> bool {
 		self == &lane_data.into()
 	}
 }
 
-impl<RelayerId> From<&InboundLaneData<RelayerId>> for UnrewardedRelayersState {
-	fn from(lane: &InboundLaneData<RelayerId>) -> UnrewardedRelayersState {
+impl<RelayerId, RewardAtSource> From<&InboundLaneData<RelayerId, RewardAtSource>> for UnrewardedRelayersState {
+	fn from(lane: &InboundLaneData<RelayerId, RewardAtSource>) -> UnrewardedRelayersState {
 		UnrewardedRelayersState {
 			unrewarded_relayer_entries: lane.relayers.len() as _,
 			messages_in_oldest_entry: lane
@@ -591,21 +600,38 @@ impl Default for OutboundLaneData {
 }
 
 /// Calculate the number of messages that the relayers have delivered.
-pub fn calc_relayers_rewards<AccountId>(
-	messages_relayers: VecDeque<UnrewardedRelayer<AccountId>>,
+pub fn calc_relayers_rewards_at_source<AccountId, RewardAtSource>(
+	messages_relayers: VecDeque<UnrewardedRelayer<AccountId, RewardAtSource>>,
 	received_range: &RangeInclusive<MessageNonce>,
-) -> RelayersRewards<AccountId>
+) -> RelayersRewardsAtSource<AccountId, RewardAtSource>
 where
 	AccountId: sp_std::cmp::Ord,
+	RewardAtSource: AtLeast32BitUnsigned + Clone/*Bounded + Clone + Saturating + UniqueSaturatedFrom<MessageNonce> + Zero*/,
 {
 	// remember to reward relayers that have delivered messages
 	// this loop is bounded by `T::MAX_UNREWARDED_RELAYERS_IN_CONFIRMATION_TX` on the bridged chain
-	let mut relayers_rewards = RelayersRewards::new();
+	let mut relayers_rewards: RelayersRewardsAtSource<AccountId, RewardAtSource> = RelayersRewardsAtSource::new();
 	for entry in messages_relayers {
+		if entry.messages.reward.is_zero() {
+			continue;
+		}
+		
 		let nonce_begin = sp_std::cmp::max(entry.messages.begin, *received_range.start());
 		let nonce_end = sp_std::cmp::min(entry.messages.end, *received_range.end());
-		if nonce_end >= nonce_begin {
-			*relayers_rewards.entry(entry.relayer).or_default() += nonce_end - nonce_begin + 1;
+		let new_confirmations = nonce_begin..=nonce_end;
+		let new_confirmations_count = new_confirmations.saturating_len();
+		if new_confirmations_count == 0 {
+			continue;
+		}
+
+		let new_reward = RewardAtSource::saturated_from(new_confirmations_count).saturating_mul(entry.messages.reward);
+		match relayers_rewards.entry(entry.relayer) {
+			Entry::Occupied(mut e) => {
+				e.insert(e.get().clone().saturating_add(new_reward));
+			},
+			Entry::Vacant(e) => {
+				e.insert(new_reward);
+			}
 		}
 	}
 	relayers_rewards
@@ -642,7 +668,7 @@ mod tests {
 
 	#[test]
 	fn lane_is_closed_by_default() {
-		assert_eq!(InboundLaneData::<()>::default().state, LaneState::Closed);
+		assert_eq!(InboundLaneData::<(), ()>::default().state, LaneState::Closed);
 		assert_eq!(OutboundLaneData::default().state, LaneState::Closed);
 	}
 
@@ -651,10 +677,10 @@ mod tests {
 		let lane_data = InboundLaneData {
 			state: LaneState::Opened,
 			relayers: vec![
-				UnrewardedRelayer { relayer: 1, messages: DeliveredMessages::new(0) },
+				UnrewardedRelayer { relayer: 1, messages: DeliveredMessages::new(0, 0) },
 				UnrewardedRelayer {
 					relayer: 2,
-					messages: DeliveredMessages::new(MessageNonce::MAX),
+					messages: DeliveredMessages::new(MessageNonce::MAX, 0),
 				},
 			]
 			.into_iter()
@@ -675,13 +701,13 @@ mod tests {
 			(13u8, 128u8),
 		];
 		for (relayer_entries, messages_count) in test_cases {
-			let expected_size = InboundLaneData::<u8>::encoded_size_hint(relayer_entries as _);
+			let expected_size = InboundLaneData::<u8, u16>::encoded_size_hint(relayer_entries as _);
 			let actual_size = InboundLaneData {
 				state: LaneState::Opened,
 				relayers: (1u8..=relayer_entries)
 					.map(|i| UnrewardedRelayer {
 						relayer: i,
-						messages: DeliveredMessages::new(i as _),
+						messages: DeliveredMessages::new(i as _, 0u16),
 					})
 					.collect(),
 				last_confirmed_nonce: messages_count as _,
@@ -698,7 +724,7 @@ mod tests {
 
 	#[test]
 	fn contains_result_works() {
-		let delivered_messages = DeliveredMessages { begin: 100, end: 150 };
+		let delivered_messages = DeliveredMessages { begin: 100, end: 150, reward: 0 };
 
 		assert!(!delivered_messages.contains_message(99));
 		assert!(delivered_messages.contains_message(100));

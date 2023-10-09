@@ -24,7 +24,7 @@ use bp_messages::{
 	LaneId, MessageNonce, MessagesCallInfo, ReceiveMessagesDeliveryProofInfo,
 	ReceiveMessagesProofInfo, UnrewardedRelayerOccupation,
 };
-use bp_runtime::AccountIdOf;
+use bp_runtime::{AccountIdOf, BalanceOf};
 use frame_support::{dispatch::CallableCallFor, traits::IsSubType};
 use sp_runtime::transaction_validity::TransactionValidity;
 
@@ -74,6 +74,7 @@ impl<T: Config<I>, I: 'static> CallHelper<T, I> {
 /// Trait representing a call that is a sub type of `pallet_bridge_messages::Call`.
 pub trait CallSubType<T: Config<I, RuntimeCall = Self>, I: 'static>:
 	IsSubType<CallableCallFor<Pallet<T, I>, T>>
+where T: frame_system::Config<AccountId = AccountIdOf<T::ThisChain>>
 {
 	/// Create a new instance of `ReceiveMessagesProofInfo` from a `ReceiveMessagesProof` call.
 	fn receive_messages_proof_info(&self) -> Option<ReceiveMessagesProofInfo>;
@@ -100,6 +101,7 @@ impl<
 		T: frame_system::Config<RuntimeCall = Call> + Config<I>,
 		I: 'static,
 	> CallSubType<T, I> for T::RuntimeCall
+where T: frame_system::Config<AccountId = AccountIdOf<T::ThisChain>>
 {
 	fn receive_messages_proof_info(&self) -> Option<ReceiveMessagesProofInfo> {
 		if let Some(crate::Call::<T, I>::receive_messages_proof { ref proof, .. }) =
@@ -202,7 +204,7 @@ impl<
 
 /// Returns occupation state of unrewarded relayers vector.
 fn unrewarded_relayers_occupation<T: Config<I>, I: 'static>(
-	inbound_lane_data: &InboundLaneData<AccountIdOf<BridgedChainOf<T, I>>>,
+	inbound_lane_data: &InboundLaneData<AccountIdOf<BridgedChainOf<T, I>>, BalanceOf<BridgedChainOf<T, I>>>,
 ) -> UnrewardedRelayerOccupation {
 	UnrewardedRelayerOccupation {
 		free_relayer_slots: T::BridgedChain::MAX_UNREWARDED_RELAYERS_IN_CONFIRMATION_TX
@@ -237,7 +239,7 @@ mod tests {
 		for n in 0..BridgedChain::MAX_UNREWARDED_RELAYERS_IN_CONFIRMATION_TX {
 			inbound_lane_state.relayers.push_back(UnrewardedRelayer {
 				relayer: Default::default(),
-				messages: DeliveredMessages { begin: n + 1, end: n + 1 },
+				messages: DeliveredMessages { begin: n + 1, end: n + 1, reward: 0 },
 			});
 		}
 		InboundLanes::<TestRuntime>::insert(test_lane_id(), inbound_lane_state);
@@ -250,6 +252,7 @@ mod tests {
 			messages: DeliveredMessages {
 				begin: 1,
 				end: BridgedChain::MAX_UNCONFIRMED_MESSAGES_IN_CONFIRMATION_TX,
+				reward: 0,
 			},
 		});
 		InboundLanes::<TestRuntime>::insert(test_lane_id(), inbound_lane_state);

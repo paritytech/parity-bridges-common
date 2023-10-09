@@ -16,7 +16,7 @@
 
 //! Tools for messages and delivery proof verification.
 
-use crate::{BridgedChainOf, BridgedHeaderChainOf, Config};
+use crate::{BridgedChainOf, BridgedHeaderChainOf, Config, ThisChainOf};
 
 use bp_header_chain::HeaderChain;
 use bp_messages::{
@@ -25,12 +25,12 @@ use bp_messages::{
 	ChainWithMessages, InboundLaneData, LaneId, Message, MessageKey, MessageNonce, MessagePayload,
 	OutboundLaneData, VerificationError,
 };
-use bp_runtime::{HashOf, RangeInclusiveExt, VerifiedStorageProof};
+use bp_runtime::{AccountIdOf, BalanceOf, HashOf, RangeInclusiveExt, VerifiedStorageProof};
 use sp_std::vec::Vec;
 
 /// 'Parsed' message delivery proof - inbound lane id and its state.
-pub(crate) type ParsedMessagesDeliveryProofFromBridgedChain<T> =
-	(LaneId, InboundLaneData<<T as frame_system::Config>::AccountId>);
+pub(crate) type ParsedMessagesDeliveryProofFromBridgedChain<T, I> =
+	(LaneId, InboundLaneData<AccountIdOf<ThisChainOf<T, I>>, BalanceOf<ThisChainOf<T, I>>>);
 
 /// Verify proof of Bridged -> This chain messages.
 ///
@@ -97,7 +97,7 @@ pub fn verify_messages_proof<T: Config<I>, I: 'static>(
 /// Verify proof of This -> Bridged chain messages delivery.
 pub fn verify_messages_delivery_proof<T: Config<I>, I: 'static>(
 	proof: FromBridgedChainMessagesDeliveryProof<HashOf<BridgedChainOf<T, I>>>,
-) -> Result<ParsedMessagesDeliveryProofFromBridgedChain<T>, VerificationError> {
+) -> Result<ParsedMessagesDeliveryProofFromBridgedChain<T, I>, VerificationError> {
 	let FromBridgedChainMessagesDeliveryProof { bridged_header_hash, storage_proof, lane } = proof;
 	let mut storage =
 		T::BridgedHeaderChain::verify_storage_proof(bridged_header_hash, storage_proof)

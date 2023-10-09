@@ -24,7 +24,7 @@ use bp_messages::{
 	target_chain::MessageDispatch, ChainWithMessages, InboundLaneData, LaneId, LaneState,
 	MessageKey, MessageNonce, MessagePayload, OutboundLaneData, VerificationError,
 };
-use bp_runtime::AccountIdOf;
+use bp_runtime::{AccountIdOf, BalanceOf};
 use codec::{Decode, Encode, MaxEncodedLen};
 use frame_support::{ensure, PalletError};
 use scale_info::TypeInfo;
@@ -137,7 +137,7 @@ impl<T: Config<I>, I: 'static> LanesManager<T, I> {
 /// Runtime inbound lane storage.
 pub struct RuntimeInboundLaneStorage<T: Config<I>, I: 'static = ()> {
 	pub(crate) lane_id: LaneId,
-	pub(crate) cached_data: InboundLaneData<AccountIdOf<BridgedChainOf<T, I>>>,
+	pub(crate) cached_data: InboundLaneData<AccountIdOf<BridgedChainOf<T, I>>, BalanceOf<BridgedChainOf<T, I>>>,
 	pub(crate) _phantom: PhantomData<I>,
 }
 
@@ -194,7 +194,7 @@ impl<T: Config<I>, I: 'static> RuntimeInboundLaneStorage<T, I> {
 		let max_encoded_len = StoredInboundLaneData::<T, I>::max_encoded_len();
 		let relayers_count = self.data().relayers.len();
 		let actual_encoded_len =
-			InboundLaneData::<AccountIdOf<BridgedChainOf<T, I>>>::encoded_size_hint(relayers_count)
+			InboundLaneData::<AccountIdOf<BridgedChainOf<T, I>>, BalanceOf<BridgedChainOf<T, I>>>::encoded_size_hint(relayers_count)
 				.unwrap_or(usize::MAX);
 		max_encoded_len.saturating_sub(actual_encoded_len) as _
 	}
@@ -202,6 +202,7 @@ impl<T: Config<I>, I: 'static> RuntimeInboundLaneStorage<T, I> {
 
 impl<T: Config<I>, I: 'static> InboundLaneStorage for RuntimeInboundLaneStorage<T, I> {
 	type Relayer = AccountIdOf<BridgedChainOf<T, I>>;
+	type Balance = BalanceOf<BridgedChainOf<T, I>>;
 
 	fn id(&self) -> LaneId {
 		self.lane_id
@@ -215,11 +216,11 @@ impl<T: Config<I>, I: 'static> InboundLaneStorage for RuntimeInboundLaneStorage<
 		BridgedChainOf::<T, I>::MAX_UNCONFIRMED_MESSAGES_IN_CONFIRMATION_TX
 	}
 
-	fn data(&self) -> InboundLaneData<AccountIdOf<BridgedChainOf<T, I>>> {
+	fn data(&self) -> InboundLaneData<AccountIdOf<BridgedChainOf<T, I>>, BalanceOf<BridgedChainOf<T, I>>> {
 		self.cached_data.clone()
 	}
 
-	fn set_data(&mut self, data: InboundLaneData<AccountIdOf<BridgedChainOf<T, I>>>) {
+	fn set_data(&mut self, data: InboundLaneData<AccountIdOf<BridgedChainOf<T, I>>, BalanceOf<BridgedChainOf<T, I>>>) {
 		self.cached_data = data.clone();
 		InboundLanes::<T, I>::insert(self.lane_id, StoredInboundLaneData::<T, I>(data))
 	}

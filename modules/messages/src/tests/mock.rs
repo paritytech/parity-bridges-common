@@ -27,7 +27,7 @@ use crate::{
 
 use bp_header_chain::{ChainWithGrandpa, StoredHeaderData};
 use bp_messages::{
-	calc_relayers_rewards,
+	calc_relayers_rewards_at_source,
 	source_chain::{DeliveryConfirmationPayments, FromBridgedChainMessagesDeliveryProof},
 	target_chain::{
 		DeliveryPayments, DispatchMessage, DispatchMessageData, FromBridgedChainMessagesProof,
@@ -73,6 +73,7 @@ pub struct TestPayload {
 pub type TestMessageFee = u64;
 pub type TestRelayer = u64;
 pub type TestDispatchLevelResult = ();
+pub type TestBalance = Balance;
 
 pub struct ThisChain;
 
@@ -329,6 +330,7 @@ impl DeliveryPayments<AccountId> for TestDeliveryPayments {
 	type Error = &'static str;
 
 	fn pay_reward(
+		_lane_id: LaneId,
 		relayer: AccountId,
 		_total_messages: MessageNonce,
 		_valid_messages: MessageNonce,
@@ -352,16 +354,16 @@ impl TestDeliveryConfirmationPayments {
 	}
 }
 
-impl DeliveryConfirmationPayments<AccountId> for TestDeliveryConfirmationPayments {
+impl DeliveryConfirmationPayments<AccountId, Balance> for TestDeliveryConfirmationPayments {
 	type Error = &'static str;
 
 	fn pay_reward(
 		_lane_id: LaneId,
-		messages_relayers: VecDeque<UnrewardedRelayer<AccountId>>,
+		messages_relayers: VecDeque<UnrewardedRelayer<AccountId, Balance>>,
 		_confirmation_relayer: &AccountId,
 		received_range: &RangeInclusive<MessageNonce>,
 	) -> MessageNonce {
-		let relayers_rewards = calc_relayers_rewards(messages_relayers, received_range);
+		let relayers_rewards = calc_relayers_rewards_at_source(messages_relayers, received_range);
 		let rewarded_relayers = relayers_rewards.len();
 		for (relayer, reward) in &relayers_rewards {
 			let key = (b":relayer-reward:", relayer, reward).encode();
@@ -462,8 +464,8 @@ pub fn unrewarded_relayer(
 	begin: MessageNonce,
 	end: MessageNonce,
 	relayer: TestRelayer,
-) -> UnrewardedRelayer<TestRelayer> {
-	UnrewardedRelayer { relayer, messages: DeliveredMessages { begin, end } }
+) -> UnrewardedRelayer<TestRelayer, Balance> {
+	UnrewardedRelayer { relayer, messages: DeliveredMessages { begin, end, reward: 1 } }
 }
 
 /// Returns unrewarded relayers state at given lane.
@@ -546,7 +548,7 @@ pub fn prepare_messages_proof(
 /// `asset_noop` macro calls.
 pub fn prepare_messages_delivery_proof(
 	lane: LaneId,
-	inbound_lane_data: InboundLaneData<AccountId>,
+	inbound_lane_data: InboundLaneData<AccountId, Balance>,
 ) -> FromBridgedChainMessagesDeliveryProof<BridgedHeaderHash> {
 	// first - let's generate storage proof
 	let (storage_root, storage_proof) =

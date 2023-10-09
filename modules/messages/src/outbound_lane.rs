@@ -19,9 +19,10 @@
 use crate::{Config, LOG_TARGET};
 
 use bp_messages::{
-	ChainWithMessages, DeliveredMessages, LaneId, LaneState, MessageNonce, MessagePayload,
+	ChainWithMessages, LaneId, LaneState, MessageNonce, MessagePayload,
 	OutboundLaneData, UnrewardedRelayer, VerificationError,
 };
+use bp_runtime::RangeInclusiveExt;
 use codec::{Decode, Encode};
 use frame_support::{traits::Get, BoundedVec, PalletError};
 use scale_info::TypeInfo;
@@ -132,24 +133,21 @@ impl<S: OutboundLaneStorage> OutboundLane<S> {
 	}
 
 	/// Confirm messages delivery.
-	pub fn confirm_delivery<RelayerId>(
+	pub fn confirm_delivery<RelayerId, RewardAtSource>(
 		&mut self,
 		max_allowed_messages: MessageNonce,
 		latest_delivered_nonce: MessageNonce,
-		relayers: &VecDeque<UnrewardedRelayer<RelayerId>>,
-	) -> Result<Option<DeliveredMessages>, ReceivalConfirmationError> {
+		relayers: &VecDeque<UnrewardedRelayer<RelayerId, RewardAtSource>>,
+	) -> Result<Option<RangeInclusive<MessageNonce>>, ReceivalConfirmationError> {
 		let mut data = self.storage.data();
-		let confirmed_messages = DeliveredMessages {
-			begin: data.latest_received_nonce.saturating_add(1),
-			end: latest_delivered_nonce,
-		};
-		if confirmed_messages.total_messages() == 0 {
+		let confirmed_messages = data.latest_received_nonce.saturating_add(1)..=latest_delivered_nonce;
+		if confirmed_messages.saturating_len() == 0 {
 			return Ok(None)
 		}
-		if confirmed_messages.end > data.latest_generated_nonce {
+		if *confirmed_messages.end() > data.latest_generated_nonce {
 			return Err(ReceivalConfirmationError::FailedToConfirmFutureMessages)
 		}
-		if confirmed_messages.total_messages() > max_allowed_messages {
+		if confirmed_messages.saturating_len() > max_allowed_messages {
 			// that the relayer has declared correct number of messages that the proof contains (it
 			// is checked outside of the function). But it may happen (but only if this/bridged
 			// chain storage is corrupted, though) that the actual number of confirmed messages if
@@ -158,20 +156,20 @@ impl<S: OutboundLaneStorage> OutboundLane<S> {
 			log::trace!(
 				target: LOG_TARGET,
 				"Messages delivery proof contains too many messages to confirm: {} vs declared {}",
-				confirmed_messages.total_messages(),
+				confirmed_messages.saturating_len(),
 				max_allowed_messages,
 			);
 			return Err(ReceivalConfirmationError::TryingToConfirmMoreMessagesThanExpected)
 		}
 
-		ensure_unrewarded_relayers_are_correct(confirmed_messages.end, relayers)?;
+		ensure_unrewarded_relayers_are_correct(*confirmed_messages.end(), relayers)?;
 
 		// prune all confirmed messages
-		for nonce in confirmed_messages.begin..=confirmed_messages.end {
+		for nonce in *confirmed_messages.start()..=*confirmed_messages.end() {
 			self.storage.remove_message(&nonce);
 		}
 
-		data.latest_received_nonce = confirmed_messages.end;
+		data.latest_received_nonce = *confirmed_messages.end();
 		data.oldest_unpruned_nonce = data.latest_received_nonce.saturating_add(1);
 		self.storage.set_data(data);
 
@@ -196,9 +194,9 @@ impl<S: OutboundLaneStorage> OutboundLane<S> {
 ///
 /// Returns `Err(_)` if unrewarded relayers vec contains invalid data, meaning that the bridged
 /// chain has invalid runtime storage.
-fn ensure_unrewarded_relayers_are_correct<RelayerId>(
+fn ensure_unrewarded_relayers_are_correct<RelayerId, RewardAtSource>(
 	latest_received_nonce: MessageNonce,
-	relayers: &VecDeque<UnrewardedRelayer<RelayerId>>,
+	relayers: &VecDeque<UnrewardedRelayer<RelayerId, RewardAtSource>>,
 ) -> Result<(), ReceivalConfirmationError> {
 	let mut expected_entry_begin = relayers.front().map(|entry| entry.messages.begin);
 	for entry in relayers {
@@ -232,20 +230,20 @@ mod tests {
 
 	fn unrewarded_relayers(
 		nonces: RangeInclusive<MessageNonce>,
-	) -> VecDeque<UnrewardedRelayer<TestRelayer>> {
+	) -> VecDeque<UnrewardedRelayer<TestRelayer, TestBalance>> {
 		vec![unrewarded_relayer(*nonces.start(), *nonces.end(), 0)]
 			.into_iter()
 			.collect()
 	}
 
-	fn delivered_messages(nonces: RangeInclusive<MessageNonce>) -> DeliveredMessages {
-		DeliveredMessages { begin: *nonces.start(), end: *nonces.end() }
+	fn delivered_messages(nonces: RangeInclusive<MessageNonce>) -> RangeInclusive<MessageNonce> {
+		nonces
 	}
 
 	fn assert_3_messages_confirmation_fails(
 		latest_received_nonce: MessageNonce,
-		relayers: &VecDeque<UnrewardedRelayer<TestRelayer>>,
-	) -> Result<Option<DeliveredMessages>, ReceivalConfirmationError> {
+		relayers: &VecDeque<UnrewardedRelayer<TestRelayer, TestBalance>>,
+	) -> Result<Option<RangeInclusive<MessageNonce>>, ReceivalConfirmationError> {
 		run_test(|| {
 			let mut lane = active_outbound_lane::<TestRuntime, _>(test_lane_id()).unwrap();
 			assert_ok!(lane.send_message(outbound_message_data(REGULAR_PAYLOAD)));
