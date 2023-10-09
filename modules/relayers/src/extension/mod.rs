@@ -254,7 +254,6 @@ where
 	<R as TransactionPaymentConfig>::OnChargeTransaction:
 		OnChargeTransaction<R, Balance = R::Reward>,
 	usize: TryFrom<BlockNumberFor<R>>,
-	usize: TryFrom<BlockNumberFor<R>>,
 {
 	const IDENTIFIER: &'static str = C::IdProvider::STR;
 	type AccountId = R::AccountId;
