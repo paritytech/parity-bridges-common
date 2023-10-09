@@ -289,11 +289,8 @@ impl pallet_bridge_messages::Config for TestRuntime {
 	type InboundPayload = Vec<u8>;
 	type DeliveryPayments = ();
 
-	type DeliveryConfirmationPayments = pallet_bridge_relayers::DeliveryConfirmationPaymentsAdapter<
-		TestRuntime,
-		(),
-		ConstU64<100_000>,
-	>;
+	type DeliveryConfirmationPayments =
+		pallet_bridge_relayers::DeliveryConfirmationPaymentsAdapter<TestRuntime, ()>;
 	type OnMessagesDelivered = ();
 
 	type MessageDispatch = DummyMessageDispatch;
