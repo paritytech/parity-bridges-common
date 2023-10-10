@@ -127,7 +127,7 @@ pub mod pallet {
 		type DeliveryPayments: DeliveryPayments<Self::AccountId>;
 		/// Handler for relayer payments that happen during message delivery confirmation
 		/// transaction.
-		type DeliveryConfirmationPayments: DeliveryConfirmationPayments<AccountIdOf<ThisChainOf<Self, I>>, BalanceOf<ThisChainOf<Self, I>>>;
+		type DeliveryConfirmationPayments: DeliveryConfirmationPayments<Self::AccountId, BalanceOf<ThisChainOf<Self, I>>>;
 		/// Delivery confirmation callback.
 		type OnMessagesDelivered: OnMessagesDelivered;
 
@@ -153,7 +153,7 @@ pub mod pallet {
 	}
 
 	#[pallet::call]
-	impl<T: Config<I>, I: 'static> Pallet<T, I> where T: frame_system::Config<AccountId = AccountIdOf<T::ThisChain>> {
+	impl<T: Config<I>, I: 'static> Pallet<T, I> {
 		/// Change `PalletOwner`.
 		///
 		/// May only be called either by root, or by `PalletOwner`.

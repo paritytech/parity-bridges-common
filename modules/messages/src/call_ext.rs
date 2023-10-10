@@ -74,7 +74,6 @@ impl<T: Config<I>, I: 'static> CallHelper<T, I> {
 /// Trait representing a call that is a sub type of `pallet_bridge_messages::Call`.
 pub trait CallSubType<T: Config<I, RuntimeCall = Self>, I: 'static>:
 	IsSubType<CallableCallFor<Pallet<T, I>, T>>
-where T: frame_system::Config<AccountId = AccountIdOf<T::ThisChain>>
 {
 	/// Create a new instance of `ReceiveMessagesProofInfo` from a `ReceiveMessagesProof` call.
 	fn receive_messages_proof_info(&self) -> Option<ReceiveMessagesProofInfo>;
@@ -101,7 +100,6 @@ impl<
 		T: frame_system::Config<RuntimeCall = Call> + Config<I>,
 		I: 'static,
 	> CallSubType<T, I> for T::RuntimeCall
-where T: frame_system::Config<AccountId = AccountIdOf<T::ThisChain>>
 {
 	fn receive_messages_proof_info(&self) -> Option<ReceiveMessagesProofInfo> {
 		if let Some(crate::Call::<T, I>::receive_messages_proof { ref proof, .. }) =

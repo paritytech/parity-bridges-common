@@ -25,12 +25,12 @@ use bp_messages::{
 	ChainWithMessages, InboundLaneData, LaneId, Message, MessageKey, MessageNonce, MessagePayload,
 	OutboundLaneData, VerificationError,
 };
-use bp_runtime::{AccountIdOf, BalanceOf, HashOf, RangeInclusiveExt, VerifiedStorageProof};
+use bp_runtime::{BalanceOf, HashOf, RangeInclusiveExt, VerifiedStorageProof};
 use sp_std::vec::Vec;
 
 /// 'Parsed' message delivery proof - inbound lane id and its state.
 pub(crate) type ParsedMessagesDeliveryProofFromBridgedChain<T, I> =
-	(LaneId, InboundLaneData<AccountIdOf<ThisChainOf<T, I>>, BalanceOf<ThisChainOf<T, I>>>);
+	(LaneId, InboundLaneData<<T as frame_system::Config>::AccountId, BalanceOf<ThisChainOf<T, I>>>);
 
 /// Verify proof of Bridged -> This chain messages.
 ///
