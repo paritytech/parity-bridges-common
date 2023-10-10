@@ -375,6 +375,9 @@ pub mod pallet {
 						None => fail!(Error::<T>::NotRegistered),
 					};
 
+					// remove relayer from the next set. It still may be in the active set
+					ensure!(registration.deregister_at_lane(lane), Error::<T>::NotRegisteredAtLane);
+
 					// remove relayer from the `next_set` of lane relayers. Relayer still remains
 					// in the active set until current epoch ends
 					LaneRelayers::<T>::try_mutate(lane, |lane_relayers_ref| {
@@ -383,18 +386,30 @@ pub mod pallet {
 							None => fail!(Error::<T>::NotRegisteredAtLane),
 						};
 
-						ensure!(
-							lane_relayers.next_set_try_remove(&relayer),
-							Error::<T>::NotRegisteredAtLane,
-						);
+						// remove relayer from the next set if it is there
+						lane_relayers.next_set_try_remove(&relayer);
+
+						// make sure that the `valid_till` covers current epoch if relayer is in the
+						// active lane relayers set
+						let is_in_active_set = lane_relayers
+							.active_relayers()
+							.iter()
+							.filter(|r| *r.relayer() == relayer)
+							.next()
+							.is_some();
+						if is_in_active_set {
+							registration.set_valid_till(sp_std::cmp::max(
+								lane_relayers.valid_till(),
+								lane_relayers.next_set_may_enact_at().saturating_add(
+									T::StakeAndSlash::RequiredRegistrationLease::get(),
+								),
+							));
+						}
 
 						*lane_relayers_ref = Some(lane_relayers);
 
 						Ok::<_, Error<T>>(())
 					})?;
-
-					// ensure that the relayer has lane registration
-					registration.deregister_at_lane(lane);
 
 					*maybe_registration = Some(registration);
 
@@ -453,9 +468,6 @@ pub mod pallet {
 		/// it'll return false if registered stake is lower than required or if remaining lease
 		/// is less than `RequiredRegistrationLease`.
 		pub fn is_registration_active(relayer: &T::AccountId) -> bool {
-			// TODO: physically change `valid_till` to `current_block + RequiredRegistrationLease`
-			// after last lane registration has been removed. Otherwise relayers can get basic boost
-			// near `valid_till`
 			match Self::registered_relayer(relayer) {
 				Some(registration) => registration.is_active(
 					SystemPallet::<T>::block_number(),
