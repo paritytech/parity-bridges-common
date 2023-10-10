@@ -375,7 +375,8 @@ pub mod pallet {
 						None => fail!(Error::<T>::NotRegistered),
 					};
 
-					// remove relayer from the `next_set` of lane relayers. So relayer is still
+					// remove relayer from the `next_set` of lane relayers. Relayer still remains
+					// in the active set until current epoch ends
 					LaneRelayers::<T>::try_mutate(lane, |lane_relayers_ref| {
 						let mut lane_relayers = match lane_relayers_ref.take() {
 							Some(lane_relayers) => lane_relayers,
@@ -432,7 +433,8 @@ pub mod pallet {
 					Error::<T>::TooEarlyToActivateNextRelayersSet,
 				);
 
-				let new_next_set_may_enact_at = current_block_number.saturating_add(4u32.into()); // TODO
+				let new_next_set_may_enact_at =
+					current_block_number.saturating_add(T::EpochLength::get());
 				lane_relayers.activate_next_set(new_next_set_may_enact_at);
 
 				*lane_relayers_ref = Some(lane_relayers);
