@@ -362,7 +362,11 @@ impl DeliveryConfirmationPayments<AccountId> for TestDeliveryConfirmationPayment
 		_confirmation_relayer: &AccountId,
 		received_range: &RangeInclusive<MessageNonce>,
 	) -> MessageNonce {
-		let relayers_rewards = calc_relayers_rewards_at_source(messages_relayers, received_range);
+		let relayers_rewards = calc_relayers_rewards_at_source::<AccountId, Balance>(
+			messages_relayers,
+			received_range,
+			|messages, reward_per_message| messages * reward_per_message,
+		);
 		let rewarded_relayers = relayers_rewards.len();
 		for (relayer, reward) in &relayers_rewards {
 			let key = (b":relayer-reward:", relayer, reward).encode();

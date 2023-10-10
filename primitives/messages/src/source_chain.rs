@@ -16,7 +16,7 @@
 
 //! Primitives of messages module, that are used on the source chain.
 
-use crate::{LaneId, MessageNonce, RewardAtSource, UnrewardedRelayer};
+use crate::{LaneId, MessageNonce, UnrewardedRelayer};
 
 use bp_runtime::{Size, UnverifiedStorageProof};
 use codec::{Decode, Encode};
@@ -55,7 +55,7 @@ impl<BridgedHeaderHash> Size for FromBridgedChainMessagesDeliveryProof<BridgedHe
 }
 
 /// Rewards that need to be paid to relayers at the source chain.
-pub type RelayersRewardsAtSource<AccountId> = BTreeMap<AccountId, RewardAtSource>;
+pub type RelayersRewardsAtSource<AccountId, Reward> = BTreeMap<AccountId, Reward>;
 
 /// Manages payments that are happening at the source chain during delivery confirmation
 /// transaction.

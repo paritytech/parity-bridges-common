@@ -17,11 +17,6 @@
 //! Runtime module that is used to store relayer rewards and to coordinate relations
 //! between relayers.
 
-// TODO: allow bridge owners to add "protected" relayers that have a guaranteed slot in the lane
-// relayers
-
-// TODO: or else ONLY allow bridge owners to add registered relayers (through XCM calls)???
-
 #![cfg_attr(not(feature = "std"), no_std)]
 #![warn(missing_docs)]
 
@@ -257,7 +252,13 @@ pub mod pallet {
 		/// Relayer that registers itself at given message lane gets a priority boost for his
 		/// message delivery transactions, **verified** at his slots (consecutive range of blocks).
 		///
-		/// Every additional lane registration requires
+		/// Every lane registration requires additional stake. Relayer registration is considered
+		/// active while it is registered at least at one lane.
+		///
+		/// Relayer may request large reward here (using `expected_reward`), but in the end, the
+		/// reward amount is computed at the bridged (source chain). In the case if
+		/// [`DeliveryConfirmationPaymentsAdapter`] is used to register rewards, the maximal reward
+		/// per message is limited by the `MaxRewardPerMessage` parameter.
 		#[pallet::call_index(3)]
 		#[pallet::weight(Weight::zero())] // TODO
 		pub fn register_at_lane(
@@ -266,13 +267,6 @@ pub mod pallet {
 			expected_reward: RewardAtSource,
 		) -> DispatchResult {
 			let relayer = ensure_signed(origin)?;
-
-			// TODO: we probably need a way for bridge owners (sibling/parent chains) to at least
-			// set a maximal possible reward for their lane over XCM? + maybe change relayers set?
-			// This way they could implement their own incentivization mechanisms by setting reward
-			// to zero and changing relayers set on their own.
-
-			// TODO: check that `expected_reward` makes sense
 
 			RegisteredRelayers::<T>::try_mutate(
 				&relayer.clone(),

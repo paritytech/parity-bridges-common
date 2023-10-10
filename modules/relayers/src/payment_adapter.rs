@@ -25,39 +25,55 @@ use bp_messages::{
 };
 use bp_relayers::{RewardAtSource, RewardsAccountOwner, RewardsAccountParams};
 use bp_runtime::Chain;
-use frame_support::{sp_runtime::SaturatedConversion, weights::Weight};
+use frame_support::weights::Weight;
 use sp_arithmetic::traits::UniqueSaturatedFrom;
+use sp_runtime::{
+	traits::{Get, UniqueSaturatedInto},
+	Saturating,
+};
 use sp_std::{collections::vec_deque::VecDeque, marker::PhantomData, ops::RangeInclusive};
 
 /// Adapter that allows relayers pallet to be used as a delivery+dispatch payment mechanism
 /// for the messages pallet.
 ///
-/// This adapter uses 1:1 mapping of `RewardAtSource` to `T::Reward`.
-pub struct DeliveryConfirmationPaymentsAdapter<T, MI>(PhantomData<(T, MI)>);
+/// This adapter uses 1:1 mapping of `RewardAtSource` to `T::Reward`. The reward for delivering
+/// a single message, will never be larger than the `MaxRewardPerMessage`.
+pub struct DeliveryConfirmationPaymentsAdapter<T, MI, MaxRewardPerMessage>(
+	PhantomData<(T, MI, MaxRewardPerMessage)>,
+);
 
-impl<T, MI> DeliveryConfirmationPayments<T::AccountId>
-	for DeliveryConfirmationPaymentsAdapter<T, MI>
+impl<T, MI, MaxRewardPerMessage> DeliveryConfirmationPayments<T::AccountId>
+	for DeliveryConfirmationPaymentsAdapter<T, MI, MaxRewardPerMessage>
 where
 	T: Config + pallet_bridge_messages::Config<MI>,
 	MI: 'static,
-	T::Reward: UniqueSaturatedFrom<RewardAtSource>,
+	T::Reward: UniqueSaturatedFrom<RewardAtSource> + UniqueSaturatedFrom<MessageNonce>,
+	MaxRewardPerMessage: Get<T::Reward>,
 {
 	type Error = &'static str;
 
 	fn pay_reward(
 		lane_id: LaneId,
 		messages_relayers: VecDeque<bp_messages::UnrewardedRelayer<T::AccountId>>,
-		confirmation_relayer: &T::AccountId,
+		_confirmation_relayer: &T::AccountId,
 		received_range: &RangeInclusive<bp_messages::MessageNonce>,
 	) -> MessageNonce {
-		let relayers_rewards = bp_messages::calc_relayers_rewards_at_source::<T::AccountId>(
-			messages_relayers,
-			received_range,
-		);
+		let relayers_rewards =
+			bp_messages::calc_relayers_rewards_at_source::<T::AccountId, T::Reward>(
+				messages_relayers,
+				received_range,
+				|messages, reward_per_message| {
+					let reward_per_message = sp_std::cmp::min(
+						MaxRewardPerMessage::get(),
+						reward_per_message.unique_saturated_into(),
+					);
+
+					T::Reward::unique_saturated_from(messages).saturating_mul(reward_per_message)
+				},
+			);
 		let rewarded_relayers = relayers_rewards.len();
 
 		register_relayers_rewards::<T>(
-			confirmation_relayer,
 			relayers_rewards,
 			RewardsAccountParams::new(
 				lane_id,
@@ -70,7 +86,8 @@ where
 	}
 }
 
-impl<T, MI> DeliveryPayments<T::AccountId> for DeliveryConfirmationPaymentsAdapter<T, MI>
+impl<T, MI, MaxRewardPerMessage> DeliveryPayments<T::AccountId>
+	for DeliveryConfirmationPaymentsAdapter<T, MI, MaxRewardPerMessage>
 where
 	T: Config + pallet_bridge_messages::Config<MI>,
 	MI: 'static,
@@ -134,14 +151,12 @@ where
 
 // Update rewards to given relayers, optionally rewarding confirmation relayer.
 fn register_relayers_rewards<T: Config>(
-	_confirmation_relayer: &T::AccountId,
-	relayers_rewards: RelayersRewardsAtSource<T::AccountId>,
+	relayers_rewards: RelayersRewardsAtSource<T::AccountId, T::Reward>,
 	reward_account: RewardsAccountParams,
 ) where
 	T::Reward: UniqueSaturatedFrom<RewardAtSource>,
 {
 	for (relayer, relayer_reward) in relayers_rewards {
-		let relayer_reward = T::Reward::saturated_from(relayer_reward);
 		Pallet::<T>::register_relayer_reward(reward_account, &relayer, relayer_reward);
 	}
 }
@@ -155,35 +170,14 @@ mod tests {
 	const RELAYER_2: ThisChainAccountId = 2;
 	const RELAYER_3: ThisChainAccountId = 3;
 
-	fn relayers_rewards() -> RelayersRewardsAtSource<ThisChainAccountId> {
+	fn relayers_rewards() -> RelayersRewardsAtSource<ThisChainAccountId, ThisChainBalance> {
 		vec![(RELAYER_1, 2), (RELAYER_2, 3)].into_iter().collect()
 	}
 
 	#[test]
-	fn confirmation_relayer_is_rewarded_if_it_has_also_delivered_messages() {
+	fn register_relayers_rewards_works() {
 		run_test(|| {
 			register_relayers_rewards::<TestRuntime>(
-				&RELAYER_2,
-				relayers_rewards(),
-				test_reward_account_param(),
-			);
-
-			assert_eq!(
-				RelayerRewards::<TestRuntime>::get(RELAYER_1, test_reward_account_param()),
-				Some(2)
-			);
-			assert_eq!(
-				RelayerRewards::<TestRuntime>::get(RELAYER_2, test_reward_account_param()),
-				Some(3)
-			);
-		});
-	}
-
-	#[test]
-	fn confirmation_relayer_is_not_rewarded_if_it_has_not_delivered_any_messages() {
-		run_test(|| {
-			register_relayers_rewards::<TestRuntime>(
-				&RELAYER_3,
 				relayers_rewards(),
 				test_reward_account_param(),
 			);

@@ -33,7 +33,7 @@ use serde::{Deserialize, Serialize};
 use source_chain::RelayersRewardsAtSource;
 use sp_core::{RuntimeDebug, TypeId, H256};
 use sp_io::hashing::blake2_256;
-use sp_runtime::SaturatedConversion;
+use sp_runtime::traits::Saturating;
 use sp_std::{
 	collections::{btree_map::Entry, vec_deque::VecDeque},
 	ops::RangeInclusive,
@@ -613,16 +613,19 @@ impl Default for OutboundLaneData {
 }
 
 /// Calculate the total relayer reward that need to be paid at the source chain.
-pub fn calc_relayers_rewards_at_source<AccountId>(
+pub fn calc_relayers_rewards_at_source<AccountId, Reward>(
 	messages_relayers: VecDeque<UnrewardedRelayer<AccountId>>,
 	received_range: &RangeInclusive<MessageNonce>,
-) -> RelayersRewardsAtSource<AccountId>
+	compute_reward: impl Fn(MessageNonce, RewardAtSource) -> Reward,
+) -> RelayersRewardsAtSource<AccountId, Reward>
 where
 	AccountId: sp_std::cmp::Ord,
+	Reward: Copy + Saturating,
 {
 	// remember to reward relayers that have delivered messages
 	// this loop is bounded by `T::MAX_UNREWARDED_RELAYERS_IN_CONFIRMATION_TX` on the bridged chain
-	let mut relayers_rewards: RelayersRewardsAtSource<AccountId> = RelayersRewardsAtSource::new();
+	let mut relayers_rewards: RelayersRewardsAtSource<AccountId, Reward> =
+		RelayersRewardsAtSource::new();
 	for entry in messages_relayers {
 		if entry.messages.reward == 0 {
 			continue
@@ -636,8 +639,7 @@ where
 			continue
 		}
 
-		let new_reward = RewardAtSource::saturated_from(new_confirmations_count)
-			.saturating_mul(entry.messages.reward);
+		let new_reward = compute_reward(new_confirmations_count, entry.messages.reward);
 		match relayers_rewards.entry(entry.relayer) {
 			Entry::Occupied(mut e) => {
 				e.insert(e.get().clone().saturating_add(new_reward));

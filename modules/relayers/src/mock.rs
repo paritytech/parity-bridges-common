@@ -290,7 +290,7 @@ impl pallet_bridge_messages::Config for TestRuntime {
 	type DeliveryPayments = ();
 
 	type DeliveryConfirmationPayments =
-		pallet_bridge_relayers::DeliveryConfirmationPaymentsAdapter<TestRuntime, ()>;
+		pallet_bridge_relayers::DeliveryConfirmationPaymentsAdapter<TestRuntime, (), ConstU64<10>>;
 	type OnMessagesDelivered = ();
 
 	type MessageDispatch = DummyMessageDispatch;
