@@ -27,8 +27,8 @@
 
 use bp_messages::LaneId;
 use bp_relayers::{
-	LaneRelayersSet, PaymentProcedure, Registration, RelayerRewardsKeyProvider,
-	RewardAtSource, RewardsAccountParams, StakeAndSlash,
+	LaneRelayersSet, PaymentProcedure, Registration, RelayerRewardsKeyProvider, RewardAtSource,
+	RewardsAccountParams, StakeAndSlash,
 };
 use bp_runtime::StorageDoubleMapKeyProvider;
 use frame_support::fail;

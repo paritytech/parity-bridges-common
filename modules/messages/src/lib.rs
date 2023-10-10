@@ -60,9 +60,9 @@ use bp_messages::{
 		DeliveryPayments, DispatchMessage, FromBridgedChainMessagesProof, MessageDispatch,
 		ProvedLaneMessages, ProvedMessages,
 	},
-	ChainWithMessages, InboundLaneData, InboundMessageDetails, LaneId,
-	MessageKey, MessageNonce, MessagePayload, MessagesOperatingMode, OutboundLaneData,
-	OutboundMessageDetails, UnrewardedRelayersState, VerificationError,
+	ChainWithMessages, InboundLaneData, InboundMessageDetails, LaneId, MessageKey, MessageNonce,
+	MessagePayload, MessagesOperatingMode, OutboundLaneData, OutboundMessageDetails,
+	UnrewardedRelayersState, VerificationError,
 };
 use bp_runtime::{
 	AccountIdOf, BasicOperatingMode, HashOf, OwnedBridgeModule, PreComputedSize, RangeInclusiveExt,

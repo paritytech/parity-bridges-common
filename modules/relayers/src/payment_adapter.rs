@@ -32,7 +32,7 @@ use sp_std::{collections::vec_deque::VecDeque, marker::PhantomData, ops::RangeIn
 /// Adapter that allows relayers pallet to be used as a delivery+dispatch payment mechanism
 /// for the messages pallet.
 ///
-/// This adapter uses 1:1 mapping of `RewardAtSource` to `T::Reward`. 
+/// This adapter uses 1:1 mapping of `RewardAtSource` to `T::Reward`.
 pub struct DeliveryConfirmationPaymentsAdapter<T, MI>(PhantomData<(T, MI)>);
 
 impl<T, MI> DeliveryConfirmationPayments<T::AccountId>
@@ -50,8 +50,10 @@ where
 		confirmation_relayer: &T::AccountId,
 		received_range: &RangeInclusive<bp_messages::MessageNonce>,
 	) -> MessageNonce {
-		let relayers_rewards =
-			bp_messages::calc_relayers_rewards_at_source::<T::AccountId>(messages_relayers, received_range);
+		let relayers_rewards = bp_messages::calc_relayers_rewards_at_source::<T::AccountId>(
+			messages_relayers,
+			received_range,
+		);
 		let rewarded_relayers = relayers_rewards.len();
 
 		register_relayers_rewards::<T>(
@@ -135,7 +137,9 @@ fn register_relayers_rewards<T: Config>(
 	_confirmation_relayer: &T::AccountId,
 	relayers_rewards: RelayersRewardsAtSource<T::AccountId>,
 	reward_account: RewardsAccountParams,
-) where T::Reward: UniqueSaturatedFrom<RewardAtSource> {
+) where
+	T::Reward: UniqueSaturatedFrom<RewardAtSource>,
+{
 	for (relayer, relayer_reward) in relayers_rewards {
 		let relayer_reward = T::Reward::saturated_from(relayer_reward);
 		Pallet::<T>::register_relayer_reward(reward_account, &relayer, relayer_reward);
@@ -164,8 +168,14 @@ mod tests {
 				test_reward_account_param(),
 			);
 
-			assert_eq!(RelayerRewards::<TestRuntime>::get(RELAYER_1, test_reward_account_param()), Some(2));
-			assert_eq!(RelayerRewards::<TestRuntime>::get(RELAYER_2, test_reward_account_param()), Some(3));
+			assert_eq!(
+				RelayerRewards::<TestRuntime>::get(RELAYER_1, test_reward_account_param()),
+				Some(2)
+			);
+			assert_eq!(
+				RelayerRewards::<TestRuntime>::get(RELAYER_2, test_reward_account_param()),
+				Some(3)
+			);
 		});
 	}
 
@@ -178,9 +188,18 @@ mod tests {
 				test_reward_account_param(),
 			);
 
-			assert_eq!(RelayerRewards::<TestRuntime>::get(RELAYER_1, test_reward_account_param()), Some(2));
-			assert_eq!(RelayerRewards::<TestRuntime>::get(RELAYER_2, test_reward_account_param()), Some(3));
-			assert_eq!(RelayerRewards::<TestRuntime>::get(RELAYER_3, test_reward_account_param()), None);
+			assert_eq!(
+				RelayerRewards::<TestRuntime>::get(RELAYER_1, test_reward_account_param()),
+				Some(2)
+			);
+			assert_eq!(
+				RelayerRewards::<TestRuntime>::get(RELAYER_2, test_reward_account_param()),
+				Some(3)
+			);
+			assert_eq!(
+				RelayerRewards::<TestRuntime>::get(RELAYER_3, test_reward_account_param()),
+				None
+			);
 		});
 	}
 }

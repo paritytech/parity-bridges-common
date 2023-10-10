@@ -19,8 +19,8 @@
 use crate::{Config, LOG_TARGET};
 
 use bp_messages::{
-	ChainWithMessages, LaneId, LaneState, MessageNonce, MessagePayload,
-	OutboundLaneData, UnrewardedRelayer, VerificationError,
+	ChainWithMessages, LaneId, LaneState, MessageNonce, MessagePayload, OutboundLaneData,
+	UnrewardedRelayer, VerificationError,
 };
 use bp_runtime::RangeInclusiveExt;
 use codec::{Decode, Encode};
@@ -140,7 +140,8 @@ impl<S: OutboundLaneStorage> OutboundLane<S> {
 		relayers: &VecDeque<UnrewardedRelayer<RelayerId>>,
 	) -> Result<Option<RangeInclusive<MessageNonce>>, ReceivalConfirmationError> {
 		let mut data = self.storage.data();
-		let confirmed_messages = data.latest_received_nonce.saturating_add(1)..=latest_delivered_nonce;
+		let confirmed_messages =
+			data.latest_received_nonce.saturating_add(1)..=latest_delivered_nonce;
 		if confirmed_messages.saturating_len() == 0 {
 			return Ok(None)
 		}

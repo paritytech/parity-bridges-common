@@ -212,7 +212,10 @@ impl<S: InboundLaneStorage> InboundLane<S> {
 		// now let's update inbound lane storage
 		let relayer_reward_per_message = One::one(); // TODO: it must be returned by some callback!!!
 		match data.relayers.back_mut() {
-			Some(entry) if entry.relayer == *relayer_at_bridged_chain && entry.messages.reward == relayer_reward_per_message => {
+			Some(entry)
+				if entry.relayer == *relayer_at_bridged_chain &&
+					entry.messages.reward == relayer_reward_per_message =>
+			{
 				entry.messages.note_dispatched_message();
 			},
 			_ => {

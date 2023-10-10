@@ -34,7 +34,11 @@ use source_chain::RelayersRewardsAtSource;
 use sp_core::{RuntimeDebug, TypeId, H256};
 use sp_io::hashing::blake2_256;
 use sp_runtime::SaturatedConversion;
-use sp_std::{collections::{btree_map::Entry, vec_deque::VecDeque}, ops::RangeInclusive, prelude::*};
+use sp_std::{
+	collections::{btree_map::Entry, vec_deque::VecDeque},
+	ops::RangeInclusive,
+	prelude::*,
+};
 
 pub use call_info::{
 	BaseMessagesProofInfo, BridgeMessagesCall, BridgeMessagesCallOf, MessagesCallInfo,
@@ -621,25 +625,26 @@ where
 	let mut relayers_rewards: RelayersRewardsAtSource<AccountId> = RelayersRewardsAtSource::new();
 	for entry in messages_relayers {
 		if entry.messages.reward == 0 {
-			continue;
+			continue
 		}
-		
+
 		let nonce_begin = sp_std::cmp::max(entry.messages.begin, *received_range.start());
 		let nonce_end = sp_std::cmp::min(entry.messages.end, *received_range.end());
 		let new_confirmations = nonce_begin..=nonce_end;
 		let new_confirmations_count = new_confirmations.saturating_len();
 		if new_confirmations_count == 0 {
-			continue;
+			continue
 		}
 
-		let new_reward = RewardAtSource::saturated_from(new_confirmations_count).saturating_mul(entry.messages.reward);
+		let new_reward = RewardAtSource::saturated_from(new_confirmations_count)
+			.saturating_mul(entry.messages.reward);
 		match relayers_rewards.entry(entry.relayer) {
 			Entry::Occupied(mut e) => {
 				e.insert(e.get().clone().saturating_add(new_reward));
 			},
 			Entry::Vacant(e) => {
 				e.insert(new_reward);
-			}
+			},
 		}
 	}
 	relayers_rewards
