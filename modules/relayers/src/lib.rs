@@ -22,8 +22,6 @@
 
 // TODO: or else ONLY allow bridge owners to add registered relayers (through XCM calls)???
 
-// TODO: remove relayer from `next_set` when he has not delivered any messages
-
 #![cfg_attr(not(feature = "std"), no_std)]
 #![warn(missing_docs)]
 

@@ -111,7 +111,7 @@ where
 					return Err(())
 				}
 
-				// if relayer is not willoing to work on that lane anymore, we don't want to do
+				// if relayer is not willing to work on that lane anymore, we don't want to do
 				// anything here
 				let wants_to_work_on_lane = Pallet::<T>::registered_relayer(&relayer)
 					.map(|registration| registration.lanes().contains(&lane_id))
