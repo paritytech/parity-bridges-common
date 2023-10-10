@@ -25,8 +25,6 @@ use sp_runtime::{
 	BoundedVec, RuntimeDebug,
 };
 
-/// We are using
-
 /// A relayer and the reward that it wants to receive for delivering a single message.
 #[derive(Clone, Decode, Encode, Eq, PartialEq, RuntimeDebug, TypeInfo, MaxEncodedLen)]
 pub struct RelayerAndReward<AccountId> {

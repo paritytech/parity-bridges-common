@@ -75,13 +75,24 @@ pub mod pallet {
 		/// Stake and slash scheme.
 		type StakeAndSlash: StakeAndSlash<Self::AccountId, BlockNumberFor<Self>, Self::Reward>;
 
-		/// TODO
+		/// Maximal number of lanes, where relayer may be registered.
+		///
+		/// This is an artificial limit that only exists to make PoV size predictable.
 		#[pallet::constant]
 		type MaxLanesPerRelayer: Get<u32>;
 		/// Maximal number of relayers that can register themselves on a single lane.
+		///
+		/// Lowering this value leads to additional concurrency between relayers, potentially
+		/// making messages cheaper. So it shall not be too large.
 		#[pallet::constant]
 		type MaxRelayersPerLane: Get<u32>;
 
+		/// Length of initial relayer elections in chain blocks.
+		///
+		/// When the first relayer registers itself on the lane, we give some time to other relayers
+		/// to register as well. Otherwise there'll be only one relayer in active set, for the whole
+		/// (first) epoch.
+		type InitialElectionLength: Get<BlockNumberFor<Self>>;
 		/// Length of slots in chain blocks.
 		///
 		/// Registered relayer may explicitly register himself at some lane to get priority boost
@@ -94,6 +105,18 @@ pub mod pallet {
 		/// Shall not be too low to have an effect, because there's some (at least one block) lag
 		/// between moments when priority is computed and when active slot changes.
 		type SlotLength: Get<BlockNumberFor<Self>>;
+		/// Length of epoch in chain blocks.
+		///
+		/// Epoch is a set of slots, where a fixed set of lane relayers receives a priority boost
+		/// for their message delivery transactions. Epochs transition is a manual action, performed
+		/// by the `advance_lane_epoch` call.
+		///
+		/// This value should allow every relayer from the active set to have at least one slot. So
+		/// it shall be not less than the `Self::MaxRelayersPerLane::get() *
+		/// Self::SlotLength::get()`. Normally, it should allow more than one slot for each relayer
+		/// (given max relayers in the set).
+		type EpochLength: Get<BlockNumberFor<Self>>;
+
 		/// Priority boost that the registered relayer gets for every additional message in the
 		/// message delivery transaction.
 		type PriorityBoostPerMessage: Get<TransactionPriority>;
@@ -277,15 +300,6 @@ pub mod pallet {
 						None => fail!(Error::<T>::NotRegistered),
 					};
 
-					// cannot add another lane registration if "base" registration is inactive
-					ensure!(
-						registration.is_active(
-							SystemPallet::<T>::block_number(),
-							Self::required_registration_lease(),
-						),
-						Error::<T>::RegistrationIsInactive,
-					);
-
 					// cannot add another lane registration if relayer has already max allowed
 					// lane registrations
 					ensure!(
@@ -301,7 +315,6 @@ pub mod pallet {
 						let mut lane_relayers = match maybe_lane_relayers.take() {
 							Some(lane_relayers) => lane_relayers,
 							None => {
-								// TODO: give some time for initial elections
 								// TODO: what if all relayers that have registered for the next set
 								// then call `deregister_at_lane`       before `next_set` activates?
 								// This could be used by malicious relayers - they could fill
@@ -311,8 +324,7 @@ pub mod pallet {
 								// full queue.
 								LaneRelayersSet::empty(
 									SystemPallet::<T>::block_number()
-										.saturating_add(One::one())
-										.saturating_add(4u32.into()), // TODO
+										.saturating_add(T::InitialElectionLength::get()),
 								)
 							},
 						};
@@ -403,10 +415,7 @@ pub mod pallet {
 		/// be paid. We suggest the first relayer from the `next_set` to submit this transaction.
 		#[pallet::call_index(5)]
 		#[pallet::weight(Weight::zero())] // TODO
-		pub fn enact_next_relayers_set_at_lane(
-			origin: OriginFor<T>,
-			lane: LaneId,
-		) -> DispatchResult {
+		pub fn advance_lane_epoch(origin: OriginFor<T>, lane: LaneId) -> DispatchResult {
 			let _ = ensure_signed(origin)?;
 
 			// remove relayer from the `next_set` of lane relayers. So relayer is still
@@ -442,6 +451,9 @@ pub mod pallet {
 		/// it'll return false if registered stake is lower than required or if remaining lease
 		/// is less than `RequiredRegistrationLease`.
 		pub fn is_registration_active(relayer: &T::AccountId) -> bool {
+			// TODO: physically change `valid_till` to `current_block + RequiredRegistrationLease`
+			// after last lane registration has been removed. Otherwise relayers can get basic boost
+			// near `valid_till`
 			match Self::registered_relayer(relayer) {
 				Some(registration) => registration.is_active(
 					SystemPallet::<T>::block_number(),
