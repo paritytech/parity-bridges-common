@@ -133,11 +133,11 @@ impl<S: OutboundLaneStorage> OutboundLane<S> {
 	}
 
 	/// Confirm messages delivery.
-	pub fn confirm_delivery<RelayerId, RewardAtSource>(
+	pub fn confirm_delivery<RelayerId>(
 		&mut self,
 		max_allowed_messages: MessageNonce,
 		latest_delivered_nonce: MessageNonce,
-		relayers: &VecDeque<UnrewardedRelayer<RelayerId, RewardAtSource>>,
+		relayers: &VecDeque<UnrewardedRelayer<RelayerId>>,
 	) -> Result<Option<RangeInclusive<MessageNonce>>, ReceivalConfirmationError> {
 		let mut data = self.storage.data();
 		let confirmed_messages = data.latest_received_nonce.saturating_add(1)..=latest_delivered_nonce;
@@ -194,9 +194,9 @@ impl<S: OutboundLaneStorage> OutboundLane<S> {
 ///
 /// Returns `Err(_)` if unrewarded relayers vec contains invalid data, meaning that the bridged
 /// chain has invalid runtime storage.
-fn ensure_unrewarded_relayers_are_correct<RelayerId, RewardAtSource>(
+fn ensure_unrewarded_relayers_are_correct<RelayerId>(
 	latest_received_nonce: MessageNonce,
-	relayers: &VecDeque<UnrewardedRelayer<RelayerId, RewardAtSource>>,
+	relayers: &VecDeque<UnrewardedRelayer<RelayerId>>,
 ) -> Result<(), ReceivalConfirmationError> {
 	let mut expected_entry_begin = relayers.front().map(|entry| entry.messages.begin);
 	for entry in relayers {
@@ -230,7 +230,7 @@ mod tests {
 
 	fn unrewarded_relayers(
 		nonces: RangeInclusive<MessageNonce>,
-	) -> VecDeque<UnrewardedRelayer<TestRelayer, TestBalance>> {
+	) -> VecDeque<UnrewardedRelayer<TestRelayer>> {
 		vec![unrewarded_relayer(*nonces.start(), *nonces.end(), 0)]
 			.into_iter()
 			.collect()
@@ -242,7 +242,7 @@ mod tests {
 
 	fn assert_3_messages_confirmation_fails(
 		latest_received_nonce: MessageNonce,
-		relayers: &VecDeque<UnrewardedRelayer<TestRelayer, TestBalance>>,
+		relayers: &VecDeque<UnrewardedRelayer<TestRelayer>>,
 	) -> Result<Option<RangeInclusive<MessageNonce>>, ReceivalConfirmationError> {
 		run_test(|| {
 			let mut lane = active_outbound_lane::<TestRuntime, _>(test_lane_id()).unwrap();

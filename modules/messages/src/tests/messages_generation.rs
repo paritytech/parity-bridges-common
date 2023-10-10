@@ -21,7 +21,7 @@ use bp_messages::{
 	MessagePayload, OutboundLaneData,
 };
 use bp_runtime::{
-	grow_storage_value, AccountIdOf, BalanceOf, Chain, HashOf, HasherOf, RangeInclusiveExt,
+	grow_storage_value, AccountIdOf, Chain, HashOf, HasherOf, RangeInclusiveExt,
 	UnverifiedStorageProof, UnverifiedStorageProofParams,
 };
 use codec::Encode;
@@ -97,7 +97,7 @@ where
 /// Prepare storage proof that proves given messages delivery.
 pub fn prepare_message_delivery_storage_proof<BridgedChain: Chain, ThisChain: ChainWithMessages>(
 	lane: LaneId,
-	inbound_lane_data: InboundLaneData<AccountIdOf<ThisChain>, BalanceOf<ThisChain>>,
+	inbound_lane_data: InboundLaneData<AccountIdOf<ThisChain>>,
 	proof_params: UnverifiedStorageProofParams,
 ) -> (HashOf<BridgedChain>, UnverifiedStorageProof)
 where
@@ -209,7 +209,7 @@ where
 /// Returns state trie root and partial storage trie.
 fn do_prepare_message_delivery_storage_proof<BridgedChain: Chain, ThisChain: ChainWithMessages, L>(
 	lane: LaneId,
-	inbound_lane_data: InboundLaneData<AccountIdOf<ThisChain>, BalanceOf<ThisChain>>,
+	inbound_lane_data: InboundLaneData<AccountIdOf<ThisChain>>,
 	proof_params: UnverifiedStorageProofParams,
 ) -> (HashOf<BridgedChain>, UnverifiedStorageProof)
 where

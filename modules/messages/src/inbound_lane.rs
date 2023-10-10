@@ -23,18 +23,16 @@ use bp_messages::{
 	ChainWithMessages, DeliveredMessages, InboundLaneData, LaneId, LaneState, MessageKey,
 	MessageNonce, OutboundLaneData, ReceivalResult, UnrewardedRelayer,
 };
-use bp_runtime::{AccountIdOf, BalanceOf};
+use bp_runtime::AccountIdOf;
 use codec::{Decode, Encode, EncodeLike, MaxEncodedLen};
 use scale_info::{Type, TypeInfo};
-use sp_runtime::{traits::{One, Saturating}, RuntimeDebug};
+use sp_runtime::{traits::One, RuntimeDebug};
 use sp_std::prelude::PartialEq;
 
 /// Inbound lane storage.
 pub trait InboundLaneStorage {
 	/// Id of relayer on source chain.
 	type Relayer: Clone + PartialEq;
-	/// Balance of the source chain.
-	type Balance: Clone + One + PartialEq + Saturating;
 
 	/// Lane id.
 	fn id(&self) -> LaneId;
@@ -43,9 +41,9 @@ pub trait InboundLaneStorage {
 	/// Return maximal number of unconfirmed messages in inbound lane.
 	fn max_unconfirmed_messages(&self) -> MessageNonce;
 	/// Get lane data from the storage.
-	fn data(&self) -> InboundLaneData<Self::Relayer, Self::Balance>;
+	fn data(&self) -> InboundLaneData<Self::Relayer>;
 	/// Update lane data in the storage.
-	fn set_data(&mut self, data: InboundLaneData<Self::Relayer, Self::Balance>);
+	fn set_data(&mut self, data: InboundLaneData<Self::Relayer>);
 	/// Purge lane data from the storage.
 	fn purge(self);
 }
@@ -60,11 +58,11 @@ pub trait InboundLaneStorage {
 /// The encoding of this type matches encoding of the corresponding `MessageData`.
 #[derive(Encode, Decode, Clone, RuntimeDebug, PartialEq, Eq)]
 pub struct StoredInboundLaneData<T: Config<I>, I: 'static>(
-	pub InboundLaneData<AccountIdOf<BridgedChainOf<T, I>>, BalanceOf<BridgedChainOf<T, I>>>,
+	pub InboundLaneData<AccountIdOf<BridgedChainOf<T, I>>>,
 );
 
 impl<T: Config<I>, I: 'static> sp_std::ops::Deref for StoredInboundLaneData<T, I> {
-	type Target = InboundLaneData<AccountIdOf<BridgedChainOf<T, I>>, BalanceOf<BridgedChainOf<T, I>>>;
+	type Target = InboundLaneData<AccountIdOf<BridgedChainOf<T, I>>>;
 
 	fn deref(&self) -> &Self::Target {
 		&self.0
@@ -84,7 +82,7 @@ impl<T: Config<I>, I: 'static> Default for StoredInboundLaneData<T, I> {
 }
 
 impl<T: Config<I>, I: 'static> From<StoredInboundLaneData<T, I>>
-	for InboundLaneData<AccountIdOf<BridgedChainOf<T, I>>, BalanceOf<BridgedChainOf<T, I>>>
+	for InboundLaneData<AccountIdOf<BridgedChainOf<T, I>>>
 {
 	fn from(data: StoredInboundLaneData<T, I>) -> Self {
 		data.0
@@ -92,7 +90,7 @@ impl<T: Config<I>, I: 'static> From<StoredInboundLaneData<T, I>>
 }
 
 impl<T: Config<I>, I: 'static> EncodeLike<StoredInboundLaneData<T, I>>
-	for InboundLaneData<AccountIdOf<BridgedChainOf<T, I>>, BalanceOf<BridgedChainOf<T, I>>>
+	for InboundLaneData<AccountIdOf<BridgedChainOf<T, I>>>
 {
 }
 
@@ -100,13 +98,13 @@ impl<T: Config<I>, I: 'static> TypeInfo for StoredInboundLaneData<T, I> {
 	type Identity = Self;
 
 	fn type_info() -> Type {
-		InboundLaneData::<AccountIdOf<BridgedChainOf<T, I>>, BalanceOf<BridgedChainOf<T, I>>>::type_info()
+		InboundLaneData::<AccountIdOf<BridgedChainOf<T, I>>>::type_info()
 	}
 }
 
 impl<T: Config<I>, I: 'static> MaxEncodedLen for StoredInboundLaneData<T, I> {
 	fn max_encoded_len() -> usize {
-		InboundLaneData::<AccountIdOf<BridgedChainOf<T, I>>, BalanceOf<BridgedChainOf<T, I>>>::encoded_size_hint(
+		InboundLaneData::<AccountIdOf<BridgedChainOf<T, I>>>::encoded_size_hint(
 			BridgedChainOf::<T, I>::MAX_UNREWARDED_RELAYERS_IN_CONFIRMATION_TX as usize,
 		)
 		.unwrap_or(usize::MAX)

@@ -65,7 +65,7 @@ use bp_messages::{
 	OutboundMessageDetails, UnrewardedRelayersState, VerificationError,
 };
 use bp_runtime::{
-	AccountIdOf, BalanceOf, BasicOperatingMode, HashOf, OwnedBridgeModule, PreComputedSize, RangeInclusiveExt,
+	AccountIdOf, BasicOperatingMode, HashOf, OwnedBridgeModule, PreComputedSize, RangeInclusiveExt,
 	Size,
 };
 use codec::{Decode, Encode};
@@ -127,7 +127,7 @@ pub mod pallet {
 		type DeliveryPayments: DeliveryPayments<Self::AccountId>;
 		/// Handler for relayer payments that happen during message delivery confirmation
 		/// transaction.
-		type DeliveryConfirmationPayments: DeliveryConfirmationPayments<Self::AccountId, BalanceOf<ThisChainOf<Self, I>>>;
+		type DeliveryConfirmationPayments: DeliveryConfirmationPayments<Self::AccountId>;
 		/// Delivery confirmation callback.
 		type OnMessagesDelivered: OnMessagesDelivered;
 
@@ -578,7 +578,7 @@ pub mod pallet {
 		/// Return inbound lane data.
 		pub fn inbound_lane_data(
 			lane: LaneId,
-		) -> Option<InboundLaneData<AccountIdOf<BridgedChainOf<T, I>>, BalanceOf<BridgedChainOf<T, I>>>> {
+		) -> Option<InboundLaneData<AccountIdOf<BridgedChainOf<T, I>>>> {
 			InboundLanes::<T, I>::get(lane).map(|lane| lane.0)
 		}
 	}

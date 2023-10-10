@@ -73,7 +73,6 @@ pub struct TestPayload {
 pub type TestMessageFee = u64;
 pub type TestRelayer = u64;
 pub type TestDispatchLevelResult = ();
-pub type TestBalance = Balance;
 
 pub struct ThisChain;
 
@@ -354,12 +353,12 @@ impl TestDeliveryConfirmationPayments {
 	}
 }
 
-impl DeliveryConfirmationPayments<AccountId, Balance> for TestDeliveryConfirmationPayments {
+impl DeliveryConfirmationPayments<AccountId> for TestDeliveryConfirmationPayments {
 	type Error = &'static str;
 
 	fn pay_reward(
 		_lane_id: LaneId,
-		messages_relayers: VecDeque<UnrewardedRelayer<AccountId, Balance>>,
+		messages_relayers: VecDeque<UnrewardedRelayer<AccountId>>,
 		_confirmation_relayer: &AccountId,
 		received_range: &RangeInclusive<MessageNonce>,
 	) -> MessageNonce {
@@ -464,7 +463,7 @@ pub fn unrewarded_relayer(
 	begin: MessageNonce,
 	end: MessageNonce,
 	relayer: TestRelayer,
-) -> UnrewardedRelayer<TestRelayer, Balance> {
+) -> UnrewardedRelayer<TestRelayer> {
 	UnrewardedRelayer { relayer, messages: DeliveredMessages { begin, end, reward: 1 } }
 }
 
@@ -548,7 +547,7 @@ pub fn prepare_messages_proof(
 /// `asset_noop` macro calls.
 pub fn prepare_messages_delivery_proof(
 	lane: LaneId,
-	inbound_lane_data: InboundLaneData<AccountId, Balance>,
+	inbound_lane_data: InboundLaneData<AccountId>,
 ) -> FromBridgedChainMessagesDeliveryProof<BridgedHeaderHash> {
 	// first - let's generate storage proof
 	let (storage_root, storage_proof) =

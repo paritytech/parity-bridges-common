@@ -30,7 +30,7 @@
 use bp_messages::LaneId;
 use bp_relayers::{
 	LaneRelayersSet, PaymentProcedure, Registration, RelayerRewardsKeyProvider,
-	RewardsAccountParams, StakeAndSlash,
+	RewardAtSource, RewardsAccountParams, StakeAndSlash,
 };
 use bp_runtime::StorageDoubleMapKeyProvider;
 use frame_support::fail;
@@ -74,7 +74,7 @@ pub mod pallet {
 	pub trait Config: frame_system::Config {
 		/// The overarching event type.
 		type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
-		/// Type of relayer reward.
+		/// Type of relayer reward, that is paid at this chain.
 		type Reward: AtLeast32BitUnsigned + Copy + Member + Parameter + MaxEncodedLen;
 		/// Pay rewards scheme.
 		type PaymentProcedure: PaymentProcedure<Self::AccountId, Self::Reward>;
@@ -265,7 +265,7 @@ pub mod pallet {
 		pub fn register_at_lane(
 			origin: OriginFor<T>,
 			lane: LaneId,
-			expected_reward: T::Reward,
+			expected_reward: RewardAtSource,
 		) -> DispatchResult {
 			let relayer = ensure_signed(origin)?;
 
@@ -732,7 +732,7 @@ pub mod pallet {
 		_,
 		Identity,
 		LaneId,
-		LaneRelayersSet<T::AccountId, BlockNumberFor<T>, T::Reward, T::MaxRelayersPerLane>,
+		LaneRelayersSet<T::AccountId, BlockNumberFor<T>, T::MaxRelayersPerLane>,
 		OptionQuery,
 	>;
 }

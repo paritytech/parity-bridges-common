@@ -16,6 +16,8 @@
 
 //! Bridge lane relayers.
 
+pub use bp_messages::RewardAtSource;
+
 use codec::{Decode, Encode, MaxEncodedLen};
 use scale_info::TypeInfo;
 use sp_runtime::{
@@ -23,24 +25,26 @@ use sp_runtime::{
 	BoundedVec, RuntimeDebug,
 };
 
+/// We are using 
+
 /// A relayer and the reward that it wants to receive for delivering a single message.
 #[derive(Clone, Decode, Encode, Eq, PartialEq, RuntimeDebug, TypeInfo, MaxEncodedLen)]
-pub struct RelayerAndReward<AccountId, Reward> {
+pub struct RelayerAndReward<AccountId> {
 	/// A relayer account identifier.
 	relayer: AccountId,
 	/// A reward that is paid to relayer for delivering a single message.
-	reward: Reward,
+	reward: RewardAtSource,
 }
 
-impl<AccountId, Reward> RelayerAndReward<AccountId, Reward> {
+impl<AccountId> RelayerAndReward<AccountId> {
 	/// Return relayer account identifier.
 	pub fn relayer(&self) -> &AccountId {
 		&self.relayer
 	}
 
 	/// Return expected relayer reward.
-	pub fn reward(&self) -> &Reward {
-		&self.reward
+	pub fn reward(&self) -> RewardAtSource {
+		self.reward
 	}
 }
 
@@ -63,7 +67,7 @@ impl<AccountId, Reward> RelayerAndReward<AccountId, Reward> {
 /// relayer in the [`Self::next_set`].
 #[derive(Clone, Decode, Encode, Eq, PartialEq, RuntimeDebug, TypeInfo, MaxEncodedLen)]
 #[scale_info(skip_type_params(MaxRelayersPerLane))]
-pub struct LaneRelayersSet<AccountId, BlockNumber, Reward, MaxRelayersPerLane: Get<u32>> {
+pub struct LaneRelayersSet<AccountId, BlockNumber, MaxRelayersPerLane: Get<u32>> {
 	/// Number of block, where the active set has been enacted.
 	enacted_at: BlockNumber,
 	/// Number of block, where the active set may be replaced with the [`Self::next_set`].
@@ -76,20 +80,19 @@ pub struct LaneRelayersSet<AccountId, BlockNumber, Reward, MaxRelayersPerLane: G
 	/// It is a circular queue. Every relayer in the queue is assigned the slot (fixed number
 	/// of blocks), starting from [`Self::enacted_at`]. Once the slot of last relayer ends,
 	/// next slot will be assigned to the first relayer and so on.
-	active_set: BoundedVec<RelayerAndReward<AccountId, Reward>, MaxRelayersPerLane>,
+	active_set: BoundedVec<RelayerAndReward<AccountId>, MaxRelayersPerLane>,
 	/// Next set of lane relayers.
 	///
 	/// It is a bounded priority queue. Relayers that are working for larger reward are replaced
 	/// with relayers, that are working for smaller reward.
-	next_set: BoundedVec<RelayerAndReward<AccountId, Reward>, MaxRelayersPerLane>,
+	next_set: BoundedVec<RelayerAndReward<AccountId>, MaxRelayersPerLane>,
 }
 
-impl<AccountId, BlockNumber, Reward, MaxRelayersPerLane>
-	LaneRelayersSet<AccountId, BlockNumber, Reward, MaxRelayersPerLane>
+impl<AccountId, BlockNumber, MaxRelayersPerLane>
+	LaneRelayersSet<AccountId, BlockNumber, MaxRelayersPerLane>
 where
 	AccountId: Clone + PartialOrd,
 	BlockNumber: Copy + Zero,
-	Reward: Copy + Ord,
 	MaxRelayersPerLane: Get<u32>,
 {
 	/// Creates new empty relayers set, where next sets enacts at given block.
@@ -108,19 +111,19 @@ where
 	}
 
 	/// Returns relayers in the active set.
-	pub fn active_relayers(&self) -> &[RelayerAndReward<AccountId, Reward>] {
+	pub fn active_relayers(&self) -> &[RelayerAndReward<AccountId>] {
 		self.active_set.as_slice()
 	}
 
 	/// Returns relayers in the next set.
-	pub fn next_relayers(&self) -> &[RelayerAndReward<AccountId, Reward>] {
+	pub fn next_relayers(&self) -> &[RelayerAndReward<AccountId>] {
 		self.next_set.as_slice()
 	}
 
 	/// Try insert relayer to the next set.
 	///
 	/// Returns `true` if relayer has been added to the set and false otherwise.
-	pub fn next_set_try_push(&mut self, relayer: AccountId, reward: Reward) -> bool {
+	pub fn next_set_try_push(&mut self, relayer: AccountId, reward: RewardAtSource) -> bool {
 		// first, remove existing entry for the same relayer from the set
 		self.next_set_try_remove(&relayer);
 		// now try to insert new entry into the queue
@@ -153,7 +156,7 @@ where
 		self.next_set_may_enact_at = new_next_set_may_enact_at;
 	}
 
-	fn select_position_in_next_set(&self, reward: Reward) -> usize {
+	fn select_position_in_next_set(&self, reward: RewardAtSource) -> usize {
 		// we need to insert new entry **after** the last entry with the same `reward`. Otherwise it
 		// may be used to push relayers our of the queue
 		let mut initial_position = self

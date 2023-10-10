@@ -33,7 +33,7 @@ use serde::{Deserialize, Serialize};
 use source_chain::RelayersRewardsAtSource;
 use sp_core::{RuntimeDebug, TypeId, H256};
 use sp_io::hashing::blake2_256;
-use sp_runtime::{traits::AtLeast32BitUnsigned, SaturatedConversion};
+use sp_runtime::SaturatedConversion;
 use sp_std::{collections::{btree_map::Entry, vec_deque::VecDeque}, ops::RangeInclusive, prelude::*};
 
 pub use call_info::{
@@ -308,7 +308,7 @@ pub struct Message {
 
 /// Inbound lane data.
 #[derive(Encode, Decode, Clone, RuntimeDebug, PartialEq, Eq, TypeInfo)]
-pub struct InboundLaneData<RelayerId, RewardAtSource> {
+pub struct InboundLaneData<RelayerId> {
 	/// Inbound lane state.
 	///
 	/// If state is `Closed`, then all attempts to deliver messages to this end will fail.
@@ -331,7 +331,7 @@ pub struct InboundLaneData<RelayerId, RewardAtSource> {
 	/// When a relayer sends a single message, both of MessageNonces are the same.
 	/// When relayer sends messages in a batch, the first arg is the lowest nonce, second arg the
 	/// highest nonce. Multiple dispatches from the same relayer are allowed.
-	pub relayers: VecDeque<UnrewardedRelayer<RelayerId, RewardAtSource>>,
+	pub relayers: VecDeque<UnrewardedRelayer<RelayerId>>,
 
 	/// Nonce of the last message that
 	/// a) has been delivered to the target (this) chain and
@@ -344,7 +344,7 @@ pub struct InboundLaneData<RelayerId, RewardAtSource> {
 	pub last_confirmed_nonce: MessageNonce,
 }
 
-impl<RelayerId, RewardAtSource> Default for InboundLaneData<RelayerId, RewardAtSource> {
+impl<RelayerId> Default for InboundLaneData<RelayerId> {
 	fn default() -> Self {
 		InboundLaneData {
 			state: LaneState::Closed,
@@ -354,7 +354,7 @@ impl<RelayerId, RewardAtSource> Default for InboundLaneData<RelayerId, RewardAtS
 	}
 }
 
-impl<RelayerId, RewardAtSource> InboundLaneData<RelayerId, RewardAtSource> {
+impl<RelayerId> InboundLaneData<RelayerId> {
 	/// Returns default inbound lane data with opened state.
 	pub fn opened() -> Self {
 		InboundLaneData { state: LaneState::Opened, ..Default::default() }
@@ -367,10 +367,9 @@ impl<RelayerId, RewardAtSource> InboundLaneData<RelayerId, RewardAtSource> {
 	pub fn encoded_size_hint(relayers_entries: usize) -> Option<usize>
 	where
 		RelayerId: MaxEncodedLen,
-		RewardAtSource: MaxEncodedLen,
 	{
 		relayers_entries
-			.checked_mul(UnrewardedRelayer::<RelayerId, RewardAtSource>::max_encoded_len())?
+			.checked_mul(UnrewardedRelayer::<RelayerId>::max_encoded_len())?
 			.checked_add(Compact::<u32>(relayers_entries as u32).encoded_size())?
 			.checked_add(LaneState::max_encoded_len())?
 			.checked_add(MessageNonce::max_encoded_len())
@@ -383,7 +382,6 @@ impl<RelayerId, RewardAtSource> InboundLaneData<RelayerId, RewardAtSource> {
 	pub fn encoded_size_hint_u32(relayers_entries: usize) -> u32
 	where
 		RelayerId: MaxEncodedLen,
-		RewardAtSource: MaxEncodedLen,
 	{
 		Self::encoded_size_hint(relayers_entries)
 			.and_then(|x| u32::try_from(x).ok())
@@ -441,11 +439,11 @@ pub struct InboundMessageDetails {
 /// This struct represents a continuous range of messages that have been delivered by the same
 /// relayer and whose confirmations are still pending.
 #[derive(Encode, Decode, Clone, RuntimeDebug, PartialEq, Eq, TypeInfo, MaxEncodedLen)]
-pub struct UnrewardedRelayer<RelayerId, RewardAtSource> {
+pub struct UnrewardedRelayer<RelayerId> {
 	/// Identifier of the relayer at the source (sending) chain.
 	pub relayer: RelayerId,
 	/// Messages range, delivered by this relayer.
-	pub messages: DeliveredMessages<RewardAtSource>,
+	pub messages: DeliveredMessages,
 }
 
 /// Received messages with their dispatch result.
@@ -488,20 +486,31 @@ pub enum ReceivalResult<DispatchLevelResult> {
 	TooManyUnconfirmedMessages,
 }
 
+/// Type of reward that needs to be paid at the source chain for delivering messages to the
+/// target chain. It does not necessary mapped 1:1 onto source chain tokens. The
+/// `DeliveryConfirmationPayments` implementation decides how to map it and what actual
+/// reward the relayer would receive.
+///
+/// Why our code is not generic over this type? That's mostly because we are using single
+/// `pallet-bridge-relayers` instance to register rewards for all bridges. Those bridges
+/// may be connected to chains, using different `Balance` types. Why not to use encoded version?
+/// Because we need to order relayers by the reward they get for delivering a single message.
+pub type RewardAtSource = u64;
+
 /// Delivered messages with their dispatch result.
 #[derive(Clone, Default, Encode, Decode, RuntimeDebug, PartialEq, Eq, TypeInfo, MaxEncodedLen)]
-pub struct DeliveredMessages<RewardAtSource> {
+pub struct DeliveredMessages {
 	/// Nonce of the first message that has been delivered (inclusive).
 	pub begin: MessageNonce,
 	/// Nonce of the last message that has been delivered (inclusive).
 	pub end: MessageNonce,
 	/// Reward that needs to be paid at the source chain (during confirmation transaction)
 	/// for every delivered message in the `begin..=end` range. If reward has been paid at the
-	/// target chain, it may be zero.  
+	/// target chain, it may be zero.
 	pub reward: RewardAtSource,
 }
 
-impl<RewardAtSource> DeliveredMessages<RewardAtSource> {
+impl DeliveredMessages {
 	/// Create new `DeliveredMessages` struct that confirms delivery of single nonce with given
 	/// dispatch result.
 	pub fn new(nonce: MessageNonce, reward: RewardAtSource) -> Self {
@@ -543,13 +552,13 @@ pub struct UnrewardedRelayersState {
 
 impl UnrewardedRelayersState {
 	/// Verify that the relayers state corresponds with the `InboundLaneData`.
-	pub fn is_valid<RelayerId, RewardAtSource>(&self, lane_data: &InboundLaneData<RelayerId, RewardAtSource>) -> bool {
+	pub fn is_valid<RelayerId>(&self, lane_data: &InboundLaneData<RelayerId>) -> bool {
 		self == &lane_data.into()
 	}
 }
 
-impl<RelayerId, RewardAtSource> From<&InboundLaneData<RelayerId, RewardAtSource>> for UnrewardedRelayersState {
-	fn from(lane: &InboundLaneData<RelayerId, RewardAtSource>) -> UnrewardedRelayersState {
+impl<RelayerId> From<&InboundLaneData<RelayerId>> for UnrewardedRelayersState {
+	fn from(lane: &InboundLaneData<RelayerId>) -> UnrewardedRelayersState {
 		UnrewardedRelayersState {
 			unrewarded_relayer_entries: lane.relayers.len() as _,
 			messages_in_oldest_entry: lane
@@ -599,20 +608,19 @@ impl Default for OutboundLaneData {
 	}
 }
 
-/// Calculate the number of messages that the relayers have delivered.
-pub fn calc_relayers_rewards_at_source<AccountId, RewardAtSource>(
-	messages_relayers: VecDeque<UnrewardedRelayer<AccountId, RewardAtSource>>,
+/// Calculate the total relayer reward that need to be paid at the source chain.
+pub fn calc_relayers_rewards_at_source<AccountId>(
+	messages_relayers: VecDeque<UnrewardedRelayer<AccountId>>,
 	received_range: &RangeInclusive<MessageNonce>,
-) -> RelayersRewardsAtSource<AccountId, RewardAtSource>
+) -> RelayersRewardsAtSource<AccountId>
 where
 	AccountId: sp_std::cmp::Ord,
-	RewardAtSource: AtLeast32BitUnsigned + Clone/*Bounded + Clone + Saturating + UniqueSaturatedFrom<MessageNonce> + Zero*/,
 {
 	// remember to reward relayers that have delivered messages
 	// this loop is bounded by `T::MAX_UNREWARDED_RELAYERS_IN_CONFIRMATION_TX` on the bridged chain
-	let mut relayers_rewards: RelayersRewardsAtSource<AccountId, RewardAtSource> = RelayersRewardsAtSource::new();
+	let mut relayers_rewards: RelayersRewardsAtSource<AccountId> = RelayersRewardsAtSource::new();
 	for entry in messages_relayers {
-		if entry.messages.reward.is_zero() {
+		if entry.messages.reward == 0 {
 			continue;
 		}
 		

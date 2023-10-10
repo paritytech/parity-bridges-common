@@ -24,7 +24,7 @@ use bp_messages::{
 	LaneId, MessageNonce, MessagesCallInfo, ReceiveMessagesDeliveryProofInfo,
 	ReceiveMessagesProofInfo, UnrewardedRelayerOccupation,
 };
-use bp_runtime::{AccountIdOf, BalanceOf};
+use bp_runtime::AccountIdOf;
 use frame_support::{dispatch::CallableCallFor, traits::IsSubType};
 use sp_runtime::transaction_validity::TransactionValidity;
 
@@ -202,7 +202,7 @@ impl<
 
 /// Returns occupation state of unrewarded relayers vector.
 fn unrewarded_relayers_occupation<T: Config<I>, I: 'static>(
-	inbound_lane_data: &InboundLaneData<AccountIdOf<BridgedChainOf<T, I>>, BalanceOf<BridgedChainOf<T, I>>>,
+	inbound_lane_data: &InboundLaneData<AccountIdOf<BridgedChainOf<T, I>>>,
 ) -> UnrewardedRelayerOccupation {
 	UnrewardedRelayerOccupation {
 		free_relayer_slots: T::BridgedChain::MAX_UNREWARDED_RELAYERS_IN_CONFIRMATION_TX

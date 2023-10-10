@@ -1033,7 +1033,7 @@ generate_owned_bridge_module_tests!(
 
 #[test]
 fn inbound_storage_extra_proof_size_bytes_works() {
-	fn relayer_entry() -> UnrewardedRelayer<TestRelayer, TestBalance> {
+	fn relayer_entry() -> UnrewardedRelayer<TestRelayer> {
 		UnrewardedRelayer { relayer: 42u64, messages: DeliveredMessages { begin: 0, end: 100, reward: 0 } }
 	}
 

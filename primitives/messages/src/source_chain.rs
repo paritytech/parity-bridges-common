@@ -16,7 +16,7 @@
 
 //! Primitives of messages module, that are used on the source chain.
 
-use crate::{LaneId, MessageNonce, UnrewardedRelayer};
+use crate::{LaneId, MessageNonce, RewardAtSource, UnrewardedRelayer};
 
 use bp_runtime::{Size, UnverifiedStorageProof};
 use codec::{Decode, Encode};
@@ -55,11 +55,11 @@ impl<BridgedHeaderHash> Size for FromBridgedChainMessagesDeliveryProof<BridgedHe
 }
 
 /// Rewards that need to be paid to relayers at the source chain.
-pub type RelayersRewardsAtSource<AccountId, RewardAtSource> = BTreeMap<AccountId, RewardAtSource>;
+pub type RelayersRewardsAtSource<AccountId> = BTreeMap<AccountId, RewardAtSource>;
 
 /// Manages payments that are happening at the source chain during delivery confirmation
 /// transaction.
-pub trait DeliveryConfirmationPayments<AccountId, RewardAtSource> {
+pub trait DeliveryConfirmationPayments<AccountId> {
 	/// Error type.
 	type Error: Debug + Into<&'static str>;
 
@@ -71,18 +71,18 @@ pub trait DeliveryConfirmationPayments<AccountId, RewardAtSource> {
 	/// Returns number of actually rewarded relayers.
 	fn pay_reward(
 		lane_id: LaneId,
-		messages_relayers: VecDeque<UnrewardedRelayer<AccountId, RewardAtSource>>,
+		messages_relayers: VecDeque<UnrewardedRelayer<AccountId>>,
 		confirmation_relayer: &AccountId,
 		received_range: &RangeInclusive<MessageNonce>,
 	) -> MessageNonce;
 }
 
-impl<AccountId, RewardAtSource> DeliveryConfirmationPayments<AccountId, RewardAtSource> for () {
+impl<AccountId> DeliveryConfirmationPayments<AccountId> for () {
 	type Error = &'static str;
 
 	fn pay_reward(
 		_lane_id: LaneId,
-		_messages_relayers: VecDeque<UnrewardedRelayer<AccountId, RewardAtSource>>,
+		_messages_relayers: VecDeque<UnrewardedRelayer<AccountId>>,
 		_confirmation_relayer: &AccountId,
 		_received_range: &RangeInclusive<MessageNonce>,
 	) -> MessageNonce {
@@ -140,12 +140,12 @@ impl<Payload> MessagesBridge<Payload> for NoopMessagesBridge {
 /// where outbound messages are forbidden.
 pub struct ForbidOutboundMessages;
 
-impl<AccountId, RewardAtSource> DeliveryConfirmationPayments<AccountId, RewardAtSource> for ForbidOutboundMessages {
+impl<AccountId> DeliveryConfirmationPayments<AccountId> for ForbidOutboundMessages {
 	type Error = &'static str;
 
 	fn pay_reward(
 		_lane_id: LaneId,
-		_messages_relayers: VecDeque<UnrewardedRelayer<AccountId, RewardAtSource>>,
+		_messages_relayers: VecDeque<UnrewardedRelayer<AccountId>>,
 		_confirmation_relayer: &AccountId,
 		_received_range: &RangeInclusive<MessageNonce>,
 	) -> MessageNonce {
