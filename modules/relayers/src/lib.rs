@@ -30,7 +30,7 @@ use frame_support::fail;
 use frame_system::Pallet as SystemPallet;
 use sp_arithmetic::traits::{AtLeast32BitUnsigned, Zero};
 use sp_runtime::{
-	traits::{CheckedSub, One},
+	traits::CheckedSub,
 	Saturating,
 };
 use sp_std::marker::PhantomData;
@@ -80,12 +80,25 @@ pub mod pallet {
 		/// This is an artificial limit that only exists to make PoV size predictable.
 		#[pallet::constant]
 		type MaxLanesPerRelayer: Get<u32>;
-		/// Maximal number of relayers that can register themselves on a single lane.
+		/// Maximal number of relayers that can reside in the active lane relayers set on a single lane.
 		///
 		/// Lowering this value leads to additional concurrency between relayers, potentially
 		/// making messages cheaper. So it shall not be too large.
 		#[pallet::constant]
-		type MaxRelayersPerLane: Get<u32>;
+		type MaxActiveRelayersPerLane: Get<u32>;
+		/// Maximal number of relayers that can reside in the next lane relayers set on a single lane.
+		///
+		/// Relayers set is a bounded priority queue, where relayers with lower expected reward are
+		/// prioritized over greedier relayers. At the end of epoch, we select top `MaxActiveRelayersPerLane`
+		/// relayers from the next set and move them to the next set. To alleviate possible spam attacks,
+		/// where relayers are registering at lane with zero reward (pushing out actual relayers with
+		/// larger expected reward) and then deregistering themselves right before epoch end, we make
+		/// the next relayers set larger than the active set. It would make it more expensive for attackers
+		/// to fill the whole next set.
+		///
+		/// This value must be larger than or equal to the [`Self::MaxActiveRelayersPerLane`].
+		#[pallet::constant]
+		type MaxNextRelayersPerLane: Get<u32>;
 
 		/// Length of initial relayer elections in chain blocks.
 		///
@@ -112,7 +125,7 @@ pub mod pallet {
 		/// by the `advance_lane_epoch` call.
 		///
 		/// This value should allow every relayer from the active set to have at least one slot. So
-		/// it shall be not less than the `Self::MaxRelayersPerLane::get() *
+		/// it shall be not less than the `Self::MaxActiveRelayersPerLane::get() *
 		/// Self::SlotLength::get()`. Normally, it should allow more than one slot for each relayer
 		/// (given max relayers in the set).
 		type EpochLength: Get<BlockNumberFor<Self>>;
@@ -399,9 +412,9 @@ pub mod pallet {
 							.is_some();
 						if is_in_active_set {
 							registration.set_valid_till(sp_std::cmp::max(
-								lane_relayers.valid_till(),
+								registration.valid_till_ignore_lanes(),
 								lane_relayers.next_set_may_enact_at().saturating_add(
-									T::StakeAndSlash::RequiredRegistrationLease::get(),
+									Self::required_registration_lease(),
 								),
 							));
 						}
@@ -750,7 +763,7 @@ pub mod pallet {
 		_,
 		Identity,
 		LaneId,
-		LaneRelayersSet<T::AccountId, BlockNumberFor<T>, T::MaxRelayersPerLane>,
+		LaneRelayersSet<T::AccountId, BlockNumberFor<T>, T::MaxActiveRelayersPerLane, T::MaxNextRelayersPerLane>,
 		OptionQuery,
 	>;
 }

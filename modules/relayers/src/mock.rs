@@ -305,8 +305,11 @@ impl pallet_bridge_relayers::Config for TestRuntime {
 	type PaymentProcedure = TestPaymentProcedure;
 	type StakeAndSlash = TestStakeAndSlash;
 	type MaxLanesPerRelayer = MaxLanesPerRelayer;
-	type MaxRelayersPerLane = ConstU32<4>;
+	type MaxActiveRelayersPerLane = ConstU32<4>;
+	type MaxNextRelayersPerLane = ConstU32<1_024>;
+	type InitialElectionLength = ConstU32<4>;
 	type SlotLength = ConstU32<16>;
+	type EpochLength = ConstU32<1_024>;
 	type PriorityBoostPerMessage = ConstU64<1>;
 	type PriorityBoostForLaneRelayer = PriorityBoostForLaneRelayer;
 	type WeightInfo = ();

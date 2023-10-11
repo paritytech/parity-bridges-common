@@ -188,8 +188,10 @@ impl<
 	}
 
 	/// Remove lane registration.
-	pub fn deregister_at_lane(&mut self, lane: LaneId) {
+	pub fn deregister_at_lane(&mut self, lane: LaneId) -> bool {
+		let old_lanes_len = self.lanes.len();
 		self.lanes.retain(|l| *l != lane);
+		old_lanes_len != self.lanes.len()
 	}
 }
 

@@ -64,8 +64,8 @@ impl<AccountId> RelayerAndReward<AccountId> {
 /// messages. Relayer, which agress to get a lower reward will likely to replace a "more greedy"
 /// relayer in the [`Self::next_set`].
 #[derive(Clone, Decode, Encode, Eq, PartialEq, RuntimeDebug, TypeInfo, MaxEncodedLen)]
-#[scale_info(skip_type_params(MaxRelayersPerLane))]
-pub struct LaneRelayersSet<AccountId, BlockNumber, MaxRelayersPerLane: Get<u32>> {
+#[scale_info(skip_type_params(MaxActiveRelayersPerLane, MaxNextRelayersPerLane))]
+pub struct LaneRelayersSet<AccountId, BlockNumber, MaxActiveRelayersPerLane: Get<u32>, MaxNextRelayersPerLane: Get<u32>> {
 	/// Number of block, where the active set has been enacted.
 	enacted_at: BlockNumber,
 	/// Number of block, where the active set may be replaced with the [`Self::next_set`].
@@ -78,20 +78,21 @@ pub struct LaneRelayersSet<AccountId, BlockNumber, MaxRelayersPerLane: Get<u32>>
 	/// It is a circular queue. Every relayer in the queue is assigned the slot (fixed number
 	/// of blocks), starting from [`Self::enacted_at`]. Once the slot of last relayer ends,
 	/// next slot will be assigned to the first relayer and so on.
-	active_set: BoundedVec<RelayerAndReward<AccountId>, MaxRelayersPerLane>,
+	active_set: BoundedVec<RelayerAndReward<AccountId>, MaxActiveRelayersPerLane>,
 	/// Next set of lane relayers.
 	///
 	/// It is a bounded priority queue. Relayers that are working for larger reward are replaced
 	/// with relayers, that are working for smaller reward.
-	next_set: BoundedVec<RelayerAndReward<AccountId>, MaxRelayersPerLane>,
+	next_set: BoundedVec<RelayerAndReward<AccountId>, MaxNextRelayersPerLane>,
 }
 
-impl<AccountId, BlockNumber, MaxRelayersPerLane>
-	LaneRelayersSet<AccountId, BlockNumber, MaxRelayersPerLane>
+impl<AccountId, BlockNumber, MaxActiveRelayersPerLane, MaxNextRelayersPerLane>
+	LaneRelayersSet<AccountId, BlockNumber, MaxActiveRelayersPerLane, MaxNextRelayersPerLane>
 where
 	AccountId: Clone + PartialOrd,
 	BlockNumber: Copy + Zero,
-	MaxRelayersPerLane: Get<u32>,
+	MaxActiveRelayersPerLane: Get<u32>,
+	MaxNextRelayersPerLane: Get<u32>,
 {
 	/// Creates new empty relayers set, where next sets enacts at given block.
 	pub fn empty(next_set_may_enact_at: BlockNumber) -> Self {
@@ -146,7 +147,16 @@ where
 	///
 	/// The [`Self::active_set`] is replaced with the [`Self::next_set`].
 	pub fn activate_next_set(&mut self, new_next_set_may_enact_at: BlockNumber) {
-		sp_std::mem::swap(&mut self.active_set, &mut self.next_set);
+		// move relayers from the next set to the active set
+		self.active_set.clear();
+		let relayers_in_active_set = sp_std::cmp::min(MaxActiveRelayersPerLane::get(), self.next_set.len() as u32);
+		for _ in 0..relayers_in_active_set {
+			// we know that the next set has at least `relayers_in_active_set`
+			// => so calling `remove(0)` is safe
+			// we know that the active set is empty and we select at most `MaxActiveRelayersPerLane` relayers
+			// => ignoring `try_push` result is safe
+			let _ = self.active_set.try_push(self.next_set.remove(0));
+		}
 		// we clear next set here. Relayers from the active set will be readded here if
 		// they deliver at least one message in epoch and their reward will be concurrent.
 		// Or else, they'll need to reregister manually.
