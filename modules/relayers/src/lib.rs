@@ -141,9 +141,9 @@ pub mod pallet {
 		/// transaction will get the following additional priority boost:
 		///
 		/// ```nocompile
-		/// T::PriorityBoostForLaneRelayer::get() + T::PriorityBoostPerMessage::get() * (msgs - 1)
+		/// T::PriorityBoostForActiveLaneRelayer::get() + T::PriorityBoostPerMessage::get() * (msgs - 1)
 		/// ```
-		type PriorityBoostForLaneRelayer: Get<TransactionPriority>;
+		type PriorityBoostForActiveLaneRelayer: Get<TransactionPriority>;
 
 		/// Pallet call weights.
 		type WeightInfo: WeightInfoExt;
@@ -769,21 +769,6 @@ pub mod pallet {
 			T::MaxNextRelayersPerLane,
 		>,
 		OptionQuery,
-	>;
-
-	/// A set of relayers that have explicitly registered themselves at a given lane.
-	///
-	/// Every relayer inside this set receives additional priority boost when it submits
-	/// message delivers messages at given lane. The boost only happens inside the slot,
-	/// assigned to relayer.
-	#[pallet::storage]
-	#[pallet::getter(fn lane_relayers)]
-	pub type LaneRelayers<T: Config> = StorageMap<
-		_,
-		Identity,
-		LaneId,
-		BoundedVec<T::AccountId, T::MaxRelayersPerLane>,
-		ValueQuery,
 	>;
 }
 

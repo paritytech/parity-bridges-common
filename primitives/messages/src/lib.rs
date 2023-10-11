@@ -683,7 +683,7 @@ mod tests {
 
 	#[test]
 	fn lane_is_closed_by_default() {
-		assert_eq!(InboundLaneData::<(), ()>::default().state, LaneState::Closed);
+		assert_eq!(InboundLaneData::<()>::default().state, LaneState::Closed);
 		assert_eq!(OutboundLaneData::default().state, LaneState::Closed);
 	}
 
@@ -716,13 +716,13 @@ mod tests {
 			(13u8, 128u8),
 		];
 		for (relayer_entries, messages_count) in test_cases {
-			let expected_size = InboundLaneData::<u8, u16>::encoded_size_hint(relayer_entries as _);
+			let expected_size = InboundLaneData::<u8>::encoded_size_hint(relayer_entries as _);
 			let actual_size = InboundLaneData {
 				state: LaneState::Opened,
 				relayers: (1u8..=relayer_entries)
 					.map(|i| UnrewardedRelayer {
 						relayer: i,
-						messages: DeliveredMessages::new(i as _, 0u16),
+						messages: DeliveredMessages::new(i as _, 0u64),
 					})
 					.collect(),
 				last_confirmed_nonce: messages_count as _,

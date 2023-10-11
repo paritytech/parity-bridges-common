@@ -397,10 +397,15 @@ impl pallet_bridge_relayers::Config for Runtime {
 		Balances,
 		RelayerStakeReserveId,
 		ConstU64<1_000>,
+		ConstU64<1_000>,
 		ConstU64<8>,
 	>;
+	type MaxLanesPerRelayer = ConstU32<16>;
 	type MaxActiveRelayersPerLane = ConstU32<16>;
+	type MaxNextRelayersPerLane = ConstU32<1_024>;
+	type InitialElectionLength = ConstU64<16>;
 	type SlotLength = ConstU64<16>;
+	type EpochLength = ConstU64<1_024>;
 	type PriorityBoostPerMessage = PriorityBoostPerMessage;
 	type PriorityBoostForActiveLaneRelayer = ConstU64<0>;
 	type WeightInfo = ();

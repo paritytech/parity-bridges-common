@@ -194,8 +194,14 @@ mod tests {
 	use super::*;
 	use sp_runtime::traits::ConstU32;
 
-	const MAX_LANE_RELAYERS: u32 = 4;
-	type TestLaneRelayersSet = LaneRelayersSet<u32, u32, u32, ConstU32<MAX_LANE_RELAYERS>>;
+	const MAX_ACTIVE_LANE_RELAYERS: u32 = 2;
+	const MAX_NEXT_LANE_RELAYERS: u32 = 4;
+	type TestLaneRelayersSet = LaneRelayersSet<
+		u64,
+		u64,
+		ConstU32<MAX_ACTIVE_LANE_RELAYERS>,
+		ConstU32<MAX_NEXT_LANE_RELAYERS>,
+	>;
 
 	#[test]
 	fn next_set_try_push_works() {
@@ -206,9 +212,10 @@ mod tests {
 			next_set: vec![].try_into().unwrap(),
 		};
 
-		// first `MAX_LANE_RELAYERS` are simply filling the set
-		for i in 0..MAX_LANE_RELAYERS {
-			assert!(relayers.next_set_try_push(i, (MAX_LANE_RELAYERS - i) * 10));
+		// first `MAX_NEXT_LANE_RELAYERS` are simply filling the set
+		let max_next_lane_relayers: u64 = MAX_NEXT_LANE_RELAYERS as _;
+		for i in 0..max_next_lane_relayers {
+			assert!(relayers.next_set_try_push(i, (max_next_lane_relayers - i) * 10));
 		}
 		assert_eq!(
 			relayers.next_set.as_slice(),

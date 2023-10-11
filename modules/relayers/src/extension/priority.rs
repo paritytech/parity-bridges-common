@@ -268,19 +268,22 @@ mod integrity_tests {
 mod tests {
 	use super::*;
 	use crate::{mock::*, LaneRelayers};
+	use bp_relayers::LaneRelayersSet;
 
 	#[test]
 	fn compute_per_lane_priority_boost_works() {
 		run_test(|| {
 			// insert 3 relayers to the queue
 			let lane_id = LaneId::new(1, 2);
-			let relayer1 = 1_000;
-			let relayer2 = 2_000;
-			let relayer3 = 3_000;
-			LaneRelayers::<TestRuntime>::insert(
-				lane_id,
-				sp_runtime::BoundedVec::try_from(vec![relayer1, relayer2, relayer3]).unwrap(),
-			);
+			let relayer1 = 100;
+			let relayer2 = 200;
+			let relayer3 = 300;
+			let mut relayers_set = LaneRelayersSet::empty(0);
+			assert!(relayers_set.next_set_try_push(relayer1, 0));
+			assert!(relayers_set.next_set_try_push(relayer2, 0));
+			assert!(relayers_set.next_set_try_push(relayer3, 0));
+			relayers_set.activate_next_set(0);
+			LaneRelayers::<TestRuntime>::insert(lane_id, relayers_set);
 
 			// at blocks 1..=SlotLength relayer1 gets the boost
 			System::set_block_number(0);

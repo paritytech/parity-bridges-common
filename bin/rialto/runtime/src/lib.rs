@@ -393,8 +393,12 @@ impl pallet_bridge_relayers::Config for Runtime {
 	type PaymentProcedure =
 		bp_relayers::PayRewardFromAccount<pallet_balances::Pallet<Runtime>, AccountId>;
 	type StakeAndSlash = ();
+	type MaxLanesPerRelayer = ConstU32<16>;
 	type MaxActiveRelayersPerLane = ConstU32<16>;
+	type MaxNextRelayersPerLane = ConstU32<1_024>;
+	type InitialElectionLength = ConstU32<16>;
 	type SlotLength = ConstU32<16>;
+	type EpochLength = ConstU32<1_024>;
 	type PriorityBoostPerMessage = ConstU64<0>;
 	type PriorityBoostForActiveLaneRelayer = ConstU64<0>;
 	type WeightInfo = ();
