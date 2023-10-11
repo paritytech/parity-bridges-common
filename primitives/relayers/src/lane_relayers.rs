@@ -65,7 +65,12 @@ impl<AccountId> RelayerAndReward<AccountId> {
 /// relayer in the [`Self::next_set`].
 #[derive(Clone, Decode, Encode, Eq, PartialEq, RuntimeDebug, TypeInfo, MaxEncodedLen)]
 #[scale_info(skip_type_params(MaxActiveRelayersPerLane, MaxNextRelayersPerLane))]
-pub struct LaneRelayersSet<AccountId, BlockNumber, MaxActiveRelayersPerLane: Get<u32>, MaxNextRelayersPerLane: Get<u32>> {
+pub struct LaneRelayersSet<
+	AccountId,
+	BlockNumber,
+	MaxActiveRelayersPerLane: Get<u32>,
+	MaxNextRelayersPerLane: Get<u32>,
+> {
 	/// Number of block, where the active set has been enacted.
 	enacted_at: BlockNumber,
 	/// Number of block, where the active set may be replaced with the [`Self::next_set`].
@@ -149,12 +154,13 @@ where
 	pub fn activate_next_set(&mut self, new_next_set_may_enact_at: BlockNumber) {
 		// move relayers from the next set to the active set
 		self.active_set.clear();
-		let relayers_in_active_set = sp_std::cmp::min(MaxActiveRelayersPerLane::get(), self.next_set.len() as u32);
+		let relayers_in_active_set =
+			sp_std::cmp::min(MaxActiveRelayersPerLane::get(), self.next_set.len() as u32);
 		for _ in 0..relayers_in_active_set {
 			// we know that the next set has at least `relayers_in_active_set`
 			// => so calling `remove(0)` is safe
-			// we know that the active set is empty and we select at most `MaxActiveRelayersPerLane` relayers
-			// => ignoring `try_push` result is safe
+			// we know that the active set is empty and we select at most `MaxActiveRelayersPerLane`
+			// relayers => ignoring `try_push` result is safe
 			let _ = self.active_set.try_push(self.next_set.remove(0));
 		}
 		// we clear next set here. Relayers from the active set will be readded here if
