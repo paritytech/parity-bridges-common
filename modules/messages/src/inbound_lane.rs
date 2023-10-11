@@ -508,6 +508,52 @@ mod tests {
 	}
 
 	#[test]
+	fn separate_relayer_entry_is_created_when_same_relayer_wants_different_reward() {
+		run_test(|| {
+			let mut lane = active_inbound_lane::<TestRuntime, _>(test_lane_id()).unwrap();
+			assert_eq!(
+				lane.receive_message::<TestMessageDispatch>(
+					&TEST_RELAYER_A,
+					1,
+					inbound_message_data(REGULAR_PAYLOAD),
+					DELIVERY_REWARD_PER_MESSAGE,
+				),
+				ReceivalResult::Dispatched(dispatch_result(0))
+			);
+			assert_eq!(
+				lane.receive_message::<TestMessageDispatch>(
+					&TEST_RELAYER_A,
+					2,
+					inbound_message_data(REGULAR_PAYLOAD),
+					DELIVERY_REWARD_PER_MESSAGE + 1,
+				),
+				ReceivalResult::Dispatched(dispatch_result(0))
+			);
+			assert_eq!(
+				lane.receive_message::<TestMessageDispatch>(
+					&TEST_RELAYER_A,
+					3,
+					inbound_message_data(REGULAR_PAYLOAD),
+					DELIVERY_REWARD_PER_MESSAGE + 1,
+				),
+				ReceivalResult::Dispatched(dispatch_result(0))
+			);
+
+			let mut unrewarded_relayer_with_larger_reward =
+				unrewarded_relayer(2, 3, TEST_RELAYER_A);
+			unrewarded_relayer_with_larger_reward.messages.reward_per_message =
+				DELIVERY_REWARD_PER_MESSAGE + 1;
+			assert_eq!(
+				lane.storage.data().relayers,
+				vec![
+					unrewarded_relayer(1, 1, TEST_RELAYER_A),
+					unrewarded_relayer_with_larger_reward,
+				]
+			);
+		});
+	}
+
+	#[test]
 	fn rejects_same_message_from_two_different_relayers() {
 		run_test(|| {
 			let mut lane = active_inbound_lane::<TestRuntime, _>(test_lane_id()).unwrap();

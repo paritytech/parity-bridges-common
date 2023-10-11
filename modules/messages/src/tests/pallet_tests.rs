@@ -257,6 +257,15 @@ fn receive_messages_proof_works() {
 				.last_delivered_nonce(),
 			1
 		);
+		assert_eq!(
+			InboundLanes::<TestRuntime>::get(test_lane_id())
+				.unwrap()
+				.0
+				.relayers
+				.front()
+				.map(|r| r.messages.reward_per_message),
+			Some(DELIVERY_REWARD_PER_MESSAGE),
+		);
 
 		assert!(TestDeliveryPayments::is_reward_paid(1));
 	});

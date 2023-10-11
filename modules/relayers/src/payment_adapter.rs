@@ -109,7 +109,7 @@ mod tests {
 	}
 
 	#[test]
-	fn confirmation_relayer_is_not_rewarded_if_it_has_not_delivered_any_messages() {
+	fn register_relayers_rewards_works() {
 		run_test(|| {
 			register_relayers_rewards::<TestRuntime>(
 				relayers_rewards(),
@@ -127,6 +127,28 @@ mod tests {
 			assert_eq!(
 				RelayerRewards::<TestRuntime>::get(RELAYER_3, test_reward_account_param()),
 				None
+			);
+		});
+	}
+
+	#[test]
+	fn reward_per_message_is_never_larger_than_max_reward_per_message() {
+		run_test(|| {
+			let mut delivered_messages =
+				bp_messages::DeliveredMessages::new(1, MAX_REWARD_PER_MESSAGE + 1);
+			delivered_messages.note_dispatched_message();
+
+			TestDeliveryConfirmationPaymentsAdapter::pay_reward(
+				test_lane_id(),
+				vec![bp_messages::UnrewardedRelayer { relayer: 42, messages: delivered_messages }]
+					.into(),
+				&43,
+				&(1..=2),
+			);
+
+			assert_eq!(
+				RelayerRewards::<TestRuntime>::get(&42, test_reward_account_param()),
+				Some(MAX_REWARD_PER_MESSAGE * 2),
 			);
 		});
 	}

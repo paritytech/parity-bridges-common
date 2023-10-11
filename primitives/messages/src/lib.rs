@@ -791,4 +791,29 @@ mod tests {
 			LaneId::new(Either::Three(1, 2, 3), Either::One(4)),
 		);
 	}
+
+	#[test]
+	fn calc_relayers_rewards_at_source_works() {
+		assert_eq!(
+			calc_relayers_rewards_at_source::<u64, u64>(
+				vec![
+					// relayer that wants zero reward => no payments expected
+					UnrewardedRelayer { relayer: 1, messages: DeliveredMessages::new(1, 0) },
+					// relayer wants reward => payment is expected
+					UnrewardedRelayer { relayer: 2, messages: DeliveredMessages::new(2, 77) },
+					// relayer that we met before and he wants reward => payment is expected
+					UnrewardedRelayer { relayer: 1, messages: DeliveredMessages::new(3, 42) },
+					// relayer that we met before and he wants reward => payment is expected
+					UnrewardedRelayer { relayer: 2, messages: DeliveredMessages::new(4, 33) },
+					// relayers that deliver messages out of range
+					UnrewardedRelayer { relayer: 2, messages: DeliveredMessages::new(0, 33) },
+					UnrewardedRelayer { relayer: 2, messages: DeliveredMessages::new(5, 33) },
+				]
+				.into(),
+				&(1..=4),
+				|_, reward_per_message| reward_per_message,
+			),
+			vec![(1, 42), (2, 110)].into_iter().collect(),
+		);
+	}
 }
