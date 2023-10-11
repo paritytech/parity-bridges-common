@@ -21,7 +21,7 @@ use crate::{BridgedChainOf, Config};
 use bp_messages::{
 	target_chain::{DispatchMessage, DispatchMessageData, MessageDispatch},
 	ChainWithMessages, DeliveredMessages, InboundLaneData, LaneId, LaneState, MessageKey,
-	MessageNonce, OutboundLaneData, ReceivalResult, UnrewardedRelayer,
+	MessageNonce, OutboundLaneData, ReceivalResult, RewardAtSource, UnrewardedRelayer,
 };
 use bp_runtime::AccountIdOf;
 use codec::{Decode, Encode, EncodeLike, MaxEncodedLen};
@@ -186,6 +186,7 @@ impl<S: InboundLaneStorage> InboundLane<S> {
 		relayer_at_bridged_chain: &S::Relayer,
 		nonce: MessageNonce,
 		message_data: DispatchMessageData<Dispatch::DispatchPayload>,
+		delivery_reward_per_message: RewardAtSource,
 	) -> ReceivalResult<Dispatch::DispatchLevelResult> {
 		let mut data = self.storage.data();
 		if Some(nonce) != data.last_delivered_nonce().checked_add(1) {
@@ -211,13 +212,16 @@ impl<S: InboundLaneStorage> InboundLane<S> {
 
 		// now let's update inbound lane storage
 		match data.relayers.back_mut() {
-			Some(entry) if entry.relayer == *relayer_at_bridged_chain => {
+			Some(entry)
+				if entry.relayer == *relayer_at_bridged_chain &&
+					entry.messages.reward_per_message == delivery_reward_per_message =>
+			{
 				entry.messages.note_dispatched_message();
 			},
 			_ => {
 				data.relayers.push_back(UnrewardedRelayer {
 					relayer: relayer_at_bridged_chain.clone(),
-					messages: DeliveredMessages::new(nonce),
+					messages: DeliveredMessages::new(nonce, delivery_reward_per_message),
 				});
 			},
 		};
@@ -246,7 +250,8 @@ mod tests {
 			lane.receive_message::<TestMessageDispatch>(
 				&TEST_RELAYER_A,
 				nonce,
-				inbound_message_data(REGULAR_PAYLOAD)
+				inbound_message_data(REGULAR_PAYLOAD),
+				DELIVERY_REWARD_PER_MESSAGE,
 			),
 			ReceivalResult::Dispatched(dispatch_result(0))
 		);
@@ -373,7 +378,8 @@ mod tests {
 				lane.receive_message::<TestMessageDispatch>(
 					&TEST_RELAYER_A,
 					10,
-					inbound_message_data(REGULAR_PAYLOAD)
+					inbound_message_data(REGULAR_PAYLOAD),
+					DELIVERY_REWARD_PER_MESSAGE,
 				),
 				ReceivalResult::InvalidNonce
 			);
@@ -391,7 +397,8 @@ mod tests {
 					lane.receive_message::<TestMessageDispatch>(
 						&(TEST_RELAYER_A + current_nonce),
 						current_nonce,
-						inbound_message_data(REGULAR_PAYLOAD)
+						inbound_message_data(REGULAR_PAYLOAD),
+						DELIVERY_REWARD_PER_MESSAGE,
 					),
 					ReceivalResult::Dispatched(dispatch_result(0))
 				);
@@ -401,7 +408,8 @@ mod tests {
 				lane.receive_message::<TestMessageDispatch>(
 					&(TEST_RELAYER_A + max_nonce + 1),
 					max_nonce + 1,
-					inbound_message_data(REGULAR_PAYLOAD)
+					inbound_message_data(REGULAR_PAYLOAD),
+					DELIVERY_REWARD_PER_MESSAGE,
 				),
 				ReceivalResult::TooManyUnrewardedRelayers,
 			);
@@ -410,7 +418,8 @@ mod tests {
 				lane.receive_message::<TestMessageDispatch>(
 					&(TEST_RELAYER_A + max_nonce),
 					max_nonce + 1,
-					inbound_message_data(REGULAR_PAYLOAD)
+					inbound_message_data(REGULAR_PAYLOAD),
+					DELIVERY_REWARD_PER_MESSAGE,
 				),
 				ReceivalResult::TooManyUnrewardedRelayers,
 			);
@@ -427,7 +436,8 @@ mod tests {
 					lane.receive_message::<TestMessageDispatch>(
 						&TEST_RELAYER_A,
 						current_nonce,
-						inbound_message_data(REGULAR_PAYLOAD)
+						inbound_message_data(REGULAR_PAYLOAD),
+						DELIVERY_REWARD_PER_MESSAGE,
 					),
 					ReceivalResult::Dispatched(dispatch_result(0))
 				);
@@ -437,7 +447,8 @@ mod tests {
 				lane.receive_message::<TestMessageDispatch>(
 					&TEST_RELAYER_B,
 					max_nonce + 1,
-					inbound_message_data(REGULAR_PAYLOAD)
+					inbound_message_data(REGULAR_PAYLOAD),
+					DELIVERY_REWARD_PER_MESSAGE,
 				),
 				ReceivalResult::TooManyUnconfirmedMessages,
 			);
@@ -446,7 +457,8 @@ mod tests {
 				lane.receive_message::<TestMessageDispatch>(
 					&TEST_RELAYER_A,
 					max_nonce + 1,
-					inbound_message_data(REGULAR_PAYLOAD)
+					inbound_message_data(REGULAR_PAYLOAD),
+					DELIVERY_REWARD_PER_MESSAGE,
 				),
 				ReceivalResult::TooManyUnconfirmedMessages,
 			);
@@ -461,7 +473,8 @@ mod tests {
 				lane.receive_message::<TestMessageDispatch>(
 					&TEST_RELAYER_A,
 					1,
-					inbound_message_data(REGULAR_PAYLOAD)
+					inbound_message_data(REGULAR_PAYLOAD),
+					DELIVERY_REWARD_PER_MESSAGE,
 				),
 				ReceivalResult::Dispatched(dispatch_result(0))
 			);
@@ -469,7 +482,8 @@ mod tests {
 				lane.receive_message::<TestMessageDispatch>(
 					&TEST_RELAYER_B,
 					2,
-					inbound_message_data(REGULAR_PAYLOAD)
+					inbound_message_data(REGULAR_PAYLOAD),
+					DELIVERY_REWARD_PER_MESSAGE,
 				),
 				ReceivalResult::Dispatched(dispatch_result(0))
 			);
@@ -477,7 +491,8 @@ mod tests {
 				lane.receive_message::<TestMessageDispatch>(
 					&TEST_RELAYER_A,
 					3,
-					inbound_message_data(REGULAR_PAYLOAD)
+					inbound_message_data(REGULAR_PAYLOAD),
+					DELIVERY_REWARD_PER_MESSAGE,
 				),
 				ReceivalResult::Dispatched(dispatch_result(0))
 			);
@@ -500,7 +515,8 @@ mod tests {
 				lane.receive_message::<TestMessageDispatch>(
 					&TEST_RELAYER_A,
 					1,
-					inbound_message_data(REGULAR_PAYLOAD)
+					inbound_message_data(REGULAR_PAYLOAD),
+					DELIVERY_REWARD_PER_MESSAGE,
 				),
 				ReceivalResult::Dispatched(dispatch_result(0))
 			);
@@ -508,7 +524,8 @@ mod tests {
 				lane.receive_message::<TestMessageDispatch>(
 					&TEST_RELAYER_B,
 					1,
-					inbound_message_data(REGULAR_PAYLOAD)
+					inbound_message_data(REGULAR_PAYLOAD),
+					DELIVERY_REWARD_PER_MESSAGE,
 				),
 				ReceivalResult::InvalidNonce,
 			);
@@ -534,7 +551,8 @@ mod tests {
 				lane.receive_message::<TestMessageDispatch>(
 					&TEST_RELAYER_A,
 					1,
-					inbound_message_data(payload)
+					inbound_message_data(payload),
+					DELIVERY_REWARD_PER_MESSAGE,
 				),
 				ReceivalResult::Dispatched(dispatch_result(1))
 			);
