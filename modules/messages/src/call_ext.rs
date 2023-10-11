@@ -24,7 +24,7 @@ use bp_messages::{
 	LaneId, MessageNonce, MessagesCallInfo, ReceiveMessagesDeliveryProofInfo,
 	ReceiveMessagesProofInfo, UnrewardedRelayerOccupation,
 };
-use bp_runtime::AccountIdOf;
+use bp_runtime::{AccountIdOf, OwnedBridgeModule};
 use frame_support::{dispatch::CallableCallFor, traits::IsSubType};
 use sp_runtime::transaction_validity::TransactionValidity;
 
@@ -90,8 +90,22 @@ pub trait CallSubType<T: Config<I, RuntimeCall = Self>, I: 'static>:
 	/// or a `ReceiveMessagesDeliveryProof` call, if the call is for the provided lane.
 	fn call_info_for(&self, lane_id: LaneId) -> Option<MessagesCallInfo>;
 
-	/// Check that a `ReceiveMessagesProof` or a `ReceiveMessagesDeliveryProof` call is trying
-	/// to deliver/confirm at least some messages that are better than the ones we know of.
+	/// Ensures that a `ReceiveMessagesProof` or a `ReceiveMessagesDeliveryProof` call:
+	///
+	/// - does not deliver already delivered messages. We require all messages in the
+	///   `ReceiveMessagesProof` call to be undelivered;
+	///
+	/// - does not submit empty `ReceiveMessagesProof` call with zero messages, unless the lane
+	///   needs to be unblocked by providing relayer rewards proof;
+	///
+	/// - brings no new delivery confirmations in a `ReceiveMessagesDeliveryProof` call. We require
+	///   at least one new delivery confirmation in the unrewarded relayers set;
+	///
+	/// - does not violate some basic (easy verifiable) messages pallet rules obsolete (like
+	///   submitting a call when a pallet is halted or delivering messages when a dispatcher is
+	///   inactive).
+	///
+	/// If one of above rules is violated, the transaction is treated as invalid.
 	fn check_obsolete_call(&self) -> TransactionValidity;
 }
 
@@ -169,7 +183,17 @@ impl<
 	}
 
 	fn check_obsolete_call(&self) -> TransactionValidity {
+		let is_pallet_halted = Pallet::<T, I>::ensure_not_halted().is_err();
 		match self.call_info() {
+			Some(proof_info) if is_pallet_halted => {
+				log::trace!(
+					target: LOG_TARGET,
+					"Rejecting messages transaction on halted pallet: {:?}",
+					proof_info
+				);
+
+				return sp_runtime::transaction_validity::InvalidTransaction::Call.into()
+			},
 			Some(MessagesCallInfo::ReceiveMessagesProof(proof_info))
 				if proof_info
 					.is_obsolete(T::MessageDispatch::is_active(proof_info.base.lane_id)) =>

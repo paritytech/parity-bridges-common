@@ -402,7 +402,7 @@ impl pallet_bridge_relayers::Config for Runtime {
 	type MaxActiveRelayersPerLane = ConstU32<16>;
 	type SlotLength = ConstU64<16>;
 	type PriorityBoostPerMessage = PriorityBoostPerMessage;
-	type PriorityBoostForLaneRelayer = ConstU64<0>;
+	type PriorityBoostForActiveLaneRelayer = ConstU64<0>;
 	type WeightInfo = ();
 }
 

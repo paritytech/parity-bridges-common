@@ -57,14 +57,13 @@ fn compute_per_message_priority_boost<PriorityBoostPerMessage: Get<TransactionPr
 	PriorityBoostPerMessage::get().saturating_mul(messages.saturating_sub(1))
 }
 
-/// Compute priority boost for message delivery transaction that delivers
-/// given number of messages.
-pub fn compute_per_lane_priority_boost<R: RelayersConfig>(
+/// Compute priority boost for message delivery transaction, that depends on
+/// the set of lane relayers and current slot.
+fn compute_per_lane_priority_boost<R: RelayersConfig>(
 	lane_id: LaneId,
 	relayer: &R::AccountId,
 ) -> TransactionPriority
 where
-	R: RelayersConfig,
 	usize: TryFrom<BlockNumberFor<R>>,
 {
 	// if there are no relayers, explicitly registered at this lane, noone gets additional
@@ -80,7 +79,7 @@ where
 	}
 
 	// we can't deal with slots shorter than 1 block
-	let slot_length: BlockNumberFor<R> = R::SlotLength::get().into();
+	let slot_length: BlockNumberFor<R> = R::SlotLength::get();
 	if slot_length < One::one() {
 		return 0
 	}
@@ -101,7 +100,7 @@ where
 		return 0
 	}
 
-	R::PriorityBoostForLaneRelayer::get()
+	R::PriorityBoostForActiveLaneRelayer::get()
 }
 
 #[cfg(not(feature = "integrity-test"))]
@@ -269,7 +268,6 @@ mod integrity_tests {
 mod tests {
 	use super::*;
 	use crate::{mock::*, LaneRelayers};
-	use bp_relayers::LaneRelayersSet;
 
 	#[test]
 	fn compute_per_lane_priority_boost_works() {
@@ -279,12 +277,10 @@ mod tests {
 			let relayer1 = 1_000;
 			let relayer2 = 2_000;
 			let relayer3 = 3_000;
-			let mut relayers_set = LaneRelayersSet::empty(0);
-			assert!(relayers_set.next_set_try_push(relayer1, 0));
-			assert!(relayers_set.next_set_try_push(relayer2, 0));
-			assert!(relayers_set.next_set_try_push(relayer3, 0));
-			relayers_set.activate_next_set(0);
-			LaneRelayers::<TestRuntime>::insert(lane_id, relayers_set);
+			LaneRelayers::<TestRuntime>::insert(
+				lane_id,
+				sp_runtime::BoundedVec::try_from(vec![relayer1, relayer2, relayer3]).unwrap(),
+			);
 
 			// at blocks 1..=SlotLength relayer1 gets the boost
 			System::set_block_number(0);
@@ -292,7 +288,7 @@ mod tests {
 				System::set_block_number(System::block_number() + 1);
 				assert_eq!(
 					compute_per_lane_priority_boost::<TestRuntime>(lane_id, &relayer1),
-					PriorityBoostForLaneRelayer::get(),
+					PriorityBoostForActiveLaneRelayer::get(),
 				);
 				assert_eq!(compute_per_lane_priority_boost::<TestRuntime>(lane_id, &relayer2), 0,);
 				assert_eq!(compute_per_lane_priority_boost::<TestRuntime>(lane_id, &relayer3), 0,);
@@ -304,7 +300,7 @@ mod tests {
 				assert_eq!(compute_per_lane_priority_boost::<TestRuntime>(lane_id, &relayer1), 0,);
 				assert_eq!(
 					compute_per_lane_priority_boost::<TestRuntime>(lane_id, &relayer2),
-					PriorityBoostForLaneRelayer::get(),
+					PriorityBoostForActiveLaneRelayer::get(),
 				);
 				assert_eq!(compute_per_lane_priority_boost::<TestRuntime>(lane_id, &relayer3), 0,);
 			}
@@ -316,7 +312,7 @@ mod tests {
 				assert_eq!(compute_per_lane_priority_boost::<TestRuntime>(lane_id, &relayer2), 0,);
 				assert_eq!(
 					compute_per_lane_priority_boost::<TestRuntime>(lane_id, &relayer3),
-					PriorityBoostForLaneRelayer::get(),
+					PriorityBoostForActiveLaneRelayer::get(),
 				);
 			}
 		});
