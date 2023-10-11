@@ -85,7 +85,7 @@ where
 	}
 }
 
-/// Register relayer rewards for delviering messages.
+/// Register relayer rewards for delivering messages.
 fn register_relayers_rewards<T: Config>(
 	relayers_rewards: RelayersRewards<T::AccountId, T::Reward>,
 	reward_account: RewardsAccountParams,
@@ -147,7 +147,7 @@ mod tests {
 			);
 
 			assert_eq!(
-				RelayerRewards::<TestRuntime>::get(&42, test_reward_account_param()),
+				RelayerRewards::<TestRuntime>::get(42, test_reward_account_param()),
 				Some(MAX_REWARD_PER_MESSAGE * 2),
 			);
 		});
