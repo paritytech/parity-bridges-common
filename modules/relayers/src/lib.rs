@@ -461,7 +461,7 @@ pub mod pallet {
 				// ensure that the current block number allows us to enact next set
 				let current_block_number = SystemPallet::<T>::block_number();
 				ensure!(
-					lane_relayers.next_set_may_enact_at() >= current_block_number,
+					lane_relayers.next_set_may_enact_at() <= current_block_number,
 					Error::<T>::TooEarlyToActivateNextRelayersSet,
 				);
 
@@ -1618,6 +1618,86 @@ mod tests {
 			assert!(
 				RegisteredRelayers::<TestRuntime>::get(REGISTER_RELAYER).unwrap().valid_till() >
 					Some(initial_valid_till)
+			);
+		});
+	}
+
+	#[test]
+	fn advance_lane_epoch_requires_signed_origin() {
+		run_test(|| {
+			assert_noop!(
+				Pallet::<TestRuntime>::advance_lane_epoch(RuntimeOrigin::root(), test_lane_id(),),
+				DispatchError::BadOrigin
+			);
+		});
+	}
+
+	#[test]
+	fn advance_lane_epoch_fails_if_lane_relayers_are_missing() {
+		run_test(|| {
+			assert_noop!(
+				Pallet::<TestRuntime>::advance_lane_epoch(
+					RuntimeOrigin::signed(REGISTER_RELAYER),
+					test_lane_id(),
+				),
+				Error::<TestRuntime>::NoRelayersAtLane
+			);
+		});
+	}
+
+	#[test]
+	fn advance_lane_epoch_fails_if_next_set_may_not_be_enacted_yet() {
+		run_test(|| {
+			RegisteredRelayers::<TestRuntime>::insert(
+				REGISTER_RELAYER,
+				registration(151, Stake::get()),
+			);
+			assert_ok!(Pallet::<TestRuntime>::register_at_lane(
+				RuntimeOrigin::signed(REGISTER_RELAYER),
+				test_lane_id(),
+				0,
+			));
+
+			assert_noop!(
+				Pallet::<TestRuntime>::advance_lane_epoch(
+					RuntimeOrigin::signed(REGISTER_RELAYER),
+					test_lane_id()
+				),
+				Error::<TestRuntime>::TooEarlyToActivateNextRelayersSet,
+			);
+		});
+	}
+
+	#[test]
+	fn advance_lane_epoch_works() {
+		run_test(|| {
+			// when first relayer registers, we allow other relayers to register for
+			// `InitialElectionLength` blocks
+			RegisteredRelayers::<TestRuntime>::insert(
+				REGISTER_RELAYER,
+				registration(151, Stake::get()),
+			);
+			assert_ok!(Pallet::<TestRuntime>::register_at_lane(
+				RuntimeOrigin::signed(REGISTER_RELAYER),
+				test_lane_id(),
+				0,
+			));
+
+			let lane_relayers = LaneRelayers::<TestRuntime>::get(test_lane_id()).unwrap();
+			assert_eq!(lane_relayers.next_set_may_enact_at(), InitialElectionLength::get());
+
+			// when active epoch is advanced, new epoch starts at the block, where it has been
+			// actually started, not the epoch where previous epoch was supposed to end
+			System::<TestRuntime>::set_block_number(lane_relayers.next_set_may_enact_at() + 77);
+			assert_ok!(Pallet::<TestRuntime>::advance_lane_epoch(
+				RuntimeOrigin::signed(REGISTER_RELAYER),
+				test_lane_id()
+			));
+
+			let lane_relayers = LaneRelayers::<TestRuntime>::get(test_lane_id()).unwrap();
+			assert_eq!(
+				lane_relayers.next_set_may_enact_at(),
+				InitialElectionLength::get() + 77 + EpochLength::get()
 			);
 		});
 	}
