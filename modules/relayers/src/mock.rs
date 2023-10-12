@@ -79,6 +79,9 @@ pub const TEST_BRIDGED_CHAIN_ID: ChainId = *b"brdg";
 /// Maximal extrinsic size at the `BridgedChain`.
 pub const BRIDGED_CHAIN_MAX_EXTRINSIC_SIZE: u32 = 1024;
 
+/// Maximal number of relayers in the next set.
+pub const MAX_NEXT_RELAYERS_PER_LANE: u32 = 16;
+
 /// Underlying chain of `ThisChain`.
 pub struct ThisUnderlyingChain;
 
@@ -193,6 +196,7 @@ parameter_types! {
 	pub AdjustmentVariable: Multiplier = Multiplier::saturating_from_rational(3, 100_000);
 	pub MinimumMultiplier: Multiplier = Multiplier::saturating_from_rational(1, 1_000_000u128);
 	pub MaximumMultiplier: Multiplier = sp_runtime::traits::Bounded::max_value();
+	pub InitialElectionLength: u32 = 4;
 	pub SlotLength: u32 = 16;
 	pub MaxLanesPerRelayer: u32 = 4;
 	pub PriorityBoostForActiveLaneRelayer: TransactionPriority = 4;
@@ -306,8 +310,8 @@ impl pallet_bridge_relayers::Config for TestRuntime {
 	type StakeAndSlash = TestStakeAndSlash;
 	type MaxLanesPerRelayer = MaxLanesPerRelayer;
 	type MaxActiveRelayersPerLane = ConstU32<4>;
-	type MaxNextRelayersPerLane = ConstU32<1_024>;
-	type InitialElectionLength = ConstU32<4>;
+	type MaxNextRelayersPerLane = ConstU32<MAX_NEXT_RELAYERS_PER_LANE>;
+	type InitialElectionLength = InitialElectionLength;
 	type SlotLength = ConstU32<16>;
 	type EpochLength = ConstU32<1_024>;
 	type PriorityBoostPerMessage = ConstU64<1>;
@@ -338,6 +342,8 @@ pub const FAILING_RELAYER: ThisChainAccountId = 2;
 
 /// Relayer that is able to register.
 pub const REGISTER_RELAYER: ThisChainAccountId = 42;
+/// Another relayer that is able to register.
+pub const REGISTER_RELAYER_2: ThisChainAccountId = 43;
 
 /// Payment procedure that rejects payments to the `FAILING_RELAYER`.
 pub struct TestPaymentProcedure;
@@ -392,9 +398,18 @@ impl MessageDispatch for DummyMessageDispatch {
 	}
 }
 
+/// Lane identifier used in tests.
+pub fn test_lane_id() -> LaneId {
+	LaneId::new(1, 2)
+}
+
 /// Reward account params that we are using in tests.
 pub fn test_reward_account_param() -> RewardsAccountParams {
-	RewardsAccountParams::new(LaneId::new(1, 2), *b"test", RewardsAccountOwner::ThisChain)
+	RewardsAccountParams::new(
+		test_lane_id(),
+		TEST_BRIDGED_CHAIN_ID,
+		RewardsAccountOwner::BridgedChain,
+	)
 }
 
 /// Return test externalities to use in tests.
@@ -407,6 +422,8 @@ pub fn new_test_ext() -> sp_io::TestExternalities {
 pub fn run_test<T>(test: impl FnOnce() -> T) -> T {
 	new_test_ext().execute_with(|| {
 		Balances::mint_into(&REGISTER_RELAYER, ExistentialDeposit::get() + 10 * Stake::get())
+			.unwrap();
+		Balances::mint_into(&REGISTER_RELAYER_2, ExistentialDeposit::get() + 10 * Stake::get())
 			.unwrap();
 
 		test()

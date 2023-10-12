@@ -183,7 +183,7 @@ impl<
 		if !self.lanes.contains(&lane) {
 			self.lanes.try_push(lane).is_ok()
 		} else {
-			true
+			false
 		}
 	}
 

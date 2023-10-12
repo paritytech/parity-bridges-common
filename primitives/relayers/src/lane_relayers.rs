@@ -35,6 +35,11 @@ pub struct RelayerAndReward<AccountId> {
 }
 
 impl<AccountId> RelayerAndReward<AccountId> {
+	/// Create new instance.
+	pub fn new(relayer: AccountId, reward: RewardAtSource) -> Self {
+		RelayerAndReward { relayer, reward }
+	}
+
 	/// Return relayer account identifier.
 	pub fn relayer(&self) -> &AccountId {
 		&self.relayer

@@ -313,32 +313,20 @@ pub mod pallet {
 					};
 
 					// cannot add another lane registration if relayer has already max allowed
-					// lane registrations
+					// lane registrations OR if it is already registered at that lane
 					ensure!(
 						registration.register_at_lane(lane),
 						Error::<T>::FailedToRegisterAtLane
 					);
 
-					// TODO: ideally we shall use the candle auction for relayers selection (similar
-					// to parachain slot auctions) rather than a fixed interval
-
 					// let's try to claim a slot in the next set
 					LaneRelayers::<T>::try_mutate(lane, |maybe_lane_relayers| {
 						let mut lane_relayers = match maybe_lane_relayers.take() {
 							Some(lane_relayers) => lane_relayers,
-							None => {
-								// TODO: what if all relayers that have registered for the next set
-								// then call `deregister_at_lane`       before `next_set` activates?
-								// This could be used by malicious relayers - they could fill
-								//       the whole `next_set` and then clear it right before it is
-								// enacted. Think we shall allow more       entries in the
-								// `mnext_set` so that it'll be harder for the attacker to fill the
-								// full queue.
-								LaneRelayersSet::empty(
-									SystemPallet::<T>::block_number()
-										.saturating_add(T::InitialElectionLength::get()),
-								)
-							},
+							None => LaneRelayersSet::empty(
+								SystemPallet::<T>::block_number()
+									.saturating_add(T::InitialElectionLength::get()),
+							),
 						};
 
 						ensure!(
@@ -357,10 +345,6 @@ pub mod pallet {
 						registration.current_stake(),
 						registration.required_stake(Self::base_stake(), Self::stake_per_lane()),
 					)?);
-
-					// cannot add duplicate lane registration
-					// ensure!(!registration.lanes.contains(&lane),
-					// Error::<T>::DuplicateLaneRegistration);
 
 					*maybe_registration = Some(registration);
 
@@ -753,6 +737,11 @@ pub mod pallet {
 		OptionQuery,
 	>;
 
+	// TODO: split active set and `LaneRelayers`! Active set is read at every delivery transaction
+	// and other fields we need only in pallet calls.
+
+	// TODO: make it ValueQuery? After it is created, it is never removed. But it is not default
+
 	/// A set of relayers that have explicitly registered themselves at a given lane.
 	///
 	/// Every relayer inside this set receives additional priority boost when it submits
@@ -781,7 +770,7 @@ mod tests {
 
 	use crate::Event::RewardPaid;
 	use bp_messages::LaneId;
-	use bp_relayers::RewardsAccountOwner;
+	use bp_relayers::{RelayerAndReward, RewardsAccountOwner};
 	use frame_support::{
 		assert_noop, assert_ok,
 		traits::fungible::{Inspect, Mutate},
@@ -800,6 +789,16 @@ mod tests {
 	) -> Registration<ThisChainBlockNumber, ThisChainBalance, MaxLanesPerRelayer> {
 		let mut registration = Registration::new(valid_till);
 		registration.set_stake(stake);
+		registration
+	}
+
+	fn registration_with_lane(
+		valid_till: ThisChainBlockNumber,
+		stake: ThisChainBalance,
+		lane: LaneId,
+	) -> Registration<ThisChainBlockNumber, ThisChainBalance, MaxLanesPerRelayer> {
+		let mut registration = registration(valid_till, stake);
+		assert!(registration.register_at_lane(lane));
 		registration
 	}
 
@@ -1224,6 +1223,149 @@ mod tests {
 				registration(151, Stake::get()),
 			);
 			assert!(Pallet::<TestRuntime>::is_registration_active(&REGISTER_RELAYER));
+		});
+	}
+
+	#[test]
+	fn register_at_lane_fails_for_unregistered_relayer() {
+		run_test(|| {
+			assert_noop!(
+				Pallet::<TestRuntime>::register_at_lane(
+					RuntimeOrigin::signed(REGISTER_RELAYER),
+					test_lane_id(),
+					0
+				),
+				Error::<TestRuntime>::NotRegistered,
+			);
+		});
+	}
+
+	#[test]
+	fn register_at_lane_fails_if_relayer_is_already_registered_at_lane() {
+		run_test(|| {
+			RegisteredRelayers::<TestRuntime>::insert(
+				REGISTER_RELAYER,
+				registration_with_lane(151, Stake::get(), test_lane_id()),
+			);
+
+			assert_noop!(
+				Pallet::<TestRuntime>::register_at_lane(
+					RuntimeOrigin::signed(REGISTER_RELAYER),
+					test_lane_id(),
+					0
+				),
+				Error::<TestRuntime>::FailedToRegisterAtLane,
+			);
+		});
+	}
+
+	#[test]
+	fn register_at_lane_fails_if_relayer_has_max_lane_registrations() {
+		run_test(|| {
+			let mut registration = registration(151, Stake::get());
+			for i in 0..MaxLanesPerRelayer::get() {
+				assert!(registration.register_at_lane(LaneId::new(42, i)));
+			}
+
+			RegisteredRelayers::<TestRuntime>::insert(REGISTER_RELAYER, registration);
+
+			assert_noop!(
+				Pallet::<TestRuntime>::register_at_lane(
+					RuntimeOrigin::signed(REGISTER_RELAYER),
+					LaneId::new(77, 77),
+					0
+				),
+				Error::<TestRuntime>::FailedToRegisterAtLane,
+			);
+		});
+	}
+
+	#[test]
+	fn register_at_lane_fails_if_relayer_requests_too_large_reward_to_claim_the_slot() {
+		run_test(|| {
+			let mut lane_relayers = LaneRelayersSet::empty(100);
+			for i in 1..=MAX_NEXT_RELAYERS_PER_LANE as u64 {
+				assert!(lane_relayers.next_set_try_push(REGISTER_RELAYER + i, 0));
+			}
+			RegisteredRelayers::<TestRuntime>::insert(
+				REGISTER_RELAYER,
+				registration(151, Stake::get()),
+			);
+			LaneRelayers::<TestRuntime>::insert(test_lane_id(), lane_relayers);
+
+			assert_noop!(
+				Pallet::<TestRuntime>::register_at_lane(
+					RuntimeOrigin::signed(REGISTER_RELAYER),
+					test_lane_id(),
+					1
+				),
+				Error::<TestRuntime>::TooLargeRewardToOccupyAnEntry,
+			);
+		});
+	}
+
+	#[test]
+	fn register_at_lane_fails_if_relayer_does_not_have_required_balance() {
+		run_test(|| {
+			RegisteredRelayers::<TestRuntime>::insert(
+				FAILING_RELAYER,
+				registration(151, Stake::get()),
+			);
+
+			assert_noop!(
+				Pallet::<TestRuntime>::register_at_lane(
+					RuntimeOrigin::signed(FAILING_RELAYER),
+					test_lane_id(),
+					0
+				),
+				Error::<TestRuntime>::FailedToReserve,
+			);
+		});
+	}
+
+	#[test]
+	fn register_at_lane_works() {
+		run_test(|| {
+			RegisteredRelayers::<TestRuntime>::insert(
+				REGISTER_RELAYER,
+				registration(151, Stake::get()),
+			);
+			RegisteredRelayers::<TestRuntime>::insert(
+				REGISTER_RELAYER_2,
+				registration(151, Stake::get()),
+			);
+
+			// when first relayer registers, we allow other relayers to register in next
+			// `InitialElectionLength` blocks
+			assert_ok!(Pallet::<TestRuntime>::register_at_lane(
+				RuntimeOrigin::signed(REGISTER_RELAYER),
+				test_lane_id(),
+				1
+			));
+			let lane_relayers = LaneRelayers::<TestRuntime>::get(test_lane_id()).unwrap();
+			assert_eq!(lane_relayers.next_set_may_enact_at(), InitialElectionLength::get());
+			assert_eq!(lane_relayers.active_relayers(), &[]);
+			assert_eq!(
+				lane_relayers.next_relayers(),
+				&[RelayerAndReward::new(REGISTER_RELAYER, 1)]
+			);
+
+			// next relayer registers, it occupies the correct slot in the set
+			assert_ok!(Pallet::<TestRuntime>::register_at_lane(
+				RuntimeOrigin::signed(REGISTER_RELAYER_2),
+				test_lane_id(),
+				0
+			));
+			let lane_relayers = LaneRelayers::<TestRuntime>::get(test_lane_id()).unwrap();
+			assert_eq!(lane_relayers.next_set_may_enact_at(), InitialElectionLength::get());
+			assert_eq!(lane_relayers.active_relayers(), &[]);
+			assert_eq!(
+				lane_relayers.next_relayers(),
+				&[
+					RelayerAndReward::new(REGISTER_RELAYER_2, 0),
+					RelayerAndReward::new(REGISTER_RELAYER, 1)
+				]
+			);
 		});
 	}
 }
