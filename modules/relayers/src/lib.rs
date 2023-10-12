@@ -496,6 +496,8 @@ pub mod pallet {
 			relayer: &T::AccountId,
 			slash_destination: RewardsAccountParams,
 		) {
+			// TODO: also remove from all lanes?
+
 			let registration = match RegisteredRelayers::<T>::take(relayer) {
 				Some(registration) => registration,
 				None => {
