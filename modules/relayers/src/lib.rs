@@ -282,13 +282,21 @@ pub mod pallet {
 			})
 		}
 
-		/// Register relayer intention to serve given messages lane.
+		/// Register relayer intention to deliver inbound messages at given messages lane.
 		///
 		/// Relayer that registers itself at given message lane gets a priority boost for his
 		/// message delivery transactions, **verified** at his slots (consecutive range of blocks).
 		///
 		/// Every lane registration requires additional stake. Relayer registration is considered
 		/// active while it is registered at least at one lane.
+		///
+		/// This call (if successful), puts relayer in the relayers set that will be active during
+		/// next epoch. So boost is not immediate - it will be activated after `advance_lane_epoch`
+		/// call. However, before that call, relayer may be pushed from the next set by relayers,
+		/// offering lower `expected_reward`. If that happens, relayer may either try to re-register
+		/// itself by repeating the `register_at_lane` call, offering lower reward. Or it may claim
+		/// his lane stake back, by updating his registration with `register` call or deregistering
+		/// at all using `deregister` call.
 		///
 		/// Relayer may request large reward here (using `expected_reward`), but in the end, the
 		/// reward amount is computed at the bridged (source chain). In the case if
@@ -355,7 +363,16 @@ pub mod pallet {
 			Ok(())
 		}
 
-		/// TODO
+		/// Deregister relayer intention to deliver inbound messages at given messages lane.
+		///
+		/// After deregistration, relayer won't get lane-specific boost for message delivery
+		/// transactions at that lane. It would still get the basic boost until the `deregister`
+		/// call.
+		///
+		/// This call (if successful), removes relayer from the relayers set that will be active
+		/// during next epoch. If relayer is still in the active set, it keeps getting additional
+		/// priority boost for his message delivery transaction at that lane. The relayer will be
+		/// able to claim his lane stake back when it is removed from both active and the next set.
 		#[pallet::call_index(4)]
 		#[pallet::weight(Weight::zero())] // TODO
 		pub fn deregister_at_lane(origin: OriginFor<T>, lane: LaneId) -> DispatchResult {
@@ -371,13 +388,17 @@ pub mod pallet {
 						None => fail!(Error::<T>::NotRegistered),
 					};
 
+					// TODO: can't simply remove from `registration.lanes` because then the relayer
+					// may get his funds back. So we need to check if relayer is in the active/next
+					// set when computing required total stake.
+
 					// remove relayer from the next set. It still may be in the active set
 					ensure!(registration.deregister_at_lane(lane), Error::<T>::NotRegisteredAtLane);
 
 					// remove relayer from the `next_set` of lane relayers. Relayer still remains
 					// in the active set until current epoch ends
-					LaneRelayers::<T>::try_mutate(lane, |lane_relayers_ref| {
-						let mut lane_relayers = match lane_relayers_ref.take() {
+					LaneRelayers::<T>::try_mutate(lane, |maybe_lane_relayers| {
+						let mut lane_relayers = match maybe_lane_relayers.take() {
 							Some(lane_relayers) => lane_relayers,
 							None => fail!(Error::<T>::NotRegisteredAtLane),
 						};
@@ -402,7 +423,7 @@ pub mod pallet {
 							));
 						}
 
-						*lane_relayers_ref = Some(lane_relayers);
+						*maybe_lane_relayers = Some(lane_relayers);
 
 						Ok::<_, Error<T>>(())
 					})?;
@@ -1477,6 +1498,126 @@ mod tests {
 			assert_eq!(
 				lane_relayers.next_relayers().last(),
 				Some(&RelayerAndReward::new(REGISTER_RELAYER, 13))
+			);
+		});
+	}
+
+	#[test]
+	fn deregister_at_lane_fails_for_unregistered_relayer() {
+		run_test(|| {
+			assert_noop!(
+				Pallet::<TestRuntime>::deregister_at_lane(
+					RuntimeOrigin::signed(REGISTER_RELAYER),
+					test_lane_id(),
+				),
+				Error::<TestRuntime>::NotRegistered,
+			);
+		});
+	}
+
+	#[test]
+	fn deregister_at_lane_fails_if_theres_no_lane_registration() {
+		run_test(|| {
+			RegisteredRelayers::<TestRuntime>::insert(
+				REGISTER_RELAYER,
+				registration(151, Stake::get()),
+			);
+
+			assert_noop!(
+				Pallet::<TestRuntime>::deregister_at_lane(
+					RuntimeOrigin::signed(REGISTER_RELAYER),
+					test_lane_id(),
+				),
+				Error::<TestRuntime>::NotRegisteredAtLane,
+			);
+		})
+	}
+
+	#[test]
+	fn deregister_at_lane_fails_if_lane_relayers_are_missing() {
+		run_test(|| {
+			let mut registration = registration(151, Stake::get());
+			registration.register_at_lane(test_lane_id());
+			RegisteredRelayers::<TestRuntime>::insert(REGISTER_RELAYER, registration);
+
+			assert_noop!(
+				Pallet::<TestRuntime>::deregister_at_lane(
+					RuntimeOrigin::signed(REGISTER_RELAYER),
+					test_lane_id(),
+				),
+				Error::<TestRuntime>::NotRegisteredAtLane,
+			);
+		})
+	}
+
+	#[test]
+	fn deregister_at_lane_works() {
+		run_test(|| {
+			let initial_valid_till = 151 + EpochLength::get();
+			let registration = registration(initial_valid_till, Stake::get());
+			System::<TestRuntime>::set_block_number(100);
+			RegisteredRelayers::<TestRuntime>::insert(REGISTER_RELAYER, registration);
+
+			// when the relayer is not in the active set, `valid_till` is not changed
+			assert_ok!(Pallet::<TestRuntime>::register_at_lane(
+				RuntimeOrigin::signed(REGISTER_RELAYER),
+				test_lane_id(),
+				0
+			));
+			assert_ok!(Pallet::<TestRuntime>::deregister_at_lane(
+				RuntimeOrigin::signed(REGISTER_RELAYER),
+				test_lane_id()
+			));
+			let lane_relayers = LaneRelayers::<TestRuntime>::get(test_lane_id()).unwrap();
+			assert_eq!(lane_relayers.next_relayers().len(), 0);
+
+			// when the relayer is in the active set BUT current block + required lease is lte than
+			// the `valid_till`, `valid_till` is not changed
+			assert_ok!(Pallet::<TestRuntime>::register_at_lane(
+				RuntimeOrigin::signed(REGISTER_RELAYER),
+				test_lane_id(),
+				0
+			));
+			System::<TestRuntime>::set_block_number(lane_relayers.next_set_may_enact_at());
+			assert_ok!(Pallet::<TestRuntime>::advance_lane_epoch(
+				RuntimeOrigin::signed(REGISTER_RELAYER),
+				test_lane_id()
+			));
+			let lane_relayers = LaneRelayers::<TestRuntime>::get(test_lane_id()).unwrap();
+			assert_eq!(lane_relayers.active_relayers().len(), 1);
+			assert_eq!(lane_relayers.next_relayers().len(), 0);
+			System::<TestRuntime>::set_block_number(lane_relayers.next_set_may_enact_at());
+			assert_ok!(Pallet::<TestRuntime>::deregister_at_lane(
+				RuntimeOrigin::signed(REGISTER_RELAYER),
+				test_lane_id()
+			));
+			assert_eq!(
+				RegisteredRelayers::<TestRuntime>::get(REGISTER_RELAYER).unwrap().valid_till(),
+				Some(initial_valid_till)
+			);
+
+			// when the relayers is in the active set AND current block + required lease is gt than
+			// the `valid_till`, `valid_till` is changed
+			assert_ok!(Pallet::<TestRuntime>::register_at_lane(
+				RuntimeOrigin::signed(REGISTER_RELAYER),
+				test_lane_id(),
+				0
+			));
+			assert_ok!(Pallet::<TestRuntime>::advance_lane_epoch(
+				RuntimeOrigin::signed(REGISTER_RELAYER),
+				test_lane_id()
+			));
+			let lane_relayers = LaneRelayers::<TestRuntime>::get(test_lane_id()).unwrap();
+			assert_eq!(lane_relayers.active_relayers().len(), 1);
+			assert_eq!(lane_relayers.next_relayers().len(), 0);
+			System::<TestRuntime>::set_block_number(lane_relayers.next_set_may_enact_at());
+			assert_ok!(Pallet::<TestRuntime>::deregister_at_lane(
+				RuntimeOrigin::signed(REGISTER_RELAYER),
+				test_lane_id()
+			));
+			assert!(
+				RegisteredRelayers::<TestRuntime>::get(REGISTER_RELAYER).unwrap().valid_till() >
+					Some(initial_valid_till)
 			);
 		});
 	}

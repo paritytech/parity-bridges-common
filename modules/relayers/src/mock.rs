@@ -198,6 +198,7 @@ parameter_types! {
 	pub MaximumMultiplier: Multiplier = sp_runtime::traits::Bounded::max_value();
 	pub InitialElectionLength: u32 = 4;
 	pub SlotLength: u32 = 16;
+	pub EpochLength: u32 = 1_024;
 	pub MaxLanesPerRelayer: u32 = 4;
 	pub PriorityBoostForActiveLaneRelayer: TransactionPriority = 4;
 }
@@ -313,7 +314,7 @@ impl pallet_bridge_relayers::Config for TestRuntime {
 	type MaxNextRelayersPerLane = ConstU32<MAX_NEXT_RELAYERS_PER_LANE>;
 	type InitialElectionLength = InitialElectionLength;
 	type SlotLength = ConstU32<16>;
-	type EpochLength = ConstU32<1_024>;
+	type EpochLength = EpochLength;
 	type PriorityBoostPerMessage = ConstU64<1>;
 	type PriorityBoostForActiveLaneRelayer = PriorityBoostForActiveLaneRelayer;
 	type WeightInfo = ();
