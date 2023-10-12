@@ -183,7 +183,8 @@ impl<
 		if !self.lanes.contains(&lane) {
 			self.lanes.try_push(lane).is_ok()
 		} else {
-			false
+			// still return true - we allow relayer to change his bid (expected reward)
+			true
 		}
 	}
 

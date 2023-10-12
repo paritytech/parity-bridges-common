@@ -792,16 +792,6 @@ mod tests {
 		registration
 	}
 
-	fn registration_with_lane(
-		valid_till: ThisChainBlockNumber,
-		stake: ThisChainBalance,
-		lane: LaneId,
-	) -> Registration<ThisChainBlockNumber, ThisChainBalance, MaxLanesPerRelayer> {
-		let mut registration = registration(valid_till, stake);
-		assert!(registration.register_at_lane(lane));
-		registration
-	}
-
 	#[test]
 	fn root_cant_claim_anything() {
 		run_test(|| {
@@ -1241,25 +1231,6 @@ mod tests {
 	}
 
 	#[test]
-	fn register_at_lane_fails_if_relayer_is_already_registered_at_lane() {
-		run_test(|| {
-			RegisteredRelayers::<TestRuntime>::insert(
-				REGISTER_RELAYER,
-				registration_with_lane(151, Stake::get(), test_lane_id()),
-			);
-
-			assert_noop!(
-				Pallet::<TestRuntime>::register_at_lane(
-					RuntimeOrigin::signed(REGISTER_RELAYER),
-					test_lane_id(),
-					0
-				),
-				Error::<TestRuntime>::FailedToRegisterAtLane,
-			);
-		});
-	}
-
-	#[test]
 	fn register_at_lane_fails_if_relayer_has_max_lane_registrations() {
 		run_test(|| {
 			let mut registration = registration(151, Stake::get());
@@ -1365,6 +1336,102 @@ mod tests {
 					RelayerAndReward::new(REGISTER_RELAYER_2, 0),
 					RelayerAndReward::new(REGISTER_RELAYER, 1)
 				]
+			);
+		});
+	}
+
+	#[test]
+	fn register_at_lane_may_be_used_to_change_expected_reward() {
+		run_test(|| {
+			RegisteredRelayers::<TestRuntime>::insert(
+				REGISTER_RELAYER,
+				registration(151, Stake::get()),
+			);
+
+			// at first we want reward `1`
+			assert_ok!(Pallet::<TestRuntime>::register_at_lane(
+				RuntimeOrigin::signed(REGISTER_RELAYER),
+				test_lane_id(),
+				1
+			));
+			let lane_relayers = LaneRelayers::<TestRuntime>::get(test_lane_id()).unwrap();
+			assert_eq!(
+				lane_relayers.next_relayers(),
+				&[RelayerAndReward::new(REGISTER_RELAYER, 1)]
+			);
+
+			// but then we change our expected reward
+			assert_ok!(Pallet::<TestRuntime>::register_at_lane(
+				RuntimeOrigin::signed(REGISTER_RELAYER),
+				test_lane_id(),
+				0
+			));
+			let lane_relayers = LaneRelayers::<TestRuntime>::get(test_lane_id()).unwrap();
+			assert_eq!(
+				lane_relayers.next_relayers(),
+				&[RelayerAndReward::new(REGISTER_RELAYER, 0)]
+			);
+		});
+	}
+
+	#[test]
+	fn relayer_still_has_lane_registration_after_he_is_pushed_out_of_next_set() {
+		run_test(|| {
+			// leave one free entry in next set by relayers with bid = 10
+			let mut lane_relayers = LaneRelayersSet::empty(100);
+			for i in 1..MAX_NEXT_RELAYERS_PER_LANE as u64 {
+				assert!(lane_relayers.next_set_try_push(REGISTER_RELAYER + 100 + i, 10));
+			}
+			RegisteredRelayers::<TestRuntime>::insert(
+				REGISTER_RELAYER,
+				registration(151, Stake::get()),
+			);
+			RegisteredRelayers::<TestRuntime>::insert(
+				REGISTER_RELAYER_2,
+				registration(151, Stake::get()),
+			);
+			LaneRelayers::<TestRuntime>::insert(test_lane_id(), lane_relayers);
+
+			// occupy last entry by `REGISTER_RELAYER` with bid = 15
+			assert_ok!(Pallet::<TestRuntime>::register_at_lane(
+				RuntimeOrigin::signed(REGISTER_RELAYER),
+				test_lane_id(),
+				15
+			),);
+			let lane_relayers = LaneRelayers::<TestRuntime>::get(test_lane_id()).unwrap();
+			assert_eq!(lane_relayers.next_relayers().len() as u32, MAX_NEXT_RELAYERS_PER_LANE);
+			assert_eq!(
+				lane_relayers.next_relayers().last(),
+				Some(&RelayerAndReward::new(REGISTER_RELAYER, 15))
+			);
+
+			// then the `REGISTER_RELAYER_2` comes with better bid = 14
+			assert_ok!(Pallet::<TestRuntime>::register_at_lane(
+				RuntimeOrigin::signed(REGISTER_RELAYER_2),
+				test_lane_id(),
+				14
+			),);
+			let lane_relayers = LaneRelayers::<TestRuntime>::get(test_lane_id()).unwrap();
+			assert_eq!(lane_relayers.next_relayers().len() as u32, MAX_NEXT_RELAYERS_PER_LANE);
+			assert_eq!(
+				lane_relayers.next_relayers().last(),
+				Some(&RelayerAndReward::new(REGISTER_RELAYER_2, 14))
+			);
+
+			// => `REGISTER_RELAYER` is pushed out of the next set, but it still has the lane in
+			// his base "registration" structure, so it can rejoin anytime by calling
+			// `register_at_lane` with updated reward
+			assert_ok!(Pallet::<TestRuntime>::register_at_lane(
+				RuntimeOrigin::signed(REGISTER_RELAYER),
+				test_lane_id(),
+				13
+			),);
+
+			let lane_relayers = LaneRelayers::<TestRuntime>::get(test_lane_id()).unwrap();
+			assert_eq!(lane_relayers.next_relayers().len() as u32, MAX_NEXT_RELAYERS_PER_LANE);
+			assert_eq!(
+				lane_relayers.next_relayers().last(),
+				Some(&RelayerAndReward::new(REGISTER_RELAYER, 13))
 			);
 		});
 	}

@@ -331,4 +331,35 @@ mod tests {
 			],
 		);
 	}
+
+	#[test]
+	fn next_set_try_push_works_edge_case_1() {
+		// all relayers have the same reward = 10
+		let mut relayers: TestLaneRelayersSet = LaneRelayersSet {
+			enacted_at: 0,
+			next_set_may_enact_at: 100,
+			active_set: vec![].try_into().unwrap(),
+			next_set: (0..MAX_NEXT_LANE_RELAYERS - 1)
+				.map(|i| RelayerAndReward::new(i as u64, 10))
+				.collect::<Vec<_>>()
+				.try_into()
+				.unwrap(),
+		};
+
+		// then comes the next relayer with reward = 15
+		assert!(relayers.next_set_try_push((MAX_NEXT_LANE_RELAYERS - 1) as u64, 15));
+		assert_eq!(relayers.next_set.len(), MAX_NEXT_LANE_RELAYERS as usize);
+		assert_eq!(
+			relayers.next_set.last(),
+			Some(&RelayerAndReward::new((MAX_NEXT_LANE_RELAYERS - 1) as u64, 15))
+		);
+
+		// then comes the next relayer with reward = 14
+		assert!(relayers.next_set_try_push(MAX_NEXT_LANE_RELAYERS as u64, 14));
+		assert_eq!(relayers.next_set.len(), MAX_NEXT_LANE_RELAYERS as usize);
+		assert_eq!(
+			relayers.next_set.last(),
+			Some(&RelayerAndReward::new(MAX_NEXT_LANE_RELAYERS as u64, 14))
+		);
+	}
 }
