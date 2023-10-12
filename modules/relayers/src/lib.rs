@@ -1126,6 +1126,28 @@ mod tests {
 	}
 
 	#[test]
+	fn deregister_fails_if_relayer_has_lanes_registrations() {
+		run_test(|| {
+			assert_ok!(Pallet::<TestRuntime>::register(
+				RuntimeOrigin::signed(REGISTER_RELAYER),
+				150
+			));
+			assert_ok!(Pallet::<TestRuntime>::register_at_lane(
+				RuntimeOrigin::signed(REGISTER_RELAYER),
+				test_lane_id(),
+				0,
+			));
+
+			System::<TestRuntime>::set_block_number(151);
+
+			assert_noop!(
+				Pallet::<TestRuntime>::deregister(RuntimeOrigin::signed(REGISTER_RELAYER)),
+				Error::<TestRuntime>::RegistrationIsStillActive,
+			);
+		});
+	}
+
+	#[test]
 	fn deregister_works() {
 		run_test(|| {
 			get_ready_for_events();
@@ -1156,6 +1178,29 @@ mod tests {
 					topics: vec![],
 				}),
 			);
+		});
+	}
+
+	#[test]
+	fn deregister_works_after_last_lane_registration_is_removed() {
+		run_test(|| {
+			assert_ok!(Pallet::<TestRuntime>::register(
+				RuntimeOrigin::signed(REGISTER_RELAYER),
+				150
+			));
+			assert_ok!(Pallet::<TestRuntime>::register_at_lane(
+				RuntimeOrigin::signed(REGISTER_RELAYER),
+				test_lane_id(),
+				0,
+			));
+			assert_ok!(Pallet::<TestRuntime>::deregister_at_lane(
+				RuntimeOrigin::signed(REGISTER_RELAYER),
+				test_lane_id(),
+			));
+
+			System::<TestRuntime>::set_block_number(151);
+
+			assert_ok!(Pallet::<TestRuntime>::deregister(RuntimeOrigin::signed(REGISTER_RELAYER)));
 		});
 	}
 
