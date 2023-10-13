@@ -20,7 +20,7 @@ use crate::{Config, Pallet};
 
 use bp_messages::{
 	source_chain::{DeliveryConfirmationPayments, RelayersRewards},
-	LaneId, MessageNonce, RewardAtSource,
+	LaneId, MessageNonce,
 };
 use bp_relayers::{RewardsAccountOwner, RewardsAccountParams};
 use bp_runtime::Chain;
@@ -46,7 +46,6 @@ impl<T, MI, MaxRewardPerMessage> DeliveryConfirmationPayments<T::AccountId>
 where
 	T: Config + pallet_bridge_messages::Config<MI>,
 	MI: 'static,
-	T::Reward: UniqueSaturatedFrom<RewardAtSource> + UniqueSaturatedFrom<MessageNonce>,
 	MaxRewardPerMessage: Get<T::Reward>,
 {
 	type Error = &'static str;
