@@ -16,7 +16,7 @@
 
 //! Code that allows relayers pallet to be used as a payment mechanism for the messages pallet.
 
-use crate::{Config, LaneRelayers, Pallet};
+use crate::{ActiveLaneRelayers, Config, Pallet};
 
 use bp_messages::{
 	source_chain::{DeliveryConfirmationPayments, RelayersRewardsAtSource},
@@ -105,36 +105,9 @@ where
 			return
 		}
 
-		let _ = LaneRelayers::<T>::try_mutate(lane_id, |maybe_lane_relayers| {
-			if let Some(lane_relayers) = maybe_lane_relayers {
-				// if relayer is NOT in the active set, we don't want to do anything here
-				let relayer_in_active_set = lane_relayers.relayer_from_active_set(&relayer);
-				let relayer_in_active_set = match relayer_in_active_set {
-					Some(relayer_in_active_set) => relayer_in_active_set,
-					None => return Err(()),
-				};
-
-				// if relayer is already in the active set, we don't want to do anything here
-				let is_in_next_set = lane_relayers.relayer_from_next_set(&relayer).is_some();
-				if is_in_next_set {
-					return Err(())
-				}
-
-				// if relayer is not willing to work on that lane anymore, we don't want to do
-				// anything here
-				let wants_to_work_on_lane = Pallet::<T>::registered_relayer(&relayer)
-					.map(|registration| registration.lanes().contains(&lane_id))
-					.unwrap_or(false);
-				if wants_to_work_on_lane {
-					return Err(())
-				}
-
-				if !lane_relayers.next_set_try_push(relayer, relayer_in_active_set.reward()) {
-					return Err(())
-				}
-			}
-
-			Ok(())
+		// remember that the relayer has delivered messages
+		ActiveLaneRelayers::<T>::mutate_extant(lane_id, |active_lane_relayers| {
+			active_lane_relayers.note_delivered_message(&relayer);
 		});
 	}
 }
