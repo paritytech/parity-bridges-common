@@ -108,24 +108,14 @@ where
 		let _ = LaneRelayers::<T>::try_mutate(lane_id, |maybe_lane_relayers| {
 			if let Some(lane_relayers) = maybe_lane_relayers {
 				// if relayer is NOT in the active set, we don't want to do anything here
-				let relayer_in_active_set = lane_relayers
-					.active_relayers()
-					.iter()
-					.filter(|r| *r.relayer() == relayer)
-					.next()
-					.cloned();
+				let relayer_in_active_set = lane_relayers.relayer_from_active_set(&relayer);
 				let relayer_in_active_set = match relayer_in_active_set {
 					Some(relayer_in_active_set) => relayer_in_active_set,
 					None => return Err(()),
 				};
 
 				// if relayer is already in the active set, we don't want to do anything here
-				let is_in_next_set = lane_relayers
-					.next_relayers()
-					.iter()
-					.filter(|r| *r.relayer() == relayer)
-					.next()
-					.is_some();
+				let is_in_next_set = lane_relayers.relayer_from_next_set(&relayer).is_some();
 				if is_in_next_set {
 					return Err(())
 				}

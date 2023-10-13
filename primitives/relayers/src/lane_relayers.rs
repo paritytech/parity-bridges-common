@@ -119,12 +119,28 @@ where
 		self.next_set_may_enact_at
 	}
 
-	/// Returns relayers in the active set.
+	/// Returns relayer entry from the active set.
+	pub fn relayer_from_active_set(
+		&self,
+		relayer: &AccountId,
+	) -> Option<&RelayerAndReward<AccountId>> {
+		self.active_set.iter().filter(|r| r.relayer() == relayer).next()
+	}
+
+	/// Returns relayer entry from the next set.
+	pub fn relayer_from_next_set(
+		&self,
+		relayer: &AccountId,
+	) -> Option<&RelayerAndReward<AccountId>> {
+		self.next_set.iter().filter(|r| r.relayer() == relayer).next()
+	}
+
+	/// Returns relayers from the active set.
 	pub fn active_relayers(&self) -> &[RelayerAndReward<AccountId>] {
 		self.active_set.as_slice()
 	}
 
-	/// Returns relayers in the next set.
+	/// Returns relayers from the next set.
 	pub fn next_relayers(&self) -> &[RelayerAndReward<AccountId>] {
 		self.next_set.as_slice()
 	}
@@ -168,6 +184,14 @@ where
 			// relayers => ignoring `try_push` result is safe
 			let _ = self.active_set.try_push(self.next_set.remove(0));
 		}
+
+		// since capacity of the `next_set` is larger than the capacity of the `active_set`, we may
+		// or may not remove relayers, that have not been advanced to the `active_set` from the
+		// new `next_set`. Current implementation removes them, which may be a bit harsh towards
+		// such relayers. But since we assume that most likely active relayers will reappear in the
+		// next set later (when they relay at least one message), there's no much point in keeping
+		// them here.
+
 		// we clear next set here. Relayers from the active set will be readded here if
 		// they deliver at least one message in epoch and their reward will be concurrent.
 		// Or else, they'll need to reregister manually.
