@@ -87,7 +87,7 @@ fn receive_messages_delivery_proof() {
 				last_confirmed_nonce: 1,
 				relayers: vec![UnrewardedRelayer {
 					relayer: 0,
-					messages: DeliveredMessages::new(1),
+					messages: DeliveredMessages::new(1, 0),
 				}]
 				.into(),
 			},
@@ -106,7 +106,8 @@ fn receive_messages_delivery_proof() {
 			phase: Phase::Initialization,
 			event: TestEvent::Messages(Event::MessagesDelivered {
 				lane_id: test_lane_id(),
-				messages: DeliveredMessages::new(1),
+				messages_begin: 1,
+				messages_end: 1,
 			}),
 			topics: vec![],
 		}],
@@ -255,6 +256,15 @@ fn receive_messages_proof_works() {
 				.0
 				.last_delivered_nonce(),
 			1
+		);
+		assert_eq!(
+			InboundLanes::<TestRuntime>::get(test_lane_id())
+				.unwrap()
+				.0
+				.relayers
+				.front()
+				.map(|r| r.messages.relayer_reward_per_message),
+			Some(RELAYER_REWARD_PER_MESSAGE),
 		);
 
 		assert!(TestDeliveryPayments::is_reward_paid(1));
@@ -533,8 +543,14 @@ fn receive_messages_delivery_proof_rewards_relayers() {
 				},
 			)
 		);
-		assert!(TestDeliveryConfirmationPayments::is_reward_paid(TEST_RELAYER_A, 1));
-		assert!(!TestDeliveryConfirmationPayments::is_reward_paid(TEST_RELAYER_B, 1));
+		assert!(TestDeliveryConfirmationPayments::is_reward_paid(
+			TEST_RELAYER_A,
+			RELAYER_REWARD_PER_MESSAGE
+		));
+		assert!(!TestDeliveryConfirmationPayments::is_reward_paid(
+			TEST_RELAYER_B,
+			RELAYER_REWARD_PER_MESSAGE
+		));
 
 		// this reports delivery of both message 1 and message 2 => reward is paid only to
 		// TEST_RELAYER_B
@@ -574,8 +590,14 @@ fn receive_messages_delivery_proof_rewards_relayers() {
 				},
 			)
 		);
-		assert!(!TestDeliveryConfirmationPayments::is_reward_paid(TEST_RELAYER_A, 1));
-		assert!(TestDeliveryConfirmationPayments::is_reward_paid(TEST_RELAYER_B, 1));
+		assert!(!TestDeliveryConfirmationPayments::is_reward_paid(
+			TEST_RELAYER_A,
+			RELAYER_REWARD_PER_MESSAGE
+		));
+		assert!(TestDeliveryConfirmationPayments::is_reward_paid(
+			TEST_RELAYER_B,
+			RELAYER_REWARD_PER_MESSAGE
+		));
 	});
 }
 
@@ -830,7 +852,11 @@ fn proof_size_refund_from_receive_messages_proof_works() {
 				relayers: vec![
 					UnrewardedRelayer {
 						relayer: 42,
-						messages: DeliveredMessages { begin: 0, end: 100 }
+						messages: DeliveredMessages {
+							begin: 0,
+							end: 100,
+							relayer_reward_per_message: 0
+						}
 					};
 					max_entries
 				]
@@ -859,7 +885,11 @@ fn proof_size_refund_from_receive_messages_proof_works() {
 				relayers: vec![
 					UnrewardedRelayer {
 						relayer: 42,
-						messages: DeliveredMessages { begin: 0, end: 100 }
+						messages: DeliveredMessages {
+							begin: 0,
+							end: 100,
+							relayer_reward_per_message: 0
+						}
 					};
 					max_entries - 1
 				]
@@ -972,7 +1002,7 @@ fn test_bridge_messages_call_is_correctly_defined() {
 				last_confirmed_nonce: 1,
 				relayers: vec![UnrewardedRelayer {
 					relayer: 0,
-					messages: DeliveredMessages::new(1),
+					messages: DeliveredMessages::new(1, 0),
 				}]
 				.into(),
 			},
@@ -1033,7 +1063,10 @@ generate_owned_bridge_module_tests!(
 #[test]
 fn inbound_storage_extra_proof_size_bytes_works() {
 	fn relayer_entry() -> UnrewardedRelayer<TestRelayer> {
-		UnrewardedRelayer { relayer: 42u64, messages: DeliveredMessages { begin: 0, end: 100 } }
+		UnrewardedRelayer {
+			relayer: 42u64,
+			messages: DeliveredMessages { begin: 0, end: 100, relayer_reward_per_message: 0 },
+		}
 	}
 
 	fn storage(relayer_entries: usize) -> RuntimeInboundLaneStorage<TestRuntime, ()> {
@@ -1128,7 +1161,7 @@ fn receive_messages_delivery_proof_fails_if_outbound_lane_is_unknown() {
 					last_confirmed_nonce: 1,
 					relayers: vec![UnrewardedRelayer {
 						relayer: 0,
-						messages: DeliveredMessages::new(1),
+						messages: DeliveredMessages::new(1, 0),
 					}]
 					.into(),
 				},
