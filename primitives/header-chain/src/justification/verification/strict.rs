@@ -34,6 +34,13 @@ struct StrictJustificationVerifier {
 }
 
 impl<Header: HeaderT> JustificationVerifier<Header> for StrictJustificationVerifier {
+	fn process_duplicate_votes_ancestries(
+		&mut self,
+		_duplicate_votes_ancestries: Vec<usize>,
+	) -> Result<(), Error> {
+		Err(Error::DuplicateVotesAncestries)
+	}
+
 	fn process_redundant_vote(
 		&mut self,
 		_precommit_idx: usize,
