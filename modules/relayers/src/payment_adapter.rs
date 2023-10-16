@@ -32,8 +32,8 @@ use sp_std::{collections::vec_deque::VecDeque, marker::PhantomData, ops::RangeIn
 /// Adapter that allows relayers pallet to be used as a delivery+dispatch payment mechanism
 /// for the messages pallet.
 ///
-/// This adapter assumes 1:1 mapping of `RewardAtSource` to `T::Reward`. The reward for delivering
-/// a single message, will never be larger than the `MaxRewardPerMessage`.
+/// This adapter assumes 1:1 mapping of `RelayerRewardAtSource` to `T::Reward`. The reward for
+/// delivering a single message, will never be larger than the `MaxRewardPerMessage`.
 ///
 /// We assume that the confirmation transaction cost is refunded by the signed extension,
 /// implemented by the pallet. So we do not reward confirmation relayer additionally here.
@@ -60,13 +60,14 @@ where
 			bp_messages::calc_relayers_rewards_at_source::<T::AccountId, T::Reward>(
 				messages_relayers,
 				received_range,
-				|messages, reward_per_message| {
-					let reward_per_message = sp_std::cmp::min(
+				|messages, relayer_reward_per_message| {
+					let relayer_reward_per_message = sp_std::cmp::min(
 						MaxRewardPerMessage::get(),
-						reward_per_message.unique_saturated_into(),
+						relayer_reward_per_message.unique_saturated_into(),
 					);
 
-					T::Reward::unique_saturated_from(messages).saturating_mul(reward_per_message)
+					T::Reward::unique_saturated_from(messages)
+						.saturating_mul(relayer_reward_per_message)
 				},
 			);
 		let rewarded_relayers = relayers_rewards.len();

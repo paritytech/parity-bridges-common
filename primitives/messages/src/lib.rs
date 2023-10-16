@@ -495,7 +495,7 @@ pub enum ReceivalResult<DispatchLevelResult> {
 /// `pallet-bridge-relayers` instance to register rewards for all bridges. Those bridges
 /// may be connected to chains, using different `Balance` types. Why not to use encoded version?
 /// Because we need to order relayers by the reward they get for delivering a single message.
-pub type RewardAtSource = u64;
+pub type RelayerRewardAtSource = u64;
 
 /// Delivered messages with their dispatch result.
 #[derive(Clone, Default, Encode, Decode, RuntimeDebug, PartialEq, Eq, TypeInfo, MaxEncodedLen)]
@@ -507,14 +507,14 @@ pub struct DeliveredMessages {
 	/// Reward that needs to be paid at the source chain (during confirmation transaction)
 	/// for **every delivered message** in the `begin..=end` range. If reward has been paid
 	/// at the target chain or if no rewards assumed, it may be zero.
-	pub reward_per_message: RewardAtSource,
+	pub relayer_reward_per_message: RelayerRewardAtSource,
 }
 
 impl DeliveredMessages {
 	/// Create new `DeliveredMessages` struct that confirms delivery of single nonce with given
 	/// dispatch result.
-	pub fn new(nonce: MessageNonce, reward_per_message: RewardAtSource) -> Self {
-		DeliveredMessages { begin: nonce, end: nonce, reward_per_message }
+	pub fn new(nonce: MessageNonce, relayer_reward_per_message: RelayerRewardAtSource) -> Self {
+		DeliveredMessages { begin: nonce, end: nonce, relayer_reward_per_message }
 	}
 
 	/// Return total count of delivered messages.
@@ -610,14 +610,14 @@ impl Default for OutboundLaneData {
 
 /// Calculate the total relayer reward that need to be paid at the source chain.
 ///
-/// The `compute_reward` assumed to be a function that maps the `RewardAtSource` onto
+/// The `compute_reward` assumed to be a function that maps the `RelayerRewardAtSource` onto
 /// real reward that is paid to relayer. This function needs to compute and return
 /// the total reward for delivering given number of messages to the target (bridged)
 /// chain by relayer that has agreed to work for given reward.
 pub fn calc_relayers_rewards_at_source<AccountId, Reward>(
 	messages_relayers: VecDeque<UnrewardedRelayer<AccountId>>,
 	received_range: &RangeInclusive<MessageNonce>,
-	compute_reward: impl Fn(MessageNonce, RewardAtSource) -> Reward,
+	compute_reward: impl Fn(MessageNonce, RelayerRewardAtSource) -> Reward,
 ) -> RelayersRewards<AccountId, Reward>
 where
 	AccountId: sp_std::cmp::Ord,
@@ -628,7 +628,7 @@ where
 	let mut relayers_rewards: RelayersRewards<_, Reward> = RelayersRewards::new();
 	for entry in messages_relayers {
 		// if relayer does not expect any reward, do nothing
-		if entry.messages.reward_per_message == 0 {
+		if entry.messages.relayer_reward_per_message == 0 {
 			continue
 		}
 
@@ -642,7 +642,8 @@ where
 		}
 
 		// compute and update reward in the rewards map
-		let new_reward = compute_reward(new_confirmations_count, entry.messages.reward_per_message);
+		let new_reward =
+			compute_reward(new_confirmations_count, entry.messages.relayer_reward_per_message);
 		let total_relayer_reward = relayers_rewards.entry(entry.relayer).or_insert_with(Zero::zero);
 		*total_relayer_reward = total_relayer_reward.saturating_add(new_reward);
 	}
@@ -736,7 +737,8 @@ mod tests {
 
 	#[test]
 	fn contains_result_works() {
-		let delivered_messages = DeliveredMessages { begin: 100, end: 150, reward_per_message: 0 };
+		let delivered_messages =
+			DeliveredMessages { begin: 100, end: 150, relayer_reward_per_message: 0 };
 
 		assert!(!delivered_messages.contains_message(99));
 		assert!(delivered_messages.contains_message(100));
@@ -811,7 +813,7 @@ mod tests {
 				]
 				.into(),
 				&(1..=4),
-				|_, reward_per_message| reward_per_message,
+				|_, relayer_reward_per_message| relayer_reward_per_message,
 			),
 			vec![(1, 42), (2, 110)].into_iter().collect(),
 		);

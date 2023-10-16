@@ -21,7 +21,7 @@ use crate::{BridgedChainOf, Config};
 use bp_messages::{
 	target_chain::{DispatchMessage, DispatchMessageData, MessageDispatch},
 	ChainWithMessages, DeliveredMessages, InboundLaneData, LaneId, LaneState, MessageKey,
-	MessageNonce, OutboundLaneData, ReceivalResult, RewardAtSource, UnrewardedRelayer,
+	MessageNonce, OutboundLaneData, ReceivalResult, RelayerRewardAtSource, UnrewardedRelayer,
 };
 use bp_runtime::AccountIdOf;
 use codec::{Decode, Encode, EncodeLike, MaxEncodedLen};
@@ -186,7 +186,7 @@ impl<S: InboundLaneStorage> InboundLane<S> {
 		relayer_at_bridged_chain: &S::Relayer,
 		nonce: MessageNonce,
 		message_data: DispatchMessageData<Dispatch::DispatchPayload>,
-		delivery_reward_per_message: RewardAtSource,
+		relayer_reward_per_message: RelayerRewardAtSource,
 	) -> ReceivalResult<Dispatch::DispatchLevelResult> {
 		let mut data = self.storage.data();
 		if Some(nonce) != data.last_delivered_nonce().checked_add(1) {
@@ -214,14 +214,14 @@ impl<S: InboundLaneStorage> InboundLane<S> {
 		match data.relayers.back_mut() {
 			Some(entry)
 				if entry.relayer == *relayer_at_bridged_chain &&
-					entry.messages.reward_per_message == delivery_reward_per_message =>
+					entry.messages.relayer_reward_per_message == relayer_reward_per_message =>
 			{
 				entry.messages.note_dispatched_message();
 			},
 			_ => {
 				data.relayers.push_back(UnrewardedRelayer {
 					relayer: relayer_at_bridged_chain.clone(),
-					messages: DeliveredMessages::new(nonce, delivery_reward_per_message),
+					messages: DeliveredMessages::new(nonce, relayer_reward_per_message),
 				});
 			},
 		};
@@ -251,7 +251,7 @@ mod tests {
 				&TEST_RELAYER_A,
 				nonce,
 				inbound_message_data(REGULAR_PAYLOAD),
-				DELIVERY_REWARD_PER_MESSAGE,
+				RELAYER_REWARD_PER_MESSAGE,
 			),
 			ReceivalResult::Dispatched(dispatch_result(0))
 		);
@@ -379,7 +379,7 @@ mod tests {
 					&TEST_RELAYER_A,
 					10,
 					inbound_message_data(REGULAR_PAYLOAD),
-					DELIVERY_REWARD_PER_MESSAGE,
+					RELAYER_REWARD_PER_MESSAGE,
 				),
 				ReceivalResult::InvalidNonce
 			);
@@ -398,7 +398,7 @@ mod tests {
 						&(TEST_RELAYER_A + current_nonce),
 						current_nonce,
 						inbound_message_data(REGULAR_PAYLOAD),
-						DELIVERY_REWARD_PER_MESSAGE,
+						RELAYER_REWARD_PER_MESSAGE,
 					),
 					ReceivalResult::Dispatched(dispatch_result(0))
 				);
@@ -409,7 +409,7 @@ mod tests {
 					&(TEST_RELAYER_A + max_nonce + 1),
 					max_nonce + 1,
 					inbound_message_data(REGULAR_PAYLOAD),
-					DELIVERY_REWARD_PER_MESSAGE,
+					RELAYER_REWARD_PER_MESSAGE,
 				),
 				ReceivalResult::TooManyUnrewardedRelayers,
 			);
@@ -419,7 +419,7 @@ mod tests {
 					&(TEST_RELAYER_A + max_nonce),
 					max_nonce + 1,
 					inbound_message_data(REGULAR_PAYLOAD),
-					DELIVERY_REWARD_PER_MESSAGE,
+					RELAYER_REWARD_PER_MESSAGE,
 				),
 				ReceivalResult::TooManyUnrewardedRelayers,
 			);
@@ -437,7 +437,7 @@ mod tests {
 						&TEST_RELAYER_A,
 						current_nonce,
 						inbound_message_data(REGULAR_PAYLOAD),
-						DELIVERY_REWARD_PER_MESSAGE,
+						RELAYER_REWARD_PER_MESSAGE,
 					),
 					ReceivalResult::Dispatched(dispatch_result(0))
 				);
@@ -448,7 +448,7 @@ mod tests {
 					&TEST_RELAYER_B,
 					max_nonce + 1,
 					inbound_message_data(REGULAR_PAYLOAD),
-					DELIVERY_REWARD_PER_MESSAGE,
+					RELAYER_REWARD_PER_MESSAGE,
 				),
 				ReceivalResult::TooManyUnconfirmedMessages,
 			);
@@ -458,7 +458,7 @@ mod tests {
 					&TEST_RELAYER_A,
 					max_nonce + 1,
 					inbound_message_data(REGULAR_PAYLOAD),
-					DELIVERY_REWARD_PER_MESSAGE,
+					RELAYER_REWARD_PER_MESSAGE,
 				),
 				ReceivalResult::TooManyUnconfirmedMessages,
 			);
@@ -474,7 +474,7 @@ mod tests {
 					&TEST_RELAYER_A,
 					1,
 					inbound_message_data(REGULAR_PAYLOAD),
-					DELIVERY_REWARD_PER_MESSAGE,
+					RELAYER_REWARD_PER_MESSAGE,
 				),
 				ReceivalResult::Dispatched(dispatch_result(0))
 			);
@@ -483,7 +483,7 @@ mod tests {
 					&TEST_RELAYER_B,
 					2,
 					inbound_message_data(REGULAR_PAYLOAD),
-					DELIVERY_REWARD_PER_MESSAGE,
+					RELAYER_REWARD_PER_MESSAGE,
 				),
 				ReceivalResult::Dispatched(dispatch_result(0))
 			);
@@ -492,7 +492,7 @@ mod tests {
 					&TEST_RELAYER_A,
 					3,
 					inbound_message_data(REGULAR_PAYLOAD),
-					DELIVERY_REWARD_PER_MESSAGE,
+					RELAYER_REWARD_PER_MESSAGE,
 				),
 				ReceivalResult::Dispatched(dispatch_result(0))
 			);
@@ -516,7 +516,7 @@ mod tests {
 					&TEST_RELAYER_A,
 					1,
 					inbound_message_data(REGULAR_PAYLOAD),
-					DELIVERY_REWARD_PER_MESSAGE,
+					RELAYER_REWARD_PER_MESSAGE,
 				),
 				ReceivalResult::Dispatched(dispatch_result(0))
 			);
@@ -525,7 +525,7 @@ mod tests {
 					&TEST_RELAYER_A,
 					2,
 					inbound_message_data(REGULAR_PAYLOAD),
-					DELIVERY_REWARD_PER_MESSAGE + 1,
+					RELAYER_REWARD_PER_MESSAGE + 1,
 				),
 				ReceivalResult::Dispatched(dispatch_result(0))
 			);
@@ -534,15 +534,15 @@ mod tests {
 					&TEST_RELAYER_A,
 					3,
 					inbound_message_data(REGULAR_PAYLOAD),
-					DELIVERY_REWARD_PER_MESSAGE + 1,
+					RELAYER_REWARD_PER_MESSAGE + 1,
 				),
 				ReceivalResult::Dispatched(dispatch_result(0))
 			);
 
 			let mut unrewarded_relayer_with_larger_reward =
 				unrewarded_relayer(2, 3, TEST_RELAYER_A);
-			unrewarded_relayer_with_larger_reward.messages.reward_per_message =
-				DELIVERY_REWARD_PER_MESSAGE + 1;
+			unrewarded_relayer_with_larger_reward.messages.relayer_reward_per_message =
+				RELAYER_REWARD_PER_MESSAGE + 1;
 			assert_eq!(
 				lane.storage.data().relayers,
 				vec![
@@ -562,7 +562,7 @@ mod tests {
 					&TEST_RELAYER_A,
 					1,
 					inbound_message_data(REGULAR_PAYLOAD),
-					DELIVERY_REWARD_PER_MESSAGE,
+					RELAYER_REWARD_PER_MESSAGE,
 				),
 				ReceivalResult::Dispatched(dispatch_result(0))
 			);
@@ -571,7 +571,7 @@ mod tests {
 					&TEST_RELAYER_B,
 					1,
 					inbound_message_data(REGULAR_PAYLOAD),
-					DELIVERY_REWARD_PER_MESSAGE,
+					RELAYER_REWARD_PER_MESSAGE,
 				),
 				ReceivalResult::InvalidNonce,
 			);
@@ -598,7 +598,7 @@ mod tests {
 					&TEST_RELAYER_A,
 					1,
 					inbound_message_data(payload),
-					DELIVERY_REWARD_PER_MESSAGE,
+					RELAYER_REWARD_PER_MESSAGE,
 				),
 				ReceivalResult::Dispatched(dispatch_result(1))
 			);

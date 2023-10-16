@@ -1900,7 +1900,7 @@ mod tests {
 					messages: DeliveredMessages {
 						begin: 1,
 						end: best_delivered_message,
-						reward_per_message: 0,
+						relayer_reward_per_message: 0,
 					},
 				}]
 				.into(),

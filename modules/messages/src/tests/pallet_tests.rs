@@ -263,8 +263,8 @@ fn receive_messages_proof_works() {
 				.0
 				.relayers
 				.front()
-				.map(|r| r.messages.reward_per_message),
-			Some(DELIVERY_REWARD_PER_MESSAGE),
+				.map(|r| r.messages.relayer_reward_per_message),
+			Some(RELAYER_REWARD_PER_MESSAGE),
 		);
 
 		assert!(TestDeliveryPayments::is_reward_paid(1));
@@ -545,11 +545,11 @@ fn receive_messages_delivery_proof_rewards_relayers() {
 		);
 		assert!(TestDeliveryConfirmationPayments::is_reward_paid(
 			TEST_RELAYER_A,
-			DELIVERY_REWARD_PER_MESSAGE
+			RELAYER_REWARD_PER_MESSAGE
 		));
 		assert!(!TestDeliveryConfirmationPayments::is_reward_paid(
 			TEST_RELAYER_B,
-			DELIVERY_REWARD_PER_MESSAGE
+			RELAYER_REWARD_PER_MESSAGE
 		));
 
 		// this reports delivery of both message 1 and message 2 => reward is paid only to
@@ -592,11 +592,11 @@ fn receive_messages_delivery_proof_rewards_relayers() {
 		);
 		assert!(!TestDeliveryConfirmationPayments::is_reward_paid(
 			TEST_RELAYER_A,
-			DELIVERY_REWARD_PER_MESSAGE
+			RELAYER_REWARD_PER_MESSAGE
 		));
 		assert!(TestDeliveryConfirmationPayments::is_reward_paid(
 			TEST_RELAYER_B,
-			DELIVERY_REWARD_PER_MESSAGE
+			RELAYER_REWARD_PER_MESSAGE
 		));
 	});
 }
@@ -852,7 +852,11 @@ fn proof_size_refund_from_receive_messages_proof_works() {
 				relayers: vec![
 					UnrewardedRelayer {
 						relayer: 42,
-						messages: DeliveredMessages { begin: 0, end: 100, reward_per_message: 0 }
+						messages: DeliveredMessages {
+							begin: 0,
+							end: 100,
+							relayer_reward_per_message: 0
+						}
 					};
 					max_entries
 				]
@@ -881,7 +885,11 @@ fn proof_size_refund_from_receive_messages_proof_works() {
 				relayers: vec![
 					UnrewardedRelayer {
 						relayer: 42,
-						messages: DeliveredMessages { begin: 0, end: 100, reward_per_message: 0 }
+						messages: DeliveredMessages {
+							begin: 0,
+							end: 100,
+							relayer_reward_per_message: 0
+						}
 					};
 					max_entries - 1
 				]
@@ -1057,7 +1065,7 @@ fn inbound_storage_extra_proof_size_bytes_works() {
 	fn relayer_entry() -> UnrewardedRelayer<TestRelayer> {
 		UnrewardedRelayer {
 			relayer: 42u64,
-			messages: DeliveredMessages { begin: 0, end: 100, reward_per_message: 0 },
+			messages: DeliveredMessages { begin: 0, end: 100, relayer_reward_per_message: 0 },
 		}
 	}
 

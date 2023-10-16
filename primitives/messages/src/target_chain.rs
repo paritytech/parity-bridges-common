@@ -17,7 +17,8 @@
 //! Primitives of messages module, that are used on the target chain.
 
 use crate::{
-	LaneId, Message, MessageKey, MessageNonce, MessagePayload, OutboundLaneData, RewardAtSource,
+	LaneId, Message, MessageKey, MessageNonce, MessagePayload, OutboundLaneData,
+	RelayerRewardAtSource,
 };
 
 use bp_runtime::{messages::MessageDispatchResult, Size, UnverifiedStorageProof};
@@ -129,8 +130,8 @@ pub trait DeliveryPayments<AccountId> {
 	/// proof, so it will eventually be reported to the source chain.
 	///
 	/// Keep in mind that it is not necessary a real reward that will be paid. See
-	/// [`crate::RewardAtSource`] for more details.
-	fn delivery_reward_per_message(lane: LaneId, relayer: &AccountId) -> RewardAtSource;
+	/// [`crate::RelayerRewardAtSource`] for more details.
+	fn relayer_reward_per_message(lane: LaneId, relayer: &AccountId) -> RelayerRewardAtSource;
 
 	/// Pay rewards for delivering messages to the given relayer.
 	///
@@ -168,7 +169,7 @@ impl<DispatchPayload: Decode> From<MessagePayload> for DispatchMessageData<Dispa
 impl<AccountId> DeliveryPayments<AccountId> for () {
 	type Error = &'static str;
 
-	fn delivery_reward_per_message(_lane: LaneId, _relayer: &AccountId) -> RewardAtSource {
+	fn relayer_reward_per_message(_lane: LaneId, _relayer: &AccountId) -> RelayerRewardAtSource {
 		0
 	}
 
