@@ -486,10 +486,6 @@ pub mod pallet {
 				None => fail!(Error::<T>::NoRelayersAtLane),
 			};
 
-			// TODO: the same `Self::registered_relayer(relayer).map(|reg|
-			// reg.lanes().contains(&lane))` is called in `activate_next_set` and later in `for
-			// old_relayer in old_active_set`. May dedup to decrease weight
-
 			// read registrations of old relayers - we'll probably need to read it twice below, so
 			// better to cache it here
 			let mut old_active_set_registrations = BTreeMap::new();
@@ -2038,73 +2034,3 @@ mod tests {
 		});
 	}
 }
-/*
-			// remove base relayer registration
-			let registration = match RegisteredRelayers::<T>::take(relayer) {
-				Some(registration) => registration,
-				None => {
-					log::trace!(
-						target: crate::LOG_TARGET,
-						"Cannot slash unregistered relayer {:?}",
-						relayer,
-					);
-
-					return
-				},
-			};
-
-			// since slashing is an extraordinary case, we can't allow relayer get priority boosts
-			// for his transaction on lanes anymore. It may break the active lane relayers set slot
-			// ordering but it is bettter than boosting priority of potentially invalid transactions
-			for lane in registration.lanes() {
-				ActiveLaneRelayers::<T>::mutate_extant(lane, |active_lane_relayers| {
-					active_lane_relayers.try_remove(relayer);
-				});
-				NextLaneRelayers::<T>::mutate_extant(lane, |next_lane_relayers| {
-					next_lane_relayers.try_remove(relayer);
-				});
-			}
-
-			match T::StakeAndSlash::repatriate_reserved(
-				relayer,
-				slash_destination,
-				registration.current_stake(),
-			) {
-				Ok(failed_to_slash) if failed_to_slash.is_zero() => {
-					log::trace!(
-						target: crate::LOG_TARGET,
-						"Relayer account {:?} has been slashed for {:?}. Funds were deposited to {:?}",
-						relayer,
-						registration.current_stake(),
-						slash_destination,
-					);
-				},
-				Ok(failed_to_slash) => {
-					log::trace!(
-						target: crate::LOG_TARGET,
-						"Relayer account {:?} has been partially slashed for {:?}. Funds were deposited to {:?}. \
-						Failed to slash: {:?}",
-						relayer,
-						registration.current_stake(),
-						slash_destination,
-						failed_to_slash,
-					);
-				},
-				Err(e) => {
-					// TODO: document this. Where?
-
-					// it may fail if there's no beneficiary account. For us it means that this
-					// account must exists before we'll deploy the bridge
-					log::debug!(
-						target: crate::LOG_TARGET,
-						"Failed to slash relayer account {:?}: {:?}. Maybe beneficiary account doesn't exist? \
-						Beneficiary: {:?}, amount: {:?}, failed to slash: {:?}",
-						relayer,
-						e,
-						slash_destination,
-						registration.current_stake(),
-						registration.current_stake(),
-					);
-				},
-			}
-*/
