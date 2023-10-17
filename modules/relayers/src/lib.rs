@@ -30,7 +30,7 @@ use frame_support::{dispatch::PostDispatchInfo, fail};
 use frame_system::Pallet as SystemPallet;
 use sp_arithmetic::traits::{AtLeast32BitUnsigned, Zero};
 use sp_runtime::{traits::CheckedSub, Saturating};
-use sp_std::{marker::PhantomData, vec::Vec};
+use sp_std::{collections::btree_map::BTreeMap, marker::PhantomData};
 
 pub use pallet::*;
 pub use payment_adapter::DeliveryConfirmationPaymentsAdapter;
@@ -497,17 +497,23 @@ pub mod pallet {
 			// reg.lanes().contains(&lane))` is called in `activate_next_set` and later in `for
 			// old_relayer in old_active_set`. May dedup to decrease weight
 
+			// read registrations of old relayers - we'll probably need to read it twice below, so
+			// better to cache it here
+			let mut old_active_set_registrations = BTreeMap::new();
+			for old_relayer in active_lane_relayers.relayers() {
+				let old_relayer_id = old_relayer.relayer();
+				let registration = Self::registered_relayer(old_relayer_id);
+				old_active_set_registrations.insert(old_relayer_id.clone(), registration);
+			}
+
 			// activate next set of relayers
-			let old_active_set = active_lane_relayers
-				.relayers()
-				.iter()
-				.map(|r| r.relayer().clone())
-				.collect::<Vec<_>>();
 			ensure!(
 				active_lane_relayers.activate_next_set(
 					current_block_number,
 					next_lane_relayers.clone(),
-					|relayer| Self::registered_relayer(relayer)
+					|relayer| old_active_set_registrations
+						.get(relayer)
+						.and_then(|maybe_reg| maybe_reg.as_ref())
 						.map(|reg| reg.lanes().contains(&lane))
 						.unwrap_or(false),
 				),
@@ -524,14 +530,20 @@ pub mod pallet {
 			// technically, this is incorrect, because relaye may have wanted to keep lane
 			// registration. But there's no difference between such state and state when the relayer
 			// has deregistered
-			for old_relayer in old_active_set {
+			for (old_relayer, old_relayer_registration) in old_active_set_registrations {
 				if next_lane_relayers.relayer(&old_relayer).is_some() {
 					continue
 				}
 
-				RegisteredRelayers::<T>::mutate_extant(&old_relayer, |registration| {
-					Self::remove_lane_from_relayer_registration(registration, lane, true);
-				});
+				if let Some(mut old_relayer_registration) = old_relayer_registration {
+					if Self::remove_lane_from_relayer_registration(
+						&mut old_relayer_registration,
+						lane,
+						true,
+					) {
+						RegisteredRelayers::<T>::insert(old_relayer, old_relayer_registration);
+					}
+				}
 			}
 
 			// update relayer sets in the storage
