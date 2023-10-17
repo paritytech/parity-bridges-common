@@ -26,7 +26,7 @@ use bp_relayers::{
 	RelayerRewardAtSource, RelayerRewardsKeyProvider, RewardsAccountParams, StakeAndSlash,
 };
 use bp_runtime::StorageDoubleMapKeyProvider;
-use frame_support::fail;
+use frame_support::{dispatch::PostDispatchInfo, fail};
 use frame_system::Pallet as SystemPallet;
 use sp_arithmetic::traits::{AtLeast32BitUnsigned, Zero};
 use sp_runtime::{traits::CheckedSub, Saturating};
@@ -470,7 +470,6 @@ pub mod pallet {
 			Ok(())
 		}
 
-		// TODO: add another `obsolete` extension for this call of the relayers pallet?
 		/// Enact next set of relayers at a given lane.
 		///
 		/// This will replace the set of active relayers with the next scheduled set, for given
@@ -481,7 +480,10 @@ pub mod pallet {
 		/// be paid. We suggest the first relayer from the `next_set` to submit this transaction.
 		#[pallet::call_index(7)]
 		#[pallet::weight(Weight::zero())] // TODO
-		pub fn advance_lane_epoch(origin: OriginFor<T>, lane: LaneId) -> DispatchResult {
+		pub fn advance_lane_epoch(
+			origin: OriginFor<T>,
+			lane: LaneId,
+		) -> DispatchResultWithPostInfo {
 			let _ = ensure_signed(origin)?;
 
 			let current_block_number = SystemPallet::<T>::block_number();
@@ -536,7 +538,7 @@ pub mod pallet {
 			ActiveLaneRelayers::<T>::insert(lane, active_lane_relayers);
 			NextLaneRelayers::<T>::insert(lane, next_lane_relayers);
 
-			Ok(())
+			Ok(PostDispatchInfo { actual_weight: None, pays_fee: Pays::No })
 		}
 	}
 
@@ -1885,10 +1887,12 @@ mod tests {
 			// when active epoch is advanced, new epoch starts at the block, where it has been
 			// actually started, not the epoch where previous epoch was supposed to end
 			System::<TestRuntime>::set_block_number(next_lane_relayers.may_enact_at() + 77);
-			assert_ok!(BridgeRelayers::advance_lane_epoch(
+			let result = BridgeRelayers::advance_lane_epoch(
 				RuntimeOrigin::signed(REGISTER_RELAYER),
-				test_lane_id()
-			));
+				test_lane_id(),
+			);
+			assert_ok!(result);
+			assert_eq!(result.unwrap().pays_fee, frame_support::dispatch::Pays::No);
 
 			let next_lane_relayers = BridgeRelayers::next_lane_relayers(test_lane_id()).unwrap();
 			assert_eq!(
