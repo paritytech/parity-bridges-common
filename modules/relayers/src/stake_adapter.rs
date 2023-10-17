@@ -131,9 +131,7 @@ mod tests {
 		run_test(|| {
 			let beneficiary = test_reward_account_param();
 			let beneficiary_account = TestPaymentProcedure::rewards_account(beneficiary);
-
-			let mut expected_balance = ExistentialDeposit::get();
-			Balances::mint_into(&beneficiary_account, expected_balance).unwrap();
+			let mut expected_balance = Balances::free_balance(&beneficiary_account);
 
 			assert_eq!(
 				TestStakeAndSlash::repatriate_reserved(&1, beneficiary, test_stake()),
@@ -175,6 +173,7 @@ mod tests {
 		run_test(|| {
 			let beneficiary = test_reward_account_param();
 			let beneficiary_account = TestPaymentProcedure::rewards_account(beneficiary);
+			Balances::set_balance(&beneficiary_account, 0);
 
 			Balances::mint_into(&3, test_stake() * 2).unwrap();
 			TestStakeAndSlash::reserve(&3, test_stake()).unwrap();

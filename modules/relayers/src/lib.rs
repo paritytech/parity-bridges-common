@@ -411,13 +411,6 @@ pub mod pallet {
 				Error::<T>::TooLargeRewardToOccupyAnEntry,
 			);
 
-			// the relayer need to stake additional amount for every additional lane
-			registration.set_stake(Self::update_relayer_stake(
-				&relayer,
-				registration.current_stake(),
-				registration.required_stake(Self::base_stake(), Self::stake_per_lane()),
-			)?);
-
 			// update basic and lane registration in the runtime storage
 			RegisteredRelayers::<T>::insert(&relayer, registration);
 			NextLaneRelayers::<T>::insert(lane, next_lane_relayers);
@@ -577,8 +570,7 @@ pub mod pallet {
 			relayer: &T::AccountId,
 			slash_destination: RewardsAccountParams,
 		) {
-			// TODO: also remove from all lanes?
-
+			// remove base relayer registration
 			let registration = match RegisteredRelayers::<T>::take(relayer) {
 				Some(registration) => registration,
 				None => {
@@ -591,6 +583,18 @@ pub mod pallet {
 					return
 				},
 			};
+
+			// since slashing is an extraordinary case, we can't allow relayer get priority boosts
+			// for his transaction on lanes anymore. It may break the active lane relayers set slot
+			// ordering but it is bettter than boosting priority of potentially invalid transactions
+			for lane in registration.lanes() {
+				ActiveLaneRelayers::<T>::mutate_extant(lane, |active_lane_relayers| {
+					active_lane_relayers.try_remove(relayer);
+				});
+				NextLaneRelayers::<T>::mutate_extant(lane, |next_lane_relayers| {
+					next_lane_relayers.try_remove(relayer);
+				});
+			}
 
 			match T::StakeAndSlash::repatriate_reserved(
 				relayer,
@@ -919,7 +923,7 @@ mod tests {
 	use bp_messages::LaneId;
 	use bp_relayers::{RelayerAndReward, RewardsAccountOwner};
 	use frame_support::{
-		assert_noop, assert_ok,
+		assert_noop, assert_ok, assert_storage_noop,
 		traits::fungible::{Inspect, Mutate},
 	};
 	use frame_system::{EventRecord, Pallet as System, Phase};
@@ -1965,4 +1969,142 @@ mod tests {
 			assert_eq!(BridgeRelayers::next_lane_relayers(test_lane_id()).unwrap().relayers(), &[]);
 		});
 	}
+
+	#[test]
+	fn slash_and_deregister_does_nothing_if_relayer_is_not_registered() {
+		run_test(|| {
+			assert_storage_noop!(BridgeRelayers::slash_and_deregister(
+				&REGULAR_RELAYER,
+				test_reward_account_param()
+			));
+		})
+	}
+
+	#[test]
+	fn slash_and_deregister_works() {
+		run_test(|| {
+			// let's add basic relayer registration and lane registrations
+			let lane_1_id = test_lane_id();
+			let lane_2_id = LaneId::new(lane_1_id, lane_1_id);
+			assert_ok!(BridgeRelayers::increase_stake(
+				RuntimeOrigin::signed(REGISTER_RELAYER),
+				Stake::get() + LaneStake::get() * 2 + 100,
+			));
+			assert_ok!(BridgeRelayers::register(RuntimeOrigin::signed(REGISTER_RELAYER), 150));
+			assert_ok!(BridgeRelayers::register_at_lane(
+				RuntimeOrigin::signed(REGISTER_RELAYER),
+				lane_1_id,
+				0,
+			));
+			assert_ok!(BridgeRelayers::register_at_lane(
+				RuntimeOrigin::signed(REGISTER_RELAYER),
+				lane_2_id,
+				0,
+			));
+
+			// let's activate relayer at lane 1 and emulate message delivery
+			System::<TestRuntime>::set_block_number(
+				BridgeRelayers::next_lane_relayers(lane_1_id).unwrap().may_enact_at(),
+			);
+			assert_ok!(BridgeRelayers::advance_lane_epoch(
+				RuntimeOrigin::signed(REGISTER_RELAYER),
+				lane_1_id,
+			));
+			ActiveLaneRelayers::<TestRuntime>::mutate_extant(lane_1_id, |lane_relayers| {
+				lane_relayers.note_delivered_message(&REGISTER_RELAYER);
+			});
+			BridgeRelayers::register_relayer_reward(
+				test_reward_account_param(),
+				&REGISTER_RELAYER,
+				100,
+			);
+
+			// now slash relayer
+			let old_free_balance = Balances::free_balance(REGISTER_RELAYER);
+			BridgeRelayers::slash_and_deregister(&REGISTER_RELAYER, test_reward_account_param());
+
+			// => all registrations are removed, but reward is still there and may be claimed
+			assert_eq!(BridgeRelayers::registered_relayer(REGISTER_RELAYER), None);
+			assert_eq!(BridgeRelayers::active_lane_relayers(lane_1_id).relayers(), &[]);
+			assert_eq!(BridgeRelayers::next_lane_relayers(lane_1_id).unwrap().relayers(), &[]);
+			assert_eq!(BridgeRelayers::active_lane_relayers(lane_2_id).relayers(), &[]);
+			assert_eq!(BridgeRelayers::next_lane_relayers(lane_2_id).unwrap().relayers(), &[]);
+			assert_eq!(Balances::free_balance(REGISTER_RELAYER), old_free_balance);
+			assert_eq!(Balances::reserved_balance(REGISTER_RELAYER), 0);
+			assert_eq!(
+				BridgeRelayers::relayer_reward(REGISTER_RELAYER, test_reward_account_param()),
+				Some(100)
+			);
+		});
+	}
 }
+/*
+			// remove base relayer registration
+			let registration = match RegisteredRelayers::<T>::take(relayer) {
+				Some(registration) => registration,
+				None => {
+					log::trace!(
+						target: crate::LOG_TARGET,
+						"Cannot slash unregistered relayer {:?}",
+						relayer,
+					);
+
+					return
+				},
+			};
+
+			// since slashing is an extraordinary case, we can't allow relayer get priority boosts
+			// for his transaction on lanes anymore. It may break the active lane relayers set slot
+			// ordering but it is bettter than boosting priority of potentially invalid transactions
+			for lane in registration.lanes() {
+				ActiveLaneRelayers::<T>::mutate_extant(lane, |active_lane_relayers| {
+					active_lane_relayers.try_remove(relayer);
+				});
+				NextLaneRelayers::<T>::mutate_extant(lane, |next_lane_relayers| {
+					next_lane_relayers.try_remove(relayer);
+				});
+			}
+
+			match T::StakeAndSlash::repatriate_reserved(
+				relayer,
+				slash_destination,
+				registration.current_stake(),
+			) {
+				Ok(failed_to_slash) if failed_to_slash.is_zero() => {
+					log::trace!(
+						target: crate::LOG_TARGET,
+						"Relayer account {:?} has been slashed for {:?}. Funds were deposited to {:?}",
+						relayer,
+						registration.current_stake(),
+						slash_destination,
+					);
+				},
+				Ok(failed_to_slash) => {
+					log::trace!(
+						target: crate::LOG_TARGET,
+						"Relayer account {:?} has been partially slashed for {:?}. Funds were deposited to {:?}. \
+						Failed to slash: {:?}",
+						relayer,
+						registration.current_stake(),
+						slash_destination,
+						failed_to_slash,
+					);
+				},
+				Err(e) => {
+					// TODO: document this. Where?
+
+					// it may fail if there's no beneficiary account. For us it means that this
+					// account must exists before we'll deploy the bridge
+					log::debug!(
+						target: crate::LOG_TARGET,
+						"Failed to slash relayer account {:?}: {:?}. Maybe beneficiary account doesn't exist? \
+						Beneficiary: {:?}, amount: {:?}, failed to slash: {:?}",
+						relayer,
+						e,
+						slash_destination,
+						registration.current_stake(),
+						registration.current_stake(),
+					);
+				},
+			}
+*/

@@ -127,6 +127,18 @@ where
 		self.mergeable_set.try_insert(relayer.clone()).unwrap_or(false)
 	}
 
+	/// Remove relayer from the active set.
+	///
+	/// This function breaks the order of the active relayers set and may cause additional
+	/// contention between relayers. So it must only be used when relayer is being slashed and can
+	/// no longer be useful to the system.
+	pub fn try_remove(&mut self, relayer: &AccountId) -> bool {
+		let len_before = self.active_set.len();
+		self.active_set.retain(|entry| entry.relayer != *relayer);
+		self.mergeable_set.remove(relayer);
+		self.active_set.len() != len_before
+	}
+
 	/// Activate next set of relayers.
 	///
 	/// This set is replaced with the `next_set` contents.
@@ -319,6 +331,45 @@ mod tests {
 	type TestNextLaneRelayersSet = NextLaneRelayersSet<u64, u64, ConstU32<MAX_NEXT_LANE_RELAYERS>>;
 
 	#[test]
+	fn active_set_try_remove_works() {
+		let mut active_set: TestActiveLaneRelayersSet = ActiveLaneRelayersSet {
+			enacted_at: 0,
+			active_set: vec![RelayerAndReward::new(100, 0), RelayerAndReward::new(200, 0)]
+				.try_into()
+				.unwrap(),
+			mergeable_set: BTreeSet::from([100]).try_into().unwrap(),
+		};
+
+		// remove relayer that is not in the set
+		assert!(!active_set.try_remove(&300));
+		assert_eq!(active_set.mergeable_set.iter().cloned().collect::<Vec<_>>(), vec![100],);
+		assert_eq!(
+			active_set.active_set,
+			BoundedVec::<_, ConstU32<MAX_ACTIVE_LANE_RELAYERS>>::try_from(vec![
+				RelayerAndReward::new(100, 0),
+				RelayerAndReward::new(200, 0),
+			])
+			.unwrap(),
+		);
+
+		// remove relayer that is both in the active and mergeable sets
+		assert!(active_set.try_remove(&100));
+		assert!(active_set.mergeable_set.is_empty());
+		assert_eq!(
+			active_set.active_set,
+			BoundedVec::<_, ConstU32<MAX_ACTIVE_LANE_RELAYERS>>::try_from(vec![
+				RelayerAndReward::new(200, 0),
+			])
+			.unwrap(),
+		);
+
+		// remove relayer that is only in the active set
+		assert!(active_set.try_remove(&200));
+		assert!(active_set.mergeable_set.is_empty());
+		assert!(active_set.active_set.is_empty());
+	}
+
+	#[test]
 	fn note_delivered_message_works() {
 		let mut active_set: TestActiveLaneRelayersSet = ActiveLaneRelayersSet {
 			enacted_at: 0,
@@ -346,7 +397,7 @@ mod tests {
 	}
 
 	#[test]
-	fn active_set_activate_next_set_works() {
+	fn activate_next_set_works() {
 		let mut active_set: TestActiveLaneRelayersSet = ActiveLaneRelayersSet {
 			enacted_at: 0,
 			active_set: vec![].try_into().unwrap(),

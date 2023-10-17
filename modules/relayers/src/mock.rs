@@ -430,6 +430,11 @@ pub fn new_test_ext() -> sp_io::TestExternalities {
 /// Run pallet test.
 pub fn run_test<T>(test: impl FnOnce() -> T) -> T {
 	new_test_ext().execute_with(|| {
+		Balances::mint_into(
+			&TestPaymentProcedure::rewards_account(test_reward_account_param()),
+			ExistentialDeposit::get(),
+		)
+		.unwrap();
 		Balances::mint_into(&REGISTER_RELAYER, ExistentialDeposit::get() + 10 * Stake::get())
 			.unwrap();
 		Balances::mint_into(&REGISTER_RELAYER_2, ExistentialDeposit::get() + 10 * Stake::get())
