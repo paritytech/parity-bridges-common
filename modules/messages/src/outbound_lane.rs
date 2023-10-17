@@ -142,13 +142,14 @@ impl<S: OutboundLaneStorage> OutboundLane<S> {
 		let mut data = self.storage.data();
 		let confirmed_messages =
 			data.latest_received_nonce.saturating_add(1)..=latest_delivered_nonce;
-		if confirmed_messages.saturating_len() == 0 {
+		let confirmed_messages_count = confirmed_messages.saturating_len();
+		if confirmed_messages_count == 0 {
 			return Ok(None)
 		}
 		if *confirmed_messages.end() > data.latest_generated_nonce {
 			return Err(ReceivalConfirmationError::FailedToConfirmFutureMessages)
 		}
-		if confirmed_messages.saturating_len() > max_allowed_messages {
+		if confirmed_messages_count > max_allowed_messages {
 			// that the relayer has declared correct number of messages that the proof contains (it
 			// is checked outside of the function). But it may happen (but only if this/bridged
 			// chain storage is corrupted, though) that the actual number of confirmed messages if
@@ -157,7 +158,7 @@ impl<S: OutboundLaneStorage> OutboundLane<S> {
 			log::trace!(
 				target: LOG_TARGET,
 				"Messages delivery proof contains too many messages to confirm: {} vs declared {}",
-				confirmed_messages.saturating_len(),
+				confirmed_messages_count,
 				max_allowed_messages,
 			);
 			return Err(ReceivalConfirmationError::TryingToConfirmMoreMessagesThanExpected)
@@ -237,10 +238,6 @@ mod tests {
 			.collect()
 	}
 
-	fn delivered_messages(nonces: RangeInclusive<MessageNonce>) -> RangeInclusive<MessageNonce> {
-		nonces
-	}
-
 	fn assert_3_messages_confirmation_fails(
 		latest_received_nonce: MessageNonce,
 		relayers: &VecDeque<UnrewardedRelayer<TestRelayer>>,
@@ -280,10 +277,7 @@ mod tests {
 			assert_eq!(lane.storage.data().latest_generated_nonce, 3);
 			assert_eq!(lane.storage.data().latest_received_nonce, 0);
 			assert_eq!(lane.storage.data().oldest_unpruned_nonce, 1);
-			assert_eq!(
-				lane.confirm_delivery(3, 3, &unrewarded_relayers(1..=3)),
-				Ok(Some(delivered_messages(1..=3))),
-			);
+			assert_eq!(lane.confirm_delivery(3, 3, &unrewarded_relayers(1..=3)), Ok(Some(1..=3)),);
 			assert_eq!(lane.storage.data().latest_generated_nonce, 3);
 			assert_eq!(lane.storage.data().latest_received_nonce, 3);
 			assert_eq!(lane.storage.data().oldest_unpruned_nonce, 4);
@@ -301,18 +295,12 @@ mod tests {
 			assert_eq!(lane.storage.data().latest_received_nonce, 0);
 			assert_eq!(lane.storage.data().oldest_unpruned_nonce, 1);
 
-			assert_eq!(
-				lane.confirm_delivery(3, 2, &unrewarded_relayers(1..=2)),
-				Ok(Some(delivered_messages(1..=2))),
-			);
+			assert_eq!(lane.confirm_delivery(3, 2, &unrewarded_relayers(1..=2)), Ok(Some(1..=2)),);
 			assert_eq!(lane.storage.data().latest_generated_nonce, 3);
 			assert_eq!(lane.storage.data().latest_received_nonce, 2);
 			assert_eq!(lane.storage.data().oldest_unpruned_nonce, 3);
 
-			assert_eq!(
-				lane.confirm_delivery(3, 3, &unrewarded_relayers(3..=3)),
-				Ok(Some(delivered_messages(3..=3))),
-			);
+			assert_eq!(lane.confirm_delivery(3, 3, &unrewarded_relayers(3..=3)), Ok(Some(3..=3)),);
 			assert_eq!(lane.storage.data().latest_generated_nonce, 3);
 			assert_eq!(lane.storage.data().latest_received_nonce, 3);
 			assert_eq!(lane.storage.data().oldest_unpruned_nonce, 4);
@@ -329,10 +317,7 @@ mod tests {
 			assert_eq!(lane.storage.data().latest_generated_nonce, 3);
 			assert_eq!(lane.storage.data().latest_received_nonce, 0);
 			assert_eq!(lane.storage.data().oldest_unpruned_nonce, 1);
-			assert_eq!(
-				lane.confirm_delivery(3, 3, &unrewarded_relayers(1..=3)),
-				Ok(Some(delivered_messages(1..=3))),
-			);
+			assert_eq!(lane.confirm_delivery(3, 3, &unrewarded_relayers(1..=3)), Ok(Some(1..=3)),);
 			assert_eq!(lane.confirm_delivery(3, 3, &unrewarded_relayers(1..=3)), Ok(None),);
 			assert_eq!(lane.storage.data().latest_generated_nonce, 3);
 			assert_eq!(lane.storage.data().latest_received_nonce, 3);
@@ -414,10 +399,7 @@ mod tests {
 				lane.confirm_delivery(2, 3, &unrewarded_relayers(1..=3)),
 				Err(ReceivalConfirmationError::TryingToConfirmMoreMessagesThanExpected),
 			);
-			assert_eq!(
-				lane.confirm_delivery(3, 3, &unrewarded_relayers(1..=3)),
-				Ok(Some(delivered_messages(1..=3))),
-			);
+			assert_eq!(lane.confirm_delivery(3, 3, &unrewarded_relayers(1..=3)), Ok(Some(1..=3)),);
 		});
 	}
 }

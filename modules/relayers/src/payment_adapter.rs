@@ -19,11 +19,11 @@
 use crate::{ActiveLaneRelayers, Config, Pallet};
 
 use bp_messages::{
-	source_chain::{DeliveryConfirmationPayments, RelayersRewardsAtSource},
+	source_chain::{DeliveryConfirmationPayments, RelayersRewards},
 	target_chain::DeliveryPayments,
 	LaneId, MessageNonce,
 };
-use bp_relayers::{RewardAtSource, RewardsAccountOwner, RewardsAccountParams};
+use bp_relayers::{RelayerRewardAtSource, RewardsAccountOwner, RewardsAccountParams};
 use bp_runtime::Chain;
 use frame_support::weights::Weight;
 use sp_arithmetic::traits::UniqueSaturatedFrom;
@@ -36,8 +36,11 @@ use sp_std::{collections::vec_deque::VecDeque, marker::PhantomData, ops::RangeIn
 /// Adapter that allows relayers pallet to be used as a delivery+dispatch payment mechanism
 /// for the messages pallet.
 ///
-/// This adapter uses 1:1 mapping of `RewardAtSource` to `T::Reward`. The reward for delivering
-/// a single message, will never be larger than the `MaxRewardPerMessage`.
+/// This adapter assumes 1:1 mapping of `RelayerRewardAtSource` to `T::Reward`. The reward for
+/// delivering a single message, will never be larger than the `MaxRewardPerMessage`.
+///
+/// We assume that the confirmation transaction cost is refunded by the signed extension,
+/// implemented by the pallet. So we do not reward confirmation relayer additionally here.
 pub struct DeliveryConfirmationPaymentsAdapter<T, MI, MaxRewardPerMessage>(
 	PhantomData<(T, MI, MaxRewardPerMessage)>,
 );
@@ -47,7 +50,6 @@ impl<T, MI, MaxRewardPerMessage> DeliveryConfirmationPayments<T::AccountId>
 where
 	T: Config + pallet_bridge_messages::Config<MI>,
 	MI: 'static,
-	T::Reward: UniqueSaturatedFrom<RewardAtSource> + UniqueSaturatedFrom<MessageNonce>,
 	MaxRewardPerMessage: Get<T::Reward>,
 {
 	type Error = &'static str;
@@ -62,13 +64,14 @@ where
 			bp_messages::calc_relayers_rewards_at_source::<T::AccountId, T::Reward>(
 				messages_relayers,
 				received_range,
-				|messages, reward_per_message| {
-					let reward_per_message = sp_std::cmp::min(
+				|messages, relayer_reward_per_message| {
+					let relayer_reward_per_message = sp_std::cmp::min(
 						MaxRewardPerMessage::get(),
-						reward_per_message.unique_saturated_into(),
+						relayer_reward_per_message.unique_saturated_into(),
 					);
 
-					T::Reward::unique_saturated_from(messages).saturating_mul(reward_per_message)
+					T::Reward::unique_saturated_from(messages)
+						.saturating_mul(relayer_reward_per_message)
 				},
 			);
 		let rewarded_relayers = relayers_rewards.len();
@@ -94,6 +97,10 @@ where
 {
 	type Error = &'static str;
 
+	fn relayer_reward_per_message(_lane: LaneId, _relayer: &T::AccountId) -> RelayerRewardAtSource {
+		unimplemented!("TODO")
+	}
+
 	fn pay_reward(
 		lane_id: LaneId,
 		relayer: T::AccountId,
@@ -112,13 +119,11 @@ where
 	}
 }
 
-// Update rewards to given relayers, optionally rewarding confirmation relayer.
+/// Register relayer rewards for delivering messages.
 fn register_relayers_rewards<T: Config>(
-	relayers_rewards: RelayersRewardsAtSource<T::AccountId, T::Reward>,
+	relayers_rewards: RelayersRewards<T::AccountId, T::Reward>,
 	reward_account: RewardsAccountParams,
-) where
-	T::Reward: UniqueSaturatedFrom<RewardAtSource>,
-{
+) {
 	for (relayer, relayer_reward) in relayers_rewards {
 		Pallet::<T>::register_relayer_reward(reward_account, &relayer, relayer_reward);
 	}
@@ -133,7 +138,7 @@ mod tests {
 	const RELAYER_2: ThisChainAccountId = 2;
 	const RELAYER_3: ThisChainAccountId = 3;
 
-	fn relayers_rewards() -> RelayersRewardsAtSource<ThisChainAccountId, ThisChainBalance> {
+	fn relayers_rewards() -> RelayersRewards<ThisChainAccountId, ThisChainBalance> {
 		vec![(RELAYER_1, 2), (RELAYER_2, 3)].into_iter().collect()
 	}
 
@@ -156,6 +161,30 @@ mod tests {
 			assert_eq!(
 				RelayerRewards::<TestRuntime>::get(RELAYER_3, test_reward_account_param()),
 				None
+			);
+		});
+	}
+
+	#[test]
+	fn reward_per_message_is_never_larger_than_max_reward_per_message() {
+		run_test(|| {
+			let mut delivered_messages =
+				bp_messages::DeliveredMessages::new(1, MAX_REWARD_PER_MESSAGE + 1);
+			delivered_messages.note_dispatched_message();
+
+			<TestDeliveryConfirmationPaymentsAdapter as DeliveryConfirmationPayments<
+				ThisChainAccountId,
+			>>::pay_reward(
+				test_lane_id(),
+				vec![bp_messages::UnrewardedRelayer { relayer: 42, messages: delivered_messages }]
+					.into(),
+				&43,
+				&(1..=2),
+			);
+
+			assert_eq!(
+				RelayerRewards::<TestRuntime>::get(42, test_reward_account_param()),
+				Some(MAX_REWARD_PER_MESSAGE * 2),
 			);
 		});
 	}

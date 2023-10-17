@@ -23,14 +23,14 @@
 use bp_messages::LaneId;
 use bp_relayers::{
 	ActiveLaneRelayersSet, NextLaneRelayersSet, PaymentProcedure, Registration,
-	RelayerRewardsKeyProvider, RewardAtSource, RewardsAccountParams, StakeAndSlash,
+	RelayerRewardAtSource, RelayerRewardsKeyProvider, RewardsAccountParams, StakeAndSlash,
 };
 use bp_runtime::StorageDoubleMapKeyProvider;
 use frame_support::fail;
 use frame_system::Pallet as SystemPallet;
 use sp_arithmetic::traits::{AtLeast32BitUnsigned, Zero};
 use sp_runtime::{traits::CheckedSub, Saturating};
-use sp_std::marker::PhantomData;
+use sp_std::{marker::PhantomData, vec::Vec};
 
 pub use pallet::*;
 pub use payment_adapter::DeliveryConfirmationPaymentsAdapter;
@@ -379,7 +379,7 @@ pub mod pallet {
 		pub fn register_at_lane(
 			origin: OriginFor<T>,
 			lane: LaneId,
-			expected_reward: RewardAtSource,
+			expected_relayer_reward_per_message: RelayerRewardAtSource,
 		) -> DispatchResult {
 			let relayer = ensure_signed(origin)?;
 
@@ -407,7 +407,7 @@ pub mod pallet {
 
 			// try to push relayer to the next set
 			ensure!(
-				next_lane_relayers.try_push(relayer.clone(), expected_reward),
+				next_lane_relayers.try_push(relayer.clone(), expected_relayer_reward_per_message),
 				Error::<T>::TooLargeRewardToOccupyAnEntry,
 			);
 

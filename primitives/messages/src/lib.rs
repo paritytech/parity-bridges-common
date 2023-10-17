@@ -30,15 +30,11 @@ use frame_support::PalletError;
 pub use frame_support::weights::Weight;
 use scale_info::TypeInfo;
 use serde::{Deserialize, Serialize};
-use source_chain::RelayersRewardsAtSource;
+use source_chain::RelayersRewards;
 use sp_core::{RuntimeDebug, TypeId, H256};
 use sp_io::hashing::blake2_256;
-use sp_runtime::traits::Saturating;
-use sp_std::{
-	collections::{btree_map::Entry, vec_deque::VecDeque},
-	ops::RangeInclusive,
-	prelude::*,
-};
+use sp_runtime::traits::{Saturating, Zero};
+use sp_std::{collections::vec_deque::VecDeque, ops::RangeInclusive, prelude::*};
 
 pub use call_info::{
 	BaseMessagesProofInfo, BridgeMessagesCall, BridgeMessagesCallOf, MessagesCallInfo,
@@ -491,15 +487,15 @@ pub enum ReceivalResult<DispatchLevelResult> {
 }
 
 /// Type of reward that needs to be paid at the source chain for delivering messages to the
-/// target chain. It does not necessary mapped 1:1 onto source chain tokens. The
-/// `DeliveryConfirmationPayments` implementation decides how to map it and what actual
-/// reward the relayer would receive.
+/// target chain. It does not necessary mapped 1:1 onto source chain tokens (or whatever is
+/// used to pay rewards there). The `DeliveryConfirmationPayments` implementation decides how
+/// to map it and what actual reward the relayer would receive.
 ///
 /// Why our code is not generic over this type? That's mostly because we are using single
 /// `pallet-bridge-relayers` instance to register rewards for all bridges. Those bridges
 /// may be connected to chains, using different `Balance` types. Why not to use encoded version?
 /// Because we need to order relayers by the reward they get for delivering a single message.
-pub type RewardAtSource = u64;
+pub type RelayerRewardAtSource = u64;
 
 /// Delivered messages with their dispatch result.
 #[derive(Clone, Default, Encode, Decode, RuntimeDebug, PartialEq, Eq, TypeInfo, MaxEncodedLen)]
@@ -509,16 +505,16 @@ pub struct DeliveredMessages {
 	/// Nonce of the last message that has been delivered (inclusive).
 	pub end: MessageNonce,
 	/// Reward that needs to be paid at the source chain (during confirmation transaction)
-	/// for every delivered message in the `begin..=end` range. If reward has been paid at the
-	/// target chain, it may be zero.
-	pub reward: RewardAtSource,
+	/// for **every delivered message** in the `begin..=end` range. If reward has been paid
+	/// at the target chain or if no rewards assumed, it may be zero.
+	pub relayer_reward_per_message: RelayerRewardAtSource,
 }
 
 impl DeliveredMessages {
 	/// Create new `DeliveredMessages` struct that confirms delivery of single nonce with given
 	/// dispatch result.
-	pub fn new(nonce: MessageNonce, reward: RewardAtSource) -> Self {
-		DeliveredMessages { begin: nonce, end: nonce, reward }
+	pub fn new(nonce: MessageNonce, relayer_reward_per_message: RelayerRewardAtSource) -> Self {
+		DeliveredMessages { begin: nonce, end: nonce, relayer_reward_per_message }
 	}
 
 	/// Return total count of delivered messages.
@@ -613,24 +609,30 @@ impl Default for OutboundLaneData {
 }
 
 /// Calculate the total relayer reward that need to be paid at the source chain.
+///
+/// The `compute_reward` assumed to be a function that maps the `RelayerRewardAtSource` onto
+/// real reward that is paid to relayer. This function needs to compute and return
+/// the total reward for delivering given number of messages to the target (bridged)
+/// chain by relayer that has agreed to work for given reward.
 pub fn calc_relayers_rewards_at_source<AccountId, Reward>(
 	messages_relayers: VecDeque<UnrewardedRelayer<AccountId>>,
 	received_range: &RangeInclusive<MessageNonce>,
-	compute_reward: impl Fn(MessageNonce, RewardAtSource) -> Reward,
-) -> RelayersRewardsAtSource<AccountId, Reward>
+	compute_reward: impl Fn(MessageNonce, RelayerRewardAtSource) -> Reward,
+) -> RelayersRewards<AccountId, Reward>
 where
 	AccountId: sp_std::cmp::Ord,
-	Reward: Copy + Saturating,
+	Reward: Copy + Saturating + Zero,
 {
 	// remember to reward relayers that have delivered messages
 	// this loop is bounded by `T::MAX_UNREWARDED_RELAYERS_IN_CONFIRMATION_TX` on the bridged chain
-	let mut relayers_rewards: RelayersRewardsAtSource<AccountId, Reward> =
-		RelayersRewardsAtSource::new();
+	let mut relayers_rewards: RelayersRewards<_, Reward> = RelayersRewards::new();
 	for entry in messages_relayers {
-		if entry.messages.reward == 0 {
+		// if relayer does not expect any reward, do nothing
+		if entry.messages.relayer_reward_per_message == 0 {
 			continue
 		}
 
+		// if we have already paid reward for delivering those messages, do nothing
 		let nonce_begin = sp_std::cmp::max(entry.messages.begin, *received_range.start());
 		let nonce_end = sp_std::cmp::min(entry.messages.end, *received_range.end());
 		let new_confirmations = nonce_begin..=nonce_end;
@@ -639,15 +641,11 @@ where
 			continue
 		}
 
-		let new_reward = compute_reward(new_confirmations_count, entry.messages.reward);
-		match relayers_rewards.entry(entry.relayer) {
-			Entry::Occupied(mut e) => {
-				e.insert(e.get().clone().saturating_add(new_reward));
-			},
-			Entry::Vacant(e) => {
-				e.insert(new_reward);
-			},
-		}
+		// compute and update reward in the rewards map
+		let new_reward =
+			compute_reward(new_confirmations_count, entry.messages.relayer_reward_per_message);
+		let total_relayer_reward = relayers_rewards.entry(entry.relayer).or_insert_with(Zero::zero);
+		*total_relayer_reward = total_relayer_reward.saturating_add(new_reward);
 	}
 	relayers_rewards
 }
@@ -739,7 +737,8 @@ mod tests {
 
 	#[test]
 	fn contains_result_works() {
-		let delivered_messages = DeliveredMessages { begin: 100, end: 150, reward: 0 };
+		let delivered_messages =
+			DeliveredMessages { begin: 100, end: 150, relayer_reward_per_message: 0 };
 
 		assert!(!delivered_messages.contains_message(99));
 		assert!(delivered_messages.contains_message(100));
@@ -792,6 +791,31 @@ mod tests {
 		assert_ne!(
 			LaneId::new(Either::Two(1, 2), Either::Two(3, 4)),
 			LaneId::new(Either::Three(1, 2, 3), Either::One(4)),
+		);
+	}
+
+	#[test]
+	fn calc_relayers_rewards_at_source_works() {
+		assert_eq!(
+			calc_relayers_rewards_at_source::<u64, u64>(
+				vec![
+					// relayer that wants zero reward => no payments expected
+					UnrewardedRelayer { relayer: 1, messages: DeliveredMessages::new(1, 0) },
+					// relayer wants reward => payment is expected
+					UnrewardedRelayer { relayer: 2, messages: DeliveredMessages::new(2, 77) },
+					// relayer that we met before and he wants reward => payment is expected
+					UnrewardedRelayer { relayer: 1, messages: DeliveredMessages::new(3, 42) },
+					// relayer that we met before and he wants reward => payment is expected
+					UnrewardedRelayer { relayer: 2, messages: DeliveredMessages::new(4, 33) },
+					// relayers that deliver messages out of range
+					UnrewardedRelayer { relayer: 2, messages: DeliveredMessages::new(0, 33) },
+					UnrewardedRelayer { relayer: 2, messages: DeliveredMessages::new(5, 33) },
+				]
+				.into(),
+				&(1..=4),
+				|_, relayer_reward_per_message| relayer_reward_per_message,
+			),
+			vec![(1, 42), (2, 110)].into_iter().collect(),
 		);
 	}
 }

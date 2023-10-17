@@ -268,6 +268,11 @@ pub mod pallet {
 				}
 			}
 
+			// compute the per-message reward that is paid at the bridged (source) chain to relayer
+			// that has delivered message
+			let relayer_reward_per_message =
+				T::DeliveryPayments::relayer_reward_per_message(lane_id, &relayer_id_at_this_chain);
+
 			let mut messages_received_status =
 				ReceivedMessages::new(lane_id, Vec::with_capacity(lane_data.messages.len()));
 			for mut message in lane_data.messages {
@@ -294,6 +299,7 @@ pub mod pallet {
 					&relayer_id_at_bridged_chain,
 					message.key.nonce,
 					message.data,
+					relayer_reward_per_message,
 				);
 
 				// note that we're returning unspent weight to relayer even if message has been

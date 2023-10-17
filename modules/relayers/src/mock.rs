@@ -81,6 +81,8 @@ pub const BRIDGED_CHAIN_MAX_EXTRINSIC_SIZE: u32 = 1024;
 
 /// Maximal number of relayers in the next set.
 pub const MAX_NEXT_RELAYERS_PER_LANE: u32 = 16;
+/// Maximal reward that may be paid to relayer for delivering a single message.
+pub const MAX_REWARD_PER_MESSAGE: ThisChainBalance = 100_000;
 
 /// Underlying chain of `ThisChain`.
 pub struct ThisUnderlyingChain;
@@ -285,6 +287,13 @@ impl pallet_bridge_parachains::Config for TestRuntime {
 	type WeightInfo = pallet_bridge_parachains::weights::BridgeWeight<TestRuntime>;
 }
 
+pub type TestDeliveryConfirmationPaymentsAdapter =
+	pallet_bridge_relayers::DeliveryConfirmationPaymentsAdapter<
+		TestRuntime,
+		(),
+		ConstU64<MAX_REWARD_PER_MESSAGE>,
+	>;
+
 impl pallet_bridge_messages::Config for TestRuntime {
 	type RuntimeEvent = RuntimeEvent;
 	type WeightInfo = pallet_bridge_messages::weights::BridgeWeight<TestRuntime>;
@@ -294,8 +303,7 @@ impl pallet_bridge_messages::Config for TestRuntime {
 	type InboundPayload = Vec<u8>;
 	type DeliveryPayments = ();
 
-	type DeliveryConfirmationPayments =
-		pallet_bridge_relayers::DeliveryConfirmationPaymentsAdapter<TestRuntime, (), ConstU64<10>>;
+	type DeliveryConfirmationPayments = TestDeliveryConfirmationPaymentsAdapter;
 	type OnMessagesDelivered = ();
 
 	type MessageDispatch = DummyMessageDispatch;

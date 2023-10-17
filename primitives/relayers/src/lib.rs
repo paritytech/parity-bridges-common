@@ -24,7 +24,7 @@ pub use extension::{
 	RuntimeWithUtilityPallet,
 };
 pub use lane_relayers::{
-	ActiveLaneRelayersSet, NextLaneRelayersSet, RelayerAndReward, RewardAtSource,
+	ActiveLaneRelayersSet, NextLaneRelayersSet, RelayerAndReward, RelayerRewardAtSource,
 };
 pub use registration::{Registration, StakeAndSlash};
 
