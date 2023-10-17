@@ -200,7 +200,7 @@ pub mod pallet {
 		/// This call must be followed by `register` and (optionally) `register_at_lane` calls to
 		/// activate priority boosts.
 		#[pallet::call_index(1)]
-		#[pallet::weight(Weight::zero())] // TODO
+		#[pallet::weight(T::WeightInfo::increase_stake())]
 		pub fn increase_stake(
 			origin: OriginFor<T>,
 			additional_amount: T::Reward,
@@ -230,7 +230,7 @@ pub mod pallet {
 		/// The reserved amount after this call must cover basic registration and all lane
 		/// registrations that relayer has.
 		#[pallet::call_index(2)]
-		#[pallet::weight(Weight::zero())] // TODO
+		#[pallet::weight(T::WeightInfo::decrease_stake())]
 		pub fn decrease_stake(origin: OriginFor<T>, to_unreserve: T::Reward) -> DispatchResult {
 			let relayer = ensure_signed(origin)?;
 
@@ -375,7 +375,7 @@ pub mod pallet {
 		/// [`DeliveryConfirmationPaymentsAdapter`] is used to register rewards, the maximal reward
 		/// per message is limited by the `MaxRewardPerMessage` parameter.
 		#[pallet::call_index(5)]
-		#[pallet::weight(Weight::zero())] // TODO
+		#[pallet::weight(T::WeightInfo::register_at_lane())]
 		pub fn register_at_lane(
 			origin: OriginFor<T>,
 			lane: LaneId,
@@ -692,7 +692,7 @@ pub mod pallet {
 		}
 
 		/// Returns total stake that the relayer must hold reserved on his account.
-		fn required_stake(
+		pub(crate) fn required_stake(
 			registration: &Registration<BlockNumberFor<T>, T::Reward, T::MaxLanesPerRelayer>,
 		) -> T::Reward {
 			registration.required_stake(Self::base_stake(), Self::stake_per_lane())
