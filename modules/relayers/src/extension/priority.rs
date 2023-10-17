@@ -69,7 +69,7 @@ where
 {
 	// if there are no relayers, explicitly registered at this lane, noone gets additional
 	// priority boost
-	let lane_relayers = RelayersPallet::<R>::active_lane_relayers(&lane_id);
+	let lane_relayers = RelayersPallet::<R>::active_lane_relayers(lane_id);
 	let active_lane_relayers = lane_relayers.relayers();
 	let lane_relayers_len: BlockNumberFor<R> = (active_lane_relayers.len() as u32).into();
 	if lane_relayers_len.is_zero() {
