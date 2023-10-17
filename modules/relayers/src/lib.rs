@@ -91,7 +91,7 @@ pub mod pallet {
 		/// prioritized over greedier relayers. At the end of epoch, we select top
 		/// `MaxActiveRelayersPerLane` relayers from the next set and move them to the next set. To
 		/// alleviate possible spam attacks, where relayers are registering at lane with zero reward
-		/// (pushing out actual relayers with larger expected reward) and then deregistering
+		/// (pushing out actual relayers with larger expected reward) and then `deregistering`
 		/// themselves right before epoch end, we make the next relayers set larger than the active
 		/// set. It would make it more expensive for attackers to fill the whole next set.
 		///
@@ -462,7 +462,7 @@ pub mod pallet {
 			// remove relayer from the `next_set` of lane relayers
 			NextLaneRelayers::<T>::mutate_extant(lane, |next_lane_relayers| {
 				next_lane_relayers.try_remove(&relayer);
-			
+
 				// we can't remove `NextLaneRelayers` entry here (if there are no more relayers
 				// in the set), bnecause the `may_enact_at` is important too
 			});
@@ -1488,7 +1488,7 @@ mod tests {
 	fn register_at_lane_fails_if_relayer_requests_too_large_reward_to_claim_the_slot() {
 		run_test(|| {
 			let mut lane_relayers = NextLaneRelayersSet::empty(100);
-			for i in 1..=MAX_NEXT_RELAYERS_PER_LANE as u64 {
+			for i in 1..=MaxNextRelayersPerLane::get() as u64 {
 				assert!(lane_relayers.try_push(REGISTER_RELAYER + i, 0));
 			}
 			RegisteredRelayers::<TestRuntime>::insert(
@@ -1614,7 +1614,7 @@ mod tests {
 		run_test(|| {
 			// leave one free entry in next set by relayers with bid = 10
 			let mut lane_relayers = NextLaneRelayersSet::empty(100);
-			for i in 1..MAX_NEXT_RELAYERS_PER_LANE as u64 {
+			for i in 1..MaxNextRelayersPerLane::get() as u64 {
 				assert!(lane_relayers.try_push(REGISTER_RELAYER + 100 + i, 10));
 			}
 			RegisteredRelayers::<TestRuntime>::insert(
@@ -1634,7 +1634,7 @@ mod tests {
 				15
 			),);
 			let next_lane_relayers = BridgeRelayers::next_lane_relayers(test_lane_id()).unwrap();
-			assert_eq!(next_lane_relayers.relayers().len() as u32, MAX_NEXT_RELAYERS_PER_LANE);
+			assert_eq!(next_lane_relayers.relayers().len() as u32, MaxNextRelayersPerLane::get());
 			assert_eq!(
 				next_lane_relayers.relayers().last(),
 				Some(&RelayerAndReward::new(REGISTER_RELAYER, 15))
@@ -1647,7 +1647,7 @@ mod tests {
 				14
 			),);
 			let next_lane_relayers = BridgeRelayers::next_lane_relayers(test_lane_id()).unwrap();
-			assert_eq!(next_lane_relayers.relayers().len() as u32, MAX_NEXT_RELAYERS_PER_LANE);
+			assert_eq!(next_lane_relayers.relayers().len() as u32, MaxNextRelayersPerLane::get());
 			assert_eq!(
 				next_lane_relayers.relayers().last(),
 				Some(&RelayerAndReward::new(REGISTER_RELAYER_2, 14))
@@ -1663,7 +1663,7 @@ mod tests {
 			),);
 
 			let next_lane_relayers = BridgeRelayers::next_lane_relayers(test_lane_id()).unwrap();
-			assert_eq!(next_lane_relayers.relayers().len() as u32, MAX_NEXT_RELAYERS_PER_LANE);
+			assert_eq!(next_lane_relayers.relayers().len() as u32, MaxNextRelayersPerLane::get());
 			assert_eq!(
 				next_lane_relayers.relayers().last(),
 				Some(&RelayerAndReward::new(REGISTER_RELAYER, 13))

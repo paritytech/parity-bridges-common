@@ -79,8 +79,6 @@ pub const TEST_BRIDGED_CHAIN_ID: ChainId = *b"brdg";
 /// Maximal extrinsic size at the `BridgedChain`.
 pub const BRIDGED_CHAIN_MAX_EXTRINSIC_SIZE: u32 = 1024;
 
-/// Maximal number of relayers in the next set.
-pub const MAX_NEXT_RELAYERS_PER_LANE: u32 = 16;
 /// Maximal reward that may be paid to relayer for delivering a single message.
 pub const MAX_REWARD_PER_MESSAGE: ThisChainBalance = 100_000;
 
@@ -198,6 +196,8 @@ parameter_types! {
 	pub AdjustmentVariable: Multiplier = Multiplier::saturating_from_rational(3, 100_000);
 	pub MinimumMultiplier: Multiplier = Multiplier::saturating_from_rational(1, 1_000_000u128);
 	pub MaximumMultiplier: Multiplier = sp_runtime::traits::Bounded::max_value();
+	pub MaxActiveRelayersPerLane: u32 = 4;
+	pub MaxNextRelayersPerLane: u32 = 16;
 	pub InitialElectionLength: u32 = 4;
 	pub SlotLength: u32 = 16;
 	pub EpochLength: u32 = 1_024;
@@ -318,10 +318,10 @@ impl pallet_bridge_relayers::Config for TestRuntime {
 	type PaymentProcedure = TestPaymentProcedure;
 	type StakeAndSlash = TestStakeAndSlash;
 	type MaxLanesPerRelayer = MaxLanesPerRelayer;
-	type MaxActiveRelayersPerLane = ConstU32<4>;
-	type MaxNextRelayersPerLane = ConstU32<MAX_NEXT_RELAYERS_PER_LANE>;
+	type MaxActiveRelayersPerLane = MaxActiveRelayersPerLane;
+	type MaxNextRelayersPerLane = MaxNextRelayersPerLane;
 	type InitialElectionLength = InitialElectionLength;
-	type SlotLength = ConstU32<16>;
+	type SlotLength = SlotLength;
 	type EpochLength = EpochLength;
 	type PriorityBoostPerMessage = ConstU64<1>;
 	type PriorityBoostForActiveLaneRelayer = PriorityBoostForActiveLaneRelayer;
