@@ -386,7 +386,7 @@ mod tests {
 		active_set.mergeable_set = active_set
 			.active_set
 			.iter()
-			.map(|r| r.relayer().clone())
+			.map(|r| *r.relayer())
 			.collect::<BTreeSet<_>>()
 			.try_into()
 			.unwrap();
@@ -413,7 +413,7 @@ mod tests {
 		active_set.mergeable_set = active_set
 			.active_set
 			.iter()
-			.map(|r| r.relayer().clone())
+			.map(|r| *r.relayer())
 			.collect::<BTreeSet<_>>()
 			.try_into()
 			.unwrap();
@@ -439,7 +439,7 @@ mod tests {
 		active_set.mergeable_set = active_set
 			.active_set
 			.iter()
-			.map(|r| r.relayer().clone())
+			.map(|r| *r.relayer())
 			.collect::<BTreeSet<_>>()
 			.try_into()
 			.unwrap();
@@ -466,7 +466,7 @@ mod tests {
 		active_set.mergeable_set = active_set
 			.active_set
 			.iter()
-			.map(|r| r.relayer().clone())
+			.map(|r| *r.relayer())
 			.collect::<BTreeSet<_>>()
 			.try_into()
 			.unwrap();
