@@ -462,6 +462,9 @@ pub mod pallet {
 			// remove relayer from the `next_set` of lane relayers
 			NextLaneRelayers::<T>::mutate_extant(lane, |next_lane_relayers| {
 				next_lane_relayers.try_remove(&relayer);
+			
+				// we can't remove `NextLaneRelayers` entry here (if there are no more relayers
+				// in the set), bnecause the `may_enact_at` is important too
 			});
 
 			Ok(())
@@ -878,8 +881,6 @@ pub mod pallet {
 		ActiveLaneRelayersSet<T::AccountId, BlockNumberFor<T>, T::MaxActiveRelayersPerLane>,
 		ValueQuery,
 	>;
-
-	// TODO: make it ValueQuery? After it is created, it is never removed. But it is not default
 
 	/// A next set of relayers that have explicitly registered themselves at a given lane.
 	///
