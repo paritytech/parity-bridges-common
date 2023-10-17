@@ -120,9 +120,7 @@ where
 	///
 	/// Returns true if we have updated anything in the structure.
 	pub fn note_delivered_message(&mut self, relayer: &AccountId) -> bool {
-		// TODO: add tests for that
-
-		if !self.relayer(relayer).is_some() {
+		if self.relayer(relayer).is_none() {
 			return false
 		}
 
@@ -159,8 +157,6 @@ where
 			if !is_lane_registration_active(relayer.relayer()) {
 				continue
 			}
-
-			// TODO: add tests for that
 
 			// else only push it to the next set if it is not yet there to avoid overwriting
 			// expected reward
@@ -323,6 +319,33 @@ mod tests {
 	type TestNextLaneRelayersSet = NextLaneRelayersSet<u64, u64, ConstU32<MAX_NEXT_LANE_RELAYERS>>;
 
 	#[test]
+	fn note_delivered_message_works() {
+		let mut active_set: TestActiveLaneRelayersSet = ActiveLaneRelayersSet {
+			enacted_at: 0,
+			active_set: vec![RelayerAndReward::new(100, 0), RelayerAndReward::new(200, 0)]
+				.try_into()
+				.unwrap(),
+			mergeable_set: BTreeSet::new().try_into().unwrap(),
+		};
+
+		// when registered relayer delivers first message
+		assert!(active_set.note_delivered_message(&100));
+		assert_eq!(active_set.mergeable_set.iter().cloned().collect::<Vec<_>>(), vec![100],);
+
+		// when registered relayer delivers second message
+		assert!(!active_set.note_delivered_message(&100));
+		assert_eq!(active_set.mergeable_set.iter().cloned().collect::<Vec<_>>(), vec![100],);
+
+		// when another registered relayer delivers a message
+		assert!(active_set.note_delivered_message(&200));
+		assert_eq!(active_set.mergeable_set.iter().cloned().collect::<Vec<_>>(), vec![100, 200],);
+
+		// when unregistered relayer delivers a message
+		assert!(!active_set.note_delivered_message(&300));
+		assert_eq!(active_set.mergeable_set.iter().cloned().collect::<Vec<_>>(), vec![100, 200],);
+	}
+
+	#[test]
 	fn active_set_activate_next_set_works() {
 		let mut active_set: TestActiveLaneRelayersSet = ActiveLaneRelayersSet {
 			enacted_at: 0,
@@ -438,7 +461,8 @@ mod tests {
 			.unwrap(),
 		);
 
-		// if relayer is in the next set already, we do not remerge it
+		// if relayer is in the next set already, we do not remerge it because we may rewrite its
+		// updated bid
 		active_set.mergeable_set = active_set
 			.active_set
 			.iter()
