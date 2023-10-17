@@ -85,7 +85,7 @@ pub mod pallet {
 		/// prioritized over greedier relayers. At the end of epoch, we select top
 		/// `MaxActiveRelayersPerLane` relayers from the next set and move them to the next set. To
 		/// alleviate possible spam attacks, where relayers are registering at lane with zero reward
-		/// (pushing out actual relayers with larger expected reward) and then deregistering
+		/// (pushing out actual relayers with larger expected reward) and then `deregistering`
 		/// themselves right before epoch end, we make the next relayers set larger than the active
 		/// set. It would make it more expensive for attackers to fill the whole next set.
 		///

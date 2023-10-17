@@ -77,7 +77,7 @@ pub struct ActiveLaneRelayersSet<AccountId, BlockNumber, MaxActiveRelayersPerLan
 	/// Relayers that have delivered at least one message in current epoch.
 	///
 	/// This subset of the [`Self::active_set`] will be merged with the next set right before
-	/// lane epoch is advanced. Relayers that have deregistered from lane at current epoch, won't
+	/// lane epoch is advanced. Relayers that have `deregistered` from lane at current epoch, won't
 	/// be merged, though.
 	mergeable_set: BoundedBTreeSet<AccountId, MaxActiveRelayersPerLane>,
 }
@@ -108,7 +108,7 @@ where
 
 	/// Returns relayer entry from the active set.
 	pub fn relayer(&self, relayer: &AccountId) -> Option<&RelayerAndReward<AccountId>> {
-		self.active_set.iter().filter(|r| r.relayer() == relayer).next()
+		self.active_set.iter().find(|r| r.relayer() == relayer)
 	}
 
 	/// Returns relayers from the active set.
@@ -129,9 +129,9 @@ where
 
 	/// Activate next set of relayers.
 	///
-	/// The [`Self::active_set`] is replaced with the [`next_set`].
+	/// This set is replaced with the `next_set` contents.
 	///
-	/// Returns false if `current_block` is lesser than the block where [`next_set`] may be enacted
+	/// Returns false if `current_block` is lesser than the block where `next_set` may be enacted
 	pub fn activate_next_set<MaxNextRelayersPerLane: Get<u32>>(
 		&mut self,
 		current_block: BlockNumber,
@@ -198,8 +198,8 @@ where
 /// has not delivered any messages during previous epoch.
 ///
 /// Relayers are bargaining for the place in the set by offering lower reward for delivering
-/// messages. Relayer, which agress to get a lower reward will likely to replace a "more greedy"
-/// relayer in the [`Self::next_set`].
+/// messages. Relayer, which agrees to get a lower reward will likely to replace a "more greedy"
+/// relayer in the `next_set`.
 #[derive(CloneNoBound, Decode, Encode, Eq, PartialEq, RuntimeDebug, TypeInfo, MaxEncodedLen)]
 #[scale_info(skip_type_params(MaxNextRelayersPerLane))]
 pub struct NextLaneRelayersSet<
@@ -231,19 +231,19 @@ where
 		NextLaneRelayersSet { may_enact_at, next_set: BoundedVec::new() }
 	}
 
-	/// Returns block, starting from which the [`Self::next_set`] may be enacted.
+	/// Returns block, starting from which the `next_set` may be enacted.
 	pub fn may_enact_at(&self) -> BlockNumber {
 		self.may_enact_at
 	}
 
-	/// Set block, starting from which the [`Self::next_set`] may be enacted.
+	/// Set block, starting from which the `next_set` may be enacted.
 	pub fn set_may_enact_at(&mut self, may_enact_at: BlockNumber) {
 		self.may_enact_at = may_enact_at;
 	}
 
 	/// Returns relayer entry from the next set.
 	pub fn relayer(&self, relayer: &AccountId) -> Option<&RelayerAndReward<AccountId>> {
-		self.next_set.iter().filter(|r| r.relayer() == relayer).next()
+		self.next_set.iter().find(|r| r.relayer() == relayer)
 	}
 
 	/// Returns relayers from the next set.
