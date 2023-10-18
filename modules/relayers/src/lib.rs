@@ -429,7 +429,7 @@ pub mod pallet {
 		/// priority boost for his message delivery transaction at that lane. The relayer will be
 		/// able to claim his lane stake back when it is removed from both active and the next set.
 		#[pallet::call_index(6)]
-		#[pallet::weight(Weight::zero())] // TODO
+		#[pallet::weight(T::WeightInfo::deregister_at_lane())]
 		pub fn deregister_at_lane(origin: OriginFor<T>, lane: LaneId) -> DispatchResult {
 			let relayer = ensure_signed(origin)?;
 
