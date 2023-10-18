@@ -105,8 +105,8 @@ pub mod pallet {
 		/// Length of initial relayer elections in chain blocks.
 		///
 		/// When the first relayer registers itself on the lane, we give some time to other relayers
-		/// to register as well. Otherwise there will be only one relayer in active set, for the whole
-		/// (first) epoch.
+		/// to register as well. Otherwise there will be only one relayer in active set, for the
+		/// whole (first) epoch.
 		type InitialElectionLength: Get<BlockNumberFor<Self>>;
 		/// Length of slots in chain blocks.
 		///
@@ -370,8 +370,8 @@ pub mod pallet {
 		/// call. However, before that call, relayer may be pushed from the next set by relayers,
 		/// offering lower `expected_reward`. If that happens, relayer may either try to re-register
 		/// itself by repeating the `register_at_lane` call, offering lower reward. Or it may claim
-		/// his lane stake back, by updating his registration with `register` call or `deregistering`
-		/// at all using `deregister` call.
+		/// his lane stake back, by updating his registration with `register` call or
+		/// `deregistering` at all using `deregister` call.
 		///
 		/// Relayer may request large reward here (using `expected_reward`), but in the end, the
 		/// reward amount is computed at the bridged (source chain). In the case if
