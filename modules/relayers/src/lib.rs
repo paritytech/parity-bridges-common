@@ -105,7 +105,7 @@ pub mod pallet {
 		/// Length of initial relayer elections in chain blocks.
 		///
 		/// When the first relayer registers itself on the lane, we give some time to other relayers
-		/// to register as well. Otherwise there'll be only one relayer in active set, for the whole
+		/// to register as well. Otherwise there will be only one relayer in active set, for the whole
 		/// (first) epoch.
 		type InitialElectionLength: Get<BlockNumberFor<Self>>;
 		/// Length of slots in chain blocks.
@@ -228,7 +228,7 @@ pub mod pallet {
 			})
 		}
 
-		/// Unreserve some or all funds, reserved previously by the `reserve_funds` call.
+		/// `Unreserve` some or all funds, reserved previously by the `reserve_funds` call.
 		///
 		/// The reserved amount after this call must cover basic registration and all lane
 		/// registrations that relayer has.
@@ -318,7 +318,7 @@ pub mod pallet {
 		/// `Deregister` relayer.
 		///
 		/// After this call, message delivery transactions of the relayer won't get any priority
-		/// boost. Keep in mind that the relayer can't deregister until `valid_till` block, which
+		/// boost. Keep in mind that the relayer can't `deregister` until `valid_till` block, which
 		/// he has specified in the registration call. The relayer is also unregistered from all
 		/// lanes, where he has explicitly registered using `register_at_lane`.
 		///
@@ -370,7 +370,7 @@ pub mod pallet {
 		/// call. However, before that call, relayer may be pushed from the next set by relayers,
 		/// offering lower `expected_reward`. If that happens, relayer may either try to re-register
 		/// itself by repeating the `register_at_lane` call, offering lower reward. Or it may claim
-		/// his lane stake back, by updating his registration with `register` call or deregistering
+		/// his lane stake back, by updating his registration with `register` call or `deregistering`
 		/// at all using `deregister` call.
 		///
 		/// Relayer may request large reward here (using `expected_reward`), but in the end, the
@@ -421,9 +421,9 @@ pub mod pallet {
 			Ok(())
 		}
 
-		/// Deregister relayer intention to deliver inbound messages at given messages lane.
+		/// `Deregister` relayer intention to deliver inbound messages at given messages lane.
 		///
-		/// After deregistration, relayer won't get lane-specific boost for message delivery
+		/// After `deregistration`, relayer won't get lane-specific boost for message delivery
 		/// transactions at that lane. It would still get the basic boost until the `deregister`
 		/// call.
 		///

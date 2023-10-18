@@ -70,7 +70,7 @@ pub struct Registration<
 	/// registration ends (see [`StakeAndSlash::RequiredRegistrationLease`]).
 	///
 	/// Please also keep in mind that while relayer is registered at least at one lane,
-	/// the regisration is always considered active.
+	/// the registration is always considered active.
 	valid_till: BlockNumber,
 	/// Active relayer stake, which is mapped to the relayer reserved balance.
 	///
