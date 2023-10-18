@@ -208,6 +208,26 @@ check-rustdoc:
   script:
     - time cargo +nightly doc --workspace --verbose --no-deps --all-features --exclude relay-rialto-parachain-client
 
+cargo-fmt-manifest:
+  stage: test
+  extends:
+    - .docker-env
+    - .test-refs
+  script:
+    - time cargo install zepter --locked --version 0.11.0 -q -f --no-default-features && zepter --version
+    - zepter format features --check
+
+test-rust-feature-propagation:
+  stage: test
+  extends:
+    - .docker-env
+    - .test-refs
+  script:
+    - cargo install --locked --version 0.11.1 -q -f zepter && zepter --version
+    - zepter lint propagate-feature --feature try-runtime --left-side-feature-missing=ignore --workspace --feature-enables-dep="try-runtime:frame-try-runtime" --locked
+    - zepter lint propagate-feature --feature runtime-benchmarks --left-side-feature-missing=ignore --workspace --feature-enables-dep="runtime-benchmarks:frame-benchmarking" --locked
+    - zepter lint propagate-feature --feature std --left-side-feature-missing=ignore --workspace --locked
+
 partial-repo-pallets-build-test:
   stage:                           test
   <<:                              *docker-env
