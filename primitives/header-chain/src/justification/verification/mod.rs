@@ -21,14 +21,19 @@ pub mod optimizer;
 pub mod strict;
 
 use crate::{justification::GrandpaJustification, AuthoritySet};
-use std::collections::btree_map::Entry::{Occupied, Vacant};
 
 use bp_runtime::HeaderId;
 use finality_grandpa::voter_set::VoterSet;
 use sp_consensus_grandpa::{AuthorityId, AuthoritySignature, SetId};
 use sp_runtime::{traits::Header as HeaderT, RuntimeDebug};
 use sp_std::{
-	collections::{btree_map::BTreeMap, btree_set::BTreeSet},
+	collections::{
+		btree_map::{
+			BTreeMap,
+			Entry::{Occupied, Vacant},
+		},
+		btree_set::BTreeSet,
+	},
 	prelude::*,
 };
 
