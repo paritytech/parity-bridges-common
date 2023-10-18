@@ -802,6 +802,7 @@ impl_runtime_apis! {
 		}
 	}
 
+	#[api_version(8)]
 	impl polkadot_primitives::runtime_api::ParachainHost<Block, Hash, BlockNumber> for Runtime {
 		fn validators() -> Vec<polkadot_primitives::ValidatorId> {
 			parachains_runtime_api_impl::validators::<Runtime>()
@@ -916,11 +917,11 @@ impl_runtime_apis! {
 		fn key_ownership_proof(
 			validator_id: polkadot_primitives::ValidatorId,
 		) -> Option<polkadot_primitives::slashing::OpaqueKeyOwnershipProof> {
-			use parity_scale_codec::Encode;
+			use codec::Encode;
 
-			Historical::prove((PARACHAIN_KEY_TYPE_ID, validator_id))
+			Historical::prove((polkadot_primitives::PARACHAIN_KEY_TYPE_ID, validator_id))
 				.map(|p| p.encode())
-				.map(slashing::OpaqueKeyOwnershipProof::new)
+				.map(polkadot_primitives::slashing::OpaqueKeyOwnershipProof::new)
 		}
 
 		fn submit_report_dispute_lost(
