@@ -102,10 +102,12 @@ where
 	type Error = &'static str;
 
 	fn relayer_reward_per_message(
-		_lane: LaneId,
-		_relayer: &T::AccountId,
+		lane: LaneId,
+		relayer: &T::AccountId,
 	) -> Option<RelayerRewardAtSource> {
-		None // TODO: read from ActiveLaneRelayers
+		ActiveLaneRelayers::<T>::get(lane)
+			.relayer(relayer)
+			.map(|r| r.relayer_reward_per_message())
 	}
 
 	fn pay_reward(
@@ -140,6 +142,7 @@ fn register_relayers_rewards<T: Config>(
 mod tests {
 	use super::*;
 	use crate::{mock::*, RelayerRewards};
+	use frame_support::assert_ok;
 
 	const RELAYER_1: ThisChainAccountId = 1;
 	const RELAYER_2: ThisChainAccountId = 2;
@@ -217,5 +220,46 @@ mod tests {
 				Some(MAX_REWARD_PER_MESSAGE * 2),
 			);
 		});
+	}
+
+	#[test]
+	fn relayer_reward_per_message_works() {
+		run_test(|| {
+			assert_ok!(BridgeRelayers::increase_stake(
+				RuntimeOrigin::signed(REGISTER_RELAYER),
+				Stake::get() + LaneStake::get()
+			));
+			assert_ok!(BridgeRelayers::register(RuntimeOrigin::signed(REGISTER_RELAYER), 150));
+			assert_ok!(BridgeRelayers::register_at_lane(
+				RuntimeOrigin::signed(REGISTER_RELAYER),
+				test_lane_id(),
+				42,
+			));
+			System::set_block_number(
+				BridgeRelayers::next_lane_relayers(test_lane_id()).unwrap().may_enact_at(),
+			);
+			assert_ok!(BridgeRelayers::advance_lane_epoch(
+				RuntimeOrigin::signed(REGISTER_RELAYER),
+				test_lane_id(),
+			));
+
+			// for unregistered relayer it returns `None`
+			assert_eq!(
+				TestDeliveryConfirmationPaymentsAdapter::relayer_reward_per_message(
+					test_lane_id(),
+					&REGULAR_RELAYER
+				),
+				None,
+			);
+
+			// for registered relayer it returns its expected reward
+			assert_eq!(
+				TestDeliveryConfirmationPaymentsAdapter::relayer_reward_per_message(
+					test_lane_id(),
+					&REGISTER_RELAYER
+				),
+				Some(42),
+			);
+		})
 	}
 }
