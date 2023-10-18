@@ -9846,7 +9846,6 @@ dependencies = [
  "thiserror",
  "tracing-gum",
  "westend-runtime",
- "westend-runtime-constants",
 ]
 
 [[package]]
