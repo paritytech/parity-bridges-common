@@ -472,7 +472,7 @@ pub mod pallet {
 		/// anyone will be accepted and it will have the zero cost. All subsequent transactions will
 		/// be paid. We suggest the first relayer from the `next_set` to submit this transaction.
 		#[pallet::call_index(7)]
-		#[pallet::weight(Weight::zero())] // TODO
+		#[pallet::weight(T::WeightInfo::advance_lane_epoch())]
 		pub fn advance_lane_epoch(
 			origin: OriginFor<T>,
 			lane: LaneId,
