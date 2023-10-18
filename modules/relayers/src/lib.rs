@@ -767,7 +767,7 @@ pub mod pallet {
 					fail!(Error::<T>::FailedToUnreserve)
 				}
 			} else if let Some(to_reserve) = required_stake.checked_sub(&current_stake) {
-				let reserve_result = T::StakeAndSlash::reserve(&relayer, to_reserve);
+				let reserve_result = T::StakeAndSlash::reserve(relayer, to_reserve);
 				if let Err(e) = reserve_result {
 					log::trace!(
 						target: LOG_TARGET,
@@ -1075,7 +1075,7 @@ mod tests {
 				Stake::get() + 42
 			));
 			assert_eq!(
-				BridgeRelayers::registered_relayer(&REGISTER_RELAYER),
+				BridgeRelayers::registered_relayer(REGISTER_RELAYER),
 				Some(registration(0, Stake::get() + 42))
 			);
 			assert_eq!(Balances::reserved_balance(REGISTER_RELAYER), Stake::get() + 42);
@@ -1092,7 +1092,7 @@ mod tests {
 
 			assert_ok!(BridgeRelayers::increase_stake(RuntimeOrigin::signed(REGISTER_RELAYER), 8));
 			assert_eq!(
-				BridgeRelayers::registered_relayer(&REGISTER_RELAYER),
+				BridgeRelayers::registered_relayer(REGISTER_RELAYER),
 				Some(registration(150, Stake::get() + 50))
 			);
 			assert_eq!(Balances::reserved_balance(REGISTER_RELAYER), 8);

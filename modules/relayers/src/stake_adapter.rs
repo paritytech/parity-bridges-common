@@ -131,7 +131,7 @@ mod tests {
 		run_test(|| {
 			let beneficiary = test_reward_account_param();
 			let beneficiary_account = TestPaymentProcedure::rewards_account(beneficiary);
-			let mut expected_balance = Balances::free_balance(&beneficiary_account);
+			let mut expected_balance = Balances::free_balance(beneficiary_account);
 
 			assert_eq!(
 				TestStakeAndSlash::repatriate_reserved(&1, beneficiary, test_stake()),
