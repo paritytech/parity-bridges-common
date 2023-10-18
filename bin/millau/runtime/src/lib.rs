@@ -487,6 +487,7 @@ impl pallet_bridge_messages::Config<WithRialtoMessagesInstance> for Runtime {
 	type DeliveryConfirmationPayments = pallet_bridge_relayers::DeliveryConfirmationPaymentsAdapter<
 		Runtime,
 		WithRialtoMessagesInstance,
+		frame_support::traits::ConstU64<0>,
 		frame_support::traits::ConstU64<100_000>,
 	>;
 	type OnMessagesDelivered = XcmRialtoBridgeHub;
@@ -516,6 +517,7 @@ impl pallet_bridge_messages::Config<WithRialtoParachainMessagesInstance> for Run
 	type DeliveryConfirmationPayments = pallet_bridge_relayers::DeliveryConfirmationPaymentsAdapter<
 		Runtime,
 		WithRialtoParachainMessagesInstance,
+		frame_support::traits::ConstU64<0>,
 		frame_support::traits::ConstU64<100_000>,
 	>;
 	type OnMessagesDelivered = XcmRialtoParachainBridgeHub;
@@ -696,7 +698,7 @@ generate_bridge_reject_obsolete_headers_and_messages! {
 
 bp_runtime::generate_static_str_provider!(BridgeRefundRialtoPara2000Msgs);
 /// Signed extension that refunds relayers that are delivering messages from the Rialto parachain.
-pub type PriorityBoostPerMessage = ConstU64<351_343_108>;
+pub type PriorityBoostPerMessage = ConstU64<51_049_853>;
 pub type BridgeRefundRialtoParachainMessages =
 	pallet_bridge_relayers::extension::BridgeRelayersSignedExtension<
 		Runtime,

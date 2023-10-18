@@ -37,19 +37,21 @@ use sp_std::{collections::vec_deque::VecDeque, marker::PhantomData, ops::RangeIn
 /// for the messages pallet.
 ///
 /// This adapter assumes 1:1 mapping of `RelayerRewardAtSource` to `T::Reward`. The reward for
-/// delivering a single message, will never be larger than the `MaxRewardPerMessage`.
+/// delivering a single message, will never be larger than the `MaxRewardPerMessage`. If relayer
+/// has not specified expected reward, it gets the `DefaultRewardPerMessage` for every message.
 ///
 /// We assume that the confirmation transaction cost is refunded by the signed extension,
 /// implemented by the pallet. So we do not reward confirmation relayer additionally here.
-pub struct DeliveryConfirmationPaymentsAdapter<T, MI, MaxRewardPerMessage>(
-	PhantomData<(T, MI, MaxRewardPerMessage)>,
+pub struct DeliveryConfirmationPaymentsAdapter<T, MI, DefaultRewardPerMessage, MaxRewardPerMessage>(
+	PhantomData<(T, MI, DefaultRewardPerMessage, MaxRewardPerMessage)>,
 );
 
-impl<T, MI, MaxRewardPerMessage> DeliveryConfirmationPayments<T::AccountId>
-	for DeliveryConfirmationPaymentsAdapter<T, MI, MaxRewardPerMessage>
+impl<T, MI, DefaultRewardPerMessage, MaxRewardPerMessage> DeliveryConfirmationPayments<T::AccountId>
+	for DeliveryConfirmationPaymentsAdapter<T, MI, DefaultRewardPerMessage, MaxRewardPerMessage>
 where
 	T: Config + pallet_bridge_messages::Config<MI>,
 	MI: 'static,
+	DefaultRewardPerMessage: Get<T::Reward>,
 	MaxRewardPerMessage: Get<T::Reward>,
 {
 	type Error = &'static str;
@@ -67,7 +69,9 @@ where
 				|messages, relayer_reward_per_message| {
 					let relayer_reward_per_message = sp_std::cmp::min(
 						MaxRewardPerMessage::get(),
-						relayer_reward_per_message.unique_saturated_into(),
+						relayer_reward_per_message
+							.map(|x| x.unique_saturated_into())
+							.unwrap_or_else(|| DefaultRewardPerMessage::get()),
 					);
 
 					T::Reward::unique_saturated_from(messages)
@@ -89,16 +93,19 @@ where
 	}
 }
 
-impl<T, MI, MaxRewardPerMessage> DeliveryPayments<T::AccountId>
-	for DeliveryConfirmationPaymentsAdapter<T, MI, MaxRewardPerMessage>
+impl<T, MI, DefaultRewardPerMessage, MaxRewardPerMessage> DeliveryPayments<T::AccountId>
+	for DeliveryConfirmationPaymentsAdapter<T, MI, DefaultRewardPerMessage, MaxRewardPerMessage>
 where
 	T: Config + pallet_bridge_messages::Config<MI>,
 	MI: 'static,
 {
 	type Error = &'static str;
 
-	fn relayer_reward_per_message(_lane: LaneId, _relayer: &T::AccountId) -> RelayerRewardAtSource {
-		unimplemented!("TODO")
+	fn relayer_reward_per_message(
+		_lane: LaneId,
+		_relayer: &T::AccountId,
+	) -> Option<RelayerRewardAtSource> {
+		None // TODO: read from ActiveLaneRelayers
 	}
 
 	fn pay_reward(
@@ -166,10 +173,33 @@ mod tests {
 	}
 
 	#[test]
+	fn reward_per_message_is_default_if_not_specified() {
+		run_test(|| {
+			let mut delivered_messages = bp_messages::DeliveredMessages::new(1, None);
+			delivered_messages.note_dispatched_message();
+
+			<TestDeliveryConfirmationPaymentsAdapter as DeliveryConfirmationPayments<
+				ThisChainAccountId,
+			>>::pay_reward(
+				test_lane_id(),
+				vec![bp_messages::UnrewardedRelayer { relayer: 42, messages: delivered_messages }]
+					.into(),
+				&43,
+				&(1..=2),
+			);
+
+			assert_eq!(
+				RelayerRewards::<TestRuntime>::get(42, test_reward_account_param()),
+				Some(DEFAULT_REWARD_PER_MESSAGE * 2),
+			);
+		});
+	}
+
+	#[test]
 	fn reward_per_message_is_never_larger_than_max_reward_per_message() {
 		run_test(|| {
 			let mut delivered_messages =
-				bp_messages::DeliveredMessages::new(1, MAX_REWARD_PER_MESSAGE + 1);
+				bp_messages::DeliveredMessages::new(1, Some(MAX_REWARD_PER_MESSAGE + 1));
 			delivered_messages.note_dispatched_message();
 
 			<TestDeliveryConfirmationPaymentsAdapter as DeliveryConfirmationPayments<
