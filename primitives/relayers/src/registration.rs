@@ -106,9 +106,6 @@ impl<
 	/// `None` is returned if current block number does not affect registration and
 	/// it shall be considered active regardless of it.
 	pub fn valid_till(&self) -> Option<BlockNumber> {
-		// TODO: could be used by attacker to bump their current transaction priority while lease
-		// ends. We need to prolong valid_till at least by
-		// [`StakeAndSlash::RequiredRegistrationLease`] if lane is removed
 		if self.lanes.is_empty() {
 			Some(self.valid_till)
 		} else {
