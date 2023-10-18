@@ -19,10 +19,14 @@ BridgeStorage
 AssetHub
 AssetHubKusama
 AssetHubPolkadot
+AssetHubRococo
+AssetHubWococo
+AssetHubWestend
 BridgeHub
 BridgeHubRococo
 BridgeHubWococo
 BridgeHubKusama
+BridgeHubWestend
 BridgeHubPolkadot
 CLI/MS
 Chain1
