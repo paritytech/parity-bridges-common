@@ -245,16 +245,18 @@ benchmarks! {
 	slash_and_deregister {
 		// prepare and register relayer account
 		let relayer: T::AccountId = whitelisted_caller();
-		let base_stake = crate::Pallet::<T>::base_stake();
-		let valid_till = frame_system::Pallet::<T>::block_number()
-			.saturating_add(crate::Pallet::<T>::required_registration_lease())
-			.saturating_add(One::one())
-			.saturating_add(One::one());
-		T::deposit_account(relayer.clone(), base_stake);
-		crate::Pallet::<T>::increase_stake(RawOrigin::Signed(relayer.clone()).into(), base_stake).unwrap();
-		crate::Pallet::<T>::register(RawOrigin::Signed(relayer.clone()).into(), valid_till).unwrap();
+		let max_lanes_per_relayer = T::MaxLanesPerRelayer::get();
+		register_relayer::<T>(&relayer, max_lanes_per_relayer, 1);
 
-		// TODO: add max number of lane registrations
+		// also register relayer in next lane relayers set (with better bid)
+		for i in 0..max_lanes_per_relayer {
+			crate::Pallet::<T>::register_at_lane(
+				RawOrigin::Signed(relayer.clone()).into(),
+				lane_id(i),
+				0,
+			)
+			.unwrap();
+		}
 
 		// create slash destination account
 		let lane = LaneId::new(1, 2);
@@ -265,6 +267,19 @@ benchmarks! {
 	}
 	verify {
 		assert!(!crate::Pallet::<T>::is_registration_active(&relayer));
+		for i in 0..max_lanes_per_relayer {
+			assert!(
+				crate::Pallet::<T>::active_lane_relayers(lane_id(i))
+					.relayer(&relayer)
+					.is_none(),
+			);
+			assert!(
+				crate::Pallet::<T>::next_lane_relayers(lane_id(i))
+					.unwrap_or_else(|| NextLaneRelayersSet::empty(Zero::zero()))
+					.relayer(&relayer)
+					.is_none(),
+			);
+		}
 	}
 
 	// Benchmark `register_relayer_reward` method of the pallet. We are adding this weight to
