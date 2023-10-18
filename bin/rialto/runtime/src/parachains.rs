@@ -118,7 +118,7 @@ impl parachains_paras::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 	type WeightInfo = ParasWeightInfo;
 	type UnsignedPriority = ParasUnsignedPriority;
-	type QueueFootprinter = crate::Inclusion;
+	type QueueFootprinter = crate::ParaInclusion;
 	type NextSessionRotation = Babe;
 	type OnNewHead = Registrar;
 }
@@ -235,7 +235,7 @@ impl pallet_message_queue::Config for Runtime {
 	#[cfg(feature = "runtime-benchmarks")]
 	type MessageProcessor =
 		pallet_message_queue::mock_helpers::NoopMessageProcessor<AggregateMessageOrigin>;
-	type QueueChangeHandler = crate::Inclusion;
+	type QueueChangeHandler = crate::ParaInclusion;
 	type WeightInfo = ();
 	type QueuePausedQuery = ();
 }
