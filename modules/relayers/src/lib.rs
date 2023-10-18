@@ -74,7 +74,10 @@ pub mod pallet {
 
 		/// Maximal number of lanes, where relayer may be registered.
 		///
-		/// This is an artificial limit that only exists to make PoV size predictable.
+		/// This is an artificial limit that only exists to make PoV size predictable. Large values
+		/// will make `slash_and_deregister` weight too large. Since message delivery/confirmation
+		/// transactions also include this weight, their weight is increased too. So it shall not be
+		/// too large.
 		#[pallet::constant]
 		type MaxLanesPerRelayer: Get<u32>;
 		/// Maximal number of relayers that can reside in the active lane relayers set on a single
