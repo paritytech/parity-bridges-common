@@ -52,7 +52,7 @@ std = [
 	"sp-core/std",
 	"sp-runtime/std",
 	"sp-std/std",
-	"sp-trie/std"
+	"sp-trie/std",
 ]
 runtime-benchmarks = [
 	"bp-runtime/test-helpers",
@@ -68,7 +68,4 @@ try-runtime = [
 	"pallet-balances/try-runtime",
 	"sp-runtime/try-runtime",
 ]
-test-helpers = [
-	"sp-trie",
-	"bp-runtime/test-helpers"
-]
+test-helpers = [ "bp-runtime/test-helpers", "sp-trie" ]
