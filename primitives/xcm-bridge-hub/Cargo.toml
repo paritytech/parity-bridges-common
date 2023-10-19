@@ -27,7 +27,7 @@ sp-std = { git = "https://github.com/paritytech/polkadot-sdk", branch = "master"
 xcm = { package = "staging-xcm", git = "https://github.com/paritytech/polkadot-sdk", branch = "master", default-features = false }
 
 [features]
-default = ["std"]
+default = [ "std" ]
 std = [
 	"bp-messages/std",
 	"bp-runtime/std",

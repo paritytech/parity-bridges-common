@@ -38,7 +38,7 @@ std = [
 	"scale-info/std",
 	"serde/std",
 	"sp-core/std",
-    "sp-io/std",
+	"sp-io/std",
 	"sp-runtime/std",
 	"sp-std/std",
 ]
