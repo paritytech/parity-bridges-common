@@ -482,6 +482,7 @@ impl pallet_bridge_messages::Config<WithRialtoMessagesInstance> for Runtime {
 	type DeliveryConfirmationPayments = pallet_bridge_relayers::DeliveryConfirmationPaymentsAdapter<
 		Runtime,
 		WithRialtoMessagesInstance,
+		frame_support::traits::ConstU64<0>,
 		frame_support::traits::ConstU64<100_000>,
 	>;
 	type OnMessagesDelivered = XcmRialtoBridgeHub;
@@ -511,6 +512,7 @@ impl pallet_bridge_messages::Config<WithRialtoParachainMessagesInstance> for Run
 	type DeliveryConfirmationPayments = pallet_bridge_relayers::DeliveryConfirmationPaymentsAdapter<
 		Runtime,
 		WithRialtoParachainMessagesInstance,
+		frame_support::traits::ConstU64<0>,
 		frame_support::traits::ConstU64<100_000>,
 	>;
 	type OnMessagesDelivered = XcmRialtoParachainBridgeHub;
