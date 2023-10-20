@@ -25,6 +25,8 @@ members = [
 	"modules/xcm-bridge-hub",
 	"modules/xcm-bridge-hub-router",
 	"primitives/beefy",
+	"primitives/chain-asset-hub-rococo",
+	"primitives/chain-asset-hub-wococo",
 	"primitives/chain-bridge-hub-cumulus",
 	"primitives/chain-bridge-hub-kusama",
 	"primitives/chain-bridge-hub-polkadot",
