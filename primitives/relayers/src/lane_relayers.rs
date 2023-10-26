@@ -264,10 +264,13 @@ where
 	/// Try remove relayer from the next set.
 	///
 	/// Returns `true` if relayer has been removed from the set.
-	pub fn try_remove(&mut self, relayer: &AccountId) -> bool {
-		let len_before = self.next_set.len();
-		self.next_set.retain(|entry| entry.relayer != *relayer);
-		self.next_set.len() != len_before
+	pub fn try_remove(&mut self, relayer: &AccountId) -> Option<RelayerAndReward<AccountId>> {
+		self.next_set
+			.iter()
+			.enumerate()
+			.find(|(_, r)| r.relayer == *relayer)
+			.map(|(index, _)| index)
+			.map(|index| self.next_set.remove(index))
 	}
 
 	/// Selects position to insert relayer, wanting to receive `reward` for every delivered
@@ -610,7 +613,7 @@ mod tests {
 			NextLaneRelayersSet { may_enact_at: 100, next_set: vec![].try_into().unwrap() };
 
 		assert!(relayers.try_insert(1, 0));
-		assert!(relayers.try_remove(&1));
-		assert!(!relayers.try_remove(&1));
+		assert!(relayers.try_remove(&1).is_some());
+		assert!(relayers.try_remove(&1).is_none());
 	}
 }
