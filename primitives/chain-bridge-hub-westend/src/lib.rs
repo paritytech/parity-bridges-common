@@ -14,7 +14,7 @@
 // You should have received a copy of the GNU General Public License
 // along with Parity Bridges Common.  If not, see <http://www.gnu.org/licenses/>.
 
-//! Module with configuration which reflects BridgeHubWococo runtime setup
+//! Module with configuration which reflects BridgeHubWestend runtime setup
 //! (AccountId, Headers, Hashes...)
 
 #![cfg_attr(not(feature = "std"), no_std)]
@@ -27,11 +27,11 @@ use bp_runtime::{
 use frame_support::dispatch::DispatchClass;
 use sp_runtime::RuntimeDebug;
 
-/// BridgeHubWococo parachain.
+/// BridgeHubWestend parachain.
 #[derive(RuntimeDebug)]
-pub struct BridgeHubWococo;
+pub struct BridgeHubWestend;
 
-impl Chain for BridgeHubWococo {
+impl Chain for BridgeHubWestend {
 	type BlockNumber = BlockNumber;
 	type Hash = Hash;
 	type Hasher = Hasher;
@@ -54,23 +54,23 @@ impl Chain for BridgeHubWococo {
 	}
 }
 
-impl Parachain for BridgeHubWococo {
-	const PARACHAIN_ID: u32 = BRIDGE_HUB_WOCOCO_PARACHAIN_ID;
+impl Parachain for BridgeHubWestend {
+	const PARACHAIN_ID: u32 = BRIDGE_HUB_WESTEND_PARACHAIN_ID;
 }
 
-/// Identifier of BridgeHubWococo in the Wococo relay chain.
-pub const BRIDGE_HUB_WOCOCO_PARACHAIN_ID: u32 = 1014;
+/// Identifier of BridgeHubWestend in the Westend relay chain.
+pub const BRIDGE_HUB_WESTEND_PARACHAIN_ID: u32 = 1002;
 
 /// Name of the With-BridgeHubWococo messages pallet instance that is deployed at bridged chains.
-pub const WITH_BRIDGE_HUB_ROCOCO_TO_WOCOCO_MESSAGES_PALLET_NAME: &str =
-	"BridgeRococoToWococoMessages";
+pub const WITH_BRIDGE_HUB_ROCOCO_TO_WESTEND_MESSAGES_PALLET_NAME: &str =
+	"BridgeRococoToWestendMessages";
 
-/// Name of the With-BridgeHubWococo bridge-relayers pallet instance that is deployed at bridged
+/// Name of the With-BridgeHubWestend bridge-relayers pallet instance that is deployed at bridged
 /// chains.
-pub const WITH_BRIDGE_HUB_WOCOCO_RELAYERS_PALLET_NAME: &str = "BridgeRelayers";
+pub const WITH_BRIDGE_HUB_WESTEND_RELAYERS_PALLET_NAME: &str = "BridgeRelayers";
 
-/// Pallet index of `BridgeWococoToRococoMessages: pallet_bridge_messages::<Instance2>`.
-pub const WITH_BRIDGE_WOCOCO_TO_ROCOCO_MESSAGES_PALLET_INDEX: u8 = 45;
+/// Pallet index of `BridgeWestendToRococoMessages: pallet_bridge_messages::<Instance3>`.
+pub const WITH_BRIDGE_WESTEND_TO_ROCOCO_MESSAGES_PALLET_INDEX: u8 = 50;
 
-decl_bridge_finality_runtime_apis!(bridge_hub_wococo);
-decl_bridge_messages_runtime_apis!(bridge_hub_wococo);
+decl_bridge_finality_runtime_apis!(bridge_hub_westend);
+decl_bridge_messages_runtime_apis!(bridge_hub_westend);
