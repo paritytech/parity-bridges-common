@@ -164,22 +164,13 @@ where
 			if !is_in_next_set {
 				// we do not care if relayer stays in the set - we only need to try
 				let _ = next_set
-					.try_push(relayer.relayer().clone(), relayer.relayer_reward_per_message());
+					.try_insert(relayer.relayer().clone(), relayer.relayer_reward_per_message());
 			}
 		}
 		// clear active sets
-		self.active_set.clear();
 		self.mergeable_set.clear();
 		// ...and finally fill the active set with new best relayers
-		let relayers_in_active_set =
-			sp_std::cmp::min(MaxActiveRelayersPerLane::get(), next_set.relayers().len() as u32);
-		for _ in 0..relayers_in_active_set {
-			// we know that the next set has at least `relayers_in_active_set`
-			// => so calling `remove(0)` is safe
-			// we know that the active set is empty and we select at most `MaxActiveRelayersPerLane`
-			// relayers => ignoring `try_push` result is safe
-			let _ = self.active_set.try_push(next_set.next_set.remove(0));
-		}
+		self.active_set = BoundedVec::truncate_from(next_set.next_set.into_inner());
 		// finally - remember block where we have activated the set
 		self.enacted_at = current_block;
 
@@ -254,7 +245,7 @@ where
 	/// Try insert relayer to the next set.
 	///
 	/// Returns `true` if relayer has been added to the set and false otherwise.
-	pub fn try_push(
+	pub fn try_insert(
 		&mut self,
 		relayer: AccountId,
 		relayer_reward_per_message: RelayerRewardAtSource,
@@ -494,14 +485,14 @@ mod tests {
 	}
 
 	#[test]
-	fn next_set_try_push_works() {
+	fn next_set_try_insert_works() {
 		let mut relayers: TestNextLaneRelayersSet =
 			NextLaneRelayersSet { may_enact_at: 100, next_set: vec![].try_into().unwrap() };
 
 		// first `MAX_NEXT_LANE_RELAYERS` are simply filling the set
 		let max_next_lane_relayers: u64 = MAX_NEXT_LANE_RELAYERS as _;
 		for i in 0..max_next_lane_relayers {
-			assert!(relayers.try_push(i, (max_next_lane_relayers - i) * 10));
+			assert!(relayers.try_insert(i, (max_next_lane_relayers - i) * 10));
 		}
 		assert_eq!(
 			relayers.next_set.as_slice(),
@@ -515,7 +506,7 @@ mod tests {
 
 		// try to insert relayer who wants reward, that is larger than anyone in the set
 		// => the set is not changed
-		assert!(!relayers.try_push(4, 50));
+		assert!(!relayers.try_insert(4, 50));
 		assert_eq!(
 			relayers.next_set.as_slice(),
 			&[
@@ -527,7 +518,7 @@ mod tests {
 		);
 
 		// replace worst relayer in the set
-		assert!(relayers.try_push(5, 35));
+		assert!(relayers.try_insert(5, 35));
 		assert_eq!(
 			relayers.next_set.as_slice(),
 			&[
@@ -539,7 +530,7 @@ mod tests {
 		);
 
 		// insert best relayer to the set, pushing worst relayer out of set
-		assert!(relayers.try_push(6, 5));
+		assert!(relayers.try_insert(6, 5));
 		assert_eq!(
 			relayers.next_set.as_slice(),
 			&[
@@ -551,7 +542,7 @@ mod tests {
 		);
 
 		// insert best relayer to the set, pushing worst relayer out of set
-		assert!(relayers.try_push(6, 5));
+		assert!(relayers.try_insert(6, 5));
 		assert_eq!(
 			relayers.next_set.as_slice(),
 			&[
@@ -563,7 +554,7 @@ mod tests {
 		);
 
 		// insert relayer to the middle of the set, pushing worst relayer out of set
-		assert!(relayers.try_push(7, 15));
+		assert!(relayers.try_insert(7, 15));
 		assert_eq!(
 			relayers.next_set.as_slice(),
 			&[
@@ -576,8 +567,8 @@ mod tests {
 
 		// insert couple of relayer that want the same reward as some relayer in the middle of the
 		// queue => they are inserted **after** existing relayers
-		assert!(relayers.try_push(8, 10));
-		assert!(relayers.try_push(9, 10));
+		assert!(relayers.try_insert(8, 10));
+		assert!(relayers.try_insert(9, 10));
 		assert_eq!(
 			relayers.next_set.as_slice(),
 			&[
@@ -589,7 +580,7 @@ mod tests {
 		);
 
 		// insert next relayer, similar to previous => it isn't inserted
-		assert!(!relayers.try_push(10, 10));
+		assert!(!relayers.try_insert(10, 10));
 		assert_eq!(
 			relayers.next_set.as_slice(),
 			&[
@@ -601,7 +592,7 @@ mod tests {
 		);
 
 		// update expected reward of existing relayer => the set order is changed
-		assert!(relayers.try_push(8, 2));
+		assert!(relayers.try_insert(8, 2));
 		assert_eq!(
 			relayers.next_set.as_slice(),
 			&[
@@ -618,7 +609,7 @@ mod tests {
 		let mut relayers: TestNextLaneRelayersSet =
 			NextLaneRelayersSet { may_enact_at: 100, next_set: vec![].try_into().unwrap() };
 
-		assert!(relayers.try_push(1, 0));
+		assert!(relayers.try_insert(1, 0));
 		assert!(relayers.try_remove(&1));
 		assert!(!relayers.try_remove(&1));
 	}
