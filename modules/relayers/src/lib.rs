@@ -491,7 +491,7 @@ mod tests {
 			get_ready_for_events();
 
 			Pallet::<TestRuntime>::register_relayer_reward(
-				test_reward_account_param(),
+				TEST_REWARDS_ACCOUNT_PARAMS,
 				&REGULAR_RELAYER,
 				100,
 			);
@@ -501,9 +501,9 @@ mod tests {
 				System::<TestRuntime>::events().last(),
 				Some(&EventRecord {
 					phase: Phase::Initialization,
-					event: TestEvent::BridgeRelayers(RewardRegistered {
+					event: TestEvent::Relayers(RewardRegistered {
 						relayer: REGULAR_RELAYER,
-						rewards_account_params: test_reward_account_param(),
+						rewards_account_params: TEST_REWARDS_ACCOUNT_PARAMS,
 						reward: 100
 					}),
 					topics: vec![],
