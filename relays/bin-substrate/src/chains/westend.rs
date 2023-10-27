@@ -18,12 +18,8 @@
 
 use crate::cli::CliChain;
 use relay_substrate_client::SimpleRuntimeVersion;
-use relay_westend_client::{AssetHubWestend, Westend};
+use relay_westend_client::Westend;
 
 impl CliChain for Westend {
-	const RUNTIME_VERSION: Option<SimpleRuntimeVersion> = None;
-}
-
-impl CliChain for AssetHubWestend {
 	const RUNTIME_VERSION: Option<SimpleRuntimeVersion> = None;
 }

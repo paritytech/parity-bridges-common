@@ -67,24 +67,3 @@ impl ChainWithBalances for Westend {
 		bp_westend::AccountInfoStorageMapKeyProvider::final_key(account_id)
 	}
 }
-
-/// `AssetHubWestend` parachain definition
-#[derive(Debug, Clone, Copy)]
-pub struct AssetHubWestend;
-
-impl UnderlyingChainProvider for AssetHubWestend {
-	type Chain = bp_westend::AssetHubWestend;
-}
-
-// Westmint seems to use the same configuration as all Polkadot-like chains, so we'll use Westend
-// primitives here.
-impl Chain for AssetHubWestend {
-	const ID: ChainId = bp_runtime::ASSET_HUB_WESTEND_CHAIN_ID;
-	const NAME: &'static str = "Westmint";
-	const BEST_FINALIZED_HEADER_ID_METHOD: &'static str =
-		bp_westend::BEST_FINALIZED_ASSETHUBWESTEND_HEADER_METHOD;
-	const AVERAGE_BLOCK_INTERVAL: Duration = Duration::from_secs(6);
-
-	type SignedBlock = bp_westend::SignedBlock;
-	type Call = ();
-}
