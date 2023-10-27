@@ -552,7 +552,7 @@ mod tests {
 	use super::*;
 	use mock::{RuntimeEvent as TestEvent, *};
 
-	use crate::Event::RewardPaid;
+	use crate::Event::{RewardPaid, RewardRegistered};
 	use bp_messages::LaneId;
 	use bp_relayers::RewardsAccountOwner;
 	use frame_support::{
@@ -565,6 +565,33 @@ mod tests {
 	fn get_ready_for_events() {
 		System::<TestRuntime>::set_block_number(1);
 		System::<TestRuntime>::reset_events();
+	}
+
+	#[test]
+	fn register_relayer_reward_emit_event() {
+		run_test(|| {
+			get_ready_for_events();
+
+			Pallet::<TestRuntime>::register_relayer_reward(
+				test_reward_account_param(),
+				&REGULAR_RELAYER,
+				100,
+			);
+
+			// Check if the `RewardRegistered` event was emitted.
+			assert_eq!(
+				System::<TestRuntime>::events().last(),
+				Some(&EventRecord {
+					phase: Phase::Initialization,
+					event: TestEvent::BridgeRelayers(RewardRegistered {
+						relayer: REGULAR_RELAYER,
+						rewards_account_params: test_reward_account_param(),
+						reward: 100
+					}),
+					topics: vec![],
+				}),
+			);
+		});
 	}
 
 	#[test]
