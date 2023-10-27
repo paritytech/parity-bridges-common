@@ -379,6 +379,12 @@ pub mod pallet {
 						rewards_account_params,
 						new_reward,
 					);
+
+					Self::deposit_event(Event::<T>::RewardRegistered {
+						relayer: relayer.clone(),
+						rewards_account_params,
+						reward,
+					});
 				},
 			);
 		}
@@ -423,6 +429,15 @@ pub mod pallet {
 	#[pallet::event]
 	#[pallet::generate_deposit(pub(super) fn deposit_event)]
 	pub enum Event<T: Config> {
+		/// Relayer reward has been registered and may be claimed later.
+		RewardRegistered {
+			/// Relayer account that can claim reward.
+			relayer: T::AccountId,
+			/// Relayer can claim reward from this account.
+			rewards_account_params: RewardsAccountParams,
+			/// Reward amount.
+			reward: T::Reward,
+		},
 		/// Reward has been paid to the relayer.
 		RewardPaid {
 			/// Relayer account that has been rewarded.
