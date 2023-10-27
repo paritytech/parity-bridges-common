@@ -33,19 +33,10 @@ default:
     paths:
       - artifacts/
 
-.kubernetes-build:                 &kubernetes-build
-  tags:
-    - kubernetes-parity-build
-
 .docker-env:                       &docker-env
   image:                           "${CI_IMAGE}"
-  before_script:
-    - rustup show
-    - cargo --version
-    - rustup +nightly show
-    - cargo +nightly --version
   tags:
-    - linux-docker-vm-c2
+    - linux-docker
 
 .test-refs:                        &test-refs
   rules:
@@ -266,7 +257,7 @@ build-nightly:
 
 # check that images can be built
 .build-image:                      &build-image
-  <<:                              *kubernetes-build
+  <<:                              *docker-env
   image:                           $BUILDAH_IMAGE
   <<:                              *test-only-refs
   variables:                       &build-image-variables
@@ -321,7 +312,7 @@ bridges-common-relay-build-docker:
 
 # build and publish images
 .build-push-image:                 &build-push-image
-  <<:                              *kubernetes-build
+  <<:                              *docker-env
   image:                           $BUILDAH_IMAGE
   <<:                              *publish-refs
   variables:                       &image-variables
@@ -414,7 +405,7 @@ bridges-common-relay:
     - export DOCKERHUB_REPOSITORY="paritytech/${CI_JOB_NAME:10}"
     - cd / && sh entrypoint.sh
   tags:
-    - kubernetes-parity-build
+    - linux-docker
 
 dockerhub-rialto-bridge-node:
   extends:                .publish-docker-image-description
@@ -445,7 +436,7 @@ dockerhub-bridges-common-relay:
 
 deploy-bridges-common-relay-testnet:
   <<: *deploy-refs
-  <<: *kubernetes-build
+  <<: *docker-env
   needs:
     - job: bridges-common-relay
   stage: deploy
