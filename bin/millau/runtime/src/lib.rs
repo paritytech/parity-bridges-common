@@ -1253,9 +1253,9 @@ mod tests {
 	}
 }
 
-/// TODO: Note: I know this does not belong here, but I dont want to add it to the
-/// `chain-asset-hub-westend` or `chain-westend`, because we wont use it for production and I dont
-/// want to bring this to the brigdes subtree now. Anyway, we plan to retire millau/rialto, so this
+/// TODO: Note: I know this does not belong here, but I don't want to add it to the
+/// `chain-asset-hub-westend` or `chain-westend`, because we wont use it for production and I don't
+/// want to bring this to the bridges subtree now. Anyway, we plan to retire millau/rialto, so this
 /// hack will disappear with that.
 pub mod bp_bridged_chain {
 	use bp_messages::Weight;
