@@ -26,19 +26,20 @@ use sp_runtime::{
 	BoundedBTreeSet, BoundedVec, RuntimeDebug,
 };
 
-/// A relayer and the reward that it wants to receive for delivering a single message.
+/// A relayer registration on the lane. Includes reward that the relayer wants to receive
+/// for delivering every message.
 #[derive(Clone, Decode, Encode, Eq, PartialEq, RuntimeDebug, TypeInfo, MaxEncodedLen)]
-pub struct RelayerAndReward<AccountId> {
+pub struct LaneRegistration<AccountId> {
 	/// A relayer account identifier.
 	relayer: AccountId,
 	/// A reward that is paid to relayer for delivering a single message.
 	relayer_reward_per_message: RelayerRewardAtSource,
 }
 
-impl<AccountId> RelayerAndReward<AccountId> {
+impl<AccountId> LaneRegistration<AccountId> {
 	/// Create new instance.
 	pub fn new(relayer: AccountId, relayer_reward_per_message: RelayerRewardAtSource) -> Self {
-		RelayerAndReward { relayer, relayer_reward_per_message }
+		LaneRegistration { relayer, relayer_reward_per_message }
 	}
 
 	/// Return relayer account identifier.
@@ -73,7 +74,7 @@ pub struct ActiveLaneRelayersSet<AccountId, BlockNumber, MaxActiveRelayersPerLan
 	/// It is a circular queue. Every relayer in the queue is assigned the slot (fixed number
 	/// of blocks), starting from [`Self::enacted_at`]. Once the slot of last relayer ends,
 	/// next slot will be assigned to the first relayer and so on.
-	active_set: BoundedVec<RelayerAndReward<AccountId>, MaxActiveRelayersPerLane>,
+	active_set: BoundedVec<LaneRegistration<AccountId>, MaxActiveRelayersPerLane>,
 	/// Relayers that have delivered at least one message in current epoch.
 	///
 	/// This subset of the [`Self::active_set`] will be merged with the next set right before
@@ -107,12 +108,12 @@ where
 	}
 
 	/// Returns relayer entry from the active set.
-	pub fn relayer(&self, relayer: &AccountId) -> Option<&RelayerAndReward<AccountId>> {
+	pub fn relayer(&self, relayer: &AccountId) -> Option<&LaneRegistration<AccountId>> {
 		self.active_set.iter().find(|r| r.relayer() == relayer)
 	}
 
 	/// Returns relayers from the active set.
-	pub fn relayers(&self) -> &[RelayerAndReward<AccountId>] {
+	pub fn relayers(&self) -> &[LaneRegistration<AccountId>] {
 		self.active_set.as_slice()
 	}
 
@@ -207,7 +208,7 @@ pub struct NextLaneRelayersSet<
 	///
 	/// It is a bounded priority queue. Relayers that are working for larger reward are replaced
 	/// with relayers, that are working for smaller reward.
-	next_set: BoundedVec<RelayerAndReward<AccountId>, MaxNextRelayersPerLane>,
+	next_set: BoundedVec<LaneRegistration<AccountId>, MaxNextRelayersPerLane>,
 }
 
 impl<AccountId, BlockNumber, MaxNextRelayersPerLane>
@@ -233,12 +234,12 @@ where
 	}
 
 	/// Returns relayer entry from the next set.
-	pub fn relayer(&self, relayer: &AccountId) -> Option<&RelayerAndReward<AccountId>> {
+	pub fn relayer(&self, relayer: &AccountId) -> Option<&LaneRegistration<AccountId>> {
 		self.next_set.iter().find(|r| r.relayer() == relayer)
 	}
 
 	/// Returns relayers from the next set.
-	pub fn relayers(&self) -> &[RelayerAndReward<AccountId>] {
+	pub fn relayers(&self) -> &[LaneRegistration<AccountId>] {
 		self.next_set.as_slice()
 	}
 
@@ -256,7 +257,7 @@ where
 		self.next_set
 			.force_insert_keep_left(
 				self.select_position_in_next_set(relayer_reward_per_message),
-				RelayerAndReward { relayer, relayer_reward_per_message },
+				LaneRegistration { relayer, relayer_reward_per_message },
 			)
 			.is_ok()
 	}
@@ -264,7 +265,7 @@ where
 	/// Try remove relayer from the next set.
 	///
 	/// Returns `true` if relayer has been removed from the set.
-	pub fn try_remove(&mut self, relayer: &AccountId) -> Option<RelayerAndReward<AccountId>> {
+	pub fn try_remove(&mut self, relayer: &AccountId) -> Option<LaneRegistration<AccountId>> {
 		self.next_set
 			.iter()
 			.enumerate()
@@ -316,7 +317,7 @@ mod tests {
 	fn note_delivered_message_works() {
 		let mut active_set: TestActiveLaneRelayersSet = ActiveLaneRelayersSet {
 			enacted_at: 0,
-			active_set: vec![RelayerAndReward::new(100, 0), RelayerAndReward::new(200, 0)]
+			active_set: vec![LaneRegistration::new(100, 0), LaneRegistration::new(200, 0)]
 				.try_into()
 				.unwrap(),
 			mergeable_set: BTreeSet::new().try_into().unwrap(),
@@ -349,10 +350,10 @@ mod tests {
 		let mut next_set: TestNextLaneRelayersSet = NextLaneRelayersSet {
 			may_enact_at: 100,
 			next_set: vec![
-				RelayerAndReward::new(100, 10),
-				RelayerAndReward::new(200, 11),
-				RelayerAndReward::new(300, 12),
-				RelayerAndReward::new(400, 13),
+				LaneRegistration::new(100, 10),
+				LaneRegistration::new(200, 11),
+				LaneRegistration::new(300, 12),
+				LaneRegistration::new(400, 13),
 			]
 			.try_into()
 			.unwrap(),
@@ -367,8 +368,8 @@ mod tests {
 		assert_eq!(
 			active_set.active_set,
 			BoundedVec::<_, ConstU32<MAX_ACTIVE_LANE_RELAYERS>>::try_from(vec![
-				RelayerAndReward::new(100, 10),
-				RelayerAndReward::new(200, 11),
+				LaneRegistration::new(100, 10),
+				LaneRegistration::new(200, 11),
 			])
 			.unwrap(),
 		);
@@ -385,10 +386,10 @@ mod tests {
 			.try_into()
 			.unwrap();
 		next_set.next_set = vec![
-			RelayerAndReward::new(300, 1000),
-			RelayerAndReward::new(400, 1100),
-			RelayerAndReward::new(500, 1200),
-			RelayerAndReward::new(600, 1300),
+			LaneRegistration::new(300, 1000),
+			LaneRegistration::new(400, 1100),
+			LaneRegistration::new(500, 1200),
+			LaneRegistration::new(600, 1300),
 		]
 		.try_into()
 		.unwrap();
@@ -396,8 +397,8 @@ mod tests {
 		assert_eq!(
 			active_set.active_set,
 			BoundedVec::<_, ConstU32<MAX_ACTIVE_LANE_RELAYERS>>::try_from(vec![
-				RelayerAndReward::new(100, 10),
-				RelayerAndReward::new(200, 11),
+				LaneRegistration::new(100, 10),
+				LaneRegistration::new(200, 11),
 			])
 			.unwrap(),
 		);
@@ -412,10 +413,10 @@ mod tests {
 			.try_into()
 			.unwrap();
 		next_set.next_set = vec![
-			RelayerAndReward::new(700, 5),
-			RelayerAndReward::new(800, 5),
-			RelayerAndReward::new(100, 10),
-			RelayerAndReward::new(200, 11),
+			LaneRegistration::new(700, 5),
+			LaneRegistration::new(800, 5),
+			LaneRegistration::new(100, 10),
+			LaneRegistration::new(200, 11),
 		]
 		.try_into()
 		.unwrap();
@@ -423,8 +424,8 @@ mod tests {
 		assert_eq!(
 			active_set.active_set,
 			BoundedVec::<_, ConstU32<MAX_ACTIVE_LANE_RELAYERS>>::try_from(vec![
-				RelayerAndReward::new(700, 5),
-				RelayerAndReward::new(800, 5),
+				LaneRegistration::new(700, 5),
+				LaneRegistration::new(800, 5),
 			])
 			.unwrap(),
 		);
@@ -438,10 +439,10 @@ mod tests {
 			.try_into()
 			.unwrap();
 		next_set.next_set = vec![
-			RelayerAndReward::new(700, 5),
-			RelayerAndReward::new(100, 10),
-			RelayerAndReward::new(200, 11),
-			RelayerAndReward::new(300, 1000),
+			LaneRegistration::new(700, 5),
+			LaneRegistration::new(100, 10),
+			LaneRegistration::new(200, 11),
+			LaneRegistration::new(300, 1000),
 		]
 		.try_into()
 		.unwrap();
@@ -449,8 +450,8 @@ mod tests {
 		assert_eq!(
 			active_set.active_set,
 			BoundedVec::<_, ConstU32<MAX_ACTIVE_LANE_RELAYERS>>::try_from(vec![
-				RelayerAndReward::new(700, 5),
-				RelayerAndReward::new(100, 10),
+				LaneRegistration::new(700, 5),
+				LaneRegistration::new(100, 10),
 			])
 			.unwrap(),
 		);
@@ -464,15 +465,15 @@ mod tests {
 			.collect::<BTreeSet<_>>()
 			.try_into()
 			.unwrap();
-		next_set.next_set = vec![RelayerAndReward::new(700, 100), RelayerAndReward::new(100, 200)]
+		next_set.next_set = vec![LaneRegistration::new(700, 100), LaneRegistration::new(100, 200)]
 			.try_into()
 			.unwrap();
 		assert!(active_set.activate_next_set(100, next_set.clone(), |relayer| *relayer != 800));
 		assert_eq!(
 			active_set.active_set,
 			BoundedVec::<_, ConstU32<MAX_ACTIVE_LANE_RELAYERS>>::try_from(vec![
-				RelayerAndReward::new(700, 100),
-				RelayerAndReward::new(100, 200),
+				LaneRegistration::new(700, 100),
+				LaneRegistration::new(100, 200),
 			])
 			.unwrap(),
 		);
@@ -500,10 +501,10 @@ mod tests {
 		assert_eq!(
 			relayers.next_set.as_slice(),
 			&[
-				RelayerAndReward { relayer: 3, relayer_reward_per_message: 10 },
-				RelayerAndReward { relayer: 2, relayer_reward_per_message: 20 },
-				RelayerAndReward { relayer: 1, relayer_reward_per_message: 30 },
-				RelayerAndReward { relayer: 0, relayer_reward_per_message: 40 },
+				LaneRegistration { relayer: 3, relayer_reward_per_message: 10 },
+				LaneRegistration { relayer: 2, relayer_reward_per_message: 20 },
+				LaneRegistration { relayer: 1, relayer_reward_per_message: 30 },
+				LaneRegistration { relayer: 0, relayer_reward_per_message: 40 },
 			],
 		);
 
@@ -513,10 +514,10 @@ mod tests {
 		assert_eq!(
 			relayers.next_set.as_slice(),
 			&[
-				RelayerAndReward { relayer: 3, relayer_reward_per_message: 10 },
-				RelayerAndReward { relayer: 2, relayer_reward_per_message: 20 },
-				RelayerAndReward { relayer: 1, relayer_reward_per_message: 30 },
-				RelayerAndReward { relayer: 0, relayer_reward_per_message: 40 },
+				LaneRegistration { relayer: 3, relayer_reward_per_message: 10 },
+				LaneRegistration { relayer: 2, relayer_reward_per_message: 20 },
+				LaneRegistration { relayer: 1, relayer_reward_per_message: 30 },
+				LaneRegistration { relayer: 0, relayer_reward_per_message: 40 },
 			],
 		);
 
@@ -525,10 +526,10 @@ mod tests {
 		assert_eq!(
 			relayers.next_set.as_slice(),
 			&[
-				RelayerAndReward { relayer: 3, relayer_reward_per_message: 10 },
-				RelayerAndReward { relayer: 2, relayer_reward_per_message: 20 },
-				RelayerAndReward { relayer: 1, relayer_reward_per_message: 30 },
-				RelayerAndReward { relayer: 5, relayer_reward_per_message: 35 },
+				LaneRegistration { relayer: 3, relayer_reward_per_message: 10 },
+				LaneRegistration { relayer: 2, relayer_reward_per_message: 20 },
+				LaneRegistration { relayer: 1, relayer_reward_per_message: 30 },
+				LaneRegistration { relayer: 5, relayer_reward_per_message: 35 },
 			],
 		);
 
@@ -537,10 +538,10 @@ mod tests {
 		assert_eq!(
 			relayers.next_set.as_slice(),
 			&[
-				RelayerAndReward { relayer: 6, relayer_reward_per_message: 5 },
-				RelayerAndReward { relayer: 3, relayer_reward_per_message: 10 },
-				RelayerAndReward { relayer: 2, relayer_reward_per_message: 20 },
-				RelayerAndReward { relayer: 1, relayer_reward_per_message: 30 },
+				LaneRegistration { relayer: 6, relayer_reward_per_message: 5 },
+				LaneRegistration { relayer: 3, relayer_reward_per_message: 10 },
+				LaneRegistration { relayer: 2, relayer_reward_per_message: 20 },
+				LaneRegistration { relayer: 1, relayer_reward_per_message: 30 },
 			],
 		);
 
@@ -549,10 +550,10 @@ mod tests {
 		assert_eq!(
 			relayers.next_set.as_slice(),
 			&[
-				RelayerAndReward { relayer: 6, relayer_reward_per_message: 5 },
-				RelayerAndReward { relayer: 3, relayer_reward_per_message: 10 },
-				RelayerAndReward { relayer: 2, relayer_reward_per_message: 20 },
-				RelayerAndReward { relayer: 1, relayer_reward_per_message: 30 },
+				LaneRegistration { relayer: 6, relayer_reward_per_message: 5 },
+				LaneRegistration { relayer: 3, relayer_reward_per_message: 10 },
+				LaneRegistration { relayer: 2, relayer_reward_per_message: 20 },
+				LaneRegistration { relayer: 1, relayer_reward_per_message: 30 },
 			],
 		);
 
@@ -561,10 +562,10 @@ mod tests {
 		assert_eq!(
 			relayers.next_set.as_slice(),
 			&[
-				RelayerAndReward { relayer: 6, relayer_reward_per_message: 5 },
-				RelayerAndReward { relayer: 3, relayer_reward_per_message: 10 },
-				RelayerAndReward { relayer: 7, relayer_reward_per_message: 15 },
-				RelayerAndReward { relayer: 2, relayer_reward_per_message: 20 },
+				LaneRegistration { relayer: 6, relayer_reward_per_message: 5 },
+				LaneRegistration { relayer: 3, relayer_reward_per_message: 10 },
+				LaneRegistration { relayer: 7, relayer_reward_per_message: 15 },
+				LaneRegistration { relayer: 2, relayer_reward_per_message: 20 },
 			],
 		);
 
@@ -575,10 +576,10 @@ mod tests {
 		assert_eq!(
 			relayers.next_set.as_slice(),
 			&[
-				RelayerAndReward { relayer: 6, relayer_reward_per_message: 5 },
-				RelayerAndReward { relayer: 3, relayer_reward_per_message: 10 },
-				RelayerAndReward { relayer: 8, relayer_reward_per_message: 10 },
-				RelayerAndReward { relayer: 9, relayer_reward_per_message: 10 },
+				LaneRegistration { relayer: 6, relayer_reward_per_message: 5 },
+				LaneRegistration { relayer: 3, relayer_reward_per_message: 10 },
+				LaneRegistration { relayer: 8, relayer_reward_per_message: 10 },
+				LaneRegistration { relayer: 9, relayer_reward_per_message: 10 },
 			],
 		);
 
@@ -587,10 +588,10 @@ mod tests {
 		assert_eq!(
 			relayers.next_set.as_slice(),
 			&[
-				RelayerAndReward { relayer: 6, relayer_reward_per_message: 5 },
-				RelayerAndReward { relayer: 3, relayer_reward_per_message: 10 },
-				RelayerAndReward { relayer: 8, relayer_reward_per_message: 10 },
-				RelayerAndReward { relayer: 9, relayer_reward_per_message: 10 },
+				LaneRegistration { relayer: 6, relayer_reward_per_message: 5 },
+				LaneRegistration { relayer: 3, relayer_reward_per_message: 10 },
+				LaneRegistration { relayer: 8, relayer_reward_per_message: 10 },
+				LaneRegistration { relayer: 9, relayer_reward_per_message: 10 },
 			],
 		);
 
@@ -599,10 +600,10 @@ mod tests {
 		assert_eq!(
 			relayers.next_set.as_slice(),
 			&[
-				RelayerAndReward { relayer: 8, relayer_reward_per_message: 2 },
-				RelayerAndReward { relayer: 6, relayer_reward_per_message: 5 },
-				RelayerAndReward { relayer: 3, relayer_reward_per_message: 10 },
-				RelayerAndReward { relayer: 9, relayer_reward_per_message: 10 },
+				LaneRegistration { relayer: 8, relayer_reward_per_message: 2 },
+				LaneRegistration { relayer: 6, relayer_reward_per_message: 5 },
+				LaneRegistration { relayer: 3, relayer_reward_per_message: 10 },
+				LaneRegistration { relayer: 9, relayer_reward_per_message: 10 },
 			],
 		);
 	}
