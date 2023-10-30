@@ -11,5 +11,5 @@ cargo run --bin runtime-codegen -- --from-node-url "wss://rococo-bridge-hub-rpc.
 ```
 
 ```
-cargo run --bin runtime-codegen -- --from-wasm ~/workplace/bridge-hub-rococo_runtime-v9360.compact.compressed.wasm > /tmp/rococo_bridge_hub_codegen.rs
+cargo run --bin runtime-codegen -- --from-wasm-file ~/workplace/bridge-hub-rococo_runtime-v9360.compact.compressed.wasm > /tmp/rococo_bridge_hub_codegen.rs
 ```
