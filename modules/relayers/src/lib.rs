@@ -410,7 +410,7 @@ pub mod pallet {
 
 			// try to push relayer to the next set
 			ensure!(
-				next_lane_relayers.try_push(relayer.clone(), expected_relayer_reward_per_message),
+				next_lane_relayers.try_insert(relayer.clone(), expected_relayer_reward_per_message),
 				Error::<T>::TooLargeRewardToOccupyAnEntry,
 			);
 
@@ -663,6 +663,12 @@ pub mod pallet {
 						rewards_account_params,
 						new_reward,
 					);
+
+					Self::deposit_event(Event::<T>::RewardRegistered {
+						relayer: relayer.clone(),
+						rewards_account_params,
+						reward,
+					});
 				},
 			);
 		}
@@ -788,6 +794,15 @@ pub mod pallet {
 	#[pallet::event]
 	#[pallet::generate_deposit(pub(super) fn deposit_event)]
 	pub enum Event<T: Config> {
+		/// Relayer reward has been registered and may be claimed later.
+		RewardRegistered {
+			/// Relayer account that can claim reward.
+			relayer: T::AccountId,
+			/// Relayer can claim reward from this account.
+			rewards_account_params: RewardsAccountParams,
+			/// Reward amount.
+			reward: T::Reward,
+		},
 		/// Reward has been paid to the relayer.
 		RewardPaid {
 			/// Relayer account that has been rewarded.
@@ -918,9 +933,9 @@ mod tests {
 	use super::*;
 	use mock::{RuntimeEvent as TestEvent, *};
 
-	use crate::Event::RewardPaid;
+	use crate::Event::{RewardPaid, RewardRegistered};
 	use bp_messages::LaneId;
-	use bp_relayers::{RelayerAndReward, RewardsAccountOwner};
+	use bp_relayers::{ActiveLaneRegistration, LaneRegistration, RewardsAccountOwner};
 	use frame_support::{
 		assert_noop, assert_ok, assert_storage_noop,
 		traits::fungible::{Inspect, Mutate},
@@ -940,6 +955,33 @@ mod tests {
 		let mut registration = Registration::new(valid_till);
 		registration.set_stake(stake);
 		registration
+	}
+
+	#[test]
+	fn register_relayer_reward_emit_event() {
+		run_test(|| {
+			get_ready_for_events();
+
+			Pallet::<TestRuntime>::register_relayer_reward(
+				test_reward_account_param(),
+				&REGULAR_RELAYER,
+				100,
+			);
+
+			// Check if the `RewardRegistered` event was emitted.
+			assert_eq!(
+				System::<TestRuntime>::events().last(),
+				Some(&EventRecord {
+					phase: Phase::Initialization,
+					event: TestEvent::BridgeRelayers(RewardRegistered {
+						relayer: REGULAR_RELAYER,
+						rewards_account_params: test_reward_account_param(),
+						reward: 100
+					}),
+					topics: vec![],
+				}),
+			);
+		});
 	}
 
 	#[test]
@@ -1506,7 +1548,7 @@ mod tests {
 		run_test(|| {
 			let mut lane_relayers = NextLaneRelayersSet::empty(100);
 			for i in 1..=MaxNextRelayersPerLane::get() as u64 {
-				assert!(lane_relayers.try_push(REGISTER_RELAYER + i, 0));
+				assert!(lane_relayers.try_insert(REGISTER_RELAYER + i, 0));
 			}
 			RegisteredRelayers::<TestRuntime>::insert(
 				REGISTER_RELAYER,
@@ -1569,7 +1611,7 @@ mod tests {
 			assert_eq!(next_lane_relayers.may_enact_at(), InitialElectionLength::get());
 			assert_eq!(
 				next_lane_relayers.relayers(),
-				&[RelayerAndReward::new(REGISTER_RELAYER, 1)]
+				&[LaneRegistration::new(REGISTER_RELAYER, 1)]
 			);
 
 			// next relayer registers, it occupies the correct slot in the set
@@ -1585,8 +1627,8 @@ mod tests {
 			assert_eq!(
 				next_lane_relayers.relayers(),
 				&[
-					RelayerAndReward::new(REGISTER_RELAYER_2, 0),
-					RelayerAndReward::new(REGISTER_RELAYER, 1)
+					LaneRegistration::new(REGISTER_RELAYER_2, 0),
+					LaneRegistration::new(REGISTER_RELAYER, 1)
 				]
 			);
 		});
@@ -1609,7 +1651,7 @@ mod tests {
 			let next_lane_relayers = BridgeRelayers::next_lane_relayers(test_lane_id()).unwrap();
 			assert_eq!(
 				next_lane_relayers.relayers(),
-				&[RelayerAndReward::new(REGISTER_RELAYER, 1)]
+				&[LaneRegistration::new(REGISTER_RELAYER, 1)]
 			);
 
 			// but then we change our expected reward
@@ -1621,7 +1663,7 @@ mod tests {
 			let next_lane_relayers = BridgeRelayers::next_lane_relayers(test_lane_id()).unwrap();
 			assert_eq!(
 				next_lane_relayers.relayers(),
-				&[RelayerAndReward::new(REGISTER_RELAYER, 0)]
+				&[LaneRegistration::new(REGISTER_RELAYER, 0)]
 			);
 		});
 	}
@@ -1632,7 +1674,7 @@ mod tests {
 			// leave one free entry in next set by relayers with bid = 10
 			let mut lane_relayers = NextLaneRelayersSet::empty(100);
 			for i in 1..MaxNextRelayersPerLane::get() as u64 {
-				assert!(lane_relayers.try_push(REGISTER_RELAYER + 100 + i, 10));
+				assert!(lane_relayers.try_insert(REGISTER_RELAYER + 100 + i, 10));
 			}
 			RegisteredRelayers::<TestRuntime>::insert(
 				REGISTER_RELAYER,
@@ -1654,7 +1696,7 @@ mod tests {
 			assert_eq!(next_lane_relayers.relayers().len() as u32, MaxNextRelayersPerLane::get());
 			assert_eq!(
 				next_lane_relayers.relayers().last(),
-				Some(&RelayerAndReward::new(REGISTER_RELAYER, 15))
+				Some(&LaneRegistration::new(REGISTER_RELAYER, 15))
 			);
 
 			// then the `REGISTER_RELAYER_2` comes with better bid = 14
@@ -1667,7 +1709,7 @@ mod tests {
 			assert_eq!(next_lane_relayers.relayers().len() as u32, MaxNextRelayersPerLane::get());
 			assert_eq!(
 				next_lane_relayers.relayers().last(),
-				Some(&RelayerAndReward::new(REGISTER_RELAYER_2, 14))
+				Some(&LaneRegistration::new(REGISTER_RELAYER_2, 14))
 			);
 
 			// => `REGISTER_RELAYER` is pushed out of the next set, but it still has the lane in
@@ -1683,7 +1725,7 @@ mod tests {
 			assert_eq!(next_lane_relayers.relayers().len() as u32, MaxNextRelayersPerLane::get());
 			assert_eq!(
 				next_lane_relayers.relayers().last(),
-				Some(&RelayerAndReward::new(REGISTER_RELAYER, 13))
+				Some(&LaneRegistration::new(REGISTER_RELAYER, 13))
 			);
 		});
 	}
@@ -1721,7 +1763,7 @@ mod tests {
 				{
 					let mut next_lane_relayers: NextLaneRelayersSet<_, _, ConstU32<1>> =
 						NextLaneRelayersSet::empty(0);
-					assert!(next_lane_relayers.try_push(REGISTER_RELAYER, 0));
+					assert!(next_lane_relayers.try_insert(REGISTER_RELAYER, 0));
 					next_lane_relayers
 				},
 				|_| true
@@ -1765,7 +1807,7 @@ mod tests {
 			assert_eq!(BridgeRelayers::active_lane_relayers(test_lane_id()).relayers(), &[]);
 			assert_eq!(
 				BridgeRelayers::next_lane_relayers(test_lane_id()).unwrap().relayers(),
-				&[RelayerAndReward::new(REGISTER_RELAYER, 0)]
+				&[LaneRegistration::new(REGISTER_RELAYER, 0)]
 			);
 
 			// and then deregister at lane before going into active set
@@ -1829,7 +1871,7 @@ mod tests {
 			);
 			assert_eq!(
 				BridgeRelayers::active_lane_relayers(test_lane_id()).relayers(),
-				&[RelayerAndReward::new(REGISTER_RELAYER, 0)]
+				&[ActiveLaneRegistration::new(REGISTER_RELAYER, 0)]
 			);
 			assert_eq!(BridgeRelayers::next_lane_relayers(test_lane_id()).unwrap().relayers(), &[]);
 		});

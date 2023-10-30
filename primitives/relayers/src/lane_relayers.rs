@@ -23,22 +23,34 @@ use frame_support::CloneNoBound;
 use scale_info::TypeInfo;
 use sp_runtime::{
 	traits::{Get, Zero},
-	BoundedBTreeSet, BoundedVec, RuntimeDebug,
+	BoundedVec, RuntimeDebug,
 };
 
-/// A relayer and the reward that it wants to receive for delivering a single message.
+/// A relayer registration on the lane. Includes reward that the relayer wants to receive
+/// for delivering every message.
 #[derive(Clone, Decode, Encode, Eq, PartialEq, RuntimeDebug, TypeInfo, MaxEncodedLen)]
-pub struct RelayerAndReward<AccountId> {
+pub struct LaneRegistration<AccountId> {
 	/// A relayer account identifier.
 	relayer: AccountId,
 	/// A reward that is paid to relayer for delivering a single message.
 	relayer_reward_per_message: RelayerRewardAtSource,
 }
 
-impl<AccountId> RelayerAndReward<AccountId> {
+/// Active lane registration for relayer that currently gets priority boost.
+#[derive(Clone, Decode, Encode, Eq, PartialEq, RuntimeDebug, TypeInfo, MaxEncodedLen)]
+pub struct ActiveLaneRegistration<AccountId> {
+	/// Base lane registration.
+	base: LaneRegistration<AccountId>,
+	/// Flag, which is set to true if active relayer has delivered at least one message
+	/// in current epoch. All such "mergeable" relayers will be inserted to the next set
+	/// before next epoch start using current bid (`base.relayer_reward_per_message`).
+	is_mergeable: bool,
+}
+
+impl<AccountId> LaneRegistration<AccountId> {
 	/// Create new instance.
 	pub fn new(relayer: AccountId, relayer_reward_per_message: RelayerRewardAtSource) -> Self {
-		RelayerAndReward { relayer, relayer_reward_per_message }
+		LaneRegistration { relayer, relayer_reward_per_message }
 	}
 
 	/// Return relayer account identifier.
@@ -49,6 +61,26 @@ impl<AccountId> RelayerAndReward<AccountId> {
 	/// Return expected relayer reward.
 	pub fn relayer_reward_per_message(&self) -> RelayerRewardAtSource {
 		self.relayer_reward_per_message
+	}
+}
+
+impl<AccountId> ActiveLaneRegistration<AccountId> {
+	/// Create new instance.
+	pub fn new(relayer: AccountId, relayer_reward_per_message: RelayerRewardAtSource) -> Self {
+		ActiveLaneRegistration {
+			base: LaneRegistration::new(relayer, relayer_reward_per_message),
+			is_mergeable: false,
+		}
+	}
+
+	/// Return relayer account identifier.
+	pub fn relayer(&self) -> &AccountId {
+		&self.base.relayer
+	}
+
+	/// Return expected relayer reward.
+	pub fn relayer_reward_per_message(&self) -> RelayerRewardAtSource {
+		self.base.relayer_reward_per_message
 	}
 }
 
@@ -73,24 +105,14 @@ pub struct ActiveLaneRelayersSet<AccountId, BlockNumber, MaxActiveRelayersPerLan
 	/// It is a circular queue. Every relayer in the queue is assigned the slot (fixed number
 	/// of blocks), starting from [`Self::enacted_at`]. Once the slot of last relayer ends,
 	/// next slot will be assigned to the first relayer and so on.
-	active_set: BoundedVec<RelayerAndReward<AccountId>, MaxActiveRelayersPerLane>,
-	/// Relayers that have delivered at least one message in current epoch.
-	///
-	/// This subset of the [`Self::active_set`] will be merged with the next set right before
-	/// lane epoch is advanced. Relayers that have `deregistered` from lane at current epoch, won't
-	/// be merged, though.
-	mergeable_set: BoundedBTreeSet<AccountId, MaxActiveRelayersPerLane>,
+	active_set: BoundedVec<ActiveLaneRegistration<AccountId>, MaxActiveRelayersPerLane>,
 }
 
 impl<AccountId: Ord, BlockNumber: Zero, MaxActiveRelayersPerLane: Get<u32>> Default
 	for ActiveLaneRelayersSet<AccountId, BlockNumber, MaxActiveRelayersPerLane>
 {
 	fn default() -> Self {
-		ActiveLaneRelayersSet {
-			enacted_at: Zero::zero(),
-			active_set: BoundedVec::new(),
-			mergeable_set: BoundedBTreeSet::new(),
-		}
+		ActiveLaneRelayersSet { enacted_at: Zero::zero(), active_set: BoundedVec::new() }
 	}
 }
 
@@ -107,12 +129,12 @@ where
 	}
 
 	/// Returns relayer entry from the active set.
-	pub fn relayer(&self, relayer: &AccountId) -> Option<&RelayerAndReward<AccountId>> {
-		self.active_set.iter().find(|r| r.relayer() == relayer)
+	pub fn relayer(&self, relayer: &AccountId) -> Option<&ActiveLaneRegistration<AccountId>> {
+		self.active_set.iter().find(|r| r.base.relayer() == relayer)
 	}
 
 	/// Returns relayers from the active set.
-	pub fn relayers(&self) -> &[RelayerAndReward<AccountId>] {
+	pub fn relayers(&self) -> &[ActiveLaneRegistration<AccountId>] {
 		self.active_set.as_slice()
 	}
 
@@ -120,22 +142,25 @@ where
 	///
 	/// Returns true if we have updated anything in the structure.
 	pub fn note_delivered_message(&mut self, relayer: &AccountId) -> bool {
-		if self.relayer(relayer).is_none() {
-			return false
-		}
-
-		self.mergeable_set.try_insert(relayer.clone()).unwrap_or(false)
+		self.active_set
+			.iter_mut()
+			.find(|r| r.relayer() == relayer)
+			.map(|r| {
+				let prev_is_mergeable = r.is_mergeable;
+				r.is_mergeable = true;
+				prev_is_mergeable != r.is_mergeable
+			})
+			.unwrap_or(false)
 	}
 
 	/// Remove relayer from the active set.
 	///
 	/// This function breaks the order of the active relayers set and may cause additional
-	/// contention between relayers. So it must only be used when relayer is being slashed and can
-	/// no longer be useful to the system.
+	/// contention between relayer transactions. So it must only be used when relayer is being
+	/// slashed and can no longer be useful to the system.
 	pub fn try_remove(&mut self, relayer: &AccountId) -> bool {
 		let len_before = self.active_set.len();
-		self.active_set.retain(|entry| entry.relayer != *relayer);
-		self.mergeable_set.remove(relayer);
+		self.active_set.retain(|entry| entry.relayer() != relayer);
 		self.active_set.len() != len_before
 	}
 
@@ -161,7 +186,7 @@ where
 		// merge mergeable relayers into next set
 		for relayer in &self.active_set {
 			// relayer has not delivered any new messages, do not merge
-			if !self.mergeable_set.contains(relayer.relayer()) {
+			if !relayer.is_mergeable {
 				continue
 			}
 
@@ -176,22 +201,18 @@ where
 			if !is_in_next_set {
 				// we do not care if relayer stays in the set - we only need to try
 				let _ = next_set
-					.try_push(relayer.relayer().clone(), relayer.relayer_reward_per_message());
+					.try_insert(relayer.relayer().clone(), relayer.relayer_reward_per_message());
 			}
 		}
-		// clear active sets
-		self.active_set.clear();
-		self.mergeable_set.clear();
 		// ...and finally fill the active set with new best relayers
-		let relayers_in_active_set =
-			sp_std::cmp::min(MaxActiveRelayersPerLane::get(), next_set.relayers().len() as u32);
-		for _ in 0..relayers_in_active_set {
-			// we know that the next set has at least `relayers_in_active_set`
-			// => so calling `remove(0)` is safe
-			// we know that the active set is empty and we select at most `MaxActiveRelayersPerLane`
-			// relayers => ignoring `try_push` result is safe
-			let _ = self.active_set.try_push(next_set.next_set.remove(0));
-		}
+		self.active_set = BoundedVec::truncate_from(
+			next_set
+				.next_set
+				.into_inner()
+				.into_iter()
+				.map(|base| ActiveLaneRegistration { base, is_mergeable: false })
+				.collect(),
+		);
 		// finally - remember block where we have activated the set
 		self.enacted_at = current_block;
 
@@ -228,7 +249,7 @@ pub struct NextLaneRelayersSet<
 	///
 	/// It is a bounded priority queue. Relayers that are working for larger reward are replaced
 	/// with relayers, that are working for smaller reward.
-	next_set: BoundedVec<RelayerAndReward<AccountId>, MaxNextRelayersPerLane>,
+	next_set: BoundedVec<LaneRegistration<AccountId>, MaxNextRelayersPerLane>,
 }
 
 impl<AccountId, BlockNumber, MaxNextRelayersPerLane>
@@ -254,19 +275,19 @@ where
 	}
 
 	/// Returns relayer entry from the next set.
-	pub fn relayer(&self, relayer: &AccountId) -> Option<&RelayerAndReward<AccountId>> {
+	pub fn relayer(&self, relayer: &AccountId) -> Option<&LaneRegistration<AccountId>> {
 		self.next_set.iter().find(|r| r.relayer() == relayer)
 	}
 
 	/// Returns relayers from the next set.
-	pub fn relayers(&self) -> &[RelayerAndReward<AccountId>] {
+	pub fn relayers(&self) -> &[LaneRegistration<AccountId>] {
 		self.next_set.as_slice()
 	}
 
 	/// Try insert relayer to the next set.
 	///
 	/// Returns `true` if relayer has been added to the set and false otherwise.
-	pub fn try_push(
+	pub fn try_insert(
 		&mut self,
 		relayer: AccountId,
 		relayer_reward_per_message: RelayerRewardAtSource,
@@ -277,7 +298,7 @@ where
 		self.next_set
 			.force_insert_keep_left(
 				self.select_position_in_next_set(relayer_reward_per_message),
-				RelayerAndReward { relayer, relayer_reward_per_message },
+				LaneRegistration { relayer, relayer_reward_per_message },
 			)
 			.is_ok()
 	}
@@ -285,10 +306,13 @@ where
 	/// Try remove relayer from the next set.
 	///
 	/// Returns `true` if relayer has been removed from the set.
-	pub fn try_remove(&mut self, relayer: &AccountId) -> bool {
-		let len_before = self.next_set.len();
-		self.next_set.retain(|entry| entry.relayer != *relayer);
-		self.next_set.len() != len_before
+	pub fn try_remove(&mut self, relayer: &AccountId) -> Option<LaneRegistration<AccountId>> {
+		self.next_set
+			.iter()
+			.enumerate()
+			.find(|(_, r)| r.relayer == *relayer)
+			.map(|(index, _)| index)
+			.map(|index| self.next_set.remove(index))
 	}
 
 	/// Selects position to insert relayer, wanting to receive `reward` for every delivered
@@ -322,7 +346,6 @@ where
 mod tests {
 	use super::*;
 	use sp_runtime::traits::ConstU32;
-	use std::collections::BTreeSet;
 
 	const MAX_ACTIVE_LANE_RELAYERS: u32 = 2;
 	const MAX_NEXT_LANE_RELAYERS: u32 = 4;
@@ -330,86 +353,55 @@ mod tests {
 		ActiveLaneRelayersSet<u64, u64, ConstU32<MAX_ACTIVE_LANE_RELAYERS>>;
 	type TestNextLaneRelayersSet = NextLaneRelayersSet<u64, u64, ConstU32<MAX_NEXT_LANE_RELAYERS>>;
 
-	#[test]
-	fn active_set_try_remove_works() {
-		let mut active_set: TestActiveLaneRelayersSet = ActiveLaneRelayersSet {
-			enacted_at: 0,
-			active_set: vec![RelayerAndReward::new(100, 0), RelayerAndReward::new(200, 0)]
-				.try_into()
-				.unwrap(),
-			mergeable_set: BTreeSet::from([100]).try_into().unwrap(),
-		};
-
-		// remove relayer that is not in the set
-		assert!(!active_set.try_remove(&300));
-		assert_eq!(active_set.mergeable_set.iter().cloned().collect::<Vec<_>>(), vec![100],);
-		assert_eq!(
-			active_set.active_set,
-			BoundedVec::<_, ConstU32<MAX_ACTIVE_LANE_RELAYERS>>::try_from(vec![
-				RelayerAndReward::new(100, 0),
-				RelayerAndReward::new(200, 0),
-			])
-			.unwrap(),
-		);
-
-		// remove relayer that is both in the active and mergeable sets
-		assert!(active_set.try_remove(&100));
-		assert!(active_set.mergeable_set.is_empty());
-		assert_eq!(
-			active_set.active_set,
-			BoundedVec::<_, ConstU32<MAX_ACTIVE_LANE_RELAYERS>>::try_from(vec![
-				RelayerAndReward::new(200, 0),
-			])
-			.unwrap(),
-		);
-
-		// remove relayer that is only in the active set
-		assert!(active_set.try_remove(&200));
-		assert!(active_set.mergeable_set.is_empty());
-		assert!(active_set.active_set.is_empty());
+	fn mergeable_relayers(active_set: &TestActiveLaneRelayersSet) -> Vec<u64> {
+		active_set
+			.active_set
+			.iter()
+			.filter(|r| r.is_mergeable)
+			.map(|r| *r.relayer())
+			.collect::<Vec<_>>()
 	}
 
 	#[test]
 	fn note_delivered_message_works() {
 		let mut active_set: TestActiveLaneRelayersSet = ActiveLaneRelayersSet {
 			enacted_at: 0,
-			active_set: vec![RelayerAndReward::new(100, 0), RelayerAndReward::new(200, 0)]
-				.try_into()
-				.unwrap(),
-			mergeable_set: BTreeSet::new().try_into().unwrap(),
+			active_set: vec![
+				ActiveLaneRegistration::new(100, 0),
+				ActiveLaneRegistration::new(200, 0),
+			]
+			.try_into()
+			.unwrap(),
 		};
 
 		// when registered relayer delivers first message
 		assert!(active_set.note_delivered_message(&100));
-		assert_eq!(active_set.mergeable_set.iter().cloned().collect::<Vec<_>>(), vec![100],);
+		assert_eq!(mergeable_relayers(&active_set), vec![100],);
 
 		// when registered relayer delivers second message
 		assert!(!active_set.note_delivered_message(&100));
-		assert_eq!(active_set.mergeable_set.iter().cloned().collect::<Vec<_>>(), vec![100],);
+		assert_eq!(mergeable_relayers(&active_set), vec![100],);
 
 		// when another registered relayer delivers a message
 		assert!(active_set.note_delivered_message(&200));
-		assert_eq!(active_set.mergeable_set.iter().cloned().collect::<Vec<_>>(), vec![100, 200],);
+		assert_eq!(mergeable_relayers(&active_set), vec![100, 200],);
 
 		// when unregistered relayer delivers a message
 		assert!(!active_set.note_delivered_message(&300));
-		assert_eq!(active_set.mergeable_set.iter().cloned().collect::<Vec<_>>(), vec![100, 200],);
+		assert_eq!(mergeable_relayers(&active_set), vec![100, 200],);
 	}
 
 	#[test]
-	fn activate_next_set_works() {
-		let mut active_set: TestActiveLaneRelayersSet = ActiveLaneRelayersSet {
-			enacted_at: 0,
-			active_set: vec![].try_into().unwrap(),
-			mergeable_set: BTreeSet::new().try_into().unwrap(),
-		};
+	fn active_set_activate_next_set_works() {
+		let mut active_set: TestActiveLaneRelayersSet =
+			ActiveLaneRelayersSet { enacted_at: 0, active_set: vec![].try_into().unwrap() };
 		let mut next_set: TestNextLaneRelayersSet = NextLaneRelayersSet {
 			may_enact_at: 100,
 			next_set: vec![
-				RelayerAndReward::new(100, 10),
-				RelayerAndReward::new(200, 11),
-				RelayerAndReward::new(300, 12),
-				RelayerAndReward::new(400, 13),
+				LaneRegistration::new(100, 10),
+				LaneRegistration::new(200, 11),
+				LaneRegistration::new(300, 12),
+				LaneRegistration::new(400, 13),
 			]
 			.try_into()
 			.unwrap(),
@@ -424,28 +416,24 @@ mod tests {
 		assert_eq!(
 			active_set.active_set,
 			BoundedVec::<_, ConstU32<MAX_ACTIVE_LANE_RELAYERS>>::try_from(vec![
-				RelayerAndReward::new(100, 10),
-				RelayerAndReward::new(200, 11),
+				ActiveLaneRegistration::new(100, 10),
+				ActiveLaneRegistration::new(200, 11),
 			])
 			.unwrap(),
 		);
-		assert_eq!(active_set.mergeable_set.iter().cloned().collect::<Vec<_>>(), Vec::<u64>::new(),);
+		assert_eq!(mergeable_relayers(&active_set), Vec::<u64>::new(),);
 
 		// spam relayers are occupying the whole next set and then they leave in favor of some
 		// expensive relayers. At the same time, both relayers from the active set were delivering
 		// messages => active set is not changed
-		active_set.mergeable_set = active_set
-			.active_set
-			.iter()
-			.map(|r| *r.relayer())
-			.collect::<BTreeSet<_>>()
-			.try_into()
-			.unwrap();
+		for r in active_set.active_set.iter_mut() {
+			r.is_mergeable = true;
+		}
 		next_set.next_set = vec![
-			RelayerAndReward::new(300, 1000),
-			RelayerAndReward::new(400, 1100),
-			RelayerAndReward::new(500, 1200),
-			RelayerAndReward::new(600, 1300),
+			LaneRegistration::new(300, 1000),
+			LaneRegistration::new(400, 1100),
+			LaneRegistration::new(500, 1200),
+			LaneRegistration::new(600, 1300),
 		]
 		.try_into()
 		.unwrap();
@@ -453,26 +441,22 @@ mod tests {
 		assert_eq!(
 			active_set.active_set,
 			BoundedVec::<_, ConstU32<MAX_ACTIVE_LANE_RELAYERS>>::try_from(vec![
-				RelayerAndReward::new(100, 10),
-				RelayerAndReward::new(200, 11),
+				ActiveLaneRegistration::new(100, 10),
+				ActiveLaneRegistration::new(200, 11),
 			])
 			.unwrap(),
 		);
 
 		// better relayers appear in the next set
 		// => even if active relayers were delivering messages, they lose their slots
-		active_set.mergeable_set = active_set
-			.active_set
-			.iter()
-			.map(|r| *r.relayer())
-			.collect::<BTreeSet<_>>()
-			.try_into()
-			.unwrap();
+		for r in active_set.active_set.iter_mut() {
+			r.is_mergeable = true;
+		}
 		next_set.next_set = vec![
-			RelayerAndReward::new(700, 5),
-			RelayerAndReward::new(800, 5),
-			RelayerAndReward::new(100, 10),
-			RelayerAndReward::new(200, 11),
+			LaneRegistration::new(700, 5),
+			LaneRegistration::new(800, 5),
+			LaneRegistration::new(100, 10),
+			LaneRegistration::new(200, 11),
 		]
 		.try_into()
 		.unwrap();
@@ -480,25 +464,21 @@ mod tests {
 		assert_eq!(
 			active_set.active_set,
 			BoundedVec::<_, ConstU32<MAX_ACTIVE_LANE_RELAYERS>>::try_from(vec![
-				RelayerAndReward::new(700, 5),
-				RelayerAndReward::new(800, 5),
+				ActiveLaneRegistration::new(700, 5),
+				ActiveLaneRegistration::new(800, 5),
 			])
 			.unwrap(),
 		);
 
 		// one of active relayers deregisters => next epoch will start without it
-		active_set.mergeable_set = active_set
-			.active_set
-			.iter()
-			.map(|r| *r.relayer())
-			.collect::<BTreeSet<_>>()
-			.try_into()
-			.unwrap();
+		for r in active_set.active_set.iter_mut() {
+			r.is_mergeable = true;
+		}
 		next_set.next_set = vec![
-			RelayerAndReward::new(700, 5),
-			RelayerAndReward::new(100, 10),
-			RelayerAndReward::new(200, 11),
-			RelayerAndReward::new(300, 1000),
+			LaneRegistration::new(700, 5),
+			LaneRegistration::new(100, 10),
+			LaneRegistration::new(200, 11),
+			LaneRegistration::new(300, 1000),
 		]
 		.try_into()
 		.unwrap();
@@ -506,30 +486,26 @@ mod tests {
 		assert_eq!(
 			active_set.active_set,
 			BoundedVec::<_, ConstU32<MAX_ACTIVE_LANE_RELAYERS>>::try_from(vec![
-				RelayerAndReward::new(700, 5),
-				RelayerAndReward::new(100, 10),
+				ActiveLaneRegistration::new(700, 5),
+				ActiveLaneRegistration::new(100, 10),
 			])
 			.unwrap(),
 		);
 
 		// if relayer is in the next set already, we do not remerge it because we may rewrite its
 		// updated bid
-		active_set.mergeable_set = active_set
-			.active_set
-			.iter()
-			.map(|r| *r.relayer())
-			.collect::<BTreeSet<_>>()
-			.try_into()
-			.unwrap();
-		next_set.next_set = vec![RelayerAndReward::new(700, 100), RelayerAndReward::new(100, 200)]
+		for r in active_set.active_set.iter_mut() {
+			r.is_mergeable = true;
+		}
+		next_set.next_set = vec![LaneRegistration::new(700, 100), LaneRegistration::new(100, 200)]
 			.try_into()
 			.unwrap();
 		assert!(active_set.activate_next_set(100, next_set.clone(), |relayer| *relayer != 800));
 		assert_eq!(
 			active_set.active_set,
 			BoundedVec::<_, ConstU32<MAX_ACTIVE_LANE_RELAYERS>>::try_from(vec![
-				RelayerAndReward::new(700, 100),
-				RelayerAndReward::new(100, 200),
+				ActiveLaneRegistration::new(700, 100),
+				ActiveLaneRegistration::new(100, 200),
 			])
 			.unwrap(),
 		);
@@ -545,121 +521,121 @@ mod tests {
 	}
 
 	#[test]
-	fn next_set_try_push_works() {
+	fn next_set_try_insert_works() {
 		let mut relayers: TestNextLaneRelayersSet =
 			NextLaneRelayersSet { may_enact_at: 100, next_set: vec![].try_into().unwrap() };
 
 		// first `MAX_NEXT_LANE_RELAYERS` are simply filling the set
 		let max_next_lane_relayers: u64 = MAX_NEXT_LANE_RELAYERS as _;
 		for i in 0..max_next_lane_relayers {
-			assert!(relayers.try_push(i, (max_next_lane_relayers - i) * 10));
+			assert!(relayers.try_insert(i, (max_next_lane_relayers - i) * 10));
 		}
 		assert_eq!(
 			relayers.next_set.as_slice(),
 			&[
-				RelayerAndReward { relayer: 3, relayer_reward_per_message: 10 },
-				RelayerAndReward { relayer: 2, relayer_reward_per_message: 20 },
-				RelayerAndReward { relayer: 1, relayer_reward_per_message: 30 },
-				RelayerAndReward { relayer: 0, relayer_reward_per_message: 40 },
+				LaneRegistration { relayer: 3, relayer_reward_per_message: 10 },
+				LaneRegistration { relayer: 2, relayer_reward_per_message: 20 },
+				LaneRegistration { relayer: 1, relayer_reward_per_message: 30 },
+				LaneRegistration { relayer: 0, relayer_reward_per_message: 40 },
 			],
 		);
 
 		// try to insert relayer who wants reward, that is larger than anyone in the set
 		// => the set is not changed
-		assert!(!relayers.try_push(4, 50));
+		assert!(!relayers.try_insert(4, 50));
 		assert_eq!(
 			relayers.next_set.as_slice(),
 			&[
-				RelayerAndReward { relayer: 3, relayer_reward_per_message: 10 },
-				RelayerAndReward { relayer: 2, relayer_reward_per_message: 20 },
-				RelayerAndReward { relayer: 1, relayer_reward_per_message: 30 },
-				RelayerAndReward { relayer: 0, relayer_reward_per_message: 40 },
+				LaneRegistration { relayer: 3, relayer_reward_per_message: 10 },
+				LaneRegistration { relayer: 2, relayer_reward_per_message: 20 },
+				LaneRegistration { relayer: 1, relayer_reward_per_message: 30 },
+				LaneRegistration { relayer: 0, relayer_reward_per_message: 40 },
 			],
 		);
 
 		// replace worst relayer in the set
-		assert!(relayers.try_push(5, 35));
+		assert!(relayers.try_insert(5, 35));
 		assert_eq!(
 			relayers.next_set.as_slice(),
 			&[
-				RelayerAndReward { relayer: 3, relayer_reward_per_message: 10 },
-				RelayerAndReward { relayer: 2, relayer_reward_per_message: 20 },
-				RelayerAndReward { relayer: 1, relayer_reward_per_message: 30 },
-				RelayerAndReward { relayer: 5, relayer_reward_per_message: 35 },
+				LaneRegistration { relayer: 3, relayer_reward_per_message: 10 },
+				LaneRegistration { relayer: 2, relayer_reward_per_message: 20 },
+				LaneRegistration { relayer: 1, relayer_reward_per_message: 30 },
+				LaneRegistration { relayer: 5, relayer_reward_per_message: 35 },
 			],
 		);
 
 		// insert best relayer to the set, pushing worst relayer out of set
-		assert!(relayers.try_push(6, 5));
+		assert!(relayers.try_insert(6, 5));
 		assert_eq!(
 			relayers.next_set.as_slice(),
 			&[
-				RelayerAndReward { relayer: 6, relayer_reward_per_message: 5 },
-				RelayerAndReward { relayer: 3, relayer_reward_per_message: 10 },
-				RelayerAndReward { relayer: 2, relayer_reward_per_message: 20 },
-				RelayerAndReward { relayer: 1, relayer_reward_per_message: 30 },
+				LaneRegistration { relayer: 6, relayer_reward_per_message: 5 },
+				LaneRegistration { relayer: 3, relayer_reward_per_message: 10 },
+				LaneRegistration { relayer: 2, relayer_reward_per_message: 20 },
+				LaneRegistration { relayer: 1, relayer_reward_per_message: 30 },
 			],
 		);
 
 		// insert best relayer to the set, pushing worst relayer out of set
-		assert!(relayers.try_push(6, 5));
+		assert!(relayers.try_insert(6, 5));
 		assert_eq!(
 			relayers.next_set.as_slice(),
 			&[
-				RelayerAndReward { relayer: 6, relayer_reward_per_message: 5 },
-				RelayerAndReward { relayer: 3, relayer_reward_per_message: 10 },
-				RelayerAndReward { relayer: 2, relayer_reward_per_message: 20 },
-				RelayerAndReward { relayer: 1, relayer_reward_per_message: 30 },
+				LaneRegistration { relayer: 6, relayer_reward_per_message: 5 },
+				LaneRegistration { relayer: 3, relayer_reward_per_message: 10 },
+				LaneRegistration { relayer: 2, relayer_reward_per_message: 20 },
+				LaneRegistration { relayer: 1, relayer_reward_per_message: 30 },
 			],
 		);
 
 		// insert relayer to the middle of the set, pushing worst relayer out of set
-		assert!(relayers.try_push(7, 15));
+		assert!(relayers.try_insert(7, 15));
 		assert_eq!(
 			relayers.next_set.as_slice(),
 			&[
-				RelayerAndReward { relayer: 6, relayer_reward_per_message: 5 },
-				RelayerAndReward { relayer: 3, relayer_reward_per_message: 10 },
-				RelayerAndReward { relayer: 7, relayer_reward_per_message: 15 },
-				RelayerAndReward { relayer: 2, relayer_reward_per_message: 20 },
+				LaneRegistration { relayer: 6, relayer_reward_per_message: 5 },
+				LaneRegistration { relayer: 3, relayer_reward_per_message: 10 },
+				LaneRegistration { relayer: 7, relayer_reward_per_message: 15 },
+				LaneRegistration { relayer: 2, relayer_reward_per_message: 20 },
 			],
 		);
 
 		// insert couple of relayer that want the same reward as some relayer in the middle of the
 		// queue => they are inserted **after** existing relayers
-		assert!(relayers.try_push(8, 10));
-		assert!(relayers.try_push(9, 10));
+		assert!(relayers.try_insert(8, 10));
+		assert!(relayers.try_insert(9, 10));
 		assert_eq!(
 			relayers.next_set.as_slice(),
 			&[
-				RelayerAndReward { relayer: 6, relayer_reward_per_message: 5 },
-				RelayerAndReward { relayer: 3, relayer_reward_per_message: 10 },
-				RelayerAndReward { relayer: 8, relayer_reward_per_message: 10 },
-				RelayerAndReward { relayer: 9, relayer_reward_per_message: 10 },
+				LaneRegistration { relayer: 6, relayer_reward_per_message: 5 },
+				LaneRegistration { relayer: 3, relayer_reward_per_message: 10 },
+				LaneRegistration { relayer: 8, relayer_reward_per_message: 10 },
+				LaneRegistration { relayer: 9, relayer_reward_per_message: 10 },
 			],
 		);
 
 		// insert next relayer, similar to previous => it isn't inserted
-		assert!(!relayers.try_push(10, 10));
+		assert!(!relayers.try_insert(10, 10));
 		assert_eq!(
 			relayers.next_set.as_slice(),
 			&[
-				RelayerAndReward { relayer: 6, relayer_reward_per_message: 5 },
-				RelayerAndReward { relayer: 3, relayer_reward_per_message: 10 },
-				RelayerAndReward { relayer: 8, relayer_reward_per_message: 10 },
-				RelayerAndReward { relayer: 9, relayer_reward_per_message: 10 },
+				LaneRegistration { relayer: 6, relayer_reward_per_message: 5 },
+				LaneRegistration { relayer: 3, relayer_reward_per_message: 10 },
+				LaneRegistration { relayer: 8, relayer_reward_per_message: 10 },
+				LaneRegistration { relayer: 9, relayer_reward_per_message: 10 },
 			],
 		);
 
 		// update expected reward of existing relayer => the set order is changed
-		assert!(relayers.try_push(8, 2));
+		assert!(relayers.try_insert(8, 2));
 		assert_eq!(
 			relayers.next_set.as_slice(),
 			&[
-				RelayerAndReward { relayer: 8, relayer_reward_per_message: 2 },
-				RelayerAndReward { relayer: 6, relayer_reward_per_message: 5 },
-				RelayerAndReward { relayer: 3, relayer_reward_per_message: 10 },
-				RelayerAndReward { relayer: 9, relayer_reward_per_message: 10 },
+				LaneRegistration { relayer: 8, relayer_reward_per_message: 2 },
+				LaneRegistration { relayer: 6, relayer_reward_per_message: 5 },
+				LaneRegistration { relayer: 3, relayer_reward_per_message: 10 },
+				LaneRegistration { relayer: 9, relayer_reward_per_message: 10 },
 			],
 		);
 	}
@@ -669,8 +645,8 @@ mod tests {
 		let mut relayers: TestNextLaneRelayersSet =
 			NextLaneRelayersSet { may_enact_at: 100, next_set: vec![].try_into().unwrap() };
 
-		assert!(relayers.try_push(1, 0));
-		assert!(relayers.try_remove(&1));
-		assert!(!relayers.try_remove(&1));
+		assert!(relayers.try_insert(1, 0));
+		assert!(relayers.try_remove(&1).is_some());
+		assert!(relayers.try_remove(&1).is_none());
 	}
 }

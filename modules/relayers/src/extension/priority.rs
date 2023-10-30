@@ -279,9 +279,9 @@ mod tests {
 			let relayer3 = 300;
 			let mut next_set: NextLaneRelayersSet<_, _, ConstU32<3>> =
 				NextLaneRelayersSet::empty(5);
-			assert!(next_set.try_push(relayer1, 0));
-			assert!(next_set.try_push(relayer2, 0));
-			assert!(next_set.try_push(relayer3, 0));
+			assert!(next_set.try_insert(relayer1, 0));
+			assert!(next_set.try_insert(relayer2, 0));
+			assert!(next_set.try_insert(relayer3, 0));
 			let mut active_set = ActiveLaneRelayersSet::default();
 			active_set.activate_next_set(7, next_set, |_| true);
 			ActiveLaneRelayers::<TestRuntime>::insert(lane_id, active_set);
