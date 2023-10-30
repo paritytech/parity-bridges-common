@@ -56,6 +56,7 @@ members = [
 	"relays/client-bridge-hub-kusama",
 	"relays/client-bridge-hub-polkadot",
 	"relays/client-bridge-hub-rococo",
+	"relays/client-bridge-hub-westend",
 	"relays/client-bridge-hub-wococo",
 	"relays/client-kusama",
 	"relays/client-millau",

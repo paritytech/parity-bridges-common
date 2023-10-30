@@ -14,41 +14,34 @@
 // You should have received a copy of the GNU General Public License
 // along with Parity Bridges Common.  If not, see <http://www.gnu.org/licenses/>.
 
-//! Types that are specific to the BridgeHubPolkadot runtime.
+//! Types that are specific to the BridgeHubWestend runtime.
 // TODO: regenerate me using `runtime-codegen` tool? (https://github.com/paritytech/parity-bridges-common/issues/1945)
 
 use codec::{Decode, Encode};
 use scale_info::TypeInfo;
 
-pub use bp_bridge_hub_polkadot::SignedExtension;
+pub use bp_bridge_hub_westend::SignedExtension;
 pub use bp_header_chain::BridgeGrandpaCallOf;
 pub use bp_parachains::BridgeParachainCall;
 pub use bridge_runtime_common::messages::BridgeMessagesCallOf;
 pub use relay_substrate_client::calls::{SystemCall, UtilityCall};
 
-/// Unchecked BridgeHubPolkadot extrinsic.
-pub type UncheckedExtrinsic = bp_bridge_hub_polkadot::UncheckedExtrinsic<Call, SignedExtension>;
+/// Unchecked BridgeHubWestend extrinsic.
+pub type UncheckedExtrinsic = bp_bridge_hub_westend::UncheckedExtrinsic<Call, SignedExtension>;
 
-/// The indirect pallet call used to sync `Kusama` GRANDPA finality to `BHPolkadot`.
-pub type BridgeKusamaGrandpaCall = BridgeGrandpaCallOf<bp_kusama::Kusama>;
-/// The indirect pallet call used to sync `BridgeHubKusama` messages to `BridgeHubPolkadot`.
-pub type BridgeKusamaMessagesCall = BridgeMessagesCallOf<bp_bridge_hub_kusama::BridgeHubKusama>;
+/// The indirect pallet call used to sync `Rococo` GRANDPA finality to `BHWestend`.
+pub type BridgeRococoGrandpaCall = BridgeGrandpaCallOf<bp_rococo::Rococo>;
+/// The indirect pallet call used to sync `BridgeHubRococo` messages to `BridgeHubWestend`.
+pub type BridgeRococoMessagesCall = BridgeMessagesCallOf<bp_bridge_hub_rococo::BridgeHubRococo>;
 
-/// The indirect pallet call used to sync `PolkadotBulletin` GRANDPA finality to `BHPolkadot`.
-pub type BridgePolkadotBulletinGrandpaCall =
-	BridgeGrandpaCallOf<bp_polkadot_bulletin::PolkadotBulletin>;
-/// The indirect pallet call used to sync `PolkadotBulletin` messages to `BridgeHubPolkadot`.
-pub type BridgePolkadotBulletinMessagesCall =
-	BridgeMessagesCallOf<bp_polkadot_bulletin::PolkadotBulletin>;
-
-/// `BridgeHubPolkadot` Runtime `Call` enum.
+/// `BridgeHubWestend` Runtime `Call` enum.
 ///
-/// The enum represents a subset of possible `Call`s we can send to `BridgeHubPolkadot` chain.
+/// The enum represents a subset of possible `Call`s we can send to `BridgeHubWestend` chain.
 /// Ideally this code would be auto-generated from metadata, because we want to
 /// avoid depending directly on the ENTIRE runtime just to get the encoding of `Dispatchable`s.
 ///
 /// All entries here (like pretty much in the entire file) must be kept in sync with
-/// `BridgeHubPolkadot` `construct_runtime`, so that we maintain SCALE-compatibility.
+/// `BridgeHubWestend` `construct_runtime`, so that we maintain SCALE-compatibility.
 #[allow(clippy::large_enum_variant)]
 #[derive(Encode, Decode, Debug, PartialEq, Eq, Clone, TypeInfo)]
 pub enum Call {
@@ -59,22 +52,15 @@ pub enum Call {
 	#[codec(index = 40)]
 	Utility(UtilityCall<Call>),
 
-	/// Kusama grandpa bridge pallet.
-	#[codec(index = 51)]
-	BridgeKusamaGrandpa(BridgeKusamaGrandpaCall),
-	/// Kusama parachains bridge pallet.
-	#[codec(index = 52)]
-	BridgeKusamaParachain(BridgeParachainCall),
-	/// Kusama messages bridge pallet.
-	#[codec(index = 53)]
-	BridgeKusamaMessages(BridgeKusamaMessagesCall),
-
-	/// Polkadot Bulletin grandpa bridge pallet.
-	#[codec(index = 55)]
-	BridgePolkadotBulletinGrandpa(BridgePolkadotBulletinGrandpaCall),
-	/// Polkadot Bulletin messages bridge pallet.
-	#[codec(index = 56)]
-	BridgePolkadotBulletinMessages(BridgePolkadotBulletinMessagesCall),
+	/// Rococo grandpa bridge pallet.
+	#[codec(index = 42)]
+	BridgeRococoGrandpa(BridgeRococoGrandpaCall),
+	/// Rococo parachains bridge pallet.
+	#[codec(index = 43)]
+	BridgeRococoParachain(BridgeParachainCall),
+	/// Rococo messages bridge pallet.
+	#[codec(index = 44)]
+	BridgeRococoMessages(BridgeRococoMessagesCall),
 }
 
 impl From<UtilityCall<Call>> for Call {
@@ -120,11 +106,11 @@ mod tests {
 			set_id: 6,
 			operating_mode: BasicOperatingMode::Normal,
 		};
-		let call = BridgeKusamaGrandpaCall::initialize { init_data };
-		let tx = Call::BridgeKusamaGrandpa(call);
+		let call = BridgeRococoGrandpaCall::initialize { init_data };
+		let tx = Call::BridgeRococoGrandpa(call);
 
 		// encode call as hex string
 		let hex_encoded_call = format!("0x{:?}", HexDisplay::from(&Encode::encode(&tx)));
-		assert_eq!(hex_encoded_call, "0x3301ae4a25acf250d72ed02c149ecc7dd3c9ee976d41a2888fc551de8064521dc01d2d0192b965f0656a4e0e5fc0167da2d4b5ee72b3be2c1583c4c1e5236c8c12aa141bd2c0afaab32de0cb8f7f0d89217e37c5ea302c1ffb5a7a83e10d20f12c32874d0000060000000000000000");
+		assert_eq!(hex_encoded_call, "0x2a01ae4a25acf250d72ed02c149ecc7dd3c9ee976d41a2888fc551de8064521dc01d2d0192b965f0656a4e0e5fc0167da2d4b5ee72b3be2c1583c4c1e5236c8c12aa141bd2c0afaab32de0cb8f7f0d89217e37c5ea302c1ffb5a7a83e10d20f12c32874d0000060000000000000000");
 	}
 }

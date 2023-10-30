@@ -1,5 +1,5 @@
 [package]
-name = "relay-bridge-hub-wococo-client"
+name = "relay-bridge-hub-westend-client"
 version = "0.1.0"
 authors = ["Parity Technologies <admin@parity.io>"]
 edition = "2021"
@@ -13,15 +13,15 @@ subxt = { version = "0.32.1", default-features = false, features = [] }
 # Bridge dependencies
 
 bp-bridge-hub-rococo = { path = "../../primitives/chain-bridge-hub-rococo" }
-bp-bridge-hub-wococo = { path = "../../primitives/chain-bridge-hub-wococo" }
+bp-bridge-hub-westend = { path = "../../primitives/chain-bridge-hub-westend" }
 bp-header-chain = { path = "../../primitives/header-chain" }
 bp-messages = { path = "../../primitives/messages" }
 bp-parachains = { path = "../../primitives/parachains" }
 bp-polkadot-core = { path = "../../primitives/polkadot-core" }
+bp-rococo = { path = "../../primitives/chain-rococo" }
 bp-runtime = { path = "../../primitives/runtime" }
 
 bridge-runtime-common = { path = "../../bin/runtime-common" }
-relay-bridge-hub-rococo-client = { path = "../client-bridge-hub-rococo" }
 relay-substrate-client = { path = "../client-substrate" }
 
 # Substrate Dependencies
