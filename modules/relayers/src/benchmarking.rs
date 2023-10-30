@@ -202,7 +202,7 @@ benchmarks! {
 		);
 		for active_relayer in &active_relayers {
 			register_relayer::<T>(active_relayer, 1, 1);
-			assert!(next_relayers_set.try_push(active_relayer.clone(), 0));
+			assert!(next_relayers_set.try_insert(active_relayer.clone(), 0));
 		}
 		active_relayers_set.activate_next_set(current_block_number, next_relayers_set, |_| true);
 		ActiveLaneRelayers::<T>::insert(lane_id(0), active_relayers_set);
