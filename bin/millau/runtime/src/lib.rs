@@ -642,7 +642,7 @@ construct_runtime!(
 
 		// Westend bridge modules.
 		BridgeWestendGrandpa: pallet_bridge_grandpa::<Instance1>::{Pallet, Call, Config<T>, Storage, Event<T>},
-		BridgeWestendParachain: pallet_bridge_parachains::<Instance1>::{Pallet, Call, Storage, Event<T>},
+		BridgeWestendParachains: pallet_bridge_parachains::<Instance1>::{Pallet, Call, Storage, Event<T>},
 
 		// RialtoParachain bridge modules.
 		BridgeRialtoParachains: pallet_bridge_parachains::{Pallet, Call, Storage, Event<T>},

@@ -269,11 +269,11 @@ pub mod api {
 				#[codec(index = 48)]
 				BridgeWestendGrandpa(runtime_types::pallet_bridge_grandpa::pallet::Call),
 				#[codec(index = 42)]
-				BridgeWococoParachain(runtime_types::pallet_bridge_parachains::pallet::Call),
+				BridgeWococoParachains(runtime_types::pallet_bridge_parachains::pallet::Call),
 				#[codec(index = 44)]
-				BridgeRococoParachain(runtime_types::pallet_bridge_parachains::pallet::Call),
+				BridgeRococoParachains(runtime_types::pallet_bridge_parachains::pallet::Call),
 				#[codec(index = 49)]
-				BridgeWestendParachain(runtime_types::pallet_bridge_parachains::pallet::Call),
+				BridgeWestendParachains(runtime_types::pallet_bridge_parachains::pallet::Call),
 				#[codec(index = 46)]
 				BridgeWococoMessages(runtime_types::pallet_bridge_messages::pallet::Call),
 				#[codec(index = 45)]
@@ -316,11 +316,11 @@ pub mod api {
 				#[codec(index = 48)]
 				BridgeWestendGrandpa(runtime_types::pallet_bridge_grandpa::pallet::Event),
 				#[codec(index = 42)]
-				BridgeWococoParachain(runtime_types::pallet_bridge_parachains::pallet::Event),
+				BridgeWococoParachains(runtime_types::pallet_bridge_parachains::pallet::Event),
 				#[codec(index = 44)]
-				BridgeRococoParachain(runtime_types::pallet_bridge_parachains::pallet::Event),
+				BridgeRococoParachains(runtime_types::pallet_bridge_parachains::pallet::Event),
 				#[codec(index = 49)]
-				BridgeWestendParachain(runtime_types::pallet_bridge_parachains::pallet::Event),
+				BridgeWestendParachains(runtime_types::pallet_bridge_parachains::pallet::Event),
 				#[codec(index = 46)]
 				BridgeWococoMessages(runtime_types::pallet_bridge_messages::pallet::Event),
 				#[codec(index = 45)]

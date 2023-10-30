@@ -57,7 +57,7 @@ pub enum Call {
 	BridgeRococoGrandpa(BridgeRococoGrandpaCall),
 	/// Rococo parachains bridge pallet.
 	#[codec(index = 43)]
-	BridgeRococoParachain(BridgeParachainCall),
+	BridgeRococoParachains(BridgeParachainCall),
 	/// Rococo messages bridge pallet.
 	#[codec(index = 44)]
 	BridgeRococoMessages(BridgeRococoMessagesCall),
