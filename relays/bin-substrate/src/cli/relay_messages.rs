@@ -28,6 +28,10 @@ use crate::bridges::{
 		bridge_hub_polkadot_messages_to_polkadot_bulletin::BridgeHubPolkadotToPolkadotBulletinMessagesCliBridge,
 		polkadot_bulletin_messages_to_bridge_hub_polkadot::PolkadotBulletinToBridgeHubPolkadotMessagesCliBridge,
 	},
+	rococo_westend::{
+		bridge_hub_rococo_messages_to_bridge_hub_westend::BridgeHubRococoToBridgeHubWestendMessagesCliBridge,
+		bridge_hub_westend_messages_to_bridge_hub_rococo::BridgeHubWestendToBridgeHubRococoMessagesCliBridge,
+	},
 	rococo_wococo::{
 		bridge_hub_rococo_messages_to_bridge_hub_wococo::BridgeHubRococoToBridgeHubWococoMessagesCliBridge,
 		bridge_hub_wococo_messages_to_bridge_hub_rococo::BridgeHubWococoToBridgeHubRococoMessagesCliBridge,
@@ -99,6 +103,8 @@ where
 
 impl MessagesRelayer for BridgeHubRococoToBridgeHubWococoMessagesCliBridge {}
 impl MessagesRelayer for BridgeHubWococoToBridgeHubRococoMessagesCliBridge {}
+impl MessagesRelayer for BridgeHubRococoToBridgeHubWestendMessagesCliBridge {}
+impl MessagesRelayer for BridgeHubWestendToBridgeHubRococoMessagesCliBridge {}
 impl MessagesRelayer for BridgeHubKusamaToBridgeHubPolkadotMessagesCliBridge {}
 impl MessagesRelayer for BridgeHubPolkadotToBridgeHubKusamaMessagesCliBridge {}
 impl MessagesRelayer for PolkadotBulletinToBridgeHubPolkadotMessagesCliBridge {}
@@ -112,6 +118,10 @@ impl RelayMessages {
 				BridgeHubRococoToBridgeHubWococoMessagesCliBridge::relay_messages(self),
 			FullBridge::BridgeHubWococoToBridgeHubRococo =>
 				BridgeHubWococoToBridgeHubRococoMessagesCliBridge::relay_messages(self),
+			FullBridge::BridgeHubRococoToBridgeHubWestend =>
+				BridgeHubRococoToBridgeHubWestendMessagesCliBridge::relay_messages(self),
+			FullBridge::BridgeHubWestendToBridgeHubRococo =>
+				BridgeHubWestendToBridgeHubRococoMessagesCliBridge::relay_messages(self),
 			FullBridge::BridgeHubKusamaToBridgeHubPolkadot =>
 				BridgeHubKusamaToBridgeHubPolkadotMessagesCliBridge::relay_messages(self),
 			FullBridge::BridgeHubPolkadotToBridgeHubKusama =>
