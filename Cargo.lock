@@ -1157,6 +1157,36 @@ dependencies = [
 ]
 
 [[package]]
+name = "bp-asset-hub-rococo"
+version = "0.1.0"
+dependencies = [
+ "bp-xcm-bridge-hub-router 0.1.0",
+ "frame-support",
+ "parity-scale-codec",
+ "scale-info",
+]
+
+[[package]]
+name = "bp-asset-hub-westend"
+version = "0.1.0"
+dependencies = [
+ "bp-xcm-bridge-hub-router 0.1.0",
+ "frame-support",
+ "parity-scale-codec",
+ "scale-info",
+]
+
+[[package]]
+name = "bp-asset-hub-wococo"
+version = "0.1.0"
+dependencies = [
+ "bp-xcm-bridge-hub-router 0.1.0",
+ "frame-support",
+ "parity-scale-codec",
+ "scale-info",
+]
+
+[[package]]
 name = "bp-beefy"
 version = "0.1.0"
 dependencies = [
@@ -1215,6 +1245,19 @@ dependencies = [
 
 [[package]]
 name = "bp-bridge-hub-rococo"
+version = "0.1.0"
+dependencies = [
+ "bp-bridge-hub-cumulus",
+ "bp-messages",
+ "bp-runtime",
+ "frame-support",
+ "sp-api",
+ "sp-runtime",
+ "sp-std 8.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
+]
+
+[[package]]
+name = "bp-bridge-hub-westend"
 version = "0.1.0"
 dependencies = [
  "bp-bridge-hub-cumulus",
@@ -10646,6 +10689,29 @@ dependencies = [
 ]
 
 [[package]]
+name = "relay-bridge-hub-westend-client"
+version = "0.1.0"
+dependencies = [
+ "bp-bridge-hub-rococo",
+ "bp-bridge-hub-westend",
+ "bp-header-chain",
+ "bp-messages",
+ "bp-parachains",
+ "bp-polkadot-core",
+ "bp-rococo",
+ "bp-runtime",
+ "bridge-runtime-common",
+ "parity-scale-codec",
+ "relay-substrate-client",
+ "scale-info",
+ "sp-consensus-grandpa",
+ "sp-core",
+ "sp-runtime",
+ "sp-weights",
+ "subxt",
+]
+
+[[package]]
 name = "relay-bridge-hub-wococo-client"
 version = "0.1.0"
 dependencies = [
@@ -10655,7 +10721,6 @@ dependencies = [
  "bp-messages",
  "bp-parachains",
  "bp-polkadot-core",
- "bp-rococo",
  "bp-runtime",
  "bridge-runtime-common",
  "parity-scale-codec",
@@ -10877,12 +10942,19 @@ dependencies = [
 name = "relay-westend-client"
 version = "0.1.0"
 dependencies = [
+ "bp-polkadot-core",
  "bp-runtime",
  "bp-westend",
+ "parity-scale-codec",
  "relay-substrate-client",
  "relay-utils",
+ "scale-info",
+ "sp-consensus-grandpa",
  "sp-core",
+ "sp-runtime",
  "sp-session",
+ "sp-weights",
+ "subxt",
 ]
 
 [[package]]
@@ -14632,6 +14704,7 @@ dependencies = [
  "relay-bridge-hub-kusama-client",
  "relay-bridge-hub-polkadot-client",
  "relay-bridge-hub-rococo-client",
+ "relay-bridge-hub-westend-client",
  "relay-bridge-hub-wococo-client",
  "relay-kusama-client",
  "relay-millau-client",
