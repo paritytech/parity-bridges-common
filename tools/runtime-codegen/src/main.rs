@@ -140,8 +140,6 @@ fn main() -> color_eyre::Result<()> {
 		TypeSubstitute::simple("bp_messages::target_chain::FromBridgedChainMessagesProof"),
 		TypeSubstitute::simple("bp_messages::source_chain::FromBridgedChainMessagesDeliveryProof"),
 		TypeSubstitute::simple("bp_messages::UnrewardedRelayersState"),
-		TypeSubstitute::custom("bp_millau::millau_hash::MillauHash", "::bp_millau::MillauHash"),
-		TypeSubstitute::simple("bp_millau::BlakeTwoAndKeccak256"),
 		TypeSubstitute::custom(
 			"sp_runtime::generic::digest::Digest",
 			"::sp_runtime::generic::Digest",

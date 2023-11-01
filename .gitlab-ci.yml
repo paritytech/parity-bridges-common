@@ -115,18 +115,14 @@ spellcheck:
   <<:                              *docker-env
   <<:                              *test-refs
   script:
-    - cargo spellcheck check --cfg=.config/spellcheck.toml --checkers hunspell -m 1 $(find . -type f -name '*.rs' ! -path "./target/*" ! -path "./bin/millau/runtime/src/weights/*" ! -name 'codegen_runtime.rs' ! -name 'weights.rs')
+    - cargo spellcheck check --cfg=.config/spellcheck.toml --checkers hunspell -m 1 $(find . -type f -name '*.rs' ! -path "./target/*" ! -name 'codegen_runtime.rs' ! -name 'weights.rs')
 
 check:
   stage:                           test
   <<:                              *docker-env
   <<:                              *test-refs
   script:                          &check-script
-    - SKIP_WASM_BUILD=1 time cargo check --locked --verbose --workspace
-    # Check Rialto benchmarks runtime
-    - SKIP_WASM_BUILD=1 time cargo check -p rialto-runtime --locked --features runtime-benchmarks --verbose
-    # Check Millau benchmarks runtime
-    - SKIP_WASM_BUILD=1 time cargo check -p millau-runtime --locked --features runtime-benchmarks --verbose
+    - SKIP_WASM_BUILD=1 time cargo check --locked --verbose --workspace --features runtime-benchmarks
 
 check-nightly:
   stage:                           test
@@ -185,19 +181,6 @@ deny-licenses:
     - echo "___Complete logs can be found in the artifacts___"
     - cargo deny check licenses 2> licenses.log
 
-benchmarks-test:
-  stage:                           test
-  <<:                              *docker-env
-  <<:                              *nightly-test
-  script:
-    - time cargo run --release -p millau-bridge-node --features=runtime-benchmarks -- benchmark pallet --chain=dev --steps=2 --repeat=1 --pallet=pallet_bridge_messages --extrinsic=* --execution=wasm --wasm-execution=Compiled --heap-pages=4096
-    - time cargo run --release -p millau-bridge-node --features=runtime-benchmarks -- benchmark pallet --chain=dev --steps=2 --repeat=1 --pallet=pallet_bridge_grandpa --extrinsic=* --execution=wasm --wasm-execution=Compiled --heap-pages=4096
-    - time cargo run --release -p millau-bridge-node --features=runtime-benchmarks -- benchmark pallet --chain=dev --steps=2 --repeat=1 --pallet=pallet_bridge_parachains --extrinsic=* --execution=wasm --wasm-execution=Compiled --heap-pages=4096
-    - time cargo run --release -p millau-bridge-node --features=runtime-benchmarks -- benchmark pallet --chain=dev --steps=2 --repeat=1 --pallet=pallet_bridge_relayers --extrinsic=* --execution=wasm --wasm-execution=Compiled --heap-pages=4096
-    - time cargo run --release -p millau-bridge-node --features=runtime-benchmarks -- benchmark pallet --chain=dev --steps=2 --repeat=1 --pallet=pallet_xcm_bridge_hub_router --extrinsic=* --execution=wasm --wasm-execution=Compiled --heap-pages=4096
-  # we may live with failing benchmarks, it is just a signal for us
-  allow_failure:                   true
-
 check-rustdoc:
   stage:                           test
   <<:                              *docker-env
@@ -206,7 +189,7 @@ check-rustdoc:
     SKIP_WASM_BUILD:               1
     RUSTDOCFLAGS:                  "-Dwarnings"
   script:
-    - time cargo +nightly doc --workspace --verbose --no-deps --all-features --exclude relay-rialto-parachain-client
+    - time cargo +nightly doc --workspace --verbose --no-deps --all-features
 
 partial-repo-pallets-build-test:
   stage:                           test
@@ -239,12 +222,6 @@ build:
   after_script:
     # Prepare artifacts
     - mkdir -p ./artifacts
-    - strip ./target/release/rialto-bridge-node
-    - mv -v ./target/release/rialto-bridge-node ./artifacts/
-    - strip ./target/release/rialto-parachain-collator
-    - mv -v ./target/release/rialto-parachain-collator ./artifacts/
-    - strip ./target/release/millau-bridge-node
-    - mv -v ./target/release/millau-bridge-node ./artifacts/
     - strip ./target/release/substrate-relay
     - mv -v ./target/release/substrate-relay ./artifacts/
     - mv -v ./deployments/local-scripts/bridge-entrypoint.sh ./artifacts/
@@ -291,18 +268,6 @@ build-nightly:
         --build-arg VERSION="${VERSION}"
         --tag "${IMAGE_NAME}:latest"
         --file "${DOCKERFILE}" .
-
-rialto-bridge-node-build-docker:
-  stage:                           publish
-  <<:                              *build-image
-
-rialto-parachain-collator-build-docker:
-  stage:                           publish
-  <<:                              *build-image
-
-millau-bridge-node-build-docker:
-  stage:                           publish
-  <<:                              *build-image
 
 substrate-relay-build-docker:
   stage:                           publish
@@ -370,18 +335,6 @@ bridges-common-relay-build-docker:
   after_script:
     - env REGISTRY_AUTH_FILE= buildah logout --all
 
-rialto-bridge-node:
-  stage:                           publish
-  <<:                              *build-push-image
-
-rialto-parachain-collator:
-  stage:                           publish
-  <<:                              *build-push-image
-
-millau-bridge-node:
-  stage:                           publish
-  <<:                              *build-push-image
-
 substrate-relay:
   stage:                           publish
   <<:                              *build-push-image
@@ -412,21 +365,6 @@ bridges-common-relay:
     - cd / && sh entrypoint.sh
   tags:
     - kubernetes-parity-build
-
-dockerhub-rialto-bridge-node:
-  extends:                .publish-docker-image-description
-  variables:
-    SHORT_DESCRIPTION:    "rialto-bridge-node"
-
-dockerhub-rialto-parachain-collator:
-  extends:                .publish-docker-image-description
-  variables:
-    SHORT_DESCRIPTION:    "rialto-parachain-collator"
-
-dockerhub-millau-bridge-node:
-  extends:                .publish-docker-image-description
-  variables:
-    SHORT_DESCRIPTION:    "millau-bridge-node"
 
 dockerhub-substrate-relay:
   extends:                .publish-docker-image-description
