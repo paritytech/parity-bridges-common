@@ -34,6 +34,7 @@ use sp_runtime::{
 };
 
 // reexport everything from `integrity_tests` module
+#[allow(unused_imports)]
 pub use integrity_tests::*;
 
 /// Compute total priority boost for message delivery transaction.

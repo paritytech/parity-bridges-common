@@ -67,7 +67,6 @@ MessageNonce
 MessageNonces
 MessagePayload
 MetricsParams
-Millau/MS
 OldHeader
 OutboundMessages
 PoA
@@ -75,8 +74,6 @@ PoV/MS
 Pre
 RLP
 RPC/MS
-Rialto/MS
-RialtoParachain/MS
 Relayer/MS
 Runtime1
 Runtime2
@@ -164,7 +161,6 @@ malus
 max_value
 merkle/MS
 metadata
-millau
 misbehavior/SM
 misbehaviors
 multivalidator/SM
