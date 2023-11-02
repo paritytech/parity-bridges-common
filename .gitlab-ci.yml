@@ -33,8 +33,17 @@ default:
     paths:
       - artifacts/
 
+.kubernetes-build:                 &kubernetes-build
+  tags:
+    - kubernetes-parity-build
+
 .docker-env:                       &docker-env
   image:                           "${CI_IMAGE}"
+  before_script:
+    - rustup show
+    - cargo --version
+    - rustup +nightly show
+    - cargo +nightly --version
   tags:
     - linux-docker
 
@@ -230,7 +239,7 @@ build-nightly:
 
 # check that images can be built
 .build-image:                      &build-image
-  <<:                              *docker-env
+  <<:                              *kubernetes-build
   image:                           $BUILDAH_IMAGE
   <<:                              *test-only-refs
   variables:                       &build-image-variables
@@ -273,7 +282,7 @@ bridges-common-relay-build-docker:
 
 # build and publish images
 .build-push-image:                 &build-push-image
-  <<:                              *docker-env
+  <<:                              *kubernetes-build
   image:                           $BUILDAH_IMAGE
   <<:                              *publish-refs
   variables:                       &image-variables
@@ -370,7 +379,7 @@ dockerhub-bridges-common-relay:
 
 deploy-bridges-common-relay-testnet:
   <<: *deploy-refs
-  <<: *docker-env
+  <<: *kubernetes-build
   needs:
     - job: bridges-common-relay
   stage: deploy
