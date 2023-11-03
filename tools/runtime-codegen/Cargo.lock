@@ -4008,6 +4008,7 @@ checksum = "6bdef32e8150c2a081110b42772ffe7d7c9032b606bc226c8260fd97e0976601"
 [[package]]
 name = "subxt-codegen"
 version = "0.32.1"
+source = "git+https://github.com/paritytech/subxt?branch=master#40aca5ba65f1181e8496eb91615d73c0d3c01502"
 dependencies = [
  "frame-metadata 16.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "heck",
@@ -4026,6 +4027,7 @@ dependencies = [
 [[package]]
 name = "subxt-metadata"
 version = "0.32.1"
+source = "git+https://github.com/paritytech/subxt?branch=master#40aca5ba65f1181e8496eb91615d73c0d3c01502"
 dependencies = [
  "frame-metadata 16.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "parity-scale-codec",

@@ -20,5 +20,3 @@ subxt-codegen = { git = "https://github.com/paritytech/subxt", branch = "master"
 wasm-loader = { git = "https://github.com/chevdor/subwasm", branch = "master" }
 wasm-testbed = { git = "https://github.com/chevdor/subwasm", branch = "master" }
 
-[patch."https://github.com/paritytech/subxt"]
-subxt-codegen = { path = "../../../subxt/codegen" }
