@@ -15,12 +15,12 @@
 // along with Parity Bridges Common.  If not, see <http://www.gnu.org/licenses/>.
 
 use clap::Parser as ClapParser;
-use codec::Encode;
+use codec::{Decode, Encode};
 use color_eyre::eyre;
 use std::{env, path::PathBuf};
 use subxt_codegen::{
-	generate_runtime_api_from_bytes, generate_runtime_api_from_url, utils::Uri, CratePath,
-	DerivesRegistry, TypeSubstitutes,
+	fetch_metadata::{fetch_metadata_from_url_blocking, MetadataVersion, Url},
+	syn, CodegenBuilder, Metadata,
 };
 use wasm_testbed::WasmTestBed;
 
@@ -28,13 +28,13 @@ use wasm_testbed::WasmTestBed;
 #[derive(Debug, ClapParser)]
 struct Command {
 	#[clap(name = "from-node-url", long, value_parser)]
-	node_url: Option<Uri>,
+	node_url: Option<Url>,
 	#[clap(name = "from-wasm-file", long, value_parser)]
 	wasm_file: Option<String>,
 }
 
 enum RuntimeMetadataSource {
-	NodeUrl(Uri),
+	NodeUrl(Url),
 	WasmFile(wasm_loader::Source),
 }
 
@@ -107,85 +107,65 @@ fn main() -> color_eyre::Result<()> {
 	let args: Command = Command::parse();
 	let metadata_source = RuntimeMetadataSource::from_command(args)?;
 
-	// Module under which the API is generated.
-	let item_mod = syn::parse_quote!(
-		pub mod api {}
-	);
+	let mut codegen_builder = CodegenBuilder::new();
+	codegen_builder.runtime_types_only();
+	codegen_builder.no_docs();
+
 	// Default module derivatives.
-	let mut derives = DerivesRegistry::new();
-	derives.extend_for_all(
-		vec![
-			syn::parse_quote!(::codec::Encode),
-			syn::parse_quote!(::codec::Decode),
-			syn::parse_quote!(Clone),
-			syn::parse_quote!(Debug),
-			syn::parse_quote!(PartialEq),
-		],
-		vec![],
-	);
+	codegen_builder.disable_default_derives();
+	codegen_builder.set_additional_global_derives(vec![
+		syn::parse_quote!(::codec::Encode),
+		syn::parse_quote!(::codec::Decode),
+		syn::parse_quote!(Clone),
+		syn::parse_quote!(Debug),
+		syn::parse_quote!(PartialEq),
+	]);
+
 	// Type substitutes
-	let mut type_substitutes = TypeSubstitutes::new(&CratePath::default());
-	type_substitutes
-		.extend(
-			vec![
-				TypeSubstitute::simple("sp_core::crypto::AccountId32"),
-				TypeSubstitute::custom("sp_weights::weight_v2::Weight", "::sp_weights::Weight"),
-				TypeSubstitute::custom(
-					"sp_runtime::generic::era::Era",
-					"::sp_runtime::generic::Era",
-				),
-				TypeSubstitute::custom(
-					"sp_runtime::generic::header::Header",
-					"::sp_runtime::generic::Header",
-				),
-				TypeSubstitute::simple("sp_runtime::traits::BlakeTwo256"),
-				TypeSubstitute::simple("sp_session::MembershipProof"),
-				TypeSubstitute::simple("sp_consensus_grandpa::EquivocationProof"),
-				TypeSubstitute::simple("bp_header_chain::justification::GrandpaJustification"),
-				TypeSubstitute::simple("bp_header_chain::InitializationData"),
-				TypeSubstitute::simple("bp_polkadot_core::parachains::ParaId"),
-				TypeSubstitute::simple("bp_polkadot_core::parachains::ParaHeadsProof"),
-				TypeSubstitute::simple("bp_messages::target_chain::FromBridgedChainMessagesProof"),
-				TypeSubstitute::simple(
-					"bp_messages::source_chain::FromBridgedChainMessagesDeliveryProof",
-				),
-				TypeSubstitute::simple("bp_messages::UnrewardedRelayersState"),
-				TypeSubstitute::custom(
-					"sp_runtime::generic::digest::Digest",
-					"::sp_runtime::generic::Digest",
-				),
-			]
-			.drain(..)
-			.map(|substitute| (substitute.subxt_type, substitute.substitute.try_into().unwrap())),
-		)
-		.map_err(|e| eyre::eyre!("Error extending type substitutes: {:?}", e))?;
+	let type_substitutes = vec![
+		TypeSubstitute::simple("sp_core::crypto::AccountId32"),
+		TypeSubstitute::custom("sp_weights::weight_v2::Weight", "::sp_weights::Weight"),
+		TypeSubstitute::custom("sp_runtime::generic::era::Era", "::sp_runtime::generic::Era"),
+		TypeSubstitute::custom(
+			"sp_runtime::generic::header::Header",
+			"::sp_runtime::generic::Header",
+		),
+		TypeSubstitute::simple("sp_runtime::traits::BlakeTwo256"),
+		TypeSubstitute::simple("sp_session::MembershipProof"),
+		TypeSubstitute::simple("sp_consensus_grandpa::EquivocationProof"),
+		TypeSubstitute::simple("bp_header_chain::justification::GrandpaJustification"),
+		TypeSubstitute::simple("bp_header_chain::InitializationData"),
+		TypeSubstitute::simple("bp_polkadot_core::parachains::ParaId"),
+		TypeSubstitute::simple("bp_polkadot_core::parachains::ParaHeadsProof"),
+		TypeSubstitute::simple("bp_messages::target_chain::FromBridgedChainMessagesProof"),
+		TypeSubstitute::simple("bp_messages::source_chain::FromBridgedChainMessagesDeliveryProof"),
+		TypeSubstitute::simple("bp_messages::UnrewardedRelayersState"),
+		TypeSubstitute::custom(
+			"sp_runtime::generic::digest::Digest",
+			"::sp_runtime::generic::Digest",
+		),
+	];
+	for type_substitute in type_substitutes {
+		codegen_builder.set_type_substitute(type_substitute.subxt_type, type_substitute.substitute);
+	}
 
 	// Generate the Runtime API.
-	let runtime_api = match metadata_source {
-		RuntimeMetadataSource::NodeUrl(node_url) => generate_runtime_api_from_url(
-			item_mod,
-			&node_url,
-			derives,
-			type_substitutes,
-			CratePath::default(),
-			false,
-			true,
-		),
+	let raw_metadata = match metadata_source {
+		RuntimeMetadataSource::NodeUrl(node_url) =>
+			fetch_metadata_from_url_blocking(node_url, MetadataVersion::Latest)
+				.map_err(|e| eyre::eyre!("Error fetching metadata from node url: {:?}", e))?,
 		RuntimeMetadataSource::WasmFile(source) => {
 			let testbed = WasmTestBed::new(&source)
 				.map_err(|e| eyre::eyre!("Error creating WasmTestBed: {:?}", e))?;
-			generate_runtime_api_from_bytes(
-				item_mod,
-				&testbed.runtime_metadata_prefixed().encode(),
-				derives,
-				type_substitutes,
-				CratePath::default(),
-				false,
-				true,
-			)
+			testbed.runtime_metadata_prefixed().encode()
 		},
-	}
-	.map_err(|e| eyre::eyre!("Error generating runtime api: {:?}", e))?;
+	};
+	let metadata = Metadata::decode(&mut &raw_metadata[..])
+		.map_err(|e| eyre::eyre!("Error decoding metadata: {:?}", e))?;
+
+	let runtime_api = codegen_builder
+		.generate(metadata)
+		.map_err(|e| eyre::eyre!("Error generating runtime api: {:?}", e))?;
 
 	print_runtime(runtime_api);
 
