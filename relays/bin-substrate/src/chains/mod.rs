@@ -24,7 +24,6 @@ mod rialto;
 mod rialto_parachain;
 mod rococo;
 mod westend;
-mod wococo;
 
 #[cfg(test)]
 mod tests {

@@ -25,10 +25,6 @@ use crate::bridges::{
 		rococo_parachains_to_bridge_hub_westend::BridgeHubRococoToBridgeHubWestendCliBridge,
 		westend_parachains_to_bridge_hub_rococo::BridgeHubWestendToBridgeHubRococoCliBridge,
 	},
-	rococo_wococo::{
-		rococo_parachains_to_bridge_hub_wococo::BridgeHubRococoToBridgeHubWococoCliBridge,
-		wococo_parachains_to_bridge_hub_rococo::BridgeHubWococoToBridgeHubRococoCliBridge,
-	},
 	westend_millau::westend_parachains_to_millau::AssetHubWestendToMillauCliBridge,
 };
 use async_std::sync::Mutex;
@@ -72,8 +68,6 @@ pub struct RelayParachains {
 pub enum RelayParachainsBridge {
 	RialtoToMillau,
 	WestendToMillau,
-	RococoToBridgeHubWococo,
-	WococoToBridgeHubRococo,
 	KusamaToBridgeHubPolkadot,
 	PolkadotToBridgeHubKusama,
 	PolkadotToPolkadotBulletin,
@@ -124,8 +118,6 @@ where
 
 impl ParachainsRelayer for RialtoParachainToMillauCliBridge {}
 impl ParachainsRelayer for AssetHubWestendToMillauCliBridge {}
-impl ParachainsRelayer for BridgeHubRococoToBridgeHubWococoCliBridge {}
-impl ParachainsRelayer for BridgeHubWococoToBridgeHubRococoCliBridge {}
 impl ParachainsRelayer for BridgeHubRococoToBridgeHubWestendCliBridge {}
 impl ParachainsRelayer for BridgeHubWestendToBridgeHubRococoCliBridge {}
 impl ParachainsRelayer for BridgeHubKusamaToBridgeHubPolkadotCliBridge {}
@@ -140,10 +132,6 @@ impl RelayParachains {
 				RialtoParachainToMillauCliBridge::relay_parachains(self),
 			RelayParachainsBridge::WestendToMillau =>
 				AssetHubWestendToMillauCliBridge::relay_parachains(self),
-			RelayParachainsBridge::RococoToBridgeHubWococo =>
-				BridgeHubRococoToBridgeHubWococoCliBridge::relay_parachains(self),
-			RelayParachainsBridge::WococoToBridgeHubRococo =>
-				BridgeHubWococoToBridgeHubRococoCliBridge::relay_parachains(self),
 			RelayParachainsBridge::RococoToBridgeHubWestend =>
 				BridgeHubRococoToBridgeHubWestendCliBridge::relay_parachains(self),
 			RelayParachainsBridge::WestendToBridgeHubRococo =>

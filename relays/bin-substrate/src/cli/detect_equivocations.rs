@@ -25,10 +25,6 @@ use crate::{
 			rialto_headers_to_millau::RialtoToMillauCliBridge,
 		},
 		rialto_parachain_millau::millau_headers_to_rialto_parachain::MillauToRialtoParachainCliBridge,
-		rococo_wococo::{
-			rococo_headers_to_bridge_hub_wococo::RococoToBridgeHubWococoCliBridge,
-			wococo_headers_to_bridge_hub_rococo::WococoToBridgeHubRococoCliBridge,
-		},
 	},
 	cli::{bridge::*, chain_schema::*, PrometheusParams},
 };
@@ -61,8 +57,6 @@ pub enum DetectEquivocationsBridge {
 	MillauToRialto,
 	RialtoToMillau,
 	MillauToRialtoParachain,
-	RococoToBridgeHubWococo,
-	WococoToBridgeHubRococo,
 	KusamaToBridgeHubPolkadot,
 	PolkadotToBridgeHubKusama,
 }
@@ -86,8 +80,6 @@ where
 impl EquivocationsDetector for MillauToRialtoCliBridge {}
 impl EquivocationsDetector for RialtoToMillauCliBridge {}
 impl EquivocationsDetector for MillauToRialtoParachainCliBridge {}
-impl EquivocationsDetector for RococoToBridgeHubWococoCliBridge {}
-impl EquivocationsDetector for WococoToBridgeHubRococoCliBridge {}
 impl EquivocationsDetector for KusamaToBridgeHubPolkadotCliBridge {}
 impl EquivocationsDetector for PolkadotToBridgeHubKusamaCliBridge {}
 
@@ -99,10 +91,6 @@ impl DetectEquivocations {
 			DetectEquivocationsBridge::RialtoToMillau => RialtoToMillauCliBridge::start(self),
 			DetectEquivocationsBridge::MillauToRialtoParachain =>
 				MillauToRialtoParachainCliBridge::start(self),
-			DetectEquivocationsBridge::RococoToBridgeHubWococo =>
-				RococoToBridgeHubWococoCliBridge::start(self),
-			DetectEquivocationsBridge::WococoToBridgeHubRococo =>
-				WococoToBridgeHubRococoCliBridge::start(self),
 			DetectEquivocationsBridge::KusamaToBridgeHubPolkadot =>
 				KusamaToBridgeHubPolkadotCliBridge::start(self),
 			DetectEquivocationsBridge::PolkadotToBridgeHubKusama =>

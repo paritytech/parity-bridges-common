@@ -33,8 +33,6 @@ pub enum FullBridge {
 	RialtoToMillau,
 	MillauToRialtoParachain,
 	RialtoParachainToMillau,
-	BridgeHubRococoToBridgeHubWococo,
-	BridgeHubWococoToBridgeHubRococo,
 	BridgeHubRococoToBridgeHubWestend,
 	BridgeHubWestendToBridgeHubRococo,
 	BridgeHubKusamaToBridgeHubPolkadot,

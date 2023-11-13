@@ -14692,6 +14692,7 @@ dependencies = [
  "relay-rococo-client",
  "relay-substrate-client",
  "relay-utils",
+ "relay-westend-client",
  "rialto-runtime",
  "sp-consensus-grandpa",
  "sp-core",

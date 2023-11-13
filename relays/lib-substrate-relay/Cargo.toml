@@ -56,4 +56,5 @@ bp-rococo = { path = "../../primitives/chain-rococo" }
 pallet-transaction-payment = { git = "https://github.com/paritytech/polkadot-sdk", branch = "master" }
 relay-rialto-client = { path = "../client-rialto" }
 relay-rococo-client = { path = "../client-rococo" }
+relay-westend-client = { path = "../client-westend" }
 rialto-runtime = { path = "../../bin/rialto/runtime" }

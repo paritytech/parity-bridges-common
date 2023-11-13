@@ -60,10 +60,6 @@ use crate::{
 			rococo_parachains_to_bridge_hub_westend::BridgeHubRococoToBridgeHubWestendCliBridge,
 			westend_parachains_to_bridge_hub_rococo::BridgeHubWestendToBridgeHubRococoCliBridge,
 		},
-		rococo_wococo::{
-			rococo_parachains_to_bridge_hub_wococo::BridgeHubRococoToBridgeHubWococoCliBridge,
-			wococo_parachains_to_bridge_hub_rococo::BridgeHubWococoToBridgeHubRococoCliBridge,
-		},
 	},
 	cli::{
 		bridge::{
@@ -208,8 +204,6 @@ declare_chain_cli_schema!(Rialto, rialto);
 declare_chain_cli_schema!(RialtoParachain, rialto_parachain);
 declare_chain_cli_schema!(Rococo, rococo);
 declare_chain_cli_schema!(BridgeHubRococo, bridge_hub_rococo);
-declare_chain_cli_schema!(Wococo, wococo);
-declare_chain_cli_schema!(BridgeHubWococo, bridge_hub_wococo);
 declare_chain_cli_schema!(Westend, westend);
 declare_chain_cli_schema!(BridgeHubWestend, bridge_hub_westend);
 declare_chain_cli_schema!(Kusama, kusama);
@@ -222,16 +216,6 @@ declare_chain_cli_schema!(MillauHeadersToRialto, millau_headers_to_rialto);
 declare_chain_cli_schema!(MillauHeadersToRialtoParachain, millau_headers_to_rialto_parachain);
 declare_chain_cli_schema!(RialtoHeadersToMillau, rialto_headers_to_millau);
 declare_chain_cli_schema!(RialtoParachainsToMillau, rialto_parachains_to_millau);
-declare_chain_cli_schema!(RococoHeadersToBridgeHubWococo, rococo_headers_to_bridge_hub_wococo);
-declare_chain_cli_schema!(
-	RococoParachainsToBridgeHubWococo,
-	rococo_parachains_to_bridge_hub_wococo
-);
-declare_chain_cli_schema!(WococoHeadersToBridgeHubRococo, wococo_headers_to_bridge_hub_rococo);
-declare_chain_cli_schema!(
-	WococoParachainsToBridgeHubRococo,
-	wococo_parachains_to_bridge_hub_rococo
-);
 declare_chain_cli_schema!(RococoHeadersToBridgeHubWestend, rococo_headers_to_bridge_hub_westend);
 declare_chain_cli_schema!(
 	RococoParachainsToBridgeHubWestend,
@@ -264,7 +248,6 @@ declare_chain_cli_schema!(
 // All supported bridges.
 declare_relay_to_relay_bridge_schema!(Millau, Rialto);
 declare_relay_to_parachain_bridge_schema!(Millau, RialtoParachain, Rialto);
-declare_parachain_to_parachain_bridge_schema!(BridgeHubRococo, Rococo, BridgeHubWococo, Wococo);
 declare_parachain_to_parachain_bridge_schema!(BridgeHubRococo, Rococo, BridgeHubWestend, Westend);
 declare_parachain_to_parachain_bridge_schema!(BridgeHubKusama, Kusama, BridgeHubPolkadot, Polkadot);
 declare_relay_to_parachain_bridge_schema!(PolkadotBulletin, BridgeHubPolkadot, Polkadot);
@@ -486,32 +469,6 @@ impl Full2WayBridge for MillauRialtoParachainFull2WayBridge {
 	}
 }
 
-/// BridgeHubRococo <> BridgeHubWococo complex relay.
-pub struct BridgeHubRococoBridgeHubWococoFull2WayBridge {
-	base: <Self as Full2WayBridge>::Base,
-}
-
-#[async_trait]
-impl Full2WayBridge for BridgeHubRococoBridgeHubWococoFull2WayBridge {
-	type Base = ParachainToParachainBridge<Self::L2R, Self::R2L>;
-	type Left = relay_bridge_hub_rococo_client::BridgeHubRococo;
-	type Right = relay_bridge_hub_wococo_client::BridgeHubWococo;
-	type L2R = BridgeHubRococoToBridgeHubWococoCliBridge;
-	type R2L = BridgeHubWococoToBridgeHubRococoCliBridge;
-
-	fn new(base: Self::Base) -> anyhow::Result<Self> {
-		Ok(Self { base })
-	}
-
-	fn base(&self) -> &Self::Base {
-		&self.base
-	}
-
-	fn mut_base(&mut self) -> &mut Self::Base {
-		&mut self.base
-	}
-}
-
 /// BridgeHubRococo <> BridgeHubWestend complex relay.
 pub struct BridgeHubRococoBridgeHubWestendFull2WayBridge {
 	base: <Self as Full2WayBridge>::Base,
@@ -597,8 +554,6 @@ pub enum RelayHeadersAndMessages {
 	MillauRialto(MillauRialtoHeadersAndMessages),
 	/// Millau <> RialtoParachain relay.
 	MillauRialtoParachain(MillauRialtoParachainHeadersAndMessages),
-	/// BridgeHubRococo <> BridgeHubWococo relay.
-	BridgeHubRococoBridgeHubWococo(BridgeHubRococoBridgeHubWococoHeadersAndMessages),
 	/// BridgeHubKusama <> BridgeHubPolkadot relay.
 	BridgeHubKusamaBridgeHubPolkadot(BridgeHubKusamaBridgeHubPolkadotHeadersAndMessages),
 	/// `PolkadotBulletin` <> `BridgeHubPolkadot` relay.
@@ -615,10 +570,6 @@ impl RelayHeadersAndMessages {
 				MillauRialtoFull2WayBridge::new(params.into_bridge().await?)?.run().await,
 			RelayHeadersAndMessages::MillauRialtoParachain(params) =>
 				MillauRialtoParachainFull2WayBridge::new(params.into_bridge().await?)?
-					.run()
-					.await,
-			RelayHeadersAndMessages::BridgeHubRococoBridgeHubWococo(params) =>
-				BridgeHubRococoBridgeHubWococoFull2WayBridge::new(params.into_bridge().await?)?
 					.run()
 					.await,
 			RelayHeadersAndMessages::BridgeHubRococoBridgeHubWestend(params) =>

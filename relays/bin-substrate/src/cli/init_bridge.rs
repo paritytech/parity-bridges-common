@@ -36,10 +36,6 @@ use crate::{
 			rococo_headers_to_bridge_hub_westend::RococoToBridgeHubWestendCliBridge,
 			westend_headers_to_bridge_hub_rococo::WestendToBridgeHubRococoCliBridge,
 		},
-		rococo_wococo::{
-			rococo_headers_to_bridge_hub_wococo::RococoToBridgeHubWococoCliBridge,
-			wococo_headers_to_bridge_hub_rococo::WococoToBridgeHubRococoCliBridge,
-		},
 		westend_millau::westend_headers_to_millau::WestendToMillauCliBridge,
 	},
 	cli::{bridge::CliBridgeBase, chain_schema::*},
@@ -76,8 +72,6 @@ pub enum InitBridgeName {
 	RialtoToMillau,
 	WestendToMillau,
 	MillauToRialtoParachain,
-	RococoToBridgeHubWococo,
-	WococoToBridgeHubRococo,
 	KusamaToBridgeHubPolkadot,
 	PolkadotToBridgeHubKusama,
 	PolkadotToPolkadotBulletin,
@@ -192,30 +186,6 @@ impl BridgeInitializer for WestendToMillauCliBridge {
 	}
 }
 
-impl BridgeInitializer for RococoToBridgeHubWococoCliBridge {
-	type Engine = GrandpaFinalityEngine<Self::Source>;
-
-	fn encode_init_bridge(
-		init_data: <Self::Engine as Engine<Self::Source>>::InitializationData,
-	) -> <Self::Target as Chain>::Call {
-		relay_bridge_hub_wococo_client::RuntimeCall::BridgeRococoGrandpa(
-			relay_bridge_hub_wococo_client::BridgeGrandpaCall::initialize { init_data },
-		)
-	}
-}
-
-impl BridgeInitializer for WococoToBridgeHubRococoCliBridge {
-	type Engine = GrandpaFinalityEngine<Self::Source>;
-
-	fn encode_init_bridge(
-		init_data: <Self::Engine as Engine<Self::Source>>::InitializationData,
-	) -> <Self::Target as Chain>::Call {
-		relay_bridge_hub_rococo_client::RuntimeCall::BridgeWococoGrandpa(
-			relay_bridge_hub_rococo_client::BridgeGrandpaCall::initialize { init_data },
-		)
-	}
-}
-
 impl BridgeInitializer for RococoToBridgeHubWestendCliBridge {
 	type Engine = GrandpaFinalityEngine<Self::Source>;
 
@@ -310,10 +280,6 @@ impl InitBridge {
 			InitBridgeName::WestendToMillau => WestendToMillauCliBridge::init_bridge(self),
 			InitBridgeName::MillauToRialtoParachain =>
 				MillauToRialtoParachainCliBridge::init_bridge(self),
-			InitBridgeName::RococoToBridgeHubWococo =>
-				RococoToBridgeHubWococoCliBridge::init_bridge(self),
-			InitBridgeName::WococoToBridgeHubRococo =>
-				WococoToBridgeHubRococoCliBridge::init_bridge(self),
 			InitBridgeName::KusamaToBridgeHubPolkadot =>
 				KusamaToBridgeHubPolkadotCliBridge::init_bridge(self),
 			InitBridgeName::PolkadotToBridgeHubKusama =>
