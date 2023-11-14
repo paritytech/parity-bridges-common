@@ -17,7 +17,6 @@ color-eyre = "0.6.1"
 proc-macro2 = "1.0.56"
 quote = "1.0.28"
 subxt-codegen = { git = "https://github.com/paritytech/subxt", branch = "master", default-features = false, features = ["fetch-metadata"] }
-syn = "1.0"
 wasm-loader = { git = "https://github.com/chevdor/subwasm", branch = "master" }
 wasm-testbed = { git = "https://github.com/chevdor/subwasm", branch = "master" }
 
