@@ -20,6 +20,10 @@ use crate::bridges::{
 		polkadot_parachains_to_bridge_hub_kusama::BridgeHubPolkadotToBridgeHubKusamaCliBridge,
 	},
 	polkadot_bulletin::polkadot_parachains_to_polkadot_bulletin::PolkadotToPolkadotBulletinCliBridge,
+	rococo_westend::{
+		rococo_parachains_to_bridge_hub_westend::BridgeHubRococoToBridgeHubWestendCliBridge,
+		westend_parachains_to_bridge_hub_rococo::BridgeHubWestendToBridgeHubRococoCliBridge,
+	},
 	rococo_wococo::{
 		rococo_parachains_to_bridge_hub_wococo::BridgeHubRococoToBridgeHubWococoCliBridge,
 		wococo_parachains_to_bridge_hub_rococo::BridgeHubWococoToBridgeHubRococoCliBridge,
@@ -69,6 +73,8 @@ pub enum RelayParachainsBridge {
 	KusamaToBridgeHubPolkadot,
 	PolkadotToBridgeHubKusama,
 	PolkadotToPolkadotBulletin,
+	RococoToBridgeHubWestend,
+	WestendToBridgeHubRococo,
 }
 
 #[async_trait]
@@ -114,6 +120,8 @@ where
 
 impl ParachainsRelayer for BridgeHubRococoToBridgeHubWococoCliBridge {}
 impl ParachainsRelayer for BridgeHubWococoToBridgeHubRococoCliBridge {}
+impl ParachainsRelayer for BridgeHubRococoToBridgeHubWestendCliBridge {}
+impl ParachainsRelayer for BridgeHubWestendToBridgeHubRococoCliBridge {}
 impl ParachainsRelayer for BridgeHubKusamaToBridgeHubPolkadotCliBridge {}
 impl ParachainsRelayer for BridgeHubPolkadotToBridgeHubKusamaCliBridge {}
 impl ParachainsRelayer for PolkadotToPolkadotBulletinCliBridge {}
@@ -126,6 +134,10 @@ impl RelayParachains {
 				BridgeHubRococoToBridgeHubWococoCliBridge::relay_parachains(self),
 			RelayParachainsBridge::WococoToBridgeHubRococo =>
 				BridgeHubWococoToBridgeHubRococoCliBridge::relay_parachains(self),
+			RelayParachainsBridge::RococoToBridgeHubWestend =>
+				BridgeHubRococoToBridgeHubWestendCliBridge::relay_parachains(self),
+			RelayParachainsBridge::WestendToBridgeHubRococo =>
+				BridgeHubWestendToBridgeHubRococoCliBridge::relay_parachains(self),
 			RelayParachainsBridge::KusamaToBridgeHubPolkadot =>
 				BridgeHubKusamaToBridgeHubPolkadotCliBridge::relay_parachains(self),
 			RelayParachainsBridge::PolkadotToBridgeHubKusama =>

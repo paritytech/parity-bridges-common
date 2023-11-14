@@ -47,6 +47,10 @@ use crate::{
 			polkadot_bulletin_headers_to_bridge_hub_polkadot::PolkadotBulletinToBridgeHubPolkadotCliBridge,
 			polkadot_parachains_to_polkadot_bulletin::PolkadotToPolkadotBulletinCliBridge,
 		},
+		rococo_westend::{
+			rococo_parachains_to_bridge_hub_westend::BridgeHubRococoToBridgeHubWestendCliBridge,
+			westend_parachains_to_bridge_hub_rococo::BridgeHubWestendToBridgeHubRococoCliBridge,
+		},
 		rococo_wococo::{
 			rococo_parachains_to_bridge_hub_wococo::BridgeHubRococoToBridgeHubWococoCliBridge,
 			wococo_parachains_to_bridge_hub_rococo::BridgeHubWococoToBridgeHubRococoCliBridge,
@@ -194,6 +198,8 @@ declare_chain_cli_schema!(Rococo, rococo);
 declare_chain_cli_schema!(BridgeHubRococo, bridge_hub_rococo);
 declare_chain_cli_schema!(Wococo, wococo);
 declare_chain_cli_schema!(BridgeHubWococo, bridge_hub_wococo);
+declare_chain_cli_schema!(Westend, westend);
+declare_chain_cli_schema!(BridgeHubWestend, bridge_hub_westend);
 declare_chain_cli_schema!(Kusama, kusama);
 declare_chain_cli_schema!(BridgeHubKusama, bridge_hub_kusama);
 declare_chain_cli_schema!(Polkadot, polkadot);
@@ -201,6 +207,7 @@ declare_chain_cli_schema!(BridgeHubPolkadot, bridge_hub_polkadot);
 declare_chain_cli_schema!(PolkadotBulletin, polkadot_bulletin);
 // All supported bridges.
 declare_parachain_to_parachain_bridge_schema!(BridgeHubRococo, Rococo, BridgeHubWococo, Wococo);
+declare_parachain_to_parachain_bridge_schema!(BridgeHubRococo, Rococo, BridgeHubWestend, Westend);
 declare_parachain_to_parachain_bridge_schema!(BridgeHubKusama, Kusama, BridgeHubPolkadot, Polkadot);
 declare_relay_to_parachain_bridge_schema!(PolkadotBulletin, BridgeHubPolkadot, Polkadot);
 
@@ -399,6 +406,32 @@ impl Full2WayBridge for BridgeHubRococoBridgeHubWococoFull2WayBridge {
 	}
 }
 
+/// BridgeHubRococo <> BridgeHubWestend complex relay.
+pub struct BridgeHubRococoBridgeHubWestendFull2WayBridge {
+	base: <Self as Full2WayBridge>::Base,
+}
+
+#[async_trait]
+impl Full2WayBridge for BridgeHubRococoBridgeHubWestendFull2WayBridge {
+	type Base = ParachainToParachainBridge<Self::L2R, Self::R2L>;
+	type Left = relay_bridge_hub_rococo_client::BridgeHubRococo;
+	type Right = relay_bridge_hub_westend_client::BridgeHubWestend;
+	type L2R = BridgeHubRococoToBridgeHubWestendCliBridge;
+	type R2L = BridgeHubWestendToBridgeHubRococoCliBridge;
+
+	fn new(base: Self::Base) -> anyhow::Result<Self> {
+		Ok(Self { base })
+	}
+
+	fn base(&self) -> &Self::Base {
+		&self.base
+	}
+
+	fn mut_base(&mut self) -> &mut Self::Base {
+		&mut self.base
+	}
+}
+
 /// BridgeHubKusama <> BridgeHubPolkadot complex relay.
 pub struct BridgeHubKusamaBridgeHubPolkadotFull2WayBridge {
 	base: <Self as Full2WayBridge>::Base,
@@ -460,6 +493,8 @@ pub enum RelayHeadersAndMessages {
 	BridgeHubKusamaBridgeHubPolkadot(BridgeHubKusamaBridgeHubPolkadotHeadersAndMessages),
 	/// `PolkadotBulletin` <> `BridgeHubPolkadot` relay.
 	PolkadotBulletinBridgeHubPolkadot(PolkadotBulletinBridgeHubPolkadotHeadersAndMessages),
+	/// BridgeHubRococo <> BridgeHubWestend relay.
+	BridgeHubRococoBridgeHubWestend(BridgeHubRococoBridgeHubWestendHeadersAndMessages),
 }
 
 impl RelayHeadersAndMessages {
@@ -468,6 +503,10 @@ impl RelayHeadersAndMessages {
 		match self {
 			RelayHeadersAndMessages::BridgeHubRococoBridgeHubWococo(params) =>
 				BridgeHubRococoBridgeHubWococoFull2WayBridge::new(params.into_bridge().await?)?
+					.run()
+					.await,
+			RelayHeadersAndMessages::BridgeHubRococoBridgeHubWestend(params) =>
+				BridgeHubRococoBridgeHubWestendFull2WayBridge::new(params.into_bridge().await?)?
 					.run()
 					.await,
 			RelayHeadersAndMessages::BridgeHubKusamaBridgeHubPolkadot(params) =>

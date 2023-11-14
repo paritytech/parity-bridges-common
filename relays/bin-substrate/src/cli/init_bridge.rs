@@ -27,6 +27,10 @@ use crate::{
 			polkadot_bulletin_headers_to_bridge_hub_polkadot::PolkadotBulletinToBridgeHubPolkadotCliBridge,
 			polkadot_headers_to_polkadot_bulletin::PolkadotToPolkadotBulletinCliBridge,
 		},
+		rococo_westend::{
+			rococo_headers_to_bridge_hub_westend::RococoToBridgeHubWestendCliBridge,
+			westend_headers_to_bridge_hub_rococo::WestendToBridgeHubRococoCliBridge,
+		},
 		rococo_wococo::{
 			rococo_headers_to_bridge_hub_wococo::RococoToBridgeHubWococoCliBridge,
 			wococo_headers_to_bridge_hub_rococo::WococoToBridgeHubRococoCliBridge,
@@ -68,6 +72,8 @@ pub enum InitBridgeName {
 	PolkadotToBridgeHubKusama,
 	PolkadotToPolkadotBulletin,
 	PolkadotBulletinToBridgeHubPolkadot,
+	RococoToBridgeHubWestend,
+	WestendToBridgeHubRococo,
 }
 
 #[async_trait]
@@ -129,6 +135,32 @@ impl BridgeInitializer for WococoToBridgeHubRococoCliBridge {
 		init_data: <Self::Engine as Engine<Self::Source>>::InitializationData,
 	) -> <Self::Target as Chain>::Call {
 		relay_bridge_hub_rococo_client::RuntimeCall::BridgeWococoGrandpa(
+			relay_bridge_hub_rococo_client::BridgeGrandpaCall::initialize { init_data },
+		)
+	}
+}
+
+impl BridgeInitializer for RococoToBridgeHubWestendCliBridge {
+	type Engine = GrandpaFinalityEngine<Self::Source>;
+
+	fn encode_init_bridge(
+		init_data: <Self::Engine as Engine<Self::Source>>::InitializationData,
+	) -> <Self::Target as Chain>::Call {
+		relay_bridge_hub_westend_client::runtime::Call::BridgeRococoGrandpa(
+			relay_bridge_hub_westend_client::runtime::BridgeRococoGrandpaCall::initialize {
+				init_data,
+			},
+		)
+	}
+}
+
+impl BridgeInitializer for WestendToBridgeHubRococoCliBridge {
+	type Engine = GrandpaFinalityEngine<Self::Source>;
+
+	fn encode_init_bridge(
+		init_data: <Self::Engine as Engine<Self::Source>>::InitializationData,
+	) -> <Self::Target as Chain>::Call {
+		relay_bridge_hub_rococo_client::RuntimeCall::BridgeWestendGrandpa(
 			relay_bridge_hub_rococo_client::BridgeGrandpaCall::initialize { init_data },
 		)
 	}
@@ -209,6 +241,10 @@ impl InitBridge {
 				PolkadotToPolkadotBulletinCliBridge::init_bridge(self),
 			InitBridgeName::PolkadotBulletinToBridgeHubPolkadot =>
 				PolkadotBulletinToBridgeHubPolkadotCliBridge::init_bridge(self),
+			InitBridgeName::RococoToBridgeHubWestend =>
+				RococoToBridgeHubWestendCliBridge::init_bridge(self),
+			InitBridgeName::WestendToBridgeHubRococo =>
+				WestendToBridgeHubRococoCliBridge::init_bridge(self),
 		}
 		.await
 	}
