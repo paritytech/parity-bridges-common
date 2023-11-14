@@ -162,13 +162,11 @@ where
 	)> {
 		<L2R as ParachainToRelayHeadersCliBridge>::RelayFinality::start_relay_guards(
 			&self.common.right.client,
-			&self.common.right.tx_params,
 			self.common.right.client.can_start_version_guard(),
 		)
 		.await?;
 		<R2L as ParachainToRelayHeadersCliBridge>::RelayFinality::start_relay_guards(
 			&self.common.left.client,
-			&self.common.left.tx_params,
 			self.common.left.client.can_start_version_guard(),
 		)
 		.await?;
