@@ -24,7 +24,7 @@ use sp_runtime::StateVersion;
 
 use bp_header_chain::ChainWithGrandpa;
 use bp_runtime::{decl_bridge_finality_runtime_apis, Chain, ChainId};
-use frame_support::{parameter_types, weights::Weight};
+use frame_support::weights::Weight;
 
 /// Westend Chain
 pub struct Westend;
