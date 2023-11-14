@@ -598,7 +598,7 @@ dependencies = [
  "log",
  "parking",
  "polling",
- "rustix 0.37.23",
+ "rustix 0.37.27",
  "slab",
  "socket2 0.4.9",
  "waker-fn",
@@ -638,7 +638,7 @@ dependencies = [
  "cfg-if 1.0.0",
  "event-listener",
  "futures-lite",
- "rustix 0.37.23",
+ "rustix 0.37.27",
  "signal-hook",
  "windows-sys 0.48.0",
 ]
@@ -1050,16 +1050,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "bp-asset-hub-wococo"
-version = "0.1.0"
-dependencies = [
- "bp-xcm-bridge-hub-router",
- "frame-support",
- "parity-scale-codec",
- "scale-info",
-]
-
-[[package]]
 name = "bp-beefy"
 version = "0.1.0"
 dependencies = [
@@ -1131,19 +1121,6 @@ dependencies = [
 
 [[package]]
 name = "bp-bridge-hub-westend"
-version = "0.1.0"
-dependencies = [
- "bp-bridge-hub-cumulus",
- "bp-messages",
- "bp-runtime",
- "frame-support",
- "sp-api",
- "sp-runtime",
- "sp-std 8.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
-]
-
-[[package]]
-name = "bp-bridge-hub-wococo"
 version = "0.1.0"
 dependencies = [
  "bp-bridge-hub-cumulus",
@@ -1340,19 +1317,6 @@ version = "0.1.0"
 dependencies = [
  "bp-header-chain",
  "bp-polkadot-core",
- "bp-runtime",
- "frame-support",
- "sp-api",
- "sp-std 8.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
-]
-
-[[package]]
-name = "bp-wococo"
-version = "0.1.0"
-dependencies = [
- "bp-header-chain",
- "bp-polkadot-core",
- "bp-rococo",
  "bp-runtime",
  "frame-support",
  "sp-api",
@@ -4931,7 +4895,7 @@ version = "0.6.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ffc89ccdc6e10d6907450f753537ebc5c5d3460d2e4e62ea74bd571db62c0f9e"
 dependencies = [
- "rustix 0.37.23",
+ "rustix 0.37.27",
 ]
 
 [[package]]
@@ -6856,13 +6820,11 @@ name = "relay-bridge-hub-rococo-client"
 version = "0.1.0"
 dependencies = [
  "bp-bridge-hub-rococo",
- "bp-bridge-hub-wococo",
  "bp-header-chain",
  "bp-messages",
  "bp-parachains",
  "bp-polkadot-core",
  "bp-runtime",
- "bp-wococo",
  "bridge-runtime-common",
  "parity-scale-codec",
  "relay-substrate-client",
@@ -6887,29 +6849,6 @@ dependencies = [
  "bp-runtime",
  "bridge-runtime-common",
  "parity-scale-codec",
- "relay-substrate-client",
- "scale-info",
- "sp-consensus-grandpa",
- "sp-core",
- "sp-runtime",
- "sp-weights",
- "subxt",
-]
-
-[[package]]
-name = "relay-bridge-hub-wococo-client"
-version = "0.1.0"
-dependencies = [
- "bp-bridge-hub-rococo",
- "bp-bridge-hub-wococo",
- "bp-header-chain",
- "bp-messages",
- "bp-parachains",
- "bp-polkadot-core",
- "bp-runtime",
- "bridge-runtime-common",
- "parity-scale-codec",
- "relay-bridge-hub-rococo-client",
  "relay-substrate-client",
  "scale-info",
  "sp-consensus-grandpa",
@@ -7084,22 +7023,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "relay-wococo-client"
-version = "0.1.0"
-dependencies = [
- "bp-polkadot-core",
- "bp-runtime",
- "bp-wococo",
- "parity-scale-codec",
- "relay-rococo-client",
- "relay-substrate-client",
- "relay-utils",
- "sp-core",
- "sp-runtime",
- "sp-session",
-]
-
-[[package]]
 name = "resolv-conf"
 version = "0.7.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -7263,9 +7186,9 @@ dependencies = [
 
 [[package]]
 name = "rustix"
-version = "0.37.23"
+version = "0.37.27"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4d69718bf81c6127a49dc64e44a742e8bb9213c0ff8869a22c308f84c1d4ab06"
+checksum = "fea8ca367a3a01fe35e6943c400addf443c0f57670e6ec51196f71a4b8762dd2"
 dependencies = [
  "bitflags 1.3.2",
  "errno",
@@ -9311,7 +9234,6 @@ dependencies = [
  "relay-bridge-hub-polkadot-client",
  "relay-bridge-hub-rococo-client",
  "relay-bridge-hub-westend-client",
- "relay-bridge-hub-wococo-client",
  "relay-kusama-client",
  "relay-polkadot-bulletin-client",
  "relay-polkadot-client",
@@ -9319,7 +9241,6 @@ dependencies = [
  "relay-substrate-client",
  "relay-utils",
  "relay-westend-client",
- "relay-wococo-client",
  "signal-hook",
  "signal-hook-async-std",
  "sp-core",
@@ -9345,7 +9266,6 @@ dependencies = [
  "bp-relayers",
  "bp-rococo",
  "bp-runtime",
- "bp-wococo",
  "bridge-runtime-common",
  "equivocation-detector",
  "finality-grandpa",
@@ -9366,7 +9286,7 @@ dependencies = [
  "parachains-relay",
  "parity-scale-codec",
  "relay-bridge-hub-rococo-client",
- "relay-bridge-hub-wococo-client",
+ "relay-bridge-hub-westend-client",
  "relay-rococo-client",
  "relay-substrate-client",
  "relay-utils",
