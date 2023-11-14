@@ -644,7 +644,7 @@ mod tests {
 			msgs_to_refine.push((payload, out_msg_details));
 		}
 
-		let maybe_batches = split_msgs_to_refine::<BridgeHubRococo, BridgeHubWococo>(
+		let maybe_batches = split_msgs_to_refine::<BridgeHubRococo, BridgeHubWestend>(
 			Default::default(),
 			msgs_to_refine,
 		);
