@@ -31,6 +31,8 @@ use substrate_relay_helper::{
 pub enum FullBridge {
 	BridgeHubRococoToBridgeHubWococo,
 	BridgeHubWococoToBridgeHubRococo,
+	BridgeHubRococoToBridgeHubWestend,
+	BridgeHubWestendToBridgeHubRococo,
 	BridgeHubKusamaToBridgeHubPolkadot,
 	BridgeHubPolkadotToBridgeHubKusama,
 	PolkadotBulletinToBridgeHubPolkadot,

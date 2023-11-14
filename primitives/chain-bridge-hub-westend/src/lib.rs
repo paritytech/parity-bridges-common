@@ -14,10 +14,9 @@
 // You should have received a copy of the GNU General Public License
 // along with Parity Bridges Common.  If not, see <http://www.gnu.org/licenses/>.
 
-//! Module with configuration which reflects BridgeHubRococo runtime setup (AccountId, Headers,
-//! Hashes...)
+//! Module with configuration which reflects BridgeHubWestend runtime setup
+//! (AccountId, Headers, Hashes...)
 
-#![warn(missing_docs)]
 #![cfg_attr(not(feature = "std"), no_std)]
 
 pub use bp_bridge_hub_cumulus::*;
@@ -26,14 +25,14 @@ use bp_runtime::{
 	decl_bridge_finality_runtime_apis, decl_bridge_messages_runtime_apis, Chain, ChainId, Parachain,
 };
 use frame_support::dispatch::DispatchClass;
-use sp_runtime::{MultiAddress, MultiSigner, RuntimeDebug, StateVersion};
+use sp_runtime::{RuntimeDebug, StateVersion};
 
-/// BridgeHubRococo parachain.
+/// BridgeHubWestend parachain.
 #[derive(RuntimeDebug)]
-pub struct BridgeHubRococo;
+pub struct BridgeHubWestend;
 
-impl Chain for BridgeHubRococo {
-	const ID: ChainId = *b"bhro";
+impl Chain for BridgeHubWestend {
+	const ID: ChainId = *b"bhwd";
 
 	type BlockNumber = BlockNumber;
 	type Hash = Hash;
@@ -44,7 +43,6 @@ impl Chain for BridgeHubRococo {
 	type Balance = Balance;
 	type Nonce = Nonce;
 	type Signature = Signature;
-
 	const STATE_VERSION: StateVersion = StateVersion::V1;
 
 	fn max_extrinsic_size() -> u32 {
@@ -59,13 +57,13 @@ impl Chain for BridgeHubRococo {
 	}
 }
 
-impl Parachain for BridgeHubRococo {
-	const PARACHAIN_ID: u32 = BRIDGE_HUB_ROCOCO_PARACHAIN_ID;
+impl Parachain for BridgeHubWestend {
+	const PARACHAIN_ID: u32 = BRIDGE_HUB_WESTEND_PARACHAIN_ID;
 }
 
-impl ChainWithMessages for BridgeHubRococo {
+impl ChainWithMessages for BridgeHubWestend {
 	const WITH_CHAIN_MESSAGES_PALLET_NAME: &'static str =
-		WITH_BRIDGE_HUB_ROCOCO_MESSAGES_PALLET_NAME;
+		WITH_BRIDGE_HUB_WESTEND_MESSAGES_PALLET_NAME;
 
 	const MAX_UNREWARDED_RELAYERS_IN_CONFIRMATION_TX: MessageNonce =
 		MAX_UNREWARDED_RELAYERS_IN_CONFIRMATION_TX;
@@ -73,27 +71,18 @@ impl ChainWithMessages for BridgeHubRococo {
 		MAX_UNCONFIRMED_MESSAGES_IN_CONFIRMATION_TX;
 }
 
-/// Public key of the chain account that may be used to verify signatures.
-pub type AccountSigner = MultiSigner;
+/// Identifier of BridgeHubWestend in the Westend relay chain.
+pub const BRIDGE_HUB_WESTEND_PARACHAIN_ID: u32 = 1002;
 
-/// The address format for describing accounts.
-pub type Address = MultiAddress<AccountId, ()>;
+/// Name of the With-BridgeHubWestend messages pallet instance that is deployed at bridged chains.
+pub const WITH_BRIDGE_HUB_WESTEND_MESSAGES_PALLET_NAME: &str = "BridgeWestendMessages";
 
-/// Identifier of BridgeHubRococo in the Rococo relay chain.
-pub const BRIDGE_HUB_ROCOCO_PARACHAIN_ID: u32 = 1013;
-
-/// Name of the With-BridgeHubRococo messages pallet instance that is deployed at bridged chains.
-pub const WITH_BRIDGE_HUB_ROCOCO_MESSAGES_PALLET_NAME: &str = "BridgeRococoMessages";
-
-/// Name of the With-BridgeHubRococo bridge-relayers pallet instance that is deployed at bridged
+/// Name of the With-BridgeHubWestend bridge-relayers pallet instance that is deployed at bridged
 /// chains.
-pub const WITH_BRIDGE_HUB_ROCOCO_RELAYERS_PALLET_NAME: &str = "BridgeRelayers";
+pub const WITH_BRIDGE_HUB_WESTEND_RELAYERS_PALLET_NAME: &str = "BridgeRelayers";
 
-/// Pallet index of `BridgeWococoMessages: pallet_bridge_messages::<Instance1>`.
-pub const WITH_BRIDGE_ROCOCO_TO_WOCOCO_MESSAGES_PALLET_INDEX: u8 = 46;
+/// Pallet index of `BridgeRococoMessages: pallet_bridge_messages::<Instance1>`.
+pub const WITH_BRIDGE_WESTEND_TO_ROCOCO_MESSAGES_PALLET_INDEX: u8 = 44;
 
-/// Pallet index of `BridgeWestendMessages: pallet_bridge_messages::<Instance3>`.
-pub const WITH_BRIDGE_ROCOCO_TO_WESTEND_MESSAGES_PALLET_INDEX: u8 = 51;
-
-decl_bridge_finality_runtime_apis!(bridge_hub_rococo);
-decl_bridge_messages_runtime_apis!(bridge_hub_rococo);
+decl_bridge_finality_runtime_apis!(bridge_hub_westend);
+decl_bridge_messages_runtime_apis!(bridge_hub_westend);
