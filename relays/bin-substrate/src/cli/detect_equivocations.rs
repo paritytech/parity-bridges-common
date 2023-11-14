@@ -15,9 +15,15 @@
 // along with Parity Bridges Common.  If not, see <http://www.gnu.org/licenses/>.
 
 use crate::{
-	bridges::kusama_polkadot::{
-		kusama_headers_to_bridge_hub_polkadot::KusamaToBridgeHubPolkadotCliBridge,
-		polkadot_headers_to_bridge_hub_kusama::PolkadotToBridgeHubKusamaCliBridge,
+	bridges::{
+		kusama_polkadot::{
+			kusama_headers_to_bridge_hub_polkadot::KusamaToBridgeHubPolkadotCliBridge,
+			polkadot_headers_to_bridge_hub_kusama::PolkadotToBridgeHubKusamaCliBridge,
+		},
+		rococo_westend::{
+			rococo_headers_to_bridge_hub_westend::RococoToBridgeHubWestendCliBridge,
+			westend_headers_to_bridge_hub_rococo::WestendToBridgeHubRococoCliBridge,
+		},
 	},
 	cli::{bridge::*, chain_schema::*, PrometheusParams},
 };
@@ -49,6 +55,8 @@ pub struct DetectEquivocations {
 pub enum DetectEquivocationsBridge {
 	KusamaToBridgeHubPolkadot,
 	PolkadotToBridgeHubKusama,
+	RococoToBridgeHubWestend,
+	WestendToBridgeHubRococo,
 }
 
 #[async_trait]
@@ -76,6 +84,8 @@ where
 
 impl EquivocationsDetector for KusamaToBridgeHubPolkadotCliBridge {}
 impl EquivocationsDetector for PolkadotToBridgeHubKusamaCliBridge {}
+impl EquivocationsDetector for RococoToBridgeHubWestendCliBridge {}
+impl EquivocationsDetector for WestendToBridgeHubRococoCliBridge {}
 
 impl DetectEquivocations {
 	/// Run the command.
@@ -85,6 +95,10 @@ impl DetectEquivocations {
 				KusamaToBridgeHubPolkadotCliBridge::start(self),
 			DetectEquivocationsBridge::PolkadotToBridgeHubKusama =>
 				PolkadotToBridgeHubKusamaCliBridge::start(self),
+			DetectEquivocationsBridge::RococoToBridgeHubWestend =>
+				RococoToBridgeHubWestendCliBridge::start(self),
+			DetectEquivocationsBridge::WestendToBridgeHubRococo =>
+				WestendToBridgeHubRococoCliBridge::start(self),
 		}
 		.await
 	}
