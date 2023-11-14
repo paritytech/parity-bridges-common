@@ -37,7 +37,6 @@ bp-polkadot-core = { path = "../../primitives/polkadot-core" }
 bp-test-utils = { path = "../../primitives/test-utils" }
 pallet-balances = { git = "https://github.com/paritytech/polkadot-sdk", branch = "master" }
 pallet-utility = { git = "https://github.com/paritytech/polkadot-sdk", branch = "master" }
-sp-core = { git = "https://github.com/paritytech/polkadot-sdk", branch = "master" }
 sp-io = { git = "https://github.com/paritytech/polkadot-sdk", branch = "master" }
 
 [features]
