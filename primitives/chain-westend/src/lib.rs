@@ -62,10 +62,6 @@ impl ChainWithGrandpa for Westend {
 	const AVERAGE_HEADER_SIZE_IN_JUSTIFICATION: u32 = AVERAGE_HEADER_SIZE_IN_JUSTIFICATION;
 }
 
-parameter_types! {
-	pub const SS58Prefix: u8 = 42;
-}
-
 // The SignedExtension used by Westend.
 pub use bp_polkadot_core::CommonSignedExtension as SignedExtension;
 
