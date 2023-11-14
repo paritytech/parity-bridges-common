@@ -30,14 +30,14 @@ use bp_relayers::{
 use bp_runtime::{messages::MessageDispatchResult, Chain, ChainId, Parachain};
 use codec::Encode;
 use frame_support::{
-	parameter_types,
+	derive_impl, parameter_types,
 	traits::fungible::Mutate,
 	weights::{ConstantMultiplier, IdentityFee, RuntimeDbWeight, Weight},
 };
 use pallet_transaction_payment::Multiplier;
-use sp_core::{ConstU64, ConstU8, H256};
 use sp_runtime::{
-	traits::{BlakeTwo256, ConstU32, IdentityLookup},
+	testing::H256,
+	traits::{BlakeTwo256, ConstU32, ConstU64, ConstU8},
 	transaction_validity::TransactionPriority,
 	BuildStorage, FixedPointNumber, Perquintill, StateVersion,
 };
@@ -202,30 +202,12 @@ parameter_types! {
 	pub PriorityBoostForActiveLaneRelayer: TransactionPriority = 1;
 }
 
+#[derive_impl(frame_system::config_preludes::TestDefaultConfig as frame_system::DefaultConfig)]
 impl frame_system::Config for TestRuntime {
-	type RuntimeOrigin = RuntimeOrigin;
-	type Nonce = u64;
-	type RuntimeCall = RuntimeCall;
 	type Block = ThisChainBlock;
-	type Hash = H256;
-	type Hashing = BlakeTwo256;
-	type AccountId = ThisChainAccountId;
-	type Lookup = IdentityLookup<Self::AccountId>;
-	type RuntimeEvent = RuntimeEvent;
-	type BlockHashCount = frame_support::traits::ConstU32<250>;
-	type Version = ();
-	type PalletInfo = PalletInfo;
+	type BlockHashCount = ConstU32<256>;
 	type AccountData = pallet_balances::AccountData<ThisChainBalance>;
-	type OnNewAccount = ();
-	type OnKilledAccount = ();
-	type BaseCallFilter = frame_support::traits::Everything;
-	type SystemWeightInfo = ();
-	type BlockWeights = ();
-	type BlockLength = ();
 	type DbWeight = DbWeight;
-	type SS58Prefix = ();
-	type OnSetCode = ();
-	type MaxConsumers = frame_support::traits::ConstU32<16>;
 }
 
 impl pallet_utility::Config for TestRuntime {
@@ -235,20 +217,10 @@ impl pallet_utility::Config for TestRuntime {
 	type WeightInfo = ();
 }
 
+#[derive_impl(pallet_balances::config_preludes::TestDefaultConfig as pallet_balances::DefaultConfig)]
 impl pallet_balances::Config for TestRuntime {
-	type MaxLocks = ();
-	type Balance = ThisChainBalance;
-	type DustRemoval = ();
-	type RuntimeEvent = RuntimeEvent;
-	type ExistentialDeposit = ExistentialDeposit;
-	type AccountStore = frame_system::Pallet<TestRuntime>;
-	type WeightInfo = ();
-	type MaxReserves = ConstU32<1>;
 	type ReserveIdentifier = [u8; 8];
-	type RuntimeHoldReason = RuntimeHoldReason;
-	type FreezeIdentifier = ();
-	type MaxHolds = ConstU32<0>;
-	type MaxFreezes = ConstU32<0>;
+	type AccountStore = System;
 }
 
 impl pallet_transaction_payment::Config for TestRuntime {
