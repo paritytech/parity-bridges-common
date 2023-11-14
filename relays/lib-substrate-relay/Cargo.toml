@@ -50,11 +50,6 @@ sp-consensus-grandpa = { git = "https://github.com/paritytech/polkadot-sdk", bra
 sp-runtime = { git = "https://github.com/paritytech/polkadot-sdk", branch = "master" }
 
 [dev-dependencies]
-bp-rialto = { path = "../../primitives/chain-rialto" }
-bp-rialto-parachain = { path = "../../primitives/chain-rialto-parachain" }
 bp-rococo = { path = "../../primitives/chain-rococo" }
 pallet-transaction-payment = { git = "https://github.com/paritytech/polkadot-sdk", branch = "master" }
-relay-rialto-client = { path = "../client-rialto" }
 relay-rococo-client = { path = "../client-rococo" }
-relay-westend-client = { path = "../client-westend" }
-rialto-runtime = { path = "../../bin/rialto/runtime" }

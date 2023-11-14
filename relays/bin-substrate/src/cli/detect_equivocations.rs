@@ -20,11 +20,6 @@ use crate::{
 			kusama_headers_to_bridge_hub_polkadot::KusamaToBridgeHubPolkadotCliBridge,
 			polkadot_headers_to_bridge_hub_kusama::PolkadotToBridgeHubKusamaCliBridge,
 		},
-		rialto_millau::{
-			millau_headers_to_rialto::MillauToRialtoCliBridge,
-			rialto_headers_to_millau::RialtoToMillauCliBridge,
-		},
-		rialto_parachain_millau::millau_headers_to_rialto_parachain::MillauToRialtoParachainCliBridge,
 	},
 	cli::{bridge::*, chain_schema::*, PrometheusParams},
 };
@@ -33,7 +28,7 @@ use async_trait::async_trait;
 use relay_substrate_client::ChainWithTransactions;
 use structopt::StructOpt;
 use strum::{EnumString, EnumVariantNames, VariantNames};
-use substrate_relay_helper::equivocation;
+use substrate_relay_helper::{equivocation, equivocation::SubstrateEquivocationDetectionPipeline};
 
 /// Start equivocation detection loop.
 #[derive(StructOpt)]
@@ -54,9 +49,6 @@ pub struct DetectEquivocations {
 #[strum(serialize_all = "kebab_case")]
 /// Equivocations detection bridge.
 pub enum DetectEquivocationsBridge {
-	MillauToRialto,
-	RialtoToMillau,
-	MillauToRialtoParachain,
 	KusamaToBridgeHubPolkadot,
 	PolkadotToBridgeHubKusama,
 }
@@ -67,8 +59,15 @@ where
 	Self::Source: ChainWithTransactions,
 {
 	async fn start(data: DetectEquivocations) -> anyhow::Result<()> {
+		let source_client = data.source.into_client::<Self::Source>().await?;
+		Self::Equivocation::start_relay_guards(
+			&source_client,
+			source_client.can_start_version_guard(),
+		)
+		.await?;
+
 		equivocation::run::<Self::Equivocation>(
-			data.source.into_client::<Self::Source>().await?,
+			source_client,
 			data.target.into_client::<Self::Target>().await?,
 			data.source_sign.transaction_params::<Self::Source>()?,
 			data.prometheus_params.into_metrics_params()?,
@@ -77,9 +76,6 @@ where
 	}
 }
 
-impl EquivocationsDetector for MillauToRialtoCliBridge {}
-impl EquivocationsDetector for RialtoToMillauCliBridge {}
-impl EquivocationsDetector for MillauToRialtoParachainCliBridge {}
 impl EquivocationsDetector for KusamaToBridgeHubPolkadotCliBridge {}
 impl EquivocationsDetector for PolkadotToBridgeHubKusamaCliBridge {}
 
@@ -87,10 +83,6 @@ impl DetectEquivocations {
 	/// Run the command.
 	pub async fn run(self) -> anyhow::Result<()> {
 		match self.bridge {
-			DetectEquivocationsBridge::MillauToRialto => MillauToRialtoCliBridge::start(self),
-			DetectEquivocationsBridge::RialtoToMillau => RialtoToMillauCliBridge::start(self),
-			DetectEquivocationsBridge::MillauToRialtoParachain =>
-				MillauToRialtoParachainCliBridge::start(self),
 			DetectEquivocationsBridge::KusamaToBridgeHubPolkadot =>
 				KusamaToBridgeHubPolkadotCliBridge::start(self),
 			DetectEquivocationsBridge::PolkadotToBridgeHubKusama =>

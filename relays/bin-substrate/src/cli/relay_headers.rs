@@ -27,12 +27,6 @@ use crate::bridges::{
 		polkadot_bulletin_headers_to_bridge_hub_polkadot::PolkadotBulletinToBridgeHubPolkadotCliBridge,
 		polkadot_headers_to_polkadot_bulletin::PolkadotToPolkadotBulletinCliBridge,
 	},
-	rialto_millau::{
-		millau_headers_to_rialto::MillauToRialtoCliBridge,
-		rialto_headers_to_millau::RialtoToMillauCliBridge,
-	},
-	rialto_parachain_millau::millau_headers_to_rialto_parachain::MillauToRialtoParachainCliBridge,
-	westend_millau::westend_headers_to_millau::WestendToMillauCliBridge,
 };
 use relay_utils::metrics::{GlobalMetrics, StandaloneMetric};
 use substrate_relay_helper::finality::SubstrateFinalitySyncPipeline;
@@ -63,10 +57,6 @@ pub struct RelayHeaders {
 #[strum(serialize_all = "kebab_case")]
 /// Headers relay bridge.
 pub enum RelayHeadersBridge {
-	MillauToRialto,
-	RialtoToMillau,
-	WestendToMillau,
-	MillauToRialtoParachain,
 	KusamaToBridgeHubPolkadot,
 	PolkadotToBridgeHubKusama,
 	PolkadotToPolkadotBulletin,
@@ -90,12 +80,8 @@ trait HeadersRelayer: RelayToRelayHeadersCliBridge {
 			signer: target_sign,
 			mortality: target_transactions_mortality,
 		};
-		Self::Finality::start_relay_guards(
-			&target_client,
-			&target_transactions_params,
-			target_client.can_start_version_guard(),
-		)
-		.await?;
+		Self::Finality::start_relay_guards(&target_client, target_client.can_start_version_guard())
+			.await?;
 
 		substrate_relay_helper::finality::run::<Self::Finality>(
 			source_client,
@@ -108,10 +94,6 @@ trait HeadersRelayer: RelayToRelayHeadersCliBridge {
 	}
 }
 
-impl HeadersRelayer for MillauToRialtoCliBridge {}
-impl HeadersRelayer for RialtoToMillauCliBridge {}
-impl HeadersRelayer for WestendToMillauCliBridge {}
-impl HeadersRelayer for MillauToRialtoParachainCliBridge {}
 impl HeadersRelayer for KusamaToBridgeHubPolkadotCliBridge {}
 impl HeadersRelayer for PolkadotToBridgeHubKusamaCliBridge {}
 impl HeadersRelayer for PolkadotToPolkadotBulletinCliBridge {}
@@ -121,11 +103,6 @@ impl RelayHeaders {
 	/// Run the command.
 	pub async fn run(self) -> anyhow::Result<()> {
 		match self.bridge {
-			RelayHeadersBridge::MillauToRialto => MillauToRialtoCliBridge::relay_headers(self),
-			RelayHeadersBridge::RialtoToMillau => RialtoToMillauCliBridge::relay_headers(self),
-			RelayHeadersBridge::WestendToMillau => WestendToMillauCliBridge::relay_headers(self),
-			RelayHeadersBridge::MillauToRialtoParachain =>
-				MillauToRialtoParachainCliBridge::relay_headers(self),
 			RelayHeadersBridge::KusamaToBridgeHubPolkadot =>
 				KusamaToBridgeHubPolkadotCliBridge::relay_headers(self),
 			RelayHeadersBridge::PolkadotToBridgeHubKusama =>
