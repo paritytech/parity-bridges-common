@@ -65,6 +65,7 @@ rm -rf $BRIDGES_FOLDER/deployments
 rm -f $BRIDGES_FOLDER/docs/dockerhub-*
 rm -rf $BRIDGES_FOLDER/fuzz
 rm -rf $BRIDGES_FOLDER/modules/beefy
+rm -rf $BRIDGES_FOLDER/modules/shift-session-manager
 rm -rf $BRIDGES_FOLDER/primitives/beefy
 rm -rf $BRIDGES_FOLDER/relays
 rm -rf $BRIDGES_FOLDER/scripts/add_license.sh
