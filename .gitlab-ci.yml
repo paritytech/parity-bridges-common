@@ -349,6 +349,7 @@ bridges-common-relay:
 # Publish Docker images description to hub.docker.com
 
 .publish-docker-image-description:
+  <<: *kubernetes-build
   stage:                           publish-docker-description
   image:                           paritytech/dockerhub-description
   variables:
@@ -362,8 +363,6 @@ bridges-common-relay:
   script:
     - export DOCKERHUB_REPOSITORY="paritytech/${CI_JOB_NAME:10}"
     - cd / && sh entrypoint.sh
-  tags:
-    - linux-docker
 
 dockerhub-substrate-relay:
   extends:                .publish-docker-image-description
