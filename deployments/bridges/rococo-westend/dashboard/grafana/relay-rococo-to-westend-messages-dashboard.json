@@ -946,7 +946,7 @@
     }
   ],
   "refresh": "5s",
-  "schemaVersion": 37,
+  "schemaVersion": 38,
   "style": "dark",
   "tags": [],
   "templating": {
@@ -960,6 +960,6 @@
   "timezone": "",
   "title": "BridgeHubRococo to BridgeHubWestend (00000002)",
   "uid": "tkgc6_bnk",
-  "version": 44,
+  "version": 45,
   "weekStart": ""
 }
