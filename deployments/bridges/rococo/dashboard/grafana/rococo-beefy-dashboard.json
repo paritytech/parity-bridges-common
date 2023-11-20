@@ -214,7 +214,7 @@
           "refId": "A"
         }
       ],
-      "title": "BEEFY Lagging Sessions",
+      "title": "Rococo BEEFY Lagging Sessions",
       "type": "timeseries"
     },
     {
@@ -306,7 +306,7 @@
           "refId": "A"
         }
       ],
-      "title": "BEEFY Validator Set ID",
+      "title": "Rococo BEEFY Validator Set ID",
       "type": "timeseries"
     }
   ],
@@ -325,6 +325,6 @@
   "timezone": "",
   "title": "Rococo BEEFY",
   "uid": "3sEDRyl7z",
-  "version": 15,
+  "version": 16,
   "weekStart": ""
 }

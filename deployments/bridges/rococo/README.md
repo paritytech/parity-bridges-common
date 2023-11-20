@@ -11,7 +11,6 @@ folder.
 - rococo-beefy-dashboard.json (exported JSON directly from https://grafana.teleport.parity.io/dashboards/f/eblDiw17z/Bridges)
 
 **Alerts:**
-- rococo-beefy-lagging-sessions-alerts.json https://grafana.teleport.parity.io/api/ruler/grafana/api/v1/rules/Bridges/BEEFY%20Lagging%20Sessions
-- rococo-beefy-best-blocks-not-advancing-alerts.json https://grafana.teleport.parity.io/api/ruler/grafana/api/v1/rules/Bridges/Rococo%20Beefy%20best%20blocks%20not%20advancing 
+- rococo-beefy-alerts.json https://grafana.teleport.parity.io/api/ruler/grafana/api/v1/rules/Bridges/Rococo%20BEEFY
 
 _Note: All json files are formatted with `jq . file.json > file.json_tmp`._
