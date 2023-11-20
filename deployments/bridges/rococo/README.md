@@ -13,4 +13,4 @@ folder.
 **Alerts:**
 - rococo-beefy-alerts.json https://grafana.teleport.parity.io/api/ruler/grafana/api/v1/rules/Bridges/Rococo%20BEEFY
 
-_Note: All json files are formatted with `jq . file.json > file.json_tmp`._
+_Note: All json files are formatted with `jq . file.json`._
