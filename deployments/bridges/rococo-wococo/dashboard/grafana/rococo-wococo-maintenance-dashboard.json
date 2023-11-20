@@ -77,7 +77,7 @@
         "text": {},
         "textMode": "name"
       },
-      "pluginVersion": "9.3.1",
+      "pluginVersion": "10.0.2",
       "targets": [
         {
           "datasource": {
@@ -145,7 +145,7 @@
         "text": {},
         "textMode": "name"
       },
-      "pluginVersion": "9.3.1",
+      "pluginVersion": "10.0.2",
       "targets": [
         {
           "datasource": {
@@ -228,7 +228,7 @@
         },
         "textMode": "auto"
       },
-      "pluginVersion": "9.3.1",
+      "pluginVersion": "10.0.2",
       "targets": [
         {
           "datasource": {
@@ -847,8 +847,7 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green",
-                "value": null
+                "color": "green"
               },
               {
                 "color": "red",
@@ -951,8 +950,7 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green",
-                "value": null
+                "color": "green"
               },
               {
                 "color": "red",
@@ -1012,14 +1010,14 @@
     }
   ],
   "refresh": "5s",
-  "schemaVersion": 37,
+  "schemaVersion": 38,
   "style": "dark",
   "tags": [],
   "templating": {
     "list": []
   },
   "time": {
-    "from": "now-15m",
+    "from": "now-6h",
     "to": "now"
   },
   "timepicker": {},
