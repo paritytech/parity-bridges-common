@@ -941,13 +941,13 @@
     "list": []
   },
   "time": {
-    "from": "now-5m",
+    "from": "now-6h",
     "to": "now"
   },
   "timepicker": {},
   "timezone": "",
   "title": "BridgeHubWestend to BridgeHubRococo (00000002)",
   "uid": "zqjpgXxnk",
-  "version": 34,
+  "version": 35,
   "weekStart": ""
 }
