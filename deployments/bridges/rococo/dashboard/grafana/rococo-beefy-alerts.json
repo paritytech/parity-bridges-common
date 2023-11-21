@@ -6,7 +6,7 @@
       "expr": "",
       "for": "20m",
       "labels": {
-        "matrix_room": "!lMunCqbBqxEqfRuUDF:parity.io"
+        "matrix_room": "lMunCqbBqxEqfRuUDF"
       },
       "annotations": {
         "__dashboardUid__": "3sEDRyl7z",
@@ -83,9 +83,9 @@
             }
           }
         ],
-        "updated": "2023-11-20T13:21:12Z",
+        "updated": "2023-11-21T08:44:25Z",
         "intervalSeconds": 1200,
-        "version": 12,
+        "version": 14,
         "uid": "eYY8ks_7z",
         "namespace_uid": "eblDiw17z",
         "namespace_id": 140,
@@ -99,7 +99,7 @@
       "expr": "",
       "for": "1h",
       "labels": {
-        "matrix_room": "!lMunCqbBqxEqfRuUDF:parity.io"
+        "matrix_room": "lMunCqbBqxEqfRuUDF"
       },
       "annotations": {
         "__dashboardUid__": "3sEDRyl7z",
@@ -174,9 +174,9 @@
             }
           }
         ],
-        "updated": "2023-11-20T13:21:12Z",
+        "updated": "2023-11-21T08:44:25Z",
         "intervalSeconds": 1200,
-        "version": 13,
+        "version": 15,
         "uid": "CBuugs_7k",
         "namespace_uid": "eblDiw17z",
         "namespace_id": 140,
