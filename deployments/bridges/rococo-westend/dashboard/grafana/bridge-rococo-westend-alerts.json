@@ -88,9 +88,9 @@
             }
           }
         ],
-        "updated": "2023-11-20T15:00:48Z",
+        "updated": "2023-11-21T11:00:20Z",
         "intervalSeconds": 60,
-        "version": 121,
+        "version": 126,
         "uid": "r41otJp4k",
         "namespace_uid": "eblDiw17z",
         "namespace_id": 140,
@@ -186,9 +186,9 @@
             }
           }
         ],
-        "updated": "2023-11-20T15:00:48Z",
+        "updated": "2023-11-21T11:00:20Z",
         "intervalSeconds": 60,
-        "version": 119,
+        "version": 124,
         "uid": "wqmPtJpVz",
         "namespace_uid": "eblDiw17z",
         "namespace_id": 140,
@@ -284,9 +284,9 @@
             }
           }
         ],
-        "updated": "2023-11-20T15:00:48Z",
+        "updated": "2023-11-21T11:00:20Z",
         "intervalSeconds": 60,
-        "version": 115,
+        "version": 120,
         "uid": "z4h3pJtVz",
         "namespace_uid": "eblDiw17z",
         "namespace_id": 140,
@@ -382,9 +382,9 @@
             }
           }
         ],
-        "updated": "2023-11-20T15:00:48Z",
+        "updated": "2023-11-21T11:00:20Z",
         "intervalSeconds": 60,
-        "version": 114,
+        "version": 119,
         "uid": "Kj_z21t4k",
         "namespace_uid": "eblDiw17z",
         "namespace_id": 140,
@@ -415,7 +415,7 @@
             "refId": "A",
             "queryType": "",
             "relativeTimeRange": {
-              "from": 300,
+              "from": 21600,
               "to": 0
             },
             "datasourceUid": "PC96415006F908B67",
@@ -436,31 +436,6 @@
             }
           },
           {
-            "refId": "B",
-            "queryType": "",
-            "relativeTimeRange": {
-              "from": 300,
-              "to": 0
-            },
-            "datasourceUid": "PC96415006F908B67",
-            "model": {
-              "datasource": {
-                "type": "prometheus",
-                "uid": "PC96415006F908B67"
-              },
-              "editorMode": "code",
-              "expr": "(scalar(max_over_time(BridgeHubWestend_to_BridgeHubRococo_MessageLane_00000002_lane_state_nonces{domain=\"parity-testnet\",type=\"source_latest_confirmed\"}[2m]) OR on() vector(0)) - scalar(max_over_time(BridgeHubWestend_to_BridgeHubRococo_MessageLane_00000002_lane_state_nonces{domain=\"parity-testnet\",type=\"target_latest_confirmed\"}[2m]) OR on() vector(0))) * (max_over_time(BridgeHubWestend_to_BridgeHubRococo_MessageLane_00000002_lane_state_nonces{domain=\"parity-testnet\",type=\"target_latest_received\"}[2m]) OR on() vector(0) > bool min_over_time(BridgeHubWestend_to_BridgeHubRococo_MessageLane_00000002_lane_state_nonces{domain=\"parity-testnet\",type=\"target_latest_received\"}[2m]) OR on() vector(0))",
-              "hide": true,
-              "instant": false,
-              "interval": "",
-              "intervalMs": 30000,
-              "legendFormat": "__auto",
-              "maxDataPoints": 43200,
-              "range": true,
-              "refId": "B"
-            }
-          },
-          {
             "refId": "C",
             "queryType": "",
             "relativeTimeRange": {
@@ -478,11 +453,11 @@
                     "type": "gt"
                   },
                   "operator": {
-                    "type": "and"
+                    "type": "when"
                   },
                   "query": {
                     "params": [
-                      "B"
+                      "A"
                     ]
                   },
                   "reducer": {
@@ -505,9 +480,9 @@
             }
           }
         ],
-        "updated": "2023-11-20T15:00:48Z",
+        "updated": "2023-11-21T11:00:20Z",
         "intervalSeconds": 60,
-        "version": 109,
+        "version": 114,
         "uid": "hw_a21pVk",
         "namespace_uid": "eblDiw17z",
         "namespace_id": 140,
@@ -559,31 +534,6 @@
             }
           },
           {
-            "refId": "B",
-            "queryType": "",
-            "relativeTimeRange": {
-              "from": 21600,
-              "to": 0
-            },
-            "datasourceUid": "PC96415006F908B67",
-            "model": {
-              "datasource": {
-                "type": "prometheus",
-                "uid": "PC96415006F908B67"
-              },
-              "editorMode": "code",
-              "expr": "(scalar(max_over_time(BridgeHubRococo_to_BridgeHubWestend_MessageLane_00000002_lane_state_nonces{domain=\"parity-testnet\",type=\"source_latest_confirmed\"}[2m]) OR on() vector(0)) - scalar(max_over_time(BridgeHubRococo_to_BridgeHubWestend_MessageLane_00000002_lane_state_nonces{domain=\"parity-testnet\",type=\"target_latest_confirmed\"}[2m]) OR on() vector(0))) * (max_over_time(BridgeHubRococo_to_BridgeHubWestend_MessageLane_00000002_lane_state_nonces{domain=\"parity-testnet\",type=\"target_latest_received\"}[2m]) OR on() vector(0) > bool min_over_time(BridgeHubRococo_to_BridgeHubWestend_MessageLane_00000002_lane_state_nonces{domain=\"parity-testnet\",type=\"target_latest_received\"}[2m]) OR on() vector(0))",
-              "hide": true,
-              "instant": false,
-              "interval": "",
-              "intervalMs": 30000,
-              "legendFormat": "__auto",
-              "maxDataPoints": 43200,
-              "range": true,
-              "refId": "B"
-            }
-          },
-          {
             "refId": "C",
             "queryType": "",
             "relativeTimeRange": {
@@ -628,9 +578,9 @@
             }
           }
         ],
-        "updated": "2023-11-20T15:00:48Z",
+        "updated": "2023-11-21T11:00:20Z",
         "intervalSeconds": 60,
-        "version": 108,
+        "version": 113,
         "uid": "daN62Jt4z",
         "namespace_uid": "eblDiw17z",
         "namespace_id": 140,
@@ -726,9 +676,9 @@
             }
           }
         ],
-        "updated": "2023-11-20T15:00:48Z",
+        "updated": "2023-11-21T11:00:20Z",
         "intervalSeconds": 60,
-        "version": 105,
+        "version": 110,
         "uid": "BzBDb1pVz",
         "namespace_uid": "eblDiw17z",
         "namespace_id": 140,
@@ -824,9 +774,9 @@
             }
           }
         ],
-        "updated": "2023-11-20T15:00:48Z",
+        "updated": "2023-11-21T11:00:20Z",
         "intervalSeconds": 60,
-        "version": 104,
+        "version": 109,
         "uid": "1W6lb1p4z",
         "namespace_uid": "eblDiw17z",
         "namespace_id": 140,
@@ -922,9 +872,9 @@
             }
           }
         ],
-        "updated": "2023-11-20T15:00:48Z",
+        "updated": "2023-11-21T11:00:20Z",
         "intervalSeconds": 60,
-        "version": 103,
+        "version": 108,
         "uid": "Y5Dm-1tVz",
         "namespace_uid": "eblDiw17z",
         "namespace_id": 140,
@@ -1020,9 +970,9 @@
             }
           }
         ],
-        "updated": "2023-11-20T15:00:48Z",
+        "updated": "2023-11-21T11:00:20Z",
         "intervalSeconds": 60,
-        "version": 102,
+        "version": 107,
         "uid": "yUl4a1tVz",
         "namespace_uid": "eblDiw17z",
         "namespace_id": 140,
@@ -1161,9 +1111,9 @@
             }
           }
         ],
-        "updated": "2023-11-20T15:00:48Z",
+        "updated": "2023-11-21T11:00:20Z",
         "intervalSeconds": 60,
-        "version": 71,
+        "version": 76,
         "uid": "R6GKwNA4z",
         "namespace_uid": "eblDiw17z",
         "namespace_id": 140,
@@ -1302,9 +1252,9 @@
             }
           }
         ],
-        "updated": "2023-11-20T15:00:48Z",
+        "updated": "2023-11-21T11:00:20Z",
         "intervalSeconds": 60,
-        "version": 69,
+        "version": 74,
         "uid": "rAM1QHAVk",
         "namespace_uid": "eblDiw17z",
         "namespace_id": 140,
@@ -1442,9 +1392,9 @@
             }
           }
         ],
-        "updated": "2023-11-20T15:00:48Z",
+        "updated": "2023-11-21T11:00:20Z",
         "intervalSeconds": 60,
-        "version": 68,
+        "version": 73,
         "uid": "TwWPeN04z",
         "namespace_uid": "eblDiw17z",
         "namespace_id": 140,
@@ -1583,9 +1533,9 @@
             }
           }
         ],
-        "updated": "2023-11-20T15:00:48Z",
+        "updated": "2023-11-21T11:00:20Z",
         "intervalSeconds": 60,
-        "version": 63,
+        "version": 68,
         "uid": "08-5gv04k",
         "namespace_uid": "eblDiw17z",
         "namespace_id": 140,
@@ -1724,9 +1674,9 @@
             }
           }
         ],
-        "updated": "2023-11-20T15:00:48Z",
+        "updated": "2023-11-21T11:00:20Z",
         "intervalSeconds": 60,
-        "version": 62,
+        "version": 67,
         "uid": "Esj2gD0Vk",
         "namespace_uid": "eblDiw17z",
         "namespace_id": 140,
@@ -1866,9 +1816,9 @@
             }
           }
         ],
-        "updated": "2023-11-20T15:00:48Z",
+        "updated": "2023-11-21T11:00:20Z",
         "intervalSeconds": 60,
-        "version": 34,
+        "version": 39,
         "uid": "ry1K5SB4k",
         "namespace_uid": "eblDiw17z",
         "namespace_id": 140,
@@ -2008,9 +1958,9 @@
             }
           }
         ],
-        "updated": "2023-11-20T15:00:48Z",
+        "updated": "2023-11-21T11:00:20Z",
         "intervalSeconds": 60,
-        "version": 32,
+        "version": 37,
         "uid": "9YAdEUB4z",
         "namespace_uid": "eblDiw17z",
         "namespace_id": 140,
