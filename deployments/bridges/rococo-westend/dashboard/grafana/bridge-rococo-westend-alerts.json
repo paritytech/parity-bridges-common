@@ -88,9 +88,9 @@
             }
           }
         ],
-        "updated": "2023-11-21T11:00:20Z",
+        "updated": "2023-11-22T09:28:26Z",
         "intervalSeconds": 60,
-        "version": 126,
+        "version": 128,
         "uid": "r41otJp4k",
         "namespace_uid": "eblDiw17z",
         "namespace_id": 140,
@@ -186,9 +186,9 @@
             }
           }
         ],
-        "updated": "2023-11-21T11:00:20Z",
+        "updated": "2023-11-22T09:28:26Z",
         "intervalSeconds": 60,
-        "version": 124,
+        "version": 126,
         "uid": "wqmPtJpVz",
         "namespace_uid": "eblDiw17z",
         "namespace_id": 140,
@@ -284,9 +284,9 @@
             }
           }
         ],
-        "updated": "2023-11-21T11:00:20Z",
+        "updated": "2023-11-22T09:28:26Z",
         "intervalSeconds": 60,
-        "version": 120,
+        "version": 122,
         "uid": "z4h3pJtVz",
         "namespace_uid": "eblDiw17z",
         "namespace_id": 140,
@@ -382,9 +382,9 @@
             }
           }
         ],
-        "updated": "2023-11-21T11:00:20Z",
+        "updated": "2023-11-22T09:28:26Z",
         "intervalSeconds": 60,
-        "version": 119,
+        "version": 121,
         "uid": "Kj_z21t4k",
         "namespace_uid": "eblDiw17z",
         "namespace_id": 140,
@@ -480,9 +480,9 @@
             }
           }
         ],
-        "updated": "2023-11-21T11:00:20Z",
+        "updated": "2023-11-22T09:28:26Z",
         "intervalSeconds": 60,
-        "version": 114,
+        "version": 116,
         "uid": "hw_a21pVk",
         "namespace_uid": "eblDiw17z",
         "namespace_id": 140,
@@ -578,9 +578,9 @@
             }
           }
         ],
-        "updated": "2023-11-21T11:00:20Z",
+        "updated": "2023-11-22T09:28:26Z",
         "intervalSeconds": 60,
-        "version": 113,
+        "version": 115,
         "uid": "daN62Jt4z",
         "namespace_uid": "eblDiw17z",
         "namespace_id": 140,
@@ -676,9 +676,9 @@
             }
           }
         ],
-        "updated": "2023-11-21T11:00:20Z",
+        "updated": "2023-11-22T09:28:26Z",
         "intervalSeconds": 60,
-        "version": 110,
+        "version": 112,
         "uid": "BzBDb1pVz",
         "namespace_uid": "eblDiw17z",
         "namespace_id": 140,
@@ -774,9 +774,9 @@
             }
           }
         ],
-        "updated": "2023-11-21T11:00:20Z",
+        "updated": "2023-11-22T09:28:26Z",
         "intervalSeconds": 60,
-        "version": 109,
+        "version": 111,
         "uid": "1W6lb1p4z",
         "namespace_uid": "eblDiw17z",
         "namespace_id": 140,
@@ -872,9 +872,9 @@
             }
           }
         ],
-        "updated": "2023-11-21T11:00:20Z",
+        "updated": "2023-11-22T09:28:26Z",
         "intervalSeconds": 60,
-        "version": 108,
+        "version": 110,
         "uid": "Y5Dm-1tVz",
         "namespace_uid": "eblDiw17z",
         "namespace_id": 140,
@@ -970,9 +970,9 @@
             }
           }
         ],
-        "updated": "2023-11-21T11:00:20Z",
+        "updated": "2023-11-22T09:28:26Z",
         "intervalSeconds": 60,
-        "version": 107,
+        "version": 109,
         "uid": "yUl4a1tVz",
         "namespace_uid": "eblDiw17z",
         "namespace_id": 140,
@@ -1111,9 +1111,9 @@
             }
           }
         ],
-        "updated": "2023-11-21T11:00:20Z",
+        "updated": "2023-11-22T09:28:26Z",
         "intervalSeconds": 60,
-        "version": 76,
+        "version": 78,
         "uid": "R6GKwNA4z",
         "namespace_uid": "eblDiw17z",
         "namespace_id": 140,
@@ -1132,7 +1132,7 @@
       "annotations": {
         "__dashboardUid__": "zqjpgXxnk",
         "__panelId__": "2",
-        "summary": "Less than 500 Westend headers have been synced to RococoBridgeHub in last 120 minutes. Relay is not running?"
+        "summary": "Less than 500 Westend headers have been synced to RococoBridgeHub in last 390 minutes. Relay is not running?"
       },
       "grafana_alert": {
         "id": 66,
@@ -1154,7 +1154,7 @@
                 "uid": "PC96415006F908B67"
               },
               "editorMode": "code",
-              "expr": "max(increase(Westend_to_BridgeHubRococo_Sync_best_source_at_target_block_number{domain=\"parity-testnet\"}[120m]))",
+              "expr": "max(increase(Westend_to_BridgeHubRococo_Sync_best_source_at_target_block_number{domain=\"parity-testnet\"}[390m]))",
               "instant": false,
               "interval": "",
               "intervalMs": 30000,
@@ -1252,9 +1252,9 @@
             }
           }
         ],
-        "updated": "2023-11-21T11:00:20Z",
+        "updated": "2023-11-22T09:28:26Z",
         "intervalSeconds": 60,
-        "version": 74,
+        "version": 76,
         "uid": "rAM1QHAVk",
         "namespace_uid": "eblDiw17z",
         "namespace_id": 140,
@@ -1392,9 +1392,9 @@
             }
           }
         ],
-        "updated": "2023-11-21T11:00:20Z",
+        "updated": "2023-11-22T09:28:26Z",
         "intervalSeconds": 60,
-        "version": 73,
+        "version": 75,
         "uid": "TwWPeN04z",
         "namespace_uid": "eblDiw17z",
         "namespace_id": 140,
@@ -1533,9 +1533,9 @@
             }
           }
         ],
-        "updated": "2023-11-21T11:00:20Z",
+        "updated": "2023-11-22T09:28:26Z",
         "intervalSeconds": 60,
-        "version": 68,
+        "version": 70,
         "uid": "08-5gv04k",
         "namespace_uid": "eblDiw17z",
         "namespace_id": 140,
@@ -1674,9 +1674,9 @@
             }
           }
         ],
-        "updated": "2023-11-21T11:00:20Z",
+        "updated": "2023-11-22T09:28:26Z",
         "intervalSeconds": 60,
-        "version": 67,
+        "version": 69,
         "uid": "Esj2gD0Vk",
         "namespace_uid": "eblDiw17z",
         "namespace_id": 140,
@@ -1816,9 +1816,9 @@
             }
           }
         ],
-        "updated": "2023-11-21T11:00:20Z",
+        "updated": "2023-11-22T09:28:26Z",
         "intervalSeconds": 60,
-        "version": 39,
+        "version": 41,
         "uid": "ry1K5SB4k",
         "namespace_uid": "eblDiw17z",
         "namespace_id": 140,
@@ -1958,9 +1958,9 @@
             }
           }
         ],
-        "updated": "2023-11-21T11:00:20Z",
+        "updated": "2023-11-22T09:28:26Z",
         "intervalSeconds": 60,
-        "version": 37,
+        "version": 39,
         "uid": "9YAdEUB4z",
         "namespace_uid": "eblDiw17z",
         "namespace_id": 140,
