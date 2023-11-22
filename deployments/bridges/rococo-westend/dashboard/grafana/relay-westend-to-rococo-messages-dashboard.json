@@ -4,8 +4,8 @@
       {
         "builtIn": 1,
         "datasource": {
-          "type": "grafana",
-          "uid": "-- Grafana --"
+          "type": "datasource",
+          "uid": "grafana"
         },
         "enable": true,
         "hide": true,
@@ -24,7 +24,7 @@
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 0,
-  "id": 284,
+  "id": 142,
   "links": [],
   "liveNow": false,
   "panels": [
@@ -36,7 +36,37 @@
       "fieldConfig": {
         "defaults": {
           "color": {
-            "mode": "thresholds"
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 0,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
           },
           "mappings": [],
           "thresholds": {
@@ -56,630 +86,10 @@
         "overrides": []
       },
       "gridPos": {
-        "h": 5,
-        "w": 5,
+        "h": 8,
+        "w": 6,
         "x": 0,
         "y": 0
-      },
-      "id": 8,
-      "options": {
-        "colorMode": "value",
-        "graphMode": "area",
-        "justifyMode": "auto",
-        "orientation": "auto",
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": "",
-          "values": false
-        },
-        "text": {},
-        "textMode": "name"
-      },
-      "pluginVersion": "9.3.1",
-      "targets": [
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "PC96415006F908B67"
-          },
-          "editorMode": "code",
-          "exemplar": false,
-          "expr": "substrate_relay_build_info{domain=\"parity-testnet\"}",
-          "instant": true,
-          "legendFormat": "{{commit}}",
-          "range": false,
-          "refId": "A"
-        }
-      ],
-      "title": "Relay build commit",
-      "type": "stat"
-    },
-    {
-      "datasource": {
-        "type": "prometheus",
-        "uid": "PC96415006F908B67"
-      },
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "thresholds"
-          },
-          "mappings": [],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              },
-              {
-                "color": "red",
-                "value": 80
-              }
-            ]
-          }
-        },
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 5,
-        "w": 4,
-        "x": 5,
-        "y": 0
-      },
-      "id": 9,
-      "options": {
-        "colorMode": "value",
-        "graphMode": "area",
-        "justifyMode": "auto",
-        "orientation": "auto",
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": "/^1\\.0\\.1$/",
-          "values": false
-        },
-        "text": {},
-        "textMode": "name"
-      },
-      "pluginVersion": "9.3.1",
-      "targets": [
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "PC96415006F908B67"
-          },
-          "editorMode": "code",
-          "exemplar": false,
-          "expr": "substrate_relay_build_info{domain=\"parity-testnet\"}",
-          "instant": true,
-          "legendFormat": "{{version}}",
-          "range": false,
-          "refId": "A"
-        }
-      ],
-      "title": "Relay build version",
-      "type": "stat"
-    },
-    {
-      "datasource": {
-        "type": "prometheus",
-        "uid": "PC96415006F908B67"
-      },
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "thresholds"
-          },
-          "mappings": [
-            {
-              "options": {
-                "0": {
-                  "color": "red",
-                  "index": 1,
-                  "text": "No"
-                },
-                "1": {
-                  "color": "green",
-                  "index": 0,
-                  "text": "Yes"
-                }
-              },
-              "type": "value"
-            }
-          ],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              },
-              {
-                "color": "red",
-                "value": 80
-              }
-            ]
-          }
-        },
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 5,
-        "w": 4,
-        "x": 9,
-        "y": 0
-      },
-      "id": 15,
-      "options": {
-        "colorMode": "value",
-        "graphMode": "area",
-        "justifyMode": "auto",
-        "orientation": "auto",
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": "",
-          "values": false
-        },
-        "textMode": "auto"
-      },
-      "pluginVersion": "9.3.1",
-      "targets": [
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "PC96415006F908B67"
-          },
-          "editorMode": "code",
-          "exemplar": false,
-          "expr": "up{domain=\"parity-testnet\",container=\"bridges-common-relay\"}",
-          "instant": false,
-          "legendFormat": "Is relay running",
-          "range": true,
-          "refId": "A"
-        }
-      ],
-      "title": "Is relay running?",
-      "type": "stat"
-    },
-    {
-      "datasource": {
-        "type": "prometheus",
-        "uid": "PC96415006F908B67"
-      },
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "palette-classic"
-          },
-          "custom": {
-            "axisCenteredZero": false,
-            "axisColorMode": "text",
-            "axisLabel": "",
-            "axisPlacement": "auto",
-            "barAlignment": 0,
-            "drawStyle": "line",
-            "fillOpacity": 0,
-            "gradientMode": "none",
-            "hideFrom": {
-              "legend": false,
-              "tooltip": false,
-              "viz": false
-            },
-            "lineInterpolation": "linear",
-            "lineWidth": 1,
-            "pointSize": 5,
-            "scaleDistribution": {
-              "type": "linear"
-            },
-            "showPoints": "auto",
-            "spanNulls": false,
-            "stacking": {
-              "group": "A",
-              "mode": "none"
-            },
-            "thresholdsStyle": {
-              "mode": "off"
-            }
-          },
-          "mappings": [],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              },
-              {
-                "color": "red",
-                "value": 80
-              }
-            ]
-          }
-        },
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 5,
-        "w": 5,
-        "x": 13,
-        "y": 0
-      },
-      "id": 16,
-      "options": {
-        "legend": {
-          "calcs": [],
-          "displayMode": "list",
-          "placement": "bottom",
-          "showLegend": true
-        },
-        "tooltip": {
-          "mode": "single",
-          "sort": "none"
-        }
-      },
-      "pluginVersion": "9.3.1",
-      "targets": [
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "PC96415006F908B67"
-          },
-          "editorMode": "code",
-          "exemplar": false,
-          "expr": "up{domain=\"parity-testnet\",container=\"bridges-common-relay\"}",
-          "instant": false,
-          "legendFormat": "Is relay running",
-          "range": true,
-          "refId": "A"
-        }
-      ],
-      "title": "Is relay running? (for alert)",
-      "type": "timeseries"
-    },
-    {
-      "datasource": {
-        "type": "loki",
-        "uid": "P03E52D76DFE188C3"
-      },
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "palette-classic"
-          },
-          "custom": {
-            "axisCenteredZero": false,
-            "axisColorMode": "text",
-            "axisLabel": "",
-            "axisPlacement": "auto",
-            "barAlignment": 0,
-            "drawStyle": "line",
-            "fillOpacity": 0,
-            "gradientMode": "none",
-            "hideFrom": {
-              "legend": false,
-              "tooltip": false,
-              "viz": false
-            },
-            "lineInterpolation": "linear",
-            "lineWidth": 1,
-            "pointSize": 5,
-            "scaleDistribution": {
-              "type": "linear"
-            },
-            "showPoints": "auto",
-            "spanNulls": false,
-            "stacking": {
-              "group": "A",
-              "mode": "none"
-            },
-            "thresholdsStyle": {
-              "mode": "off"
-            }
-          },
-          "mappings": [],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              },
-              {
-                "color": "red",
-                "value": 80
-              }
-            ]
-          }
-        },
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 9,
-        "w": 18,
-        "x": 0,
-        "y": 5
-      },
-      "id": 11,
-      "options": {
-        "legend": {
-          "calcs": [],
-          "displayMode": "list",
-          "placement": "bottom",
-          "showLegend": true
-        },
-        "tooltip": {
-          "mode": "single",
-          "sort": "none"
-        }
-      },
-      "targets": [
-        {
-          "datasource": {
-            "type": "loki",
-            "uid": "P03E52D76DFE188C3"
-          },
-          "editorMode": "code",
-          "expr": "count_over_time({container=\"bridges-common-relay\"} |~ `(?i)(warn|error|fail)` [1m])",
-          "legendFormat": "Errors per minute",
-          "queryType": "range",
-          "refId": "A"
-        }
-      ],
-      "title": "Relay errors/warnings per minute",
-      "type": "timeseries"
-    },
-    {
-      "datasource": {
-        "type": "prometheus",
-        "uid": "PC96415006F908B67"
-      },
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "palette-classic"
-          },
-          "custom": {
-            "axisCenteredZero": false,
-            "axisColorMode": "text",
-            "axisLabel": "",
-            "axisPlacement": "auto",
-            "barAlignment": 0,
-            "drawStyle": "line",
-            "fillOpacity": 0,
-            "gradientMode": "none",
-            "hideFrom": {
-              "legend": false,
-              "tooltip": false,
-              "viz": false
-            },
-            "lineInterpolation": "linear",
-            "lineWidth": 1,
-            "pointSize": 5,
-            "scaleDistribution": {
-              "type": "linear"
-            },
-            "showPoints": "auto",
-            "spanNulls": false,
-            "stacking": {
-              "group": "A",
-              "mode": "none"
-            },
-            "thresholdsStyle": {
-              "mode": "off"
-            }
-          },
-          "mappings": [],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              },
-              {
-                "color": "red",
-                "value": 80
-              }
-            ]
-          }
-        },
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 7,
-        "w": 9,
-        "x": 0,
-        "y": 14
-      },
-      "id": 12,
-      "options": {
-        "legend": {
-          "calcs": [],
-          "displayMode": "list",
-          "placement": "bottom",
-          "showLegend": true
-        },
-        "tooltip": {
-          "mode": "single",
-          "sort": "none"
-        }
-      },
-      "targets": [
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "PC96415006F908B67"
-          },
-          "editorMode": "code",
-          "expr": "Rococo_to_BridgeHubWococo_Sync_is_source_and_source_at_target_using_different_forks{domain=\"parity-testnet\"}",
-          "legendFormat": "Best BridgeHubRococo header at BridgeHubWococo doesn't match the same header of BridgeHubRococo",
-          "range": true,
-          "refId": "A"
-        }
-      ],
-      "title": "Rococo headers mismatch",
-      "type": "timeseries"
-    },
-    {
-      "datasource": {
-        "type": "prometheus",
-        "uid": "PC96415006F908B67"
-      },
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "palette-classic"
-          },
-          "custom": {
-            "axisCenteredZero": false,
-            "axisColorMode": "text",
-            "axisLabel": "",
-            "axisPlacement": "auto",
-            "barAlignment": 0,
-            "drawStyle": "line",
-            "fillOpacity": 0,
-            "gradientMode": "none",
-            "hideFrom": {
-              "legend": false,
-              "tooltip": false,
-              "viz": false
-            },
-            "lineInterpolation": "linear",
-            "lineWidth": 1,
-            "pointSize": 5,
-            "scaleDistribution": {
-              "type": "linear"
-            },
-            "showPoints": "auto",
-            "spanNulls": false,
-            "stacking": {
-              "group": "A",
-              "mode": "none"
-            },
-            "thresholdsStyle": {
-              "mode": "off"
-            }
-          },
-          "mappings": [],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              },
-              {
-                "color": "red",
-                "value": 80
-              }
-            ]
-          }
-        },
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 7,
-        "w": 9,
-        "x": 9,
-        "y": 14
-      },
-      "id": 13,
-      "options": {
-        "legend": {
-          "calcs": [],
-          "displayMode": "list",
-          "placement": "bottom",
-          "showLegend": true
-        },
-        "tooltip": {
-          "mode": "single",
-          "sort": "none"
-        }
-      },
-      "targets": [
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "PC96415006F908B67"
-          },
-          "editorMode": "code",
-          "expr": "Wococo_to_BridgeHubRococo_Sync_is_source_and_source_at_target_using_different_forks{domain=\"parity-testnet\"}",
-          "legendFormat": "Best BridgeHubRococo header at BridgeHubWococo doesn't match the same header of BridgeHubRococo",
-          "range": true,
-          "refId": "A"
-        }
-      ],
-      "title": "Wococo headers mismatch",
-      "type": "timeseries"
-    },
-    {
-      "datasource": {
-        "type": "prometheus",
-        "uid": "PC96415006F908B67"
-      },
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "palette-classic"
-          },
-          "custom": {
-            "axisCenteredZero": false,
-            "axisColorMode": "text",
-            "axisLabel": "",
-            "axisPlacement": "auto",
-            "barAlignment": 0,
-            "drawStyle": "line",
-            "fillOpacity": 0,
-            "gradientMode": "none",
-            "hideFrom": {
-              "legend": false,
-              "tooltip": false,
-              "viz": false
-            },
-            "lineInterpolation": "linear",
-            "lineWidth": 1,
-            "pointSize": 5,
-            "scaleDistribution": {
-              "type": "linear"
-            },
-            "showPoints": "auto",
-            "spanNulls": false,
-            "stacking": {
-              "group": "A",
-              "mode": "none"
-            },
-            "thresholdsStyle": {
-              "mode": "off"
-            }
-          },
-          "mappings": [],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              },
-              {
-                "color": "red",
-                "value": 80
-              }
-            ]
-          }
-        },
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 7,
-        "w": 9,
-        "x": 0,
-        "y": 21
       },
       "id": 2,
       "options": {
@@ -701,192 +111,8 @@
             "uid": "PC96415006F908B67"
           },
           "editorMode": "code",
-          "expr": "BridgeHubRococo_to_BridgeHubWococo_MessageLane_00000001_is_source_and_source_at_target_using_different_forks{domain=\"parity-testnet\"}",
-          "legendFormat": "Best BridgeHubRococo header at BridgeHubWococo doesn't match the same header of BridgeHubRococo",
-          "range": true,
-          "refId": "A"
-        }
-      ],
-      "title": "BridgeHubRococo headers mismatch",
-      "type": "timeseries"
-    },
-    {
-      "datasource": {
-        "type": "prometheus",
-        "uid": "PC96415006F908B67"
-      },
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "palette-classic"
-          },
-          "custom": {
-            "axisCenteredZero": false,
-            "axisColorMode": "text",
-            "axisLabel": "",
-            "axisPlacement": "auto",
-            "barAlignment": 0,
-            "drawStyle": "line",
-            "fillOpacity": 0,
-            "gradientMode": "none",
-            "hideFrom": {
-              "legend": false,
-              "tooltip": false,
-              "viz": false
-            },
-            "lineInterpolation": "linear",
-            "lineWidth": 1,
-            "pointSize": 5,
-            "scaleDistribution": {
-              "type": "linear"
-            },
-            "showPoints": "auto",
-            "spanNulls": false,
-            "stacking": {
-              "group": "A",
-              "mode": "none"
-            },
-            "thresholdsStyle": {
-              "mode": "off"
-            }
-          },
-          "mappings": [],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              },
-              {
-                "color": "red",
-                "value": 80
-              }
-            ]
-          }
-        },
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 7,
-        "w": 9,
-        "x": 9,
-        "y": 21
-      },
-      "id": 3,
-      "options": {
-        "legend": {
-          "calcs": [],
-          "displayMode": "list",
-          "placement": "bottom",
-          "showLegend": true
-        },
-        "tooltip": {
-          "mode": "single",
-          "sort": "none"
-        }
-      },
-      "targets": [
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "PC96415006F908B67"
-          },
-          "editorMode": "code",
-          "expr": "BridgeHubWococo_to_BridgeHubRococo_MessageLane_00000001_is_source_and_source_at_target_using_different_forks{domain=\"parity-testnet\"}",
-          "legendFormat": "Best BridgeHubRococo header at BridgeHubWococo doesn't match the same header of BridgeHubRococo",
-          "range": true,
-          "refId": "A"
-        }
-      ],
-      "title": "BridgeHubWococo headers mismatch",
-      "type": "timeseries"
-    },
-    {
-      "datasource": {
-        "type": "prometheus",
-        "uid": "PC96415006F908B67"
-      },
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "palette-classic"
-          },
-          "custom": {
-            "axisCenteredZero": false,
-            "axisColorMode": "text",
-            "axisLabel": "",
-            "axisPlacement": "auto",
-            "barAlignment": 0,
-            "drawStyle": "line",
-            "fillOpacity": 0,
-            "gradientMode": "none",
-            "hideFrom": {
-              "legend": false,
-              "tooltip": false,
-              "viz": false
-            },
-            "lineInterpolation": "linear",
-            "lineWidth": 1,
-            "pointSize": 5,
-            "scaleDistribution": {
-              "type": "linear"
-            },
-            "showPoints": "auto",
-            "spanNulls": false,
-            "stacking": {
-              "group": "A",
-              "mode": "none"
-            },
-            "thresholdsStyle": {
-              "mode": "off"
-            }
-          },
-          "mappings": [],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              },
-              {
-                "color": "red",
-                "value": 80
-              }
-            ]
-          }
-        },
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 8,
-        "w": 9,
-        "x": 0,
-        "y": 28
-      },
-      "id": 5,
-      "options": {
-        "legend": {
-          "calcs": [],
-          "displayMode": "list",
-          "placement": "bottom",
-          "showLegend": true
-        },
-        "tooltip": {
-          "mode": "single",
-          "sort": "none"
-        }
-      },
-      "targets": [
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "PC96415006F908B67"
-          },
-          "editorMode": "code",
-          "expr": "at_BridgeHubRococo_relay_BridgeHubWococoMessages_balance{domain=\"parity-testnet\"}",
-          "legendFormat": "Messages Relay Balance",
+          "expr": "Westend_to_BridgeHubRococo_Sync_best_source_block_number{domain=\"parity-testnet\"}",
+          "legendFormat": "At Westend",
           "range": true,
           "refId": "A"
         },
@@ -896,14 +122,14 @@
             "uid": "PC96415006F908B67"
           },
           "editorMode": "code",
-          "expr": "at_BridgeHubRococo_relay_WococoHeaders_reward_for_msgs_to_BridgeHubWococo_on_lane_00000001{domain=\"parity-testnet\"} + at_BridgeHubRococo_relay_BridgeHubWococoMessages_reward_for_msgs_to_BridgeHubWococo_on_lane_00000001{domain=\"parity-testnet\"}",
+          "expr": "Westend_to_BridgeHubRococo_Sync_best_source_at_target_block_number{domain=\"parity-testnet\"}",
           "hide": false,
-          "legendFormat": "Pending reward",
+          "legendFormat": "At BridgeHubRococo",
           "range": true,
           "refId": "B"
         }
       ],
-      "title": "Relay balances at RococoBridgeHub",
+      "title": "Best finalized Westend headers",
       "type": "timeseries"
     },
     {
@@ -965,9 +191,113 @@
       },
       "gridPos": {
         "h": 8,
-        "w": 9,
-        "x": 9,
-        "y": 28
+        "w": 6,
+        "x": 6,
+        "y": 0
+      },
+      "id": 4,
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "PC96415006F908B67"
+          },
+          "editorMode": "code",
+          "expr": "Rococo_to_BridgeHubWestend_Sync_best_source_block_number{domain=\"parity-testnet\"}",
+          "legendFormat": "At Rococo",
+          "range": true,
+          "refId": "A"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "PC96415006F908B67"
+          },
+          "editorMode": "code",
+          "expr": "Rococo_to_BridgeHubWestend_Sync_best_source_at_target_block_number{domain=\"parity-testnet\"}",
+          "hide": false,
+          "legendFormat": "At WestendBridgeHub",
+          "range": true,
+          "refId": "B"
+        }
+      ],
+      "title": "Best finalized Rococo headers",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "PC96415006F908B67"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 0,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 6,
+        "x": 12,
+        "y": 0
       },
       "id": 6,
       "options": {
@@ -989,8 +319,10 @@
             "uid": "PC96415006F908B67"
           },
           "editorMode": "code",
-          "expr": "at_BridgeHubWococo_relay_BridgeHubRococoMessages_balance{domain=\"parity-testnet\"}",
-          "legendFormat": "Messages Relay Balance",
+          "exemplar": true,
+          "expr": "BridgeHubWestend_to_BridgeHubRococo_MessageLane_00000002_best_source_block_number{domain=\"parity-testnet\"}",
+          "interval": "",
+          "legendFormat": "At WestendBridgeHub",
           "range": true,
           "refId": "A"
         },
@@ -1000,32 +332,622 @@
             "uid": "PC96415006F908B67"
           },
           "editorMode": "code",
-          "expr": "at_BridgeHubRococo_relay_BridgeHubWococoMessages_reward_for_msgs_from_BridgeHubWococo_on_lane_00000001{domain=\"parity-testnet\"} + at_BridgeHubRococo_relay_BridgeHubWococoMessages_reward_for_msgs_to_BridgeHubWococo_on_lane_00000001{domain=\"parity-testnet\"}",
+          "expr": "BridgeHubWestend_to_BridgeHubRococo_MessageLane_00000002_best_source_at_target_block_number{domain=\"parity-testnet\"}",
           "hide": false,
-          "legendFormat": "Pending reward",
+          "legendFormat": "At RococoBridgeHub",
           "range": true,
           "refId": "B"
         }
       ],
-      "title": "Relay balances at WococoBridgeHub",
+      "title": "Best finalized WestendBridgeHub headers",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "PC96415006F908B67"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 0,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 6,
+        "x": 18,
+        "y": 0
+      },
+      "id": 8,
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "PC96415006F908B67"
+          },
+          "editorMode": "code",
+          "exemplar": true,
+          "expr": "BridgeHubWestend_to_BridgeHubRococo_MessageLane_00000002_best_target_block_number{domain=\"parity-testnet\"}",
+          "interval": "",
+          "legendFormat": "At RococoBridgeHub",
+          "range": true,
+          "refId": "A"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "PC96415006F908B67"
+          },
+          "editorMode": "code",
+          "expr": "BridgeHubWestend_to_BridgeHubRococo_MessageLane_00000002_best_target_at_source_block_number{domain=\"parity-testnet\"}",
+          "hide": false,
+          "legendFormat": "At WestendBridgeHub",
+          "range": true,
+          "refId": "B"
+        }
+      ],
+      "title": "Best finalized RococoBridgeHub headers",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "PC96415006F908B67"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 0,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 8
+      },
+      "id": 10,
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "PC96415006F908B67"
+          },
+          "editorMode": "code",
+          "expr": "label_replace(label_replace(BridgeHubWestend_to_BridgeHubRococo_MessageLane_00000002_lane_state_nonces{domain=\"parity-testnet\",type=~\"source_latest_generated|target_latest_received\"}, \"type\", \"Latest message sent from BridgeHubWestend\", \"type\", \"source_latest_generated\"), \"type\", \"Latest BridgeHubWestend message received by BridgeHubRococo\", \"type\", \"target_latest_received\")",
+          "legendFormat": "{{type}}",
+          "range": true,
+          "refId": "A"
+        }
+      ],
+      "title": "Delivery race (00000002)",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "PC96415006F908B67"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 0,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 8
+      },
+      "id": 12,
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "PC96415006F908B67"
+          },
+          "editorMode": "code",
+          "expr": "label_replace(label_replace(BridgeHubWestend_to_BridgeHubRococo_MessageLane_00000002_lane_state_nonces{domain=\"parity-testnet\",type=~\"source_latest_confirmed|target_latest_received\"}, \"type\", \"Latest delivery confirmation from BridgeHubRococo to BridgeHubWestend\", \"type\", \"source_latest_confirmed\"), \"type\", \"Latest BridgeHubWestend message received by BridgeHubRococo\", \"type\", \"target_latest_received\")",
+          "legendFormat": "{{type}}",
+          "range": true,
+          "refId": "A"
+        }
+      ],
+      "title": "Confirmations race (00000002)",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "PC96415006F908B67"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 0,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 0,
+        "y": 16
+      },
+      "id": 14,
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "PC96415006F908B67"
+          },
+          "editorMode": "code",
+          "expr": "scalar(max_over_time(BridgeHubWestend_to_BridgeHubRococo_MessageLane_00000002_lane_state_nonces{domain=\"parity-testnet\",type=\"source_latest_generated\"}[2m]) OR on() vector(0)) - scalar(max_over_time(BridgeHubWestend_to_BridgeHubRococo_MessageLane_00000002_lane_state_nonces{domain=\"parity-testnet\",type=\"target_latest_received\"}[2m]) OR on() vector(0))",
+          "legendFormat": "Undelivered messages",
+          "range": true,
+          "refId": "A"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "PC96415006F908B67"
+          },
+          "editorMode": "code",
+          "expr": "((vector(0) and ((BridgeHubWestend_to_BridgeHubRococo_MessageLane_00000002_lane_state_nonces{domain=\"parity-testnet\",type=\"source_latest_generated\"} > on () BridgeHubWestend_to_BridgeHubRococo_MessageLane_00000002_lane_state_nonces{domain=\"parity-testnet\",type=\"target_latest_received\"}))) or vector(1)) + on () increase(BridgeHubWestend_to_BridgeHubRococo_MessageLane_00000002_lane_state_nonces{domain=\"parity-testnet\",type=\"target_latest_received\"}[10m]) * on () ((vector(1) and ((BridgeHubWestend_to_BridgeHubRococo_MessageLane_00000002_lane_state_nonces{domain=\"parity-testnet\",type=\"source_latest_generated\"} > on () BridgeHubWestend_to_BridgeHubRococo_MessageLane_00000002_lane_state_nonces{domain=\"parity-testnet\",type=\"target_latest_received\"}))) or vector(0))",
+          "hide": true,
+          "legendFormat": "1 if all messages are delivered. Otherwise - number of delivered messages in last 10m",
+          "range": true,
+          "refId": "B"
+        }
+      ],
+      "title": "Delivery race lags (00000002)",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "PC96415006F908B67"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 0,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 8,
+        "y": 16
+      },
+      "id": 16,
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "PC96415006F908B67"
+          },
+          "editorMode": "code",
+          "expr": "scalar(max_over_time(BridgeHubWestend_to_BridgeHubRococo_MessageLane_00000002_lane_state_nonces{domain=\"parity-testnet\",type=\"target_latest_received\"}[2m]) OR on() vector(0)) - scalar(max_over_time(BridgeHubWestend_to_BridgeHubRococo_MessageLane_00000002_lane_state_nonces{domain=\"parity-testnet\",type=\"source_latest_confirmed\"}[2m]) OR on() vector(0))",
+          "legendFormat": "Unconfirmed messages",
+          "range": true,
+          "refId": "A"
+        }
+      ],
+      "title": "Confirmations race lags (00000002)",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "PC96415006F908B67"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 0,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 16,
+        "y": 16
+      },
+      "id": 18,
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "PC96415006F908B67"
+          },
+          "editorMode": "code",
+          "expr": "scalar(max_over_time(BridgeHubWestend_to_BridgeHubRococo_MessageLane_00000002_lane_state_nonces{domain=\"parity-testnet\",type=\"source_latest_confirmed\"}[2m]) OR on() vector(0)) - scalar(max_over_time(BridgeHubWestend_to_BridgeHubRococo_MessageLane_00000002_lane_state_nonces{domain=\"parity-testnet\",type=\"target_latest_confirmed\"}[2m]) OR on() vector(0))",
+          "legendFormat": "Unconfirmed rewards",
+          "range": true,
+          "refId": "A"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "PC96415006F908B67"
+          },
+          "editorMode": "code",
+          "expr": "(scalar(max_over_time(BridgeHubWestend_to_BridgeHubRococo_MessageLane_00000002_lane_state_nonces{domain=\"parity-testnet\",type=\"source_latest_confirmed\"}[2m]) OR on() vector(0)) - scalar(max_over_time(BridgeHubWestend_to_BridgeHubRococo_MessageLane_00000002_lane_state_nonces{domain=\"parity-testnet\",type=\"target_latest_confirmed\"}[2m]) OR on() vector(0))) * (max_over_time(BridgeHubWestend_to_BridgeHubRococo_MessageLane_00000002_lane_state_nonces{domain=\"parity-testnet\",type=\"target_latest_received\"}[2m]) OR on() vector(0) > bool min_over_time(BridgeHubWestend_to_BridgeHubRococo_MessageLane_00000002_lane_state_nonces{domain=\"parity-testnet\",type=\"target_latest_received\"}[2m]) OR on() vector(0))",
+          "hide": true,
+          "legendFormat": "__auto",
+          "range": true,
+          "refId": "B"
+        }
+      ],
+      "title": "Reward lags (00000002)",
       "type": "timeseries"
     }
   ],
   "refresh": "5s",
-  "schemaVersion": 37,
+  "schemaVersion": 38,
   "style": "dark",
   "tags": [],
   "templating": {
     "list": []
   },
   "time": {
-    "from": "now-15m",
+    "from": "now-6h",
     "to": "now"
   },
   "timepicker": {},
   "timezone": "",
-  "title": "BridgeHubRococo <> BridgeHubWococo maintenance (00000001)",
-  "uid": "UFsgbJtVz",
-  "version": 26,
+  "title": "BridgeHubWestend to BridgeHubRococo (00000002)",
+  "uid": "zqjpgXxnk",
+  "version": 35,
   "weekStart": ""
 }
