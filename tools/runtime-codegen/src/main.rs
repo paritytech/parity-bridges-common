@@ -137,8 +137,8 @@ fn main() -> color_eyre::Result<()> {
 		TypeSubstitute::simple("bp_header_chain::InitializationData"),
 		TypeSubstitute::simple("bp_polkadot_core::parachains::ParaId"),
 		TypeSubstitute::simple("bp_polkadot_core::parachains::ParaHeadsProof"),
-		TypeSubstitute::simple("bp_messages::target_chain::FromBridgedChainMessagesProof"),
-		TypeSubstitute::simple("bp_messages::source_chain::FromBridgedChainMessagesDeliveryProof"),
+		TypeSubstitute::simple("bridge_runtime_common::messages::target::FromBridgedChainMessagesProof"),
+		TypeSubstitute::simple("bridge_runtime_common::messages::source::FromBridgedChainMessagesDeliveryProof"),
 		TypeSubstitute::simple("bp_messages::UnrewardedRelayersState"),
 		TypeSubstitute::custom(
 			"sp_runtime::generic::digest::Digest",

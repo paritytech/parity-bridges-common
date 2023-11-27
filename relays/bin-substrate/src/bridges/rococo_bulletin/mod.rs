@@ -14,9 +14,10 @@
 // You should have received a copy of the GNU General Public License
 // along with Parity Bridges Common.  If not, see <http://www.gnu.org/licenses/>.
 
-//! Declaration of all bridges that the relay is able to serve.
+//! Declaration of all bridges between Rococo Bulletin Chain and Rococo Bridge Hub.
 
-pub mod kusama_polkadot;
-pub mod polkadot_bulletin;
-pub mod rococo_bulletin;
-pub mod rococo_westend;
+pub mod bridge_hub_rococo_messages_to_rococo_bulletin;
+pub mod rococo_bulletin_headers_to_bridge_hub_rococo;
+pub mod rococo_bulletin_messages_to_bridge_hub_rococo;
+pub mod rococo_headers_to_rococo_bulletin;
+pub mod rococo_parachains_to_rococo_bulletin;
