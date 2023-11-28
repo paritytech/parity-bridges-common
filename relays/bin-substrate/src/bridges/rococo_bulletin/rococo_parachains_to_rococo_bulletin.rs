@@ -20,7 +20,7 @@ use crate::cli::bridge::{CliBridgeBase, MessagesCliBridge, ParachainToRelayHeade
 
 use bp_polkadot_core::parachains::{ParaHash, ParaHeadsProof, ParaId};
 use bp_runtime::Chain;
-use relay_substrate_client::{CallOf, HeaderIdOf};
+use relay_substrate_client::{CallOf, Chain as _, HeaderIdOf};
 use substrate_relay_helper::{
 	messages_lane::MessagesRelayLimits,
 	parachains::{SubmitParachainHeadsCallBuilder, SubstrateParachainsPipeline},
@@ -36,6 +36,14 @@ impl SubstrateParachainsPipeline for RococoToRococoBulletin {
 	type TargetChain = relay_polkadot_bulletin_client::PolkadotBulletin;
 
 	type SubmitParachainHeadsCallBuilder = RococoToRococoBulletinCallBuilder;
+
+	fn best_finalized_source_at_target_method() -> String {
+		relay_bridge_hub_polkadot_client::BridgeHubPolkadot::BEST_FINALIZED_HEADER_ID_METHOD.into()
+	}
+
+	fn best_finalized_source_relay_at_target_method() -> String {
+		relay_polkadot_client::Polkadot::BEST_FINALIZED_HEADER_ID_METHOD.into()
+	}
 }
 
 pub struct RococoToRococoBulletinCallBuilder;

@@ -37,6 +37,12 @@ pub trait SubstrateFinalityPipeline: 'static + Clone + Debug + Send + Sync {
 	type TargetChain: Chain;
 	/// Finality engine.
 	type FinalityEngine: Engine<Self::SourceChain>;
+
+	/// Name of runtime method, that returns best finalized source chain header id, available
+	/// at the target chain.
+	fn best_finalized_source_at_target_method() -> String {
+		Self::SourceChain::BEST_FINALIZED_HEADER_ID_METHOD.into()
+	}
 }
 
 /// Substrate finality proof. Specific to the used `FinalityEngine`.
@@ -95,6 +101,7 @@ pub async fn finality_proofs<P: SubstrateFinalityPipeline>(
 pub async fn best_synced_header_id<SourceChain, TargetChain>(
 	target_client: &Client<TargetChain>,
 	at: HashOf<TargetChain>,
+	best_finalized_source_at_target_method: String,
 ) -> Result<Option<HeaderIdOf<SourceChain>>, Error>
 where
 	SourceChain: Chain,
@@ -102,6 +109,6 @@ where
 {
 	// now let's read id of best finalized peer header at our best finalized block
 	target_client
-		.typed_state_call(SourceChain::BEST_FINALIZED_HEADER_ID_METHOD.into(), (), Some(at))
+		.typed_state_call(best_finalized_source_at_target_method, (), Some(at))
 		.await
 }

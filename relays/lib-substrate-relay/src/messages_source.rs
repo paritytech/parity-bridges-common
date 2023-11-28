@@ -169,7 +169,7 @@ where
 		// we can't relay confirmations if messages pallet at source chain is halted
 		self.ensure_pallet_active().await?;
 
-		read_client_state(&self.source_client, Some(&self.target_client)).await
+		read_client_state(&self.source_client, Some(&self.target_client), P::best_finalized_target_at_source_method()).await
 	}
 
 	async fn latest_generated_nonce(
@@ -417,6 +417,7 @@ where
 pub async fn read_client_state<SelfChain, PeerChain>(
 	self_client: &Client<SelfChain>,
 	peer_client: Option<&Client<PeerChain>>,
+	best_finalized_peer_at_self_method: String,
 ) -> Result<ClientState<HeaderIdOf<SelfChain>, HeaderIdOf<PeerChain>>, SubstrateError>
 where
 	SelfChain: Chain,
@@ -429,7 +430,7 @@ where
 
 	// now let's read id of best finalized peer header at our best finalized block
 	let peer_on_self_best_finalized_id =
-		best_synced_header_id::<PeerChain, SelfChain>(self_client, self_best_id.hash()).await?;
+		best_synced_header_id::<PeerChain, SelfChain>(self_client, self_best_id.hash(), best_finalized_peer_at_self_method).await?;
 
 	// read actual header, matching the `peer_on_self_best_finalized_id` from the peer chain
 	let actual_peer_on_self_best_finalized_id =
@@ -456,6 +457,7 @@ where
 pub async fn best_finalized_peer_header_at_self<SelfChain, PeerChain>(
 	self_client: &Client<SelfChain>,
 	at_self_hash: HashOf<SelfChain>,
+	best_finalized_header_id_method: String,
 ) -> Result<Option<HeaderIdOf<PeerChain>>, SubstrateError>
 where
 	SelfChain: Chain,
@@ -464,7 +466,7 @@ where
 	// now let's read id of best finalized peer header at our best finalized block
 	self_client
 		.typed_state_call::<_, Option<_>>(
-			PeerChain::BEST_FINALIZED_HEADER_ID_METHOD.into(),
+			best_finalized_header_id_method,
 			(),
 			Some(at_self_hash),
 		)

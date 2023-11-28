@@ -79,6 +79,7 @@ impl<P: SubstrateEquivocationDetectionPipeline>
 		Ok(best_synced_header_id::<P::SourceChain, P::TargetChain>(
 			&self.client,
 			self.client.header_by_number(at).await?.hash(),
+			P::best_finalized_source_at_target_method(),
 		)
 		.await?
 		.map(|id| id.hash()))

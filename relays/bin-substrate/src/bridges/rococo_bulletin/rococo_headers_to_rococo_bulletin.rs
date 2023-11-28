@@ -21,6 +21,7 @@ use crate::cli::bridge::{
 };
 
 use async_trait::async_trait;
+use relay_substrate_client::Chain;
 use substrate_relay_helper::{
 	equivocation::SubstrateEquivocationDetectionPipeline,
 	finality::SubstrateFinalitySyncPipeline,
@@ -51,6 +52,10 @@ impl SubstrateFinalityPipeline for RococoFinalityToRococoBulletin {
 	type TargetChain = relay_polkadot_bulletin_client::PolkadotBulletin;
 
 	type FinalityEngine = GrandpaFinalityEngine<Self::SourceChain>;
+
+	fn best_finalized_source_at_target_method() -> String {
+		relay_polkadot_client::Polkadot::BEST_FINALIZED_HEADER_ID_METHOD.into()
+	}
 }
 
 #[async_trait]

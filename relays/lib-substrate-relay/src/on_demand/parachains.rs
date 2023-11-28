@@ -481,7 +481,7 @@ where
 	let para_header_at_target = best_finalized_peer_header_at_self::<
 		P::TargetChain,
 		P::SourceParachain,
-	>(target.client(), best_target_block_hash)
+	>(target.client(), best_target_block_hash, P::best_finalized_source_at_target_method())
 	.await;
 	// if there are no parachain heads at the target (`NoParachainHeadAtTarget`), we'll need to
 	// submit at least one. Otherwise the pallet will be treated as uninitialized and messages
@@ -504,7 +504,7 @@ where
 	let relay_header_at_target = best_finalized_peer_header_at_self::<
 		P::TargetChain,
 		P::SourceRelayChain,
-	>(target.client(), best_target_block_hash)
+	>(target.client(), best_target_block_hash, P::best_finalized_source_relay_at_target_method())
 	.await
 	.map_err(map_target_err)?;
 
@@ -660,6 +660,7 @@ impl<'a, P: SubstrateParachainsPipeline>
 		Ok(crate::messages_source::read_client_state::<P::TargetChain, P::SourceRelayChain>(
 			&self.0.target_client,
 			None,
+			P::best_finalized_source_relay_at_target_method(),
 		)
 		.await?
 		.best_finalized_peer_at_best_self

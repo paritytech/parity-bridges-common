@@ -19,6 +19,7 @@
 use crate::cli::bridge::{CliBridgeBase, MessagesCliBridge};
 use relay_bridge_hub_rococo_client::BridgeHubRococo;
 use relay_polkadot_bulletin_client::PolkadotBulletin as RococoBulletin;
+use relay_substrate_client::Chain;
 use substrate_relay_helper::{messages_lane::SubstrateMessageLane, UtilityPalletBatchCallBuilder};
 
 /// RococoBulletin-to-BridgeHubRococo messages bridge.
@@ -62,4 +63,8 @@ impl SubstrateMessageLane for RococoBulletinMessagesToBridgeHubRococoMessageLane
 
 	type SourceBatchCallBuilder = ();
 	type TargetBatchCallBuilder = UtilityPalletBatchCallBuilder<BridgeHubRococo>;
+
+	fn best_finalized_target_at_source_method() -> String {
+		relay_bridge_hub_polkadot_client::BridgeHubPolkadot::BEST_FINALIZED_HEADER_ID_METHOD.into()
+	}
 }
