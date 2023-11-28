@@ -40,7 +40,7 @@ use messages_relay::{
 	message_lane_loop::{NoncesSubmitArtifacts, TargetClient, TargetClientState},
 };
 use relay_substrate_client::{
-	AccountIdOf, AccountKeyPairOf, BalanceOf, CallOf, ChainWithMessages, Client,
+	AccountIdOf, AccountKeyPairOf, BalanceOf, CallOf, Client,
 	Error as SubstrateError, HashOf, TransactionEra, TransactionTracker, UnsignedTransaction,
 };
 use relay_utils::relay_loop::Client as RelayClient;
@@ -91,7 +91,7 @@ impl<P: SubstrateMessageLane> SubstrateMessagesTarget<P> {
 		self.target_client
 			.storage_value(
 				inbound_lane_data_key(
-					P::SourceChain::WITH_CHAIN_MESSAGES_PALLET_NAME,
+					&P::with_source_chain_messages_pallet_name(),
 					&self.lane_id,
 				),
 				Some(id.1),
@@ -101,7 +101,7 @@ impl<P: SubstrateMessageLane> SubstrateMessagesTarget<P> {
 
 	/// Ensure that the messages pallet at target chain is active.
 	async fn ensure_pallet_active(&self) -> Result<(), SubstrateError> {
-		ensure_messages_pallet_active::<P::TargetChain, P::SourceChain>(&self.target_client).await
+		ensure_messages_pallet_active::<P::TargetChain>(&self.target_client, P::with_source_chain_messages_pallet_name()).await
 	}
 }
 
@@ -214,7 +214,7 @@ where
 	> {
 		let (id, relayers_state) = self.unrewarded_relayers_state(id).await?;
 		let inbound_data_key = bp_messages::storage_keys::inbound_lane_data_key(
-			P::SourceChain::WITH_CHAIN_MESSAGES_PALLET_NAME,
+			&P::with_source_chain_messages_pallet_name(),
 			&self.lane_id,
 		);
 		let proof = self

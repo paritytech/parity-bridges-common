@@ -99,7 +99,7 @@ impl<P: SubstrateMessageLane> SubstrateMessagesSource<P> {
 		self.source_client
 			.storage_value(
 				outbound_lane_data_key(
-					P::TargetChain::WITH_CHAIN_MESSAGES_PALLET_NAME,
+					&P::with_target_chain_messages_pallet_name(),
 					&self.lane_id,
 				),
 				Some(id.1),
@@ -109,7 +109,7 @@ impl<P: SubstrateMessageLane> SubstrateMessagesSource<P> {
 
 	/// Ensure that the messages pallet at source chain is active.
 	async fn ensure_pallet_active(&self) -> Result<(), SubstrateError> {
-		ensure_messages_pallet_active::<P::SourceChain, P::TargetChain>(&self.source_client).await
+		ensure_messages_pallet_active::<P::SourceChain>(&self.source_client, P::with_target_chain_messages_pallet_name()).await
 	}
 }
 
@@ -206,7 +206,7 @@ where
 		let mut out_msgs_details = self
 			.source_client
 			.typed_state_call::<_, Vec<_>>(
-				P::TargetChain::TO_CHAIN_MESSAGE_DETAILS_METHOD.into(),
+				P::to_target_chain_message_details_method(),
 				(self.lane_id, *nonces.start(), *nonces.end()),
 				Some(id.1),
 			)
@@ -221,7 +221,7 @@ where
 			// for pay-at-target messages we may want to ask target chain for
 			// refined dispatch weight
 			let msg_key = bp_messages::storage_keys::message_key(
-				P::TargetChain::WITH_CHAIN_MESSAGES_PALLET_NAME,
+				&P::with_target_chain_messages_pallet_name(),
 				&self.lane_id,
 				out_msg_details.nonce,
 			);
@@ -241,12 +241,16 @@ where
 		}
 
 		for mut msgs_to_refine_batch in
-			split_msgs_to_refine::<P::SourceChain, P::TargetChain>(self.lane_id, msgs_to_refine)?
+			split_msgs_to_refine::<P::SourceChain, P::TargetChain>(
+				self.lane_id,
+				msgs_to_refine,
+				P::from_source_chain_message_details_method(),
+			)?
 		{
 			let in_msgs_details = self
 				.target_client
 				.typed_state_call::<_, Vec<InboundMessageDetails>>(
-					P::SourceChain::FROM_CHAIN_MESSAGE_DETAILS_METHOD.into(),
+					P::from_source_chain_message_details_method(),
 					(self.lane_id, &msgs_to_refine_batch),
 					None,
 				)
@@ -254,7 +258,7 @@ where
 			if in_msgs_details.len() != msgs_to_refine_batch.len() {
 				return Err(SubstrateError::Custom(format!(
 					"Call of {} at {} has returned {} entries instead of expected {}",
-					P::SourceChain::FROM_CHAIN_MESSAGE_DETAILS_METHOD,
+					P::from_source_chain_message_details_method(),
 					P::TargetChain::NAME,
 					in_msgs_details.len(),
 					msgs_to_refine_batch.len(),
@@ -310,7 +314,7 @@ where
 		let mut message_nonce = *nonces.start();
 		while message_nonce <= *nonces.end() {
 			let message_key = bp_messages::storage_keys::message_key(
-				P::TargetChain::WITH_CHAIN_MESSAGES_PALLET_NAME,
+				&P::with_target_chain_messages_pallet_name(),
 				&self.lane_id,
 				message_nonce,
 			);
@@ -319,7 +323,7 @@ where
 		}
 		if proof_parameters.outbound_state_proof_required {
 			storage_keys.push(bp_messages::storage_keys::outbound_lane_data_key(
-				P::TargetChain::WITH_CHAIN_MESSAGES_PALLET_NAME,
+				&P::with_target_chain_messages_pallet_name(),
 				&self.lane_id,
 			));
 		}
@@ -387,15 +391,15 @@ where
 }
 
 /// Ensure that the messages pallet at source chain is active.
-pub(crate) async fn ensure_messages_pallet_active<AtChain, WithChain>(
+pub(crate) async fn ensure_messages_pallet_active<AtChain>(
 	client: &Client<AtChain>,
+	with_chain_messages_pallet_name: String,
 ) -> Result<(), SubstrateError>
 where
 	AtChain: ChainWithMessages,
-	WithChain: ChainWithMessages,
 {
 	let operating_mode = client
-		.storage_value(operating_mode_key(WithChain::WITH_CHAIN_MESSAGES_PALLET_NAME), None)
+		.storage_value(operating_mode_key(&with_chain_messages_pallet_name), None)
 		.await?;
 	let is_halted =
 		operating_mode == Some(MessagesOperatingMode::Basic(BasicOperatingMode::Halted));
@@ -523,6 +527,7 @@ fn validate_out_msgs_details<C: Chain>(
 fn split_msgs_to_refine<Source: Chain + ChainWithMessages, Target: Chain>(
 	lane_id: LaneId,
 	msgs_to_refine: MessagesToRefine,
+	from_source_chain_message_details_method: String,
 ) -> Result<Vec<MessagesToRefine>, SubstrateError> {
 	let max_batch_size = Target::max_extrinsic_size() as usize;
 	let mut batches = vec![];
@@ -535,7 +540,7 @@ fn split_msgs_to_refine<Source: Chain + ChainWithMessages, Target: Chain>(
 				return Err(SubstrateError::Custom(format!(
 					"Call of {} at {} can't be executed even if only one message is supplied. \
 						max_extrinsic_size(): {}",
-					Source::FROM_CHAIN_MESSAGE_DETAILS_METHOD,
+						from_source_chain_message_details_method,
 					Target::NAME,
 					Target::max_extrinsic_size(),
 				)))
