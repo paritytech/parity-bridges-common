@@ -19,9 +19,14 @@
 use crate::cli::CliChain;
 
 use bp_messages::MessageNonce;
-use bp_runtime::{AccountIdOf, BalanceOf, BlockNumberOf, ChainId, HashOf, HasherOf, HeaderOf, NonceOf, SignatureOf};
+use bp_runtime::{
+	AccountIdOf, BalanceOf, BlockNumberOf, ChainId, HashOf, HasherOf, HeaderOf, NonceOf,
+	SignatureOf,
+};
 use frame_support::pallet_prelude::Weight;
-use relay_substrate_client::{Error as SubstrateError, SignParam, SimpleRuntimeVersion, UnsignedTransaction};
+use relay_substrate_client::{
+	Error as SubstrateError, SignParam, SimpleRuntimeVersion, UnsignedTransaction,
+};
 use sp_core::storage::StorageKey;
 use std::time::Duration;
 
@@ -61,7 +66,8 @@ impl bp_header_chain::ChainWithGrandpa for RococoBaseAsPolkadot {
 	const REASONABLE_HEADERS_IN_JUSTIFICATON_ANCESTRY: u32 =
 		bp_rococo::Rococo::REASONABLE_HEADERS_IN_JUSTIFICATON_ANCESTRY;
 	const MAX_HEADER_SIZE: u32 = bp_rococo::Rococo::MAX_HEADER_SIZE;
-	const AVERAGE_HEADER_SIZE_IN_JUSTIFICATION: u32 = bp_rococo::Rococo::AVERAGE_HEADER_SIZE_IN_JUSTIFICATION;
+	const AVERAGE_HEADER_SIZE_IN_JUSTIFICATION: u32 =
+		bp_rococo::Rococo::AVERAGE_HEADER_SIZE_IN_JUSTIFICATION;
 }
 
 /// Relay `Chain` implementation of Rococo, pretending to be Polkadot.
@@ -87,7 +93,8 @@ impl relay_substrate_client::ChainWithGrandpa for RococoAsPolkadot {
 	const SYNCED_HEADERS_GRANDPA_INFO_METHOD: &'static str =
 		relay_polkadot_client::Polkadot::SYNCED_HEADERS_GRANDPA_INFO_METHOD;
 
-	type KeyOwnerProof = <relay_rococo_client::Rococo as relay_substrate_client::ChainWithGrandpa>::KeyOwnerProof;
+	type KeyOwnerProof =
+		<relay_rococo_client::Rococo as relay_substrate_client::ChainWithGrandpa>::KeyOwnerProof;
 }
 
 impl relay_substrate_client::ChainWithBalances for RococoAsPolkadot {
@@ -114,7 +121,9 @@ impl relay_substrate_client::ChainWithTransactions for RococoAsPolkadot {
 				transaction_version: param.transaction_version,
 				genesis_hash: param.genesis_hash,
 				signer: param.signer,
-			}, unsigned.switch_chain())
+			},
+			unsigned.switch_chain(),
+		)
 	}
 
 	fn is_signed(tx: &Self::SignedTransaction) -> bool {
@@ -174,10 +183,12 @@ impl relay_substrate_client::Chain for BridgeHubRococoAsBridgeHubPolkadot {
 	const NAME: &'static str = relay_bridge_hub_rococo_client::BridgeHubRococo::NAME;
 	const BEST_FINALIZED_HEADER_ID_METHOD: &'static str =
 		relay_bridge_hub_polkadot_client::BridgeHubPolkadot::BEST_FINALIZED_HEADER_ID_METHOD;
-	const AVERAGE_BLOCK_INTERVAL: Duration = relay_bridge_hub_rococo_client::BridgeHubRococo::AVERAGE_BLOCK_INTERVAL;
+	const AVERAGE_BLOCK_INTERVAL: Duration =
+		relay_bridge_hub_rococo_client::BridgeHubRococo::AVERAGE_BLOCK_INTERVAL;
 
 	type SignedBlock = <relay_bridge_hub_rococo_client::BridgeHubRococo as relay_substrate_client::Chain>::SignedBlock;
-	type Call = <relay_bridge_hub_rococo_client::BridgeHubRococo as relay_substrate_client::Chain>::Call;
+	type Call =
+		<relay_bridge_hub_rococo_client::BridgeHubRococo as relay_substrate_client::Chain>::Call;
 }
 
 impl relay_substrate_client::ChainWithBalances for BridgeHubRococoAsBridgeHubPolkadot {
@@ -187,7 +198,9 @@ impl relay_substrate_client::ChainWithBalances for BridgeHubRococoAsBridgeHubPol
 }
 
 impl relay_substrate_client::ChainWithUtilityPallet for BridgeHubRococoAsBridgeHubPolkadot {
-	type UtilityPallet = relay_substrate_client::MockedRuntimeUtilityPallet<relay_bridge_hub_rococo_client::RuntimeCall>;
+	type UtilityPallet = relay_substrate_client::MockedRuntimeUtilityPallet<
+		relay_bridge_hub_rococo_client::RuntimeCall,
+	>;
 }
 
 impl relay_substrate_client::ChainWithTransactions for BridgeHubRococoAsBridgeHubPolkadot {
@@ -204,7 +217,9 @@ impl relay_substrate_client::ChainWithTransactions for BridgeHubRococoAsBridgeHu
 				transaction_version: param.transaction_version,
 				genesis_hash: param.genesis_hash,
 				signer: param.signer,
-			}, unsigned.switch_chain())
+			},
+			unsigned.switch_chain(),
+		)
 	}
 
 	fn is_signed(tx: &Self::SignedTransaction) -> bool {
@@ -216,7 +231,8 @@ impl relay_substrate_client::ChainWithTransactions for BridgeHubRococoAsBridgeHu
 	}
 
 	fn parse_transaction(tx: Self::SignedTransaction) -> Option<UnsignedTransaction<Self>> {
-		relay_bridge_hub_rococo_client::BridgeHubRococo::parse_transaction(tx).map(|tx| tx.switch_chain())
+		relay_bridge_hub_rococo_client::BridgeHubRococo::parse_transaction(tx)
+			.map(|tx| tx.switch_chain())
 	}
 }
 

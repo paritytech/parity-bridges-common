@@ -16,9 +16,8 @@
 
 //! RococoBulletin-to-BridgeHubRococo messages sync entrypoint.
 
-use crate::cli::bridge::{CliBridgeBase, MessagesCliBridge};
 use super::BridgeHubRococoAsBridgeHubPolkadot;
-use relay_bridge_hub_rococo_client::BridgeHubRococo;
+use crate::cli::bridge::{CliBridgeBase, MessagesCliBridge};
 use relay_polkadot_bulletin_client::PolkadotBulletin as RococoBulletin;
 use substrate_relay_helper::{messages_lane::SubstrateMessageLane, UtilityPalletBatchCallBuilder};
 

@@ -16,8 +16,8 @@
 
 //! Rococo-to-RococoBulletin parachains sync entrypoint.
 
-use crate::cli::bridge::{CliBridgeBase, MessagesCliBridge, ParachainToRelayHeadersCliBridge};
 use super::{BridgeHubRococoAsBridgeHubPolkadot, RococoAsPolkadot};
+use crate::cli::bridge::{CliBridgeBase, MessagesCliBridge, ParachainToRelayHeadersCliBridge};
 
 use bp_polkadot_core::parachains::{ParaHash, ParaHeadsProof, ParaId};
 use bp_runtime::Chain;

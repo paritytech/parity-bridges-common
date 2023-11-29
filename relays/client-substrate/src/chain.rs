@@ -170,8 +170,14 @@ impl<C: Chain> UnsignedTransaction<C> {
 	}
 
 	/// Convert to the transaction of the other compatible chain.
-	pub fn switch_chain<Other>(self) -> UnsignedTransaction<Other> where
-		Other: Chain<Nonce = C::Nonce, Balance = C::Balance, BlockNumber = C::BlockNumber, Hash = C::Hash>
+	pub fn switch_chain<Other>(self) -> UnsignedTransaction<Other>
+	where
+		Other: Chain<
+			Nonce = C::Nonce,
+			Balance = C::Balance,
+			BlockNumber = C::BlockNumber,
+			Hash = C::Hash,
+		>,
 	{
 		UnsignedTransaction {
 			call: EncodedOrDecodedCall::Encoded(self.call.into_encoded()),

@@ -16,11 +16,11 @@
 
 //! RococoBulletin-to-BridgeHubRococo headers sync entrypoint.
 
+use super::BridgeHubRococoAsBridgeHubPolkadot;
 use crate::cli::bridge::{
 	CliBridgeBase, MessagesCliBridge, RelayToRelayEquivocationDetectionCliBridge,
 	RelayToRelayHeadersCliBridge,
 };
-use super::BridgeHubRococoAsBridgeHubPolkadot;
 
 use async_trait::async_trait;
 use substrate_relay_helper::{
