@@ -76,26 +76,6 @@ pub trait SubstrateMessageLane: 'static + Clone + Debug + Send + Sync {
 	fn best_finalized_target_at_source_method() -> String {
 		Self::TargetChain::BEST_FINALIZED_HEADER_ID_METHOD.into()
 	}
-
-	/// Name of the messages pallet that is deployed at `TargetChain` to bridge with the `SourceChain`.
-	fn with_source_chain_messages_pallet_name() -> String {
-		Self::SourceChain::WITH_CHAIN_MESSAGES_PALLET_NAME.into()
-	}
-
-	/// Name of the messages pallet that is deployed at `SourceChain` to bridge with the `TargetChain`.
-	fn with_target_chain_messages_pallet_name() -> String {
-		Self::TargetChain::WITH_CHAIN_MESSAGES_PALLET_NAME.into()
-	}
-
-	/// Name of runtime method, that returns details for messages, sent tfrom the `SourceChain`.
-	fn from_source_chain_message_details_method() -> String {
-		Self::SourceChain::FROM_CHAIN_MESSAGE_DETAILS_METHOD.into()
-	}
-
-	/// Name of runtime method, that returns details for messages, heading to the `TargetChain`.
-	fn to_target_chain_message_details_method() -> String {
-		Self::TargetChain::TO_CHAIN_MESSAGE_DETAILS_METHOD.into()
-	}
 }
 
 /// Adapter that allows all `SubstrateMessageLane` to act as `MessageLane`.
