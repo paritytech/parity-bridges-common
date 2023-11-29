@@ -47,18 +47,6 @@ pub trait SubstrateParachainsPipeline: 'static + Clone + Debug + Send + Sync {
 
 	/// How submit parachains heads call is built?
 	type SubmitParachainHeadsCallBuilder: SubmitParachainHeadsCallBuilder<Self>;
-
-	/// Name of runtime method, that returns best finalized source parachain header id, available
-	/// at the target chain.
-	fn best_finalized_source_at_target_method() -> String {
-		Self::SourceParachain::BEST_FINALIZED_HEADER_ID_METHOD.into()
-	}
-
-	/// Name of runtime method, that returns best finalized source relay chain header id, available
-	/// at the target chain.
-	fn best_finalized_source_relay_at_target_method() -> String {
-		Self::SourceRelayChain::BEST_FINALIZED_HEADER_ID_METHOD.into()
-	}
 }
 
 /// Adapter that allows all `SubstrateParachainsPipeline` to act as `ParachainsPipeline`.

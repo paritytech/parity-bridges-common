@@ -29,7 +29,7 @@ use bp_runtime::HeaderIdProvider;
 use codec::Decode;
 use parachains_relay::parachains_loop::TargetClient;
 use relay_substrate_client::{
-	AccountIdOf, AccountKeyPairOf, Client, Error as SubstrateError, HeaderIdOf,
+	AccountIdOf, AccountKeyPairOf, Chain, Client, Error as SubstrateError, HeaderIdOf,
 	ParachainBase, TransactionEra, TransactionTracker, UnsignedTransaction,
 };
 use relay_utils::relay_loop::Client as RelayClient;
@@ -95,7 +95,7 @@ where
 	) -> Result<HeaderIdOf<P::SourceRelayChain>, Self::Error> {
 		self.client
 			.typed_state_call::<_, Option<HeaderIdOf<P::SourceRelayChain>>>(
-				P::best_finalized_source_relay_at_target_method(),
+				P::SourceRelayChain::BEST_FINALIZED_HEADER_ID_METHOD.into(),
 				(),
 				Some(at_block.1),
 			)
@@ -111,7 +111,7 @@ where
 		let encoded_best_finalized_source_para_block = self
 			.client
 			.state_call(
-				P::best_finalized_source_at_target_method(),
+				P::SourceParachain::BEST_FINALIZED_HEADER_ID_METHOD.into(),
 				Bytes(Vec::new()),
 				Some(at_block.1),
 			)

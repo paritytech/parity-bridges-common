@@ -20,7 +20,6 @@ use crate::cli::bridge::{CliBridgeBase, MessagesCliBridge};
 use super::BridgeHubRococoAsBridgeHubPolkadot;
 use relay_bridge_hub_rococo_client::BridgeHubRococo;
 use relay_polkadot_bulletin_client::PolkadotBulletin as RococoBulletin;
-use relay_substrate_client::{Chain, ChainWithMessages};
 use substrate_relay_helper::{messages_lane::SubstrateMessageLane, UtilityPalletBatchCallBuilder};
 
 /// RococoBulletin-to-BridgeHubRococo messages bridge.

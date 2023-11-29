@@ -22,7 +22,6 @@ use crate::cli::bridge::{
 use super::RococoAsPolkadot;
 
 use async_trait::async_trait;
-use relay_substrate_client::Chain;
 use substrate_relay_helper::{
 	equivocation::SubstrateEquivocationDetectionPipeline,
 	finality::SubstrateFinalitySyncPipeline,

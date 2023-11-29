@@ -21,7 +21,7 @@ use super::{BridgeHubRococoAsBridgeHubPolkadot, RococoAsPolkadot};
 
 use bp_polkadot_core::parachains::{ParaHash, ParaHeadsProof, ParaId};
 use bp_runtime::Chain;
-use relay_substrate_client::{CallOf, Chain as _, HeaderIdOf};
+use relay_substrate_client::{CallOf, HeaderIdOf};
 use substrate_relay_helper::{
 	messages_lane::MessagesRelayLimits,
 	parachains::{SubmitParachainHeadsCallBuilder, SubstrateParachainsPipeline},

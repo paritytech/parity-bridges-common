@@ -163,7 +163,7 @@ where
 		// we can't relay messages if messages pallet at target chain is halted
 		self.ensure_pallet_active().await?;
 
-		read_client_state(&self.target_client, Some(&self.source_client), P::best_finalized_source_at_target_method()).await
+		read_client_state(&self.target_client, Some(&self.source_client)).await
 	}
 
 	async fn latest_received_nonce(

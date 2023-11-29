@@ -64,18 +64,6 @@ pub trait SubstrateMessageLane: 'static + Clone + Debug + Send + Sync {
 	type SourceBatchCallBuilder: BatchCallBuilderConstructor<CallOf<Self::SourceChain>>;
 	/// How batch calls are built at the target chain?
 	type TargetBatchCallBuilder: BatchCallBuilderConstructor<CallOf<Self::TargetChain>>;
-
-	/// Name of runtime method, that returns best finalized source chain header id, available
-	/// at the target chain.
-	fn best_finalized_source_at_target_method() -> String {
-		Self::SourceChain::BEST_FINALIZED_HEADER_ID_METHOD.into()
-	}
-
-	/// Name of runtime method, that returns best finalized target chain header id, available
-	/// at the source chain.
-	fn best_finalized_target_at_source_method() -> String {
-		Self::TargetChain::BEST_FINALIZED_HEADER_ID_METHOD.into()
-	}
 }
 
 /// Adapter that allows all `SubstrateMessageLane` to act as `MessageLane`.
