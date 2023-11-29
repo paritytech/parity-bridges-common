@@ -17,6 +17,7 @@
 //! Rococo-to-RococoBulletin parachains sync entrypoint.
 
 use crate::cli::bridge::{CliBridgeBase, MessagesCliBridge, ParachainToRelayHeadersCliBridge};
+use super::{BridgeHubRococoAsBridgeHubPolkadot, RococoAsPolkadot};
 
 use bp_polkadot_core::parachains::{ParaHash, ParaHeadsProof, ParaId};
 use bp_runtime::Chain;
@@ -31,19 +32,11 @@ use substrate_relay_helper::{
 pub struct RococoToRococoBulletin;
 
 impl SubstrateParachainsPipeline for RococoToRococoBulletin {
-	type SourceParachain = relay_bridge_hub_rococo_client::BridgeHubRococo;
-	type SourceRelayChain = relay_rococo_client::Rococo;
+	type SourceParachain = BridgeHubRococoAsBridgeHubPolkadot;
+	type SourceRelayChain = RococoAsPolkadot;
 	type TargetChain = relay_polkadot_bulletin_client::PolkadotBulletin;
 
 	type SubmitParachainHeadsCallBuilder = RococoToRococoBulletinCallBuilder;
-
-	fn best_finalized_source_at_target_method() -> String {
-		relay_bridge_hub_polkadot_client::BridgeHubPolkadot::BEST_FINALIZED_HEADER_ID_METHOD.into()
-	}
-
-	fn best_finalized_source_relay_at_target_method() -> String {
-		relay_polkadot_client::Polkadot::BEST_FINALIZED_HEADER_ID_METHOD.into()
-	}
 }
 
 pub struct RococoToRococoBulletinCallBuilder;
@@ -67,14 +60,14 @@ impl SubmitParachainHeadsCallBuilder<RococoToRococoBulletin> for RococoToRococoB
 pub struct RococoToRococoBulletinCliBridge {}
 
 impl ParachainToRelayHeadersCliBridge for RococoToRococoBulletinCliBridge {
-	type SourceRelay = relay_rococo_client::Rococo;
+	type SourceRelay = RococoAsPolkadot;
 	type ParachainFinality = RococoToRococoBulletin;
 	type RelayFinality =
 		crate::bridges::rococo_bulletin::rococo_headers_to_rococo_bulletin::RococoFinalityToRococoBulletin;
 }
 
 impl CliBridgeBase for RococoToRococoBulletinCliBridge {
-	type Source = relay_bridge_hub_rococo_client::BridgeHubRococo;
+	type Source = BridgeHubRococoAsBridgeHubPolkadot;
 	type Target = relay_polkadot_bulletin_client::PolkadotBulletin;
 }
 

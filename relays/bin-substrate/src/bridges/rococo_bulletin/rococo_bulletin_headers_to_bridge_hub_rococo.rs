@@ -20,6 +20,7 @@ use crate::cli::bridge::{
 	CliBridgeBase, MessagesCliBridge, RelayToRelayEquivocationDetectionCliBridge,
 	RelayToRelayHeadersCliBridge,
 };
+use super::BridgeHubRococoAsBridgeHubPolkadot;
 
 use async_trait::async_trait;
 use substrate_relay_helper::{
@@ -49,7 +50,7 @@ substrate_relay_helper::generate_report_equivocation_call_builder!(
 #[async_trait]
 impl SubstrateFinalityPipeline for RococoBulletinFinalityToBridgeHubRococo {
 	type SourceChain = relay_polkadot_bulletin_client::PolkadotBulletin;
-	type TargetChain = relay_bridge_hub_rococo_client::BridgeHubRococo;
+	type TargetChain = BridgeHubRococoAsBridgeHubPolkadot;
 
 	type FinalityEngine = GrandpaFinalityEngine<Self::SourceChain>;
 }
@@ -69,7 +70,7 @@ pub struct RococoBulletinToBridgeHubRococoCliBridge {}
 
 impl CliBridgeBase for RococoBulletinToBridgeHubRococoCliBridge {
 	type Source = relay_polkadot_bulletin_client::PolkadotBulletin;
-	type Target = relay_bridge_hub_rococo_client::BridgeHubRococo;
+	type Target = BridgeHubRococoAsBridgeHubPolkadot;
 }
 
 impl RelayToRelayHeadersCliBridge for RococoBulletinToBridgeHubRococoCliBridge {
