@@ -40,7 +40,7 @@ pallet-utility = { git = "https://github.com/paritytech/polkadot-sdk", branch = 
 sp-io = { git = "https://github.com/paritytech/polkadot-sdk", branch = "master" }
 
 [features]
-default = [ "std" ]
+default = ["std"]
 std = [
 	"bp-header-chain/std",
 	"bp-messages/std",
