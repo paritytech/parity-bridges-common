@@ -125,9 +125,9 @@ pub trait Engine<C: Chain>: Send {
 		proof: &mut Self::FinalityProof,
 	) -> Result<(), SubstrateError>;
 
-	/// Returns `true` if selected header and proof are exceeding maximal expected
-	/// `submit_finality_proof` call size and relayer will get a limited refund for this
-	/// submission.
+	/// Checks whether the given `header` and its finality `proof` fit the maximal expected
+	/// call size limit. If result is `MaxExpectedCallSizeCheck::Exceeds { .. }`, this
+	/// submission won't be fully refunded and relayer will spend its own funds on that.
 	fn check_max_expected_call_size(
 		header: &C::Header,
 		proof: &Self::FinalityProof,
