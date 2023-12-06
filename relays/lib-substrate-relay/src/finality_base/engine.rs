@@ -124,6 +124,7 @@ pub trait Engine<C: Chain>: Send {
 		header: &C::Header,
 		proof: &mut Self::FinalityProof,
 	) -> Result<(), SubstrateError>;
+
 	/// Returns `true` if selected header and proof are exceeding maximal expected
 	/// `submit_finality_proof` call size and relayer will get a limited refund for this
 	/// submission.
