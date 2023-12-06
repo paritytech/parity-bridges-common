@@ -134,9 +134,8 @@ impl ChainWithGrandpa for BridgedChain {
 	const WITH_CHAIN_GRANDPA_PALLET_NAME: &'static str = "WithBridgedChainBridgeGrandpa";
 	const MAX_AUTHORITIES_COUNT: u32 = 16;
 	const REASONABLE_HEADERS_IN_JUSTIFICATON_ANCESTRY: u32 = 4;
-	const MAX_HEADER_SIZE: u32 = 4096;
-	const AVERAGE_HEADER_SIZE_IN_JUSTIFICATION: u32 = 4096;
-	const WORST_HEADER_SIZE_IN_JUSTIFICATION: u32 = 8192;
+	const AVERAGE_HEADER_SIZE: u32 = 4096;
+	const MAX_MANDATORY_HEADER_SIZE: u32 = 8192;
 }
 
 impl ChainWithMessages for BridgedChain {
