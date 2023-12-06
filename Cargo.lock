@@ -9491,6 +9491,7 @@ dependencies = [
  "bp-runtime",
  "bp-test-utils",
  "bridge-runtime-common",
+ "env_logger",
  "finality-grandpa",
  "frame-support",
  "futures",
