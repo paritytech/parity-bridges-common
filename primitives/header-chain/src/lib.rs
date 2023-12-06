@@ -321,3 +321,46 @@ pub fn max_expected_submit_finality_proof_arguments_size<C: ChainWithGrandpa>(
 	};
 	max_expected_finality_target_size.saturating_add(max_expected_justification_size)
 }
+
+#[cfg(test)]
+mod tests {
+	use super::*;
+	use frame_support::weights::Weight;
+	use sp_runtime::{testing::H256, traits::BlakeTwo256, MultiSignature};
+
+	struct TestChain;
+
+	impl Chain for TestChain {
+		type BlockNumber = u32;
+		type Hash = H256;
+		type Hasher = BlakeTwo256;
+		type Header = sp_runtime::generic::Header<u32, BlakeTwo256>;
+		type AccountId = u64;
+		type Balance = u64;
+		type Nonce = u64;
+		type Signature = MultiSignature;
+
+		fn max_extrinsic_size() -> u32 {
+			0
+		}
+		fn max_extrinsic_weight() -> Weight {
+			Weight::zero()
+		}
+	}
+
+	impl ChainWithGrandpa for TestChain {
+		const WITH_CHAIN_GRANDPA_PALLET_NAME: &'static str = "Test";
+		const MAX_AUTHORITIES_COUNT: u32 = 128;
+		const REASONABLE_HEADERS_IN_JUSTIFICATON_ANCESTRY: u32 = 2;
+		const MAX_MANDATORY_HEADER_SIZE: u32 = 100_000;
+		const AVERAGE_HEADER_SIZE: u32 = 1_024;
+	}
+
+	#[test]
+	fn max_expected_submit_finality_proof_arguments_size_respects_mandatory_argument() {
+		assert!(
+			max_expected_submit_finality_proof_arguments_size::<TestChain>(true, 100) >
+				max_expected_submit_finality_proof_arguments_size::<TestChain>(false, 100),
+		);
+	}
+}
