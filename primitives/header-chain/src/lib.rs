@@ -285,7 +285,7 @@ pub trait ChainWithGrandpa: Chain {
 	/// partial refund.
 	///
 	/// We expect some headers on production chains that are above this size. But they are rare and
-	/// if rellayer cares about its profitablility, we expect it'll select other headers for
+	/// if rellayer cares about its profitability, we expect it'll select other headers for
 	/// submission.
 	const AVERAGE_HEADER_SIZE: u32;
 }
