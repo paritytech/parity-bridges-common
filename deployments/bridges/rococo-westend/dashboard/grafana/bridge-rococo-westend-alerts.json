@@ -88,9 +88,9 @@
             }
           }
         ],
-        "updated": "2023-11-22T09:28:26Z",
+        "updated": "2023-12-08T06:04:42Z",
         "intervalSeconds": 60,
-        "version": 128,
+        "version": 130,
         "uid": "r41otJp4k",
         "namespace_uid": "eblDiw17z",
         "namespace_id": 140,
@@ -186,9 +186,9 @@
             }
           }
         ],
-        "updated": "2023-11-22T09:28:26Z",
+        "updated": "2023-12-08T06:04:42Z",
         "intervalSeconds": 60,
-        "version": 126,
+        "version": 128,
         "uid": "wqmPtJpVz",
         "namespace_uid": "eblDiw17z",
         "namespace_id": 140,
@@ -284,9 +284,9 @@
             }
           }
         ],
-        "updated": "2023-11-22T09:28:26Z",
+        "updated": "2023-12-08T06:04:42Z",
         "intervalSeconds": 60,
-        "version": 122,
+        "version": 124,
         "uid": "z4h3pJtVz",
         "namespace_uid": "eblDiw17z",
         "namespace_id": 140,
@@ -382,9 +382,9 @@
             }
           }
         ],
-        "updated": "2023-11-22T09:28:26Z",
+        "updated": "2023-12-08T06:04:42Z",
         "intervalSeconds": 60,
-        "version": 121,
+        "version": 123,
         "uid": "Kj_z21t4k",
         "namespace_uid": "eblDiw17z",
         "namespace_id": 140,
@@ -480,9 +480,9 @@
             }
           }
         ],
-        "updated": "2023-11-22T09:28:26Z",
+        "updated": "2023-12-08T06:04:42Z",
         "intervalSeconds": 60,
-        "version": 116,
+        "version": 118,
         "uid": "hw_a21pVk",
         "namespace_uid": "eblDiw17z",
         "namespace_id": 140,
@@ -578,9 +578,9 @@
             }
           }
         ],
-        "updated": "2023-11-22T09:28:26Z",
+        "updated": "2023-12-08T06:04:42Z",
         "intervalSeconds": 60,
-        "version": 115,
+        "version": 117,
         "uid": "daN62Jt4z",
         "namespace_uid": "eblDiw17z",
         "namespace_id": 140,
@@ -676,9 +676,9 @@
             }
           }
         ],
-        "updated": "2023-11-22T09:28:26Z",
+        "updated": "2023-12-08T06:04:42Z",
         "intervalSeconds": 60,
-        "version": 112,
+        "version": 114,
         "uid": "BzBDb1pVz",
         "namespace_uid": "eblDiw17z",
         "namespace_id": 140,
@@ -774,9 +774,9 @@
             }
           }
         ],
-        "updated": "2023-11-22T09:28:26Z",
+        "updated": "2023-12-08T06:04:42Z",
         "intervalSeconds": 60,
-        "version": 111,
+        "version": 113,
         "uid": "1W6lb1p4z",
         "namespace_uid": "eblDiw17z",
         "namespace_id": 140,
@@ -872,9 +872,9 @@
             }
           }
         ],
-        "updated": "2023-11-22T09:28:26Z",
+        "updated": "2023-12-08T06:04:42Z",
         "intervalSeconds": 60,
-        "version": 110,
+        "version": 112,
         "uid": "Y5Dm-1tVz",
         "namespace_uid": "eblDiw17z",
         "namespace_id": 140,
@@ -970,9 +970,9 @@
             }
           }
         ],
-        "updated": "2023-11-22T09:28:26Z",
+        "updated": "2023-12-08T06:04:42Z",
         "intervalSeconds": 60,
-        "version": 109,
+        "version": 111,
         "uid": "yUl4a1tVz",
         "namespace_uid": "eblDiw17z",
         "namespace_id": 140,
@@ -1111,9 +1111,9 @@
             }
           }
         ],
-        "updated": "2023-11-22T09:28:26Z",
+        "updated": "2023-12-08T06:04:42Z",
         "intervalSeconds": 60,
-        "version": 78,
+        "version": 80,
         "uid": "R6GKwNA4z",
         "namespace_uid": "eblDiw17z",
         "namespace_id": 140,
@@ -1252,9 +1252,9 @@
             }
           }
         ],
-        "updated": "2023-11-22T09:28:26Z",
+        "updated": "2023-12-08T06:04:42Z",
         "intervalSeconds": 60,
-        "version": 76,
+        "version": 78,
         "uid": "rAM1QHAVk",
         "namespace_uid": "eblDiw17z",
         "namespace_id": 140,
@@ -1283,16 +1283,16 @@
         "data": [
           {
             "refId": "B",
-            "queryType": "range",
+            "queryType": "instant",
             "relativeTimeRange": {
               "from": 600,
               "to": 0
             },
-            "datasourceUid": "P03E52D76DFE188C3",
+            "datasourceUid": "P3572579027B246FE",
             "model": {
               "datasource": {
                 "type": "loki",
-                "uid": "P03E52D76DFE188C3"
+                "uid": "P3572579027B246FE"
               },
               "editorMode": "code",
               "expr": "count_over_time({container=\"bridges-common-relay\"} |= `Aborting relay` [1m])",
@@ -1300,7 +1300,7 @@
               "intervalMs": 1000,
               "legendFormat": "Aborts per minute",
               "maxDataPoints": 43200,
-              "queryType": "range",
+              "queryType": "instant",
               "refId": "B"
             }
           },
@@ -1392,9 +1392,9 @@
             }
           }
         ],
-        "updated": "2023-11-22T09:28:26Z",
+        "updated": "2023-12-08T06:04:42Z",
         "intervalSeconds": 60,
-        "version": 75,
+        "version": 77,
         "uid": "TwWPeN04z",
         "namespace_uid": "eblDiw17z",
         "namespace_id": 140,
@@ -1533,9 +1533,9 @@
             }
           }
         ],
-        "updated": "2023-11-22T09:28:26Z",
+        "updated": "2023-12-08T06:04:42Z",
         "intervalSeconds": 60,
-        "version": 70,
+        "version": 72,
         "uid": "08-5gv04k",
         "namespace_uid": "eblDiw17z",
         "namespace_id": 140,
@@ -1674,9 +1674,9 @@
             }
           }
         ],
-        "updated": "2023-11-22T09:28:26Z",
+        "updated": "2023-12-08T06:04:42Z",
         "intervalSeconds": 60,
-        "version": 69,
+        "version": 71,
         "uid": "Esj2gD0Vk",
         "namespace_uid": "eblDiw17z",
         "namespace_id": 140,
@@ -1717,7 +1717,7 @@
                 "uid": "PC96415006F908B67"
               },
               "editorMode": "code",
-              "expr": "increase(BridgeHubRococo_to_BridgeHubWestend_MessageLane_00000002_lane_state_nonces{domain=\"parity-testnet\", type=~\"source_latest_generated\"}[24h])",
+              "expr": "max by(container) (increase(BridgeHubRococo_to_BridgeHubWestend_MessageLane_00000002_lane_state_nonces{domain=\"parity-testnet\", type=~\"source_latest_generated\"}[24h]))",
               "hide": true,
               "instant": false,
               "interval": "",
@@ -1816,9 +1816,9 @@
             }
           }
         ],
-        "updated": "2023-11-22T09:28:26Z",
+        "updated": "2023-12-08T06:04:42Z",
         "intervalSeconds": 60,
-        "version": 41,
+        "version": 43,
         "uid": "ry1K5SB4k",
         "namespace_uid": "eblDiw17z",
         "namespace_id": 140,
@@ -1958,9 +1958,9 @@
             }
           }
         ],
-        "updated": "2023-11-22T09:28:26Z",
+        "updated": "2023-12-08T06:04:42Z",
         "intervalSeconds": 60,
-        "version": 39,
+        "version": 41,
         "uid": "9YAdEUB4z",
         "namespace_uid": "eblDiw17z",
         "namespace_id": 140,
