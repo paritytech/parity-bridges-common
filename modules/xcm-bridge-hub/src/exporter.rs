@@ -74,6 +74,18 @@ where
 		let bridge_destination_universal_location =
 			destination.clone().take().ok_or(SendError::MissingArgument)?;
 
+		// prepare the origin relative location
+		let bridge_origin_relative_location =
+			bridge_origin_universal_location.relative_to(&T::UniversalLocation::get());
+
+		// then we are able to compute the lane id used to send messages
+		let locations = Self::bridge_locations(
+			Box::new(bridge_origin_relative_location),
+			Box::new(bridge_destination_universal_location.into()),
+		)
+		.map_err(|_| SendError::NotApplicable)?;
+		let bridge = Self::bridge(locations.bridge_id).ok_or(SendError::NotApplicable)?;
+
 		// check if we are able to route the message. We use existing `HaulBlobExporter` for that.
 		// It will make all required changes and will encode message properly, so that the
 		// `DispatchBlob` at the bridged bridge hub will be able to decode it
@@ -84,18 +96,6 @@ where
 			destination,
 			message,
 		)?;
-
-		// prepare the origin relative location
-		let bridge_origin_relative_location =
-			bridge_origin_universal_location.relative_to(&T::UniversalLocation::get());
-
-		// then we are able to compute the lane id used to send messages
-		let locations = Self::bridge_locations(
-			Box::new(bridge_origin_relative_location),
-			Box::new(bridge_destination_universal_location.into()),
-		)
-		.map_err(|_| SendError::Unroutable)?;
-		let bridge = Self::bridge(locations.bridge_id).ok_or(SendError::Unroutable)?;
 
 		Ok(((locations.bridge_id, bridge, blob, id), price))
 	}
