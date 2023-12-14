@@ -521,24 +521,24 @@ pub mod api {
 					submit_finality_proof {
 						finality_target: ::std::boxed::Box<
 							::sp_runtime::generic::Header<
-									::core::primitive::u32,
-									::sp_runtime::traits::BlakeTwo256,
-								>,
+								::core::primitive::u32,
+								::sp_runtime::traits::BlakeTwo256,
+							>,
 						>,
 						justification: ::bp_header_chain::justification::GrandpaJustification<
 							::sp_runtime::generic::Header<
-									::core::primitive::u32,
-									::sp_runtime::traits::BlakeTwo256,
-								>,
+								::core::primitive::u32,
+								::sp_runtime::traits::BlakeTwo256,
+							>,
 						>,
 					},
 					#[codec(index = 1)]
 					initialize {
 						init_data: ::bp_header_chain::InitializationData<
 							::sp_runtime::generic::Header<
-									::core::primitive::u32,
-									::sp_runtime::traits::BlakeTwo256,
-								>,
+								::core::primitive::u32,
+								::sp_runtime::traits::BlakeTwo256,
+							>,
 						>,
 					},
 					#[codec(index = 2)]
