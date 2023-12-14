@@ -285,13 +285,13 @@ pub mod api {
 				Multisig(runtime_types::pallet_multisig::pallet::Call),
 				#[codec(index = 48)]
 				BridgeWestendGrandpa(runtime_types::pallet_bridge_grandpa::pallet::Call),
-				#[codec(index = 52)]
+				#[codec(index = 60)]
 				BridgePolkadotBulletinGrandpa(runtime_types::pallet_bridge_grandpa::pallet::Call2),
 				#[codec(index = 49)]
 				BridgeWestendParachains(runtime_types::pallet_bridge_parachains::pallet::Call),
 				#[codec(index = 51)]
 				BridgeWestendMessages(runtime_types::pallet_bridge_messages::pallet::Call),
-				#[codec(index = 53)]
+				#[codec(index = 61)]
 				BridgePolkadotBulletinMessages(
 					runtime_types::pallet_bridge_messages::pallet::Call2,
 				),
