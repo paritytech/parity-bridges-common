@@ -19,7 +19,10 @@
 use crate as pallet_xcm_bridge_hub_router;
 
 use bp_xcm_bridge_hub::{BridgeId, LocalXcmChannelManager};
-use frame_support::{construct_runtime, derive_impl, parameter_types};
+use frame_support::{
+	construct_runtime, derive_impl, parameter_types,
+	traits::{Contains, Equals},
+};
 use sp_runtime::{traits::ConstU128, BuildStorage};
 use xcm::prelude::*;
 use xcm_builder::{NetworkExportTable, NetworkExportTableItem};
@@ -56,6 +59,7 @@ parameter_types! {
 				Some((BridgeFeeAsset::get(), BASE_FEE).into())
 			)
 		];
+	pub UnknownXcmVersionLocation: MultiLocation = MultiLocation::new(2, X2(GlobalConsensus(BridgedNetworkId::get()), Parachain(9999)));
 }
 
 #[derive_impl(frame_system::config_preludes::TestDefaultConfig as frame_system::DefaultConfig)]
@@ -70,12 +74,26 @@ impl pallet_xcm_bridge_hub_router::Config<()> for TestRuntime {
 	type SiblingBridgeHubLocation = SiblingBridgeHubLocation;
 	type BridgedNetworkId = BridgedNetworkId;
 	type Bridges = NetworkExportTable<BridgeTable>;
+	type DestinationVersion =
+		LatestOrNoneForLocationVersionChecker<Equals<UnknownXcmVersionLocation>>;
 
 	type ToBridgeHubSender = TestToBridgeHubSender;
 	type LocalXcmChannelManager = TestLocalXcmChannelManager;
 
 	type ByteFee = ConstU128<BYTE_FEE>;
 	type FeeAsset = BridgeFeeAsset;
+}
+
+pub struct LatestOrNoneForLocationVersionChecker<Location>(sp_std::marker::PhantomData<Location>);
+impl<Location: Contains<MultiLocation>> GetVersion
+	for LatestOrNoneForLocationVersionChecker<Location>
+{
+	fn get_version_for(dest: &MultiLocation) -> Option<XcmVersion> {
+		if Location::contains(dest) {
+			return None
+		}
+		Some(XCM_VERSION)
+	}
 }
 
 pub struct TestToBridgeHubSender;
