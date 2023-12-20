@@ -394,8 +394,6 @@ pub mod pallet {
 			bridge_origin_relative_location: Box<MultiLocation>,
 			bridge_destination_universal_location: Box<VersionedInteriorMultiLocation>,
 		) -> Result<Box<BridgeLocations>, sp_runtime::DispatchError> {
-
-
 			bridge_locations(
 				Box::new(T::UniversalLocation::get()),
 				bridge_origin_relative_location,

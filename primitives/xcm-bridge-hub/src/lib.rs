@@ -22,12 +22,18 @@
 use bp_messages::LaneId;
 use bp_runtime::{AccountIdOf, BalanceOf, Chain};
 use codec::{Decode, Encode, MaxEncodedLen};
-use frame_support::{ensure, CloneNoBound, PalletError, PartialEqNoBound, RuntimeDebugNoBound, traits::Get};
+use frame_support::{
+	ensure, traits::Get, CloneNoBound, PalletError, PartialEqNoBound, RuntimeDebugNoBound,
+};
 use scale_info::TypeInfo;
 use serde::{Deserialize, Serialize};
 use sp_runtime::RuntimeDebug;
 use sp_std::boxed::Box;
-use xcm::{latest::prelude::*, VersionedInteriorMultiLocation, VersionedMultiLocation, prelude::{GetVersion, XcmVersion}};
+use xcm::{
+	latest::prelude::*,
+	prelude::{GetVersion, XcmVersion},
+	VersionedInteriorMultiLocation, VersionedMultiLocation,
+};
 
 /// Encoded XCM blob. We expect the bridge messages pallet to use this blob type for both inbound
 /// and outbound payloads.
@@ -290,7 +296,7 @@ pub struct XcmVersionOfDestAndRemoteBridge<Version, RemoteBridge>(
 	sp_std::marker::PhantomData<(Version, RemoteBridge)>,
 );
 impl<Version: GetVersion, RemoteBridge: Get<MultiLocation>> GetVersion
-for XcmVersionOfDestAndRemoteBridge<Version, RemoteBridge>
+	for XcmVersionOfDestAndRemoteBridge<Version, RemoteBridge>
 {
 	fn get_version_for(dest: &MultiLocation) -> Option<XcmVersion> {
 		let dest_version = Version::get_version_for(dest);
