@@ -84,7 +84,7 @@ pub const LOG_TARGET: &str = "runtime::bridge-xcm";
 pub mod pallet {
 	use super::*;
 	use frame_support::pallet_prelude::*;
-	use frame_system::pallet_prelude::*;
+	use frame_system::pallet_prelude::{BlockNumberFor, OriginFor};
 
 	#[pallet::config]
 	#[pallet::disable_frame_system_supertrait_check]
@@ -100,9 +100,9 @@ pub mod pallet {
 		// TODO: https://github.com/paritytech/parity-bridges-common/issues/1666 remove `ChainId` and
 		// replace it with the `NetworkId` - then we'll be able to use
 		// `T as pallet_bridge_messages::Config<T::BridgeMessagesPalletInstance>::BridgedChain::NetworkId`
-		/// Bridged network id.
+		/// Bridged network as relative location of bridged `GlobalConsensus`.
 		#[pallet::constant]
-		type BridgedNetworkId: Get<NetworkId>;
+		type BridgedNetwork: Get<MultiLocation>;
 		/// Associated messages pallet instance that bridges us with the
 		/// `BridgedNetworkId` consensus.
 		type BridgeMessagesPalletInstance: 'static;
@@ -132,6 +132,8 @@ pub mod pallet {
 		type BlobDispatcher: DispatchBlob;
 		/// Price of single message export to the bridged consensus (`Self::BridgedNetworkId`).
 		type MessageExportPrice: Get<MultiAssets>;
+		/// Checks the XCM version for the destination.
+		type DestinationVersion: GetVersion;
 	}
 
 	/// An alias for the bridge metadata.
@@ -158,7 +160,7 @@ pub mod pallet {
 		///
 		/// The caller must be within the `T::OpenBridgeOrigin` filter (presumably: a sibling
 		/// parachain or a parent relay chain). The `bridge_destination_universal_location` must be
-		/// a destination within the consensus of the `T::BridgedNetworkId` network.
+		/// a destination within the consensus of the `T::BridgedNetwork` network.
 		///
 		/// The `BridgeReserve` amount is reserved on the caller account. This reserve
 		/// is unreserved after bridge is closed.
@@ -354,7 +356,26 @@ pub mod pallet {
 		}
 	}
 
+	#[pallet::hooks]
+	impl<T: Config<I>, I: 'static> Hooks<BlockNumberFor<T>> for Pallet<T, I> {
+		fn integrity_test() {
+			assert!(
+				Self::bridged_network_id().is_some(),
+				"Configured `T::BridgedNetwork`: {:?} does not contain `GlobalConsensus` junction with `NetworkId`",
+				T::BridgedNetwork::get()
+			)
+		}
+	}
+
 	impl<T: Config<I>, I: 'static> Pallet<T, I> {
+		/// Returns some `NetworkId` if contains `GlobalConsensus` junction.
+		fn bridged_network_id() -> Option<NetworkId> {
+			match T::BridgedNetwork::get().take_first_interior() {
+				Some(GlobalConsensus(network)) => Some(network),
+				_ => None,
+			}
+		}
+
 		/// Return bridge endpoint locations and dedicated lane identifier. This method converts
 		/// runtime `origin` argument to relative `MultiLocation` using the `T::OpenBridgeOrigin`
 		/// converter.
@@ -381,7 +402,7 @@ pub mod pallet {
 						.try_into()
 						.map_err(|_| Error::<T, I>::UnsupportedXcmVersion)?,
 				),
-				T::BridgedNetworkId::get(),
+				Self::bridged_network_id().ok_or_else(|| Error::<T, I>::InvalidBridgedNetwork)?,
 			)
 			.map_err(|e| Error::<T, I>::BridgeLocations(e).into())
 		}
@@ -491,6 +512,8 @@ pub mod pallet {
 		FailedToReserveBridgeReserve,
 		/// The version of XCM location argument is unsupported.
 		UnsupportedXcmVersion,
+		/// Invalid `T::BridgedNetwork` configuration - missing `GlobalConsensus` junction.
+		InvalidBridgedNetwork,
 	}
 }
 
