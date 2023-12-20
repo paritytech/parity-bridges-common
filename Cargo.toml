@@ -85,9 +85,3 @@ complexity = { level = "deny", priority = 1 }
 #stable_sort_primitive = { level = "allow", priority = 2 }            # prefer stable sort
 #extra-unused-type-parameters = { level = "allow", priority = 2 }     # stylistic
 #default_constructed_unit_structs = { level = "allow", priority = 2 } # stylistic
-
-# Bridges clippy addons:
-redundant_closure = { level = "allow", priority = 2 }
-or_fun_call = { level = "allow", priority = 2 }
-# clippy currently is raising `derive-partial-eq-without-eq` warning even if `Eq` is actually derived
-derive-partial-eq-without-eq = { level = "allow", priority = 2 }
