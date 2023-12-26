@@ -88,7 +88,7 @@ mod benchmarks {
 		}
 	}
 
-	/// Benchmark `submit_parachain_heads` extrinsic with 1kb proof size.
+	/// Benchmark `submit_parachain_heads` extrinsic with `1kb` proof size.
 	#[benchmark]
 	fn submit_parachain_heads_with_1kb_proof() {
 		let sender = account("sender", 0, 0);
@@ -114,7 +114,7 @@ mod benchmarks {
 		}
 	}
 
-	/// Benchmark `submit_parachain_heads` extrinsic with 16kb proof size.
+	/// Benchmark `submit_parachain_heads` extrinsic with `16kb` proof size.
 	#[benchmark]
 	fn submit_parachain_heads_with_16kb_proof() {
 		let sender = account("sender", 0, 0);
