@@ -23,7 +23,7 @@ use crate::{
 
 use bp_polkadot_core::parachains::{ParaHash, ParaHeadsProof, ParaId};
 use bp_runtime::UnverifiedStorageProofParams;
-use frame_benchmarking::{account, benchmarks_instance_pallet};
+use frame_benchmarking::v2::*;
 use frame_system::RawOrigin;
 use sp_std::prelude::*;
 
@@ -42,21 +42,23 @@ pub trait Config<I: 'static>: crate::Config<I> {
 	) -> (RelayBlockNumber, RelayBlockHash, ParaHeadsProof, Vec<(ParaId, ParaHash)>);
 }
 
-benchmarks_instance_pallet! {
-	where_clause {
-		where
-			<T as pallet_bridge_grandpa::Config<T::BridgesGrandpaPalletInstance>>::BridgedChain:
-				bp_runtime::Chain<
-					BlockNumber = RelayBlockNumber,
-					Hash = RelayBlockHash,
-					Hasher = RelayBlockHasher,
-				>,
-	}
+#[instance_benchmarks(
+	where
+	<T as pallet_bridge_grandpa::Config<T::BridgesGrandpaPalletInstance>>::BridgedChain:
+		bp_runtime::Chain<
+			BlockNumber = RelayBlockNumber,
+			Hash = RelayBlockHash,
+			Hasher = RelayBlockHasher,
+		>,
+)]
+mod benchmarks {
+	use super::*;
 
-	// Benchmark `submit_parachain_heads` extrinsic with different number of parachains.
-	submit_parachain_heads_with_n_parachains {
-		let p in 1..(T::parachains().len() + 1) as u32;
-
+	/// Benchmark `submit_parachain_heads` extrinsic with different number of parachains.
+	#[benchmark]
+	fn submit_parachain_heads_with_n_parachains(
+		p: Linear<1, { (T::parachains().len() + 1) as u32 }>,
+	) {
 		let sender = account("sender", 0, 0);
 		let mut parachains = T::parachains();
 		let _ = if p <= parachains.len() as u32 {
@@ -65,52 +67,78 @@ benchmarks_instance_pallet! {
 			Default::default()
 		};
 		log::trace!(target: crate::LOG_TARGET, "=== {:?}", parachains.len());
-		let (relay_block_number, relay_block_hash, parachain_heads_proof, parachains_heads) = T::prepare_parachain_heads_proof(
-			&parachains,
-			DEFAULT_PARACHAIN_HEAD_SIZE,
-			UnverifiedStorageProofParams::default(),
-		);
+		let (relay_block_number, relay_block_hash, parachain_heads_proof, parachains_heads) =
+			T::prepare_parachain_heads_proof(
+				&parachains,
+				DEFAULT_PARACHAIN_HEAD_SIZE,
+				UnverifiedStorageProofParams::default(),
+			);
 		let at_relay_block = (relay_block_number, relay_block_hash);
-	}: submit_parachain_heads(RawOrigin::Signed(sender), at_relay_block, parachains_heads, parachain_heads_proof)
-	verify {
+
+		#[extrinsic_call]
+		submit_parachain_heads(
+			RawOrigin::Signed(sender),
+			at_relay_block,
+			parachains_heads,
+			parachain_heads_proof,
+		);
+
 		for parachain in parachains {
 			assert!(crate::Pallet::<T, I>::best_parachain_head(parachain).is_some());
 		}
 	}
 
-	// Benchmark `submit_parachain_heads` extrinsic with 1kb proof size.
-	submit_parachain_heads_with_1kb_proof {
+	/// Benchmark `submit_parachain_heads` extrinsic with 1kb proof size.
+	#[benchmark]
+	fn submit_parachain_heads_with_1kb_proof() {
 		let sender = account("sender", 0, 0);
 		let parachains = vec![T::parachains()[0]];
-		let (relay_block_number, relay_block_hash, parachain_heads_proof, parachains_heads) = T::prepare_parachain_heads_proof(
-			&parachains,
-			DEFAULT_PARACHAIN_HEAD_SIZE,
-			UnverifiedStorageProofParams::from_db_size(1024),
-		);
+		let (relay_block_number, relay_block_hash, parachain_heads_proof, parachains_heads) =
+			T::prepare_parachain_heads_proof(
+				&parachains,
+				DEFAULT_PARACHAIN_HEAD_SIZE,
+				UnverifiedStorageProofParams::from_db_size(1024),
+			);
 		let at_relay_block = (relay_block_number, relay_block_hash);
-	}: submit_parachain_heads(RawOrigin::Signed(sender), at_relay_block, parachains_heads, parachain_heads_proof)
-	verify {
+
+		#[extrinsic_call]
+		submit_parachain_heads(
+			RawOrigin::Signed(sender),
+			at_relay_block,
+			parachains_heads,
+			parachain_heads_proof,
+		);
+
 		for parachain in parachains {
 			assert!(crate::Pallet::<T, I>::best_parachain_head(parachain).is_some());
 		}
 	}
 
-	// Benchmark `submit_parachain_heads` extrinsic with 16kb proof size.
-	submit_parachain_heads_with_16kb_proof {
+	/// Benchmark `submit_parachain_heads` extrinsic with 16kb proof size.
+	#[benchmark]
+	fn submit_parachain_heads_with_16kb_proof() {
 		let sender = account("sender", 0, 0);
 		let parachains = vec![T::parachains()[0]];
-		let (relay_block_number, relay_block_hash, parachain_heads_proof, parachains_heads) = T::prepare_parachain_heads_proof(
-			&parachains,
-			DEFAULT_PARACHAIN_HEAD_SIZE,
-			UnverifiedStorageProofParams::from_db_size(16 * 1024),
-		);
+		let (relay_block_number, relay_block_hash, parachain_heads_proof, parachains_heads) =
+			T::prepare_parachain_heads_proof(
+				&parachains,
+				DEFAULT_PARACHAIN_HEAD_SIZE,
+				UnverifiedStorageProofParams::from_db_size(16 * 1024),
+			);
 		let at_relay_block = (relay_block_number, relay_block_hash);
-	}: submit_parachain_heads(RawOrigin::Signed(sender), at_relay_block, parachains_heads, parachain_heads_proof)
-	verify {
+
+		#[extrinsic_call]
+		submit_parachain_heads(
+			RawOrigin::Signed(sender),
+			at_relay_block,
+			parachains_heads,
+			parachain_heads_proof,
+		);
+
 		for parachain in parachains {
 			assert!(crate::Pallet::<T, I>::best_parachain_head(parachain).is_some());
 		}
 	}
 
-	impl_benchmark_test_suite!(Pallet, crate::mock::new_test_ext(), crate::mock::TestRuntime)
+	impl_benchmark_test_suite!(Pallet, crate::mock::new_test_ext(), crate::mock::TestRuntime);
 }
