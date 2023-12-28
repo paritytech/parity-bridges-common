@@ -5,7 +5,18 @@ This is a collection of components for building bridges.
 These components include Substrate pallets for syncing headers, passing arbitrary messages, as well as libraries for
 building relayers to provide cross-chain communication capabilities.
 
-Three bridge nodes are also available. The nodes can be used to run test networks which bridge other Substrate chains.
+This codebase is used to build bridges between Substrate-based chains. Such chains are built using
+[Substrate framework](https://docs.substrate.io/) and are sharing some common features. Those features include:
+
+- ability to plugin our pallets there (see https://docs.substrate.io/reference/frame-pallets/);
+
+- using GRANDPA or parachain finality for their blocks (BEEFY finality support is planned).
+
+There are other bridges in the Dotsama ecosystem. Including, but not limited to:
+
+- Snowfork bridge with Ethereum: https://github.com/Snowfork/snowbridge;
+
+- Interlay bridge with Bitcoin: https://github.com/interlay/interbtc.
 
 🚧 The bridges are currently under construction - a hardhat is recommended beyond this point 🚧
 
@@ -15,8 +26,6 @@ Three bridge nodes are also available. The nodes can be used to run test network
 - [High-Level Architecture](#high-level-architecture)
 - [Project Layout](#project-layout)
 - [Running the Bridge](#running-the-bridge)
-- [How to send a message](#how-to-send-a-message)
-- [Community](#community)
 
 ## Installation
 
@@ -89,11 +98,12 @@ bridge interaction.
 
 ## Project Layout
 
-Here's an overview of how the project is laid out. The main bits are the `bin`, which is the actual "blockchain", the
-`modules` which are used to build the blockchain's logic (a.k.a the runtime) and the `relays` which are used to pass
-messages between chains.
+Here's an overview of how the project is laid out. The main bits are `modules` which are used to build the blockchain's
+logic (a.k.a the runtime) and the `relays` which are used to pass messages between chains.
 
 ```
+├── bin                      // Substrate Runtime Modules (a.k.a Pallets)
+│  ├── runtime-common        // Helpers for plugging-in our pallets into runtime
 ├── modules                  // Substrate Runtime Modules (a.k.a Pallets)
 │  ├── beefy                 // On-Chain BEEFY Light Client (in progress)
 │  ├── grandpa               // On-Chain GRANDPA Light Client
