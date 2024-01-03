@@ -85,6 +85,13 @@ impl pallet_xcm_bridge_hub_router::Config<()> for TestRuntime {
 	type FeeAsset = BridgeFeeAsset;
 }
 
+#[cfg(feature = "runtime-benchmarks")]
+impl pallet_xcm_bridge_hub_router::benchmarking::Config<()> for TestRuntime {
+	fn make_congested() {
+		TestLocalXcmChannelManager::make_congested();
+	}
+}
+
 pub struct LatestOrNoneForLocationVersionChecker<Location>(sp_std::marker::PhantomData<Location>);
 impl<Location: Contains<MultiLocation>> GetVersion
 	for LatestOrNoneForLocationVersionChecker<Location>

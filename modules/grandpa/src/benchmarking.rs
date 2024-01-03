@@ -47,7 +47,7 @@ use bp_test_utils::{
 	accounts, make_justification_for_header, JustificationGeneratorParams, TEST_GRANDPA_ROUND,
 	TEST_GRANDPA_SET_ID,
 };
-use frame_benchmarking::{benchmarks_instance_pallet, whitelisted_caller};
+use frame_benchmarking::v2::*;
 use frame_system::RawOrigin;
 use sp_consensus_grandpa::AuthorityId;
 use sp_runtime::traits::{One, Zero};
@@ -116,16 +116,21 @@ fn prepare_benchmark_data<T: Config<I>, I: 'static>(
 	(header, justification)
 }
 
-benchmarks_instance_pallet! {
-	// This is the "gold standard" benchmark for this extrinsic, and it's what should be used to
-	// annotate the weight in the pallet.
-	submit_finality_proof {
-		let p in 1 .. precommits_range_end::<T, I>();
-		let v in MAX_VOTE_ANCESTRIES_RANGE_BEGIN..MAX_VOTE_ANCESTRIES_RANGE_END;
+#[instance_benchmarks]
+mod benchmarks {
+	use super::*;
+
+	#[benchmark]
+	fn submit_finality_proof(
+		p: Linear<1, { precommits_range_end::<T, I>() }>,
+		v: Linear<MAX_VOTE_ANCESTRIES_RANGE_BEGIN, MAX_VOTE_ANCESTRIES_RANGE_END>,
+	) -> Result<(), BenchmarkError> {
 		let caller: T::AccountId = whitelisted_caller();
 		let (header, justification) = prepare_benchmark_data::<T, I>(p, v);
-	}: submit_finality_proof(RawOrigin::Signed(caller), Box::new(header), justification)
-	verify {
+
+		#[extrinsic_call]
+		_(RawOrigin::Signed(caller), Box::new(header), justification);
+
 		let genesis_header: BridgedHeader<T, I> = bp_test_utils::test_header(Zero::zero());
 		let header: BridgedHeader<T, I> = bp_test_utils::test_header(One::one());
 		let expected_hash = header.hash();
@@ -136,7 +141,9 @@ benchmarks_instance_pallet! {
 
 		// check that the header#0 has been pruned
 		assert!(!<ImportedHeaders<T, I>>::contains_key(genesis_header.hash()));
+
+		Ok(())
 	}
 
-	impl_benchmark_test_suite!(Pallet, crate::mock::new_test_ext(), crate::mock::TestRuntime)
+	impl_benchmark_test_suite!(Pallet, crate::mock::new_test_ext(), crate::mock::TestRuntime);
 }

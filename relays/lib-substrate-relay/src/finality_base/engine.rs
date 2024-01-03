@@ -238,7 +238,7 @@ impl<C: ChainWithGrandpa> Engine<C> for Grandpa<C> {
 		)
 		.map_err(|e| {
 			SubstrateError::Custom(format!(
-				"Failed to optimize {} GRANDPA jutification for header {:?}: {:?}",
+				"Failed to optimize {} GRANDPA justification for header {:?}: {:?}",
 				C::NAME,
 				header.id(),
 				e,
