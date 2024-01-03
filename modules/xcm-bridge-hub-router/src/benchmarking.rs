@@ -20,7 +20,7 @@
 
 use crate::{DeliveryFeeFactor, MINIMAL_DELIVERY_FEE_FACTOR};
 
-use frame_benchmarking::benchmarks_instance_pallet;
+use frame_benchmarking::v2::*;
 use frame_support::traits::Hooks;
 use sp_runtime::traits::Zero;
 
@@ -33,17 +33,32 @@ pub trait Config<I: 'static>: crate::Config<I> {
 	fn make_congested();
 }
 
-benchmarks_instance_pallet! {
-	on_initialize_when_non_congested {
+#[instance_benchmarks]
+mod benchmarks {
+	use super::*;
+
+	/// Benchmark `on_initialize` when the bridge is not congested.
+	#[benchmark]
+	fn on_initialize_when_non_congested() {
 		DeliveryFeeFactor::<T, I>::put(MINIMAL_DELIVERY_FEE_FACTOR + MINIMAL_DELIVERY_FEE_FACTOR);
-	}: {
-		crate::Pallet::<T, I>::on_initialize(Zero::zero())
+
+		#[block]
+		{
+			crate::Pallet::<T, I>::on_initialize(Zero::zero());
+		}
 	}
 
-	on_initialize_when_congested {
+	/// Benchmark `on_initialize` when the bridge is congested.
+	#[benchmark]
+	fn on_initialize_when_congested() {
 		DeliveryFeeFactor::<T, I>::put(MINIMAL_DELIVERY_FEE_FACTOR + MINIMAL_DELIVERY_FEE_FACTOR);
 		T::make_congested();
-	}: {
-		crate::Pallet::<T, I>::on_initialize(Zero::zero())
+
+		#[block]
+		{
+			crate::Pallet::<T, I>::on_initialize(Zero::zero());
+		}
 	}
+
+	impl_benchmark_test_suite!(Pallet, crate::mock::new_test_ext(), crate::mock::TestRuntime);
 }
