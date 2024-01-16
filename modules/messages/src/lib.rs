@@ -723,11 +723,12 @@ where
 
 		// finally, save message in outbound storage and emit event
 		let mut lane = outbound_lane::<T, I>(lane_id);
-		let encoded_payload = payload.encode();
+		let encoded_payload =
+			StoredMessagePayload::<T, I>::try_from(payload.encode()).map_err(|_| {
+				Error::<T, I>::MessageRejectedByPallet(VerificationError::MessageTooLarge)
+			})?;
 		let encoded_payload_len = encoded_payload.len();
-		let nonce = lane
-			.send_message(encoded_payload)
-			.map_err(Error::<T, I>::MessageRejectedByPallet)?;
+		let nonce = lane.send_message(encoded_payload);
 
 		// return number of messages in the queue to let sender know about its state
 		let enqueued_messages = lane.data().queued_messages().saturating_len();
@@ -844,6 +845,8 @@ struct RuntimeOutboundLaneStorage<T, I = ()> {
 }
 
 impl<T: Config<I>, I: 'static> OutboundLaneStorage for RuntimeOutboundLaneStorage<T, I> {
+	type StoredMessagePayload = StoredMessagePayload<T, I>;
+
 	fn id(&self) -> LaneId {
 		self.lane_id
 	}
@@ -857,22 +860,15 @@ impl<T: Config<I>, I: 'static> OutboundLaneStorage for RuntimeOutboundLaneStorag
 	}
 
 	#[cfg(test)]
-	fn message(&self, nonce: &MessageNonce) -> Option<MessagePayload> {
+	fn message(&self, nonce: &MessageNonce) -> Option<Self::StoredMessagePayload> {
 		OutboundMessages::<T, I>::get(MessageKey { lane_id: self.lane_id, nonce: *nonce })
-			.map(Into::into)
 	}
 
-	fn save_message(
-		&mut self,
-		nonce: MessageNonce,
-		message_payload: MessagePayload,
-	) -> Result<(), VerificationError> {
+	fn save_message(&mut self, nonce: MessageNonce, message_payload: Self::StoredMessagePayload) {
 		OutboundMessages::<T, I>::insert(
 			MessageKey { lane_id: self.lane_id, nonce },
-			StoredMessagePayload::<T, I>::try_from(message_payload)
-				.map_err(|_| VerificationError::MessageTooLarge)?,
+			message_payload,
 		);
-		Ok(())
 	}
 
 	fn remove_message(&mut self, nonce: &MessageNonce) {
