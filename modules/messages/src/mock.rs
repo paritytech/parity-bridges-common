@@ -402,10 +402,8 @@ pub fn message(nonce: MessageNonce, payload: TestPayload) -> Message {
 }
 
 /// Return valid outbound message data, constructed from given payload.
-pub fn outbound_message_data<T: Config<I>, I: 'static>(
-	payload: TestPayload,
-) -> StoredMessagePayload<T, I> {
-	StoredMessagePayload::<T, I>::try_from(payload.encode()).expect("payload too large")
+pub fn outbound_message_data(payload: TestPayload) -> StoredMessagePayload<TestRuntime, ()> {
+	StoredMessagePayload::<TestRuntime, ()>::try_from(payload.encode()).expect("payload too large")
 }
 
 /// Return valid inbound (dispatch) message data, constructed from given payload.

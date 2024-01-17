@@ -534,7 +534,7 @@ pub mod pallet {
 	}
 
 	#[pallet::error]
-	#[derive(PartialEq)]
+	#[derive(PartialEq, Eq)]
 	pub enum Error<T, I = ()> {
 		/// Pallet is not in Normal operating mode.
 		NotOperatingNormally,
@@ -691,7 +691,7 @@ pub mod pallet {
 
 /// Structure, containing a validated message payload and all the info required
 /// to send it on the bridge.
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct SendMessageArgs<T: Config<I>, I: 'static> {
 	lane_id: LaneId,
 	payload: StoredMessagePayload<T, I>,

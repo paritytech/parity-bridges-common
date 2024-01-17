@@ -143,23 +143,6 @@ pub trait MessagesBridge<Payload> {
 	fn send_message(message: Self::SendMessageArgs) -> SendMessageArtifacts;
 }
 
-/// Bridge that does nothing when message is being sent.
-#[derive(Eq, RuntimeDebug, PartialEq)]
-pub struct NoopMessagesBridge;
-
-impl<Payload> MessagesBridge<Payload> for NoopMessagesBridge {
-	type Error = &'static str;
-	type SendMessageArgs = ();
-
-	fn validate_message(_lane: LaneId, _message: &Payload) -> Result<(), Self::Error> {
-		Ok(())
-	}
-
-	fn send_message(_message: ()) -> SendMessageArtifacts {
-		SendMessageArtifacts { nonce: 0, enqueued_messages: 0 }
-	}
-}
-
 /// Structure that may be used in place of `TargetHeaderChain` and
 /// `MessageDeliveryAndDispatchPayment` on chains, where outbound messages are forbidden.
 pub struct ForbidOutboundMessages;
