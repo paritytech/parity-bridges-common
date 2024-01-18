@@ -18,14 +18,13 @@
 
 use crate::{
 	active_outbound_lane, lanes_manager::RuntimeInboundLaneStorage,
-	outbound_lane::ReceivalConfirmationError, send_message, tests::mock::*,
-	weights_ext::WeightInfoExt, Call, Config, Error, Event, InboundLanes, LanesManagerError,
-	OutboundLanes, OutboundMessages, Pallet, PalletOperatingMode, PalletOwner,
-	StoredInboundLaneData,
+	outbound_lane::ReceivalConfirmationError, tests::mock::*, weights_ext::WeightInfoExt, Call,
+	Config, Error, Event, InboundLanes, LanesManagerError, OutboundLanes, OutboundMessages, Pallet,
+	PalletOperatingMode, PalletOwner, StoredInboundLaneData,
 };
 
 use bp_messages::{
-	source_chain::FromBridgedChainMessagesDeliveryProof,
+	source_chain::{FromBridgedChainMessagesDeliveryProof, MessagesBridge},
 	target_chain::{FromBridgedChainMessagesProof, MessageDispatch},
 	BridgeMessagesCall, ChainWithMessages, DeliveredMessages, InboundLaneData,
 	InboundMessageDetails, LaneId, LaneState, MessageKey, MessageNonce, MessagesOperatingMode,
@@ -49,7 +48,7 @@ fn get_ready_for_events() {
 	System::<TestRuntime>::reset_events();
 }
 
-fn send_regular_message() {
+fn send_regular_message(lane_id: LaneId) {
 	get_ready_for_events();
 
 	let message_nonce = active_outbound_lane::<TestRuntime, ()>(test_lane_id())
@@ -57,18 +56,16 @@ fn send_regular_message() {
 		.data()
 		.latest_generated_nonce +
 		1;
-	send_message::<TestRuntime, ()>(test_lane_id(), REGULAR_PAYLOAD)
-		.expect("send_message has failed");
+	let valid_message = Pallet::<TestRuntime, ()>::validate_message(lane_id, &REGULAR_PAYLOAD)
+		.expect("validate_message has failed");
+	Pallet::<TestRuntime, ()>::send_message(valid_message);
 
 	// check event with assigned nonce
 	assert_eq!(
 		System::<TestRuntime>::events(),
 		vec![EventRecord {
 			phase: Phase::Initialization,
-			event: TestEvent::Messages(Event::MessageAccepted {
-				lane_id: test_lane_id(),
-				nonce: message_nonce
-			}),
+			event: TestEvent::Messages(Event::MessageAccepted { lane_id, nonce: message_nonce }),
 			topics: vec![],
 		}],
 	);
@@ -118,14 +115,14 @@ fn receive_messages_delivery_proof() {
 fn pallet_rejects_transactions_if_halted() {
 	run_test(|| {
 		// send message first to be able to check that delivery_proof fails later
-		send_regular_message();
+		send_regular_message(test_lane_id());
 
 		PalletOperatingMode::<TestRuntime, ()>::put(MessagesOperatingMode::Basic(
 			BasicOperatingMode::Halted,
 		));
 
 		assert_noop!(
-			send_message::<TestRuntime, ()>(test_lane_id(), REGULAR_PAYLOAD,),
+			Pallet::<TestRuntime, ()>::validate_message(test_lane_id(), &REGULAR_PAYLOAD),
 			Error::<TestRuntime, ()>::NotOperatingNormally,
 		);
 
@@ -169,14 +166,14 @@ fn pallet_rejects_transactions_if_halted() {
 fn pallet_rejects_new_messages_in_rejecting_outbound_messages_operating_mode() {
 	run_test(|| {
 		// send message first to be able to check that delivery_proof fails later
-		send_regular_message();
+		send_regular_message(test_lane_id());
 
 		PalletOperatingMode::<TestRuntime, ()>::put(
 			MessagesOperatingMode::RejectingOutboundMessages,
 		);
 
 		assert_noop!(
-			send_message::<TestRuntime, ()>(test_lane_id(), REGULAR_PAYLOAD,),
+			Pallet::<TestRuntime, ()>::validate_message(test_lane_id(), &REGULAR_PAYLOAD,),
 			Error::<TestRuntime, ()>::NotOperatingNormally,
 		);
 
@@ -211,7 +208,7 @@ fn pallet_rejects_new_messages_in_rejecting_outbound_messages_operating_mode() {
 #[test]
 fn send_message_works() {
 	run_test(|| {
-		send_regular_message();
+		send_regular_message(test_lane_id());
 	});
 }
 
@@ -226,7 +223,7 @@ fn send_message_rejects_too_large_message() {
 			.extra
 			.extend_from_slice(&vec![0u8; max_outbound_payload_size as usize]);
 		assert_noop!(
-			send_message::<TestRuntime, ()>(test_lane_id(), message_payload.clone(),),
+			Pallet::<TestRuntime, ()>::validate_message(test_lane_id(), &message_payload.clone(),),
 			Error::<TestRuntime, ()>::MessageRejectedByPallet(VerificationError::MessageTooLarge),
 		);
 
@@ -235,7 +232,10 @@ fn send_message_rejects_too_large_message() {
 			message_payload.extra.pop();
 		}
 		assert_eq!(message_payload.encoded_size() as u32, max_outbound_payload_size);
-		assert_ok!(send_message::<TestRuntime, ()>(test_lane_id(), message_payload,),);
+		let send_message_args =
+			Pallet::<TestRuntime, ()>::validate_message(test_lane_id(), &message_payload)
+				.expect("validate_message has failed");
+		Pallet::<TestRuntime, ()>::send_message(send_message_args);
 	})
 }
 
@@ -476,7 +476,7 @@ fn receive_messages_proof_rejects_proof_with_too_many_messages() {
 #[test]
 fn receive_messages_delivery_proof_works() {
 	run_test(|| {
-		send_regular_message();
+		send_regular_message(test_lane_id());
 		receive_messages_delivery_proof();
 
 		assert_eq!(
@@ -491,7 +491,7 @@ fn receive_messages_delivery_proof_works() {
 #[test]
 fn receive_messages_delivery_proof_works_on_closed_outbound_lanes() {
 	run_test(|| {
-		send_regular_message();
+		send_regular_message(test_lane_id());
 		active_outbound_lane::<TestRuntime, ()>(test_lane_id())
 			.unwrap()
 			.set_state(LaneState::Closed);
@@ -509,8 +509,8 @@ fn receive_messages_delivery_proof_works_on_closed_outbound_lanes() {
 #[test]
 fn receive_messages_delivery_proof_rewards_relayers() {
 	run_test(|| {
-		assert_ok!(send_message::<TestRuntime, ()>(test_lane_id(), REGULAR_PAYLOAD,));
-		assert_ok!(send_message::<TestRuntime, ()>(test_lane_id(), REGULAR_PAYLOAD,));
+		send_regular_message(test_lane_id());
+		send_regular_message(test_lane_id());
 
 		// this reports delivery of message 1 => reward is paid to TEST_RELAYER_A
 		let single_message_delivery_proof = prepare_messages_delivery_proof(
@@ -921,7 +921,7 @@ fn receive_messages_delivery_proof_rejects_proof_if_trying_to_confirm_more_messa
 {
 	run_test(|| {
 		// send message first to be able to check that delivery_proof fails later
-		send_regular_message();
+		send_regular_message(test_lane_id());
 
 		// 1) InboundLaneData declares that the `last_confirmed_nonce` is 1;
 		// 2) InboundLaneData has no entries => `InboundLaneData::last_delivered_nonce()` returns
@@ -1109,12 +1109,12 @@ fn inbound_storage_extra_proof_size_bytes_works() {
 fn send_messages_fails_if_outbound_lane_is_not_opened() {
 	run_test(|| {
 		assert_noop!(
-			send_message::<TestRuntime, ()>(unknown_lane_id(), REGULAR_PAYLOAD),
+			Pallet::<TestRuntime, ()>::validate_message(unknown_lane_id(), &REGULAR_PAYLOAD),
 			Error::<TestRuntime, ()>::LanesManager(LanesManagerError::UnknownOutboundLane),
 		);
 
 		assert_noop!(
-			send_message::<TestRuntime, ()>(closed_lane_id(), REGULAR_PAYLOAD),
+			Pallet::<TestRuntime, ()>::validate_message(closed_lane_id(), &REGULAR_PAYLOAD),
 			Error::<TestRuntime, ()>::LanesManager(LanesManagerError::ClosedOutboundLane),
 		);
 	});
