@@ -14,6 +14,7 @@ members = [
 	"modules/messages",
 	"modules/parachains",
 	"modules/relayers",
+	"modules/xcm-bridge-hub",
 	"modules/xcm-bridge-hub-router",
 	"primitives/beefy",
 	"primitives/chain-asset-hub-rococo",
