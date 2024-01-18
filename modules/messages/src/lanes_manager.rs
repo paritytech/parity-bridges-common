@@ -22,7 +22,7 @@ use crate::{
 
 use bp_messages::{
 	target_chain::MessageDispatch, ChainWithMessages, InboundLaneData, LaneId, LaneState,
-	MessageKey, MessageNonce, MessagePayload, OutboundLaneData, VerificationError,
+	MessageKey, MessageNonce, OutboundLaneData,
 };
 use bp_runtime::AccountIdOf;
 use codec::{Decode, Encode, MaxEncodedLen};
@@ -230,6 +230,7 @@ impl<T: Config<I>, I: 'static> InboundLaneStorage for RuntimeInboundLaneStorage<
 }
 
 /// Runtime outbound lane storage.
+#[derive(Debug, PartialEq, Eq)]
 pub struct RuntimeOutboundLaneStorage<T, I = ()> {
 	pub(crate) lane_id: LaneId,
 	pub(crate) cached_data: OutboundLaneData,
@@ -250,6 +251,8 @@ impl<T: Config<I>, I: 'static> RuntimeOutboundLaneStorage<T, I> {
 }
 
 impl<T: Config<I>, I: 'static> OutboundLaneStorage for RuntimeOutboundLaneStorage<T, I> {
+	type StoredMessagePayload = StoredMessagePayload<T, I>;
+
 	fn id(&self) -> LaneId {
 		self.lane_id
 	}
@@ -264,22 +267,15 @@ impl<T: Config<I>, I: 'static> OutboundLaneStorage for RuntimeOutboundLaneStorag
 	}
 
 	#[cfg(test)]
-	fn message(&self, nonce: &MessageNonce) -> Option<MessagePayload> {
+	fn message(&self, nonce: &MessageNonce) -> Option<Self::StoredMessagePayload> {
 		OutboundMessages::<T, I>::get(MessageKey { lane_id: self.lane_id, nonce: *nonce })
-			.map(Into::into)
 	}
 
-	fn save_message(
-		&mut self,
-		nonce: MessageNonce,
-		message_payload: MessagePayload,
-	) -> Result<(), VerificationError> {
+	fn save_message(&mut self, nonce: MessageNonce, message_payload: Self::StoredMessagePayload) {
 		OutboundMessages::<T, I>::insert(
 			MessageKey { lane_id: self.lane_id, nonce },
-			StoredMessagePayload::<T, I>::try_from(message_payload)
-				.map_err(|_| VerificationError::MessageTooLarge)?,
+			message_payload,
 		);
-		Ok(())
 	}
 
 	fn remove_message(&mut self, nonce: &MessageNonce) {

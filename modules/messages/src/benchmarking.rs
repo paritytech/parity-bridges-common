@@ -34,7 +34,7 @@ use codec::Decode;
 use frame_benchmarking::{account, v2::*};
 use frame_support::weights::Weight;
 use frame_system::RawOrigin;
-use sp_runtime::traits::TrailingZeroInput;
+use sp_runtime::{traits::TrailingZeroInput, BoundedVec};
 use sp_std::{ops::RangeInclusive, prelude::*};
 
 const SEED: u32 = 0;
@@ -120,8 +120,7 @@ fn send_regular_message<T: Config<I>, I: 'static>() {
 		},
 	);
 
-	let mut outbound_lane = active_outbound_lane::<T, I>(T::bench_lane_id()).unwrap();
-	outbound_lane.send_message(vec![]).expect("We craft valid messages");
+	outbound_lane.send_message(BoundedVec::try_from(vec![]).expect("We craft valid messages"));
 }
 
 fn receive_messages<T: Config<I>, I: 'static>(nonce: MessageNonce) {

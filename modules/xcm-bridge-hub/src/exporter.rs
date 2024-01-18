@@ -54,12 +54,14 @@ type MessagesPallet<T, I> = BridgeMessagesPallet<T, <T as Config<I>>::BridgeMess
 
 impl<T: Config<I>, I: 'static> ExportXcm for Pallet<T, I>
 where
-	T: BridgeMessagesConfig<
-		<T as Config<I>>::BridgeMessagesPalletInstance,
-		OutboundPayload = XcmAsPlainPayload,
-	>,
+	T: BridgeMessagesConfig<T::BridgeMessagesPalletInstance, OutboundPayload = XcmAsPlainPayload>,
 {
-	type Ticket = (BridgeId, BridgeOf<T, I>, XcmAsPlainPayload, XcmHash);
+	type Ticket = (
+		BridgeId,
+		BridgeOf<T, I>,
+		<MessagesPallet<T, I> as MessagesBridge<T::OutboundPayload>>::SendMessageArgs,
+		XcmHash,
+	);
 
 	fn validate(
 		network: NetworkId,
@@ -98,38 +100,37 @@ where
 			message,
 		)?;
 
-		Ok(((locations.bridge_id, bridge, blob, id), price))
+		let bridge_message =
+			MessagesPallet::<T, I>::validate_message(locations.bridge_id.lane_id(), &blob)
+				.map_err(|e| {
+					log::debug!(
+						target: LOG_TARGET,
+						"XCM message {:?} cannot be exported because of bridge error {:?} on bridge {:?}",
+						id,
+						e,
+						locations.bridge_id,
+					);
+					SendError::Transport("BridgeValidateError")
+				})?;
+
+		Ok(((locations.bridge_id, bridge, bridge_message, id), price))
 	}
 
 	fn deliver(
-		(bridge_id, bridge, blob, id): (BridgeId, BridgeOf<T, I>, XcmAsPlainPayload, XcmHash),
+		(bridge_id, bridge, bridge_message, id): Self::Ticket,
 	) -> Result<XcmHash, SendError> {
-		let send_result = MessagesPallet::<T, I>::send_message(bridge_id.lane_id(), blob);
+		let artifacts = MessagesPallet::<T, I>::send_message(bridge_message);
 
-		match send_result {
-			Ok(artifacts) => {
-				log::info!(
-					target: LOG_TARGET,
-					"XCM message {:?} has been enqueued at bridge {:?} with nonce {}",
-					id,
-					bridge_id,
-					artifacts.nonce,
-				);
+		log::info!(
+			target: LOG_TARGET,
+			"XCM message {:?} has been enqueued at bridge {:?} with nonce {}",
+			id,
+			bridge_id,
+			artifacts.nonce,
+		);
 
-				// maybe we need switch to congested state
-				Self::on_bridge_message_enqueued(bridge_id, bridge, artifacts.enqueued_messages);
-			},
-			Err(error) => {
-				log::debug!(
-					target: LOG_TARGET,
-					"XCM message {:?} has been dropped because of bridge error {:?} on bridge {:?}",
-					id,
-					error,
-					bridge_id,
-				);
-				return Err(SendError::Transport("BridgeSendError"))
-			},
-		}
+		// maybe we need switch to congested state
+		Self::on_bridge_message_enqueued(bridge_id, bridge, artifacts.enqueued_messages);
 
 		Ok(id)
 	}
@@ -487,6 +488,8 @@ mod tests {
 		run_test(|| {
 			let expected_bridge_id =
 				BridgeId::new(&universal_source().into(), &universal_destination().into());
+			let lanes_manager = LanesManagerOf::<TestRuntime, ()>::new();
+			assert!(lanes_manager.create_outbound_lane(expected_bridge_id.lane_id()).is_ok());
 			Bridges::<TestRuntime, ()>::insert(
 				expected_bridge_id,
 				Bridge {

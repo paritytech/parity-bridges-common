@@ -22,7 +22,7 @@ use crate::{
 		encode_all_messages, encode_lane_data, prepare_message_delivery_storage_proof,
 		prepare_messages_storage_proof,
 	},
-	Config,
+	Config, StoredMessagePayload,
 };
 
 use bp_header_chain::{ChainWithGrandpa, StoredHeaderData};
@@ -34,7 +34,7 @@ use bp_messages::{
 		MessageDispatch,
 	},
 	ChainWithMessages, DeliveredMessages, InboundLaneData, LaneId, LaneState, Message, MessageKey,
-	MessageNonce, MessagePayload, OutboundLaneData, RelayerRewardAtSource, UnrewardedRelayer,
+	MessageNonce, OutboundLaneData, RelayerRewardAtSource, UnrewardedRelayer,
 	UnrewardedRelayersState,
 };
 use bp_runtime::{
@@ -408,8 +408,8 @@ pub fn message(nonce: MessageNonce, payload: TestPayload) -> Message {
 }
 
 /// Return valid outbound message data, constructed from given payload.
-pub fn outbound_message_data(payload: TestPayload) -> MessagePayload {
-	payload.encode()
+pub fn outbound_message_data(payload: TestPayload) -> StoredMessagePayload<TestRuntime, ()> {
+	StoredMessagePayload::<TestRuntime, ()>::try_from(payload.encode()).expect("payload too large")
 }
 
 /// Return valid inbound (dispatch) message data, constructed from given payload.

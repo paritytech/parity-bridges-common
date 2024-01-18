@@ -525,6 +525,7 @@ mod tests {
 	use bp_messages::LaneId;
 	use frame_support::{assert_noop, assert_ok, traits::fungible::Mutate};
 	use frame_system::{EventRecord, Phase};
+	use sp_runtime::BoundedVec;
 
 	fn fund_origin_sovereign_account(locations: &BridgeLocations, balance: Balance) -> AccountId {
 		let bridge_owner_account =
@@ -573,8 +574,7 @@ mod tests {
 		lanes_manager
 			.active_outbound_lane(lane)
 			.unwrap()
-			.send_message(vec![42])
-			.unwrap();
+			.send_message(BoundedVec::try_from(vec![42]).expect("payload too large"));
 	}
 
 	#[test]

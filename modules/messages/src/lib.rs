@@ -467,6 +467,7 @@ pub mod pallet {
 	}
 
 	#[pallet::error]
+	#[derive(PartialEq, Eq)]
 	pub enum Error<T, I = ()> {
 		/// Pallet is not in Normal operating mode.
 		NotOperatingNormally,
@@ -590,67 +591,71 @@ pub mod pallet {
 	}
 }
 
+/// Structure, containing a validated message payload and all the info required
+/// to send it on the bridge.
+#[derive(Debug, PartialEq, Eq)]
+pub struct SendMessageArgs<T: Config<I>, I: 'static> {
+	lane_id: LaneId,
+	lane: OutboundLane<RuntimeOutboundLaneStorage<T, I>>,
+	payload: StoredMessagePayload<T, I>,
+}
+
 impl<T, I> bp_messages::source_chain::MessagesBridge<T::OutboundPayload> for Pallet<T, I>
 where
 	T: Config<I>,
 	I: 'static,
 {
-	type Error = sp_runtime::DispatchErrorWithPostInfo<PostDispatchInfo>;
+	type Error = Error<T, I>;
+	type SendMessageArgs = SendMessageArgs<T, I>;
 
-	fn send_message(
-		lane: LaneId,
-		message: T::OutboundPayload,
-	) -> Result<SendMessageArtifacts, Self::Error> {
-		crate::send_message::<T, I>(lane, message)
+	fn validate_message(
+		lane_id: LaneId,
+		message: &T::OutboundPayload,
+	) -> Result<SendMessageArgs<T, I>, Self::Error> {
+		// IMPORTANT: any error that is returned here is fatal for the bridge, because
+		// this code is executed at the bridge hub and message sender actually lives
+		// at some sibling parachain. So we are failing **after** the message has been
+		// sent and we can't report it back to sender (unless error report mechanism is
+		// embedded into message and its dispatcher).
+
+		// apart from maximal message size check (see below), we should also check the message
+		// dispatch weight here. But we assume that the bridged chain will just push the message
+		// to some queue (XCMP, UMP, DMP), so the weight is constant and fits the block.
+
+		// we can't accept any messages if the pallet is halted
+		ensure_normal_operating_mode::<T, I>()?;
+
+		let lane = active_outbound_lane::<T, I>(lane_id)?;
+
+		Ok(SendMessageArgs {
+			lane_id,
+			lane,
+			payload: StoredMessagePayload::<T, I>::try_from(message.encode()).map_err(|_| {
+				Error::<T, I>::MessageRejectedByPallet(VerificationError::MessageTooLarge)
+			})?,
+		})
 	}
-}
 
-/// Function that actually sends message.
-fn send_message<T: Config<I>, I: 'static>(
-	lane_id: LaneId,
-	payload: T::OutboundPayload,
-) -> sp_std::result::Result<
-	SendMessageArtifacts,
-	sp_runtime::DispatchErrorWithPostInfo<PostDispatchInfo>,
-> {
-	// IMPORTANT: any error that is returned here is fatal for the bridge, because
-	// this code is executed at the bridge hub and message sender actually lives
-	// at some sibling parachain. So we are failing **after** the message has been
-	// sent and we can't report it back to sender (unless error report mechanism is
-	// embedded into message and its dispatcher).
+	fn send_message(mut args: SendMessageArgs<T, I>) -> SendMessageArtifacts {
+		// save message in outbound storage and emit event
+		let message_len = args.payload.len();
+		let nonce = args.lane.send_message(args.payload);
 
-	// apart from maximal message size check (see below), we should also check the message
-	// dispatch weight here. But we assume that the bridged chain will just push the message
-	// to some queue (XCMP, UMP, DMP), so the weight is constant and fits the block.
+		// return number of messages in the queue to let sender know about its state
+		let enqueued_messages = args.lane.queued_messages().saturating_len();
 
-	// we can't accept any messages if the pallet is halted
-	ensure_normal_operating_mode::<T, I>()?;
+		log::trace!(
+			target: LOG_TARGET,
+			"Accepted message {} to lane {:?}. Message size: {:?}",
+			nonce,
+			args.lane_id,
+			message_len,
+		);
 
-	// finally, save message in outbound storage and emit event
-	let mut lane = active_outbound_lane::<T, I>(lane_id)?;
-	let encoded_payload = payload.encode();
-	let encoded_payload_len = encoded_payload.len();
+		Pallet::<T, I>::deposit_event(Event::MessageAccepted { lane_id: args.lane_id, nonce });
 
-	// the message size is checked by the `send_message` method, so we don't need to repeat
-	// it here
-	let nonce = lane
-		.send_message(encoded_payload)
-		.map_err(Error::<T, I>::MessageRejectedByPallet)?;
-
-	// return number of messages in the queue to let sender know about its state
-	let enqueued_messages = lane.queued_messages().saturating_len();
-
-	log::trace!(
-		target: LOG_TARGET,
-		"Accepted message {} to lane {:?}. Message size: {:?}",
-		nonce,
-		lane_id,
-		encoded_payload_len,
-	);
-
-	Pallet::<T, I>::deposit_event(Event::MessageAccepted { lane_id, nonce });
-
-	Ok(SendMessageArtifacts { nonce, enqueued_messages })
+		SendMessageArtifacts { nonce, enqueued_messages }
+	}
 }
 
 /// Ensure that the pallet is in normal operational mode.
