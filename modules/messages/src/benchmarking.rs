@@ -120,6 +120,7 @@ fn send_regular_message<T: Config<I>, I: 'static>() {
 		},
 	);
 
+	let mut outbound_lane = active_outbound_lane::<T, I>(T::bench_lane_id()).unwrap();
 	outbound_lane.send_message(BoundedVec::try_from(vec![]).expect("We craft valid messages"));
 }
 
