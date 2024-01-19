@@ -83,9 +83,9 @@ pub mod pallet {
 		type WeightInfo: WeightInfo;
 
 		/// Universal location of this runtime.
-		type UniversalLocation: Get<InteriorMultiLocation>;
+		type UniversalLocation: Get<InteriorLocation>;
 		/// Relative location of the sibling bridge hub.
-		type SiblingBridgeHubLocation: Get<MultiLocation>;
+		type SiblingBridgeHubLocation: Get<Location>;
 		/// The bridged network that this config is for if specified.
 		/// Also used for filtering `Bridges` by `BridgedNetworkId`.
 		/// If not specified, allows all networks pass through.
@@ -240,9 +240,9 @@ type ViaBridgeHubExporter<T, I> = SovereignPaidRemoteExporter<
 impl<T: Config<I>, I: 'static> ExporterFor for Pallet<T, I> {
 	fn exporter_for(
 		network: &NetworkId,
-		remote_location: &InteriorMultiLocation,
+		remote_location: &InteriorLocation,
 		message: &Xcm<()>,
-	) -> Option<(MultiLocation, Option<MultiAsset>)> {
+	) -> Option<(Location, Option<Asset>)> {
 		// ensure that the message is sent to the expected bridged network (if specified).
 		if *network != T::BridgedNetworkId::get() {
 			log::trace!(
@@ -285,7 +285,7 @@ impl<T: Config<I>, I: 'static> ExporterFor for Pallet<T, I> {
 		// take `base_fee` from `T::Brides`, but it has to be the same `T::FeeAsset`
 		let base_fee = match maybe_payment {
 			Some(payment) => match payment {
-				MultiAsset { fun: Fungible(amount), id } if id.eq(&T::FeeAsset::get()) => amount,
+				Asset { fun: Fungible(amount), id } if id.eq(&T::FeeAsset::get()) => amount,
 				invalid_asset => {
 					log::error!(
 						target: LOG_TARGET,
@@ -333,7 +333,7 @@ impl<T: Config<I>, I: 'static> SendXcm for Pallet<T, I> {
 	type Ticket = (u32, <T::ToBridgeHubSender as SendXcm>::Ticket);
 
 	fn validate(
-		dest: &mut Option<MultiLocation>,
+		dest: &mut Option<Location>,
 		xcm: &mut Option<Xcm<()>>,
 	) -> SendResult<Self::Ticket> {
 		// `dest` and `xcm` are required here
@@ -451,7 +451,7 @@ mod tests {
 		run_test(|| {
 			assert_eq!(
 				send_xcm::<XcmBridgeHubRouter>(
-					MultiLocation::new(2, X2(GlobalConsensus(Rococo), Parachain(1000))),
+					Location::new(2, [GlobalConsensus(Rococo), Parachain(1000)]),
 					vec![].into(),
 				),
 				Err(SendError::NotApplicable),
@@ -464,7 +464,7 @@ mod tests {
 		run_test(|| {
 			assert_eq!(
 				send_xcm::<XcmBridgeHubRouter>(
-					MultiLocation::new(2, X2(GlobalConsensus(Rococo), Parachain(1000))),
+					Location::new(2, [GlobalConsensus(Rococo), Parachain(1000)]),
 					vec![ClearOrigin; HARD_MESSAGE_SIZE_LIMIT as usize].into(),
 				),
 				Err(SendError::ExceedsMaxMessageSize),
@@ -488,14 +488,14 @@ mod tests {
 	#[test]
 	fn returns_proper_delivery_price() {
 		run_test(|| {
-			let dest = MultiLocation::new(2, X1(GlobalConsensus(BridgedNetworkId::get())));
+			let dest = Location::new(2, [GlobalConsensus(BridgedNetworkId::get())]);
 			let xcm: Xcm<()> = vec![ClearOrigin].into();
 			let msg_size = xcm.encoded_size();
 
 			// initially the base fee is used: `BASE_FEE + BYTE_FEE * msg_size + HRMP_FEE`
 			let expected_fee = BASE_FEE + BYTE_FEE * (msg_size as u128) + HRMP_FEE;
 			assert_eq!(
-				XcmBridgeHubRouter::validate(&mut Some(dest), &mut Some(xcm.clone()))
+				XcmBridgeHubRouter::validate(&mut Some(dest.clone()), &mut Some(xcm.clone()))
 					.unwrap()
 					.1
 					.get(0),

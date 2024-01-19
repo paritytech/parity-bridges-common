@@ -96,13 +96,13 @@ pub mod pallet {
 			+ IsType<<Self as frame_system::Config>::RuntimeEvent>;
 
 		/// Runtime's universal location.
-		type UniversalLocation: Get<InteriorMultiLocation>;
+		type UniversalLocation: Get<InteriorLocation>;
 		// TODO: https://github.com/paritytech/parity-bridges-common/issues/1666 remove `ChainId` and
 		// replace it with the `NetworkId` - then we'll be able to use
 		// `T as pallet_bridge_messages::Config<T::BridgeMessagesPalletInstance>::BridgedChain::NetworkId`
 		/// Bridged network as relative location of bridged `GlobalConsensus`.
 		#[pallet::constant]
-		type BridgedNetwork: Get<MultiLocation>;
+		type BridgedNetwork: Get<Location>;
 		/// Associated messages pallet instance that bridges us with the
 		/// `BridgedNetworkId` consensus.
 		type BridgeMessagesPalletInstance: 'static;
@@ -131,7 +131,7 @@ pub mod pallet {
 		/// XCM-level dispatcher for inbound bridge messages.
 		type BlobDispatcher: DispatchBlob;
 		/// Price of single message export to the bridged consensus (`Self::BridgedNetworkId`).
-		type MessageExportPrice: Get<MultiAssets>;
+		type MessageExportPrice: Get<Assets>;
 		/// Checks the XCM version for the destination.
 		type DestinationVersion: GetVersion;
 	}

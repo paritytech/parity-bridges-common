@@ -138,16 +138,13 @@ impl pallet_bridge_messages::WeightInfoExt for TestMessagesWeights {
 parameter_types! {
 	pub const RelayNetwork: NetworkId = NetworkId::Kusama;
 	pub const BridgedRelayNetwork: NetworkId = NetworkId::Polkadot;
-	pub const BridgedRelayNetworkLocation: MultiLocation = MultiLocation {
-		parents: 1,
-		interior: X1(GlobalConsensus(BridgedRelayNetwork::get()))
-	};
+	pub BridgedRelayNetworkLocation: Location = (Parent, GlobalConsensus(BridgedRelayNetwork::get())).into();
 	pub const NonBridgedRelayNetwork: NetworkId = NetworkId::Rococo;
 	pub const BridgeReserve: Balance = 100_000;
-	pub UniversalLocation: InteriorMultiLocation = X2(
+	pub UniversalLocation: InteriorLocation = [
 		GlobalConsensus(RelayNetwork::get()),
 		Parachain(THIS_BRIDGE_HUB_ID),
-	);
+	].into();
 	pub const Penalty: Balance = 1_000;
 }
 
