@@ -63,7 +63,7 @@ where
 		let bridge_id = BridgeId::from_lane_id(lane);
 		Pallet::<T, I>::bridge(bridge_id)
 			.and_then(|bridge| bridge.bridge_origin_relative_location.try_as().cloned().ok())
-			.map(|recipient: MultiLocation| !T::LocalXcmChannelManager::is_congested(&recipient))
+			.map(|recipient: Location| !T::LocalXcmChannelManager::is_congested(&recipient))
 			.unwrap_or(false)
 	}
 
@@ -134,7 +134,7 @@ mod tests {
 			Bridges::<TestRuntime, ()>::insert(
 				bridge_id(),
 				Bridge {
-					bridge_origin_relative_location: Box::new(MultiLocation::new(0, Here).into()),
+					bridge_origin_relative_location: Box::new(Location::new(0, Here).into()),
 					state: BridgeState::Opened,
 					bridge_owner_account: [0u8; 32].into(),
 					reserve: 0,

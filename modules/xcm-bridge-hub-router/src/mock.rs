@@ -139,15 +139,15 @@ impl TestLocalXcmChannelManager {
 impl LocalXcmChannelManager for TestLocalXcmChannelManager {
 	type Error = ();
 
-	fn is_congested(_with: &MultiLocation) -> bool {
+	fn is_congested(_with: &Location) -> bool {
 		frame_support::storage::unhashed::get_or_default(b"TestLocalXcmChannelManager.Congested")
 	}
 
-	fn suspend_bridge(_with: &MultiLocation, _bridge: BridgeId) -> Result<(), Self::Error> {
+	fn suspend_bridge(_with: &Location, _bridge: BridgeId) -> Result<(), Self::Error> {
 		Ok(())
 	}
 
-	fn resume_bridge(_with: &MultiLocation, _bridge: BridgeId) -> Result<(), Self::Error> {
+	fn resume_bridge(_with: &Location, _bridge: BridgeId) -> Result<(), Self::Error> {
 		Ok(())
 	}
 }

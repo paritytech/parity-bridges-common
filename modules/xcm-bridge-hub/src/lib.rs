@@ -114,7 +114,7 @@ pub mod pallet {
 		// `Origin` and get matching `MultiLocation`???
 		type OpenBridgeOrigin: EnsureOrigin<
 			<Self as SystemConfig>::RuntimeOrigin,
-			Success = MultiLocation,
+			Success = Location,
 		>;
 		/// A converter between a multi-location and a sovereign account.
 		type BridgeOriginAccountIdConverter: ConvertLocation<Self::AccountId>;
@@ -171,7 +171,7 @@ pub mod pallet {
 		#[pallet::weight(Weight::zero())] // TODO: https://github.com/paritytech/parity-bridges-common/issues/1760 - weights
 		pub fn open_bridge(
 			origin: OriginFor<T>,
-			bridge_destination_universal_location: Box<VersionedInteriorMultiLocation>,
+			bridge_destination_universal_location: Box<VersionedInteriorLocation>,
 		) -> DispatchResult {
 			// check and compute required bridge locations
 			let locations =
@@ -192,7 +192,7 @@ pub mod pallet {
 				None => {
 					*bridge = Some(BridgeOf::<T, I> {
 						bridge_origin_relative_location: Box::new(
-							locations.bridge_origin_relative_location.into(),
+							locations.bridge_origin_relative_location.clone().into(),
 						),
 						state: BridgeState::Opened,
 						bridge_owner_account,
@@ -251,7 +251,7 @@ pub mod pallet {
 		#[pallet::weight(Weight::zero())] // TODO: https://github.com/paritytech/parity-bridges-common/issues/1760 - weights
 		pub fn close_bridge(
 			origin: OriginFor<T>,
-			bridge_destination_universal_location: Box<VersionedInteriorMultiLocation>,
+			bridge_destination_universal_location: Box<VersionedInteriorLocation>,
 			may_prune_messages: MessageNonce,
 		) -> DispatchResult {
 			// compute required bridge locations
@@ -381,7 +381,7 @@ pub mod pallet {
 		/// converter.
 		pub fn bridge_locations_from_origin(
 			origin: OriginFor<T>,
-			bridge_destination_universal_location: Box<VersionedInteriorMultiLocation>,
+			bridge_destination_universal_location: Box<VersionedInteriorLocation>,
 		) -> Result<Box<BridgeLocations>, sp_runtime::DispatchError> {
 			Self::bridge_locations(
 				Box::new(T::OpenBridgeOrigin::ensure_origin(origin)?),
@@ -391,8 +391,8 @@ pub mod pallet {
 
 		/// Return bridge endpoint locations and dedicated lane identifier.
 		pub fn bridge_locations(
-			bridge_origin_relative_location: Box<MultiLocation>,
-			bridge_destination_universal_location: Box<VersionedInteriorMultiLocation>,
+			bridge_origin_relative_location: Box<Location>,
+			bridge_destination_universal_location: Box<VersionedInteriorLocation>,
 		) -> Result<Box<BridgeLocations>, sp_runtime::DispatchError> {
 			bridge_locations(
 				Box::new(T::UniversalLocation::get()),
@@ -422,7 +422,7 @@ pub mod pallet {
 		/// Keep in mind that we are **NOT** reserving any amount for the bridges, opened at
 		/// genesis. We are **NOT** opening lanes, used by this bridge. It all must be done using
 		/// other pallets genesis configuration or some other means.
-		pub opened_bridges: Vec<(MultiLocation, InteriorMultiLocation)>,
+		pub opened_bridges: Vec<(Location, InteriorLocation)>,
 		/// Dummy marker.
 		pub phantom: sp_std::marker::PhantomData<(T, I)>,
 	}
@@ -434,11 +434,11 @@ pub mod pallet {
 	{
 		fn build(&self) {
 			for (bridge_origin_relative_location, bridge_destination_universal_location) in
-				&self.opened_bridges
+				self.opened_bridges.iter().cloned()
 			{
 				let locations = Pallet::<T, I>::bridge_locations(
-					Box::new(*bridge_origin_relative_location),
-					Box::new((*bridge_destination_universal_location).into()),
+					Box::new(bridge_origin_relative_location),
+					Box::new(bridge_destination_universal_location.into()),
 				)
 				.expect("Invalid genesis configuration");
 				let bridge_owner_account = T::BridgeOriginAccountIdConverter::convert_location(
@@ -467,9 +467,9 @@ pub mod pallet {
 		/// The bridge between two locations has been opened.
 		BridgeOpened {
 			/// Universal location of local bridge endpoint.
-			local_endpoint: Box<InteriorMultiLocation>,
+			local_endpoint: Box<InteriorLocation>,
 			/// Universal location of remote bridge endpoint.
-			remote_endpoint: Box<InteriorMultiLocation>,
+			remote_endpoint: Box<InteriorLocation>,
 			/// Bridge identifier.
 			bridge_id: BridgeId,
 		},
@@ -537,7 +537,7 @@ mod tests {
 
 	fn mock_open_bridge_from_with(
 		origin: RuntimeOrigin,
-		with: InteriorMultiLocation,
+		with: InteriorLocation,
 	) -> (BridgeOf<TestRuntime, ()>, BridgeLocations) {
 		let reserve = BridgeReserve::get();
 		let locations =
@@ -548,7 +548,7 @@ mod tests {
 
 		let bridge = Bridge {
 			bridge_origin_relative_location: Box::new(
-				locations.bridge_origin_relative_location.into(),
+				locations.bridge_origin_relative_location.clone().into(),
 			),
 			state: BridgeState::Opened,
 			bridge_owner_account,
@@ -622,7 +622,7 @@ mod tests {
 				XcmOverBridge::open_bridge(
 					OpenBridgeOrigin::parent_relay_chain_origin(),
 					Box::new(
-						X2(GlobalConsensus(RelayNetwork::get()), Parachain(BRIDGED_ASSET_HUB_ID))
+						[GlobalConsensus(RelayNetwork::get()), Parachain(BRIDGED_ASSET_HUB_ID)]
 							.into()
 					),
 				),
@@ -638,10 +638,10 @@ mod tests {
 				XcmOverBridge::open_bridge(
 					OpenBridgeOrigin::parent_relay_chain_origin(),
 					Box::new(
-						X2(
+						[
 							GlobalConsensus(NonBridgedRelayNetwork::get()),
 							Parachain(BRIDGED_ASSET_HUB_ID)
-						)
+						]
 						.into()
 					),
 				),
@@ -801,7 +801,7 @@ mod tests {
 				// now open the bridge
 				assert_ok!(XcmOverBridge::open_bridge(
 					origin,
-					Box::new(locations.bridge_destination_universal_location.into()),
+					Box::new(locations.bridge_destination_universal_location.clone().into()),
 				));
 
 				// ensure that everything has been set up in the runtime storage
@@ -950,7 +950,7 @@ mod tests {
 			// now call the `close_bridge`, which will only partially prune messages
 			assert_ok!(XcmOverBridge::close_bridge(
 				origin.clone(),
-				Box::new(locations.bridge_destination_universal_location.into()),
+				Box::new(locations.bridge_destination_universal_location.clone().into()),
 				16,
 			),);
 
@@ -1001,7 +1001,7 @@ mod tests {
 			// now call the `close_bridge` again, which will only partially prune messages
 			assert_ok!(XcmOverBridge::close_bridge(
 				origin.clone(),
-				Box::new(locations.bridge_destination_universal_location.into()),
+				Box::new(locations.bridge_destination_universal_location.clone().into()),
 				8,
 			),);
 

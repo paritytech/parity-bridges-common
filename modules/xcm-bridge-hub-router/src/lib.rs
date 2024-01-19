@@ -524,10 +524,7 @@ mod tests {
 			let old_delivery_fee_factor = XcmBridgeHubRouter::delivery_fee_factor();
 			assert_eq!(
 				send_xcm::<XcmBridgeHubRouter>(
-					MultiLocation::new(
-						2,
-						X2(GlobalConsensus(BridgedNetworkId::get()), Parachain(1000))
-					),
+					Location::new(2, [GlobalConsensus(BridgedNetworkId::get()), Parachain(1000)]),
 					vec![ClearOrigin].into(),
 				)
 				.map(drop),
@@ -549,10 +546,7 @@ mod tests {
 			let old_delivery_fee_factor = XcmBridgeHubRouter::delivery_fee_factor();
 			assert_eq!(
 				send_xcm::<XcmBridgeHubRouter>(
-					MultiLocation::new(
-						2,
-						X2(GlobalConsensus(BridgedNetworkId::get()), Parachain(1000))
-					),
+					Location::new(2, [GlobalConsensus(BridgedNetworkId::get()), Parachain(1000)]),
 					vec![ClearOrigin].into(),
 				)
 				.map(drop),

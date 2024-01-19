@@ -306,7 +306,7 @@ mod tests {
 	}
 
 	fn universal_destination() -> InteriorLocation {
-		X2(GlobalConsensus(BridgedRelayNetwork::get()), Parachain(BRIDGED_ASSET_HUB_ID))
+		[GlobalConsensus(BridgedRelayNetwork::get()), Parachain(BRIDGED_ASSET_HUB_ID)].into()
 	}
 
 	fn open_lane_and_send_regular_message() -> BridgeId {
@@ -329,7 +329,7 @@ mod tests {
 				locations.bridge_id,
 				Bridge {
 					bridge_origin_relative_location: Box::new(
-						MultiLocation::new(1, Parachain(SIBLING_ASSET_HUB_ID)).into(),
+						Location::new(1, Parachain(SIBLING_ASSET_HUB_ID)).into(),
 					),
 					state: BridgeState::Opened,
 					bridge_owner_account: [0u8; 32].into(),
