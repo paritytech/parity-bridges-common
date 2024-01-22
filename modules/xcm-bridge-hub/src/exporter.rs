@@ -66,10 +66,10 @@ where
 	fn validate(
 		network: NetworkId,
 		channel: u32,
-		universal_source: &mut Option<InteriorMultiLocation>,
-		destination: &mut Option<InteriorMultiLocation>,
+		universal_source: &mut Option<InteriorLocation>,
+		destination: &mut Option<InteriorLocation>,
 		message: &mut Option<Xcm<()>>,
-	) -> Result<(Self::Ticket, MultiAssets), SendError> {
+	) -> Result<(Self::Ticket, Assets), SendError> {
 		// `HaulBlobExporter` may consume the `universal_source` and `destination` arguments, so
 		// let's save them before
 		let bridge_origin_universal_location =
@@ -301,12 +301,12 @@ mod tests {
 	use bp_xcm_bridge_hub::{Bridge, BridgeState};
 	use xcm_executor::traits::export_xcm;
 
-	fn universal_source() -> InteriorMultiLocation {
-		X2(GlobalConsensus(RelayNetwork::get()), Parachain(SIBLING_ASSET_HUB_ID))
+	fn universal_source() -> InteriorLocation {
+		[GlobalConsensus(RelayNetwork::get()), Parachain(SIBLING_ASSET_HUB_ID)].into()
 	}
 
-	fn universal_destination() -> InteriorMultiLocation {
-		X2(GlobalConsensus(BridgedRelayNetwork::get()), Parachain(BRIDGED_ASSET_HUB_ID))
+	fn universal_destination() -> InteriorLocation {
+		[GlobalConsensus(BridgedRelayNetwork::get()), Parachain(BRIDGED_ASSET_HUB_ID)].into()
 	}
 
 	fn open_lane_and_send_regular_message() -> BridgeId {
@@ -329,7 +329,7 @@ mod tests {
 				locations.bridge_id,
 				Bridge {
 					bridge_origin_relative_location: Box::new(
-						MultiLocation::new(1, Parachain(SIBLING_ASSET_HUB_ID)).into(),
+						Location::new(1, Parachain(SIBLING_ASSET_HUB_ID)).into(),
 					),
 					state: BridgeState::Opened,
 					bridge_owner_account: [0u8; 32].into(),
