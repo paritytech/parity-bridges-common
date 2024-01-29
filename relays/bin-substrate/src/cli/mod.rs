@@ -24,7 +24,7 @@ use signal_hook::consts::*;
 use signal_hook_async_std::Signals;
 use sp_core::H256;
 use structopt::{clap::arg_enum, StructOpt};
-use strum::{EnumString, EnumVariantNames};
+use strum::{EnumString, VariantNames};
 
 use bp_messages::LaneId;
 use relay_substrate_client::SimpleRuntimeVersion;
@@ -292,7 +292,7 @@ where
 }
 
 #[doc = "Runtime version params."]
-#[derive(StructOpt, Debug, PartialEq, Eq, Clone, Copy, EnumString, EnumVariantNames)]
+#[derive(StructOpt, Debug, PartialEq, Eq, Clone, Copy, EnumString, VariantNames)]
 pub enum RuntimeVersionType {
 	/// Auto query version from chain
 	Auto,
