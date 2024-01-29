@@ -2561,9 +2561,9 @@ dependencies = [
 
 [[package]]
 name = "env_logger"
-version = "0.11.0"
+version = "0.11.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9eeb342678d785662fd2514be38c459bb925f02b68dd2a3e0f21d7ef82d979dd"
+checksum = "05e7cf40684ae96ade6232ed84582f40ce0a66efcd43a5117aef610534f8e0b8"
 dependencies = [
  "anstream",
  "anstyle",
@@ -4911,7 +4911,7 @@ dependencies = [
  "async-std",
  "async-trait",
  "bp-messages",
- "env_logger 0.11.0",
+ "env_logger 0.11.1",
  "finality-relay",
  "futures",
  "hex",
@@ -6870,7 +6870,7 @@ dependencies = [
  "async-trait",
  "backoff",
  "bp-runtime",
- "env_logger 0.11.0",
+ "env_logger 0.11.1",
  "futures",
  "isahc",
  "jsonpath_lib",
@@ -9163,7 +9163,7 @@ dependencies = [
  "bp-runtime",
  "bp-test-utils",
  "bridge-runtime-common",
- "env_logger 0.11.0",
+ "env_logger 0.11.1",
  "finality-grandpa",
  "frame-support",
  "futures",
