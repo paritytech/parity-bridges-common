@@ -151,7 +151,85 @@ pub mod pallet {
 
 	#[pallet::call]
 	impl<T: Config<I>, I: 'static> Pallet<T, I> {
-		/// Verify a target header is finalized according to the given finality proof.
+		/// This call is deprecated and will be removed around May 2024. Use the
+		/// `submit_finality_proof_ex` instead. Semantically, this call is an equivalent of the
+		/// `submit_finality_proof_ex` call without current authority set id check.
+		#[pallet::call_index(0)]
+		#[pallet::weight(<T::WeightInfo as WeightInfo>::submit_finality_proof(
+			justification.commit.precommits.len().saturated_into(),
+			justification.votes_ancestries.len().saturated_into(),
+		))]
+		#[deprecated(
+			note = "`submit_finality_proof` will be removed in May 2024. Use `submit_finality_proof_ex` instead."
+		)]
+		pub fn submit_finality_proof(
+			origin: OriginFor<T>,
+			finality_target: Box<BridgedHeader<T, I>>,
+			justification: GrandpaJustification<BridgedHeader<T, I>>,
+		) -> DispatchResultWithPostInfo {
+			Self::submit_finality_proof_ex(
+				origin,
+				finality_target,
+				justification,
+				// the `submit_finality_proof_ex` also reads this value, but it is done from the
+				// cache, so we don't treat it as an additional db access
+				<CurrentAuthoritySet<T, I>>::get().set_id,
+			)
+		}
+
+		/// Bootstrap the bridge pallet with an initial header and authority set from which to sync.
+		///
+		/// The initial configuration provided does not need to be the genesis header of the bridged
+		/// chain, it can be any arbitrary header. You can also provide the next scheduled set
+		/// change if it is already know.
+		///
+		/// This function is only allowed to be called from a trusted origin and writes to storage
+		/// with practically no checks in terms of the validity of the data. It is important that
+		/// you ensure that valid data is being passed in.
+		#[pallet::call_index(1)]
+		#[pallet::weight((T::DbWeight::get().reads_writes(2, 5), DispatchClass::Operational))]
+		pub fn initialize(
+			origin: OriginFor<T>,
+			init_data: super::InitializationData<BridgedHeader<T, I>>,
+		) -> DispatchResultWithPostInfo {
+			Self::ensure_owner_or_root(origin)?;
+
+			let init_allowed = !<BestFinalized<T, I>>::exists();
+			ensure!(init_allowed, <Error<T, I>>::AlreadyInitialized);
+			initialize_bridge::<T, I>(init_data.clone())?;
+
+			log::info!(
+				target: LOG_TARGET,
+				"Pallet has been initialized with the following parameters: {:?}",
+				init_data
+			);
+
+			Ok(().into())
+		}
+
+		/// Change `PalletOwner`.
+		///
+		/// May only be called either by root, or by `PalletOwner`.
+		#[pallet::call_index(2)]
+		#[pallet::weight((T::DbWeight::get().reads_writes(1, 1), DispatchClass::Operational))]
+		pub fn set_owner(origin: OriginFor<T>, new_owner: Option<T::AccountId>) -> DispatchResult {
+			<Self as OwnedBridgeModule<_>>::set_owner(origin, new_owner)
+		}
+
+		/// Halt or resume all pallet operations.
+		///
+		/// May only be called either by root, or by `PalletOwner`.
+		#[pallet::call_index(3)]
+		#[pallet::weight((T::DbWeight::get().reads_writes(1, 1), DispatchClass::Operational))]
+		pub fn set_operating_mode(
+			origin: OriginFor<T>,
+			operating_mode: BasicOperatingMode,
+		) -> DispatchResult {
+			<Self as OwnedBridgeModule<_>>::set_operating_mode(origin, operating_mode)
+		}
+
+		/// Verify a target header is finalized according to the given finality proof. The proof
+		/// is assumed to be signed by GRANDPA authorities set with `current_set_id` id.
 		///
 		/// It will use the underlying storage pallet to fetch information about the current
 		/// authorities and best finalized header in order to verify that the header is finalized.
@@ -165,18 +243,22 @@ pub mod pallet {
 		///
 		/// - the pallet knows better header than the `finality_target`;
 		///
+		/// - the id of best GRANDPA authority set, known to the pallet is not equal to the
+		///   `current_set_id`;
+		///
 		/// - verification is not optimized or invalid;
 		///
 		/// - header contains forced authorities set change or change with non-zero delay.
-		#[pallet::call_index(0)]
+		#[pallet::call_index(4)]
 		#[pallet::weight(<T::WeightInfo as WeightInfo>::submit_finality_proof(
 			justification.commit.precommits.len().saturated_into(),
 			justification.votes_ancestries.len().saturated_into(),
 		))]
-		pub fn submit_finality_proof(
+		pub fn submit_finality_proof_ex(
 			origin: OriginFor<T>,
 			finality_target: Box<BridgedHeader<T, I>>,
 			justification: GrandpaJustification<BridgedHeader<T, I>>,
+			current_set_id: sp_consensus_grandpa::SetId,
 		) -> DispatchResultWithPostInfo {
 			Self::ensure_not_halted().map_err(Error::<T, I>::BridgeModule)?;
 			ensure_signed(origin)?;
@@ -193,6 +275,8 @@ pub mod pallet {
 			let authority_set = <CurrentAuthoritySet<T, I>>::get();
 			let unused_proof_size = authority_set.unused_proof_size();
 			let set_id = authority_set.set_id;
+			ensure!(current_set_id == set_id, <Error<T, I>>::InvalidAuthoritySetId);
+
 			let authority_set: AuthoritySet = authority_set.into();
 			verify_justification::<T, I>(&justification, hash, number, authority_set)?;
 
@@ -247,57 +331,6 @@ pub mod pallet {
 			});
 
 			Ok(PostDispatchInfo { actual_weight: Some(actual_weight), pays_fee })
-		}
-
-		/// Bootstrap the bridge pallet with an initial header and authority set from which to sync.
-		///
-		/// The initial configuration provided does not need to be the genesis header of the bridged
-		/// chain, it can be any arbitrary header. You can also provide the next scheduled set
-		/// change if it is already know.
-		///
-		/// This function is only allowed to be called from a trusted origin and writes to storage
-		/// with practically no checks in terms of the validity of the data. It is important that
-		/// you ensure that valid data is being passed in.
-		#[pallet::call_index(1)]
-		#[pallet::weight((T::DbWeight::get().reads_writes(2, 5), DispatchClass::Operational))]
-		pub fn initialize(
-			origin: OriginFor<T>,
-			init_data: super::InitializationData<BridgedHeader<T, I>>,
-		) -> DispatchResultWithPostInfo {
-			Self::ensure_owner_or_root(origin)?;
-
-			let init_allowed = !<BestFinalized<T, I>>::exists();
-			ensure!(init_allowed, <Error<T, I>>::AlreadyInitialized);
-			initialize_bridge::<T, I>(init_data.clone())?;
-
-			log::info!(
-				target: LOG_TARGET,
-				"Pallet has been initialized with the following parameters: {:?}",
-				init_data
-			);
-
-			Ok(().into())
-		}
-
-		/// Change `PalletOwner`.
-		///
-		/// May only be called either by root, or by `PalletOwner`.
-		#[pallet::call_index(2)]
-		#[pallet::weight((T::DbWeight::get().reads_writes(1, 1), DispatchClass::Operational))]
-		pub fn set_owner(origin: OriginFor<T>, new_owner: Option<T::AccountId>) -> DispatchResult {
-			<Self as OwnedBridgeModule<_>>::set_owner(origin, new_owner)
-		}
-
-		/// Halt or resume all pallet operations.
-		///
-		/// May only be called either by root, or by `PalletOwner`.
-		#[pallet::call_index(3)]
-		#[pallet::weight((T::DbWeight::get().reads_writes(1, 1), DispatchClass::Operational))]
-		pub fn set_operating_mode(
-			origin: OriginFor<T>,
-			operating_mode: BasicOperatingMode,
-		) -> DispatchResult {
-			<Self as OwnedBridgeModule<_>>::set_operating_mode(origin, operating_mode)
 		}
 	}
 
@@ -436,6 +469,9 @@ pub mod pallet {
 		TooManyAuthoritiesInSet,
 		/// Error generated by the `OwnedBridgeModule` trait.
 		BridgeModule(bp_runtime::OwnedBridgeModuleError),
+		/// The `current_set_id` argument of the `submit_finality_proof_ex` doesn't match
+		/// the id of the current set, known to the pallet.
+		InvalidAuthoritySetId,
 	}
 
 	/// Check the given header for a GRANDPA scheduled authority set change. If a change
@@ -671,9 +707,11 @@ mod tests {
 		storage::generator::StorageValue,
 	};
 	use frame_system::{EventRecord, Phase};
-	use sp_consensus_grandpa::{ConsensusLog, GRANDPA_ENGINE_ID};
+	use sp_consensus_grandpa::{ConsensusLog, SetId, GRANDPA_ENGINE_ID};
 	use sp_core::Get;
 	use sp_runtime::{Digest, DigestItem, DispatchError};
+
+	const DEFAULT_SET_ID: SetId = 1;
 
 	fn initialize_substrate_bridge() {
 		System::set_block_number(1);
@@ -693,7 +731,7 @@ mod tests {
 		let init_data = InitializationData {
 			header: Box::new(genesis),
 			authority_list: authority_list(),
-			set_id: 1,
+			set_id: DEFAULT_SET_ID,
 			operating_mode: BasicOperatingMode::Normal,
 		};
 
@@ -704,10 +742,11 @@ mod tests {
 		let header = test_header(header.into());
 		let justification = make_default_justification(&header);
 
-		Pallet::<TestRuntime>::submit_finality_proof(
+		Pallet::<TestRuntime>::submit_finality_proof_ex(
 			RuntimeOrigin::signed(1),
 			Box::new(header),
 			justification,
+			DEFAULT_SET_ID,
 		)
 	}
 
@@ -722,10 +761,11 @@ mod tests {
 			..Default::default()
 		});
 
-		Pallet::<TestRuntime>::submit_finality_proof(
+		Pallet::<TestRuntime>::submit_finality_proof_ex(
 			RuntimeOrigin::signed(1),
 			Box::new(header),
 			justification,
+			set_id,
 		)
 	}
 
@@ -749,10 +789,11 @@ mod tests {
 			..Default::default()
 		});
 
-		Pallet::<TestRuntime>::submit_finality_proof(
+		Pallet::<TestRuntime>::submit_finality_proof_ex(
 			RuntimeOrigin::signed(1),
 			Box::new(header),
 			justification,
+			set_id,
 		)
 	}
 
@@ -955,17 +996,30 @@ mod tests {
 
 			let header = test_header(1);
 
-			let params =
-				JustificationGeneratorParams::<TestHeader> { set_id: 2, ..Default::default() };
+			let next_set_id = 2;
+			let params = JustificationGeneratorParams::<TestHeader> {
+				set_id: next_set_id,
+				..Default::default()
+			};
 			let justification = make_justification_for_header(params);
 
 			assert_err!(
-				Pallet::<TestRuntime>::submit_finality_proof(
+				Pallet::<TestRuntime>::submit_finality_proof_ex(
+					RuntimeOrigin::signed(1),
+					Box::new(header.clone()),
+					justification.clone(),
+					DEFAULT_SET_ID,
+				),
+				<Error<TestRuntime>>::InvalidJustification
+			);
+			assert_err!(
+				Pallet::<TestRuntime>::submit_finality_proof_ex(
 					RuntimeOrigin::signed(1),
 					Box::new(header),
 					justification,
+					next_set_id,
 				),
-				<Error<TestRuntime>>::InvalidJustification
+				<Error<TestRuntime>>::InvalidAuthoritySetId
 			);
 		})
 	}
@@ -980,10 +1034,11 @@ mod tests {
 			justification.round = 42;
 
 			assert_err!(
-				Pallet::<TestRuntime>::submit_finality_proof(
+				Pallet::<TestRuntime>::submit_finality_proof_ex(
 					RuntimeOrigin::signed(1),
 					Box::new(header),
 					justification,
+					DEFAULT_SET_ID,
 				),
 				<Error<TestRuntime>>::InvalidJustification
 			);
@@ -1009,10 +1064,11 @@ mod tests {
 			let justification = make_default_justification(&header);
 
 			assert_err!(
-				Pallet::<TestRuntime>::submit_finality_proof(
+				Pallet::<TestRuntime>::submit_finality_proof_ex(
 					RuntimeOrigin::signed(1),
 					Box::new(header),
 					justification,
+					DEFAULT_SET_ID,
 				),
 				<Error<TestRuntime>>::InvalidAuthoritySet
 			);
@@ -1047,10 +1103,11 @@ mod tests {
 			let justification = make_default_justification(&header);
 
 			// Let's import our test header
-			let result = Pallet::<TestRuntime>::submit_finality_proof(
+			let result = Pallet::<TestRuntime>::submit_finality_proof_ex(
 				RuntimeOrigin::signed(1),
 				Box::new(header.clone()),
 				justification.clone(),
+				DEFAULT_SET_ID,
 			);
 			assert_ok!(result);
 			assert_eq!(result.unwrap().pays_fee, frame_support::dispatch::Pays::No);
@@ -1109,10 +1166,11 @@ mod tests {
 
 			// without large digest item ^^^ the relayer would have paid zero transaction fee
 			// (`Pays::No`)
-			let result = Pallet::<TestRuntime>::submit_finality_proof(
+			let result = Pallet::<TestRuntime>::submit_finality_proof_ex(
 				RuntimeOrigin::signed(1),
 				Box::new(header.clone()),
 				justification,
+				DEFAULT_SET_ID,
 			);
 			assert_ok!(result);
 			assert_eq!(result.unwrap().pays_fee, frame_support::dispatch::Pays::Yes);
@@ -1140,10 +1198,11 @@ mod tests {
 
 			// without many headers in votes ancestries ^^^ the relayer would have paid zero
 			// transaction fee (`Pays::No`)
-			let result = Pallet::<TestRuntime>::submit_finality_proof(
+			let result = Pallet::<TestRuntime>::submit_finality_proof_ex(
 				RuntimeOrigin::signed(1),
 				Box::new(header.clone()),
 				justification,
+				DEFAULT_SET_ID,
 			);
 			assert_ok!(result);
 			assert_eq!(result.unwrap().pays_fee, frame_support::dispatch::Pays::Yes);
@@ -1169,10 +1228,11 @@ mod tests {
 
 			// Should not be allowed to import this header
 			assert_err!(
-				Pallet::<TestRuntime>::submit_finality_proof(
+				Pallet::<TestRuntime>::submit_finality_proof_ex(
 					RuntimeOrigin::signed(1),
 					Box::new(header),
-					justification
+					justification,
+					DEFAULT_SET_ID,
 				),
 				<Error<TestRuntime>>::UnsupportedScheduledChange
 			);
@@ -1194,10 +1254,11 @@ mod tests {
 
 			// Should not be allowed to import this header
 			assert_err!(
-				Pallet::<TestRuntime>::submit_finality_proof(
+				Pallet::<TestRuntime>::submit_finality_proof_ex(
 					RuntimeOrigin::signed(1),
 					Box::new(header),
-					justification
+					justification,
+					DEFAULT_SET_ID,
 				),
 				<Error<TestRuntime>>::UnsupportedScheduledChange
 			);
@@ -1219,10 +1280,11 @@ mod tests {
 
 			// Should not be allowed to import this header
 			assert_err!(
-				Pallet::<TestRuntime>::submit_finality_proof(
+				Pallet::<TestRuntime>::submit_finality_proof_ex(
 					RuntimeOrigin::signed(1),
 					Box::new(header),
-					justification
+					justification,
+					DEFAULT_SET_ID,
 				),
 				<Error<TestRuntime>>::TooManyAuthoritiesInSet
 			);
@@ -1283,10 +1345,11 @@ mod tests {
 				let mut invalid_justification = make_default_justification(&header);
 				invalid_justification.round = 42;
 
-				Pallet::<TestRuntime>::submit_finality_proof(
+				Pallet::<TestRuntime>::submit_finality_proof_ex(
 					RuntimeOrigin::signed(1),
 					Box::new(header),
 					invalid_justification,
+					DEFAULT_SET_ID,
 				)
 			};
 
@@ -1451,10 +1514,11 @@ mod tests {
 			let justification = make_default_justification(&header);
 
 			assert_noop!(
-				Pallet::<TestRuntime>::submit_finality_proof(
+				Pallet::<TestRuntime>::submit_finality_proof_ex(
 					RuntimeOrigin::root(),
 					Box::new(header),
 					justification,
+					DEFAULT_SET_ID,
 				),
 				DispatchError::BadOrigin,
 			);
