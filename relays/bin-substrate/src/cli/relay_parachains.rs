@@ -20,12 +20,11 @@ use crate::bridges::{
 		polkadot_parachains_to_bridge_hub_kusama::BridgeHubPolkadotToBridgeHubKusamaCliBridge,
 	},
 	polkadot_bulletin::polkadot_parachains_to_polkadot_bulletin::PolkadotToPolkadotBulletinCliBridge,
-	rialto_parachain_millau::rialto_parachains_to_millau::RialtoParachainToMillauCliBridge,
-	rococo_wococo::{
-		rococo_parachains_to_bridge_hub_wococo::BridgeHubRococoToBridgeHubWococoCliBridge,
-		wococo_parachains_to_bridge_hub_rococo::BridgeHubWococoToBridgeHubRococoCliBridge,
+	rococo_bulletin::rococo_parachains_to_rococo_bulletin::RococoToRococoBulletinCliBridge,
+	rococo_westend::{
+		rococo_parachains_to_bridge_hub_westend::BridgeHubRococoToBridgeHubWestendCliBridge,
+		westend_parachains_to_bridge_hub_rococo::BridgeHubWestendToBridgeHubRococoCliBridge,
 	},
-	westend_millau::westend_parachains_to_millau::AssetHubWestendToMillauCliBridge,
 };
 use async_std::sync::Mutex;
 use async_trait::async_trait;
@@ -34,7 +33,7 @@ use relay_substrate_client::Parachain;
 use relay_utils::metrics::{GlobalMetrics, StandaloneMetric};
 use std::sync::Arc;
 use structopt::StructOpt;
-use strum::{EnumString, EnumVariantNames, VariantNames};
+use strum::{EnumString, VariantNames};
 use substrate_relay_helper::{
 	parachains::{source::ParachainsSource, target::ParachainsTarget, ParachainsPipelineAdapter},
 	TransactionParams,
@@ -63,16 +62,15 @@ pub struct RelayParachains {
 }
 
 /// Parachain heads relay bridge.
-#[derive(Debug, EnumString, EnumVariantNames)]
+#[derive(Debug, EnumString, VariantNames)]
 #[strum(serialize_all = "kebab_case")]
 pub enum RelayParachainsBridge {
-	RialtoToMillau,
-	WestendToMillau,
-	RococoToBridgeHubWococo,
-	WococoToBridgeHubRococo,
 	KusamaToBridgeHubPolkadot,
 	PolkadotToBridgeHubKusama,
 	PolkadotToPolkadotBulletin,
+	RococoToRococoBulletin,
+	RococoToBridgeHubWestend,
+	WestendToBridgeHubRococo,
 }
 
 #[async_trait]
@@ -116,32 +114,29 @@ where
 	}
 }
 
-impl ParachainsRelayer for RialtoParachainToMillauCliBridge {}
-impl ParachainsRelayer for AssetHubWestendToMillauCliBridge {}
-impl ParachainsRelayer for BridgeHubRococoToBridgeHubWococoCliBridge {}
-impl ParachainsRelayer for BridgeHubWococoToBridgeHubRococoCliBridge {}
+impl ParachainsRelayer for BridgeHubRococoToBridgeHubWestendCliBridge {}
+impl ParachainsRelayer for BridgeHubWestendToBridgeHubRococoCliBridge {}
 impl ParachainsRelayer for BridgeHubKusamaToBridgeHubPolkadotCliBridge {}
 impl ParachainsRelayer for BridgeHubPolkadotToBridgeHubKusamaCliBridge {}
 impl ParachainsRelayer for PolkadotToPolkadotBulletinCliBridge {}
+impl ParachainsRelayer for RococoToRococoBulletinCliBridge {}
 
 impl RelayParachains {
 	/// Run the command.
 	pub async fn run(self) -> anyhow::Result<()> {
 		match self.bridge {
-			RelayParachainsBridge::RialtoToMillau =>
-				RialtoParachainToMillauCliBridge::relay_parachains(self),
-			RelayParachainsBridge::WestendToMillau =>
-				AssetHubWestendToMillauCliBridge::relay_parachains(self),
-			RelayParachainsBridge::RococoToBridgeHubWococo =>
-				BridgeHubRococoToBridgeHubWococoCliBridge::relay_parachains(self),
-			RelayParachainsBridge::WococoToBridgeHubRococo =>
-				BridgeHubWococoToBridgeHubRococoCliBridge::relay_parachains(self),
+			RelayParachainsBridge::RococoToBridgeHubWestend =>
+				BridgeHubRococoToBridgeHubWestendCliBridge::relay_parachains(self),
+			RelayParachainsBridge::WestendToBridgeHubRococo =>
+				BridgeHubWestendToBridgeHubRococoCliBridge::relay_parachains(self),
 			RelayParachainsBridge::KusamaToBridgeHubPolkadot =>
 				BridgeHubKusamaToBridgeHubPolkadotCliBridge::relay_parachains(self),
 			RelayParachainsBridge::PolkadotToBridgeHubKusama =>
 				BridgeHubPolkadotToBridgeHubKusamaCliBridge::relay_parachains(self),
 			RelayParachainsBridge::PolkadotToPolkadotBulletin =>
 				PolkadotToPolkadotBulletinCliBridge::relay_parachains(self),
+			RelayParachainsBridge::RococoToRococoBulletin =>
+				RococoToRococoBulletinCliBridge::relay_parachains(self),
 		}
 		.await
 	}

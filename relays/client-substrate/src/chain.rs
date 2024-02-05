@@ -67,12 +67,6 @@ pub trait Chain: ChainBase + Clone {
 pub trait RelayChain: Chain {
 	/// Name of the `runtime_parachains::paras` pallet in the runtime of this chain.
 	const PARAS_PALLET_NAME: &'static str;
-	/// Name of the bridge parachains pallet (used in `construct_runtime` macro call) that is
-	/// deployed at the **bridged** chain.
-	///
-	/// We assume that all chains that are bridging with this `RelayChain` are using
-	/// the same name.
-	const PARACHAINS_FINALITY_PALLET_NAME: &'static str;
 }
 
 /// Substrate-based chain that is using direct GRANDPA finality from minimal relay-client point of
@@ -160,6 +154,24 @@ impl<C: Chain> UnsignedTransaction<C> {
 	/// Create new unsigned transaction with given call, nonce, era and zero tip.
 	pub fn new(call: EncodedOrDecodedCall<C::Call>, nonce: C::Nonce) -> Self {
 		Self { call, nonce, era: TransactionEra::Immortal, tip: Zero::zero() }
+	}
+
+	/// Convert to the transaction of the other compatible chain.
+	pub fn switch_chain<Other>(self) -> UnsignedTransaction<Other>
+	where
+		Other: Chain<
+			Nonce = C::Nonce,
+			Balance = C::Balance,
+			BlockNumber = C::BlockNumber,
+			Hash = C::Hash,
+		>,
+	{
+		UnsignedTransaction {
+			call: EncodedOrDecodedCall::Encoded(self.call.into_encoded()),
+			nonce: self.nonce,
+			tip: self.tip,
+			era: self.era,
+		}
 	}
 
 	/// Set transaction tip.

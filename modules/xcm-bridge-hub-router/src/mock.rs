@@ -19,16 +19,14 @@
 use crate as pallet_xcm_bridge_hub_router;
 
 use bp_xcm_bridge_hub::{BridgeId, LocalXcmChannelManager};
-use frame_support::{construct_runtime, parameter_types};
-use sp_core::H256;
-use sp_runtime::{
-	traits::{BlakeTwo256, ConstU128, IdentityLookup},
-	BuildStorage,
+use frame_support::{
+	construct_runtime, derive_impl, parameter_types,
+	traits::{Contains, Equals},
 };
+use sp_runtime::{traits::ConstU128, BuildStorage};
 use xcm::prelude::*;
 use xcm_builder::{NetworkExportTable, NetworkExportTableItem};
 
-pub type AccountId = u64;
 type Block = frame_system::mocking::MockBlock<TestRuntime>;
 
 /// HRMP fee.
@@ -42,16 +40,16 @@ construct_runtime! {
 	pub enum TestRuntime
 	{
 		System: frame_system::{Pallet, Call, Config<T>, Storage, Event<T>},
-		XcmBridgeHubRouter: pallet_xcm_bridge_hub_router::{Pallet, Storage},
+		XcmBridgeHubRouter: pallet_xcm_bridge_hub_router::{Pallet, Storage, Event<T>},
 	}
 }
 
 parameter_types! {
 	pub ThisNetworkId: NetworkId = Polkadot;
 	pub BridgedNetworkId: NetworkId = Kusama;
-	pub UniversalLocation: InteriorMultiLocation = X2(GlobalConsensus(ThisNetworkId::get()), Parachain(1000));
-	pub SiblingBridgeHubLocation: MultiLocation = ParentThen(X1(Parachain(1002))).into();
-	pub BridgeFeeAsset: AssetId = MultiLocation::parent().into();
+	pub UniversalLocation: InteriorLocation = [GlobalConsensus(ThisNetworkId::get()), Parachain(1000)].into();
+	pub SiblingBridgeHubLocation: Location = ParentThen([Parachain(1002)].into()).into();
+	pub BridgeFeeAsset: AssetId = Location::parent().into();
 	pub BridgeTable: Vec<NetworkExportTableItem>
 		= vec![
 			NetworkExportTableItem::new(
@@ -61,47 +59,49 @@ parameter_types! {
 				Some((BridgeFeeAsset::get(), BASE_FEE).into())
 			)
 		];
+	pub UnknownXcmVersionLocation: Location = Location::new(2, [GlobalConsensus(BridgedNetworkId::get()), Parachain(9999)]);
 }
 
+#[derive_impl(frame_system::config_preludes::TestDefaultConfig as frame_system::DefaultConfig)]
 impl frame_system::Config for TestRuntime {
-	type RuntimeOrigin = RuntimeOrigin;
-	type Nonce = u64;
-	type RuntimeCall = RuntimeCall;
 	type Block = Block;
-	type Hash = H256;
-	type Hashing = BlakeTwo256;
-	type AccountId = AccountId;
-	type Lookup = IdentityLookup<Self::AccountId>;
-	type RuntimeEvent = RuntimeEvent;
-	type BlockHashCount = frame_support::traits::ConstU64<250>;
-	type Version = ();
-	type PalletInfo = PalletInfo;
-	type AccountData = ();
-	type OnNewAccount = ();
-	type OnKilledAccount = ();
-	type BaseCallFilter = frame_support::traits::Everything;
-	type SystemWeightInfo = ();
-	type BlockWeights = ();
-	type BlockLength = ();
-	type DbWeight = ();
-	type SS58Prefix = ();
-	type OnSetCode = ();
-	type MaxConsumers = frame_support::traits::ConstU32<16>;
 }
 
 impl pallet_xcm_bridge_hub_router::Config<()> for TestRuntime {
+	type RuntimeEvent = RuntimeEvent;
 	type WeightInfo = ();
 
 	type UniversalLocation = UniversalLocation;
 	type SiblingBridgeHubLocation = SiblingBridgeHubLocation;
 	type BridgedNetworkId = BridgedNetworkId;
 	type Bridges = NetworkExportTable<BridgeTable>;
+	type DestinationVersion =
+		LatestOrNoneForLocationVersionChecker<Equals<UnknownXcmVersionLocation>>;
 
 	type ToBridgeHubSender = TestToBridgeHubSender;
 	type LocalXcmChannelManager = TestLocalXcmChannelManager;
 
 	type ByteFee = ConstU128<BYTE_FEE>;
 	type FeeAsset = BridgeFeeAsset;
+}
+
+#[cfg(feature = "runtime-benchmarks")]
+impl pallet_xcm_bridge_hub_router::benchmarking::Config<()> for TestRuntime {
+	fn make_congested() {
+		TestLocalXcmChannelManager::make_congested();
+	}
+}
+
+pub struct LatestOrNoneForLocationVersionChecker<Location>(sp_std::marker::PhantomData<Location>);
+impl<LocationValue: Contains<Location>> GetVersion
+	for LatestOrNoneForLocationVersionChecker<LocationValue>
+{
+	fn get_version_for(dest: &Location) -> Option<XcmVersion> {
+		if LocationValue::contains(dest) {
+			return None
+		}
+		Some(XCM_VERSION)
+	}
 }
 
 pub struct TestToBridgeHubSender;
@@ -116,7 +116,7 @@ impl SendXcm for TestToBridgeHubSender {
 	type Ticket = ();
 
 	fn validate(
-		_destination: &mut Option<MultiLocation>,
+		_destination: &mut Option<Location>,
 		_message: &mut Option<Xcm<()>>,
 	) -> SendResult<Self::Ticket> {
 		Ok(((), (BridgeFeeAsset::get(), HRMP_FEE).into()))
@@ -139,15 +139,15 @@ impl TestLocalXcmChannelManager {
 impl LocalXcmChannelManager for TestLocalXcmChannelManager {
 	type Error = ();
 
-	fn is_congested(_with: &MultiLocation) -> bool {
+	fn is_congested(_with: &Location) -> bool {
 		frame_support::storage::unhashed::get_or_default(b"TestLocalXcmChannelManager.Congested")
 	}
 
-	fn suspend_bridge(_with: &MultiLocation, _bridge: BridgeId) -> Result<(), Self::Error> {
+	fn suspend_bridge(_with: &Location, _bridge: BridgeId) -> Result<(), Self::Error> {
 		Ok(())
 	}
 
-	fn resume_bridge(_with: &MultiLocation, _bridge: BridgeId) -> Result<(), Self::Error> {
+	fn resume_bridge(_with: &Location, _bridge: BridgeId) -> Result<(), Self::Error> {
 		Ok(())
 	}
 }
@@ -160,5 +160,10 @@ pub fn new_test_ext() -> sp_io::TestExternalities {
 
 /// Run pallet test.
 pub fn run_test<T>(test: impl FnOnce() -> T) -> T {
-	new_test_ext().execute_with(test)
+	new_test_ext().execute_with(|| {
+		System::set_block_number(1);
+		System::reset_events();
+
+		test()
+	})
 }

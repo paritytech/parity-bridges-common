@@ -45,7 +45,8 @@ const OUTBOUND_LANE_UNCONGESTED_THRESHOLD: MessageNonce = 1_024;
 /// An easy way to access `HaulBlobExporter`.
 pub type PalletAsHaulBlobExporter<T, I> = HaulBlobExporter<
 	DummyHaulBlob,
-	<T as Config<I>>::BridgedNetworkId,
+	<T as Config<I>>::BridgedNetwork,
+	<T as Config<I>>::DestinationVersion,
 	<T as Config<I>>::MessageExportPrice,
 >;
 /// An easy way to access associated messages pallet.
@@ -53,26 +54,40 @@ type MessagesPallet<T, I> = BridgeMessagesPallet<T, <T as Config<I>>::BridgeMess
 
 impl<T: Config<I>, I: 'static> ExportXcm for Pallet<T, I>
 where
-	T: BridgeMessagesConfig<
-		<T as Config<I>>::BridgeMessagesPalletInstance,
-		OutboundPayload = XcmAsPlainPayload,
-	>,
+	T: BridgeMessagesConfig<T::BridgeMessagesPalletInstance, OutboundPayload = XcmAsPlainPayload>,
 {
-	type Ticket = (BridgeId, BridgeOf<T, I>, XcmAsPlainPayload, XcmHash);
+	type Ticket = (
+		BridgeId,
+		BridgeOf<T, I>,
+		<MessagesPallet<T, I> as MessagesBridge<T::OutboundPayload>>::SendMessageArgs,
+		XcmHash,
+	);
 
 	fn validate(
 		network: NetworkId,
 		channel: u32,
-		universal_source: &mut Option<InteriorMultiLocation>,
-		destination: &mut Option<InteriorMultiLocation>,
+		universal_source: &mut Option<InteriorLocation>,
+		destination: &mut Option<InteriorLocation>,
 		message: &mut Option<Xcm<()>>,
-	) -> Result<(Self::Ticket, MultiAssets), SendError> {
+	) -> Result<(Self::Ticket, Assets), SendError> {
 		// `HaulBlobExporter` may consume the `universal_source` and `destination` arguments, so
 		// let's save them before
 		let bridge_origin_universal_location =
 			universal_source.clone().take().ok_or(SendError::MissingArgument)?;
 		let bridge_destination_universal_location =
 			destination.clone().take().ok_or(SendError::MissingArgument)?;
+
+		// prepare the origin relative location
+		let bridge_origin_relative_location =
+			bridge_origin_universal_location.relative_to(&T::UniversalLocation::get());
+
+		// then we are able to compute the lane id used to send messages
+		let locations = Self::bridge_locations(
+			Box::new(bridge_origin_relative_location),
+			Box::new(bridge_destination_universal_location.into()),
+		)
+		.map_err(|_| SendError::NotApplicable)?;
+		let bridge = Self::bridge(locations.bridge_id).ok_or(SendError::NotApplicable)?;
 
 		// check if we are able to route the message. We use existing `HaulBlobExporter` for that.
 		// It will make all required changes and will encode message properly, so that the
@@ -85,50 +100,37 @@ where
 			message,
 		)?;
 
-		// prepare the origin relative location
-		let bridge_origin_relative_location =
-			bridge_origin_universal_location.relative_to(&T::UniversalLocation::get());
+		let bridge_message =
+			MessagesPallet::<T, I>::validate_message(locations.bridge_id.lane_id(), &blob)
+				.map_err(|e| {
+					log::debug!(
+						target: LOG_TARGET,
+						"XCM message {:?} cannot be exported because of bridge error {:?} on bridge {:?}",
+						id,
+						e,
+						locations.bridge_id,
+					);
+					SendError::Transport("BridgeValidateError")
+				})?;
 
-		// then we are able to compute the lane id used to send messages
-		let locations = Self::bridge_locations(
-			Box::new(bridge_origin_relative_location),
-			Box::new(bridge_destination_universal_location.into()),
-		)
-		.map_err(|_| SendError::Unroutable)?;
-		let bridge = Self::bridge(locations.bridge_id).ok_or(SendError::Unroutable)?;
-
-		Ok(((locations.bridge_id, bridge, blob, id), price))
+		Ok(((locations.bridge_id, bridge, bridge_message, id), price))
 	}
 
 	fn deliver(
-		(bridge_id, bridge, blob, id): (BridgeId, BridgeOf<T, I>, XcmAsPlainPayload, XcmHash),
+		(bridge_id, bridge, bridge_message, id): Self::Ticket,
 	) -> Result<XcmHash, SendError> {
-		let send_result = MessagesPallet::<T, I>::send_message(bridge_id.lane_id(), blob);
+		let artifacts = MessagesPallet::<T, I>::send_message(bridge_message);
 
-		match send_result {
-			Ok(artifacts) => {
-				log::info!(
-					target: LOG_TARGET,
-					"XCM message {:?} has been enqueued at bridge {:?} with nonce {}",
-					id,
-					bridge_id,
-					artifacts.nonce,
-				);
+		log::info!(
+			target: LOG_TARGET,
+			"XCM message {:?} has been enqueued at bridge {:?} with nonce {}",
+			id,
+			bridge_id,
+			artifacts.nonce,
+		);
 
-				// maybe we need switch to congested state
-				Self::on_bridge_message_enqueued(bridge_id, bridge, artifacts.enqueued_messages);
-			},
-			Err(error) => {
-				log::debug!(
-					target: LOG_TARGET,
-					"XCM message {:?} has been dropped because of bridge error {:?} on bridge {:?}",
-					id,
-					error,
-					bridge_id,
-				);
-				return Err(SendError::Transport("BridgeSendError"))
-			},
-		}
+		// maybe we need switch to congested state
+		Self::on_bridge_message_enqueued(bridge_id, bridge, artifacts.enqueued_messages);
 
 		Ok(id)
 	}
@@ -299,12 +301,12 @@ mod tests {
 	use bp_xcm_bridge_hub::{Bridge, BridgeState};
 	use xcm_executor::traits::export_xcm;
 
-	fn universal_source() -> InteriorMultiLocation {
-		X2(GlobalConsensus(RelayNetwork::get()), Parachain(SIBLING_ASSET_HUB_ID))
+	fn universal_source() -> InteriorLocation {
+		[GlobalConsensus(RelayNetwork::get()), Parachain(SIBLING_ASSET_HUB_ID)].into()
 	}
 
-	fn universal_destination() -> InteriorMultiLocation {
-		X2(GlobalConsensus(BridgedRelayNetwork::get()), Parachain(BRIDGED_ASSET_HUB_ID))
+	fn universal_destination() -> InteriorLocation {
+		[GlobalConsensus(BridgedRelayNetwork::get()), Parachain(BRIDGED_ASSET_HUB_ID)].into()
 	}
 
 	fn open_lane_and_send_regular_message() -> BridgeId {
@@ -327,7 +329,7 @@ mod tests {
 				locations.bridge_id,
 				Bridge {
 					bridge_origin_relative_location: Box::new(
-						MultiLocation::new(1, Parachain(SIBLING_ASSET_HUB_ID)).into(),
+						Location::new(1, Parachain(SIBLING_ASSET_HUB_ID)).into(),
 					),
 					state: BridgeState::Opened,
 					bridge_owner_account: [0u8; 32].into(),
@@ -486,6 +488,8 @@ mod tests {
 		run_test(|| {
 			let expected_bridge_id =
 				BridgeId::new(&universal_source().into(), &universal_destination().into());
+			let lanes_manager = LanesManagerOf::<TestRuntime, ()>::new();
+			assert!(lanes_manager.create_outbound_lane(expected_bridge_id.lane_id()).is_ok());
 			Bridges::<TestRuntime, ()>::insert(
 				expected_bridge_id,
 				Bridge {

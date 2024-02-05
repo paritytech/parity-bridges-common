@@ -22,7 +22,7 @@ use crate::{
 		encode_all_messages, encode_lane_data, prepare_message_delivery_storage_proof,
 		prepare_messages_storage_proof,
 	},
-	Config,
+	Config, StoredMessagePayload,
 };
 
 use bp_header_chain::{ChainWithGrandpa, StoredHeaderData};
@@ -34,7 +34,7 @@ use bp_messages::{
 		MessageDispatch,
 	},
 	ChainWithMessages, DeliveredMessages, InboundLaneData, LaneId, LaneState, Message, MessageKey,
-	MessageNonce, MessagePayload, OutboundLaneData, RelayerRewardAtSource, UnrewardedRelayer,
+	MessageNonce, OutboundLaneData, RelayerRewardAtSource, UnrewardedRelayer,
 	UnrewardedRelayersState,
 };
 use bp_runtime::{
@@ -42,16 +42,14 @@ use bp_runtime::{
 };
 use codec::{Decode, Encode};
 use frame_support::{
-	parameter_types,
-	traits::ConstU64,
+	derive_impl,
 	weights::{constants::RocksDbWeight, Weight},
 };
 use scale_info::TypeInfo;
-use sp_core::H256;
 use sp_runtime::{
-	testing::Header as SubstrateHeader,
-	traits::{BlakeTwo256, ConstU32, IdentityLookup},
-	BuildStorage, Perbill, StateVersion,
+	testing::{Header as SubstrateHeader, H256},
+	traits::{BlakeTwo256, ConstU32},
+	BuildStorage, StateVersion,
 };
 use std::{collections::VecDeque, ops::RangeInclusive};
 
@@ -136,8 +134,8 @@ impl ChainWithGrandpa for BridgedChain {
 	const WITH_CHAIN_GRANDPA_PALLET_NAME: &'static str = "WithBridgedChainBridgeGrandpa";
 	const MAX_AUTHORITIES_COUNT: u32 = 16;
 	const REASONABLE_HEADERS_IN_JUSTIFICATON_ANCESTRY: u32 = 4;
-	const MAX_HEADER_SIZE: u32 = 4096;
-	const AVERAGE_HEADER_SIZE_IN_JUSTIFICATION: u32 = 4096;
+	const AVERAGE_HEADER_SIZE: u32 = 4096;
+	const MAX_MANDATORY_HEADER_SIZE: u32 = 8192;
 }
 
 impl ChainWithMessages for BridgedChain {
@@ -161,55 +159,19 @@ frame_support::construct_runtime! {
 	}
 }
 
-parameter_types! {
-	pub const BlockHashCount: u64 = 250;
-	pub const MaximumBlockWeight: Weight = Weight::from_parts(1024, 0);
-	pub const MaximumBlockLength: u32 = 2 * 1024;
-	pub const AvailableBlockRatio: Perbill = Perbill::one();
-}
-
 pub type DbWeight = RocksDbWeight;
 
+#[derive_impl(frame_system::config_preludes::TestDefaultConfig as frame_system::DefaultConfig)]
 impl frame_system::Config for TestRuntime {
-	type RuntimeOrigin = RuntimeOrigin;
-	type Nonce = u64;
-	type RuntimeCall = RuntimeCall;
-	type Hash = H256;
-	type Hashing = BlakeTwo256;
-	type AccountId = AccountId;
-	type Lookup = IdentityLookup<Self::AccountId>;
 	type Block = Block;
-	type RuntimeEvent = RuntimeEvent;
-	type BlockHashCount = ConstU64<250>;
-	type Version = ();
-	type PalletInfo = PalletInfo;
 	type AccountData = pallet_balances::AccountData<Balance>;
-	type OnNewAccount = ();
-	type OnKilledAccount = ();
-	type BaseCallFilter = frame_support::traits::Everything;
-	type SystemWeightInfo = ();
-	type BlockWeights = ();
-	type BlockLength = ();
 	type DbWeight = DbWeight;
-	type SS58Prefix = ();
-	type OnSetCode = ();
-	type MaxConsumers = frame_support::traits::ConstU32<16>;
 }
 
+#[derive_impl(pallet_balances::config_preludes::TestDefaultConfig as pallet_balances::DefaultConfig)]
 impl pallet_balances::Config for TestRuntime {
-	type MaxLocks = ();
-	type Balance = Balance;
-	type DustRemoval = ();
-	type RuntimeEvent = RuntimeEvent;
-	type ExistentialDeposit = ConstU64<1>;
-	type AccountStore = frame_system::Pallet<TestRuntime>;
-	type WeightInfo = ();
-	type MaxReserves = ();
-	type ReserveIdentifier = ();
-	type RuntimeHoldReason = RuntimeHoldReason;
-	type FreezeIdentifier = ();
-	type MaxHolds = ConstU32<0>;
-	type MaxFreezes = ConstU32<0>;
+	type ReserveIdentifier = [u8; 8];
+	type AccountStore = System;
 }
 
 impl pallet_bridge_grandpa::Config for TestRuntime {
@@ -446,8 +408,8 @@ pub fn message(nonce: MessageNonce, payload: TestPayload) -> Message {
 }
 
 /// Return valid outbound message data, constructed from given payload.
-pub fn outbound_message_data(payload: TestPayload) -> MessagePayload {
-	payload.encode()
+pub fn outbound_message_data(payload: TestPayload) -> StoredMessagePayload<TestRuntime, ()> {
+	StoredMessagePayload::<TestRuntime, ()>::try_from(payload.encode()).expect("payload too large")
 }
 
 /// Return valid inbound (dispatch) message data, constructed from given payload.

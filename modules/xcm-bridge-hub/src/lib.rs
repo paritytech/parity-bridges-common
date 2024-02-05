@@ -84,7 +84,7 @@ pub const LOG_TARGET: &str = "runtime::bridge-xcm";
 pub mod pallet {
 	use super::*;
 	use frame_support::pallet_prelude::*;
-	use frame_system::pallet_prelude::*;
+	use frame_system::pallet_prelude::{BlockNumberFor, OriginFor};
 
 	#[pallet::config]
 	#[pallet::disable_frame_system_supertrait_check]
@@ -96,13 +96,13 @@ pub mod pallet {
 			+ IsType<<Self as frame_system::Config>::RuntimeEvent>;
 
 		/// Runtime's universal location.
-		type UniversalLocation: Get<InteriorMultiLocation>;
+		type UniversalLocation: Get<InteriorLocation>;
 		// TODO: https://github.com/paritytech/parity-bridges-common/issues/1666 remove `ChainId` and
 		// replace it with the `NetworkId` - then we'll be able to use
 		// `T as pallet_bridge_messages::Config<T::BridgeMessagesPalletInstance>::BridgedChain::NetworkId`
-		/// Bridged network id.
+		/// Bridged network as relative location of bridged `GlobalConsensus`.
 		#[pallet::constant]
-		type BridgedNetworkId: Get<NetworkId>;
+		type BridgedNetwork: Get<Location>;
 		/// Associated messages pallet instance that bridges us with the
 		/// `BridgedNetworkId` consensus.
 		type BridgeMessagesPalletInstance: 'static;
@@ -114,7 +114,7 @@ pub mod pallet {
 		// `Origin` and get matching `MultiLocation`???
 		type OpenBridgeOrigin: EnsureOrigin<
 			<Self as SystemConfig>::RuntimeOrigin,
-			Success = MultiLocation,
+			Success = Location,
 		>;
 		/// A converter between a multi-location and a sovereign account.
 		type BridgeOriginAccountIdConverter: ConvertLocation<Self::AccountId>;
@@ -131,7 +131,9 @@ pub mod pallet {
 		/// XCM-level dispatcher for inbound bridge messages.
 		type BlobDispatcher: DispatchBlob;
 		/// Price of single message export to the bridged consensus (`Self::BridgedNetworkId`).
-		type MessageExportPrice: Get<MultiAssets>;
+		type MessageExportPrice: Get<Assets>;
+		/// Checks the XCM version for the destination.
+		type DestinationVersion: GetVersion;
 	}
 
 	/// An alias for the bridge metadata.
@@ -158,7 +160,7 @@ pub mod pallet {
 		///
 		/// The caller must be within the `T::OpenBridgeOrigin` filter (presumably: a sibling
 		/// parachain or a parent relay chain). The `bridge_destination_universal_location` must be
-		/// a destination within the consensus of the `T::BridgedNetworkId` network.
+		/// a destination within the consensus of the `T::BridgedNetwork` network.
 		///
 		/// The `BridgeReserve` amount is reserved on the caller account. This reserve
 		/// is unreserved after bridge is closed.
@@ -169,7 +171,7 @@ pub mod pallet {
 		#[pallet::weight(Weight::zero())] // TODO: https://github.com/paritytech/parity-bridges-common/issues/1760 - weights
 		pub fn open_bridge(
 			origin: OriginFor<T>,
-			bridge_destination_universal_location: Box<VersionedInteriorMultiLocation>,
+			bridge_destination_universal_location: Box<VersionedInteriorLocation>,
 		) -> DispatchResult {
 			// check and compute required bridge locations
 			let locations =
@@ -190,7 +192,7 @@ pub mod pallet {
 				None => {
 					*bridge = Some(BridgeOf::<T, I> {
 						bridge_origin_relative_location: Box::new(
-							locations.bridge_origin_relative_location.into(),
+							locations.bridge_origin_relative_location.clone().into(),
 						),
 						state: BridgeState::Opened,
 						bridge_owner_account,
@@ -249,7 +251,7 @@ pub mod pallet {
 		#[pallet::weight(Weight::zero())] // TODO: https://github.com/paritytech/parity-bridges-common/issues/1760 - weights
 		pub fn close_bridge(
 			origin: OriginFor<T>,
-			bridge_destination_universal_location: Box<VersionedInteriorMultiLocation>,
+			bridge_destination_universal_location: Box<VersionedInteriorLocation>,
 			may_prune_messages: MessageNonce,
 		) -> DispatchResult {
 			// compute required bridge locations
@@ -354,13 +356,32 @@ pub mod pallet {
 		}
 	}
 
+	#[pallet::hooks]
+	impl<T: Config<I>, I: 'static> Hooks<BlockNumberFor<T>> for Pallet<T, I> {
+		fn integrity_test() {
+			assert!(
+				Self::bridged_network_id().is_some(),
+				"Configured `T::BridgedNetwork`: {:?} does not contain `GlobalConsensus` junction with `NetworkId`",
+				T::BridgedNetwork::get()
+			)
+		}
+	}
+
 	impl<T: Config<I>, I: 'static> Pallet<T, I> {
+		/// Returns some `NetworkId` if contains `GlobalConsensus` junction.
+		fn bridged_network_id() -> Option<NetworkId> {
+			match T::BridgedNetwork::get().take_first_interior() {
+				Some(GlobalConsensus(network)) => Some(network),
+				_ => None,
+			}
+		}
+
 		/// Return bridge endpoint locations and dedicated lane identifier. This method converts
 		/// runtime `origin` argument to relative `MultiLocation` using the `T::OpenBridgeOrigin`
 		/// converter.
 		pub fn bridge_locations_from_origin(
 			origin: OriginFor<T>,
-			bridge_destination_universal_location: Box<VersionedInteriorMultiLocation>,
+			bridge_destination_universal_location: Box<VersionedInteriorLocation>,
 		) -> Result<Box<BridgeLocations>, sp_runtime::DispatchError> {
 			Self::bridge_locations(
 				Box::new(T::OpenBridgeOrigin::ensure_origin(origin)?),
@@ -370,8 +391,8 @@ pub mod pallet {
 
 		/// Return bridge endpoint locations and dedicated lane identifier.
 		pub fn bridge_locations(
-			bridge_origin_relative_location: Box<MultiLocation>,
-			bridge_destination_universal_location: Box<VersionedInteriorMultiLocation>,
+			bridge_origin_relative_location: Box<Location>,
+			bridge_destination_universal_location: Box<VersionedInteriorLocation>,
 		) -> Result<Box<BridgeLocations>, sp_runtime::DispatchError> {
 			bridge_locations(
 				Box::new(T::UniversalLocation::get()),
@@ -381,7 +402,7 @@ pub mod pallet {
 						.try_into()
 						.map_err(|_| Error::<T, I>::UnsupportedXcmVersion)?,
 				),
-				T::BridgedNetworkId::get(),
+				Self::bridged_network_id().ok_or_else(|| Error::<T, I>::InvalidBridgedNetwork)?,
 			)
 			.map_err(|e| Error::<T, I>::BridgeLocations(e).into())
 		}
@@ -401,7 +422,7 @@ pub mod pallet {
 		/// Keep in mind that we are **NOT** reserving any amount for the bridges, opened at
 		/// genesis. We are **NOT** opening lanes, used by this bridge. It all must be done using
 		/// other pallets genesis configuration or some other means.
-		pub opened_bridges: Vec<(MultiLocation, InteriorMultiLocation)>,
+		pub opened_bridges: Vec<(Location, InteriorLocation)>,
 		/// Dummy marker.
 		pub phantom: sp_std::marker::PhantomData<(T, I)>,
 	}
@@ -413,11 +434,11 @@ pub mod pallet {
 	{
 		fn build(&self) {
 			for (bridge_origin_relative_location, bridge_destination_universal_location) in
-				&self.opened_bridges
+				self.opened_bridges.iter().cloned()
 			{
 				let locations = Pallet::<T, I>::bridge_locations(
-					Box::new(*bridge_origin_relative_location),
-					Box::new((*bridge_destination_universal_location).into()),
+					Box::new(bridge_origin_relative_location),
+					Box::new(bridge_destination_universal_location.into()),
 				)
 				.expect("Invalid genesis configuration");
 				let bridge_owner_account = T::BridgeOriginAccountIdConverter::convert_location(
@@ -446,9 +467,9 @@ pub mod pallet {
 		/// The bridge between two locations has been opened.
 		BridgeOpened {
 			/// Universal location of local bridge endpoint.
-			local_endpoint: Box<InteriorMultiLocation>,
+			local_endpoint: Box<InteriorLocation>,
 			/// Universal location of remote bridge endpoint.
-			remote_endpoint: Box<InteriorMultiLocation>,
+			remote_endpoint: Box<InteriorLocation>,
 			/// Bridge identifier.
 			bridge_id: BridgeId,
 		},
@@ -491,6 +512,8 @@ pub mod pallet {
 		FailedToReserveBridgeReserve,
 		/// The version of XCM location argument is unsupported.
 		UnsupportedXcmVersion,
+		/// Invalid `T::BridgedNetwork` configuration - missing `GlobalConsensus` junction.
+		InvalidBridgedNetwork,
 	}
 }
 
@@ -502,6 +525,7 @@ mod tests {
 	use bp_messages::LaneId;
 	use frame_support::{assert_noop, assert_ok, traits::fungible::Mutate};
 	use frame_system::{EventRecord, Phase};
+	use sp_runtime::BoundedVec;
 
 	fn fund_origin_sovereign_account(locations: &BridgeLocations, balance: Balance) -> AccountId {
 		let bridge_owner_account =
@@ -513,7 +537,7 @@ mod tests {
 
 	fn mock_open_bridge_from_with(
 		origin: RuntimeOrigin,
-		with: InteriorMultiLocation,
+		with: InteriorLocation,
 	) -> (BridgeOf<TestRuntime, ()>, BridgeLocations) {
 		let reserve = BridgeReserve::get();
 		let locations =
@@ -524,7 +548,7 @@ mod tests {
 
 		let bridge = Bridge {
 			bridge_origin_relative_location: Box::new(
-				locations.bridge_origin_relative_location.into(),
+				locations.bridge_origin_relative_location.clone().into(),
 			),
 			state: BridgeState::Opened,
 			bridge_owner_account,
@@ -550,8 +574,7 @@ mod tests {
 		lanes_manager
 			.active_outbound_lane(lane)
 			.unwrap()
-			.send_message(vec![42])
-			.unwrap();
+			.send_message(BoundedVec::try_from(vec![42]).expect("payload too large"));
 	}
 
 	#[test]
@@ -599,7 +622,7 @@ mod tests {
 				XcmOverBridge::open_bridge(
 					OpenBridgeOrigin::parent_relay_chain_origin(),
 					Box::new(
-						X2(GlobalConsensus(RelayNetwork::get()), Parachain(BRIDGED_ASSET_HUB_ID))
+						[GlobalConsensus(RelayNetwork::get()), Parachain(BRIDGED_ASSET_HUB_ID)]
 							.into()
 					),
 				),
@@ -615,10 +638,10 @@ mod tests {
 				XcmOverBridge::open_bridge(
 					OpenBridgeOrigin::parent_relay_chain_origin(),
 					Box::new(
-						X2(
+						[
 							GlobalConsensus(NonBridgedRelayNetwork::get()),
 							Parachain(BRIDGED_ASSET_HUB_ID)
-						)
+						]
 						.into()
 					),
 				),
@@ -778,7 +801,7 @@ mod tests {
 				// now open the bridge
 				assert_ok!(XcmOverBridge::open_bridge(
 					origin,
-					Box::new(locations.bridge_destination_universal_location.into()),
+					Box::new(locations.bridge_destination_universal_location.clone().into()),
 				));
 
 				// ensure that everything has been set up in the runtime storage
@@ -927,7 +950,7 @@ mod tests {
 			// now call the `close_bridge`, which will only partially prune messages
 			assert_ok!(XcmOverBridge::close_bridge(
 				origin.clone(),
-				Box::new(locations.bridge_destination_universal_location.into()),
+				Box::new(locations.bridge_destination_universal_location.clone().into()),
 				16,
 			),);
 
@@ -978,7 +1001,7 @@ mod tests {
 			// now call the `close_bridge` again, which will only partially prune messages
 			assert_ok!(XcmOverBridge::close_bridge(
 				origin.clone(),
-				Box::new(locations.bridge_destination_universal_location.into()),
+				Box::new(locations.bridge_destination_universal_location.clone().into()),
 				8,
 			),);
 

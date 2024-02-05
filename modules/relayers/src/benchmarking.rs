@@ -22,7 +22,7 @@ use crate::*;
 
 use bp_messages::LaneId;
 use bp_relayers::RewardsAccountOwner;
-use frame_benchmarking::{account, benchmarks, whitelisted_caller};
+use frame_benchmarking::v2::*;
 use frame_support::traits::Get;
 use frame_system::{pallet_prelude::BlockNumberFor, RawOrigin};
 use sp_runtime::traits::One;
@@ -83,9 +83,13 @@ fn register_relayer<T: Config>(
 	);
 }
 
-benchmarks! {
-	// Benchmark `claim_rewards` call.
-	claim_rewards {
+#[benchmarks]
+mod benchmarks {
+	use super::*;
+
+	/// Benchmark `claim_rewards` call.
+	#[benchmark]
+	fn claim_rewards() {
 		let lane = LaneId::new(1, 2);
 		let account_params =
 			RewardsAccountParams::new(lane, *b"test", RewardsAccountOwner::ThisChain);
@@ -94,43 +98,53 @@ benchmarks! {
 
 		T::prepare_rewards_account(account_params, reward);
 		RelayerRewards::<T>::insert(&relayer, account_params, reward);
-	}: _(RawOrigin::Signed(relayer), account_params)
-	verify {
+
+		#[extrinsic_call]
+		_(RawOrigin::Signed(relayer), account_params);
+
 		// we can't check anything here, because `PaymentProcedure` is responsible for
 		// payment logic, so we assume that if call has succeeded, the procedure has
 		// also completed successfully
 	}
 
-	// Benchmark `increase_stake` call.
-	increase_stake {
+	/// Benchmark `increase_stake` call.
+	#[benchmark]
+	fn increase_stake() {
 		let relayer: T::AccountId = whitelisted_caller();
 		let stake = crate::Pallet::<T>::base_stake();
 		T::deposit_account(relayer.clone(), stake);
-	}: _(RawOrigin::Signed(relayer.clone()), stake)
-	verify {
+
+		#[extrinsic_call]
+		_(RawOrigin::Signed(relayer.clone()), stake);
+
 		assert_eq!(
 			crate::Pallet::<T>::registered_relayer(&relayer).map(|reg| reg.current_stake()),
 			Some(stake),
 		);
 	}
 
-	// Benchmark `decrease_stake` call.
-	decrease_stake {
+	/// Benchmark `decrease_stake` call.
+	#[benchmark]
+	fn decrease_stake() {
 		let relayer: T::AccountId = whitelisted_caller();
 		let base_stake = crate::Pallet::<T>::base_stake();
 		let stake = base_stake.saturating_add(100u32.into());
 		T::deposit_account(relayer.clone(), stake);
-		crate::Pallet::<T>::increase_stake(RawOrigin::Signed(relayer.clone()).into(), stake).unwrap();
-	}: _(RawOrigin::Signed(relayer.clone()), 100u32.into())
-	verify {
+		crate::Pallet::<T>::increase_stake(RawOrigin::Signed(relayer.clone()).into(), stake)
+			.unwrap();
+
+		#[extrinsic_call]
+		_(RawOrigin::Signed(relayer.clone()), 100u32.into());
+
 		assert_eq!(
 			crate::Pallet::<T>::registered_relayer(&relayer).map(|reg| reg.current_stake()),
 			Some(base_stake),
 		);
 	}
 
-	// Benchmark `register` call.
-	register {
+	/// Benchmark `register` call.
+	#[benchmark]
+	fn register() {
 		let relayer: T::AccountId = whitelisted_caller();
 		let base_stake = crate::Pallet::<T>::base_stake();
 		let valid_till = frame_system::Pallet::<T>::block_number()
@@ -139,56 +153,69 @@ benchmarks! {
 			.saturating_add(One::one());
 
 		T::deposit_account(relayer.clone(), base_stake);
-		crate::Pallet::<T>::increase_stake(RawOrigin::Signed(relayer.clone()).into(), base_stake).unwrap();
-	}: _(RawOrigin::Signed(relayer.clone()), valid_till)
-	verify {
+		crate::Pallet::<T>::increase_stake(RawOrigin::Signed(relayer.clone()).into(), base_stake)
+			.unwrap();
+
+		#[extrinsic_call]
+		_(RawOrigin::Signed(relayer.clone()), valid_till);
+
 		assert!(crate::Pallet::<T>::is_registration_active(&relayer));
 	}
 
-	// Benchmark `deregister` call.
-	deregister {
+	/// Benchmark `deregister` call.
+	#[benchmark]
+	fn deregister() {
 		let relayer: T::AccountId = whitelisted_caller();
 		register_relayer::<T>(&relayer, 0, 0);
 		frame_system::Pallet::<T>::set_block_number(valid_till::<T>().saturating_add(One::one()));
-	}: _(RawOrigin::Signed(relayer.clone()))
-	verify {
+
+		#[extrinsic_call]
+		_(RawOrigin::Signed(relayer.clone()));
+
 		assert!(!crate::Pallet::<T>::is_registration_active(&relayer));
 	}
 
-	// Benchmark `register_at_lane` call. The worst case for this call is when:
-	//
-	// - relayer has `T::MaxLanesPerRelayer::get() - 1` lane registrations;
-	//
-	// - there are no other relayers registered at that lane yet;
-	register_at_lane {
+	/// Benchmark `register_at_lane` call. The worst case for this call is when:
+	///
+	/// - relayer has `T::MaxLanesPerRelayer::get() - 1` lane registrations;
+	///
+	/// - there are no other relayers registered at that lane yet;
+	#[benchmark]
+	fn register_at_lane() {
 		let relayer: T::AccountId = whitelisted_caller();
 		let max_lanes_per_relayer = T::MaxLanesPerRelayer::get();
 		register_relayer::<T>(&relayer, max_lanes_per_relayer - 1, 0);
-	}: _(RawOrigin::Signed(relayer.clone()), lane_id(max_lanes_per_relayer), 0)
-	verify {
+
+		#[extrinsic_call]
+		_(RawOrigin::Signed(relayer.clone()), lane_id(max_lanes_per_relayer), 0);
+
 		assert_eq!(
 			crate::Pallet::<T>::registered_relayer(&relayer).map(|reg| reg.lanes().len() as u32),
 			Some(max_lanes_per_relayer),
 		);
 	}
 
-	// Benchmark `deregister_at_lane` call. The worst case for this call is when relayer is not in
-	// the active relayers set.
-	deregister_at_lane {
+	/// Benchmark `deregister_at_lane` call. The worst case for this call is when relayer is not in
+	/// the active relayers set.
+	#[benchmark]
+	fn deregister_at_lane() {
 		let relayer: T::AccountId = whitelisted_caller();
 		let max_lanes_per_relayer = T::MaxLanesPerRelayer::get();
 		register_relayer::<T>(&relayer, max_lanes_per_relayer, 0);
-	}: _(RawOrigin::Signed(relayer.clone()), lane_id(0))
-	verify {
+
+		#[extrinsic_call]
+		_(RawOrigin::Signed(relayer.clone()), lane_id(0));
+
 		assert_eq!(
 			crate::Pallet::<T>::registered_relayer(&relayer).map(|reg| reg.lanes().len() as u32),
 			Some(max_lanes_per_relayer - 1),
 		);
 	}
 
-	// Benchmark `advance_lane_epoch` call. The worst case for this call is when active set is completely
-	// replaced with a next set.
-	advance_lane_epoch {
+	// Benchmark `advance_lane_epoch` call. The worst case for this call is when active set is
+	// completely replaced with a next set.
+	#[benchmark]
+	fn advance_lane_epoch() {
 		let current_block_number = frame_system::Pallet::<T>::block_number();
 
 		// prepare active relayers set with max possible relayers count
@@ -196,10 +223,12 @@ benchmarks! {
 		let active_relayers = (0..max_active_relayers_per_lane)
 			.map(|i| account("relayer", i, 0))
 			.collect::<Vec<_>>();
-		let mut active_relayers_set = ActiveLaneRelayersSet::<_, BlockNumberFor<T>, T::MaxActiveRelayersPerLane>::default();
-		let mut next_relayers_set = NextLaneRelayersSet::<_, BlockNumberFor<T>, T::MaxNextRelayersPerLane>::empty(
-			current_block_number,
-		);
+		let mut active_relayers_set =
+			ActiveLaneRelayersSet::<_, BlockNumberFor<T>, T::MaxActiveRelayersPerLane>::default();
+		let mut next_relayers_set =
+			NextLaneRelayersSet::<_, BlockNumberFor<T>, T::MaxNextRelayersPerLane>::empty(
+				current_block_number,
+			);
 		for active_relayer in &active_relayers {
 			register_relayer::<T>(active_relayer, 1, 1);
 			assert!(next_relayers_set.try_insert(active_relayer.clone(), 0));
@@ -220,8 +249,10 @@ benchmarks! {
 		frame_system::Pallet::<T>::set_block_number(
 			NextLaneRelayers::<T>::get(lane_id(0)).unwrap().may_enact_at(),
 		);
-	}: _(RawOrigin::Signed(whitelisted_caller()), lane_id(0))
-	verify {
+
+		#[extrinsic_call]
+		_(RawOrigin::Signed(whitelisted_caller()), lane_id(0));
+
 		// active relayers are replaced with next relayers
 		assert_eq!(
 			crate::Pallet::<T>::active_lane_relayers(&lane_id(0))
@@ -233,16 +264,21 @@ benchmarks! {
 		);
 
 		// all (previous) active relayers have no lane registration
-		active_relayers.into_iter().all(|r| crate::Pallet::<T>::registered_relayer(&r).unwrap().lanes().len() == 0);
+		active_relayers
+			.into_iter()
+			.all(|r| crate::Pallet::<T>::registered_relayer(&r).unwrap().lanes().len() == 0);
 
 		// all (previous) next relayers have no lane registration
-		next_relayers.into_iter().all(|r| crate::Pallet::<T>::registered_relayer(&r).unwrap().lanes().len() == 1);
+		next_relayers
+			.into_iter()
+			.all(|r| crate::Pallet::<T>::registered_relayer(&r).unwrap().lanes().len() == 1);
 	}
 
-	// Benchmark `slash_and_deregister` method of the pallet. We are adding this weight to
-	// the weight of message delivery call if `RefundBridgedParachainMessages` signed extension
-	// is deployed at runtime level.
-	slash_and_deregister {
+	/// Benchmark `slash_and_deregister` method of the pallet. We are adding this weight to
+	/// the weight of message delivery call if `RefundBridgedParachainMessages` signed extension
+	/// is deployed at runtime level.
+	#[benchmark]
+	fn slash_and_deregister() {
 		// prepare and register relayer account
 		let relayer: T::AccountId = whitelisted_caller();
 		let max_lanes_per_relayer = T::MaxLanesPerRelayer::get();
@@ -260,42 +296,48 @@ benchmarks! {
 
 		// create slash destination account
 		let lane = LaneId::new(1, 2);
-		let slash_destination = RewardsAccountParams::new(lane, *b"test", RewardsAccountOwner::ThisChain);
+		let slash_destination =
+			RewardsAccountParams::new(lane, *b"test", RewardsAccountOwner::ThisChain);
 		T::prepare_rewards_account(slash_destination.clone(), Zero::zero());
-	}: {
-		crate::Pallet::<T>::slash_and_deregister(&relayer, slash_destination)
-	}
-	verify {
+
+		#[block]
+		{
+			crate::Pallet::<T>::slash_and_deregister(&relayer, slash_destination)
+		}
+
 		assert!(!crate::Pallet::<T>::is_registration_active(&relayer));
 		for i in 0..max_lanes_per_relayer {
-			assert!(
-				crate::Pallet::<T>::active_lane_relayers(lane_id(i))
-					.relayer(&relayer)
-					.is_none(),
-			);
-			assert!(
-				crate::Pallet::<T>::next_lane_relayers(lane_id(i))
-					.unwrap_or_else(|| NextLaneRelayersSet::empty(Zero::zero()))
-					.relayer(&relayer)
-					.is_none(),
-			);
+			assert!(crate::Pallet::<T>::active_lane_relayers(lane_id(i))
+				.relayer(&relayer)
+				.is_none(),);
+			assert!(crate::Pallet::<T>::next_lane_relayers(lane_id(i))
+				.unwrap_or_else(|| NextLaneRelayersSet::empty(Zero::zero()))
+				.relayer(&relayer)
+				.is_none(),);
 		}
 	}
 
 	// Benchmark `register_relayer_reward` method of the pallet. We are adding this weight to
 	// the weight of message delivery call if `RefundBridgedParachainMessages` signed extension
 	// is deployed at runtime level.
-	register_relayer_reward {
+	#[benchmark]
+	fn register_relayer_reward() {
 		let lane = LaneId::new(1, 2);
 		let relayer: T::AccountId = whitelisted_caller();
 		let account_params =
 			RewardsAccountParams::new(lane, *b"test", RewardsAccountOwner::ThisChain);
-	}: {
-		crate::Pallet::<T>::register_relayer_reward(account_params.clone(), &relayer, One::one());
-	}
-	verify {
+
+		#[block]
+		{
+			crate::Pallet::<T>::register_relayer_reward(
+				account_params.clone(),
+				&relayer,
+				One::one(),
+			);
+		}
+
 		assert_eq!(RelayerRewards::<T>::get(relayer, &account_params), Some(One::one()));
 	}
 
-	impl_benchmark_test_suite!(Pallet, crate::mock::new_test_ext(), crate::mock::TestRuntime)
+	impl_benchmark_test_suite!(Pallet, crate::mock::new_test_ext(), crate::mock::TestRuntime);
 }

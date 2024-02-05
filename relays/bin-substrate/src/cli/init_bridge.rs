@@ -27,16 +27,14 @@ use crate::{
 			polkadot_bulletin_headers_to_bridge_hub_polkadot::PolkadotBulletinToBridgeHubPolkadotCliBridge,
 			polkadot_headers_to_polkadot_bulletin::PolkadotToPolkadotBulletinCliBridge,
 		},
-		rialto_millau::{
-			millau_headers_to_rialto::MillauToRialtoCliBridge,
-			rialto_headers_to_millau::RialtoToMillauCliBridge,
+		rococo_bulletin::{
+			rococo_bulletin_headers_to_bridge_hub_rococo::RococoBulletinToBridgeHubRococoCliBridge,
+			rococo_headers_to_rococo_bulletin::RococoToRococoBulletinCliBridge,
 		},
-		rialto_parachain_millau::millau_headers_to_rialto_parachain::MillauToRialtoParachainCliBridge,
-		rococo_wococo::{
-			rococo_headers_to_bridge_hub_wococo::RococoToBridgeHubWococoCliBridge,
-			wococo_headers_to_bridge_hub_rococo::WococoToBridgeHubRococoCliBridge,
+		rococo_westend::{
+			rococo_headers_to_bridge_hub_westend::RococoToBridgeHubWestendCliBridge,
+			westend_headers_to_bridge_hub_rococo::WestendToBridgeHubRococoCliBridge,
 		},
-		westend_millau::westend_headers_to_millau::WestendToMillauCliBridge,
 	},
 	cli::{bridge::CliBridgeBase, chain_schema::*},
 };
@@ -44,7 +42,7 @@ use bp_runtime::Chain as ChainBase;
 use relay_substrate_client::{AccountKeyPairOf, Chain, UnsignedTransaction};
 use sp_core::Pair;
 use structopt::StructOpt;
-use strum::{EnumString, EnumVariantNames, VariantNames};
+use strum::{EnumString, VariantNames};
 use substrate_relay_helper::finality_base::engine::{Engine, Grandpa as GrandpaFinalityEngine};
 
 /// Initialize bridge pallet.
@@ -64,20 +62,18 @@ pub struct InitBridge {
 	dry_run: bool,
 }
 
-#[derive(Debug, EnumString, EnumVariantNames)]
+#[derive(Debug, EnumString, VariantNames)]
 #[strum(serialize_all = "kebab_case")]
 /// Bridge to initialize.
 pub enum InitBridgeName {
-	MillauToRialto,
-	RialtoToMillau,
-	WestendToMillau,
-	MillauToRialtoParachain,
-	RococoToBridgeHubWococo,
-	WococoToBridgeHubRococo,
 	KusamaToBridgeHubPolkadot,
 	PolkadotToBridgeHubKusama,
 	PolkadotToPolkadotBulletin,
 	PolkadotBulletinToBridgeHubPolkadot,
+	RococoToRococoBulletin,
+	RococoBulletinToBridgeHubRococo,
+	RococoToBridgeHubWestend,
+	WestendToBridgeHubRococo,
 }
 
 #[async_trait]
@@ -120,91 +116,27 @@ where
 	}
 }
 
-impl BridgeInitializer for MillauToRialtoCliBridge {
+impl BridgeInitializer for RococoToBridgeHubWestendCliBridge {
 	type Engine = GrandpaFinalityEngine<Self::Source>;
 
 	fn encode_init_bridge(
 		init_data: <Self::Engine as Engine<Self::Source>>::InitializationData,
 	) -> <Self::Target as Chain>::Call {
-		rialto_runtime::SudoCall::sudo {
-			call: Box::new(rialto_runtime::BridgeGrandpaCall::initialize { init_data }.into()),
-		}
-		.into()
-	}
-}
-
-impl BridgeInitializer for MillauToRialtoParachainCliBridge {
-	type Engine = GrandpaFinalityEngine<Self::Source>;
-
-	fn encode_init_bridge(
-		init_data: <Self::Engine as Engine<Self::Source>>::InitializationData,
-	) -> <Self::Target as Chain>::Call {
-		type RuntimeCall = relay_rialto_parachain_client::RuntimeCall;
-		type BridgeGrandpaCall = relay_rialto_parachain_client::BridgeGrandpaCall;
-		type SudoCall = relay_rialto_parachain_client::SudoCall;
-
-		let initialize_call =
-			RuntimeCall::BridgeMillauGrandpa(BridgeGrandpaCall::initialize { init_data });
-
-		RuntimeCall::Sudo(SudoCall::sudo { call: Box::new(initialize_call) })
-	}
-}
-
-impl BridgeInitializer for RialtoToMillauCliBridge {
-	type Engine = GrandpaFinalityEngine<Self::Source>;
-
-	fn encode_init_bridge(
-		init_data: <Self::Engine as Engine<Self::Source>>::InitializationData,
-	) -> <Self::Target as Chain>::Call {
-		let initialize_call = millau_runtime::BridgeGrandpaCall::<
-			millau_runtime::Runtime,
-			millau_runtime::RialtoGrandpaInstance,
-		>::initialize {
-			init_data,
-		};
-		millau_runtime::SudoCall::sudo { call: Box::new(initialize_call.into()) }.into()
-	}
-}
-
-impl BridgeInitializer for WestendToMillauCliBridge {
-	type Engine = GrandpaFinalityEngine<Self::Source>;
-
-	fn encode_init_bridge(
-		init_data: <Self::Engine as Engine<Self::Source>>::InitializationData,
-	) -> <Self::Target as Chain>::Call {
-		// at Westend -> Millau initialization we're not using sudo, because otherwise
-		// our deployments may fail, because we need to initialize both Rialto -> Millau
-		// and Westend -> Millau bridge. => since there's single possible sudo account,
-		// one of transaction may fail with duplicate nonce error
-		millau_runtime::BridgeGrandpaCall::<
-			millau_runtime::Runtime,
-			millau_runtime::WestendGrandpaInstance,
-		>::initialize {
-			init_data,
-		}
-		.into()
-	}
-}
-
-impl BridgeInitializer for RococoToBridgeHubWococoCliBridge {
-	type Engine = GrandpaFinalityEngine<Self::Source>;
-
-	fn encode_init_bridge(
-		init_data: <Self::Engine as Engine<Self::Source>>::InitializationData,
-	) -> <Self::Target as Chain>::Call {
-		relay_bridge_hub_wococo_client::RuntimeCall::BridgeRococoGrandpa(
-			relay_bridge_hub_wococo_client::BridgeGrandpaCall::initialize { init_data },
+		relay_bridge_hub_westend_client::runtime::Call::BridgeRococoGrandpa(
+			relay_bridge_hub_westend_client::runtime::BridgeRococoGrandpaCall::initialize {
+				init_data,
+			},
 		)
 	}
 }
 
-impl BridgeInitializer for WococoToBridgeHubRococoCliBridge {
+impl BridgeInitializer for WestendToBridgeHubRococoCliBridge {
 	type Engine = GrandpaFinalityEngine<Self::Source>;
 
 	fn encode_init_bridge(
 		init_data: <Self::Engine as Engine<Self::Source>>::InitializationData,
 	) -> <Self::Target as Chain>::Call {
-		relay_bridge_hub_rococo_client::RuntimeCall::BridgeWococoGrandpa(
+		relay_bridge_hub_rococo_client::RuntimeCall::BridgeWestendGrandpa(
 			relay_bridge_hub_rococo_client::BridgeGrandpaCall::initialize { init_data },
 		)
 	}
@@ -269,19 +201,39 @@ impl BridgeInitializer for PolkadotBulletinToBridgeHubPolkadotCliBridge {
 	}
 }
 
+impl BridgeInitializer for RococoToRococoBulletinCliBridge {
+	type Engine = GrandpaFinalityEngine<Self::Source>;
+
+	fn encode_init_bridge(
+		init_data: <Self::Engine as Engine<Self::Source>>::InitializationData,
+	) -> <Self::Target as Chain>::Call {
+		type RuntimeCall = relay_polkadot_bulletin_client::RuntimeCall;
+		type BridgePolkadotGrandpaCall = relay_polkadot_bulletin_client::BridgePolkadotGrandpaCall;
+		type SudoCall = relay_polkadot_bulletin_client::SudoCall;
+
+		let initialize_call =
+			RuntimeCall::BridgePolkadotGrandpa(BridgePolkadotGrandpaCall::initialize { init_data });
+
+		RuntimeCall::Sudo(SudoCall::sudo { call: Box::new(initialize_call) })
+	}
+}
+
+impl BridgeInitializer for RococoBulletinToBridgeHubRococoCliBridge {
+	type Engine = GrandpaFinalityEngine<Self::Source>;
+
+	fn encode_init_bridge(
+		init_data: <Self::Engine as Engine<Self::Source>>::InitializationData,
+	) -> <Self::Target as Chain>::Call {
+		relay_bridge_hub_rococo_client::RuntimeCall::BridgePolkadotBulletinGrandpa(
+			relay_bridge_hub_rococo_client::BridgeBulletinGrandpaCall::initialize { init_data },
+		)
+	}
+}
+
 impl InitBridge {
 	/// Run the command.
 	pub async fn run(self) -> anyhow::Result<()> {
 		match self.bridge {
-			InitBridgeName::MillauToRialto => MillauToRialtoCliBridge::init_bridge(self),
-			InitBridgeName::RialtoToMillau => RialtoToMillauCliBridge::init_bridge(self),
-			InitBridgeName::WestendToMillau => WestendToMillauCliBridge::init_bridge(self),
-			InitBridgeName::MillauToRialtoParachain =>
-				MillauToRialtoParachainCliBridge::init_bridge(self),
-			InitBridgeName::RococoToBridgeHubWococo =>
-				RococoToBridgeHubWococoCliBridge::init_bridge(self),
-			InitBridgeName::WococoToBridgeHubRococo =>
-				WococoToBridgeHubRococoCliBridge::init_bridge(self),
 			InitBridgeName::KusamaToBridgeHubPolkadot =>
 				KusamaToBridgeHubPolkadotCliBridge::init_bridge(self),
 			InitBridgeName::PolkadotToBridgeHubKusama =>
@@ -290,6 +242,14 @@ impl InitBridge {
 				PolkadotToPolkadotBulletinCliBridge::init_bridge(self),
 			InitBridgeName::PolkadotBulletinToBridgeHubPolkadot =>
 				PolkadotBulletinToBridgeHubPolkadotCliBridge::init_bridge(self),
+			InitBridgeName::RococoToRococoBulletin =>
+				RococoToRococoBulletinCliBridge::init_bridge(self),
+			InitBridgeName::RococoBulletinToBridgeHubRococo =>
+				RococoBulletinToBridgeHubRococoCliBridge::init_bridge(self),
+			InitBridgeName::RococoToBridgeHubWestend =>
+				RococoToBridgeHubWestendCliBridge::init_bridge(self),
+			InitBridgeName::WestendToBridgeHubRococo =>
+				WestendToBridgeHubRococoCliBridge::init_bridge(self),
 		}
 		.await
 	}

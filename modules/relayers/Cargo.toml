@@ -6,6 +6,9 @@ authors.workspace = true
 edition.workspace = true
 license = "GPL-3.0-or-later WITH Classpath-exception-2.0"
 
+[lints]
+workspace = true
+
 [dependencies]
 codec = { package = "parity-scale-codec", version = "3.1.5", default-features = false }
 log = { version = "0.4.20", default-features = false }
@@ -37,11 +40,10 @@ bp-polkadot-core = { path = "../../primitives/polkadot-core" }
 bp-test-utils = { path = "../../primitives/test-utils" }
 pallet-balances = { git = "https://github.com/paritytech/polkadot-sdk", branch = "master" }
 pallet-utility = { git = "https://github.com/paritytech/polkadot-sdk", branch = "master" }
-sp-core = { git = "https://github.com/paritytech/polkadot-sdk", branch = "master" }
 sp-io = { git = "https://github.com/paritytech/polkadot-sdk", branch = "master" }
 
 [features]
-default = [ "std" ]
+default = ["std"]
 std = [
 	"bp-header-chain/std",
 	"bp-messages/std",

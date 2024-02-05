@@ -26,7 +26,7 @@ use bp_runtime::{messages::MessageDispatchResult, Chain, ChainId};
 use bp_xcm_bridge_hub::{BridgeId, LocalXcmChannelManager};
 use codec::Encode;
 use frame_support::{
-	parameter_types,
+	derive_impl, parameter_types,
 	traits::{EnsureOrigin, OriginTrait},
 	weights::RuntimeDbWeight,
 };
@@ -34,7 +34,7 @@ use polkadot_parachain_primitives::primitives::Sibling;
 use sp_core::H256;
 use sp_runtime::{
 	testing::Header as SubstrateHeader,
-	traits::{BlakeTwo256, ConstU32, IdentityLookup},
+	traits::{BlakeTwo256, IdentityLookup},
 	AccountId32, BuildStorage, StateVersion,
 };
 use xcm::prelude::*;
@@ -63,46 +63,17 @@ parameter_types! {
 	pub const ExistentialDeposit: Balance = 1;
 }
 
+#[derive_impl(frame_system::config_preludes::TestDefaultConfig as frame_system::DefaultConfig)]
 impl frame_system::Config for TestRuntime {
-	type RuntimeOrigin = RuntimeOrigin;
-	type Nonce = u64;
-	type RuntimeCall = RuntimeCall;
-	type Block = Block;
-	type Hash = H256;
-	type Hashing = BlakeTwo256;
 	type AccountId = AccountId;
-	type Lookup = IdentityLookup<Self::AccountId>;
-	type RuntimeEvent = RuntimeEvent;
-	type BlockHashCount = frame_support::traits::ConstU64<250>;
-	type Version = ();
-	type PalletInfo = PalletInfo;
 	type AccountData = pallet_balances::AccountData<Balance>;
-	type OnNewAccount = ();
-	type OnKilledAccount = ();
-	type BaseCallFilter = frame_support::traits::Everything;
-	type SystemWeightInfo = ();
-	type BlockWeights = ();
-	type BlockLength = ();
-	type DbWeight = DbWeight;
-	type SS58Prefix = ();
-	type OnSetCode = ();
-	type MaxConsumers = frame_support::traits::ConstU32<16>;
+	type Block = Block;
+	type Lookup = IdentityLookup<Self::AccountId>;
 }
 
+#[derive_impl(pallet_balances::config_preludes::TestDefaultConfig as pallet_balances::DefaultConfig)]
 impl pallet_balances::Config for TestRuntime {
-	type MaxLocks = ();
-	type Balance = Balance;
-	type DustRemoval = ();
-	type RuntimeEvent = RuntimeEvent;
-	type ExistentialDeposit = ExistentialDeposit;
-	type AccountStore = frame_system::Pallet<TestRuntime>;
-	type WeightInfo = ();
-	type MaxReserves = ConstU32<1>;
-	type ReserveIdentifier = [u8; 8];
-	type RuntimeHoldReason = RuntimeHoldReason;
-	type FreezeIdentifier = ();
-	type MaxHolds = ConstU32<0>;
-	type MaxFreezes = ConstU32<0>;
+	type AccountStore = System;
 }
 
 impl pallet_bridge_messages::Config for TestRuntime {
@@ -167,12 +138,13 @@ impl pallet_bridge_messages::WeightInfoExt for TestMessagesWeights {
 parameter_types! {
 	pub const RelayNetwork: NetworkId = NetworkId::Kusama;
 	pub const BridgedRelayNetwork: NetworkId = NetworkId::Polkadot;
+	pub BridgedRelayNetworkLocation: Location = (Parent, GlobalConsensus(BridgedRelayNetwork::get())).into();
 	pub const NonBridgedRelayNetwork: NetworkId = NetworkId::Rococo;
 	pub const BridgeReserve: Balance = 100_000;
-	pub UniversalLocation: InteriorMultiLocation = X2(
+	pub UniversalLocation: InteriorLocation = [
 		GlobalConsensus(RelayNetwork::get()),
 		Parachain(THIS_BRIDGE_HUB_ID),
-	);
+	].into();
 	pub const Penalty: Balance = 1_000;
 }
 
@@ -217,33 +189,34 @@ impl OpenBridgeOrigin {
 }
 
 impl EnsureOrigin<RuntimeOrigin> for OpenBridgeOrigin {
-	type Success = MultiLocation;
+	type Success = Location;
 
 	fn try_origin(o: RuntimeOrigin) -> Result<Self::Success, RuntimeOrigin> {
 		let signer = o.clone().into_signer();
 		if signer == Self::parent_relay_chain_origin().into_signer() {
-			return Ok(MultiLocation { parents: 1, interior: Here })
+			return Ok(Location { parents: 1, interior: Here })
 		} else if signer == Self::parent_relay_chain_universal_origin().into_signer() {
-			return Ok(MultiLocation {
+			return Ok(Location {
 				parents: 2,
-				interior: X1(GlobalConsensus(RelayNetwork::get())),
+				interior: [GlobalConsensus(RelayNetwork::get())].into(),
 			})
 		} else if signer == Self::sibling_parachain_universal_origin().into_signer() {
-			return Ok(MultiLocation {
+			return Ok(Location {
 				parents: 2,
-				interior: X2(GlobalConsensus(RelayNetwork::get()), Parachain(SIBLING_ASSET_HUB_ID)),
+				interior: [GlobalConsensus(RelayNetwork::get()), Parachain(SIBLING_ASSET_HUB_ID)]
+					.into(),
 			})
 		} else if signer == Self::origin_without_sovereign_account().into_signer() {
-			return Ok(MultiLocation {
+			return Ok(Location {
 				parents: 1,
-				interior: X2(Parachain(SIBLING_ASSET_HUB_ID), OnlyChild),
+				interior: [Parachain(SIBLING_ASSET_HUB_ID), OnlyChild].into(),
 			})
 		}
 
 		let mut sibling_account = [0u8; 32];
 		sibling_account[..4].copy_from_slice(&SIBLING_ASSET_HUB_ID.encode()[..4]);
 		if signer == Some(sibling_account.into()) {
-			return Ok(MultiLocation { parents: 1, interior: X1(Parachain(SIBLING_ASSET_HUB_ID)) })
+			return Ok(Location { parents: 1, interior: [Parachain(SIBLING_ASSET_HUB_ID)].into() })
 		}
 
 		Err(o)
@@ -259,7 +232,7 @@ impl pallet_xcm_bridge_hub::Config for TestRuntime {
 	type RuntimeEvent = RuntimeEvent;
 
 	type UniversalLocation = UniversalLocation;
-	type BridgedNetworkId = BridgedRelayNetwork;
+	type BridgedNetwork = BridgedRelayNetworkLocation;
 	type BridgeMessagesPalletInstance = ();
 
 	type OpenBridgeOrigin = OpenBridgeOrigin;
@@ -271,6 +244,7 @@ impl pallet_xcm_bridge_hub::Config for TestRuntime {
 	type LocalXcmChannelManager = TestLocalXcmChannelManager;
 	type BlobDispatcher = TestBlobDispatcher;
 	type MessageExportPrice = ();
+	type DestinationVersion = AlwaysLatest;
 }
 
 pub struct TestLocalXcmChannelManager;
@@ -292,16 +266,16 @@ impl TestLocalXcmChannelManager {
 impl LocalXcmChannelManager for TestLocalXcmChannelManager {
 	type Error = ();
 
-	fn is_congested(_with: &MultiLocation) -> bool {
+	fn is_congested(_with: &Location) -> bool {
 		frame_support::storage::unhashed::get_or_default(b"TestLocalXcmChannelManager.Congested")
 	}
 
-	fn suspend_bridge(_local_origin: &MultiLocation, _bridge: BridgeId) -> Result<(), Self::Error> {
+	fn suspend_bridge(_local_origin: &Location, _bridge: BridgeId) -> Result<(), Self::Error> {
 		frame_support::storage::unhashed::put(b"TestLocalXcmChannelManager.Suspended", &true);
 		Ok(())
 	}
 
-	fn resume_bridge(_local_origin: &MultiLocation, _bridge: BridgeId) -> Result<(), Self::Error> {
+	fn resume_bridge(_local_origin: &Location, _bridge: BridgeId) -> Result<(), Self::Error> {
 		frame_support::storage::unhashed::put(b"TestLocalXcmChannelManager.Resumed", &true);
 		Ok(())
 	}
@@ -415,8 +389,8 @@ impl MessageDispatch for TestMessageDispatch {
 }
 
 /// Location of bridged asset hub.
-pub fn bridged_asset_hub_location() -> InteriorMultiLocation {
-	X2(GlobalConsensus(BridgedRelayNetwork::get()), Parachain(BRIDGED_ASSET_HUB_ID))
+pub fn bridged_asset_hub_location() -> InteriorLocation {
+	[GlobalConsensus(BridgedRelayNetwork::get()), Parachain(BRIDGED_ASSET_HUB_ID)].into()
 }
 
 /// Run pallet test.

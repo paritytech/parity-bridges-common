@@ -17,13 +17,15 @@
 //! Westend chain specification for CLI.
 
 use crate::cli::CliChain;
+use relay_bridge_hub_westend_client::BridgeHubWestend;
 use relay_substrate_client::SimpleRuntimeVersion;
-use relay_westend_client::{AssetHubWestend, Westend};
+use relay_westend_client::Westend;
 
 impl CliChain for Westend {
 	const RUNTIME_VERSION: Option<SimpleRuntimeVersion> = None;
 }
 
-impl CliChain for AssetHubWestend {
-	const RUNTIME_VERSION: Option<SimpleRuntimeVersion> = None;
+impl CliChain for BridgeHubWestend {
+	const RUNTIME_VERSION: Option<SimpleRuntimeVersion> =
+		Some(SimpleRuntimeVersion { spec_version: 1_003_000, transaction_version: 3 });
 }
