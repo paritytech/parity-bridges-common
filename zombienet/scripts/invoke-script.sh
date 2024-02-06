@@ -1,7 +1,7 @@
 #!/bin/bash
 
-RELAY_LOG=`mktemp -p $TEST_FOLDER relay.XXXXX`
+INVOKE_LOG=`mktemp -p $TEST_FOLDER invoke.XXXXX`
 
 pushd $POLKADOT_SDK_FOLDER/cumulus/scripts
-./bridges_rococo_westend.sh run-relay >$RELAY_LOG 2>&1&
+./bridges_rococo_westend.sh $1 >$INVOKE_LOG 2>&1
 popd
