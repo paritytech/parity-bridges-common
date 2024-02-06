@@ -16,8 +16,9 @@
 
 //! Benchmarks for the GRANDPA Pallet.
 //!
-//! The main dispatchable for the GRANDPA pallet is `submit_finality_proof_ex`, so these benchmarks
-//! are based around that. There are to main factors which affect finality proof verification:
+//! The main dispatchable for the GRANDPA pallet is `submit_finality_proof_ex`. Our benchmarks
+//! are based around `submit_finality_proof`, though - from weight PoV they are the same calls.
+//! There are to main factors which affect finality proof verification:
 //!
 //! 1. The number of `votes-ancestries` in the justification
 //! 2. The number of `pre-commits` in the justification
@@ -77,7 +78,7 @@ fn precommits_range_end<T: Config<I>, I: 'static>() -> u32 {
 	required_justification_precommits(max_bridged_authorities)
 }
 
-/// Prepare header and its justification to submit using `submit_finality_proof_ex`.
+/// Prepare header and its justification to submit using `submit_finality_proof`.
 fn prepare_benchmark_data<T: Config<I>, I: 'static>(
 	precommits: u32,
 	ancestors: u32,
@@ -118,13 +119,12 @@ fn prepare_benchmark_data<T: Config<I>, I: 'static>(
 benchmarks_instance_pallet! {
 	// This is the "gold standard" benchmark for this extrinsic, and it's what should be used to
 	// annotate the weight in the pallet.
-	submit_finality_proof_ex {
+	submit_finality_proof {
 		let p in 1 .. precommits_range_end::<T, I>();
 		let v in MAX_VOTE_ANCESTRIES_RANGE_BEGIN..MAX_VOTE_ANCESTRIES_RANGE_END;
 		let caller: T::AccountId = whitelisted_caller();
 		let (header, justification) = prepare_benchmark_data::<T, I>(p, v);
-		let set_id = TEST_GRANDPA_SET_ID;
-	}: submit_finality_proof_ex(RawOrigin::Signed(caller), Box::new(header), justification, set_id)
+	}: submit_finality_proof(RawOrigin::Signed(caller), Box::new(header), justification)
 	verify {
 		let genesis_header: BridgedHeader<T, I> = bp_test_utils::test_header(Zero::zero());
 		let header: BridgedHeader<T, I> = bp_test_utils::test_header(One::one());
