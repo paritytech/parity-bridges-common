@@ -22,6 +22,7 @@ use bp_runtime::HeaderOf;
 use codec::{Decode, Encode};
 use frame_support::{weights::Weight, RuntimeDebugNoBound};
 use scale_info::TypeInfo;
+use sp_consensus_grandpa::SetId;
 use sp_runtime::traits::{Header as HeaderT, Zero};
 use sp_std::{boxed::Box, fmt::Debug};
 
@@ -43,6 +44,16 @@ pub enum BridgeGrandpaCall<Header: HeaderT> {
 		/// All data, required to initialize the pallet.
 		init_data: InitializationData<Header>,
 	},
+	/// `pallet-bridge-grandpa::Call::submit_finality_proof_ex`
+	#[codec(index = 4)]
+	submit_finality_proof_ex {
+		/// The header that we are going to finalize.
+		finality_target: Box<Header>,
+		/// Finality justification for the `finality_target`.
+		justification: justification::GrandpaJustification<Header>,
+		/// An identifier of the validators set, that have signed the justification.
+		current_set_id: SetId,
+	},
 }
 
 /// The `BridgeGrandpaCall` for a pallet that bridges with given `C`;
@@ -53,6 +64,9 @@ pub type BridgeGrandpaCallOf<C> = BridgeGrandpaCall<HeaderOf<C>>;
 pub struct SubmitFinalityProofInfo<N: Debug> {
 	/// Number of the finality target.
 	pub block_number: N,
+	/// An identifier of the validators set that has signed the submitted justification.
+	/// It might be `None` if deprecated version of the `submit_finality_proof` is used.
+	pub current_set_id: Option<SetId>,
 	/// Extra weight that we assume is included in the call.
 	///
 	/// We have some assumptions about headers and justifications of the bridged chain.
