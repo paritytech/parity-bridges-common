@@ -147,7 +147,7 @@ impl<P: SubstrateFinalitySyncPipeline> OnDemandRelay<P::SourceChain, P::TargetCh
 			let header_id = header.id();
 
 			// verify and optimize justification before including it into the call
-			let current_set_id = P::FinalityEngine::verify_and_optimize_proof(
+			let context = P::FinalityEngine::verify_and_optimize_proof(
 				&self.target_client,
 				&header,
 				&mut proof,
@@ -191,9 +191,7 @@ impl<P: SubstrateFinalitySyncPipeline> OnDemandRelay<P::SourceChain, P::TargetCh
 
 			// and then craft the submit-proof call
 			let call = P::SubmitFinalityProofCallBuilder::build_submit_finality_proof_call(
-				header,
-				proof,
-				current_set_id,
+				header, proof, context,
 			);
 
 			return Ok((header_id, vec![call]));
