@@ -159,6 +159,7 @@ pub mod pallet {
 			justification.commit.precommits.len().saturated_into(),
 			justification.votes_ancestries.len().saturated_into(),
 		))]
+		#[allow(deprecated)]
 		#[deprecated(
 			note = "`submit_finality_proof` will be removed in May 2024. Use `submit_finality_proof_ex` instead."
 		)]
