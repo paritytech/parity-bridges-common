@@ -270,7 +270,7 @@ pub mod pallet {
 				finality_target
 			);
 
-			SubmitFinalityProofHelper::<T, I>::check_obsolete(number)?;
+			SubmitFinalityProofHelper::<T, I>::check_obsolete(number, Some(current_set_id))?;
 
 			let authority_set = <CurrentAuthoritySet<T, I>>::get();
 			let unused_proof_size = authority_set.unused_proof_size();
@@ -286,7 +286,7 @@ pub mod pallet {
 				// if we have seen too many mandatory headers in this block, we don't want to refund
 				Self::free_mandatory_headers_remaining() > 0 &&
 				// if arguments out of expected bounds, we don't want to refund
-				submit_finality_proof_info_from_args::<T, I>(&finality_target, &justification)
+				submit_finality_proof_info_from_args::<T, I>(&finality_target, &justification, Some(current_set_id))
 					.fits_limits();
 			if may_refund_call_fee {
 				FreeMandatoryHeadersRemaining::<T, I>::mutate(|count| {
@@ -699,6 +699,7 @@ mod tests {
 	use bp_test_utils::{
 		authority_list, generate_owned_bridge_module_tests, make_default_justification,
 		make_justification_for_header, JustificationGeneratorParams, ALICE, BOB,
+		TEST_GRANDPA_SET_ID,
 	};
 	use codec::Encode;
 	use frame_support::{
@@ -707,11 +708,9 @@ mod tests {
 		storage::generator::StorageValue,
 	};
 	use frame_system::{EventRecord, Phase};
-	use sp_consensus_grandpa::{ConsensusLog, SetId, GRANDPA_ENGINE_ID};
+	use sp_consensus_grandpa::{ConsensusLog, GRANDPA_ENGINE_ID};
 	use sp_core::Get;
 	use sp_runtime::{Digest, DigestItem, DispatchError};
-
-	const DEFAULT_SET_ID: SetId = 1;
 
 	fn initialize_substrate_bridge() {
 		System::set_block_number(1);
@@ -731,7 +730,7 @@ mod tests {
 		let init_data = InitializationData {
 			header: Box::new(genesis),
 			authority_list: authority_list(),
-			set_id: DEFAULT_SET_ID,
+			set_id: TEST_GRANDPA_SET_ID,
 			operating_mode: BasicOperatingMode::Normal,
 		};
 
@@ -746,7 +745,7 @@ mod tests {
 			RuntimeOrigin::signed(1),
 			Box::new(header),
 			justification,
-			DEFAULT_SET_ID,
+			TEST_GRANDPA_SET_ID,
 		)
 	}
 
@@ -1008,7 +1007,7 @@ mod tests {
 					RuntimeOrigin::signed(1),
 					Box::new(header.clone()),
 					justification.clone(),
-					DEFAULT_SET_ID,
+					TEST_GRANDPA_SET_ID,
 				),
 				<Error<TestRuntime>>::InvalidJustification
 			);
@@ -1038,7 +1037,7 @@ mod tests {
 					RuntimeOrigin::signed(1),
 					Box::new(header),
 					justification,
-					DEFAULT_SET_ID,
+					TEST_GRANDPA_SET_ID,
 				),
 				<Error<TestRuntime>>::InvalidJustification
 			);
@@ -1068,7 +1067,7 @@ mod tests {
 					RuntimeOrigin::signed(1),
 					Box::new(header),
 					justification,
-					DEFAULT_SET_ID,
+					TEST_GRANDPA_SET_ID,
 				),
 				<Error<TestRuntime>>::InvalidAuthoritySet
 			);
@@ -1107,7 +1106,7 @@ mod tests {
 				RuntimeOrigin::signed(1),
 				Box::new(header.clone()),
 				justification.clone(),
-				DEFAULT_SET_ID,
+				TEST_GRANDPA_SET_ID,
 			);
 			assert_ok!(result);
 			assert_eq!(result.unwrap().pays_fee, frame_support::dispatch::Pays::No);
@@ -1170,7 +1169,7 @@ mod tests {
 				RuntimeOrigin::signed(1),
 				Box::new(header.clone()),
 				justification,
-				DEFAULT_SET_ID,
+				TEST_GRANDPA_SET_ID,
 			);
 			assert_ok!(result);
 			assert_eq!(result.unwrap().pays_fee, frame_support::dispatch::Pays::Yes);
@@ -1202,7 +1201,7 @@ mod tests {
 				RuntimeOrigin::signed(1),
 				Box::new(header.clone()),
 				justification,
-				DEFAULT_SET_ID,
+				TEST_GRANDPA_SET_ID,
 			);
 			assert_ok!(result);
 			assert_eq!(result.unwrap().pays_fee, frame_support::dispatch::Pays::Yes);
@@ -1232,7 +1231,7 @@ mod tests {
 					RuntimeOrigin::signed(1),
 					Box::new(header),
 					justification,
-					DEFAULT_SET_ID,
+					TEST_GRANDPA_SET_ID,
 				),
 				<Error<TestRuntime>>::UnsupportedScheduledChange
 			);
@@ -1258,7 +1257,7 @@ mod tests {
 					RuntimeOrigin::signed(1),
 					Box::new(header),
 					justification,
-					DEFAULT_SET_ID,
+					TEST_GRANDPA_SET_ID,
 				),
 				<Error<TestRuntime>>::UnsupportedScheduledChange
 			);
@@ -1284,7 +1283,7 @@ mod tests {
 					RuntimeOrigin::signed(1),
 					Box::new(header),
 					justification,
-					DEFAULT_SET_ID,
+					TEST_GRANDPA_SET_ID,
 				),
 				<Error<TestRuntime>>::TooManyAuthoritiesInSet
 			);
@@ -1349,7 +1348,7 @@ mod tests {
 					RuntimeOrigin::signed(1),
 					Box::new(header),
 					invalid_justification,
-					DEFAULT_SET_ID,
+					TEST_GRANDPA_SET_ID,
 				)
 			};
 
@@ -1518,7 +1517,7 @@ mod tests {
 					RuntimeOrigin::root(),
 					Box::new(header),
 					justification,
-					DEFAULT_SET_ID,
+					TEST_GRANDPA_SET_ID,
 				),
 				DispatchError::BadOrigin,
 			);

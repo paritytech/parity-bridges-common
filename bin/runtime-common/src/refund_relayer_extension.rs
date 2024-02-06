@@ -844,7 +844,7 @@ mod tests {
 	use bp_parachains::{BestParaHeadHash, ParaInfo};
 	use bp_polkadot_core::parachains::{ParaHeadsProof, ParaId};
 	use bp_runtime::{BasicOperatingMode, HeaderId};
-	use bp_test_utils::{make_default_justification, test_keyring};
+	use bp_test_utils::{make_default_justification, test_keyring, TEST_GRANDPA_SET_ID};
 	use frame_support::{
 		assert_storage_noop, parameter_types,
 		traits::{fungible::Mutate, ReservableCurrency},
@@ -929,7 +929,7 @@ mod tests {
 		let authorities = test_keyring().into_iter().map(|(a, w)| (a.into(), w)).collect();
 		let best_relay_header = HeaderId(best_relay_header_number, RelayBlockHash::default());
 		pallet_bridge_grandpa::CurrentAuthoritySet::<TestRuntime>::put(
-			StoredAuthoritySet::try_new(authorities, 0).unwrap(),
+			StoredAuthoritySet::try_new(authorities, TEST_GRANDPA_SET_ID).unwrap(),
 		);
 		pallet_bridge_grandpa::BestFinalized::<TestRuntime>::put(best_relay_header);
 
@@ -971,9 +971,10 @@ mod tests {
 		);
 		let relay_justification = make_default_justification(&relay_header);
 
-		RuntimeCall::BridgeGrandpa(GrandpaCall::submit_finality_proof {
+		RuntimeCall::BridgeGrandpa(GrandpaCall::submit_finality_proof_ex {
 			finality_target: Box::new(relay_header),
 			justification: relay_justification,
+			current_set_id: TEST_GRANDPA_SET_ID,
 		})
 	}
 
@@ -1105,6 +1106,7 @@ mod tests {
 			call_info: CallInfo::AllFinalityAndMsgs(
 				SubmitFinalityProofInfo {
 					block_number: 200,
+					current_set_id: Some(TEST_GRANDPA_SET_ID),
 					extra_weight: Weight::zero(),
 					extra_size: 0,
 				},
@@ -1134,6 +1136,7 @@ mod tests {
 			call_info: CallInfo::AllFinalityAndMsgs(
 				SubmitFinalityProofInfo {
 					block_number: 200,
+					current_set_id: Some(TEST_GRANDPA_SET_ID),
 					extra_weight: Weight::zero(),
 					extra_size: 0,
 				},
@@ -1159,6 +1162,7 @@ mod tests {
 			call_info: CallInfo::RelayFinalityAndMsgs(
 				SubmitFinalityProofInfo {
 					block_number: 200,
+					current_set_id: Some(TEST_GRANDPA_SET_ID),
 					extra_weight: Weight::zero(),
 					extra_size: 0,
 				},
@@ -1183,6 +1187,7 @@ mod tests {
 			call_info: CallInfo::RelayFinalityAndMsgs(
 				SubmitFinalityProofInfo {
 					block_number: 200,
+					current_set_id: Some(TEST_GRANDPA_SET_ID),
 					extra_weight: Weight::zero(),
 					extra_size: 0,
 				},
