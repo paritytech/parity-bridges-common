@@ -238,7 +238,8 @@ mod tests {
 	use crate::{
 		call_ext::CallSubType,
 		mock::{run_test, test_header, RuntimeCall, TestBridgedChain, TestNumber, TestRuntime},
-		BestFinalized, Config, PalletOperatingMode, WeightInfo,
+		BestFinalized, Config, CurrentAuthoritySet, PalletOperatingMode, StoredAuthoritySet,
+		SubmitFinalityProofInfo, WeightInfo,
 	};
 	use bp_header_chain::ChainWithGrandpa;
 	use bp_runtime::{BasicOperatingMode, HeaderId};
@@ -299,6 +300,18 @@ mod tests {
 	}
 
 	#[test]
+	fn extension_rejects_new_header_if_set_id_is_invalid() {
+		run_test(|| {
+			// when set id is different from the passed one => tx is rejected
+			sync_to_header_10();
+			let next_set = StoredAuthoritySet::<TestRuntime, ()>::try_new(vec![], 0x42).unwrap();
+			CurrentAuthoritySet::<TestRuntime, ()>::put(next_set);
+
+			assert!(!validate_block_submit(15));
+		});
+	}
+
+	#[test]
 	fn extension_accepts_new_header() {
 		run_test(|| {
 			// when current best finalized is #10 and we're trying to import header#15 => tx is
@@ -306,6 +319,42 @@ mod tests {
 			sync_to_header_10();
 			assert!(validate_block_submit(15));
 		});
+	}
+
+	#[test]
+	fn submit_finality_proof_info_is_parsed() {
+		// when `submit_finality_proof` is used, `current_set_id` is set to `None`
+		let deprecated_call =
+			RuntimeCall::Grandpa(crate::Call::<TestRuntime, ()>::submit_finality_proof {
+				finality_target: Box::new(test_header(42)),
+				justification: make_default_justification(&test_header(42)),
+			});
+		assert_eq!(
+			deprecated_call.submit_finality_proof_info(),
+			Some(SubmitFinalityProofInfo {
+				block_number: 42,
+				current_set_id: None,
+				extra_weight: Weight::zero(),
+				extra_size: 0,
+			})
+		);
+
+		// when `submit_finality_proof_ex` is used, `current_set_id` is set to `Some`
+		let deprecated_call =
+			RuntimeCall::Grandpa(crate::Call::<TestRuntime, ()>::submit_finality_proof_ex {
+				finality_target: Box::new(test_header(42)),
+				justification: make_default_justification(&test_header(42)),
+				current_set_id: 777,
+			});
+		assert_eq!(
+			deprecated_call.submit_finality_proof_info(),
+			Some(SubmitFinalityProofInfo {
+				block_number: 42,
+				current_set_id: Some(777),
+				extra_weight: Weight::zero(),
+				extra_size: 0,
+			})
+		);
 	}
 
 	#[test]

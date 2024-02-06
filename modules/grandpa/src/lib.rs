@@ -270,13 +270,13 @@ pub mod pallet {
 				finality_target
 			);
 
+			// it checks whether the `number` is better than the current best block number
+			// and whether the `current_set_id` matches the best known set id
 			SubmitFinalityProofHelper::<T, I>::check_obsolete(number, Some(current_set_id))?;
 
 			let authority_set = <CurrentAuthoritySet<T, I>>::get();
 			let unused_proof_size = authority_set.unused_proof_size();
 			let set_id = authority_set.set_id;
-			ensure!(current_set_id == set_id, <Error<T, I>>::InvalidAuthoritySetId);
-
 			let authority_set: AuthoritySet = authority_set.into();
 			verify_justification::<T, I>(&justification, hash, number, authority_set)?;
 
