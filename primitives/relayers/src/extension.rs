@@ -70,6 +70,18 @@ impl<RemoteGrandpaChainBlockNumber: Clone + Copy + Debug>
 		}
 	}
 
+	/// Returns mutable reference to pre-dispatch `finality_target` sent to the
+	/// `SubmitFinalityProof` call.
+	pub fn submit_finality_proof_info_mut(
+		&mut self,
+	) -> Option<&mut SubmitFinalityProofInfo<RemoteGrandpaChainBlockNumber>> {
+		match *self {
+			Self::AllFinalityAndMsgs(ref mut info, _, _) => Some(info),
+			Self::RelayFinalityAndMsgs(ref mut info, _) => Some(info),
+			_ => None,
+		}
+	}
+
 	/// Returns the pre-dispatch `SubmitParachainHeadsInfo`.
 	pub fn submit_parachain_heads_info(&self) -> Option<&SubmitParachainHeadsInfo> {
 		match self {

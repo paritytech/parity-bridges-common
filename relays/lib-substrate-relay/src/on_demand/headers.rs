@@ -155,8 +155,13 @@ impl<
 				finality_source.prove_block_finality(current_required_header).await?;
 			let header_id = header.id();
 
-			// optimize justification before including it into the call
-			P::FinalityEngine::optimize_proof(&self.target_client, &header, &mut proof).await?;
+			// verify and optimize justification before including it into the call
+			let context = P::FinalityEngine::verify_and_optimize_proof(
+				&self.target_client,
+				&header,
+				&mut proof,
+			)
+			.await?;
 
 			// now we have the header and its proof, but we want to minimize our losses, so let's
 			// check if we'll get the full refund for submitting this header
@@ -194,8 +199,9 @@ impl<
 			);
 
 			// and then craft the submit-proof call
-			let call =
-				P::SubmitFinalityProofCallBuilder::build_submit_finality_proof_call(header, proof);
+			let call = P::SubmitFinalityProofCallBuilder::build_submit_finality_proof_call(
+				header, proof, context,
+			);
 
 			return Ok((header_id, vec![call]));
 		}
