@@ -256,7 +256,12 @@ where
 		let head_at_source =
 			read_head_at_source(&source_client, metrics.as_ref(), &best_finalized_relay_block)
 				.await?;
-		let is_update_required = is_update_required::<P>(head_at_source, head_at_target);
+		let is_update_required = is_update_required::<P>(
+			head_at_source,
+			head_at_target,
+			best_finalized_relay_block,
+			best_target_block,
+		);
 
 		if is_update_required {
 			let (head_proof, head_hash) = source_client
@@ -274,10 +279,12 @@ where
 				})?;
 			log::info!(
 				target: "bridge",
-				"Submitting {} parachain ParaId({}) head update transaction to {}",
+				"Submitting {} parachain ParaId({}) head update transaction to {}. Para hash at source relay {:?}: {:?}",
 				P::SourceRelayChain::NAME,
 				P::SourceParachain::PARACHAIN_ID,
 				P::TargetChain::NAME,
+				best_finalized_relay_block,
+				head_hash,
 			);
 
 			let transaction_tracker = target_client
@@ -304,6 +311,8 @@ where
 fn is_update_required<P: ParachainsPipeline>(
 	head_at_source: AvailableHeader<HeaderIdOf<P::SourceParachain>>,
 	head_at_target: Option<HeaderIdOf<P::SourceParachain>>,
+	best_finalized_relay_block_at_source: HeaderIdOf<P::SourceRelayChain>,
+	best_target_block: HeaderIdOf<P::TargetChain>,
 ) -> bool
 where
 	P::SourceRelayChain: Chain<BlockNumber = RelayBlockNumber>,
@@ -311,14 +320,16 @@ where
 	log::trace!(
 		target: "bridge",
 		"Checking if {} parachain ParaId({}) needs update at {}:\n\t\
-			At {}: {:?}\n\t\
-			At {}: {:?}",
+			At {} ({:?}): {:?}\n\t\
+			At {} ({:?}): {:?}",
 		P::SourceRelayChain::NAME,
 		P::SourceParachain::PARACHAIN_ID,
 		P::TargetChain::NAME,
 		P::SourceRelayChain::NAME,
+		best_finalized_relay_block_at_source,
 		head_at_source,
 		P::TargetChain::NAME,
+		best_target_block,
 		head_at_target,
 	);
 
