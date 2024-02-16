@@ -919,16 +919,28 @@ mod tests {
 
 	#[test]
 	fn parachain_is_not_updated_if_it_is_unavailable() {
-		assert!(!is_update_required::<TestParachainsPipeline>(AvailableHeader::Unavailable, None));
 		assert!(!is_update_required::<TestParachainsPipeline>(
 			AvailableHeader::Unavailable,
-			Some(HeaderId(10, PARA_10_HASH))
+			None,
+			Default::default(),
+			Default::default(),
+		));
+		assert!(!is_update_required::<TestParachainsPipeline>(
+			AvailableHeader::Unavailable,
+			Some(HeaderId(10, PARA_10_HASH)),
+			Default::default(),
+			Default::default(),
 		));
 	}
 
 	#[test]
 	fn parachain_is_not_updated_if_it_is_unknown_to_both_clients() {
-		assert!(!is_update_required::<TestParachainsPipeline>(AvailableHeader::Missing, None),);
+		assert!(!is_update_required::<TestParachainsPipeline>(
+			AvailableHeader::Missing,
+			None,
+			Default::default(),
+			Default::default(),
+		),);
 	}
 
 	#[test]
@@ -936,6 +948,8 @@ mod tests {
 		assert!(!is_update_required::<TestParachainsPipeline>(
 			AvailableHeader::Available(HeaderId(10, Default::default())),
 			Some(HeaderId(20, Default::default())),
+			Default::default(),
+			Default::default(),
 		),);
 	}
 
@@ -944,6 +958,8 @@ mod tests {
 		assert!(is_update_required::<TestParachainsPipeline>(
 			AvailableHeader::Missing,
 			Some(HeaderId(20, Default::default())),
+			Default::default(),
+			Default::default(),
 		),);
 	}
 
@@ -952,6 +968,8 @@ mod tests {
 		assert!(is_update_required::<TestParachainsPipeline>(
 			AvailableHeader::Available(HeaderId(30, Default::default())),
 			None,
+			Default::default(),
+			Default::default(),
 		),);
 	}
 
@@ -960,6 +978,8 @@ mod tests {
 		assert!(is_update_required::<TestParachainsPipeline>(
 			AvailableHeader::Available(HeaderId(40, Default::default())),
 			Some(HeaderId(30, Default::default())),
+			Default::default(),
+			Default::default(),
 		),);
 	}
 }
