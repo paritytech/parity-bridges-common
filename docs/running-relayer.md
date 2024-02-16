@@ -249,11 +249,11 @@ need to set value of the `bridgedChainId` to `bhks`.
 
 We are using the following docker image to run our own Rococo <> Westend relayer:
 
-[paritytech/substrate-relay:v2023-12-06-rococo-westend-relayer](https://hub.docker.com/layers/paritytech/substrate-relay/v2023-12-06-rococo-westend-relayer/images/sha256-4b93b4843023119806f15ab7a1b6735d78bb13ceaf3323c97ee47cd5424c98fc?context=explore)
+[paritytech/bridges-common-relay:v2024-02-16-rococo-westend-relayer](https://hub.docker.com/layers/paritytech/bridges-common-relay/v2024-02-16-rococo-westend-relayer/images/sha256-5ba4260d6bc2ac9e97c2e05d875f6dc44ee9265011311f268b66b8a5a672ada3?context=explore)
 
 You can grab the sources and build it manually:
 
-[v2023-12-06-rococo-westend-relayer](https://github.com/paritytech/parity-bridges-common/releases/tag/v2023-12-06-rococo-westend-relayer)
+[v2024-02-16-rococo-westend-relayer](https://github.com/paritytech/parity-bridges-common/releases/tag/v2024-02-16-rococo-westend-relayer)
 
 Once you have the docker, update variables and run the following script:
 ```sh
