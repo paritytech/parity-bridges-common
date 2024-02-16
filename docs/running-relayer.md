@@ -28,8 +28,7 @@ It is rather small initially - e.g. you need to deliver `10_000` Kusama -> Polka
 KSM token.
 
 The other reward part is dynamic. So to deliver an XCM message from one BridgeHub to another, we'll need to
-deliver several "things" from one chain to another (omitting details: this "thing" is an XCM message). Those
-"things" are submitted as transactions and every transaction has its cost, which is:
+deliver submit two transactions on different chains. Every transaction has its cost, which is:
 
 - dynamic, because e.g. message size can change and/or fee factor of the target chain may change;
 
@@ -83,7 +82,7 @@ a relayer that "serves" an initial lane [`0x00000001`](https://github.com/polkad
 
 Think of lane as a queue of messages that need to be delivered to the other/bridged chain. The lane is
 bidirectional, meaning that there are four "endpoints". Two "outbound" endpoints (one at every chain), contain
-messages that need to be delivered to the bridged chain. Two "inbound" are accepting messages from the brdiged
+messages that need to be delivered to the bridged chain. Two "inbound" are accepting messages from the bridged
 chain and also remember the relayer, who has delivered message(s) to reward it later.
 
 </details>
@@ -138,7 +137,7 @@ Before registering, you should know several things about your funds:
 The registration itself, has three states: active, inactive or expired. Initially, it is active, meaning that all
 your transactions that are **validated** on top of block, where it is active get priority boost. Registration
 becomes expired when the block with the number you have specified during registration is "mined". It is the
-`validTill` parameter of the `register` call (see below) After that `validTill` block, you may unregister and get
+`validTill` parameter of the `register` call (see below). After that `validTill` block, you may unregister and get
 your reserved funds back. There's also an intermediate point between those blocks - it is the `validTill - LEASE`,
 where `LEASE` is the the chain constant, controlled by the governance. Initially it is set to `300` blocks.
 All your transactions, **validated** between the `validTill - LEASE` and `validTill` blocks do not get the
