@@ -28,7 +28,7 @@ It is rather small initially - e.g. you need to deliver `10_000` Kusama -> Polka
 KSM token.
 
 The other reward part is dynamic. So to deliver an XCM message from one BridgeHub to another, we'll need to
-deliver submit two transactions on different chains. Every transaction has its cost, which is:
+submit two transactions on different chains. Every transaction has its cost, which is:
 
 - dynamic, because e.g. message size can change and/or fee factor of the target chain may change;
 
