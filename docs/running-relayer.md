@@ -8,11 +8,11 @@ There are several things you should know before running your own relayer:
 
 - initial bridge version (we call it bridges v1) supports any number of relayers, but **there's no guaranteed
 compensation** for running a relayer and/or submitting valid bridge transactions. Most probably you'll end up
-losing tokens - please accept this fact;
+spending more funds than getting from rewards - please accept this fact;
 
 - even if your relayer has managed to submit a valid bridge transaction that has been included into the bridge
 hub block, there's no guarantee that you will be able to claim your compensation for that transaction. That's
-because compensations are paid from the account, controlled by relay chain governance and it can have no tokens
+because compensations are paid from the account, controlled by relay chain governance and it could have no funds
 to compensate your useful actions. We'll be working on a proper process to resupply it on-time, but we can't
 provide any guarantee until that process is well established.
 
@@ -55,7 +55,7 @@ relayer, whose transaction would win the "race" and which will receive the compe
 there'll be several other relayers, losing some funds on their unuseful transactions.
 
 But actually, we have a solution that invalidates transactions of "unlucky" relayers before they are
-included into the block. So at least you may sure that you won't waste your tokens on duplicate transactions.
+included into the block. So at least you may be sure that you won't waste your funds on duplicate transactions.
 
 <details>
 <summary>Some details?</summary>
@@ -126,7 +126,7 @@ for his operations.
 
 Before registering, you should know several things about your funds:
 
-- to register, you need to hold significant amount of tokens on your relayer account. As of now, it is
+- to register, you need to hold significant amount of funds on your relayer account. As of now, it is
   [100 KSM](https://github.com/polkadot-fellows/runtimes/blob/9ce1bbbbcd7843b3c76ba4d43c036bc311959e9f/system-parachains/bridge-hubs/bridge-hub-kusama/src/bridge_to_polkadot_config.rs#L71C14-L71C43)
   for registration on Kusama Bridge Hub and
   [500 DOT](https://github.com/polkadot-fellows/runtimes/blob/9ce1bbbbcd7843b3c76ba4d43c036bc311959e9f/system-parachains/bridge-hubs/bridge-hub-polkadot/src/bridge_to_kusama_config.rs#L71C14-L71C43)
@@ -176,7 +176,7 @@ At any time, you can prolong your registration by calling the `register` with th
 
 ## Costs
 
-Your relayer account (on both Bridge Hubs) must hold enough tokens to be able to pay costs of bridge
+Your relayer account (on both Bridge Hubs) must hold enough funds to be able to pay costs of bridge
 transactions. If your relayer behaves correctly, those costs will be compensated and you will be
 able to claim it later.
 
@@ -311,7 +311,7 @@ docker run \
 
 ### Starting your Polkadot <> Kusama Relayer
 
-*Work in progress, get back soon*
+*Work in progress, coming soon*
 
 ### Watching your relayer state
 
@@ -341,4 +341,4 @@ Please find them in this folder:
 
 - for Rococo <> Westend bridge: [rococo-westend](https://github.com/paritytech/parity-bridges-common/tree/master/deployments/bridges/rococo-westend).
 
-- for Polkadot <> Kusama bridge: *work in progress, get back soon*
+- for Polkadot <> Kusama bridge: *work in progress, coming soon*
