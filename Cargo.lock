@@ -6600,37 +6600,41 @@ name = "relay-bridge-hub-kusama-client"
 version = "0.1.0"
 dependencies = [
  "bp-bridge-hub-kusama",
- "bp-bridge-hub-polkadot",
  "bp-header-chain",
+ "bp-messages",
  "bp-parachains",
  "bp-polkadot",
+ "bp-polkadot-core",
  "bridge-runtime-common",
  "parity-scale-codec",
  "relay-substrate-client",
  "scale-info",
  "sp-core",
  "sp-runtime",
+ "sp-weights",
+ "subxt",
 ]
 
 [[package]]
 name = "relay-bridge-hub-polkadot-client"
 version = "0.1.0"
 dependencies = [
- "bp-bridge-hub-kusama",
  "bp-bridge-hub-polkadot",
  "bp-header-chain",
  "bp-kusama",
+ "bp-messages",
  "bp-parachains",
- "bp-polkadot-bulletin",
+ "bp-polkadot",
  "bp-polkadot-core",
  "bp-runtime",
  "bridge-runtime-common",
  "parity-scale-codec",
  "relay-substrate-client",
  "scale-info",
- "sp-consensus-grandpa",
  "sp-core",
  "sp-runtime",
+ "sp-weights",
+ "subxt",
 ]
 
 [[package]]
