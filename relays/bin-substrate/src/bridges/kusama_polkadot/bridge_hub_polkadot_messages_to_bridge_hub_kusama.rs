@@ -39,8 +39,7 @@ substrate_relay_helper::generate_receive_message_proof_call_builder!(
 	relay_bridge_hub_kusama_client::RuntimeCall::BridgePolkadotMessages,
 	relay_bridge_hub_kusama_client::BridgeMessagesCall::receive_messages_proof
 );
-::sp_runtime::generic::Header<::core::primitive::u32>
-::sp_runtime::generic::Header<::core::primitive::u32, ::sp_runtime::traits::BlakeTwo256>
+
 substrate_relay_helper::generate_receive_message_delivery_proof_call_builder!(
 	BridgeHubPolkadotMessagesToBridgeHubKusamaMessageLane,
 	BridgeHubPolkadotMessagesToBridgeHubKusamaMessageLaneReceiveMessagesDeliveryProofCallBuilder,
