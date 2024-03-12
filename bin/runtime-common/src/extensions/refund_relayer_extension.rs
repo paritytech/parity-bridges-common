@@ -14,7 +14,7 @@
 // You should have received a copy of the GNU General Public License
 // along with Parity Bridges Common.  If not, see <http://www.gnu.org/licenses/>.
 
-//! Signed extension that refunds relayer if he has delivered some new messages.
+//! Transaction extension that refunds relayer if he has delivered some new messages.
 //! It also refunds transaction cost if the transaction is an `utility.batchAll()`
 //! with calls that are: delivering new messsage and all necessary underlying headers
 //! (parachain or relay chain).
@@ -537,8 +537,9 @@ where
 		}
 
 		// compute priority boost
-		let priority_boost =
-			crate::priority_calculator::compute_priority_boost::<T::Priority>(bundled_messages);
+		let priority_boost = crate::extensions::priority_calculator::compute_priority_boost::<
+			T::Priority,
+		>(bundled_messages);
 		let valid_transaction = ValidTransactionBuilder::default().priority(priority_boost);
 
 		log::trace!(
@@ -1023,6 +1024,7 @@ mod tests {
 			finality_target: Box::new(relay_header),
 			justification: relay_justification,
 			current_set_id: TEST_GRANDPA_SET_ID,
+			is_free_execution_expected: false,
 		})
 	}
 
@@ -1209,6 +1211,7 @@ mod tests {
 					current_set_id: None,
 					extra_weight: Weight::zero(),
 					extra_size: 0,
+					is_free_execution_expected: false,
 				},
 				SubmitParachainHeadsInfo {
 					at_relay_block_number: 200,
@@ -1246,6 +1249,7 @@ mod tests {
 					current_set_id: None,
 					extra_weight: Weight::zero(),
 					extra_size: 0,
+					is_free_execution_expected: false,
 				},
 				SubmitParachainHeadsInfo {
 					at_relay_block_number: 200,
@@ -1279,6 +1283,7 @@ mod tests {
 					current_set_id: None,
 					extra_weight: Weight::zero(),
 					extra_size: 0,
+					is_free_execution_expected: false,
 				},
 				MessagesCallInfo::ReceiveMessagesProof(ReceiveMessagesProofInfo {
 					base: BaseMessagesProofInfo {
@@ -1311,6 +1316,7 @@ mod tests {
 					current_set_id: None,
 					extra_weight: Weight::zero(),
 					extra_size: 0,
+					is_free_execution_expected: false,
 				},
 				MessagesCallInfo::ReceiveMessagesDeliveryProof(ReceiveMessagesDeliveryProofInfo(
 					BaseMessagesProofInfo {
