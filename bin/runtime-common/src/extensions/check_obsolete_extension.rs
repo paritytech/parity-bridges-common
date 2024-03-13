@@ -21,40 +21,73 @@
 use crate::messages_call_ext::MessagesCallSubType;
 use pallet_bridge_grandpa::CallSubType as GrandpaCallSubType;
 use pallet_bridge_parachains::CallSubType as ParachainsCallSubtype;
-use sp_runtime::transaction_validity::TransactionValidity;
+use pallet_bridge_relayers::Pallet as RelayersPallet;
+use sp_runtime::{
+	traits::{AsSystemOriginSigner, Get, PhantomData},
+	transaction_validity::{TransactionPriority, TransactionValidity},
+};
 
 /// A duplication of the `FilterCall` trait.
 ///
 /// We need this trait in order to be able to implement it for the messages pallet,
 /// since the implementation is done outside of the pallet crate.
-pub trait BridgeRuntimeFilterCall<Call> {
+pub trait BridgeRuntimeFilterCall<Origin, Call> {
 	/// Checks if a runtime call is valid.
-	fn validate(call: &Call) -> TransactionValidity;
+	fn validate(who: &Origin, call: &Call) -> TransactionValidity;
 }
 
-impl<T, I: 'static> BridgeRuntimeFilterCall<T::RuntimeCall> for pallet_bridge_grandpa::Pallet<T, I>
+/// Wrapper for the bridge GRANDPA pallet that checks calls for obsolete submissions
+/// and also boosts transaction priority if it has submitted by registered relayer.
+/// The boost is computed as
+/// `(BundledHeaderNumber - 1 - BestFinalizedHeaderNumber) * Priority::get()`.
+/// The boost is only applied if submitter has active registration in the relayers
+/// pallet.
+pub struct CheckAndBoostBridgeGrandpaTransactions<T, I, Priority>(PhantomData<(T, I, Priority)>);
+
+impl<T, I: 'static, Priority: Get<TransactionPriority>>
+	BridgeRuntimeFilterCall<T::RuntimeOrigin, T::RuntimeCall>
+	for CheckAndBoostBridgeGrandpaTransactions<T, I, Priority>
+where
+	T: pallet_bridge_relayers::Config + pallet_bridge_grandpa::Config<I>,
+	T::RuntimeCall: GrandpaCallSubType<T, I>,
+	T::RuntimeOrigin: AsSystemOriginSigner<T::AccountId>,
+{
+	fn validate(who: &T::RuntimeOrigin, call: &T::RuntimeCall) -> TransactionValidity {
+		// we only boost priority if relayer has staked required balance
+		let is_relayer_registration_active = who
+			.as_system_origin_signer()
+			.map(|relayer| RelayersPallet::<T>::is_registration_active(relayer))
+			.unwrap_or(false);
+		let boost_per_header = if is_relayer_registration_active { Priority::get() } else { 0 };
+
+		GrandpaCallSubType::<T, I>::check_obsolete_submit_finality_proof(call, boost_per_header)
+	}
+}
+
+impl<T, I: 'static> BridgeRuntimeFilterCall<T::RuntimeOrigin, T::RuntimeCall>
+	for pallet_bridge_grandpa::Pallet<T, I>
 where
 	T: pallet_bridge_grandpa::Config<I>,
 	T::RuntimeCall: GrandpaCallSubType<T, I>,
 {
-	fn validate(call: &T::RuntimeCall) -> TransactionValidity {
+	fn validate(_who: &T::RuntimeOrigin, call: &T::RuntimeCall) -> TransactionValidity {
 		GrandpaCallSubType::<T, I>::check_obsolete_submit_finality_proof(call, 0)
 	}
 }
 
-impl<T, I: 'static> BridgeRuntimeFilterCall<T::RuntimeCall>
+impl<T, I: 'static> BridgeRuntimeFilterCall<T::RuntimeOrigin, T::RuntimeCall>
 	for pallet_bridge_parachains::Pallet<T, I>
 where
 	T: pallet_bridge_parachains::Config<I>,
 	T::RuntimeCall: ParachainsCallSubtype<T, I>,
 {
-	fn validate(call: &T::RuntimeCall) -> TransactionValidity {
+	fn validate(_who: &T::RuntimeOrigin, call: &T::RuntimeCall) -> TransactionValidity {
 		ParachainsCallSubtype::<T, I>::check_obsolete_submit_parachain_heads(call)
 	}
 }
 
-impl<T: pallet_bridge_messages::Config<I>, I: 'static> BridgeRuntimeFilterCall<T::RuntimeCall>
-	for pallet_bridge_messages::Pallet<T, I>
+impl<T: pallet_bridge_messages::Config<I>, I: 'static>
+	BridgeRuntimeFilterCall<T::RuntimeOrigin, T::RuntimeCall> for pallet_bridge_messages::Pallet<T, I>
 where
 	T::RuntimeCall: MessagesCallSubType<T, I>,
 {
@@ -62,7 +95,7 @@ where
 	/// transactions, that are delivering outdated messages/confirmations. Without this validation,
 	/// even honest relayers may lose their funds if there are multiple relays running and
 	/// submitting the same messages/confirmations.
-	fn validate(call: &T::RuntimeCall) -> TransactionValidity {
+	fn validate(_who: &T::RuntimeOrigin, call: &T::RuntimeCall) -> TransactionValidity {
 		call.check_obsolete_call()
 	}
 }
@@ -115,8 +148,10 @@ macro_rules! generate_bridge_reject_obsolete_headers_and_messages {
 				$(
 					let call_filter_validity = <
 						$filter_call as
-						$crate::extensions::check_obsolete_extension::BridgeRuntimeFilterCall<$call>
-					>::validate(call)?;
+						$crate::extensions::check_obsolete_extension::BridgeRuntimeFilterCall<
+							<$call as sp_runtime::traits::Dispatchable>::RuntimeOrigin,
+							$call,
+						>>::validate(&origin, call)?;
 					let tx_validity = tx_validity.combine_with(call_filter_validity);
 				)*
 				Ok((tx_validity, (), origin))
@@ -139,11 +174,17 @@ macro_rules! generate_bridge_reject_obsolete_headers_and_messages {
 
 #[cfg(test)]
 mod tests {
-	use crate::extensions::check_obsolete_extension::BridgeRuntimeFilterCall;
+	use super::*;
+	use crate::{
+		extensions::refund_relayer_extension::tests::{
+			initialize_environment, relayer_account_at_this_chain, submit_relay_header_call_ex,
+		},
+		mock::*,
+	};
 	use codec::Encode;
 	use frame_support::assert_err;
 	use sp_runtime::{
-		traits::DispatchTransaction,
+		traits::{ConstU64, DispatchTransaction},
 		transaction_validity::{InvalidTransaction, TransactionValidity, ValidTransaction},
 	};
 
@@ -153,7 +194,7 @@ mod tests {
 	}
 
 	impl sp_runtime::traits::Dispatchable for MockCall {
-		type RuntimeOrigin = ();
+		type RuntimeOrigin = u64;
 		type Config = ();
 		type Info = ();
 		type PostInfo = ();
@@ -167,8 +208,8 @@ mod tests {
 	}
 
 	struct FirstFilterCall;
-	impl BridgeRuntimeFilterCall<MockCall> for FirstFilterCall {
-		fn validate(call: &MockCall) -> TransactionValidity {
+	impl BridgeRuntimeFilterCall<u64, MockCall> for FirstFilterCall {
+		fn validate(_who: &u64, call: &MockCall) -> TransactionValidity {
 			if call.data <= 1 {
 				return InvalidTransaction::Custom(1).into()
 			}
@@ -178,8 +219,8 @@ mod tests {
 	}
 
 	struct SecondFilterCall;
-	impl BridgeRuntimeFilterCall<MockCall> for SecondFilterCall {
-		fn validate(call: &MockCall) -> TransactionValidity {
+	impl BridgeRuntimeFilterCall<u64, MockCall> for SecondFilterCall {
+		fn validate(_who: &u64, call: &MockCall) -> TransactionValidity {
 			if call.data <= 2 {
 				return InvalidTransaction::Custom(2).into()
 			}
@@ -192,27 +233,62 @@ mod tests {
 	fn test() {
 		generate_bridge_reject_obsolete_headers_and_messages!(
 			MockCall,
-			(),
+			u64,
 			FirstFilterCall,
 			SecondFilterCall
 		);
 
 		assert_err!(
-			BridgeRejectObsoleteHeadersAndMessages.validate_only((), &MockCall { data: 1 }, &(), 0),
+			BridgeRejectObsoleteHeadersAndMessages.validate_only(0, &MockCall { data: 1 }, &(), 0),
 			InvalidTransaction::Custom(1)
 		);
 
 		assert_err!(
-			BridgeRejectObsoleteHeadersAndMessages.validate_only((), &MockCall { data: 2 }, &(), 0),
+			BridgeRejectObsoleteHeadersAndMessages.validate_only(0, &MockCall { data: 2 }, &(), 0),
 			InvalidTransaction::Custom(2)
 		);
 
 		assert_eq!(
 			BridgeRejectObsoleteHeadersAndMessages
-				.validate_only((), &MockCall { data: 3 }, &(), 0)
+				.validate_only(0, &MockCall { data: 3 }, &(), 0)
 				.unwrap()
 				.0,
 			ValidTransaction { priority: 3, ..Default::default() }
 		)
+	}
+
+	type BridgeGrandpaWrapper =
+		CheckAndBoostBridgeGrandpaTransactions<TestRuntime, (), ConstU64<1_000>>;
+
+	#[test]
+	fn grandpa_wrapper_does_not_boost_extensions_for_unregistered_relayer() {
+		run_test(|| {
+			initialize_environment(100, 100, 100);
+
+			let priority_boost = BridgeGrandpaWrapper::validate(
+				&RuntimeOrigin::signed(relayer_account_at_this_chain()),
+				&submit_relay_header_call_ex(200),
+			)
+			.unwrap()
+			.priority;
+			assert_eq!(priority_boost, 0);
+		})
+	}
+
+	#[test]
+	fn grandpa_wrapper_boosts_extensions_for_unregistered_relayer() {
+		run_test(|| {
+			initialize_environment(100, 100, 100);
+			BridgeRelayers::register(RuntimeOrigin::signed(relayer_account_at_this_chain()), 1000)
+				.unwrap();
+
+			let priority_boost = BridgeGrandpaWrapper::validate(
+				&RuntimeOrigin::signed(relayer_account_at_this_chain()),
+				&submit_relay_header_call_ex(200),
+			)
+			.unwrap()
+			.priority;
+			assert_eq!(priority_boost, 99_000);
+		})
 	}
 }
