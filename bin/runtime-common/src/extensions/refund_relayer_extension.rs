@@ -24,7 +24,7 @@ use crate::messages_call_ext::{
 };
 use bp_messages::{LaneId, MessageNonce};
 use bp_relayers::{RewardsAccountOwner, RewardsAccountParams};
-use bp_runtime::{Chain, Parachain, ParachainIdOf, RangeInclusiveExt, StaticStrProvider};
+use bp_runtime::{Parachain, ParachainIdOf, RangeInclusiveExt, StaticStrProvider};
 use codec::{Codec, Decode, Encode};
 use frame_support::{
 	dispatch::{CallableCallFor, DispatchInfo, PostDispatchInfo},
@@ -33,8 +33,7 @@ use frame_support::{
 	CloneNoBound, DefaultNoBound, EqNoBound, PartialEqNoBound, RuntimeDebugNoBound,
 };
 use pallet_bridge_grandpa::{
-	CallSubType as GrandpaCallSubType, Config as GrandpaConfig, SubmitFinalityProofHelper,
-	SubmitFinalityProofInfo,
+	CallSubType as GrandpaCallSubType, SubmitFinalityProofHelper, SubmitFinalityProofInfo,
 };
 use pallet_bridge_messages::Config as MessagesConfig;
 use pallet_bridge_parachains::{
@@ -245,17 +244,11 @@ pub enum RelayerAccountAction<AccountId, Reward> {
 /// Everything common among our refund transaction extensions.
 pub trait RefundTransactionExtension:
 	'static + Clone + Codec + sp_std::fmt::Debug + Default + Eq + PartialEq + Send + Sync + TypeInfo
-where
-	<Self::Runtime as GrandpaConfig<Self::GrandpaInstance>>::BridgedChain:
-		Chain<BlockNumber = RelayBlockNumber>,
 {
 	/// This chain runtime.
 	type Runtime: UtilityConfig<RuntimeCall = CallOf<Self::Runtime>>
-		+ GrandpaConfig<Self::GrandpaInstance>
 		+ MessagesConfig<<Self::Msgs as RefundableMessagesLaneId>::Instance>
 		+ RelayersConfig;
-	/// Grandpa pallet reference.
-	type GrandpaInstance: 'static;
 	/// Messages pallet and lane reference.
 	type Msgs: RefundableMessagesLaneId;
 	/// Refund amount calculator.
@@ -279,11 +272,13 @@ where
 		call: &CallOf<Self::Runtime>,
 	) -> Result<&CallOf<Self::Runtime>, TransactionValidityError>;
 
-	/// Called from post-dispatch and shall perform additional checks (apart from relay
-	/// chain finality and messages transaction finality) of given call result.
+	/// Called from post-dispatch and shall perform additional checks (apart from messages
+	/// transaction success) of given call result.
 	fn additional_call_result_check(
 		relayer: &AccountIdOf<Self::Runtime>,
 		call_info: &CallInfo,
+		extra_weight: &mut Weight,
+		extra_size: &mut u32,
 	) -> bool;
 
 	/// Given post-dispatch information, analyze the outcome of relayer call and return
@@ -351,35 +346,6 @@ where
 			return slash_relayer_if_delivery_result
 		}
 
-		// check if relay chain state has been updated
-		if let Some(finality_proof_info) = call_info.submit_finality_proof_info() {
-			if !SubmitFinalityProofHelper::<Self::Runtime, Self::GrandpaInstance>::was_successful(
-				finality_proof_info.block_number,
-			) {
-				// we only refund relayer if all calls have updated chain state
-				log::trace!(
-					target: "runtime::bridge",
-					"{} via {:?}: relayer {:?} has submitted invalid relay chain finality proof",
-					Self::Id::STR,
-					<Self::Msgs as RefundableMessagesLaneId>::Id::get(),
-					relayer,
-				);
-				return slash_relayer_if_delivery_result
-			}
-
-			// there's a conflict between how bridge GRANDPA pallet works and a `utility.batchAll`
-			// transaction. If relay chain header is mandatory, the GRANDPA pallet returns
-			// `Pays::No`, because such transaction is mandatory for operating the bridge. But
-			// `utility.batchAll` transaction always requires payment. But in both cases we'll
-			// refund relayer - either explicitly here, or using `Pays::No` if he's choosing
-			// to submit dedicated transaction.
-
-			// submitter has means to include extra weight/bytes in the `submit_finality_proof`
-			// call, so let's subtract extra weight/size to avoid refunding for this extra stuff
-			extra_weight = finality_proof_info.extra_weight;
-			extra_size = finality_proof_info.extra_size;
-		}
-
 		// Check if the `ReceiveMessagesProof` call delivered at least some of the messages that
 		// it contained. If this happens, we consider the transaction "helpful" and refund it.
 		let msgs_call_info = call_info.messages_call_info();
@@ -394,8 +360,13 @@ where
 			return slash_relayer_if_delivery_result
 		}
 
-		// do additional check
-		if !Self::additional_call_result_check(&relayer, &call_info) {
+		// do additional checks
+		if !Self::additional_call_result_check(
+			&relayer,
+			&call_info,
+			&mut extra_weight,
+			&mut extra_size,
+		) {
 			return slash_relayer_if_delivery_result
 		}
 
@@ -471,19 +442,13 @@ where
 	RuntimeDebugNoBound,
 	TypeInfo,
 )]
-pub struct RefundTransactionExtensionAdapter<T: RefundTransactionExtension>(T)
-where
-	<T::Runtime as GrandpaConfig<T::GrandpaInstance>>::BridgedChain:
-		Chain<BlockNumber = RelayBlockNumber>;
+pub struct RefundTransactionExtensionAdapter<T: RefundTransactionExtension>(T);
 
 impl<T: RefundTransactionExtension> TransactionExtensionBase
 	for RefundTransactionExtensionAdapter<T>
 where
-	<T::Runtime as GrandpaConfig<T::GrandpaInstance>>::BridgedChain:
-		Chain<BlockNumber = RelayBlockNumber>,
 	CallOf<T::Runtime>: Dispatchable<Info = DispatchInfo, PostInfo = PostDispatchInfo>
 		+ IsSubType<CallableCallFor<UtilityPallet<T::Runtime>, T::Runtime>>
-		+ GrandpaCallSubType<T::Runtime, T::GrandpaInstance>
 		+ MessagesCallSubType<T::Runtime, <T::Msgs as RefundableMessagesLaneId>::Instance>,
 {
 	const IDENTIFIER: &'static str = T::Id::STR;
@@ -493,11 +458,8 @@ where
 impl<T: RefundTransactionExtension, Context> TransactionExtension<CallOf<T::Runtime>, Context>
 	for RefundTransactionExtensionAdapter<T>
 where
-	<T::Runtime as GrandpaConfig<T::GrandpaInstance>>::BridgedChain:
-		Chain<BlockNumber = RelayBlockNumber>,
 	CallOf<T::Runtime>: Dispatchable<Info = DispatchInfo, PostInfo = PostDispatchInfo>
 		+ IsSubType<CallableCallFor<UtilityPallet<T::Runtime>, T::Runtime>>
-		+ GrandpaCallSubType<T::Runtime, T::GrandpaInstance>
 		+ MessagesCallSubType<T::Runtime, <T::Msgs as RefundableMessagesLaneId>::Instance>,
 	<CallOf<T::Runtime> as Dispatchable>::RuntimeOrigin:
 		AsSystemOriginSigner<AccountIdOf<T::Runtime>> + Clone,
@@ -660,6 +622,14 @@ impl<Runtime, Para, Msgs, Refund, Priority, Id> RefundTransactionExtension
 	for RefundBridgedParachainMessages<Runtime, Para, Msgs, Refund, Priority, Id>
 where
 	Self: 'static + Send + Sync,
+	RefundBridgedGrandpaMessages<
+		Runtime,
+		Runtime::BridgesGrandpaPalletInstance,
+		Msgs,
+		Refund,
+		Priority,
+		Id,
+	>: 'static + Send + Sync,
 	Runtime: UtilityConfig<RuntimeCall = CallOf<Runtime>>
 		+ BoundedBridgeGrandpaConfig<Runtime::BridgesGrandpaPalletInstance>
 		+ ParachainsConfig<Para::Instance>
@@ -677,7 +647,6 @@ where
 		+ MessagesCallSubType<Runtime, Msgs::Instance>,
 {
 	type Runtime = Runtime;
-	type GrandpaInstance = Runtime::BridgesGrandpaPalletInstance;
 	type Msgs = Msgs;
 	type Refund = Refund;
 	type Priority = Priority;
@@ -727,7 +696,26 @@ where
 		Ok(call)
 	}
 
-	fn additional_call_result_check(relayer: &Runtime::AccountId, call_info: &CallInfo) -> bool {
+	fn additional_call_result_check(
+		relayer: &Runtime::AccountId,
+		call_info: &CallInfo,
+		extra_weight: &mut Weight,
+		extra_size: &mut u32,
+	) -> bool {
+		// check if relay chain state has been updated
+		let is_granda_call_succeeded =
+			RefundBridgedGrandpaMessages::<
+				Runtime,
+				Runtime::BridgesGrandpaPalletInstance,
+				Msgs,
+				Refund,
+				Priority,
+				Id,
+			>::additional_call_result_check(relayer, call_info, extra_weight, extra_size);
+		if !is_granda_call_succeeded {
+			return false
+		}
+
 		// check if parachain state has been updated
 		if let Some(para_proof_info) = call_info.submit_parachain_heads_info() {
 			if !SubmitParachainHeadsHelper::<Runtime, Para::Instance>::was_successful(
@@ -810,7 +798,6 @@ where
 		+ MessagesCallSubType<Runtime, Msgs::Instance>,
 {
 	type Runtime = Runtime;
-	type GrandpaInstance = GrandpaInstance;
 	type Msgs = Msgs;
 	type Refund = Refund;
 	type Priority = Priority;
@@ -852,7 +839,41 @@ where
 		Ok(call)
 	}
 
-	fn additional_call_result_check(_relayer: &Runtime::AccountId, _call_info: &CallInfo) -> bool {
+	fn additional_call_result_check(
+		relayer: &Runtime::AccountId,
+		call_info: &CallInfo,
+		extra_weight: &mut Weight,
+		extra_size: &mut u32,
+	) -> bool {
+		// check if relay chain state has been updated
+		if let Some(finality_proof_info) = call_info.submit_finality_proof_info() {
+			if !SubmitFinalityProofHelper::<Self::Runtime, GrandpaInstance>::was_successful(
+				finality_proof_info.block_number,
+			) {
+				// we only refund relayer if all calls have updated chain state
+				log::trace!(
+					target: "runtime::bridge",
+					"{} via {:?}: relayer {:?} has submitted invalid relay chain finality proof",
+					Self::Id::STR,
+					<Self::Msgs as RefundableMessagesLaneId>::Id::get(),
+					relayer,
+				);
+				return false
+			}
+
+			// there's a conflict between how bridge GRANDPA pallet works and a `utility.batchAll`
+			// transaction. If relay chain header is mandatory, the GRANDPA pallet returns
+			// `Pays::No`, because such transaction is mandatory for operating the bridge. But
+			// `utility.batchAll` transaction always requires payment. But in both cases we'll
+			// refund relayer - either explicitly here, or using `Pays::No` if he's choosing
+			// to submit dedicated transaction.
+
+			// submitter has means to include extra weight/bytes in the `submit_finality_proof`
+			// call, so let's subtract extra weight/size to avoid refunding for this extra stuff
+			*extra_weight = (*extra_weight).saturating_add(finality_proof_info.extra_weight);
+			*extra_size = (*extra_size).saturating_add(finality_proof_info.extra_size);
+		}
+
 		true
 	}
 }
