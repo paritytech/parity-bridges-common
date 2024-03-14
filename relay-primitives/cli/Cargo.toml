@@ -1,5 +1,5 @@
 [package]
-name = "substrate-relay"
+name = "brp-cli"
 version = "1.2.0"
 authors = ["Parity Technologies <admin@parity.io>"]
 edition = "2021"
@@ -36,22 +36,12 @@ bp-polkadot = { path = "../../primitives/chain-polkadot" }
 bp-polkadot-core = { path = "../../primitives/polkadot-core" }
 bp-rococo = { path = "../../primitives/chain-rococo" }
 bp-runtime = { path = "../../primitives/runtime" }
-brp-cli = { path = "../../relay-primitives/cli" }
 bridge-runtime-common = { path = "../../bin/runtime-common" }
 pallet-bridge-parachains = { path = "../../modules/parachains" }
-parachains-relay = { path = "../parachains" }
-relay-bridge-hub-kusama-client = { path = "../client-bridge-hub-kusama" }
-relay-bridge-hub-polkadot-client = { path = "../client-bridge-hub-polkadot" }
-relay-bridge-hub-rococo-client = { path = "../client-bridge-hub-rococo" }
-relay-bridge-hub-westend-client = { path = "../client-bridge-hub-westend" }
-relay-kusama-client = { path = "../client-kusama" }
-relay-polkadot-client = { path = "../client-polkadot" }
-relay-polkadot-bulletin-client = { path = "../client-polkadot-bulletin" }
-relay-rococo-client = { path = "../client-rococo" }
-relay-substrate-client = { path = "../client-substrate" }
-relay-utils = { path = "../utils" }
-relay-westend-client = { path = "../client-westend" }
-substrate-relay-helper = { path = "../lib-substrate-relay" }
+parachains-relay = { path = "../../relays/parachains" }
+relay-substrate-client = { path = "../../relays/client-substrate" }
+relay-utils = { path = "../../relays/utils" }
+substrate-relay-helper = { path = "../../relays/lib-substrate-relay" }
 
 # Substrate Dependencies
 

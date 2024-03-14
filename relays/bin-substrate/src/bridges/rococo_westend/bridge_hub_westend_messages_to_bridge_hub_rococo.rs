@@ -16,7 +16,7 @@
 
 //! BridgeHubWestend-to-BridgeHubRococo messages sync entrypoint.
 
-use crate::cli::bridge::{CliBridgeBase, MessagesCliBridge};
+use brp_cli::bridge::{CliBridgeBase, MessagesCliBridge};
 use relay_bridge_hub_rococo_client::BridgeHubRococo;
 use relay_bridge_hub_westend_client::BridgeHubWestend;
 use substrate_relay_helper::{messages_lane::SubstrateMessageLane, UtilityPalletBatchCallBuilder};

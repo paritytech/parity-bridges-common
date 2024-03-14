@@ -16,13 +16,12 @@
 
 //! Declaration of all bridges between Rococo Bulletin Chain and Rococo Bridge Hub.
 
-use crate::cli::CliChain;
-
 use bp_messages::MessageNonce;
 use bp_runtime::{
 	AccountIdOf, BalanceOf, BlockNumberOf, ChainId, HashOf, HasherOf, HeaderOf, NonceOf,
 	SignatureOf,
 };
+use brp_cli::CliChain;
 use frame_support::pallet_prelude::Weight;
 use relay_substrate_client::{
 	Error as SubstrateError, SignParam, SimpleRuntimeVersion, UnsignedTransaction,

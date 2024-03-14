@@ -17,7 +17,7 @@
 use async_trait::async_trait;
 use std::sync::Arc;
 
-use crate::cli::{
+use crate::{
 	bridge::{
 		CliBridgeBase, MessagesCliBridge, ParachainToRelayHeadersCliBridge,
 		RelayToRelayHeadersCliBridge,
@@ -55,6 +55,7 @@ pub struct RelayToParachainBridge<
 	pub right_relay: Client<<R2L as ParachainToRelayHeadersCliBridge>::SourceRelay>,
 }
 
+#[macro_export]
 macro_rules! declare_relay_to_parachain_bridge_schema {
 	// chain, parachain, relay-chain-of-parachain
 	($left_chain:ident, $right_parachain:ident, $right_chain:ident) => {

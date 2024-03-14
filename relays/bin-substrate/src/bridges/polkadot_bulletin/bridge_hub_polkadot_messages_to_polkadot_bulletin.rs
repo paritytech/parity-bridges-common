@@ -16,7 +16,7 @@
 
 //! BridgeHubPolkadot-to-PolkadotBulletin messages sync entrypoint.
 
-use crate::cli::bridge::{CliBridgeBase, MessagesCliBridge};
+use brp_cli::bridge::{CliBridgeBase, MessagesCliBridge};
 use relay_bridge_hub_polkadot_client::BridgeHubPolkadot;
 use relay_polkadot_bulletin_client::PolkadotBulletin;
 use substrate_relay_helper::{messages_lane::SubstrateMessageLane, UtilityPalletBatchCallBuilder};

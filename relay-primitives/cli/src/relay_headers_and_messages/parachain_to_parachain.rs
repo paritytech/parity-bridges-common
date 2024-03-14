@@ -17,7 +17,7 @@
 use async_trait::async_trait;
 use std::sync::Arc;
 
-use crate::cli::{
+use crate::{
 	bridge::{CliBridgeBase, MessagesCliBridge, ParachainToRelayHeadersCliBridge},
 	relay_headers_and_messages::{Full2WayBridgeBase, Full2WayBridgeCommonParams},
 	CliChain,
@@ -55,6 +55,7 @@ pub struct ParachainToParachainBridge<
 	pub right_relay: Client<<R2L as ParachainToRelayHeadersCliBridge>::SourceRelay>,
 }
 
+#[macro_export]
 macro_rules! declare_parachain_to_parachain_bridge_schema {
 	// left-parachain, relay-chain-of-left-parachain, right-parachain, relay-chain-of-right-parachain
 	($left_parachain:ident, $left_chain:ident, $right_parachain:ident, $right_chain:ident) => {
@@ -91,16 +92,16 @@ macro_rules! declare_parachain_to_parachain_bridge_schema {
 					LeftRelay: CliChain,
 					Right: ChainWithTransactions + CliChain + Parachain,
 					RightRelay: CliChain,
-					L2R: CliBridgeBase<Source = Left, Target = Right>
+					L2R: $crate::bridge::CliBridgeBase<Source = Left, Target = Right>
 						+ MessagesCliBridge
-						+ ParachainToRelayHeadersCliBridge<SourceRelay = LeftRelay>,
-					R2L: CliBridgeBase<Source = Right, Target = Left>
+						+ $crate::bridge::ParachainToRelayHeadersCliBridge<SourceRelay = LeftRelay>,
+					R2L: $crate::bridge::CliBridgeBase<Source = Right, Target = Left>
 						+ MessagesCliBridge
-						+ ParachainToRelayHeadersCliBridge<SourceRelay = RightRelay>,
+						+ $crate::bridge::ParachainToRelayHeadersCliBridge<SourceRelay = RightRelay>,
 				>(
 					self,
-				) -> anyhow::Result<ParachainToParachainBridge<L2R, R2L>> {
-					Ok(ParachainToParachainBridge {
+				) -> anyhow::Result<$crate::relay_headers_and_messages::parachain_to_parachain::ParachainToParachainBridge<L2R, R2L>> {
+					Ok($crate::relay_headers_and_messages::parachain_to_parachain::ParachainToParachainBridge {
 						common: Full2WayBridgeCommonParams::new::<L2R>(
 							self.shared,
 							BridgeEndCommonParams {

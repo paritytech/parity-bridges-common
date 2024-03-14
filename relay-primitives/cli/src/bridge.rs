@@ -14,30 +14,15 @@
 // You should have received a copy of the GNU General Public License
 // along with Parity Bridges Common.  If not, see <http://www.gnu.org/licenses/>.
 
-use crate::cli::CliChain;
+use crate::CliChain;
 use pallet_bridge_parachains::{RelayBlockHash, RelayBlockHasher, RelayBlockNumber};
 use relay_substrate_client::{Chain, ChainWithTransactions, Parachain, RelayChain};
-use strum::{EnumString, VariantNames};
 use substrate_relay_helper::{
 	equivocation::SubstrateEquivocationDetectionPipeline,
 	finality::SubstrateFinalitySyncPipeline,
 	messages_lane::{MessagesRelayLimits, SubstrateMessageLane},
 	parachains::SubstrateParachainsPipeline,
 };
-
-#[derive(Debug, PartialEq, Eq, EnumString, VariantNames)]
-#[strum(serialize_all = "kebab_case")]
-/// Supported full bridges (headers + messages).
-pub enum FullBridge {
-	BridgeHubRococoToBridgeHubWestend,
-	BridgeHubWestendToBridgeHubRococo,
-	BridgeHubKusamaToBridgeHubPolkadot,
-	BridgeHubPolkadotToBridgeHubKusama,
-	PolkadotBulletinToBridgeHubPolkadot,
-	BridgeHubPolkadotToPolkadotBulletin,
-	RococoBulletinToBridgeHubRococo,
-	BridgeHubRococoToRococoBulletin,
-}
 
 /// Minimal bridge representation that can be used from the CLI.
 /// It connects a source chain to a target chain.

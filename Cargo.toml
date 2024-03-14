@@ -54,6 +54,7 @@ members = [
 	"relays/messages",
 	"relays/parachains",
 	"relays/utils",
+	"relay-primitives/cli"
 ]
 
 # Setup clippy lints as `polkadot-sdk`,
