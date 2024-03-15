@@ -148,7 +148,7 @@ where
 				self.common.left.client.clone(),
 				self.common.right.client.clone(),
 				self.common.right.tx_params.clone(),
-				self.common.shared.only_mandatory_headers,
+				self.common.shared.headers_to_relay(),
 				None,
 			);
 		let right_to_left_on_demand_headers =
@@ -156,7 +156,7 @@ where
 				self.common.right.client.clone(),
 				self.common.left.client.clone(),
 				self.common.left.tx_params.clone(),
-				self.common.shared.only_mandatory_headers,
+				self.common.shared.headers_to_relay(),
 				None,
 			);
 
