@@ -66,6 +66,8 @@ impl Chain for PolkadotBulletin {
 	const NAME: &'static str = "PolkadotBulletin";
 	const BEST_FINALIZED_HEADER_ID_METHOD: &'static str =
 		bp_polkadot_bulletin::BEST_FINALIZED_POLKADOT_BULLETIN_HEADER_METHOD;
+	const FREE_HEADERS_INTERVAL_METHOD: &'static str =
+		bp_polkadot_bulletin::FREE_HEADERS_INTERVAL_FOR_POLKADOT_BULLETIN_METHOD;
 	const AVERAGE_BLOCK_INTERVAL: Duration = Duration::from_secs(6);
 
 	type SignedBlock = bp_polkadot_bulletin::SignedBlock;

@@ -83,6 +83,8 @@ impl relay_substrate_client::Chain for RococoAsPolkadot {
 	const NAME: &'static str = relay_rococo_client::Rococo::NAME;
 	const BEST_FINALIZED_HEADER_ID_METHOD: &'static str =
 		relay_polkadot_client::Polkadot::BEST_FINALIZED_HEADER_ID_METHOD;
+	const FREE_HEADERS_INTERVAL_METHOD: &'static str =
+		relay_polkadot_client::Polkadot::FREE_HEADERS_INTERVAL_METHOD;
 	const AVERAGE_BLOCK_INTERVAL: Duration = relay_rococo_client::Rococo::AVERAGE_BLOCK_INTERVAL;
 
 	type SignedBlock = <relay_rococo_client::Rococo as relay_substrate_client::Chain>::SignedBlock;
@@ -182,6 +184,8 @@ impl relay_substrate_client::Chain for BridgeHubRococoAsBridgeHubPolkadot {
 	const NAME: &'static str = relay_bridge_hub_rococo_client::BridgeHubRococo::NAME;
 	const BEST_FINALIZED_HEADER_ID_METHOD: &'static str =
 		relay_bridge_hub_polkadot_client::BridgeHubPolkadot::BEST_FINALIZED_HEADER_ID_METHOD;
+	const FREE_HEADERS_INTERVAL_METHOD: &'static str =
+		relay_bridge_hub_polkadot_client::BridgeHubPolkadot::FREE_HEADERS_INTERVAL_METHOD;
 	const AVERAGE_BLOCK_INTERVAL: Duration =
 		relay_bridge_hub_rococo_client::BridgeHubRococo::AVERAGE_BLOCK_INTERVAL;
 
