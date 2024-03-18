@@ -153,6 +153,17 @@ where
 			.unwrap_or(false)
 	}
 
+	/// Remove relayer from the active set.
+	///
+	/// This function breaks the order of the active relayers set and may cause additional
+	/// contention between relayer transactions. So it must only be used when relayer is being
+	/// slashed and can no longer be useful to the system.
+	pub fn try_remove(&mut self, relayer: &AccountId) -> bool {
+		let len_before = self.active_set.len();
+		self.active_set.retain(|entry| entry.relayer() != relayer);
+		self.active_set.len() != len_before
+	}
+
 	/// Activate next set of relayers.
 	///
 	/// This set is replaced with the `next_set` contents.

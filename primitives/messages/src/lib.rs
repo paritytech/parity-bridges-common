@@ -440,7 +440,7 @@ pub struct InboundMessageDetails {
 /// relayer and whose confirmations are still pending.
 #[derive(Encode, Decode, Clone, RuntimeDebug, PartialEq, Eq, TypeInfo, MaxEncodedLen)]
 pub struct UnrewardedRelayer<RelayerId> {
-	/// Identifier of the relayer.
+	/// Identifier of the relayer at the source (sending) chain.
 	pub relayer: RelayerId,
 	/// Messages range, delivered by this relayer.
 	pub messages: DeliveredMessages,

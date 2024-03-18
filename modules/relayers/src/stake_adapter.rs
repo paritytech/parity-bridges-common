@@ -28,21 +28,23 @@ use sp_std::{fmt::Debug, marker::PhantomData};
 ///
 /// **WARNING**: this implementation assumes that the relayers pallet is configured to
 /// use the [`bp_relayers::PayRewardFromAccount`] as its relayers payment scheme.
-pub struct StakeAndSlashNamed<AccountId, BlockNumber, Currency, ReserveId, Stake, Lease>(
-	PhantomData<(AccountId, BlockNumber, Currency, ReserveId, Stake, Lease)>,
+pub struct StakeAndSlashNamed<AccountId, BlockNumber, Currency, ReserveId, Stake, LaneStake, Lease>(
+	PhantomData<(AccountId, BlockNumber, Currency, ReserveId, Stake, LaneStake, Lease)>,
 );
 
-impl<AccountId, BlockNumber, Currency, ReserveId, Stake, Lease>
+impl<AccountId, BlockNumber, Currency, ReserveId, Stake, LaneStake, Lease>
 	StakeAndSlash<AccountId, BlockNumber, Currency::Balance>
-	for StakeAndSlashNamed<AccountId, BlockNumber, Currency, ReserveId, Stake, Lease>
+	for StakeAndSlashNamed<AccountId, BlockNumber, Currency, ReserveId, Stake, LaneStake, Lease>
 where
 	AccountId: Codec + Debug,
 	Currency: NamedReservableCurrency<AccountId>,
 	ReserveId: Get<Currency::ReserveIdentifier>,
 	Stake: Get<Currency::Balance>,
+	LaneStake: Get<Currency::Balance>,
 	Lease: Get<BlockNumber>,
 {
 	type RequiredStake = Stake;
+	type RequiredLaneStake = LaneStake;
 	type RequiredRegistrationLease = Lease;
 
 	fn reserve(relayer: &AccountId, amount: Currency::Balance) -> DispatchResult {
@@ -129,9 +131,7 @@ mod tests {
 		run_test(|| {
 			let beneficiary = test_reward_account_param();
 			let beneficiary_account = TestPaymentProcedure::rewards_account(beneficiary);
-
-			let mut expected_balance = ExistentialDeposit::get();
-			Balances::mint_into(&beneficiary_account, expected_balance).unwrap();
+			let mut expected_balance = Balances::free_balance(beneficiary_account);
 
 			assert_eq!(
 				TestStakeAndSlash::repatriate_reserved(&1, beneficiary, test_stake()),
@@ -173,6 +173,7 @@ mod tests {
 		run_test(|| {
 			let beneficiary = test_reward_account_param();
 			let beneficiary_account = TestPaymentProcedure::rewards_account(beneficiary);
+			Balances::set_balance(&beneficiary_account, 0);
 
 			Balances::mint_into(&3, test_stake() * 2).unwrap();
 			TestStakeAndSlash::reserve(&3, test_stake()).unwrap();

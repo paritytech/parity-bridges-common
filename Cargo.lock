@@ -1339,6 +1339,7 @@ dependencies = [
  "pallet-utility",
  "parity-scale-codec",
  "scale-info",
+ "sp-arithmetic",
  "sp-runtime",
  "sp-std 8.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
 ]
