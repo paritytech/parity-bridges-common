@@ -107,6 +107,8 @@ impl relay_substrate_client::ChainWithBalances for RococoAsPolkadot {
 
 impl relay_substrate_client::RelayChain for RococoAsPolkadot {
 	const PARAS_PALLET_NAME: &'static str = relay_rococo_client::Rococo::PARAS_PALLET_NAME;
+	const WITH_CHAIN_BRIDGE_PARACHAINS_PALLET_NAME: &'static str =
+		relay_rococo_client::Rococo::WITH_CHAIN_BRIDGE_PARACHAINS_PALLET_NAME;
 }
 
 impl relay_substrate_client::ChainWithTransactions for RococoAsPolkadot {

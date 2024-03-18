@@ -80,6 +80,8 @@ impl ChainWithBalances for Polkadot {
 
 impl RelayChain for Polkadot {
 	const PARAS_PALLET_NAME: &'static str = bp_polkadot::PARAS_PALLET_NAME;
+	const WITH_CHAIN_BRIDGE_PARACHAINS_PALLET_NAME: &'static str =
+		bp_polkadot::WITH_POLKADOT_BRIDGE_PARACHAINS_PALLET_NAME;
 }
 
 impl ChainWithTransactions for Polkadot {

@@ -80,6 +80,8 @@ impl ChainWithBalances for Rococo {
 
 impl RelayChain for Rococo {
 	const PARAS_PALLET_NAME: &'static str = bp_rococo::PARAS_PALLET_NAME;
+	const WITH_CHAIN_BRIDGE_PARACHAINS_PALLET_NAME: &'static str =
+		bp_rococo::WITH_ROCOCO_BRIDGE_PARACHAINS_PALLET_NAME;
 }
 
 impl ChainWithTransactions for Rococo {

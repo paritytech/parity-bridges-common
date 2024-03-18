@@ -70,6 +70,9 @@ pub trait Chain: ChainBase + Clone {
 pub trait RelayChain: Chain {
 	/// Name of the `runtime_parachains::paras` pallet in the runtime of this chain.
 	const PARAS_PALLET_NAME: &'static str;
+	/// Name of the `pallet-bridge-parachains`, deployed at the **bridged** chain to sync
+	/// parachains of **this** chain.
+	const WITH_CHAIN_BRIDGE_PARACHAINS_PALLET_NAME: &'static str;
 }
 
 /// Substrate-based chain that is using direct GRANDPA finality from minimal relay-client point of

@@ -74,6 +74,8 @@ impl ChainWithGrandpa for Westend {
 
 impl RelayChain for Westend {
 	const PARAS_PALLET_NAME: &'static str = bp_westend::PARAS_PALLET_NAME;
+	const WITH_CHAIN_BRIDGE_PARACHAINS_PALLET_NAME: &'static str =
+		bp_westend::WITH_WESTEND_BRIDGE_PARACHAINS_PALLET_NAME;
 }
 
 impl ChainWithBalances for Westend {

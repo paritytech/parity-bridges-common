@@ -80,6 +80,8 @@ impl ChainWithBalances for Kusama {
 
 impl RelayChain for Kusama {
 	const PARAS_PALLET_NAME: &'static str = bp_kusama::PARAS_PALLET_NAME;
+	const WITH_CHAIN_BRIDGE_PARACHAINS_PALLET_NAME: &'static str =
+		bp_kusama::WITH_KUSAMA_BRIDGE_PARACHAINS_PALLET_NAME;
 }
 
 impl ChainWithTransactions for Kusama {
