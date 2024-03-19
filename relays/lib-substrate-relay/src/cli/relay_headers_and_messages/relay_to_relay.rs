@@ -18,6 +18,8 @@
 // future
 #![allow(unused_macros)]
 
+//! Relay chain to Relay chain relayer CLI primitives.
+
 use async_trait::async_trait;
 use std::sync::Arc;
 
@@ -46,6 +48,7 @@ pub struct RelayToRelayBridge<
 		Full2WayBridgeCommonParams<<R2L as CliBridgeBase>::Target, <L2R as CliBridgeBase>::Target>,
 }
 
+/// Create set of configuration objects specific to relay-to-relay relayer.
 macro_rules! declare_relay_to_relay_bridge_schema {
 	($left_chain:ident, $right_chain:ident) => {
 		bp_runtime::paste::item! {

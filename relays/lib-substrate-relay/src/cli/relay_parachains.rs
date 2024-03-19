@@ -14,6 +14,8 @@
 // You should have received a copy of the GNU General Public License
 // along with Parity Bridges Common.  If not, see <http://www.gnu.org/licenses/>.
 
+//! Primitives for exposing the parachains finality relaying functionality in the CLI.
+
 use async_std::sync::Mutex;
 use async_trait::async_trait;
 use parachains_relay::parachains_loop::{AvailableHeader, SourceClient, TargetClient};
@@ -45,6 +47,7 @@ pub struct RelayParachainsParams {
 	prometheus_params: PrometheusParams,
 }
 
+/// Trait used for relaying parachains finality between 2 chains.
 #[async_trait]
 pub trait ParachainsRelayer: ParachainToRelayHeadersCliBridge
 where
@@ -54,6 +57,7 @@ where
 		TargetClient<ParachainsPipelineAdapter<Self::ParachainFinality>>,
 	<Self as CliBridgeBase>::Source: Parachain,
 {
+	/// Start relaying parachains finality.
 	async fn relay_parachains(data: RelayParachainsParams) -> anyhow::Result<()> {
 		let source_client = data.source.into_client::<Self::SourceRelay>().await?;
 		let source_client = ParachainsSource::<Self::ParachainFinality>::new(

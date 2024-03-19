@@ -62,6 +62,7 @@ pub struct HeadersAndMessagesSharedParams {
 	#[structopt(long)]
 	pub only_mandatory_headers: bool,
 	#[structopt(flatten)]
+	/// Prometheus metrics params.
 	pub prometheus_params: PrometheusParams,
 }
 

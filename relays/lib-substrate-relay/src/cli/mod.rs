@@ -18,13 +18,12 @@
 
 use codec::{Decode, Encode};
 use rbtag::BuildInfo;
-use structopt::{clap::arg_enum, StructOpt};
+use structopt::StructOpt;
 use strum::{EnumString, VariantNames};
 
 use bp_messages::LaneId;
 
 pub mod bridge;
-
 pub mod chain_schema;
 pub mod detect_equivocations;
 pub mod init_bridge;
@@ -35,18 +34,6 @@ pub mod relay_parachains;
 
 /// The target that will be used when publishing logs related to this pallet.
 pub const LOG_TARGET: &str = "bridge";
-
-arg_enum! {
-	#[derive(Debug)]
-	/// The origin to use when dispatching the message on the target chain.
-	///
-	/// - `Target` uses account existing on the target chain (requires target private key).
-	/// - `Origin` uses account derived from the source-chain account.
-	pub enum Origins {
-		Target,
-		Source,
-	}
-}
 
 /// Lane id.
 #[derive(Debug, Clone, PartialEq, Eq)]

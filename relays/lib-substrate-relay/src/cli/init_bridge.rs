@@ -14,6 +14,8 @@
 // You should have received a copy of the GNU General Public License
 // along with Parity Bridges Common.  If not, see <http://www.gnu.org/licenses/>.
 
+//! Primitives for exposing the bridge initialization functionality in the CLI.
+
 use async_trait::async_trait;
 use codec::Encode;
 
@@ -40,11 +42,13 @@ pub struct InitBridgeParams {
 	dry_run: bool,
 }
 
+/// Trait used for bridge initializing.
 #[async_trait]
 pub trait BridgeInitializer: CliBridgeBase
 where
 	<Self::Target as ChainBase>::AccountId: From<<AccountKeyPairOf<Self::Target> as Pair>::Public>,
 {
+	/// The finality engine used by the source chain.
 	type Engine: Engine<Self::Source>;
 
 	/// Get the encoded call to init the bridge.

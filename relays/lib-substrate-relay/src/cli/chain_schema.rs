@@ -12,8 +12,9 @@
 // GNU General Public License for more details.
 
 // You should have received a copy of the GNU General Public License
-
 // along with Parity Bridges Common.  If not, see <http://www.gnu.org/licenses/>.
+
+//! Primitives related to chain CLI options.
 
 use relay_substrate_client::{AccountKeyPairOf, ChainWithTransactions};
 use structopt::StructOpt;

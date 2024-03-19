@@ -14,6 +14,8 @@
 // You should have received a copy of the GNU General Public License
 // along with Parity Bridges Common.  If not, see <http://www.gnu.org/licenses/>.
 
+//! Primitives for exposing the equivocation detection functionality in the CLI.
+
 use crate::{
 	cli::{bridge::*, chain_schema::*, PrometheusParams},
 	equivocation,
@@ -37,11 +39,13 @@ pub struct DetectEquivocationsParams {
 	prometheus_params: PrometheusParams,
 }
 
+/// Trait used for starting the equivocation detection loop between 2 chains.
 #[async_trait]
 pub trait EquivocationsDetector: RelayToRelayEquivocationDetectionCliBridge
 where
 	Self::Source: ChainWithTransactions,
 {
+	/// Start the equivocation detection loop.
 	async fn start(data: DetectEquivocationsParams) -> anyhow::Result<()> {
 		let source_client = data.source.into_client::<Self::Source>().await?;
 		Self::Equivocation::start_relay_guards(

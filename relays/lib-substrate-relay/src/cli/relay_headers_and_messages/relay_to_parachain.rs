@@ -14,6 +14,8 @@
 // You should have received a copy of the GNU General Public License
 // along with Parity Bridges Common.  If not, see <http://www.gnu.org/licenses/>.
 
+//! Relay chain to parachain relayer CLI primitives.
+
 use async_trait::async_trait;
 use std::sync::Arc;
 
@@ -55,6 +57,7 @@ pub struct RelayToParachainBridge<
 	pub right_relay: Client<<R2L as ParachainToRelayHeadersCliBridge>::SourceRelay>,
 }
 
+/// Create set of configuration objects specific to relay-to-parachain relayer.
 #[macro_export]
 macro_rules! declare_relay_to_parachain_bridge_schema {
 	// chain, parachain, relay-chain-of-parachain

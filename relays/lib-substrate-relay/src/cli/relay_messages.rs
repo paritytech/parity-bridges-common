@@ -14,6 +14,8 @@
 // You should have received a copy of the GNU General Public License
 // along with Parity Bridges Common.  If not, see <http://www.gnu.org/licenses/>.
 
+//! Primitives for exposing the messages relaying functionality in the CLI.
+
 use crate::{
 	cli::{bridge::*, chain_schema::*, HexLaneId, PrometheusParams},
 	messages_lane::MessagesRelayParams,
@@ -46,6 +48,7 @@ pub struct RelayMessagesParams {
 	prometheus_params: PrometheusParams,
 }
 
+/// Trait used for relaying messages between 2 chains.
 #[async_trait]
 pub trait MessagesRelayer: MessagesCliBridge
 where
@@ -54,6 +57,7 @@ where
 	AccountIdOf<Self::Target>: From<<AccountKeyPairOf<Self::Target> as Pair>::Public>,
 	BalanceOf<Self::Source>: TryFrom<BalanceOf<Self::Target>>,
 {
+	/// Start relaying messages.
 	async fn relay_messages(data: RelayMessagesParams) -> anyhow::Result<()> {
 		let source_client = data.source.into_client::<Self::Source>().await?;
 		let source_sign = data.source_sign.to_keypair::<Self::Source>()?;

@@ -14,6 +14,8 @@
 // You should have received a copy of the GNU General Public License
 // along with Parity Bridges Common.  If not, see <http://www.gnu.org/licenses/>.
 
+//! Basic traits for exposing bridges in the CLI.
+
 use crate::{
 	equivocation::SubstrateEquivocationDetectionPipeline,
 	finality::SubstrateFinalitySyncPipeline,
@@ -46,6 +48,7 @@ pub trait RelayToRelayHeadersCliBridge: CliBridgeBase {
 
 /// Convenience trait that adds bounds to `CliBridgeBase`.
 pub trait RelayToRelayEquivocationDetectionCliBridgeBase: CliBridgeBase {
+	/// The source chain with extra bounds.
 	type BoundedSource: ChainWithTransactions;
 }
 
@@ -75,8 +78,8 @@ pub trait ParachainToRelayHeadersCliBridge: CliBridgeBase
 where
 	Self::Source: Parachain,
 {
-	// The `CliBridgeBase` type represents the parachain in this situation.
-	// We need to add an extra type for the relay chain.
+	/// The `CliBridgeBase` type represents the parachain in this situation.
+	/// We need to add an extra type for the relay chain.
 	type SourceRelay: Chain<BlockNumber = RelayBlockNumber, Hash = RelayBlockHash, Hasher = RelayBlockHasher>
 		+ ChainWithRuntimeVersion
 		+ RelayChain;
