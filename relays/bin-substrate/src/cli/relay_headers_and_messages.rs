@@ -45,25 +45,26 @@ use crate::bridges::{
 		westend_parachains_to_bridge_hub_rococo::BridgeHubWestendToBridgeHubRococoCliBridge,
 	},
 };
-use brp_cli::{
-	bridge::{
-		CliBridgeBase, MessagesCliBridge, ParachainToRelayHeadersCliBridge,
-		RelayToRelayHeadersCliBridge,
-	},
-	chain_schema::*,
-	declare_chain_cli_schema, declare_parachain_to_parachain_bridge_schema,
-	declare_relay_to_parachain_bridge_schema,
-	relay_headers_and_messages::{
-		parachain_to_parachain::ParachainToParachainBridge, relay_to_parachain::*,
-		BridgeEndCommonParams, Full2WayBridge, Full2WayBridgeCommonParams,
-		HeadersAndMessagesSharedParams,
-	},
-};
 use relay_substrate_client::{
-	AccountKeyPairOf, ChainRuntimeVersion, ChainWithTransactions, ChainWithRuntimeVersion, Parachain,
-	SimpleRuntimeVersion,
+	AccountKeyPairOf, ChainRuntimeVersion, ChainWithRuntimeVersion, ChainWithTransactions,
+	Parachain, SimpleRuntimeVersion,
 };
-use substrate_relay_helper::TransactionParams;
+use substrate_relay_helper::{
+	cli::{
+		bridge::{
+			CliBridgeBase, MessagesCliBridge, ParachainToRelayHeadersCliBridge,
+			RelayToRelayHeadersCliBridge,
+		},
+		chain_schema::*,
+		relay_headers_and_messages::{
+			parachain_to_parachain::ParachainToParachainBridge, relay_to_parachain::*,
+			BridgeEndCommonParams, Full2WayBridge, Full2WayBridgeCommonParams,
+			HeadersAndMessagesSharedParams,
+		},
+	},
+	declare_chain_cli_schema, declare_parachain_to_parachain_bridge_schema,
+	declare_relay_to_parachain_bridge_schema, TransactionParams,
+};
 
 // All supported chains.
 declare_chain_cli_schema!(Rococo, rococo);
@@ -262,7 +263,7 @@ impl RelayHeadersAndMessages {
 #[cfg(test)]
 mod tests {
 	use super::*;
-	use brp_cli::{HexLaneId, PrometheusParams};
+	use substrate_relay_helper::cli::{HexLaneId, PrometheusParams};
 
 	#[test]
 	fn should_parse_parachain_to_parachain_options() {

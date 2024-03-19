@@ -28,7 +28,9 @@ use crate::bridges::{
 use structopt::StructOpt;
 use strum::{EnumString, VariantNames};
 
-use brp_cli::detect_equivocations::{DetectEquivocationsParams, EquivocationsDetector};
+use substrate_relay_helper::cli::detect_equivocations::{
+	DetectEquivocationsParams, EquivocationsDetector,
+};
 
 /// Start equivocation detection loop.
 #[derive(StructOpt)]

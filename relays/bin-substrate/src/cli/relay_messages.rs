@@ -35,7 +35,7 @@ use crate::bridges::{
 		bridge_hub_westend_messages_to_bridge_hub_rococo::BridgeHubWestendToBridgeHubRococoMessagesCliBridge,
 	},
 };
-use brp_cli::relay_messages::{MessagesRelayer, RelayMessagesParams};
+use substrate_relay_helper::cli::relay_messages::{MessagesRelayer, RelayMessagesParams};
 
 #[derive(Debug, PartialEq, Eq, EnumString, VariantNames)]
 #[strum(serialize_all = "kebab_case")]

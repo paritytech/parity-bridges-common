@@ -20,7 +20,8 @@ use structopt::StructOpt;
 use strum::{EnumString, VariantNames};
 
 use relay_substrate_client::{ChainRuntimeVersion, ChainWithRuntimeVersion, SimpleRuntimeVersion};
-use substrate_relay_helper::TransactionParams;
+
+use crate::TransactionParams;
 
 #[doc = "Runtime version params."]
 #[derive(StructOpt, Debug, PartialEq, Eq, Clone, Copy, EnumString, VariantNames)]

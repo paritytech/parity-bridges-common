@@ -36,20 +36,20 @@ use structopt::StructOpt;
 
 use futures::{FutureExt, TryFutureExt};
 
-use crate::{bridge::MessagesCliBridge, HexLaneId, PrometheusParams};
-use bp_messages::LaneId;
-use bp_runtime::BalanceOf;
-use relay_substrate_client::{
-	AccountIdOf, AccountKeyPairOf, Chain, ChainWithBalances, ChainWithMessages,
-	ChainWithTransactions, ChainWithRuntimeVersion, Client,
-};
-use relay_utils::metrics::MetricsParams;
-use sp_core::Pair;
-use substrate_relay_helper::{
+use crate::{
+	cli::{bridge::MessagesCliBridge, HexLaneId, PrometheusParams},
 	messages_lane::{MessagesRelayLimits, MessagesRelayParams},
 	on_demand::OnDemandRelay,
 	TaggedAccount, TransactionParams,
 };
+use bp_messages::LaneId;
+use bp_runtime::BalanceOf;
+use relay_substrate_client::{
+	AccountIdOf, AccountKeyPairOf, Chain, ChainWithBalances, ChainWithMessages,
+	ChainWithRuntimeVersion, ChainWithTransactions, Client,
+};
+use relay_utils::metrics::MetricsParams;
+use sp_core::Pair;
 
 /// Parameters that have the same names across all bridges.
 #[derive(Debug, PartialEq, StructOpt)]
@@ -81,8 +81,10 @@ pub struct Full2WayBridgeCommonParams<
 	pub metrics_params: MetricsParams,
 }
 
-impl<Left: ChainWithTransactions + ChainWithRuntimeVersion, Right: ChainWithTransactions + ChainWithRuntimeVersion>
-	Full2WayBridgeCommonParams<Left, Right>
+impl<
+		Left: ChainWithTransactions + ChainWithRuntimeVersion,
+		Right: ChainWithTransactions + ChainWithRuntimeVersion,
+	> Full2WayBridgeCommonParams<Left, Right>
 {
 	/// Creates new bridge parameters from its components.
 	pub fn new<L2R: MessagesCliBridge<Source = Left, Target = Right>>(
@@ -206,9 +208,15 @@ where
 	type Base: Full2WayBridgeBase<Left = Self::Left, Right = Self::Right>;
 
 	/// The left relay chain.
-	type Left: ChainWithTransactions + ChainWithBalances + ChainWithMessages + ChainWithRuntimeVersion;
+	type Left: ChainWithTransactions
+		+ ChainWithBalances
+		+ ChainWithMessages
+		+ ChainWithRuntimeVersion;
 	/// The right relay chain.
-	type Right: ChainWithTransactions + ChainWithBalances + ChainWithMessages + ChainWithRuntimeVersion;
+	type Right: ChainWithTransactions
+		+ ChainWithBalances
+		+ ChainWithMessages
+		+ ChainWithRuntimeVersion;
 
 	/// Left to Right bridge.
 	type L2R: MessagesCliBridge<Source = Self::Left, Target = Self::Right>;
@@ -275,14 +283,14 @@ where
 			.collect::<Vec<_>>();
 		{
 			let common = self.mut_base().mut_common();
-			substrate_relay_helper::messages_metrics::add_relay_balances_metrics::<_, Self::Right>(
+			crate::messages_metrics::add_relay_balances_metrics::<_, Self::Right>(
 				common.left.client.clone(),
 				&common.metrics_params,
 				&common.left.accounts,
 				&lanes,
 			)
 			.await?;
-			substrate_relay_helper::messages_metrics::add_relay_balances_metrics::<_, Self::Left>(
+			crate::messages_metrics::add_relay_balances_metrics::<_, Self::Left>(
 				common.right.client.clone(),
 				&common.metrics_params,
 				&common.right.accounts,
@@ -294,7 +302,7 @@ where
 		// Need 2x capacity since we consider both directions for each lane
 		let mut message_relays = Vec::with_capacity(lanes.len() * 2);
 		for lane in lanes {
-			let left_to_right_messages = substrate_relay_helper::messages_lane::run::<
+			let left_to_right_messages = crate::messages_lane::run::<
 				<Self::L2R as MessagesCliBridge>::MessagesLane,
 			>(self.left_to_right().messages_relay_params(
 				left_to_right_on_demand_headers.clone(),
@@ -306,7 +314,7 @@ where
 			.boxed();
 			message_relays.push(left_to_right_messages);
 
-			let right_to_left_messages = substrate_relay_helper::messages_lane::run::<
+			let right_to_left_messages = crate::messages_lane::run::<
 				<Self::R2L as MessagesCliBridge>::MessagesLane,
 			>(self.right_to_left().messages_relay_params(
 				right_to_left_on_demand_headers.clone(),
@@ -331,7 +339,7 @@ where
 #[cfg(test)]
 mod tests {
 	use super::*;
-	use crate::{chain_schema::RuntimeVersionType, declare_chain_cli_schema};
+	use crate::{cli::chain_schema::RuntimeVersionType, declare_chain_cli_schema};
 
 	use relay_substrate_client::{ChainRuntimeVersion, Parachain, SimpleRuntimeVersion};
 

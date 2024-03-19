@@ -21,15 +21,15 @@ use relay_substrate_client::Parachain;
 use relay_utils::metrics::{GlobalMetrics, StandaloneMetric};
 use std::sync::Arc;
 use structopt::StructOpt;
-use substrate_relay_helper::{
-	parachains::{source::ParachainsSource, target::ParachainsTarget, ParachainsPipelineAdapter},
-	TransactionParams,
-};
 
 use crate::{
-	bridge::{CliBridgeBase, ParachainToRelayHeadersCliBridge},
-	chain_schema::*,
-	PrometheusParams,
+	cli::{
+		bridge::{CliBridgeBase, ParachainToRelayHeadersCliBridge},
+		chain_schema::*,
+		PrometheusParams,
+	},
+	parachains::{source::ParachainsSource, target::ParachainsTarget, ParachainsPipelineAdapter},
+	TransactionParams,
 };
 
 /// Parachains heads relaying params.

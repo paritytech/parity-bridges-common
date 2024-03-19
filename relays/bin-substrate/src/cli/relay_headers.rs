@@ -32,7 +32,7 @@ use crate::bridges::{
 	},
 };
 
-use brp_cli::relay_headers::{HeadersRelayer, RelayHeadersParams};
+use substrate_relay_helper::cli::relay_headers::{HeadersRelayer, RelayHeadersParams};
 
 /// Start headers relayer process.
 #[derive(StructOpt)]

@@ -17,12 +17,14 @@
 use async_trait::async_trait;
 use codec::Encode;
 
-use crate::{bridge::CliBridgeBase, chain_schema::*};
+use crate::{
+	cli::{bridge::CliBridgeBase, chain_schema::*},
+	finality_base::engine::Engine,
+};
 use bp_runtime::Chain as ChainBase;
 use relay_substrate_client::{AccountKeyPairOf, Chain, UnsignedTransaction};
 use sp_core::Pair;
 use structopt::StructOpt;
-use substrate_relay_helper::finality_base::engine::Engine;
 
 /// Bridge initialization params.
 #[derive(StructOpt)]
@@ -57,7 +59,7 @@ where
 		let target_sign = data.target_sign.to_keypair::<Self::Target>()?;
 		let dry_run = data.dry_run;
 
-		substrate_relay_helper::finality::initialize::initialize::<Self::Engine, _, _, _>(
+		crate::finality::initialize::initialize::<Self::Engine, _, _, _>(
 			source_client,
 			target_client.clone(),
 			target_sign,

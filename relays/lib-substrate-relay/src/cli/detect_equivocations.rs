@@ -14,12 +14,15 @@
 // You should have received a copy of the GNU General Public License
 // along with Parity Bridges Common.  If not, see <http://www.gnu.org/licenses/>.
 
-use crate::{bridge::*, chain_schema::*, PrometheusParams};
+use crate::{
+	cli::{bridge::*, chain_schema::*, PrometheusParams},
+	equivocation,
+	equivocation::SubstrateEquivocationDetectionPipeline,
+};
 
 use async_trait::async_trait;
 use relay_substrate_client::ChainWithTransactions;
 use structopt::StructOpt;
-use substrate_relay_helper::{equivocation, equivocation::SubstrateEquivocationDetectionPipeline};
 
 /// Start equivocation detection loop.
 #[derive(StructOpt)]

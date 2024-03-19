@@ -32,11 +32,13 @@ use crate::bridges::{
 		westend_headers_to_bridge_hub_rococo::WestendToBridgeHubRococoCliBridge,
 	},
 };
-use brp_cli::init_bridge::{BridgeInitializer, InitBridgeParams};
 use relay_substrate_client::Chain;
 use structopt::StructOpt;
 use strum::{EnumString, VariantNames};
-use substrate_relay_helper::finality_base::engine::{Engine, Grandpa as GrandpaFinalityEngine};
+use substrate_relay_helper::{
+	cli::init_bridge::{BridgeInitializer, InitBridgeParams},
+	finality_base::engine::{Engine, Grandpa as GrandpaFinalityEngine},
+};
 
 impl BridgeInitializer for RococoToBridgeHubWestendCliBridge {
 	type Engine = GrandpaFinalityEngine<Self::Source>;

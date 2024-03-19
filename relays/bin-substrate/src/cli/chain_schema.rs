@@ -16,8 +16,8 @@
 
 #[cfg(test)]
 mod tests {
-	use brp_cli::chain_schema::TargetSigningParams;
 	use sp_core::Pair;
+	use substrate_relay_helper::cli::chain_schema::TargetSigningParams;
 
 	#[test]
 	fn reads_suri_from_file() {

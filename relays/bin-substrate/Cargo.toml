@@ -36,7 +36,6 @@ bp-polkadot = { path = "../../primitives/chain-polkadot" }
 bp-polkadot-core = { path = "../../primitives/polkadot-core" }
 bp-rococo = { path = "../../primitives/chain-rococo" }
 bp-runtime = { path = "../../primitives/runtime" }
-brp-cli = { path = "../../relay-primitives/cli" }
 bridge-runtime-common = { path = "../../bin/runtime-common" }
 pallet-bridge-parachains = { path = "../../modules/parachains" }
 parachains-relay = { path = "../parachains" }

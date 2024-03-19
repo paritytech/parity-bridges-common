@@ -22,7 +22,7 @@ use bp_kusama::{AccountInfoStorageMapKeyProvider, KUSAMA_SYNCED_HEADERS_GRANDPA_
 use bp_polkadot_core::SuffixedCommonTransactionExtensionExt;
 use codec::Encode;
 use relay_substrate_client::{
-	Chain, ChainWithBalances, ChainWithGrandpa, ChainWithTransactions, ChainWithRuntimeVersion,
+	Chain, ChainWithBalances, ChainWithGrandpa, ChainWithRuntimeVersion, ChainWithTransactions,
 	Error as SubstrateError, RelayChain, SignParam, SimpleRuntimeVersion, UnderlyingChainProvider,
 	UnsignedTransaction,
 };

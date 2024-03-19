@@ -22,15 +22,17 @@ use async_trait::async_trait;
 use std::sync::Arc;
 
 use crate::{
-	bridge::{CliBridgeBase, MessagesCliBridge, RelayToRelayHeadersCliBridge},
-	relay_headers_and_messages::{Full2WayBridgeBase, Full2WayBridgeCommonParams},
-};
-use relay_substrate_client::{AccountIdOf, AccountKeyPairOf, ChainWithTransactions, ChainWithRuntimeVersion};
-use sp_core::Pair;
-use substrate_relay_helper::{
+	cli::{
+		bridge::{CliBridgeBase, MessagesCliBridge, RelayToRelayHeadersCliBridge},
+		relay_headers_and_messages::{Full2WayBridgeBase, Full2WayBridgeCommonParams},
+	},
 	finality::SubstrateFinalitySyncPipeline,
 	on_demand::{headers::OnDemandHeadersRelay, OnDemandRelay},
 };
+use relay_substrate_client::{
+	AccountIdOf, AccountKeyPairOf, ChainWithRuntimeVersion, ChainWithTransactions,
+};
+use sp_core::Pair;
 
 /// A base relay between two standalone (relay) chains.
 ///

@@ -26,9 +26,9 @@ use crate::bridges::{
 		westend_parachains_to_bridge_hub_rococo::BridgeHubWestendToBridgeHubRococoCliBridge,
 	},
 };
-use brp_cli::relay_parachains::{ParachainsRelayer, RelayParachainsParams};
 use structopt::StructOpt;
 use strum::{EnumString, VariantNames};
+use substrate_relay_helper::cli::relay_parachains::{ParachainsRelayer, RelayParachainsParams};
 
 /// Start parachain heads relayer process.
 #[derive(StructOpt)]

@@ -1404,51 +1404,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "brp-cli"
-version = "1.2.0"
-dependencies = [
- "anyhow",
- "async-std",
- "async-trait",
- "bp-bridge-hub-polkadot",
- "bp-bridge-hub-rococo",
- "bp-header-chain",
- "bp-messages",
- "bp-parachains",
- "bp-polkadot",
- "bp-polkadot-bulletin",
- "bp-polkadot-core",
- "bp-rococo",
- "bp-runtime",
- "bp-test-utils",
- "bridge-runtime-common",
- "env_logger 0.11.3",
- "finality-grandpa",
- "frame-support",
- "futures",
- "hex",
- "hex-literal",
- "log",
- "num-format",
- "num-traits",
- "pallet-bridge-parachains",
- "parachains-relay",
- "parity-scale-codec",
- "rbtag",
- "relay-substrate-client",
- "relay-utils",
- "signal-hook",
- "signal-hook-async-std",
- "sp-core",
- "sp-keyring",
- "sp-runtime",
- "structopt",
- "strum 0.26.2",
- "substrate-relay-helper",
- "tempfile",
-]
-
-[[package]]
 name = "bs58"
 version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -9086,7 +9041,6 @@ dependencies = [
  "bp-runtime",
  "bp-test-utils",
  "bridge-runtime-common",
- "brp-cli",
  "env_logger 0.11.3",
  "finality-grandpa",
  "frame-support",
@@ -9155,6 +9109,7 @@ dependencies = [
  "pallet-transaction-payment",
  "parachains-relay",
  "parity-scale-codec",
+ "rbtag",
  "relay-bridge-hub-rococo-client",
  "relay-bridge-hub-westend-client",
  "relay-rococo-client",
@@ -9163,6 +9118,8 @@ dependencies = [
  "sp-consensus-grandpa",
  "sp-core",
  "sp-runtime",
+ "structopt",
+ "strum 0.26.2",
  "thiserror",
 ]
 

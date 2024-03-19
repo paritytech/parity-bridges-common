@@ -14,13 +14,15 @@
 // You should have received a copy of the GNU General Public License
 // along with Parity Bridges Common.  If not, see <http://www.gnu.org/licenses/>.
 
-use pallet_bridge_parachains::{RelayBlockHash, RelayBlockHasher, RelayBlockNumber};
-use relay_substrate_client::{Chain, ChainWithTransactions, ChainWithRuntimeVersion, Parachain, RelayChain};
-use substrate_relay_helper::{
+use crate::{
 	equivocation::SubstrateEquivocationDetectionPipeline,
 	finality::SubstrateFinalitySyncPipeline,
 	messages_lane::{MessagesRelayLimits, SubstrateMessageLane},
 	parachains::SubstrateParachainsPipeline,
+};
+use pallet_bridge_parachains::{RelayBlockHash, RelayBlockHasher, RelayBlockNumber};
+use relay_substrate_client::{
+	Chain, ChainWithRuntimeVersion, ChainWithTransactions, Parachain, RelayChain,
 };
 
 /// Minimal bridge representation that can be used from the CLI.

@@ -14,16 +14,19 @@
 // You should have received a copy of the GNU General Public License
 // along with Parity Bridges Common.  If not, see <http://www.gnu.org/licenses/>.
 
+use crate::{
+	cli::{bridge::*, chain_schema::*, HexLaneId, PrometheusParams},
+	messages_lane::MessagesRelayParams,
+	TransactionParams,
+};
+
 use async_trait::async_trait;
 use sp_core::Pair;
 use structopt::StructOpt;
 
 use relay_substrate_client::{
-	AccountIdOf, AccountKeyPairOf, BalanceOf, ChainWithTransactions, ChainWithRuntimeVersion,
+	AccountIdOf, AccountKeyPairOf, BalanceOf, ChainWithRuntimeVersion, ChainWithTransactions,
 };
-use substrate_relay_helper::{messages_lane::MessagesRelayParams, TransactionParams};
-
-use crate::{bridge::*, chain_schema::*, HexLaneId, PrometheusParams};
 
 /// Messages relaying params.
 #[derive(StructOpt)]
@@ -59,7 +62,7 @@ where
 		let target_sign = data.target_sign.to_keypair::<Self::Target>()?;
 		let target_transactions_mortality = data.target_sign.transactions_mortality()?;
 
-		substrate_relay_helper::messages_lane::run::<Self::MessagesLane>(MessagesRelayParams {
+		crate::messages_lane::run::<Self::MessagesLane>(MessagesRelayParams {
 			source_client,
 			source_transaction_params: TransactionParams {
 				signer: source_sign,

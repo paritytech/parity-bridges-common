@@ -18,9 +18,11 @@ use async_trait::async_trait;
 use structopt::StructOpt;
 
 use relay_utils::metrics::{GlobalMetrics, StandaloneMetric};
-use substrate_relay_helper::finality::SubstrateFinalitySyncPipeline;
 
-use crate::{bridge::*, chain_schema::*, PrometheusParams};
+use crate::{
+	cli::{bridge::*, chain_schema::*, PrometheusParams},
+	finality::SubstrateFinalitySyncPipeline,
+};
 
 /// Chain headers relaying params.
 #[derive(StructOpt)]
@@ -52,14 +54,14 @@ pub trait HeadersRelayer: RelayToRelayHeadersCliBridge {
 			data.prometheus_params.into_metrics_params()?;
 		GlobalMetrics::new()?.register_and_spawn(&metrics_params.registry)?;
 
-		let target_transactions_params = substrate_relay_helper::TransactionParams {
+		let target_transactions_params = crate::TransactionParams {
 			signer: target_sign,
 			mortality: target_transactions_mortality,
 		};
 		Self::Finality::start_relay_guards(&target_client, target_client.can_start_version_guard())
 			.await?;
 
-		substrate_relay_helper::finality::run::<Self::Finality>(
+		crate::finality::run::<Self::Finality>(
 			source_client,
 			target_client,
 			data.only_mandatory_headers,
