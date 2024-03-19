@@ -24,9 +24,8 @@ use std::sync::Arc;
 use crate::{
 	bridge::{CliBridgeBase, MessagesCliBridge, RelayToRelayHeadersCliBridge},
 	relay_headers_and_messages::{Full2WayBridgeBase, Full2WayBridgeCommonParams},
-	CliChain,
 };
-use relay_substrate_client::{AccountIdOf, AccountKeyPairOf, ChainWithTransactions};
+use relay_substrate_client::{AccountIdOf, AccountKeyPairOf, ChainWithTransactions, ChainWithRuntimeVersion};
 use sp_core::Pair;
 use substrate_relay_helper::{
 	finality::SubstrateFinalitySyncPipeline,
@@ -101,8 +100,8 @@ macro_rules! declare_relay_to_relay_bridge_schema {
 
 #[async_trait]
 impl<
-		Left: ChainWithTransactions + CliChain,
-		Right: ChainWithTransactions + CliChain,
+		Left: ChainWithTransactions + ChainWithRuntimeVersion,
+		Right: ChainWithTransactions + ChainWithRuntimeVersion,
 		L2R: CliBridgeBase<Source = Left, Target = Right>
 			+ MessagesCliBridge
 			+ RelayToRelayHeadersCliBridge,

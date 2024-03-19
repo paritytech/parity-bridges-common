@@ -21,10 +21,9 @@ use bp_runtime::{
 	AccountIdOf, BalanceOf, BlockNumberOf, ChainId, HashOf, HasherOf, HeaderOf, NonceOf,
 	SignatureOf,
 };
-use brp_cli::CliChain;
 use frame_support::pallet_prelude::Weight;
 use relay_substrate_client::{
-	Error as SubstrateError, SignParam, SimpleRuntimeVersion, UnsignedTransaction,
+	ChainWithRuntimeVersion, Error as SubstrateError, SignParam, SimpleRuntimeVersion, UnsignedTransaction,
 };
 use sp_core::storage::StorageKey;
 use std::time::Duration;
@@ -126,7 +125,7 @@ impl relay_substrate_client::ChainWithTransactions for RococoAsPolkadot {
 	}
 }
 
-impl CliChain for RococoAsPolkadot {
+impl ChainWithRuntimeVersion for RococoAsPolkadot {
 	const RUNTIME_VERSION: Option<SimpleRuntimeVersion> = None;
 }
 
@@ -231,7 +230,7 @@ impl relay_substrate_client::ChainWithMessages for BridgeHubRococoAsBridgeHubPol
 		relay_bridge_hub_polkadot_client::BridgeHubPolkadot::FROM_CHAIN_MESSAGE_DETAILS_METHOD;
 }
 
-impl CliChain for BridgeHubRococoAsBridgeHubPolkadot {
+impl ChainWithRuntimeVersion for BridgeHubRococoAsBridgeHubPolkadot {
 	const RUNTIME_VERSION: Option<SimpleRuntimeVersion> =
 		Some(SimpleRuntimeVersion { spec_version: 1_003_000, transaction_version: 3 });
 }

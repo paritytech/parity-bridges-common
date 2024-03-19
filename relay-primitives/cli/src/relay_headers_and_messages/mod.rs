@@ -36,12 +36,12 @@ use structopt::StructOpt;
 
 use futures::{FutureExt, TryFutureExt};
 
-use crate::{bridge::MessagesCliBridge, CliChain, HexLaneId, PrometheusParams};
+use crate::{bridge::MessagesCliBridge, HexLaneId, PrometheusParams};
 use bp_messages::LaneId;
 use bp_runtime::BalanceOf;
 use relay_substrate_client::{
 	AccountIdOf, AccountKeyPairOf, Chain, ChainWithBalances, ChainWithMessages,
-	ChainWithTransactions, Client,
+	ChainWithTransactions, ChainWithRuntimeVersion, Client,
 };
 use relay_utils::metrics::MetricsParams;
 use sp_core::Pair;
@@ -67,8 +67,8 @@ pub struct HeadersAndMessagesSharedParams {
 
 /// Bridge parameters, shared by all bridge types.
 pub struct Full2WayBridgeCommonParams<
-	Left: ChainWithTransactions + CliChain,
-	Right: ChainWithTransactions + CliChain,
+	Left: ChainWithTransactions + ChainWithRuntimeVersion,
+	Right: ChainWithTransactions + ChainWithRuntimeVersion,
 > {
 	/// Shared parameters.
 	pub shared: HeadersAndMessagesSharedParams,
@@ -81,7 +81,7 @@ pub struct Full2WayBridgeCommonParams<
 	pub metrics_params: MetricsParams,
 }
 
-impl<Left: ChainWithTransactions + CliChain, Right: ChainWithTransactions + CliChain>
+impl<Left: ChainWithTransactions + ChainWithRuntimeVersion, Right: ChainWithTransactions + ChainWithRuntimeVersion>
 	Full2WayBridgeCommonParams<Left, Right>
 {
 	/// Creates new bridge parameters from its components.
@@ -99,7 +99,7 @@ impl<Left: ChainWithTransactions + CliChain, Right: ChainWithTransactions + CliC
 }
 
 /// Parameters that are associated with one side of the bridge.
-pub struct BridgeEndCommonParams<Chain: ChainWithTransactions + CliChain> {
+pub struct BridgeEndCommonParams<Chain: ChainWithTransactions + ChainWithRuntimeVersion> {
 	/// Chain client.
 	pub client: Client<Chain>,
 	/// Params used for sending transactions to the chain.
@@ -111,8 +111,8 @@ pub struct BridgeEndCommonParams<Chain: ChainWithTransactions + CliChain> {
 /// All data of the bidirectional complex relay.
 pub struct FullBridge<
 	'a,
-	Source: ChainWithTransactions + CliChain,
-	Target: ChainWithTransactions + CliChain,
+	Source: ChainWithTransactions + ChainWithRuntimeVersion,
+	Target: ChainWithTransactions + ChainWithRuntimeVersion,
 	Bridge: MessagesCliBridge<Source = Source, Target = Target>,
 > {
 	source: &'a mut BridgeEndCommonParams<Source>,
@@ -123,8 +123,8 @@ pub struct FullBridge<
 
 impl<
 		'a,
-		Source: ChainWithTransactions + CliChain,
-		Target: ChainWithTransactions + CliChain,
+		Source: ChainWithTransactions + ChainWithRuntimeVersion,
+		Target: ChainWithTransactions + ChainWithRuntimeVersion,
 		Bridge: MessagesCliBridge<Source = Source, Target = Target>,
 	> FullBridge<'a, Source, Target, Bridge>
 where
@@ -174,9 +174,9 @@ pub trait Full2WayBridgeBase: Sized + Send + Sync {
 	/// The CLI params for the bridge.
 	type Params;
 	/// The left relay chain.
-	type Left: ChainWithTransactions + CliChain;
+	type Left: ChainWithTransactions + ChainWithRuntimeVersion;
 	/// The right destination chain (it can be a relay or a parachain).
-	type Right: ChainWithTransactions + CliChain;
+	type Right: ChainWithTransactions + ChainWithRuntimeVersion;
 
 	/// Reference to common relay parameters.
 	fn common(&self) -> &Full2WayBridgeCommonParams<Self::Left, Self::Right>;
@@ -206,9 +206,9 @@ where
 	type Base: Full2WayBridgeBase<Left = Self::Left, Right = Self::Right>;
 
 	/// The left relay chain.
-	type Left: ChainWithTransactions + ChainWithBalances + ChainWithMessages + CliChain;
+	type Left: ChainWithTransactions + ChainWithBalances + ChainWithMessages + ChainWithRuntimeVersion;
 	/// The right relay chain.
-	type Right: ChainWithTransactions + ChainWithBalances + ChainWithMessages + CliChain;
+	type Right: ChainWithTransactions + ChainWithBalances + ChainWithMessages + ChainWithRuntimeVersion;
 
 	/// Left to Right bridge.
 	type L2R: MessagesCliBridge<Source = Self::Left, Target = Self::Right>;

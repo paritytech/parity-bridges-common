@@ -20,11 +20,10 @@ pub mod codegen_runtime;
 
 use bp_bridge_hub_kusama::{TransactionExtension, AVERAGE_BLOCK_INTERVAL};
 use bp_polkadot::SuffixedCommonTransactionExtensionExt;
-use brp_cli::CliChain;
 use codec::Encode;
 use relay_substrate_client::{
 	calls::UtilityCall as MockUtilityCall, Chain, ChainWithBalances, ChainWithMessages,
-	ChainWithTransactions, ChainWithUtilityPallet, Error as SubstrateError,
+	ChainWithTransactions, ChainWithUtilityPallet, ChainWithRuntimeVersion, Error as SubstrateError,
 	MockedRuntimeUtilityPallet, SignParam, SimpleRuntimeVersion, UnderlyingChainProvider,
 	UnsignedTransaction,
 };
@@ -123,7 +122,7 @@ impl ChainWithMessages for BridgeHubKusama {
 		bp_bridge_hub_kusama::FROM_BRIDGE_HUB_KUSAMA_MESSAGE_DETAILS_METHOD;
 }
 
-impl CliChain for BridgeHubKusama {
+impl ChainWithRuntimeVersion for BridgeHubKusama {
 	const RUNTIME_VERSION: Option<SimpleRuntimeVersion> =
 		Some(SimpleRuntimeVersion { spec_version: 1_001_000, transaction_version: 4 });
 }

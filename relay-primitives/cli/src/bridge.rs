@@ -14,9 +14,8 @@
 // You should have received a copy of the GNU General Public License
 // along with Parity Bridges Common.  If not, see <http://www.gnu.org/licenses/>.
 
-use crate::CliChain;
 use pallet_bridge_parachains::{RelayBlockHash, RelayBlockHasher, RelayBlockNumber};
-use relay_substrate_client::{Chain, ChainWithTransactions, Parachain, RelayChain};
+use relay_substrate_client::{Chain, ChainWithTransactions, ChainWithRuntimeVersion, Parachain, RelayChain};
 use substrate_relay_helper::{
 	equivocation::SubstrateEquivocationDetectionPipeline,
 	finality::SubstrateFinalitySyncPipeline,
@@ -28,9 +27,9 @@ use substrate_relay_helper::{
 /// It connects a source chain to a target chain.
 pub trait CliBridgeBase: Sized {
 	/// The source chain.
-	type Source: Chain + CliChain;
+	type Source: Chain + ChainWithRuntimeVersion;
 	/// The target chain.
-	type Target: ChainWithTransactions + CliChain;
+	type Target: ChainWithTransactions + ChainWithRuntimeVersion;
 }
 
 /// Bridge representation that can be used from the CLI for relaying headers
@@ -77,7 +76,7 @@ where
 	// The `CliBridgeBase` type represents the parachain in this situation.
 	// We need to add an extra type for the relay chain.
 	type SourceRelay: Chain<BlockNumber = RelayBlockNumber, Hash = RelayBlockHash, Hasher = RelayBlockHasher>
-		+ CliChain
+		+ ChainWithRuntimeVersion
 		+ RelayChain;
 	/// Finality proofs synchronization pipeline (source parachain -> target).
 	type ParachainFinality: SubstrateParachainsPipeline<

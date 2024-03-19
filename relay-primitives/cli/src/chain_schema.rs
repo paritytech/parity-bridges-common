@@ -19,8 +19,7 @@ use relay_substrate_client::{AccountKeyPairOf, ChainWithTransactions};
 use structopt::StructOpt;
 use strum::{EnumString, VariantNames};
 
-use crate::CliChain;
-use relay_substrate_client::{ChainRuntimeVersion, SimpleRuntimeVersion};
+use relay_substrate_client::{ChainRuntimeVersion, ChainWithRuntimeVersion, SimpleRuntimeVersion};
 use substrate_relay_helper::TransactionParams;
 
 #[doc = "Runtime version params."]
@@ -111,7 +110,7 @@ macro_rules! declare_chain_connection_params_cli_schema {
 			impl [<$chain ConnectionParams>] {
 				/// Convert connection params into Substrate client.
 				#[allow(dead_code)]
-				pub async fn into_client<Chain: CliChain>(
+				pub async fn into_client<Chain: ChainWithRuntimeVersion>(
 					self,
 				) -> anyhow::Result<relay_substrate_client::Client<Chain>> {
 					let chain_runtime_version = self

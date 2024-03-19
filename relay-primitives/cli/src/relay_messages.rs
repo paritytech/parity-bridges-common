@@ -18,10 +18,12 @@ use async_trait::async_trait;
 use sp_core::Pair;
 use structopt::StructOpt;
 
-use relay_substrate_client::{AccountIdOf, AccountKeyPairOf, BalanceOf, ChainWithTransactions};
+use relay_substrate_client::{
+	AccountIdOf, AccountKeyPairOf, BalanceOf, ChainWithTransactions, ChainWithRuntimeVersion,
+};
 use substrate_relay_helper::{messages_lane::MessagesRelayParams, TransactionParams};
 
-use crate::{bridge::*, chain_schema::*, CliChain, HexLaneId, PrometheusParams};
+use crate::{bridge::*, chain_schema::*, HexLaneId, PrometheusParams};
 
 /// Messages relaying params.
 #[derive(StructOpt)]
@@ -44,7 +46,7 @@ pub struct RelayMessagesParams {
 #[async_trait]
 pub trait MessagesRelayer: MessagesCliBridge
 where
-	Self::Source: ChainWithTransactions + CliChain,
+	Self::Source: ChainWithTransactions + ChainWithRuntimeVersion,
 	AccountIdOf<Self::Source>: From<<AccountKeyPairOf<Self::Source> as Pair>::Public>,
 	AccountIdOf<Self::Target>: From<<AccountKeyPairOf<Self::Target> as Pair>::Public>,
 	BalanceOf<Self::Source>: TryFrom<BalanceOf<Self::Target>>,

@@ -58,10 +58,10 @@ use brp_cli::{
 		BridgeEndCommonParams, Full2WayBridge, Full2WayBridgeCommonParams,
 		HeadersAndMessagesSharedParams,
 	},
-	CliChain,
 };
 use relay_substrate_client::{
-	AccountKeyPairOf, ChainRuntimeVersion, ChainWithTransactions, Parachain, SimpleRuntimeVersion,
+	AccountKeyPairOf, ChainRuntimeVersion, ChainWithTransactions, ChainWithRuntimeVersion, Parachain,
+	SimpleRuntimeVersion,
 };
 use substrate_relay_helper::TransactionParams;
 

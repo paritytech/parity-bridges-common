@@ -19,10 +19,9 @@
 mod codegen_runtime;
 
 use bp_polkadot_bulletin::POLKADOT_BULLETIN_SYNCED_HEADERS_GRANDPA_INFO_METHOD;
-use brp_cli::CliChain;
 use codec::Encode;
 use relay_substrate_client::{
-	Chain, ChainWithBalances, ChainWithGrandpa, ChainWithMessages, ChainWithTransactions,
+	Chain, ChainWithBalances, ChainWithGrandpa, ChainWithMessages, ChainWithTransactions, ChainWithRuntimeVersion,
 	Error as SubstrateError, SignParam, SimpleRuntimeVersion, UnderlyingChainProvider,
 	UnsignedTransaction,
 };
@@ -134,7 +133,7 @@ impl ChainWithTransactions for PolkadotBulletin {
 	}
 }
 
-impl CliChain for PolkadotBulletin {
+impl ChainWithRuntimeVersion for PolkadotBulletin {
 	const RUNTIME_VERSION: Option<SimpleRuntimeVersion> =
 		Some(SimpleRuntimeVersion { spec_version: 100, transaction_version: 1 });
 }

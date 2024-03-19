@@ -22,7 +22,6 @@ use structopt::{clap::arg_enum, StructOpt};
 use strum::{EnumString, VariantNames};
 
 use bp_messages::LaneId;
-use relay_substrate_client::SimpleRuntimeVersion;
 
 pub mod bridge;
 
@@ -47,16 +46,6 @@ arg_enum! {
 		Target,
 		Source,
 	}
-}
-
-/// Bridge-supported network definition.
-///
-/// Used to abstract away CLI commands.
-pub trait CliChain: relay_substrate_client::Chain {
-	/// Current version of the chain runtime, known to relay.
-	///
-	/// can be `None` if relay is not going to submit transactions to that chain.
-	const RUNTIME_VERSION: Option<SimpleRuntimeVersion>;
 }
 
 /// Lane id.

@@ -20,11 +20,11 @@ pub mod codegen_runtime;
 
 use bp_polkadot_core::SuffixedCommonTransactionExtensionExt;
 use bp_westend::WESTEND_SYNCED_HEADERS_GRANDPA_INFO_METHOD;
-use brp_cli::CliChain;
 use codec::Encode;
 use relay_substrate_client::{
-	Chain, ChainWithBalances, ChainWithGrandpa, ChainWithTransactions, Error as SubstrateError,
-	RelayChain, SignParam, SimpleRuntimeVersion, UnderlyingChainProvider, UnsignedTransaction,
+	Chain, ChainWithBalances, ChainWithGrandpa, ChainWithTransactions, ChainWithRuntimeVersion,
+	Error as SubstrateError, RelayChain, SignParam, SimpleRuntimeVersion, UnderlyingChainProvider,
+	UnsignedTransaction,
 };
 use sp_core::{storage::StorageKey, Pair};
 use sp_runtime::{generic::SignedPayload, traits::IdentifyAccount, MultiAddress};
@@ -116,7 +116,7 @@ impl ChainWithTransactions for Westend {
 	}
 }
 
-impl CliChain for Westend {
+impl ChainWithRuntimeVersion for Westend {
 	const RUNTIME_VERSION: Option<SimpleRuntimeVersion> =
 		Some(SimpleRuntimeVersion { spec_version: 1_008_000, transaction_version: 24 });
 }
