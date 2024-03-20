@@ -9109,6 +9109,7 @@ dependencies = [
  "pallet-transaction-payment",
  "parachains-relay",
  "parity-scale-codec",
+ "rbtag",
  "relay-bridge-hub-rococo-client",
  "relay-bridge-hub-westend-client",
  "relay-rococo-client",
@@ -9117,6 +9118,8 @@ dependencies = [
  "sp-consensus-grandpa",
  "sp-core",
  "sp-runtime",
+ "structopt",
+ "strum 0.26.2",
  "thiserror",
 ]
 
