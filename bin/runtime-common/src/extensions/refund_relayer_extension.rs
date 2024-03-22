@@ -944,6 +944,7 @@ pub(crate) mod tests {
 		mock::*,
 		DefaultRefundableParachainId,
 	};
+	use bp_header_chain::StoredHeaderDataBuilder;
 	use bp_messages::{
 		DeliveredMessages, InboundLaneData, MessageNonce, MessagesOperatingMode, OutboundLaneData,
 		UnrewardedRelayer, UnrewardedRelayersState,
@@ -1047,6 +1048,10 @@ pub(crate) mod tests {
 			StoredAuthoritySet::try_new(authorities, TEST_GRANDPA_SET_ID).unwrap(),
 		);
 		pallet_bridge_grandpa::BestFinalized::<TestRuntime>::put(best_relay_header);
+		pallet_bridge_grandpa::ImportedHeaders::<TestRuntime>::insert(
+			best_relay_header.hash(),
+			bp_test_utils::test_header::<BridgedChainHeader>(0).build(),
+		);
 
 		let para_id = ParaId(TestParachain::get());
 		let para_info = ParaInfo {
@@ -1296,9 +1301,10 @@ pub(crate) mod tests {
 					is_free_execution_expected: false,
 				},
 				SubmitParachainHeadsInfo {
-					at_relay_block_number: 200,
+					at_relay_block: (200, [0u8; 32].into()),
 					para_id: ParaId(TestParachain::get()),
 					para_head_hash: [200u8; 32].into(),
+					is_free_execution_expected: false,
 				},
 				MessagesCallInfo::ReceiveMessagesProof(ReceiveMessagesProofInfo {
 					base: BaseMessagesProofInfo {
@@ -1334,9 +1340,10 @@ pub(crate) mod tests {
 					is_free_execution_expected: false,
 				},
 				SubmitParachainHeadsInfo {
-					at_relay_block_number: 200,
+					at_relay_block: (200, [0u8; 32].into()),
 					para_id: ParaId(TestParachain::get()),
 					para_head_hash: [200u8; 32].into(),
+					is_free_execution_expected: false,
 				},
 				MessagesCallInfo::ReceiveMessagesDeliveryProof(ReceiveMessagesDeliveryProofInfo(
 					BaseMessagesProofInfo {
@@ -1423,9 +1430,10 @@ pub(crate) mod tests {
 			relayer: relayer_account_at_this_chain(),
 			call_info: CallInfo::ParachainFinalityAndMsgs(
 				SubmitParachainHeadsInfo {
-					at_relay_block_number: 200,
+					at_relay_block: (200, [0u8; 32].into()),
 					para_id: ParaId(TestParachain::get()),
 					para_head_hash: [200u8; 32].into(),
+					is_free_execution_expected: false,
 				},
 				MessagesCallInfo::ReceiveMessagesProof(ReceiveMessagesProofInfo {
 					base: BaseMessagesProofInfo {
@@ -1447,9 +1455,10 @@ pub(crate) mod tests {
 			relayer: relayer_account_at_this_chain(),
 			call_info: CallInfo::ParachainFinalityAndMsgs(
 				SubmitParachainHeadsInfo {
-					at_relay_block_number: 200,
+					at_relay_block: (200, [0u8; 32].into()),
 					para_id: ParaId(TestParachain::get()),
 					para_head_hash: [200u8; 32].into(),
+					is_free_execution_expected: false,
 				},
 				MessagesCallInfo::ReceiveMessagesDeliveryProof(ReceiveMessagesDeliveryProofInfo(
 					BaseMessagesProofInfo {
