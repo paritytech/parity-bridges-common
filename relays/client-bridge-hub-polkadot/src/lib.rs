@@ -41,8 +41,7 @@ pub type BridgeKusamaMessagesCall = runtime_types::pallet_bridge_messages::palle
 pub type BridgePolkadotBulletinGrandpaCall = runtime_types::pallet_bridge_grandpa::pallet::Call;
 pub type BridgeKusamaGrandpaCall = runtime_types::pallet_bridge_grandpa::pallet::Call;
 pub type BridgeParachainCall = runtime_types::pallet_bridge_parachains::pallet::Call;
-type UncheckedExtrinsic =
-	bp_bridge_hub_polkadot::UncheckedExtrinsic<RuntimeCall, SignedExtension>;
+type UncheckedExtrinsic = bp_bridge_hub_polkadot::UncheckedExtrinsic<RuntimeCall, SignedExtension>;
 type UtilityCall = runtime_types::pallet_utility::pallet::Call;
 
 /// Polkadot chain definition

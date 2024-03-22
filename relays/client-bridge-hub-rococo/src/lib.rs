@@ -39,8 +39,7 @@ pub type BridgeBulletinMessagesCall = runtime_types::pallet_bridge_messages::pal
 pub type BridgeGrandpaCall = runtime_types::pallet_bridge_grandpa::pallet::Call;
 pub type BridgeBulletinGrandpaCall = runtime_types::pallet_bridge_grandpa::pallet::Call2;
 pub type BridgeParachainCall = runtime_types::pallet_bridge_parachains::pallet::Call;
-type UncheckedExtrinsic =
-	bp_bridge_hub_rococo::UncheckedExtrinsic<RuntimeCall, SignedExtension>;
+type UncheckedExtrinsic = bp_bridge_hub_rococo::UncheckedExtrinsic<RuntimeCall, SignedExtension>;
 type UtilityCall = runtime_types::pallet_utility::pallet::Call;
 
 /// Rococo chain definition

@@ -37,8 +37,7 @@ pub type RuntimeCall = runtime_types::bridge_hub_kusama_runtime::RuntimeCall;
 pub type BridgeMessagesCall = runtime_types::pallet_bridge_messages::pallet::Call;
 pub type BridgeGrandpaCall = runtime_types::pallet_bridge_grandpa::pallet::Call;
 pub type BridgeParachainCall = runtime_types::pallet_bridge_parachains::pallet::Call;
-type UncheckedExtrinsic =
-	bp_bridge_hub_kusama::UncheckedExtrinsic<RuntimeCall, SignedExtension>;
+type UncheckedExtrinsic = bp_bridge_hub_kusama::UncheckedExtrinsic<RuntimeCall, SignedExtension>;
 type UtilityCall = runtime_types::pallet_utility::pallet::Call;
 
 /// Kusama chain definition

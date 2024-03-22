@@ -100,10 +100,8 @@ impl ChainWithBalances for PolkadotBulletin {
 
 impl ChainWithTransactions for PolkadotBulletin {
 	type AccountKeyPair = sp_core::sr25519::Pair;
-	type SignedTransaction = bp_polkadot_bulletin::UncheckedExtrinsic<
-		Self::Call,
-		bp_polkadot_bulletin::SignedExtension,
-	>;
+	type SignedTransaction =
+		bp_polkadot_bulletin::UncheckedExtrinsic<Self::Call, bp_polkadot_bulletin::SignedExtension>;
 
 	fn sign_transaction(
 		param: SignParam<Self>,
