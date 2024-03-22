@@ -168,12 +168,14 @@ impl frame_system::Config for TestRuntime {
 
 parameter_types! {
 	pub const HeadersToKeep: u32 = 5;
+	pub const FreeHeadersInterval: u32 = 15;
 }
 
 impl pallet_bridge_grandpa::Config<pallet_bridge_grandpa::Instance1> for TestRuntime {
 	type RuntimeEvent = RuntimeEvent;
 	type BridgedChain = TestBridgedChain;
-	type MaxFreeMandatoryHeadersPerBlock = ConstU32<2>;
+	type MaxFreeHeadersPerBlock = ConstU32<2>;
+	type FreeHeadersInterval = FreeHeadersInterval;
 	type HeadersToKeep = HeadersToKeep;
 	type WeightInfo = ();
 }
@@ -181,7 +183,8 @@ impl pallet_bridge_grandpa::Config<pallet_bridge_grandpa::Instance1> for TestRun
 impl pallet_bridge_grandpa::Config<pallet_bridge_grandpa::Instance2> for TestRuntime {
 	type RuntimeEvent = RuntimeEvent;
 	type BridgedChain = TestBridgedChain;
-	type MaxFreeMandatoryHeadersPerBlock = ConstU32<2>;
+	type MaxFreeHeadersPerBlock = ConstU32<2>;
+	type FreeHeadersInterval = FreeHeadersInterval;
 	type HeadersToKeep = HeadersToKeep;
 	type WeightInfo = ();
 }

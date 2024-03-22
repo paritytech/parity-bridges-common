@@ -1401,6 +1401,7 @@ dependencies = [
  "staging-xcm",
  "staging-xcm-builder",
  "static_assertions",
+ "tuplex",
 ]
 
 [[package]]
