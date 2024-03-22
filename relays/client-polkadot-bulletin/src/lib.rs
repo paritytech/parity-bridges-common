@@ -102,7 +102,7 @@ impl ChainWithTransactions for PolkadotBulletin {
 	type AccountKeyPair = sp_core::sr25519::Pair;
 	type SignedTransaction = bp_polkadot_bulletin::UncheckedExtrinsic<
 		Self::Call,
-		bp_polkadot_bulletin::TransactionExtension,
+		bp_polkadot_bulletin::SignedExtension,
 	>;
 
 	fn sign_transaction(
@@ -111,7 +111,7 @@ impl ChainWithTransactions for PolkadotBulletin {
 	) -> Result<Self::SignedTransaction, SubstrateError> {
 		let raw_payload = SignedPayload::new(
 			unsigned.call,
-			bp_polkadot_bulletin::TransactionExtension::from_params(
+			bp_polkadot_bulletin::SignedExtension::from_params(
 				param.spec_version,
 				param.transaction_version,
 				unsigned.era,
