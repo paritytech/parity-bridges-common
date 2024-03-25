@@ -84,7 +84,7 @@ SS58Prefix
 STALL_SYNC_TIMEOUT
 SURI
 ServiceFactory/MS
-TransactionExtension
+SignedExtension
 Stringified
 Submitter1
 S|N
