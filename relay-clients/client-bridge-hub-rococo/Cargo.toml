@@ -23,7 +23,7 @@ bp-polkadot-core = { path = "../../primitives/polkadot-core" }
 bp-runtime = { path = "../../primitives/runtime" }
 
 bridge-runtime-common = { path = "../../bin/runtime-common" }
-relay-substrate-client = { path = "../client-substrate" }
+relay-substrate-client = { path = "../../relays/client-substrate" }
 
 # Substrate Dependencies
 
