@@ -347,7 +347,7 @@ macro_rules! decl_bridge_finality_runtime_apis {
 
 						/// Returns free headers interval, if it is configured in the runtime.
 						/// The caller expects that his transactions for every `N`th header
-						/// (where `N` is the configured interval) wil be fee-free.
+						/// (where `N` is the configured interval) will be fee-free.
 						///
 						/// See [`pallet_bridge_grandpa::Config::FreeHeadersInterval`] for details.
 						fn free_headers_interval() -> Option<BlockNumber>;
