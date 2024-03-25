@@ -162,6 +162,7 @@ impl bp_runtime::Chain for BaseBridgeHubRococoAsBridgeHubPolkadot {
 
 impl bp_runtime::Parachain for BaseBridgeHubRococoAsBridgeHubPolkadot {
 	const PARACHAIN_ID: u32 = bp_bridge_hub_rococo::BridgeHubRococo::PARACHAIN_ID;
+	const MAX_HEADER_SIZE: u32 = bp_bridge_hub_rococo::BridgeHubRococo::MAX_HEADER_SIZE;
 }
 
 impl bp_messages::ChainWithMessages for BaseBridgeHubRococoAsBridgeHubPolkadot {
