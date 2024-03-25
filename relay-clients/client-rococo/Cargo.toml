@@ -1,5 +1,5 @@
 [package]
-name = "relay-westend-client"
+name = "relay-rococo-client"
 version = "0.1.0"
 authors = ["Parity Technologies <admin@parity.io>"]
 edition = "2021"
@@ -16,11 +16,10 @@ subxt = { version = "0.32.1", default-features = false, features = ["native"] }
 # Bridge dependencies
 
 bp-polkadot-core = { path = "../../primitives/polkadot-core" }
-bp-runtime = { path = "../../primitives/runtime" }
-bp-westend = { path = "../../chains/chain-westend" }
+bp-rococo = { path = "../../chains/chain-rococo" }
 
-relay-substrate-client = { path = "../client-substrate" }
-relay-utils = { path = "../utils" }
+relay-substrate-client = { path = "../../relays/client-substrate" }
+relay-utils = { path = "../../relays/utils" }
 
 # Substrate Dependencies
 

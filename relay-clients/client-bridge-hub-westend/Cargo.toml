@@ -1,5 +1,5 @@
 [package]
-name = "relay-bridge-hub-kusama-client"
+name = "relay-bridge-hub-westend-client"
 version = "0.1.0"
 authors = ["Parity Technologies <admin@parity.io>"]
 edition = "2021"
@@ -11,22 +11,26 @@ workspace = true
 [dependencies]
 codec = { package = "parity-scale-codec", version = "3.1.5", features = ["derive"] }
 scale-info = { version = "2.11.0", default-features = false, features = ["derive"] }
-#relay-substrate-client = { path = "../client-substrate" }
 subxt = { version = "0.32.1", default-features = false, features = ["native"] }
 
 # Bridge dependencies
 
-bp-bridge-hub-kusama = { path = "../../chains/chain-bridge-hub-kusama" }
+bp-bridge-hub-westend = { path = "../../chains/chain-bridge-hub-westend" }
 bp-header-chain = { path = "../../primitives/header-chain" }
 bp-messages = { path = "../../primitives/messages" }
 bp-parachains = { path = "../../primitives/parachains" }
-bp-polkadot = { path = "../../chains/chain-polkadot" }
 bp-polkadot-core = { path = "../../primitives/polkadot-core" }
+bp-rococo = { path = "../../chains/chain-rococo" }
+
 bridge-runtime-common = { path = "../../bin/runtime-common" }
-relay-substrate-client = { path = "../client-substrate" }
+relay-substrate-client = { path = "../../relays/client-substrate" }
 
 # Substrate Dependencies
 
 sp-core = { git = "https://github.com/paritytech/polkadot-sdk", branch = "master" }
 sp-runtime = { git = "https://github.com/paritytech/polkadot-sdk", branch = "master" }
 sp-weights = { git = "https://github.com/paritytech/polkadot-sdk", branch = "master" }
+
+[dev-dependencies]
+bp-runtime = { path = "../../primitives/runtime" }
+sp-consensus-grandpa = { git = "https://github.com/paritytech/polkadot-sdk", branch = "master" }
