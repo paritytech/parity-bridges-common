@@ -43,12 +43,14 @@ impl SubmitParachainHeadsCallBuilder<BridgeHubRococoToBridgeHubWestend>
 		at_relay_block: HeaderIdOf<relay_rococo_client::Rococo>,
 		parachains: Vec<(ParaId, ParaHash)>,
 		parachain_heads_proof: ParaHeadsProof,
+		is_free_execution_expected: bool,
 	) -> CallOf<relay_bridge_hub_westend_client::BridgeHubWestend> {
 		relay_bridge_hub_westend_client::RuntimeCall::BridgeRococoParachains(
-			relay_bridge_hub_westend_client::BridgeParachainCall::submit_parachain_heads {
+			relay_bridge_hub_westend_client::BridgeParachainCall::submit_parachain_heads_ex {
 				at_relay_block: (at_relay_block.0, at_relay_block.1),
 				parachains,
 				parachain_heads_proof,
+				is_free_execution_expected,
 			},
 		)
 	}
