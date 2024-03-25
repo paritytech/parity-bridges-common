@@ -52,6 +52,8 @@ impl Chain for BridgeHubWestend {
 	const NAME: &'static str = "BridgeHubWestend";
 	const BEST_FINALIZED_HEADER_ID_METHOD: &'static str =
 		bp_bridge_hub_westend::BEST_FINALIZED_BRIDGE_HUB_WESTEND_HEADER_METHOD;
+	const FREE_HEADERS_INTERVAL_METHOD: &'static str =
+		bp_bridge_hub_westend::FREE_HEADERS_INTERVAL_FOR_BRIDGE_HUB_WESTEND_METHOD;
 	const AVERAGE_BLOCK_INTERVAL: Duration = AVERAGE_BLOCK_INTERVAL;
 
 	type SignedBlock = bp_bridge_hub_westend::SignedBlock;

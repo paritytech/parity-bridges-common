@@ -57,6 +57,8 @@ impl Chain for Rococo {
 	const NAME: &'static str = "Rococo";
 	const BEST_FINALIZED_HEADER_ID_METHOD: &'static str =
 		bp_rococo::BEST_FINALIZED_ROCOCO_HEADER_METHOD;
+	const FREE_HEADERS_INTERVAL_METHOD: &'static str =
+		bp_rococo::FREE_HEADERS_INTERVAL_FOR_ROCOCO_METHOD;
 	const AVERAGE_BLOCK_INTERVAL: Duration = Duration::from_secs(6);
 
 	type SignedBlock = bp_rococo::SignedBlock;
@@ -78,6 +80,8 @@ impl ChainWithBalances for Rococo {
 
 impl RelayChain for Rococo {
 	const PARAS_PALLET_NAME: &'static str = bp_rococo::PARAS_PALLET_NAME;
+	const WITH_CHAIN_BRIDGE_PARACHAINS_PALLET_NAME: &'static str =
+		bp_rococo::WITH_ROCOCO_BRIDGE_PARACHAINS_PALLET_NAME;
 }
 
 impl ChainWithTransactions for Rococo {

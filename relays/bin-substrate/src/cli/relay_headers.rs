@@ -31,9 +31,13 @@ use crate::bridges::{
 		rococo_bulletin_headers_to_bridge_hub_rococo::RococoBulletinToBridgeHubRococoCliBridge,
 		rococo_headers_to_rococo_bulletin::RococoToRococoBulletinCliBridge,
 	},
+	rococo_westend::{
+		rococo_headers_to_bridge_hub_westend::RococoToBridgeHubWestendCliBridge,
+		westend_headers_to_bridge_hub_rococo::WestendToBridgeHubRococoCliBridge,
+	},
 };
 use relay_utils::metrics::{GlobalMetrics, StandaloneMetric};
-use substrate_relay_helper::finality::SubstrateFinalitySyncPipeline;
+use substrate_relay_helper::{finality::SubstrateFinalitySyncPipeline, HeadersToRelay};
 
 use crate::cli::{bridge::*, chain_schema::*, PrometheusParams};
 
@@ -47,6 +51,10 @@ pub struct RelayHeaders {
 	/// are relayed.
 	#[structopt(long)]
 	only_mandatory_headers: bool,
+	/// If passed, only free headers (mandatory and every Nth header, if configured in runtime)
+	/// are relayed. Overrides `only_mandatory_headers`.
+	#[structopt(long)]
+	only_free_headers: bool,
 	#[structopt(flatten)]
 	source: SourceConnectionParams,
 	#[structopt(flatten)]
@@ -57,10 +65,22 @@ pub struct RelayHeaders {
 	prometheus_params: PrometheusParams,
 }
 
+impl RelayHeaders {
+	fn headers_to_relay(&self) -> HeadersToRelay {
+		match (self.only_mandatory_headers, self.only_free_headers) {
+			(_, true) => HeadersToRelay::Free,
+			(true, false) => HeadersToRelay::Mandatory,
+			_ => HeadersToRelay::All,
+		}
+	}
+}
+
 #[derive(Debug, EnumString, VariantNames)]
 #[strum(serialize_all = "kebab_case")]
 /// Headers relay bridge.
 pub enum RelayHeadersBridge {
+	RococoToBridgeHubWestend,
+	WestendToBridgeHubRococo,
 	KusamaToBridgeHubPolkadot,
 	PolkadotToBridgeHubKusama,
 	PolkadotToPolkadotBulletin,
@@ -73,6 +93,7 @@ pub enum RelayHeadersBridge {
 trait HeadersRelayer: RelayToRelayHeadersCliBridge {
 	/// Relay headers.
 	async fn relay_headers(data: RelayHeaders) -> anyhow::Result<()> {
+		let headers_to_relay = data.headers_to_relay();
 		let source_client = data.source.into_client::<Self::Source>().await?;
 		let target_client = data.target.into_client::<Self::Target>().await?;
 		let target_transactions_mortality = data.target_sign.target_transactions_mortality;
@@ -92,7 +113,7 @@ trait HeadersRelayer: RelayToRelayHeadersCliBridge {
 		substrate_relay_helper::finality::run::<Self::Finality>(
 			source_client,
 			target_client,
-			data.only_mandatory_headers,
+			headers_to_relay,
 			target_transactions_params,
 			metrics_params,
 		)
@@ -100,6 +121,8 @@ trait HeadersRelayer: RelayToRelayHeadersCliBridge {
 	}
 }
 
+impl HeadersRelayer for RococoToBridgeHubWestendCliBridge {}
+impl HeadersRelayer for WestendToBridgeHubRococoCliBridge {}
 impl HeadersRelayer for KusamaToBridgeHubPolkadotCliBridge {}
 impl HeadersRelayer for PolkadotToBridgeHubKusamaCliBridge {}
 impl HeadersRelayer for PolkadotToPolkadotBulletinCliBridge {}
@@ -111,6 +134,10 @@ impl RelayHeaders {
 	/// Run the command.
 	pub async fn run(self) -> anyhow::Result<()> {
 		match self.bridge {
+			RelayHeadersBridge::RococoToBridgeHubWestend =>
+				RococoToBridgeHubWestendCliBridge::relay_headers(self),
+			RelayHeadersBridge::WestendToBridgeHubRococo =>
+				WestendToBridgeHubRococoCliBridge::relay_headers(self),
 			RelayHeadersBridge::KusamaToBridgeHubPolkadot =>
 				KusamaToBridgeHubPolkadotCliBridge::relay_headers(self),
 			RelayHeadersBridge::PolkadotToBridgeHubKusama =>

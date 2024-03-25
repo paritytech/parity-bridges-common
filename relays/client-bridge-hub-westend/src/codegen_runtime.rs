@@ -390,6 +390,16 @@ pub mod api {
 		}
 		pub mod bridge_runtime_common {
 			use super::runtime_types;
+			pub mod extensions {
+				use super::runtime_types;
+				pub mod refund_relayer_extension {
+					use super::runtime_types;
+					#[derive(:: codec :: Decode, :: codec :: Encode, Clone, Debug, PartialEq)]
+					pub struct RefundBridgedMessages;
+					#[derive(:: codec :: Decode, :: codec :: Encode, Clone, Debug, PartialEq)]
+					pub struct RefundTransactionExtensionAdapter<_0>(pub _0);
+				}
+			}
 			pub mod messages_xcm_extension {
 				use super::runtime_types;
 				#[derive(:: codec :: Decode, :: codec :: Encode, Clone, Debug, PartialEq)]
@@ -401,13 +411,6 @@ pub mod api {
 					#[codec(index = 2)]
 					NotDispatched,
 				}
-			}
-			pub mod refund_relayer_extension {
-				use super::runtime_types;
-				#[derive(:: codec :: Decode, :: codec :: Encode, Clone, Debug, PartialEq)]
-				pub struct RefundBridgedParachainMessages;
-				#[derive(:: codec :: Decode, :: codec :: Encode, Clone, Debug, PartialEq)]
-				pub struct RefundTransactionExtensionAdapter<_0>(pub _0);
 			}
 		}
 		pub mod cumulus_pallet_parachain_system {
@@ -803,8 +806,10 @@ pub mod api {
 					#[codec(index = 5)]
 					CallFiltered,
 					#[codec(index = 6)]
-					NothingAuthorized,
+					MultiBlockMigrationsOngoing,
 					#[codec(index = 7)]
+					NothingAuthorized,
+					#[codec(index = 8)]
 					Unauthorized,
 				}
 				#[derive(:: codec :: Decode, :: codec :: Encode, Clone, Debug, PartialEq)]
@@ -1136,6 +1141,7 @@ pub mod api {
 							>,
 						>,
 						current_set_id: ::core::primitive::u64,
+						is_free_execution_expected: ::core::primitive::bool,
 					},
 				}
 				#[derive(:: codec :: Decode, :: codec :: Encode, Clone, Debug, PartialEq)]
@@ -1158,6 +1164,10 @@ pub mod api {
 					BridgeModule(runtime_types::bp_runtime::OwnedBridgeModuleError),
 					#[codec(index = 8)]
 					InvalidAuthoritySetId,
+					#[codec(index = 9)]
+					FreeHeadersLimitExceded,
+					#[codec(index = 10)]
+					BelowFreeHeaderInterval,
 				}
 				#[derive(:: codec :: Decode, :: codec :: Encode, Clone, Debug, PartialEq)]
 				pub enum Event {
@@ -1238,6 +1248,16 @@ pub mod api {
 					#[codec(index = 2)]
 					set_operating_mode {
 						operating_mode: runtime_types::bp_runtime::BasicOperatingMode,
+					},
+					#[codec(index = 3)]
+					submit_parachain_heads_ex {
+						at_relay_block: (::core::primitive::u32, ::subxt::utils::H256),
+						parachains: ::std::vec::Vec<(
+							::bp_polkadot_core::parachains::ParaId,
+							::subxt::utils::H256,
+						)>,
+						parachain_heads_proof: ::bp_polkadot_core::parachains::ParaHeadsProof,
+						is_free_execution_expected: ::core::primitive::bool,
 					},
 				}
 				#[derive(:: codec :: Decode, :: codec :: Encode, Clone, Debug, PartialEq)]
@@ -1903,6 +1923,11 @@ pub mod api {
 						fee_asset_item: ::core::primitive::u32,
 						weight_limit: runtime_types::xcm::v3::WeightLimit,
 					},
+					#[codec(index = 12)]
+					claim_assets {
+						assets: ::std::boxed::Box<runtime_types::xcm::VersionedAssets>,
+						beneficiary: ::std::boxed::Box<runtime_types::xcm::VersionedLocation>,
+					},
 				}
 				#[derive(:: codec :: Decode, :: codec :: Encode, Clone, Debug, PartialEq)]
 				pub enum Error {
@@ -2091,6 +2116,8 @@ pub mod api {
 						origin: runtime_types::staging_xcm::v4::location::Location,
 						assets: runtime_types::xcm::VersionedAssets,
 					},
+					#[codec(index = 23)]
+					VersionMigrationFinished { version: ::core::primitive::u32 },
 				}
 				#[derive(:: codec :: Decode, :: codec :: Encode, Clone, Debug, PartialEq)]
 				pub enum Origin {

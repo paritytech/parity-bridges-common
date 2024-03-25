@@ -52,6 +52,8 @@ impl Chain for BridgeHubKusama {
 	const NAME: &'static str = "BridgeHubKusama";
 	const BEST_FINALIZED_HEADER_ID_METHOD: &'static str =
 		bp_bridge_hub_kusama::BEST_FINALIZED_BRIDGE_HUB_KUSAMA_HEADER_METHOD;
+	const FREE_HEADERS_INTERVAL_METHOD: &'static str =
+		bp_bridge_hub_kusama::FREE_HEADERS_INTERVAL_FOR_BRIDGE_HUB_KUSAMA_METHOD;
 	const AVERAGE_BLOCK_INTERVAL: Duration = AVERAGE_BLOCK_INTERVAL;
 
 	type SignedBlock = bp_bridge_hub_kusama::SignedBlock;
