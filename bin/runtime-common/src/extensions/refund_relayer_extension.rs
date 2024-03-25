@@ -419,7 +419,6 @@ impl<T: RefundTransactionExtension> TransactionExtensionBase
 	for RefundTransactionExtensionAdapter<T>
 where
 	CallOf<T::Runtime>: Dispatchable<Info = DispatchInfo, PostInfo = PostDispatchInfo>
-		// 		+ IsSubType<CallableCallFor<UtilityPallet<T::Runtime>, T::Runtime>>
 		+ MessagesCallSubType<T::Runtime, <T::Msgs as RefundableMessagesLaneId>::Instance>,
 {
 	const IDENTIFIER: &'static str = T::Id::STR;
@@ -430,7 +429,6 @@ impl<T: RefundTransactionExtension, Context> TransactionExtension<CallOf<T::Runt
 	for RefundTransactionExtensionAdapter<T>
 where
 	CallOf<T::Runtime>: Dispatchable<Info = DispatchInfo, PostInfo = PostDispatchInfo>
-		// 		+ IsSubType<CallableCallFor<UtilityPallet<T::Runtime>, T::Runtime>>
 		+ MessagesCallSubType<T::Runtime, <T::Msgs as RefundableMessagesLaneId>::Instance>,
 	<CallOf<T::Runtime> as Dispatchable>::RuntimeOrigin:
 		AsSystemOriginSigner<AccountIdOf<T::Runtime>> + Clone,
