@@ -1269,7 +1269,7 @@ pub(crate) mod tests {
 		RuntimeCall::Utility(UtilityCall::batch_all {
 			calls: vec![
 				submit_relay_header_call_ex(relay_header_number),
-				submit_parachain_head_call(parachain_head_at_relay_header_number),
+				submit_parachain_head_call_ex(parachain_head_at_relay_header_number),
 				message_delivery_call(best_message),
 			],
 		})
@@ -1297,7 +1297,7 @@ pub(crate) mod tests {
 		RuntimeCall::Utility(UtilityCall::batch_all {
 			calls: vec![
 				submit_relay_header_call_ex(relay_header_number),
-				submit_parachain_head_call(parachain_head_at_relay_header_number),
+				submit_parachain_head_call_ex(parachain_head_at_relay_header_number),
 				message_confirmation_call(best_message),
 			],
 		})
