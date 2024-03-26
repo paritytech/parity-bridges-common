@@ -118,5 +118,5 @@ impl ChainWithTransactions for Westend {
 
 impl ChainWithRuntimeVersion for Westend {
 	const RUNTIME_VERSION: Option<SimpleRuntimeVersion> =
-		Some(SimpleRuntimeVersion { spec_version: 1_008_000, transaction_version: 24 });
+		Some(SimpleRuntimeVersion { spec_version: 1_009_000, transaction_version: 24 });
 }
