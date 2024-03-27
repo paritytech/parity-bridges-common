@@ -48,9 +48,15 @@ std = [
 	"frame-system/std",
 	"log/std",
 	"scale-info/std",
-	"serde",
+	"serde/std",
 	"sp-core/std",
 	"sp-runtime/std",
 	"sp-std/std",
 ]
-try-runtime = ["frame-support/try-runtime", "frame-system/try-runtime"]
+try-runtime = [
+	"frame-support/try-runtime",
+	"frame-system/try-runtime",
+	"pallet-beefy-mmr/try-runtime",
+	"pallet-mmr/try-runtime",
+	"sp-runtime/try-runtime",
+]
