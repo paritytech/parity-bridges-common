@@ -5,6 +5,7 @@ description = "Module implementing BEEFY on-chain light client used for bridging
 authors = ["Parity Technologies <admin@parity.io>"]
 edition = "2021"
 license = "GPL-3.0-or-later WITH Classpath-exception-2.0"
+publish = false
 
 [lints]
 workspace = true
