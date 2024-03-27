@@ -9093,7 +9093,6 @@ dependencies = [
  "bp-parachains",
  "bp-polkadot-core",
  "bp-relayers",
- "bp-rococo",
  "bp-runtime",
  "bridge-runtime-common",
  "equivocation-detector",
