@@ -4,6 +4,7 @@ version = "0.1.0"
 authors = ["Parity Technologies <admin@parity.io>"]
 edition = "2021"
 license = "GPL-3.0-or-later WITH Classpath-exception-2.0"
+publish = false
 
 [lints]
 workspace = true
@@ -56,8 +57,5 @@ sp-consensus-grandpa = { git = "https://github.com/paritytech/polkadot-sdk", bra
 sp-runtime = { git = "https://github.com/paritytech/polkadot-sdk", branch = "master" }
 
 [dev-dependencies]
-bp-rococo = { path = "../../chains/chain-rococo" }
 pallet-transaction-payment = { git = "https://github.com/paritytech/polkadot-sdk", branch = "master" }
-relay-bridge-hub-rococo-client = { path = "../../relay-clients/client-bridge-hub-rococo" }
-relay-bridge-hub-westend-client = { path = "../../relay-clients/client-bridge-hub-westend" }
-relay-rococo-client = { path = "../../relay-clients/client-rococo" }
+relay-substrate-client = { path = "../client-substrate", features = ["test-helpers"] }
