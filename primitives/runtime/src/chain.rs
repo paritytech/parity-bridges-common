@@ -98,24 +98,13 @@ impl<ChainCall: Encode> Encode for EncodedOrDecodedCall<ChainCall> {
 	}
 }
 
-// dummy implementation to satisfy `SignedPayload` requirements
-impl<ChainCall> sp_runtime::traits::Dispatchable for EncodedOrDecodedCall<ChainCall> {
-	type RuntimeOrigin = ();
-	type Config = ();
-	type Info = ();
-	type PostInfo = ();
-	fn dispatch(self, _origin: ()) -> sp_runtime::DispatchResultWithInfo<()> {
-		unreachable!("never used by relayer; qed")
-	}
-}
-
 /// Minimal Substrate-based chain representation that may be used from no_std environment.
 pub trait Chain: Send + Sync + 'static {
 	/// Chain id.
 	const ID: ChainId;
 
 	/// A type that fulfills the abstract idea of what a Substrate block number is.
-	// Constraits come from the associated Number type of `sp_runtime::traits::Header`
+	// Constraints come from the associated Number type of `sp_runtime::traits::Header`
 	// See here for more info:
 	// https://crates.parity.io/sp_runtime/traits/trait.Header.html#associatedtype.Number
 	//
@@ -136,7 +125,7 @@ pub trait Chain: Send + Sync + 'static {
 		+ MaxEncodedLen;
 
 	/// A type that fulfills the abstract idea of what a Substrate hash is.
-	// Constraits come from the associated Hash type of `sp_runtime::traits::Header`
+	// Constraints come from the associated Hash type of `sp_runtime::traits::Header`
 	// See here for more info:
 	// https://crates.parity.io/sp_runtime/traits/trait.Header.html#associatedtype.Hash
 	type Hash: Parameter
@@ -154,7 +143,7 @@ pub trait Chain: Send + Sync + 'static {
 
 	/// A type that fulfills the abstract idea of what a Substrate hasher (a type
 	/// that produces hashes) is.
-	// Constraits come from the associated Hashing type of `sp_runtime::traits::Header`
+	// Constraints come from the associated Hashing type of `sp_runtime::traits::Header`
 	// See here for more info:
 	// https://crates.parity.io/sp_runtime/traits/trait.Header.html#associatedtype.Hashing
 	type Hasher: HashT<Output = Self::Hash>;
