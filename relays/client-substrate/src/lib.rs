@@ -57,7 +57,7 @@ pub use bp_runtime::{
 /// Substrate-over-websocket connection params.
 #[derive(Debug, Clone)]
 pub struct ConnectionParams {
-	/// Websocket endpoint URI. Overrides all other URI components (`host`, `port`, `path` and
+	/// Websocket endpoint URL. Overrides all other URL components (`host`, `port`, `path` and
 	/// `secure`).
 	pub uri: Option<String>,
 	/// Websocket server host name.
