@@ -8,7 +8,7 @@
 #
 # See the `deployments/README.md` for all the available `PROJECT` values.
 
-FROM docker.io/paritytech/bridges-ci:production as builder
+FROM docker.io/paritytech/ci-unified:latest as builder
 USER root
 WORKDIR /parity-bridges-common
 
