@@ -94,7 +94,7 @@ macro_rules! declare_chain_connection_params_cli_schema {
 		bp_runtime::paste::item! {
 			// TODO: https://github.com/paritytech/parity-bridges-common/issues/2909
 			// remove all obsolete arguments (separate URI components)
-			
+
 			#[doc = $chain " connection params."]
 			#[derive(StructOpt, Debug, PartialEq, Eq, Clone)]
 			pub struct [<$chain ConnectionParams>] {
