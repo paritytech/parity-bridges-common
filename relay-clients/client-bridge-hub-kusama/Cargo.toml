@@ -10,7 +10,7 @@ repository.workspace = true
 workspace = true
 
 [dependencies]
-codec = { package = "parity-scale-codec", version = "3.1.5", features = ["derive"] }
+codec = { package = "parity-scale-codec", version = "3.6.1", features = ["derive"] }
 scale-info = { version = "2.11.1", default-features = false, features = ["derive"] }
 #relay-substrate-client = { path = "../client-substrate" }
 subxt = { version = "0.32.1", default-features = false, features = ["native"] }
