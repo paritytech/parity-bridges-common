@@ -5,6 +5,7 @@ description = "Tool for generating bridge runtime code from metadata"
 authors = ["Parity Technologies <admin@parity.io>"]
 edition = "2021"
 license = "GPL-3.0-only"
+repository = "https://github.com/paritytech/parity-bridges-common.git"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 

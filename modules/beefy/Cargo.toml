@@ -5,6 +5,7 @@ description = "Module implementing BEEFY on-chain light client used for bridging
 authors.workspace = true
 edition.workspace = true
 license.workspace = true
+repository.workspace = true
 publish = false
 
 [lints]

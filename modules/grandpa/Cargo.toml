@@ -5,6 +5,7 @@ description = "Module implementing GRANDPA on-chain light client used for bridgi
 authors.workspace = true
 edition.workspace = true
 license.workspace = true
+repository.workspace = true
 
 [lints]
 workspace = true
