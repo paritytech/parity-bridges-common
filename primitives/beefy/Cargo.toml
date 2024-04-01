@@ -11,7 +11,7 @@ workspace = true
 
 [dependencies]
 codec = { package = "parity-scale-codec", version = "3.1.5", default-features = false, features = ["derive", "bit-vec"] }
-scale-info = { version = "2.11.0", default-features = false, features = ["bit-vec", "derive", "serde"] }
+scale-info = { version = "2.11.1", default-features = false, features = ["bit-vec", "derive", "serde"] }
 serde = { version = "1.0", default-features = false, features = ["alloc", "derive"] }
 
 # Bridge Dependencies
