@@ -1608,15 +1608,6 @@ dependencies = [
 
 [[package]]
 name = "ckb-merkle-mountain-range"
-version = "0.3.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4f061f97d64fd1822664bdfb722f7ae5469a97b77567390f7442be5b5dc82a5b"
-dependencies = [
- "cfg-if 0.1.10",
-]
-
-[[package]]
-name = "ckb-merkle-mountain-range"
 version = "0.5.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "56ccb671c5921be8a84686e6212ca184cb1d7c51cadcdbfcbd1cc3f042f5dfb8"
@@ -5342,7 +5333,7 @@ dependencies = [
  "bp-beefy",
  "bp-runtime",
  "bp-test-utils",
- "ckb-merkle-mountain-range 0.3.2",
+ "ckb-merkle-mountain-range",
  "frame-support",
  "frame-system",
  "log",
@@ -8584,7 +8575,7 @@ name = "sp-mmr-primitives"
 version = "26.0.0"
 source = "git+https://github.com/paritytech/polkadot-sdk?branch=master#e6bd9205432bb524e94c9bd13048d645ec9aa5c7"
 dependencies = [
- "ckb-merkle-mountain-range 0.5.2",
+ "ckb-merkle-mountain-range",
  "log",
  "parity-scale-codec",
  "scale-info",
