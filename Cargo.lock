@@ -52,7 +52,7 @@ version = "0.8.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b169f7a6d4742236a0a00c541b845991d0ac43e546831af1249753ab4c3aa3a0"
 dependencies = [
- "cfg-if 1.0.0",
+ "cfg-if",
  "cipher 0.4.4",
  "cpufeatures",
 ]
@@ -77,7 +77,7 @@ version = "0.7.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "891477e0c6a8957309ee5c45a6368af3ae14bb510732d2684ffa19af310920f9"
 dependencies = [
- "getrandom 0.2.12",
+ "getrandom 0.2.14",
  "once_cell",
  "version_check",
 ]
@@ -88,8 +88,8 @@ version = "0.8.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e89da841a80418a9b391ebaea17f5c112ffaaa96f621d2c285b5174da76b9011"
 dependencies = [
- "cfg-if 1.0.0",
- "getrandom 0.2.12",
+ "cfg-if",
+ "getrandom 0.2.14",
  "once_cell",
  "version_check",
  "zerocopy",
@@ -208,7 +208,7 @@ dependencies = [
  "proc-macro-error",
  "proc-macro2 1.0.79",
  "quote 1.0.35",
- "syn 2.0.57",
+ "syn 2.0.58",
 ]
 
 [[package]]
@@ -481,7 +481,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "94893f1e0c6eeab764ade8dc4c0db24caf4fe7cbbaafc0eba0a9030f447b5185"
 dependencies = [
  "num-traits",
- "rand",
+ "rand 0.8.5",
  "rayon",
 ]
 
@@ -598,7 +598,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f28243a43d821d11341ab73c80bed182dc015c514b951616cf79bd4af39af0c3"
 dependencies = [
  "concurrent-queue",
- "event-listener 5.2.0",
+ "event-listener 5.3.0",
  "event-listener-strategy 0.5.1",
  "futures-core",
  "pin-project-lite 0.2.14",
@@ -606,9 +606,9 @@ dependencies = [
 
 [[package]]
 name = "async-executor"
-version = "1.9.1"
+version = "1.10.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "10b3e585719c2358d2660232671ca8ca4ddb4be4ce8a1842d6c2dc8685303316"
+checksum = "5f98c37cf288e302c16ef6c8472aad1e034c6c84ce5ea7b8101c98eb4a802fee"
 dependencies = [
  "async-lock 3.3.0",
  "async-task",
@@ -653,7 +653,7 @@ checksum = "0fc5b45d93ef0529756f812ca52e44c221b35341892d3dcc34132ac02f3dd2af"
 dependencies = [
  "async-lock 2.8.0",
  "autocfg",
- "cfg-if 1.0.0",
+ "cfg-if",
  "concurrent-queue",
  "futures-lite 1.13.0",
  "log",
@@ -672,7 +672,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "dcccb0f599cfa2f8ace422d3555572f47424da5648a4382a9dd0310ff8210884"
 dependencies = [
  "async-lock 3.3.0",
- "cfg-if 1.0.0",
+ "cfg-if",
  "concurrent-queue",
  "futures-io",
  "futures-lite 2.3.0",
@@ -725,7 +725,7 @@ dependencies = [
  "async-lock 2.8.0",
  "async-signal",
  "blocking",
- "cfg-if 1.0.0",
+ "cfg-if",
  "event-listener 3.1.0",
  "futures-lite 1.13.0",
  "rustix 0.38.32",
@@ -741,7 +741,7 @@ dependencies = [
  "async-io 2.3.2",
  "async-lock 2.8.0",
  "atomic-waker",
- "cfg-if 1.0.0",
+ "cfg-if",
  "futures-core",
  "futures-io",
  "rustix 0.38.32",
@@ -791,7 +791,7 @@ checksum = "a507401cad91ec6a857ed5513a2073c82a9b9048762b885bb98655b306964681"
 dependencies = [
  "proc-macro2 1.0.79",
  "quote 1.0.35",
- "syn 2.0.57",
+ "syn 2.0.58",
 ]
 
 [[package]]
@@ -842,9 +842,9 @@ version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b62ddb9cb1ec0a098ad4bbf9344d0713fa193ae1a80af55febcff2627b6a00c1"
 dependencies = [
- "getrandom 0.2.12",
+ "getrandom 0.2.14",
  "instant",
- "rand",
+ "rand 0.8.5",
 ]
 
 [[package]]
@@ -855,7 +855,7 @@ checksum = "26b05800d2e817c8b3b4b54abd461726265fa9789ae34330622f2db9ee696f9d"
 dependencies = [
  "addr2line 0.21.0",
  "cc",
- "cfg-if 1.0.0",
+ "cfg-if",
  "libc",
  "miniz_oxide",
  "object 0.32.2",
@@ -876,7 +876,7 @@ dependencies = [
  "dleq_vrf",
  "fflonk",
  "merlin",
- "rand_chacha",
+ "rand_chacha 0.3.1",
  "rand_core 0.6.4",
  "ring 0.1.0",
  "sha2 0.10.8",
@@ -916,6 +916,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9d297deb1925b89f2ccc13d7635fa0714f12c87adce1c75356b39ca9b7178567"
 
 [[package]]
+name = "base64"
+version = "0.22.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9475866fec1451be56a3c2400fd081ff546538961565ccb5b7142cbd22bc7a51"
+
+[[package]]
 name = "base64ct"
 version = "1.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -933,7 +939,7 @@ dependencies = [
 [[package]]
 name = "binary-merkle-tree"
 version = "13.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=master#e6bd9205432bb524e94c9bd13048d645ec9aa5c7"
+source = "git+https://github.com/paritytech/polkadot-sdk?branch=master#74a42cebc1a9fd4e4a7713d5e41caba77a0fa172"
 dependencies = [
  "hash-db",
  "log",
@@ -1043,6 +1049,30 @@ checksum = "23285ad32269793932e830392f2fe2f83e26488fd3ec778883a93c8323735780"
 dependencies = [
  "arrayref",
  "arrayvec 0.7.4",
+ "constant_time_eq 0.3.0",
+]
+
+[[package]]
+name = "blake2s_simd"
+version = "1.0.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "94230421e395b9920d23df13ea5d77a20e1725331f90fbbf6df6040b33f756ae"
+dependencies = [
+ "arrayref",
+ "arrayvec 0.7.4",
+ "constant_time_eq 0.3.0",
+]
+
+[[package]]
+name = "blake3"
+version = "1.5.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "30cca6d3674597c30ddf2c587bf8d9d65c9a84d2326d941cc79c9842dfe0ef52"
+dependencies = [
+ "arrayref",
+ "arrayvec 0.7.4",
+ "cc",
+ "cfg-if",
  "constant_time_eq 0.3.0",
 ]
 
@@ -1363,7 +1393,7 @@ dependencies = [
  "bp-parachains",
  "bp-polkadot-core",
  "bp-runtime",
- "ed25519-dalek",
+ "ed25519-dalek 2.1.1",
  "finality-grandpa",
  "parity-scale-codec",
  "sp-application-crypto",
@@ -1457,9 +1487,9 @@ dependencies = [
 
 [[package]]
 name = "bumpalo"
-version = "3.15.4"
+version = "3.16.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7ff69b9dd49fd426c69a0db9fc04dd934cdb6645ff000864d98f7e2af8830eaa"
+checksum = "79296716171880943b8470b5f8d03aa55eb2e645a4874bdbb28adb49162e012c"
 
 [[package]]
 name = "byte-slice-cast"
@@ -1509,9 +1539,9 @@ checksum = "a2698f953def977c68f935bb0dfa959375ad4638570e969e2f1e9f433cbf1af6"
 
 [[package]]
 name = "cc"
-version = "1.0.90"
+version = "1.0.92"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8cd6604a82acf3039f1144f54b8eb34e91ffba622051189e71b781822d5ee1f5"
+checksum = "2678b2e3449475e95b0aa6f9b506a28e61b3dc8996592b983695e8ebb58a8b41"
 dependencies = [
  "jobserver",
  "libc",
@@ -1525,12 +1555,6 @@ checksum = "fa50868b64a9a6fda9d593ce778849ea8715cd2a3d2cc17ffdb4a2f2f2f1961d"
 dependencies = [
  "smallvec",
 ]
-
-[[package]]
-name = "cfg-if"
-version = "0.1.10"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4785bdd1c96b2a846b2bd7cc02e86b6b3dbf14e7e53446c4f54c92a361040822"
 
 [[package]]
 name = "cfg-if"
@@ -1554,7 +1578,7 @@ version = "0.9.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c3613f74bd2eac03dad61bd53dbe620703d4371614fe0bc3b9f04dd36fe4e818"
 dependencies = [
- "cfg-if 1.0.0",
+ "cfg-if",
  "cipher 0.4.4",
  "cpufeatures",
 ]
@@ -1587,6 +1611,32 @@ dependencies = [
 ]
 
 [[package]]
+name = "cid"
+version = "0.9.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b9b68e3193982cd54187d71afdb2a271ad4cf8af157858e9cb911b91321de143"
+dependencies = [
+ "core2",
+ "multibase",
+ "multihash 0.17.0",
+ "serde",
+ "unsigned-varint",
+]
+
+[[package]]
+name = "cid"
+version = "0.10.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "fd94671561e36e4e7de75f753f577edafb0e7c05d6e4547229fdf7938fbcd2c3"
+dependencies = [
+ "core2",
+ "multibase",
+ "multihash 0.18.1",
+ "serde",
+ "unsigned-varint",
+]
+
+[[package]]
 name = "cipher"
 version = "0.2.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1612,7 +1662,7 @@ version = "0.5.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "56ccb671c5921be8a84686e6212ca184cb1d7c51cadcdbfcbd1cc3f042f5dfb8"
 dependencies = [
- "cfg-if 1.0.0",
+ "cfg-if",
 ]
 
 [[package]]
@@ -1637,6 +1687,16 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "acbf1af155f9b9ef647e42cdc158db4b64a1b61f743629225fde6f3e0be2a7c7"
 
 [[package]]
+name = "combine"
+version = "4.6.6"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "35ed6e9d84f0b51a7f52daf1c7d71dd136fd7a3f41a8462b8cdb8c78d920fad4"
+dependencies = [
+ "bytes",
+ "memchr",
+]
+
+[[package]]
 name = "common"
 version = "0.1.0"
 source = "git+https://github.com/w3f/ring-proof#b273d33f9981e2bb3375ab45faeb537f7ee35224"
@@ -1649,7 +1709,7 @@ dependencies = [
  "fflonk",
  "getrandom_or_panic",
  "merlin",
- "rand_chacha",
+ "rand_chacha 0.3.1",
 ]
 
 [[package]]
@@ -1688,7 +1748,7 @@ version = "0.1.16"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f9d839f2a20b0aee515dc581a6172f2321f96cab76c1a38a4c584a194955390e"
 dependencies = [
- "getrandom 0.2.12",
+ "getrandom 0.2.14",
  "once_cell",
  "tiny-keccak",
 ]
@@ -1748,7 +1808,7 @@ version = "0.3.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "eeaa953eaad386a53111e47172c2fedba671e5684c8dd601a5f474f4f118710f"
 dependencies = [
- "cfg-if 1.0.0",
+ "cfg-if",
 ]
 
 [[package]]
@@ -1859,12 +1919,27 @@ dependencies = [
 ]
 
 [[package]]
+name = "crc"
+version = "3.2.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "69e6e4d7b33a94f0991c26729976b10ebde1d34c3ee82408fb536164fa10d636"
+dependencies = [
+ "crc-catalog",
+]
+
+[[package]]
+name = "crc-catalog"
+version = "2.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "19d374276b40fb8bbdee95aef7c7fa6b5316ec764510eb64b8dd0e2ed0d7e7f5"
+
+[[package]]
 name = "crc32fast"
 version = "1.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b3855a8a784b474f333699ef2bbca9db2c4a1f6d9088a90a2d25b1eb53111eaa"
 dependencies = [
- "cfg-if 1.0.0",
+ "cfg-if",
 ]
 
 [[package]]
@@ -2009,7 +2084,7 @@ version = "4.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e89b8c6a2e4b1f45971ad09761aafb85514a84744b67a95e32c3cc1352d1f65c"
 dependencies = [
- "cfg-if 1.0.0",
+ "cfg-if",
  "cpufeatures",
  "curve25519-dalek-derive",
  "digest 0.10.7",
@@ -2028,7 +2103,7 @@ checksum = "f46882e17999c6cc590af592290432be3bce0428cb0d5f8b6715e4dc7b383eb3"
 dependencies = [
  "proc-macro2 1.0.79",
  "quote 1.0.35",
- "syn 2.0.57",
+ "syn 2.0.58",
 ]
 
 [[package]]
@@ -2089,7 +2164,7 @@ dependencies = [
  "proc-macro2 1.0.79",
  "quote 1.0.35",
  "strsim 0.10.0",
- "syn 2.0.57",
+ "syn 2.0.58",
 ]
 
 [[package]]
@@ -2111,7 +2186,7 @@ checksum = "a668eda54683121533a393014d8692171709ff57a7d61f187b6e782719f8933f"
 dependencies = [
  "darling_core 0.20.8",
  "quote 1.0.35",
- "syn 2.0.57",
+ "syn 2.0.58",
 ]
 
 [[package]]
@@ -2142,9 +2217,9 @@ dependencies = [
 
 [[package]]
 name = "der"
-version = "0.7.8"
+version = "0.7.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "fffa369a668c8af7dbf8b5e56c9f744fbd399949ed171606040001947de40b1c"
+checksum = "f55bf8e7b65898637379c1b74eb1551107c8294ed26d855ceb9fd1a09cfc9bc0"
 dependencies = [
  "const-oid",
  "zeroize",
@@ -2203,7 +2278,7 @@ checksum = "d65d7ce8132b7c0e54497a4d9a55a1c2a0912a0d786cf894472ba818fba45762"
 dependencies = [
  "proc-macro2 1.0.79",
  "quote 1.0.35",
- "syn 2.0.57",
+ "syn 2.0.58",
 ]
 
 [[package]]
@@ -2261,7 +2336,7 @@ version = "2.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "339ee130d97a610ea5a5872d2bbb130fdf68884ff09d3028b81bec8a1ac23bbc"
 dependencies = [
- "cfg-if 1.0.0",
+ "cfg-if",
  "dirs-sys-next",
 ]
 
@@ -2284,7 +2359,7 @@ checksum = "487585f4d0c6655fe74905e2504d8ad6908e4db67f744eb140876906c2f3175d"
 dependencies = [
  "proc-macro2 1.0.79",
  "quote 1.0.35",
- "syn 2.0.57",
+ "syn 2.0.58",
 ]
 
 [[package]]
@@ -2324,7 +2399,7 @@ dependencies = [
  "proc-macro2 1.0.79",
  "quote 1.0.35",
  "regex",
- "syn 2.0.57",
+ "syn 2.0.58",
  "termcolor",
  "toml 0.8.12",
  "walkdir",
@@ -2338,9 +2413,9 @@ checksum = "1435fa1053d8b2fbbe9be7e97eca7f33d37b28409959813daefc1446a14247f1"
 
 [[package]]
 name = "downcast-rs"
-version = "1.2.0"
+version = "1.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9ea835d29036a4087793836fa931b08837ad5e957da9e23886b29586fb9b6650"
+checksum = "75b325c5dbd37f80359721ad39aca5a29fb04c89279657cffdda8736d0c0b9d2"
 
 [[package]]
 name = "dtoa"
@@ -2386,8 +2461,17 @@ dependencies = [
  "elliptic-curve",
  "rfc6979",
  "serdect",
- "signature",
+ "signature 2.2.0",
  "spki",
+]
+
+[[package]]
+name = "ed25519"
+version = "1.5.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "91cff35c70bba8a626e3185d8cd48cc11b5437e1a5bcd15b9b5fa3c64b6dfee7"
+dependencies = [
+ "signature 1.6.4",
 ]
 
 [[package]]
@@ -2397,7 +2481,21 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "115531babc129696a58c64a4fef0a8bf9e9698629fb97e9e40767d235cfbcd53"
 dependencies = [
  "pkcs8",
- "signature",
+ "signature 2.2.0",
+]
+
+[[package]]
+name = "ed25519-dalek"
+version = "1.0.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c762bae6dcaf24c4c84667b8579785430908723d5c889f469d76a41d59cc7a9d"
+dependencies = [
+ "curve25519-dalek 3.2.0",
+ "ed25519 1.5.3",
+ "rand 0.7.3",
+ "serde",
+ "sha2 0.9.9",
+ "zeroize",
 ]
 
 [[package]]
@@ -2407,7 +2505,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "4a3daa8e81a3963a60642bcc1f90a670680bd4a77535faa384e9d1c79d620871"
 dependencies = [
  "curve25519-dalek 4.1.1",
- "ed25519",
+ "ed25519 2.2.3",
  "rand_core 0.6.4",
  "serde",
  "sha2 0.10.8",
@@ -2461,7 +2559,7 @@ version = "0.8.33"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7268b386296a025e474d5140678f75d6de9493ae55a5d709eeb9dd08149945e1"
 dependencies = [
- "cfg-if 1.0.0",
+ "cfg-if",
 ]
 
 [[package]]
@@ -2474,6 +2572,18 @@ dependencies = [
  "proc-macro2 1.0.79",
  "quote 1.0.35",
  "syn 1.0.109",
+]
+
+[[package]]
+name = "enum-as-inner"
+version = "0.6.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5ffccbb6966c05b32ef8fbac435df276c4ae4d3dc55a8cd0eb9745e6c12f546a"
+dependencies = [
+ "heck 0.4.1",
+ "proc-macro2 1.0.79",
+ "quote 1.0.35",
+ "syn 2.0.58",
 ]
 
 [[package]]
@@ -2606,9 +2716,9 @@ dependencies = [
 
 [[package]]
 name = "event-listener"
-version = "5.2.0"
+version = "5.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2b5fb89194fa3cad959b833185b3063ba881dbfc7030680b314250779fb4cc91"
+checksum = "6d9944b8ca13534cdfb2800775f8dd4902ff3fc75a50101466decadfdf322a24"
 dependencies = [
  "concurrent-queue",
  "parking",
@@ -2631,7 +2741,7 @@ version = "0.5.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "332f51cb23d20b0de8458b86580878211da09bcd4503cb579c225b3d124cabb3"
 dependencies = [
- "event-listener 5.2.0",
+ "event-listener 5.3.0",
  "pin-project-lite 0.2.14",
 ]
 
@@ -2646,7 +2756,7 @@ dependencies = [
  "prettier-please",
  "proc-macro2 1.0.79",
  "quote 1.0.35",
- "syn 2.0.57",
+ "syn 2.0.58",
 ]
 
 [[package]]
@@ -2747,7 +2857,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "835c052cb0c08c1acf6ffd71c022172e18723949c8282f2b9f27efbc51e64534"
 dependencies = [
  "byteorder",
- "rand",
+ "rand 0.8.5",
  "rustc-hex",
  "static_assertions",
 ]
@@ -2785,6 +2895,21 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3f9eec918d3f24069decb9af1554cad7c880e2da24a9afd88aca000531ab82c1"
 
 [[package]]
+name = "foreign-types"
+version = "0.3.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f6f339eb8adc052cd2ca78910fda869aefa38d22d5cb648e6485e4d3fc06f3b1"
+dependencies = [
+ "foreign-types-shared",
+]
+
+[[package]]
+name = "foreign-types-shared"
+version = "0.1.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "00b0228411908ca8685dba7fc2cdd70ec9990a6e753e89b6ac91a84c40fbaf4b"
+
+[[package]]
 name = "form_urlencoded"
 version = "1.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2802,7 +2927,7 @@ checksum = "6c2141d6d6c8512188a7891b4b01590a45f6dac67afb4f255c4124dbb86d4eaa"
 [[package]]
 name = "frame-benchmarking"
 version = "28.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=master#e6bd9205432bb524e94c9bd13048d645ec9aa5c7"
+source = "git+https://github.com/paritytech/polkadot-sdk?branch=master#74a42cebc1a9fd4e4a7713d5e41caba77a0fa172"
 dependencies = [
  "frame-support",
  "frame-support-procedural",
@@ -2830,7 +2955,7 @@ version = "15.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "878babb0b136e731cc77ec2fd883ff02745ff21e6fb662729953d44923df009c"
 dependencies = [
- "cfg-if 1.0.0",
+ "cfg-if",
  "parity-scale-codec",
  "scale-info",
 ]
@@ -2841,7 +2966,7 @@ version = "16.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "87cf1549fba25a6fcac22785b61698317d958e96cac72a59102ea45b9ae64692"
 dependencies = [
- "cfg-if 1.0.0",
+ "cfg-if",
  "parity-scale-codec",
  "scale-info",
  "serde",
@@ -2850,7 +2975,7 @@ dependencies = [
 [[package]]
 name = "frame-support"
 version = "28.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=master#e6bd9205432bb524e94c9bd13048d645ec9aa5c7"
+source = "git+https://github.com/paritytech/polkadot-sdk?branch=master#74a42cebc1a9fd4e4a7713d5e41caba77a0fa172"
 dependencies = [
  "aquamarine",
  "array-bytes 6.2.2",
@@ -2891,11 +3016,11 @@ dependencies = [
 [[package]]
 name = "frame-support-procedural"
 version = "23.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=master#e6bd9205432bb524e94c9bd13048d645ec9aa5c7"
+source = "git+https://github.com/paritytech/polkadot-sdk?branch=master#74a42cebc1a9fd4e4a7713d5e41caba77a0fa172"
 dependencies = [
  "Inflector",
  "cfg-expr",
- "derive-syn-parse 0.1.5",
+ "derive-syn-parse 0.2.0",
  "expander",
  "frame-support-procedural-tools",
  "itertools",
@@ -2904,37 +3029,37 @@ dependencies = [
  "proc-macro2 1.0.79",
  "quote 1.0.35",
  "sp-crypto-hashing",
- "syn 2.0.57",
+ "syn 2.0.58",
 ]
 
 [[package]]
 name = "frame-support-procedural-tools"
 version = "10.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=master#e6bd9205432bb524e94c9bd13048d645ec9aa5c7"
+source = "git+https://github.com/paritytech/polkadot-sdk?branch=master#74a42cebc1a9fd4e4a7713d5e41caba77a0fa172"
 dependencies = [
  "frame-support-procedural-tools-derive",
  "proc-macro-crate 3.1.0",
  "proc-macro2 1.0.79",
  "quote 1.0.35",
- "syn 2.0.57",
+ "syn 2.0.58",
 ]
 
 [[package]]
 name = "frame-support-procedural-tools-derive"
 version = "11.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=master#e6bd9205432bb524e94c9bd13048d645ec9aa5c7"
+source = "git+https://github.com/paritytech/polkadot-sdk?branch=master#74a42cebc1a9fd4e4a7713d5e41caba77a0fa172"
 dependencies = [
  "proc-macro2 1.0.79",
  "quote 1.0.35",
- "syn 2.0.57",
+ "syn 2.0.58",
 ]
 
 [[package]]
 name = "frame-system"
 version = "28.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=master#e6bd9205432bb524e94c9bd13048d645ec9aa5c7"
+source = "git+https://github.com/paritytech/polkadot-sdk?branch=master#74a42cebc1a9fd4e4a7713d5e41caba77a0fa172"
 dependencies = [
- "cfg-if 1.0.0",
+ "cfg-if",
  "docify",
  "frame-support",
  "log",
@@ -3049,7 +3174,7 @@ checksum = "87750cf4b7a4c0625b1529e4c543c2182106e4dedc60a2a6455e00d212c489ac"
 dependencies = [
  "proc-macro2 1.0.79",
  "quote 1.0.35",
- "syn 2.0.57",
+ "syn 2.0.58",
 ]
 
 [[package]]
@@ -3134,18 +3259,18 @@ version = "0.1.16"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8fc3cb4d91f53b50155bdcfd23f6a4c39ae1969c2ae85982b135750cccaf5fce"
 dependencies = [
- "cfg-if 1.0.0",
+ "cfg-if",
  "libc",
  "wasi 0.9.0+wasi-snapshot-preview1",
 ]
 
 [[package]]
 name = "getrandom"
-version = "0.2.12"
+version = "0.2.14"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "190092ea657667030ac6a35e305e62fc4dd69fd98ac98631e5d3a2b1575a12b5"
+checksum = "94b22e06ecb0110981051723910cbf0b5f5e09a2062dd7663334ee79a9d1286c"
 dependencies = [
- "cfg-if 1.0.0",
+ "cfg-if",
  "libc",
  "wasi 0.11.0+wasi-snapshot-preview1",
 ]
@@ -3156,7 +3281,7 @@ version = "0.0.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6ea1015b5a70616b688dc230cfe50c8af89d972cb132d5a622814d29773b10b9"
 dependencies = [
- "rand",
+ "rand 0.8.5",
  "rand_core 0.6.4",
 ]
 
@@ -3212,9 +3337,9 @@ dependencies = [
 
 [[package]]
 name = "h2"
-version = "0.3.25"
+version = "0.3.26"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4fbd2820c5e49886948654ab546d0688ff24530286bdcf8fca3cefb16d4618eb"
+checksum = "81fe527a889e1532da5c525686d96d4c2e74cdd345badf8dfef9f6b39dd5f5e8"
 dependencies = [
  "bytes",
  "fnv",
@@ -3511,6 +3636,16 @@ dependencies = [
 
 [[package]]
 name = "idna"
+version = "0.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7d20d6b07bfbc108882d88ed8e37d39636dcc260e15e30c45e6ba089610b917c"
+dependencies = [
+ "unicode-bidi",
+ "unicode-normalization",
+]
+
+[[package]]
+name = "idna"
 version = "0.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "634d9b1461af396cad843f47fdba5597a4f9e6ddd4bfb6ff5d85028c25cb12f6"
@@ -3647,7 +3782,7 @@ version = "0.1.12"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7a5bbe824c507c5da5956355e86a746d82e0e1464f65d862cc5e71da70e94b2c"
 dependencies = [
- "cfg-if 1.0.0",
+ "cfg-if",
 ]
 
 [[package]]
@@ -3796,14 +3931,14 @@ dependencies = [
 
 [[package]]
 name = "jsonrpsee"
-version = "0.22.3"
+version = "0.22.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3cdbb7cb6f3ba28f5b212dd250ab4483105efc3e381f5c8bb90340f14f0a2cc3"
+checksum = "c4b0e68d9af1f066c06d6e2397583795b912d78537d7d907c561e82c13d69fa1"
 dependencies = [
- "jsonrpsee-core 0.22.3",
+ "jsonrpsee-core 0.22.4",
  "jsonrpsee-proc-macros",
  "jsonrpsee-server",
- "jsonrpsee-types 0.22.3",
+ "jsonrpsee-types 0.22.4",
  "jsonrpsee-ws-client",
  "tokio",
  "tracing",
@@ -3831,13 +3966,13 @@ dependencies = [
 
 [[package]]
 name = "jsonrpsee-client-transport"
-version = "0.22.3"
+version = "0.22.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9ab2e14e727d2faf388c99d9ca5210566ed3b044f07d92c29c3611718d178380"
+checksum = "92f254f56af1ae84815b9b1325094743dcf05b92abb5e94da2e81a35cff0cada"
 dependencies = [
  "futures-util",
  "http",
- "jsonrpsee-core 0.22.3",
+ "jsonrpsee-core 0.22.4",
  "pin-project",
  "rustls-native-certs 0.7.0",
  "rustls-pki-types",
@@ -3874,21 +4009,20 @@ dependencies = [
 
 [[package]]
 name = "jsonrpsee-core"
-version = "0.22.3"
+version = "0.22.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "71962a1c49af43adf81d337e4ebc93f3c915faf6eccaa14d74e255107dfd7723"
+checksum = "274d68152c24aa78977243bb56f28d7946e6aa309945b37d33174a3f92d89a3a"
 dependencies = [
  "anyhow",
- "async-lock 3.3.0",
  "async-trait",
  "beef",
  "futures-timer",
  "futures-util",
  "hyper",
- "jsonrpsee-types 0.22.3",
+ "jsonrpsee-types 0.22.4",
  "parking_lot 0.12.1",
  "pin-project",
- "rand",
+ "rand 0.8.5",
  "rustc-hash",
  "serde",
  "serde_json",
@@ -3920,28 +4054,28 @@ dependencies = [
 
 [[package]]
 name = "jsonrpsee-proc-macros"
-version = "0.22.3"
+version = "0.22.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1d7c2416c400c94b2e864603c51a5bbd5b103386da1f5e58cbf01e7bb3ef0833"
+checksum = "2c326f9e95aeff7d707b2ffde72c22a52acc975ba1c48587776c02b90c4747a6"
 dependencies = [
  "heck 0.4.1",
  "proc-macro-crate 3.1.0",
  "proc-macro2 1.0.79",
  "quote 1.0.35",
- "syn 2.0.57",
+ "syn 2.0.58",
 ]
 
 [[package]]
 name = "jsonrpsee-server"
-version = "0.22.3"
+version = "0.22.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4882e640e70c2553e3d9487e6f4dddd5fd11918f25e40fa45218f9fe29ed2152"
+checksum = "3b5bfbda5f8fb63f997102fd18f73e35e34c84c6dcdbdbbe72c6e48f6d2c959b"
 dependencies = [
  "futures-util",
  "http",
  "hyper",
- "jsonrpsee-core 0.22.3",
- "jsonrpsee-types 0.22.3",
+ "jsonrpsee-core 0.22.4",
+ "jsonrpsee-types 0.22.4",
  "pin-project",
  "route-recognizer",
  "serde",
@@ -3971,9 +4105,9 @@ dependencies = [
 
 [[package]]
 name = "jsonrpsee-types"
-version = "0.22.3"
+version = "0.22.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1e53c72de6cd2ad6ac1aa6e848206ef8b736f92ed02354959130373dfa5b3cbd"
+checksum = "3dc828e537868d6b12bbb07ec20324909a22ced6efca0057c825c3e1126b2c6d"
 dependencies = [
  "anyhow",
  "beef",
@@ -3984,14 +4118,14 @@ dependencies = [
 
 [[package]]
 name = "jsonrpsee-ws-client"
-version = "0.22.3"
+version = "0.22.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c8a07ab8da9a283b906f6735ddd17d3680158bb72259e853441d1dd0167079ec"
+checksum = "32f00abe918bf34b785f87459b9205790e5361a3f7437adb50e928dc243f27eb"
 dependencies = [
  "http",
- "jsonrpsee-client-transport 0.22.3",
- "jsonrpsee-core 0.22.3",
- "jsonrpsee-types 0.22.3",
+ "jsonrpsee-client-transport 0.22.4",
+ "jsonrpsee-core 0.22.4",
+ "jsonrpsee-types 0.22.4",
  "url",
 ]
 
@@ -4001,7 +4135,7 @@ version = "0.13.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "956ff9b67e26e1a6a866cb758f12c6f8746208489e3e4a4b5580802f2f0a587b"
 dependencies = [
- "cfg-if 1.0.0",
+ "cfg-if",
  "ecdsa",
  "elliptic-curve",
  "once_cell",
@@ -4079,7 +4213,7 @@ dependencies = [
  "bytes",
  "futures",
  "futures-timer",
- "getrandom 0.2.12",
+ "getrandom 0.2.14",
  "instant",
  "libp2p-allow-block-list",
  "libp2p-connection-limits",
@@ -4141,13 +4275,13 @@ dependencies = [
  "libp2p-identity",
  "log",
  "multiaddr",
- "multihash",
+ "multihash 0.17.0",
  "multistream-select",
  "once_cell",
  "parking_lot 0.12.1",
  "pin-project",
  "quick-protobuf",
- "rand",
+ "rand 0.8.5",
  "rw-stream-sink",
  "smallvec",
  "thiserror",
@@ -4166,7 +4300,7 @@ dependencies = [
  "log",
  "parking_lot 0.12.1",
  "smallvec",
- "trust-dns-resolver",
+ "trust-dns-resolver 0.22.0",
 ]
 
 [[package]]
@@ -4198,12 +4332,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "276bb57e7af15d8f100d3c11cbdd32c6752b7eef4ba7a18ecf464972c07abcce"
 dependencies = [
  "bs58 0.4.0",
- "ed25519-dalek",
+ "ed25519-dalek 2.1.1",
  "log",
  "multiaddr",
- "multihash",
+ "multihash 0.17.0",
  "quick-protobuf",
- "rand",
+ "rand 0.8.5",
  "sha2 0.10.8",
  "thiserror",
  "zeroize",
@@ -4228,7 +4362,7 @@ dependencies = [
  "libp2p-swarm",
  "log",
  "quick-protobuf",
- "rand",
+ "rand 0.8.5",
  "sha2 0.10.8",
  "smallvec",
  "thiserror",
@@ -4250,11 +4384,11 @@ dependencies = [
  "libp2p-identity",
  "libp2p-swarm",
  "log",
- "rand",
+ "rand 0.8.5",
  "smallvec",
  "socket2 0.4.10",
  "tokio",
- "trust-dns-proto",
+ "trust-dns-proto 0.22.0",
  "void",
 ]
 
@@ -4286,7 +4420,7 @@ dependencies = [
  "log",
  "once_cell",
  "quick-protobuf",
- "rand",
+ "rand 0.8.5",
  "sha2 0.10.8",
  "snow",
  "static_assertions",
@@ -4308,7 +4442,7 @@ dependencies = [
  "libp2p-core",
  "libp2p-swarm",
  "log",
- "rand",
+ "rand 0.8.5",
  "void",
 ]
 
@@ -4328,7 +4462,7 @@ dependencies = [
  "log",
  "parking_lot 0.12.1",
  "quinn-proto",
- "rand",
+ "rand 0.8.5",
  "rustls 0.20.9",
  "thiserror",
  "tokio",
@@ -4346,7 +4480,7 @@ dependencies = [
  "libp2p-core",
  "libp2p-identity",
  "libp2p-swarm",
- "rand",
+ "rand 0.8.5",
  "smallvec",
 ]
 
@@ -4365,7 +4499,7 @@ dependencies = [
  "libp2p-identity",
  "libp2p-swarm-derive",
  "log",
- "rand",
+ "rand 0.8.5",
  "smallvec",
  "tokio",
  "void",
@@ -4413,7 +4547,7 @@ dependencies = [
  "rustls 0.20.9",
  "thiserror",
  "webpki",
- "x509-parser",
+ "x509-parser 0.14.0",
  "yasna",
 ]
 
@@ -4486,7 +4620,7 @@ dependencies = [
  "libsecp256k1-core",
  "libsecp256k1-gen-ecmult",
  "libsecp256k1-gen-genmult",
- "rand",
+ "rand 0.8.5",
  "serde",
  "sha2 0.9.9",
  "typenum",
@@ -4588,6 +4722,60 @@ dependencies = [
 ]
 
 [[package]]
+name = "litep2p"
+version = "0.3.0"
+source = "git+https://github.com/paritytech/litep2p?branch=master#b142c9eb611fb2fe78d2830266a3675b37299ceb"
+dependencies = [
+ "async-trait",
+ "bs58 0.4.0",
+ "bytes",
+ "cid 0.10.1",
+ "ed25519-dalek 1.0.1",
+ "futures",
+ "futures-timer",
+ "hex-literal",
+ "indexmap 2.2.6",
+ "libc",
+ "mockall",
+ "multiaddr",
+ "multihash 0.17.0",
+ "network-interface",
+ "nohash-hasher",
+ "parking_lot 0.12.1",
+ "pin-project",
+ "prost",
+ "prost-build",
+ "quinn",
+ "rand 0.8.5",
+ "rcgen",
+ "ring 0.16.20",
+ "rustls 0.20.9",
+ "serde",
+ "sha2 0.10.8",
+ "simple-dns",
+ "smallvec",
+ "snow",
+ "socket2 0.5.6",
+ "static_assertions",
+ "str0m",
+ "thiserror",
+ "tokio",
+ "tokio-stream",
+ "tokio-tungstenite",
+ "tokio-util",
+ "tracing",
+ "trust-dns-resolver 0.23.2",
+ "uint",
+ "unsigned-varint",
+ "url",
+ "webpki",
+ "x25519-dalek 2.0.1",
+ "x509-parser 0.15.1",
+ "yasna",
+ "zeroize",
+]
+
+[[package]]
 name = "lock_api"
 version = "0.4.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4651,7 +4839,7 @@ dependencies = [
  "macro_magic_core",
  "macro_magic_macros",
  "quote 1.0.35",
- "syn 2.0.57",
+ "syn 2.0.58",
 ]
 
 [[package]]
@@ -4665,7 +4853,7 @@ dependencies = [
  "macro_magic_core_macros",
  "proc-macro2 1.0.79",
  "quote 1.0.35",
- "syn 2.0.57",
+ "syn 2.0.58",
 ]
 
 [[package]]
@@ -4676,7 +4864,7 @@ checksum = "9ea73aa640dc01d62a590d48c0c3521ed739d53b27f919b25c3551e233481654"
 dependencies = [
  "proc-macro2 1.0.79",
  "quote 1.0.35",
- "syn 2.0.57",
+ "syn 2.0.58",
 ]
 
 [[package]]
@@ -4687,7 +4875,7 @@ checksum = "ef9d79ae96aaba821963320eb2b6e34d17df1e5a83d8a1985c29cc5be59577b3"
 dependencies = [
  "macro_magic_core",
  "quote 1.0.35",
- "syn 2.0.57",
+ "syn 2.0.58",
 ]
 
 [[package]]
@@ -4698,9 +4886,9 @@ checksum = "ffbee8634e0d45d258acb448e7eaab3fce7a0a467395d4d9f228e3c1f01fb2e4"
 
 [[package]]
 name = "matchers"
-version = "0.0.1"
+version = "0.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f099785f7595cc4b4553a174ce30dd7589ef93391ff414dbb67f62392b9e0ce1"
+checksum = "8263075bb86c5a1b1427b5ae862e8889656f126e9f77c484496e8b47cf5c5558"
 dependencies = [
  "regex-automata 0.1.10",
 ]
@@ -4842,8 +5030,8 @@ dependencies = [
  "lioness",
  "log",
  "parking_lot 0.12.1",
- "rand",
- "rand_chacha",
+ "rand 0.8.5",
+ "rand_chacha 0.3.1",
  "rand_distr",
  "subtle 2.5.0",
  "thiserror",
@@ -4856,7 +5044,7 @@ version = "0.11.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "4c84490118f2ee2d74570d114f3d0493cbf02790df303d2707606c3e14e07c96"
 dependencies = [
- "cfg-if 1.0.0",
+ "cfg-if",
  "downcast",
  "fragile",
  "lazy_static",
@@ -4871,7 +5059,7 @@ version = "0.11.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "22ce75669015c4f47b289fd4d4f56e894e4c96003ffdf3ac51313126f94c6cbb"
 dependencies = [
- "cfg-if 1.0.0",
+ "cfg-if",
  "proc-macro2 1.0.79",
  "quote 1.0.35",
  "syn 1.0.109",
@@ -4888,7 +5076,7 @@ dependencies = [
  "data-encoding",
  "log",
  "multibase",
- "multihash",
+ "multihash 0.17.0",
  "percent-encoding",
  "serde",
  "static_assertions",
@@ -4913,8 +5101,31 @@ version = "0.17.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "835d6ff01d610179fbce3de1694d007e500bf33a7f29689838941d6bf783ae40"
 dependencies = [
+ "blake2b_simd",
+ "blake2s_simd",
+ "blake3",
  "core2",
+ "digest 0.10.7",
  "multihash-derive",
+ "sha2 0.10.8",
+ "sha3",
+ "unsigned-varint",
+]
+
+[[package]]
+name = "multihash"
+version = "0.18.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "cfd8a792c1694c6da4f68db0a9d707c72bd260994da179e6030a5dcee00bb815"
+dependencies = [
+ "blake2b_simd",
+ "blake2s_simd",
+ "blake3",
+ "core2",
+ "digest 0.10.7",
+ "multihash-derive",
+ "sha2 0.10.8",
+ "sha3",
  "unsigned-varint",
 ]
 
@@ -5034,9 +5245,9 @@ dependencies = [
 
 [[package]]
 name = "netlink-sys"
-version = "0.8.5"
+version = "0.8.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6471bf08e7ac0135876a9581bf3217ef0333c191c128d34878079f42ee150411"
+checksum = "416060d346fbaf1f23f9512963e3e878f1a78e707cb699ba9215761754244307"
 dependencies = [
  "bytes",
  "futures",
@@ -5046,13 +5257,25 @@ dependencies = [
 ]
 
 [[package]]
+name = "network-interface"
+version = "1.1.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ae72fd9dbd7f55dda80c00d66acc3b2130436fcba9ea89118fc508eaae48dfb0"
+dependencies = [
+ "cc",
+ "libc",
+ "thiserror",
+ "winapi",
+]
+
+[[package]]
 name = "nix"
 version = "0.24.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "fa52e972a9a719cecb6864fb88568781eb706bac2cd1d4f04a648542dbf78069"
 dependencies = [
  "bitflags 1.3.2",
- "cfg-if 1.0.0",
+ "cfg-if",
  "libc",
 ]
 
@@ -5096,6 +5319,16 @@ version = "0.4.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e8a3895c6391c39d7fe7ebc444a87eb2991b2a0bc718fdabd071eec617fc68e4"
 dependencies = [
+ "winapi",
+]
+
+[[package]]
+name = "nu-ansi-term"
+version = "0.46.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "77a8165726e8236064dbb45459242600304b42a5ea24ee2948e18e023bf7ba84"
+dependencies = [
+ "overload",
  "winapi",
 ]
 
@@ -5234,10 +5467,45 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c08d65885ee38876c4f86fa503fb49d7b507c2b62552df7c70b2fce627e06381"
 
 [[package]]
+name = "openssl"
+version = "0.10.64"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "95a0481286a310808298130d22dd1fef0fa571e05a8f44ec801801e84b216b1f"
+dependencies = [
+ "bitflags 2.5.0",
+ "cfg-if",
+ "foreign-types",
+ "libc",
+ "once_cell",
+ "openssl-macros",
+ "openssl-sys",
+]
+
+[[package]]
+name = "openssl-macros"
+version = "0.1.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a948666b637a0f465e8564c73e89d4dde00d72d4d473cc972f390fc3dcee7d9c"
+dependencies = [
+ "proc-macro2 1.0.79",
+ "quote 1.0.35",
+ "syn 2.0.58",
+]
+
+[[package]]
 name = "openssl-probe"
 version = "0.1.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ff011a302c396a5197692431fc1948019154afc178baf7d8e37367442a4601cf"
+
+[[package]]
+name = "openssl-src"
+version = "300.2.3+3.2.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5cff92b6f71555b61bb9315f7c64da3ca43d87531622120fea0195fc761b4843"
+dependencies = [
+ "cc",
+]
 
 [[package]]
 name = "openssl-sys"
@@ -5247,14 +5515,21 @@ checksum = "c597637d56fbc83893a35eb0dd04b2b8e7a50c91e64e9493e398b5df4fb45fa2"
 dependencies = [
  "cc",
  "libc",
+ "openssl-src",
  "pkg-config",
  "vcpkg",
 ]
 
 [[package]]
+name = "overload"
+version = "0.1.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b15813163c1d831bf4a13c3610c05c0d03b39feb07f7e09fa234dac9b15aaf39"
+
+[[package]]
 name = "pallet-authorship"
 version = "28.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=master#e6bd9205432bb524e94c9bd13048d645ec9aa5c7"
+source = "git+https://github.com/paritytech/polkadot-sdk?branch=master#74a42cebc1a9fd4e4a7713d5e41caba77a0fa172"
 dependencies = [
  "frame-support",
  "frame-system",
@@ -5268,7 +5543,7 @@ dependencies = [
 [[package]]
 name = "pallet-balances"
 version = "28.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=master#e6bd9205432bb524e94c9bd13048d645ec9aa5c7"
+source = "git+https://github.com/paritytech/polkadot-sdk?branch=master#74a42cebc1a9fd4e4a7713d5e41caba77a0fa172"
 dependencies = [
  "docify",
  "frame-benchmarking",
@@ -5284,7 +5559,7 @@ dependencies = [
 [[package]]
 name = "pallet-beefy"
 version = "28.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=master#e6bd9205432bb524e94c9bd13048d645ec9aa5c7"
+source = "git+https://github.com/paritytech/polkadot-sdk?branch=master#74a42cebc1a9fd4e4a7713d5e41caba77a0fa172"
 dependencies = [
  "frame-support",
  "frame-system",
@@ -5304,7 +5579,7 @@ dependencies = [
 [[package]]
 name = "pallet-beefy-mmr"
 version = "28.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=master#e6bd9205432bb524e94c9bd13048d645ec9aa5c7"
+source = "git+https://github.com/paritytech/polkadot-sdk?branch=master#74a42cebc1a9fd4e4a7713d5e41caba77a0fa172"
 dependencies = [
  "array-bytes 6.2.2",
  "binary-merkle-tree",
@@ -5340,7 +5615,7 @@ dependencies = [
  "pallet-beefy-mmr",
  "pallet-mmr",
  "parity-scale-codec",
- "rand",
+ "rand 0.8.5",
  "scale-info",
  "serde",
  "sp-consensus-beefy",
@@ -5439,7 +5714,7 @@ dependencies = [
 [[package]]
 name = "pallet-grandpa"
 version = "28.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=master#e6bd9205432bb524e94c9bd13048d645ec9aa5c7"
+source = "git+https://github.com/paritytech/polkadot-sdk?branch=master#74a42cebc1a9fd4e4a7713d5e41caba77a0fa172"
 dependencies = [
  "frame-benchmarking",
  "frame-support",
@@ -5462,7 +5737,7 @@ dependencies = [
 [[package]]
 name = "pallet-mmr"
 version = "27.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=master#e6bd9205432bb524e94c9bd13048d645ec9aa5c7"
+source = "git+https://github.com/paritytech/polkadot-sdk?branch=master#74a42cebc1a9fd4e4a7713d5e41caba77a0fa172"
 dependencies = [
  "frame-benchmarking",
  "frame-support",
@@ -5480,7 +5755,7 @@ dependencies = [
 [[package]]
 name = "pallet-session"
 version = "28.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=master#e6bd9205432bb524e94c9bd13048d645ec9aa5c7"
+source = "git+https://github.com/paritytech/polkadot-sdk?branch=master#74a42cebc1a9fd4e4a7713d5e41caba77a0fa172"
 dependencies = [
  "frame-support",
  "frame-system",
@@ -5502,7 +5777,7 @@ dependencies = [
 [[package]]
 name = "pallet-timestamp"
 version = "27.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=master#e6bd9205432bb524e94c9bd13048d645ec9aa5c7"
+source = "git+https://github.com/paritytech/polkadot-sdk?branch=master#74a42cebc1a9fd4e4a7713d5e41caba77a0fa172"
 dependencies = [
  "docify",
  "frame-benchmarking",
@@ -5522,7 +5797,7 @@ dependencies = [
 [[package]]
 name = "pallet-transaction-payment"
 version = "28.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=master#e6bd9205432bb524e94c9bd13048d645ec9aa5c7"
+source = "git+https://github.com/paritytech/polkadot-sdk?branch=master#74a42cebc1a9fd4e4a7713d5e41caba77a0fa172"
 dependencies = [
  "frame-support",
  "frame-system",
@@ -5538,7 +5813,7 @@ dependencies = [
 [[package]]
 name = "pallet-transaction-payment-rpc-runtime-api"
 version = "28.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=master#e6bd9205432bb524e94c9bd13048d645ec9aa5c7"
+source = "git+https://github.com/paritytech/polkadot-sdk?branch=master#74a42cebc1a9fd4e4a7713d5e41caba77a0fa172"
 dependencies = [
  "pallet-transaction-payment",
  "parity-scale-codec",
@@ -5550,7 +5825,7 @@ dependencies = [
 [[package]]
 name = "pallet-utility"
 version = "28.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=master#e6bd9205432bb524e94c9bd13048d645ec9aa5c7"
+source = "git+https://github.com/paritytech/polkadot-sdk?branch=master#74a42cebc1a9fd4e4a7713d5e41caba77a0fa172"
 dependencies = [
  "frame-benchmarking",
  "frame-support",
@@ -5629,7 +5904,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "4e69bf016dc406eff7d53a7d3f7cf1c2e72c82b9088aac1118591e36dd2cd3e9"
 dependencies = [
  "bitcoin_hashes 0.13.0",
- "rand",
+ "rand 0.8.5",
  "rand_core 0.5.1",
  "serde",
  "unicode-normalization",
@@ -5674,7 +5949,7 @@ version = "0.12.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0d32c34f4f5ca7f9196001c0aba5a1f9a5a12382c8944b8b0f90233282d1e8f8"
 dependencies = [
- "cfg-if 1.0.0",
+ "cfg-if",
  "ethereum-types",
  "hashbrown 0.12.3",
  "impl-trait-for-tuples",
@@ -5736,7 +6011,7 @@ version = "0.8.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "60a2cfe6f0ad2bfc16aefa463b497d5c7a5ecd44a23efa72aa342d90177356dc"
 dependencies = [
- "cfg-if 1.0.0",
+ "cfg-if",
  "instant",
  "libc",
  "redox_syscall 0.2.16",
@@ -5750,7 +6025,7 @@ version = "0.9.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "4c42a9226546d68acdd9c0a280d17ce19bfe27a46bf68784e4066115788d008e"
 dependencies = [
- "cfg-if 1.0.0",
+ "cfg-if",
  "libc",
  "redox_syscall 0.4.1",
  "smallvec",
@@ -5832,7 +6107,7 @@ checksum = "2f38a4412a78282e09a2cf38d195ea5420d15ba0602cb375210efbc877243965"
 dependencies = [
  "proc-macro2 1.0.79",
  "quote 1.0.35",
- "syn 2.0.57",
+ "syn 2.0.58",
 ]
 
 [[package]]
@@ -5889,7 +6164,7 @@ checksum = "db23d408679286588f4d4644f965003d056e3dd5abcaaa938116871d7ce2fee7"
 [[package]]
 name = "polkadot-core-primitives"
 version = "7.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=master#e6bd9205432bb524e94c9bd13048d645ec9aa5c7"
+source = "git+https://github.com/paritytech/polkadot-sdk?branch=master#74a42cebc1a9fd4e4a7713d5e41caba77a0fa172"
 dependencies = [
  "parity-scale-codec",
  "scale-info",
@@ -5901,7 +6176,7 @@ dependencies = [
 [[package]]
 name = "polkadot-parachain-primitives"
 version = "6.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=master#e6bd9205432bb524e94c9bd13048d645ec9aa5c7"
+source = "git+https://github.com/paritytech/polkadot-sdk?branch=master#74a42cebc1a9fd4e4a7713d5e41caba77a0fa172"
 dependencies = [
  "bounded-collections",
  "derive_more",
@@ -5918,7 +6193,7 @@ dependencies = [
 [[package]]
 name = "polkadot-primitives"
 version = "7.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=master#e6bd9205432bb524e94c9bd13048d645ec9aa5c7"
+source = "git+https://github.com/paritytech/polkadot-sdk?branch=master#74a42cebc1a9fd4e4a7713d5e41caba77a0fa172"
 dependencies = [
  "bitvec",
  "hex-literal",
@@ -5991,7 +6266,7 @@ dependencies = [
  "polkavm-common",
  "proc-macro2 1.0.79",
  "quote 1.0.35",
- "syn 2.0.57",
+ "syn 2.0.58",
 ]
 
 [[package]]
@@ -6001,7 +6276,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8ba81f7b5faac81e528eb6158a6f3c9e0bb1008e0ffa19653bc8dea925ecb429"
 dependencies = [
  "polkavm-derive-impl",
- "syn 2.0.57",
+ "syn 2.0.58",
 ]
 
 [[package]]
@@ -6018,7 +6293,7 @@ checksum = "4b2d323e8ca7996b3e23126511a523f7e62924d93ecd5ae73b333815b0eb3dce"
 dependencies = [
  "autocfg",
  "bitflags 1.3.2",
- "cfg-if 1.0.0",
+ "cfg-if",
  "concurrent-queue",
  "libc",
  "log",
@@ -6032,7 +6307,7 @@ version = "3.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e0c976a60b2d7e99d6f229e414670a9b85d13ac305cc6d1e9c134de58c5aaaf6"
 dependencies = [
- "cfg-if 1.0.0",
+ "cfg-if",
  "concurrent-queue",
  "hermit-abi 0.3.9",
  "pin-project-lite 0.2.14",
@@ -6058,7 +6333,7 @@ version = "0.6.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9d1fe60d06143b2430aa532c94cfe9e29783047f06c0d7fd359a9a51b729fa25"
 dependencies = [
- "cfg-if 1.0.0",
+ "cfg-if",
  "cpufeatures",
  "opaque-debug 0.3.1",
  "universal-hash",
@@ -6113,7 +6388,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "22020dfcf177fcc7bf5deaf7440af371400c67c0de14c399938d8ed4fb4645d3"
 dependencies = [
  "proc-macro2 1.0.79",
- "syn 2.0.57",
+ "syn 2.0.58",
 ]
 
 [[package]]
@@ -6200,7 +6475,7 @@ checksum = "834da187cfe638ae8abb0203f0b33e5ccdb02a28e7199f2f47b3e2754f50edca"
 dependencies = [
  "proc-macro2 1.0.79",
  "quote 1.0.35",
- "syn 2.0.57",
+ "syn 2.0.58",
 ]
 
 [[package]]
@@ -6227,7 +6502,7 @@ version = "0.13.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "449811d15fbdf5ceb5c1144416066429cf82316e2ec8ce0c1f6f8a02e7bbcf8c"
 dependencies = [
- "cfg-if 1.0.0",
+ "cfg-if",
  "fnv",
  "lazy_static",
  "memchr",
@@ -6255,7 +6530,7 @@ checksum = "440f724eba9f6996b75d63681b0a92b06947f1457076d503a4d2e2c8f56442b8"
 dependencies = [
  "proc-macro2 1.0.79",
  "quote 1.0.35",
- "syn 2.0.57",
+ "syn 2.0.58",
 ]
 
 [[package]]
@@ -6361,13 +6636,31 @@ dependencies = [
 ]
 
 [[package]]
+name = "quinn"
+version = "0.9.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2e8b432585672228923edbbf64b8b12c14e1112f62e88737655b4a083dbcd78e"
+dependencies = [
+ "bytes",
+ "pin-project-lite 0.2.14",
+ "quinn-proto",
+ "quinn-udp",
+ "rustc-hash",
+ "rustls 0.20.9",
+ "thiserror",
+ "tokio",
+ "tracing",
+ "webpki",
+]
+
+[[package]]
 name = "quinn-proto"
 version = "0.9.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "94b0b33c13a79f669c85defaf4c275dc86a0c0372807d0ca3d78e0bb87274863"
 dependencies = [
  "bytes",
- "rand",
+ "rand 0.8.5",
  "ring 0.16.20",
  "rustc-hash",
  "rustls 0.20.9",
@@ -6376,6 +6669,19 @@ dependencies = [
  "tinyvec",
  "tracing",
  "webpki",
+]
+
+[[package]]
+name = "quinn-udp"
+version = "0.3.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "641538578b21f5e5c8ea733b736895576d0fe329bb883b937db6f4d163dbaaf4"
+dependencies = [
+ "libc",
+ "quinn-proto",
+ "socket2 0.4.10",
+ "tracing",
+ "windows-sys 0.42.0",
 ]
 
 [[package]]
@@ -6404,13 +6710,36 @@ checksum = "dc33ff2d4973d518d823d61aa239014831e521c75da58e3df4840d3f47749d09"
 
 [[package]]
 name = "rand"
+version = "0.7.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6a6b1679d49b24bbfe0c803429aa1874472f50d9b363131f0e89fc356b544d03"
+dependencies = [
+ "getrandom 0.1.16",
+ "libc",
+ "rand_chacha 0.2.2",
+ "rand_core 0.5.1",
+ "rand_hc",
+]
+
+[[package]]
+name = "rand"
 version = "0.8.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "34af8d1a0e25924bc5b7c43c079c942339d8f0a8b57c39049bef581b46327404"
 dependencies = [
  "libc",
- "rand_chacha",
+ "rand_chacha 0.3.1",
  "rand_core 0.6.4",
+]
+
+[[package]]
+name = "rand_chacha"
+version = "0.2.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f4c8ed856279c9737206bf725bf36935d8666ead7aa69b52be55af369d193402"
+dependencies = [
+ "ppv-lite86",
+ "rand_core 0.5.1",
 ]
 
 [[package]]
@@ -6438,7 +6767,7 @@ version = "0.6.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ec0be4795e2f6a28069bec0b5ff3e2ac9bafc99e6a9a7dc3547996c5c816922c"
 dependencies = [
- "getrandom 0.2.12",
+ "getrandom 0.2.14",
 ]
 
 [[package]]
@@ -6448,7 +6777,16 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "32cb0b9bc82b0a0876c2dd994a7e7a2683d3e7390ca40e6886785ef0c7e3ee31"
 dependencies = [
  "num-traits",
- "rand",
+ "rand 0.8.5",
+]
+
+[[package]]
+name = "rand_hc"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ca3129af7b92a17112d59ad498c6f81eaf463253766b90396d39ea7a39d6613c"
+dependencies = [
+ "rand_core 0.5.1",
 ]
 
 [[package]]
@@ -6533,7 +6871,7 @@ version = "0.4.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "bd283d9651eeda4b2a83a43c1c91b266c40fd76ecd39a50a8c630ae69dc72891"
 dependencies = [
- "getrandom 0.2.12",
+ "getrandom 0.2.14",
  "libredox",
  "thiserror",
 ]
@@ -6555,7 +6893,7 @@ checksum = "5fddb4f8d99b0a2ebafc65a87a69a7b9875e4b1ae1f00db265d300ef7f28bccc"
 dependencies = [
  "proc-macro2 1.0.79",
  "quote 1.0.35",
- "syn 2.0.57",
+ "syn 2.0.58",
 ]
 
 [[package]]
@@ -6790,7 +7128,7 @@ dependencies = [
  "frame-support",
  "frame-system",
  "futures",
- "jsonrpsee 0.22.3",
+ "jsonrpsee 0.22.4",
  "log",
  "num-traits",
  "pallet-balances",
@@ -6799,7 +7137,7 @@ dependencies = [
  "pallet-transaction-payment-rpc-runtime-api",
  "pallet-utility",
  "parity-scale-codec",
- "rand",
+ "rand 0.8.5",
  "relay-utils",
  "sc-chain-spec",
  "sc-rpc-api",
@@ -6919,8 +7257,8 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c17fa4cb658e3583423e915b9f3acc01cceaee1860e33d59ebae66adc3a2dc0d"
 dependencies = [
  "cc",
- "cfg-if 1.0.0",
- "getrandom 0.2.12",
+ "cfg-if",
+ "getrandom 0.2.14",
  "libc",
  "spin 0.9.8",
  "untrusted 0.9.0",
@@ -7092,7 +7430,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8f1fb85efa936c42c6d5fc28d2629bb51e4b2f4b8a5211e297d599cc5a093792"
 dependencies = [
  "openssl-probe",
- "rustls-pemfile 2.1.1",
+ "rustls-pemfile 2.1.2",
  "rustls-pki-types",
  "schannel",
  "security-framework",
@@ -7109,11 +7447,11 @@ dependencies = [
 
 [[package]]
 name = "rustls-pemfile"
-version = "2.1.1"
+version = "2.1.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f48172685e6ff52a556baa527774f61fcaa884f59daf3375c62a3f1cd2549dab"
+checksum = "29993a25686778eb88d4189742cd713c9bce943bc54251a33509dc63cbacf73d"
 dependencies = [
- "base64 0.21.7",
+ "base64 0.22.0",
  "rustls-pki-types",
 ]
 
@@ -7146,9 +7484,9 @@ dependencies = [
 
 [[package]]
 name = "rustversion"
-version = "1.0.14"
+version = "1.0.15"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7ffc183a10b4478d04cbbbfc96d0873219d962dd5accaff2ffbd4ceb7df837f4"
+checksum = "80af6f9131f277a45a3fba6ce8e2258037bb0477a67e610d3c1fe046ab31de47"
 
 [[package]]
 name = "ruzstd"
@@ -7199,7 +7537,7 @@ dependencies = [
 [[package]]
 name = "sc-allocator"
 version = "23.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=master#e6bd9205432bb524e94c9bd13048d645ec9aa5c7"
+source = "git+https://github.com/paritytech/polkadot-sdk?branch=master#74a42cebc1a9fd4e4a7713d5e41caba77a0fa172"
 dependencies = [
  "log",
  "sp-core",
@@ -7209,8 +7547,8 @@ dependencies = [
 
 [[package]]
 name = "sc-chain-spec"
-version = "27.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=master#e6bd9205432bb524e94c9bd13048d645ec9aa5c7"
+version = "28.0.0"
+source = "git+https://github.com/paritytech/polkadot-sdk?branch=master#74a42cebc1a9fd4e4a7713d5e41caba77a0fa172"
 dependencies = [
  "array-bytes 6.2.2",
  "docify",
@@ -7231,23 +7569,24 @@ dependencies = [
  "sp-io",
  "sp-runtime",
  "sp-state-machine",
+ "sp-tracing 16.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
 ]
 
 [[package]]
 name = "sc-chain-spec-derive"
 version = "11.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=master#e6bd9205432bb524e94c9bd13048d645ec9aa5c7"
+source = "git+https://github.com/paritytech/polkadot-sdk?branch=master#74a42cebc1a9fd4e4a7713d5e41caba77a0fa172"
 dependencies = [
  "proc-macro-crate 3.1.0",
  "proc-macro2 1.0.79",
  "quote 1.0.35",
- "syn 2.0.57",
+ "syn 2.0.58",
 ]
 
 [[package]]
 name = "sc-client-api"
 version = "28.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=master#e6bd9205432bb524e94c9bd13048d645ec9aa5c7"
+source = "git+https://github.com/paritytech/polkadot-sdk?branch=master#74a42cebc1a9fd4e4a7713d5e41caba77a0fa172"
 dependencies = [
  "fnv",
  "futures",
@@ -7274,16 +7613,16 @@ dependencies = [
 [[package]]
 name = "sc-consensus"
 version = "0.33.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=master#e6bd9205432bb524e94c9bd13048d645ec9aa5c7"
+source = "git+https://github.com/paritytech/polkadot-sdk?branch=master#74a42cebc1a9fd4e4a7713d5e41caba77a0fa172"
 dependencies = [
  "async-trait",
  "futures",
  "futures-timer",
- "libp2p-identity",
  "log",
  "mockall",
  "parking_lot 0.12.1",
  "sc-client-api",
+ "sc-network-types",
  "sc-utils",
  "serde",
  "sp-api",
@@ -7299,7 +7638,7 @@ dependencies = [
 [[package]]
 name = "sc-executor"
 version = "0.32.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=master#e6bd9205432bb524e94c9bd13048d645ec9aa5c7"
+source = "git+https://github.com/paritytech/polkadot-sdk?branch=master#74a42cebc1a9fd4e4a7713d5e41caba77a0fa172"
 dependencies = [
  "parity-scale-codec",
  "parking_lot 0.12.1",
@@ -7322,7 +7661,7 @@ dependencies = [
 [[package]]
 name = "sc-executor-common"
 version = "0.29.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=master#e6bd9205432bb524e94c9bd13048d645ec9aa5c7"
+source = "git+https://github.com/paritytech/polkadot-sdk?branch=master#74a42cebc1a9fd4e4a7713d5e41caba77a0fa172"
 dependencies = [
  "polkavm",
  "sc-allocator",
@@ -7335,7 +7674,7 @@ dependencies = [
 [[package]]
 name = "sc-executor-polkavm"
 version = "0.29.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=master#e6bd9205432bb524e94c9bd13048d645ec9aa5c7"
+source = "git+https://github.com/paritytech/polkadot-sdk?branch=master#74a42cebc1a9fd4e4a7713d5e41caba77a0fa172"
 dependencies = [
  "log",
  "polkavm",
@@ -7346,10 +7685,10 @@ dependencies = [
 [[package]]
 name = "sc-executor-wasmtime"
 version = "0.29.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=master#e6bd9205432bb524e94c9bd13048d645ec9aa5c7"
+source = "git+https://github.com/paritytech/polkadot-sdk?branch=master#74a42cebc1a9fd4e4a7713d5e41caba77a0fa172"
 dependencies = [
  "anyhow",
- "cfg-if 1.0.0",
+ "cfg-if",
  "libc",
  "log",
  "parking_lot 0.12.1",
@@ -7364,7 +7703,7 @@ dependencies = [
 [[package]]
 name = "sc-mixnet"
 version = "0.4.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=master#e6bd9205432bb524e94c9bd13048d645ec9aa5c7"
+source = "git+https://github.com/paritytech/polkadot-sdk?branch=master#74a42cebc1a9fd4e4a7713d5e41caba77a0fa172"
 dependencies = [
  "array-bytes 4.2.0",
  "arrayvec 0.7.4",
@@ -7372,7 +7711,6 @@ dependencies = [
  "bytes",
  "futures",
  "futures-timer",
- "libp2p-identity",
  "log",
  "mixnet",
  "multiaddr",
@@ -7380,6 +7718,7 @@ dependencies = [
  "parking_lot 0.12.1",
  "sc-client-api",
  "sc-network",
+ "sc-network-types",
  "sc-transaction-pool-api",
  "sp-api",
  "sp-consensus",
@@ -7393,13 +7732,14 @@ dependencies = [
 [[package]]
 name = "sc-network"
 version = "0.34.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=master#e6bd9205432bb524e94c9bd13048d645ec9aa5c7"
+source = "git+https://github.com/paritytech/polkadot-sdk?branch=master#74a42cebc1a9fd4e4a7713d5e41caba77a0fa172"
 dependencies = [
  "array-bytes 6.2.2",
  "async-channel 1.9.0",
  "async-trait",
  "asynchronous-codec",
  "bytes",
+ "cid 0.9.0",
  "either",
  "fnv",
  "futures",
@@ -7407,16 +7747,22 @@ dependencies = [
  "ip_network",
  "libp2p",
  "linked_hash_set",
+ "litep2p",
  "log",
  "mockall",
+ "once_cell",
  "parity-scale-codec",
  "parking_lot 0.12.1",
  "partial_sort",
  "pin-project",
- "rand",
+ "prost",
+ "prost-build",
+ "rand 0.8.5",
  "sc-client-api",
  "sc-network-common",
+ "sc-network-types",
  "sc-utils",
+ "schnellru",
  "serde",
  "serde_json",
  "smallvec",
@@ -7429,6 +7775,7 @@ dependencies = [
  "tokio",
  "tokio-stream",
  "unsigned-varint",
+ "void",
  "wasm-timer",
  "zeroize",
 ]
@@ -7436,7 +7783,7 @@ dependencies = [
 [[package]]
 name = "sc-network-common"
 version = "0.33.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=master#e6bd9205432bb524e94c9bd13048d645ec9aa5c7"
+source = "git+https://github.com/paritytech/polkadot-sdk?branch=master#74a42cebc1a9fd4e4a7713d5e41caba77a0fa172"
 dependencies = [
  "async-trait",
  "bitflags 1.3.2",
@@ -7445,17 +7792,32 @@ dependencies = [
  "parity-scale-codec",
  "prost-build",
  "sc-consensus",
+ "sc-network-types",
  "sp-consensus",
  "sp-consensus-grandpa",
  "sp-runtime",
 ]
 
 [[package]]
+name = "sc-network-types"
+version = "0.10.0-dev"
+source = "git+https://github.com/paritytech/polkadot-sdk?branch=master#74a42cebc1a9fd4e4a7713d5e41caba77a0fa172"
+dependencies = [
+ "bs58 0.4.0",
+ "libp2p-identity",
+ "litep2p",
+ "multiaddr",
+ "multihash 0.17.0",
+ "rand 0.8.5",
+ "thiserror",
+]
+
+[[package]]
 name = "sc-rpc-api"
 version = "0.33.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=master#e6bd9205432bb524e94c9bd13048d645ec9aa5c7"
+source = "git+https://github.com/paritytech/polkadot-sdk?branch=master#74a42cebc1a9fd4e4a7713d5e41caba77a0fa172"
 dependencies = [
- "jsonrpsee 0.22.3",
+ "jsonrpsee 0.22.4",
  "parity-scale-codec",
  "sc-chain-spec",
  "sc-mixnet",
@@ -7473,7 +7835,7 @@ dependencies = [
 [[package]]
 name = "sc-telemetry"
 version = "15.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=master#e6bd9205432bb524e94c9bd13048d645ec9aa5c7"
+source = "git+https://github.com/paritytech/polkadot-sdk?branch=master#74a42cebc1a9fd4e4a7713d5e41caba77a0fa172"
 dependencies = [
  "chrono",
  "futures",
@@ -7481,7 +7843,8 @@ dependencies = [
  "log",
  "parking_lot 0.12.1",
  "pin-project",
- "rand",
+ "rand 0.8.5",
+ "sc-network",
  "sc-utils",
  "serde",
  "serde_json",
@@ -7492,7 +7855,7 @@ dependencies = [
 [[package]]
 name = "sc-transaction-pool-api"
 version = "28.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=master#e6bd9205432bb524e94c9bd13048d645ec9aa5c7"
+source = "git+https://github.com/paritytech/polkadot-sdk?branch=master#74a42cebc1a9fd4e4a7713d5e41caba77a0fa172"
 dependencies = [
  "async-trait",
  "futures",
@@ -7508,7 +7871,7 @@ dependencies = [
 [[package]]
 name = "sc-utils"
 version = "14.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=master#e6bd9205432bb524e94c9bd13048d645ec9aa5c7"
+source = "git+https://github.com/paritytech/polkadot-sdk?branch=master#74a42cebc1a9fd4e4a7713d5e41caba77a0fa172"
 dependencies = [
  "async-channel 1.9.0",
  "futures",
@@ -7589,12 +7952,12 @@ dependencies = [
 
 [[package]]
 name = "scale-info"
-version = "2.11.1"
+version = "2.11.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "788745a868b0e751750388f4e6546eb921ef714a4317fa6954f7cde114eb2eb7"
+checksum = "7c453e59a955f81fb62ee5d596b450383d699f152d350e9d23a0db2adb78e4c0"
 dependencies = [
  "bitvec",
- "cfg-if 1.0.0",
+ "cfg-if",
  "derive_more",
  "parity-scale-codec",
  "scale-info-derive",
@@ -7603,9 +7966,9 @@ dependencies = [
 
 [[package]]
 name = "scale-info-derive"
-version = "2.11.1"
+version = "2.11.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7dc2f4e8bc344b9fc3d5f74f72c2e55bfc38d28dc2ebc69c194a3df424e4d9ac"
+checksum = "18cf6c6447f813ef19eb450e985bcce6705f9ce7660db221b59093d15c79c4b7"
 dependencies = [
  "proc-macro-crate 1.1.3",
  "proc-macro2 1.0.79",
@@ -7649,7 +8012,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "772575a524feeb803e5b0fcbc6dd9f367e579488197c94c6e4023aad2305774d"
 dependencies = [
  "ahash 0.8.11",
- "cfg-if 1.0.0",
+ "cfg-if",
  "hashbrown 0.13.2",
 ]
 
@@ -7702,6 +8065,21 @@ checksum = "da046153aa2352493d6cb7da4b6e5c0c057d8a1d0a9aa8560baffdd945acd414"
 dependencies = [
  "ring 0.17.8",
  "untrusted 0.9.0",
+]
+
+[[package]]
+name = "sctp-proto"
+version = "0.1.7"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8f64cef148d3295c730c3cb340b0b252a4d570b1c7d4bf0808f88540b0a888bc"
+dependencies = [
+ "bytes",
+ "crc",
+ "fxhash",
+ "log",
+ "rand 0.8.5",
+ "slab",
+ "thiserror",
 ]
 
 [[package]]
@@ -7801,7 +8179,7 @@ checksum = "7eb0b34b42edc17f6b7cac84a52a1c5f0e1bb2227e997ca9011ea3dd34e8610b"
 dependencies = [
  "proc-macro2 1.0.79",
  "quote 1.0.35",
- "syn 2.0.57",
+ "syn 2.0.58",
 ]
 
 [[package]]
@@ -7842,10 +8220,42 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "99cd6713db3cf16b6c84e06321e049a9b9f699826e16096d23bbcc44d15d51a6"
 dependencies = [
  "block-buffer 0.9.0",
- "cfg-if 1.0.0",
+ "cfg-if",
  "cpufeatures",
  "digest 0.9.0",
  "opaque-debug 0.3.1",
+]
+
+[[package]]
+name = "sha-1"
+version = "0.10.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f5058ada175748e33390e40e872bd0fe59a19f265d0158daa551c5a88a76009c"
+dependencies = [
+ "cfg-if",
+ "cpufeatures",
+ "digest 0.10.7",
+ "sha1-asm",
+]
+
+[[package]]
+name = "sha1"
+version = "0.10.6"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e3bf829a2d51ab4a5ddf1352d8470c140cadc8301b2ae1789db023f01cedd6ba"
+dependencies = [
+ "cfg-if",
+ "cpufeatures",
+ "digest 0.10.7",
+]
+
+[[package]]
+name = "sha1-asm"
+version = "0.5.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2ba6947745e7f86be3b8af00b7355857085dbdf8901393c89514510eb61f4e21"
+dependencies = [
+ "cc",
 ]
 
 [[package]]
@@ -7855,7 +8265,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "4d58a1e1bf39749807d89cf2d98ac2dfa0ff1cb3faa38fbb64dd88ac8013d800"
 dependencies = [
  "block-buffer 0.9.0",
- "cfg-if 1.0.0",
+ "cfg-if",
  "cpufeatures",
  "digest 0.9.0",
  "opaque-debug 0.3.1",
@@ -7867,7 +8277,7 @@ version = "0.10.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "793db75ad2bcafc3ffa7c68b215fee268f537982cd901d132f89c6343f3a3dc8"
 dependencies = [
- "cfg-if 1.0.0",
+ "cfg-if",
  "cpufeatures",
  "digest 0.10.7",
 ]
@@ -7924,6 +8334,12 @@ dependencies = [
 
 [[package]]
 name = "signature"
+version = "1.6.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "74233d3b3b2f6d4b006dc19dee745e73e2a6bfb6f93607cd3b02bd5b00797d7c"
+
+[[package]]
+name = "signature"
 version = "2.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "77549399552de45a898a580c1b41d445bf730df867cc44e6c0233bbc4b8329de"
@@ -7943,6 +8359,15 @@ dependencies = [
  "num-traits",
  "paste",
  "wide",
+]
+
+[[package]]
+name = "simple-dns"
+version = "0.5.7"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "cae9a3fcdadafb6d97f4c0e007e4247b114ee0f119f650c3cbf3a8b3a1479694"
+dependencies = [
+ "bitflags 2.5.0",
 ]
 
 [[package]]
@@ -8040,8 +8465,8 @@ dependencies = [
  "num-traits",
  "pbkdf2",
  "pin-project",
- "rand",
- "rand_chacha",
+ "rand 0.8.5",
+ "rand_chacha 0.3.1",
  "ruzstd",
  "schnorrkel 0.10.2",
  "serde",
@@ -8078,7 +8503,7 @@ dependencies = [
  "log",
  "lru 0.10.1",
  "parking_lot 0.12.1",
- "rand",
+ "rand 0.8.5",
  "serde",
  "serde_json",
  "siphasher",
@@ -8137,14 +8562,14 @@ dependencies = [
  "http",
  "httparse",
  "log",
- "rand",
- "sha-1",
+ "rand 0.8.5",
+ "sha-1 0.9.8",
 ]
 
 [[package]]
 name = "sp-api"
 version = "26.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=master#e6bd9205432bb524e94c9bd13048d645ec9aa5c7"
+source = "git+https://github.com/paritytech/polkadot-sdk?branch=master#74a42cebc1a9fd4e4a7713d5e41caba77a0fa172"
 dependencies = [
  "hash-db",
  "log",
@@ -8166,7 +8591,7 @@ dependencies = [
 [[package]]
 name = "sp-api-proc-macro"
 version = "15.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=master#e6bd9205432bb524e94c9bd13048d645ec9aa5c7"
+source = "git+https://github.com/paritytech/polkadot-sdk?branch=master#74a42cebc1a9fd4e4a7713d5e41caba77a0fa172"
 dependencies = [
  "Inflector",
  "blake2 0.10.6",
@@ -8174,13 +8599,13 @@ dependencies = [
  "proc-macro-crate 3.1.0",
  "proc-macro2 1.0.79",
  "quote 1.0.35",
- "syn 2.0.57",
+ "syn 2.0.58",
 ]
 
 [[package]]
 name = "sp-application-crypto"
 version = "30.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=master#e6bd9205432bb524e94c9bd13048d645ec9aa5c7"
+source = "git+https://github.com/paritytech/polkadot-sdk?branch=master#74a42cebc1a9fd4e4a7713d5e41caba77a0fa172"
 dependencies = [
  "parity-scale-codec",
  "scale-info",
@@ -8193,7 +8618,7 @@ dependencies = [
 [[package]]
 name = "sp-arithmetic"
 version = "23.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=master#e6bd9205432bb524e94c9bd13048d645ec9aa5c7"
+source = "git+https://github.com/paritytech/polkadot-sdk?branch=master#74a42cebc1a9fd4e4a7713d5e41caba77a0fa172"
 dependencies = [
  "docify",
  "integer-sqrt",
@@ -8226,7 +8651,7 @@ dependencies = [
 [[package]]
 name = "sp-authority-discovery"
 version = "26.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=master#e6bd9205432bb524e94c9bd13048d645ec9aa5c7"
+source = "git+https://github.com/paritytech/polkadot-sdk?branch=master#74a42cebc1a9fd4e4a7713d5e41caba77a0fa172"
 dependencies = [
  "parity-scale-codec",
  "scale-info",
@@ -8238,7 +8663,7 @@ dependencies = [
 [[package]]
 name = "sp-blockchain"
 version = "28.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=master#e6bd9205432bb524e94c9bd13048d645ec9aa5c7"
+source = "git+https://github.com/paritytech/polkadot-sdk?branch=master#74a42cebc1a9fd4e4a7713d5e41caba77a0fa172"
 dependencies = [
  "futures",
  "log",
@@ -8256,7 +8681,7 @@ dependencies = [
 [[package]]
 name = "sp-consensus"
 version = "0.32.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=master#e6bd9205432bb524e94c9bd13048d645ec9aa5c7"
+source = "git+https://github.com/paritytech/polkadot-sdk?branch=master#74a42cebc1a9fd4e4a7713d5e41caba77a0fa172"
 dependencies = [
  "async-trait",
  "futures",
@@ -8271,7 +8696,7 @@ dependencies = [
 [[package]]
 name = "sp-consensus-beefy"
 version = "13.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=master#e6bd9205432bb524e94c9bd13048d645ec9aa5c7"
+source = "git+https://github.com/paritytech/polkadot-sdk?branch=master#74a42cebc1a9fd4e4a7713d5e41caba77a0fa172"
 dependencies = [
  "lazy_static",
  "parity-scale-codec",
@@ -8285,13 +8710,13 @@ dependencies = [
  "sp-keystore",
  "sp-mmr-primitives",
  "sp-runtime",
- "strum 0.24.1",
+ "strum",
 ]
 
 [[package]]
 name = "sp-consensus-grandpa"
 version = "13.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=master#e6bd9205432bb524e94c9bd13048d645ec9aa5c7"
+source = "git+https://github.com/paritytech/polkadot-sdk?branch=master#74a42cebc1a9fd4e4a7713d5e41caba77a0fa172"
 dependencies = [
  "finality-grandpa",
  "log",
@@ -8308,7 +8733,7 @@ dependencies = [
 [[package]]
 name = "sp-consensus-slots"
 version = "0.32.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=master#e6bd9205432bb524e94c9bd13048d645ec9aa5c7"
+source = "git+https://github.com/paritytech/polkadot-sdk?branch=master#74a42cebc1a9fd4e4a7713d5e41caba77a0fa172"
 dependencies = [
  "parity-scale-codec",
  "scale-info",
@@ -8319,7 +8744,7 @@ dependencies = [
 [[package]]
 name = "sp-core"
 version = "28.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=master#e6bd9205432bb524e94c9bd13048d645ec9aa5c7"
+source = "git+https://github.com/paritytech/polkadot-sdk?branch=master#74a42cebc1a9fd4e4a7713d5e41caba77a0fa172"
 dependencies = [
  "array-bytes 6.2.2",
  "bandersnatch_vrfs",
@@ -8343,7 +8768,7 @@ dependencies = [
  "parking_lot 0.12.1",
  "paste",
  "primitive-types",
- "rand",
+ "rand 0.8.5",
  "scale-info",
  "schnorrkel 0.11.4",
  "secp256k1",
@@ -8381,7 +8806,7 @@ dependencies = [
 [[package]]
 name = "sp-crypto-ec-utils"
 version = "0.10.0"
-source = "git+https://github.com/paritytech/polkadot-sdk#e6bd9205432bb524e94c9bd13048d645ec9aa5c7"
+source = "git+https://github.com/paritytech/polkadot-sdk#74a42cebc1a9fd4e4a7713d5e41caba77a0fa172"
 dependencies = [
  "ark-bls12-377",
  "ark-bls12-377-ext",
@@ -8400,8 +8825,8 @@ dependencies = [
 
 [[package]]
 name = "sp-crypto-hashing"
-version = "0.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=master#e6bd9205432bb524e94c9bd13048d645ec9aa5c7"
+version = "0.1.0"
+source = "git+https://github.com/paritytech/polkadot-sdk?branch=master#74a42cebc1a9fd4e4a7713d5e41caba77a0fa172"
 dependencies = [
  "blake2b_simd",
  "byteorder",
@@ -8413,18 +8838,18 @@ dependencies = [
 
 [[package]]
 name = "sp-crypto-hashing-proc-macro"
-version = "0.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=master#e6bd9205432bb524e94c9bd13048d645ec9aa5c7"
+version = "0.1.0"
+source = "git+https://github.com/paritytech/polkadot-sdk?branch=master#74a42cebc1a9fd4e4a7713d5e41caba77a0fa172"
 dependencies = [
  "quote 1.0.35",
  "sp-crypto-hashing",
- "syn 2.0.57",
+ "syn 2.0.58",
 ]
 
 [[package]]
 name = "sp-database"
 version = "10.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=master#e6bd9205432bb524e94c9bd13048d645ec9aa5c7"
+source = "git+https://github.com/paritytech/polkadot-sdk?branch=master#74a42cebc1a9fd4e4a7713d5e41caba77a0fa172"
 dependencies = [
  "kvdb",
  "parking_lot 0.12.1",
@@ -8433,27 +8858,27 @@ dependencies = [
 [[package]]
 name = "sp-debug-derive"
 version = "14.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=master#e6bd9205432bb524e94c9bd13048d645ec9aa5c7"
+source = "git+https://github.com/paritytech/polkadot-sdk?branch=master#74a42cebc1a9fd4e4a7713d5e41caba77a0fa172"
 dependencies = [
  "proc-macro2 1.0.79",
  "quote 1.0.35",
- "syn 2.0.57",
+ "syn 2.0.58",
 ]
 
 [[package]]
 name = "sp-debug-derive"
 version = "14.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk#e6bd9205432bb524e94c9bd13048d645ec9aa5c7"
+source = "git+https://github.com/paritytech/polkadot-sdk#74a42cebc1a9fd4e4a7713d5e41caba77a0fa172"
 dependencies = [
  "proc-macro2 1.0.79",
  "quote 1.0.35",
- "syn 2.0.57",
+ "syn 2.0.58",
 ]
 
 [[package]]
 name = "sp-externalities"
 version = "0.25.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=master#e6bd9205432bb524e94c9bd13048d645ec9aa5c7"
+source = "git+https://github.com/paritytech/polkadot-sdk?branch=master#74a42cebc1a9fd4e4a7713d5e41caba77a0fa172"
 dependencies = [
  "environmental",
  "parity-scale-codec",
@@ -8463,7 +8888,7 @@ dependencies = [
 [[package]]
 name = "sp-externalities"
 version = "0.25.0"
-source = "git+https://github.com/paritytech/polkadot-sdk#e6bd9205432bb524e94c9bd13048d645ec9aa5c7"
+source = "git+https://github.com/paritytech/polkadot-sdk#74a42cebc1a9fd4e4a7713d5e41caba77a0fa172"
 dependencies = [
  "environmental",
  "parity-scale-codec",
@@ -8472,9 +8897,11 @@ dependencies = [
 
 [[package]]
 name = "sp-genesis-builder"
-version = "0.7.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=master#e6bd9205432bb524e94c9bd13048d645ec9aa5c7"
+version = "0.8.0"
+source = "git+https://github.com/paritytech/polkadot-sdk?branch=master#74a42cebc1a9fd4e4a7713d5e41caba77a0fa172"
 dependencies = [
+ "parity-scale-codec",
+ "scale-info",
  "serde_json",
  "sp-api",
  "sp-runtime",
@@ -8483,7 +8910,7 @@ dependencies = [
 [[package]]
 name = "sp-inherents"
 version = "26.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=master#e6bd9205432bb524e94c9bd13048d645ec9aa5c7"
+source = "git+https://github.com/paritytech/polkadot-sdk?branch=master#74a42cebc1a9fd4e4a7713d5e41caba77a0fa172"
 dependencies = [
  "async-trait",
  "impl-trait-for-tuples",
@@ -8496,10 +8923,10 @@ dependencies = [
 [[package]]
 name = "sp-io"
 version = "30.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=master#e6bd9205432bb524e94c9bd13048d645ec9aa5c7"
+source = "git+https://github.com/paritytech/polkadot-sdk?branch=master#74a42cebc1a9fd4e4a7713d5e41caba77a0fa172"
 dependencies = [
  "bytes",
- "ed25519-dalek",
+ "ed25519-dalek 2.1.1",
  "libsecp256k1",
  "log",
  "parity-scale-codec",
@@ -8522,17 +8949,17 @@ dependencies = [
 [[package]]
 name = "sp-keyring"
 version = "31.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=master#e6bd9205432bb524e94c9bd13048d645ec9aa5c7"
+source = "git+https://github.com/paritytech/polkadot-sdk?branch=master#74a42cebc1a9fd4e4a7713d5e41caba77a0fa172"
 dependencies = [
  "sp-core",
  "sp-runtime",
- "strum 0.24.1",
+ "strum",
 ]
 
 [[package]]
 name = "sp-keystore"
 version = "0.34.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=master#e6bd9205432bb524e94c9bd13048d645ec9aa5c7"
+source = "git+https://github.com/paritytech/polkadot-sdk?branch=master#74a42cebc1a9fd4e4a7713d5e41caba77a0fa172"
 dependencies = [
  "parity-scale-codec",
  "parking_lot 0.12.1",
@@ -8543,7 +8970,7 @@ dependencies = [
 [[package]]
 name = "sp-maybe-compressed-blob"
 version = "11.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=master#e6bd9205432bb524e94c9bd13048d645ec9aa5c7"
+source = "git+https://github.com/paritytech/polkadot-sdk?branch=master#74a42cebc1a9fd4e4a7713d5e41caba77a0fa172"
 dependencies = [
  "thiserror",
  "zstd 0.12.4",
@@ -8552,7 +8979,7 @@ dependencies = [
 [[package]]
 name = "sp-metadata-ir"
 version = "0.6.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=master#e6bd9205432bb524e94c9bd13048d645ec9aa5c7"
+source = "git+https://github.com/paritytech/polkadot-sdk?branch=master#74a42cebc1a9fd4e4a7713d5e41caba77a0fa172"
 dependencies = [
  "frame-metadata 16.0.0",
  "parity-scale-codec",
@@ -8562,7 +8989,7 @@ dependencies = [
 [[package]]
 name = "sp-mixnet"
 version = "0.4.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=master#e6bd9205432bb524e94c9bd13048d645ec9aa5c7"
+source = "git+https://github.com/paritytech/polkadot-sdk?branch=master#74a42cebc1a9fd4e4a7713d5e41caba77a0fa172"
 dependencies = [
  "parity-scale-codec",
  "scale-info",
@@ -8573,7 +9000,7 @@ dependencies = [
 [[package]]
 name = "sp-mmr-primitives"
 version = "26.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=master#e6bd9205432bb524e94c9bd13048d645ec9aa5c7"
+source = "git+https://github.com/paritytech/polkadot-sdk?branch=master#74a42cebc1a9fd4e4a7713d5e41caba77a0fa172"
 dependencies = [
  "ckb-merkle-mountain-range",
  "log",
@@ -8590,7 +9017,7 @@ dependencies = [
 [[package]]
 name = "sp-panic-handler"
 version = "13.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=master#e6bd9205432bb524e94c9bd13048d645ec9aa5c7"
+source = "git+https://github.com/paritytech/polkadot-sdk?branch=master#74a42cebc1a9fd4e4a7713d5e41caba77a0fa172"
 dependencies = [
  "backtrace",
  "lazy_static",
@@ -8600,7 +9027,7 @@ dependencies = [
 [[package]]
 name = "sp-rpc"
 version = "26.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=master#e6bd9205432bb524e94c9bd13048d645ec9aa5c7"
+source = "git+https://github.com/paritytech/polkadot-sdk?branch=master#74a42cebc1a9fd4e4a7713d5e41caba77a0fa172"
 dependencies = [
  "rustc-hash",
  "serde",
@@ -8610,7 +9037,7 @@ dependencies = [
 [[package]]
 name = "sp-runtime"
 version = "31.0.1"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=master#e6bd9205432bb524e94c9bd13048d645ec9aa5c7"
+source = "git+https://github.com/paritytech/polkadot-sdk?branch=master#74a42cebc1a9fd4e4a7713d5e41caba77a0fa172"
 dependencies = [
  "docify",
  "either",
@@ -8619,7 +9046,7 @@ dependencies = [
  "log",
  "parity-scale-codec",
  "paste",
- "rand",
+ "rand 0.8.5",
  "scale-info",
  "serde",
  "simple-mermaid",
@@ -8634,7 +9061,7 @@ dependencies = [
 [[package]]
 name = "sp-runtime-interface"
 version = "24.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=master#e6bd9205432bb524e94c9bd13048d645ec9aa5c7"
+source = "git+https://github.com/paritytech/polkadot-sdk?branch=master#74a42cebc1a9fd4e4a7713d5e41caba77a0fa172"
 dependencies = [
  "bytes",
  "impl-trait-for-tuples",
@@ -8653,7 +9080,7 @@ dependencies = [
 [[package]]
 name = "sp-runtime-interface"
 version = "24.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk#e6bd9205432bb524e94c9bd13048d645ec9aa5c7"
+source = "git+https://github.com/paritytech/polkadot-sdk#74a42cebc1a9fd4e4a7713d5e41caba77a0fa172"
 dependencies = [
  "bytes",
  "impl-trait-for-tuples",
@@ -8672,33 +9099,33 @@ dependencies = [
 [[package]]
 name = "sp-runtime-interface-proc-macro"
 version = "17.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=master#e6bd9205432bb524e94c9bd13048d645ec9aa5c7"
+source = "git+https://github.com/paritytech/polkadot-sdk?branch=master#74a42cebc1a9fd4e4a7713d5e41caba77a0fa172"
 dependencies = [
  "Inflector",
  "expander",
  "proc-macro-crate 3.1.0",
  "proc-macro2 1.0.79",
  "quote 1.0.35",
- "syn 2.0.57",
+ "syn 2.0.58",
 ]
 
 [[package]]
 name = "sp-runtime-interface-proc-macro"
 version = "17.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk#e6bd9205432bb524e94c9bd13048d645ec9aa5c7"
+source = "git+https://github.com/paritytech/polkadot-sdk#74a42cebc1a9fd4e4a7713d5e41caba77a0fa172"
 dependencies = [
  "Inflector",
  "expander",
  "proc-macro-crate 3.1.0",
  "proc-macro2 1.0.79",
  "quote 1.0.35",
- "syn 2.0.57",
+ "syn 2.0.58",
 ]
 
 [[package]]
 name = "sp-session"
 version = "27.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=master#e6bd9205432bb524e94c9bd13048d645ec9aa5c7"
+source = "git+https://github.com/paritytech/polkadot-sdk?branch=master#74a42cebc1a9fd4e4a7713d5e41caba77a0fa172"
 dependencies = [
  "parity-scale-codec",
  "scale-info",
@@ -8712,7 +9139,7 @@ dependencies = [
 [[package]]
 name = "sp-staking"
 version = "26.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=master#e6bd9205432bb524e94c9bd13048d645ec9aa5c7"
+source = "git+https://github.com/paritytech/polkadot-sdk?branch=master#74a42cebc1a9fd4e4a7713d5e41caba77a0fa172"
 dependencies = [
  "impl-trait-for-tuples",
  "parity-scale-codec",
@@ -8725,13 +9152,13 @@ dependencies = [
 [[package]]
 name = "sp-state-machine"
 version = "0.35.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=master#e6bd9205432bb524e94c9bd13048d645ec9aa5c7"
+source = "git+https://github.com/paritytech/polkadot-sdk?branch=master#74a42cebc1a9fd4e4a7713d5e41caba77a0fa172"
 dependencies = [
  "hash-db",
  "log",
  "parity-scale-codec",
  "parking_lot 0.12.1",
- "rand",
+ "rand 0.8.5",
  "smallvec",
  "sp-core",
  "sp-externalities 0.25.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
@@ -8745,14 +9172,14 @@ dependencies = [
 [[package]]
 name = "sp-statement-store"
 version = "10.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=master#e6bd9205432bb524e94c9bd13048d645ec9aa5c7"
+source = "git+https://github.com/paritytech/polkadot-sdk?branch=master#74a42cebc1a9fd4e4a7713d5e41caba77a0fa172"
 dependencies = [
  "aes-gcm",
  "curve25519-dalek 4.1.1",
- "ed25519-dalek",
+ "ed25519-dalek 2.1.1",
  "hkdf",
  "parity-scale-codec",
- "rand",
+ "rand 0.8.5",
  "scale-info",
  "sha2 0.10.8",
  "sp-api",
@@ -8775,17 +9202,17 @@ checksum = "53458e3c57df53698b3401ec0934bea8e8cfce034816873c0b0abbd83d7bac0d"
 [[package]]
 name = "sp-std"
 version = "14.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=master#e6bd9205432bb524e94c9bd13048d645ec9aa5c7"
+source = "git+https://github.com/paritytech/polkadot-sdk?branch=master#74a42cebc1a9fd4e4a7713d5e41caba77a0fa172"
 
 [[package]]
 name = "sp-std"
 version = "14.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk#e6bd9205432bb524e94c9bd13048d645ec9aa5c7"
+source = "git+https://github.com/paritytech/polkadot-sdk#74a42cebc1a9fd4e4a7713d5e41caba77a0fa172"
 
 [[package]]
 name = "sp-storage"
 version = "19.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=master#e6bd9205432bb524e94c9bd13048d645ec9aa5c7"
+source = "git+https://github.com/paritytech/polkadot-sdk?branch=master#74a42cebc1a9fd4e4a7713d5e41caba77a0fa172"
 dependencies = [
  "impl-serde",
  "parity-scale-codec",
@@ -8797,7 +9224,7 @@ dependencies = [
 [[package]]
 name = "sp-storage"
 version = "19.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk#e6bd9205432bb524e94c9bd13048d645ec9aa5c7"
+source = "git+https://github.com/paritytech/polkadot-sdk#74a42cebc1a9fd4e4a7713d5e41caba77a0fa172"
 dependencies = [
  "impl-serde",
  "parity-scale-codec",
@@ -8809,7 +9236,7 @@ dependencies = [
 [[package]]
 name = "sp-timestamp"
 version = "26.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=master#e6bd9205432bb524e94c9bd13048d645ec9aa5c7"
+source = "git+https://github.com/paritytech/polkadot-sdk?branch=master#74a42cebc1a9fd4e4a7713d5e41caba77a0fa172"
 dependencies = [
  "async-trait",
  "parity-scale-codec",
@@ -8821,7 +9248,7 @@ dependencies = [
 [[package]]
 name = "sp-tracing"
 version = "16.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=master#e6bd9205432bb524e94c9bd13048d645ec9aa5c7"
+source = "git+https://github.com/paritytech/polkadot-sdk?branch=master#74a42cebc1a9fd4e4a7713d5e41caba77a0fa172"
 dependencies = [
  "parity-scale-codec",
  "tracing",
@@ -8832,7 +9259,7 @@ dependencies = [
 [[package]]
 name = "sp-tracing"
 version = "16.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk#e6bd9205432bb524e94c9bd13048d645ec9aa5c7"
+source = "git+https://github.com/paritytech/polkadot-sdk#74a42cebc1a9fd4e4a7713d5e41caba77a0fa172"
 dependencies = [
  "parity-scale-codec",
  "tracing",
@@ -8843,7 +9270,7 @@ dependencies = [
 [[package]]
 name = "sp-trie"
 version = "29.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=master#e6bd9205432bb524e94c9bd13048d645ec9aa5c7"
+source = "git+https://github.com/paritytech/polkadot-sdk?branch=master#74a42cebc1a9fd4e4a7713d5e41caba77a0fa172"
 dependencies = [
  "ahash 0.8.11",
  "hash-db",
@@ -8852,7 +9279,7 @@ dependencies = [
  "nohash-hasher",
  "parity-scale-codec",
  "parking_lot 0.12.1",
- "rand",
+ "rand 0.8.5",
  "scale-info",
  "schnellru",
  "sp-core",
@@ -8866,7 +9293,7 @@ dependencies = [
 [[package]]
 name = "sp-version"
 version = "29.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=master#e6bd9205432bb524e94c9bd13048d645ec9aa5c7"
+source = "git+https://github.com/paritytech/polkadot-sdk?branch=master#74a42cebc1a9fd4e4a7713d5e41caba77a0fa172"
 dependencies = [
  "impl-serde",
  "parity-scale-codec",
@@ -8883,18 +9310,18 @@ dependencies = [
 [[package]]
 name = "sp-version-proc-macro"
 version = "13.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=master#e6bd9205432bb524e94c9bd13048d645ec9aa5c7"
+source = "git+https://github.com/paritytech/polkadot-sdk?branch=master#74a42cebc1a9fd4e4a7713d5e41caba77a0fa172"
 dependencies = [
  "parity-scale-codec",
  "proc-macro2 1.0.79",
  "quote 1.0.35",
- "syn 2.0.57",
+ "syn 2.0.58",
 ]
 
 [[package]]
 name = "sp-wasm-interface"
 version = "20.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=master#e6bd9205432bb524e94c9bd13048d645ec9aa5c7"
+source = "git+https://github.com/paritytech/polkadot-sdk?branch=master#74a42cebc1a9fd4e4a7713d5e41caba77a0fa172"
 dependencies = [
  "anyhow",
  "impl-trait-for-tuples",
@@ -8906,19 +9333,17 @@ dependencies = [
 [[package]]
 name = "sp-wasm-interface"
 version = "20.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk#e6bd9205432bb524e94c9bd13048d645ec9aa5c7"
+source = "git+https://github.com/paritytech/polkadot-sdk#74a42cebc1a9fd4e4a7713d5e41caba77a0fa172"
 dependencies = [
- "anyhow",
  "impl-trait-for-tuples",
  "log",
  "parity-scale-codec",
- "wasmtime",
 ]
 
 [[package]]
 name = "sp-weights"
 version = "27.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=master#e6bd9205432bb524e94c9bd13048d645ec9aa5c7"
+source = "git+https://github.com/paritytech/polkadot-sdk?branch=master#74a42cebc1a9fd4e4a7713d5e41caba77a0fa172"
 dependencies = [
  "bounded-collections",
  "parity-scale-codec",
@@ -8975,7 +9400,7 @@ checksum = "a8f112729512f8e442d81f95a8a7ddf2b7c6b8a1a6f509a95864142b30cab2d3"
 [[package]]
 name = "staging-xcm"
 version = "7.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=master#e6bd9205432bb524e94c9bd13048d645ec9aa5c7"
+source = "git+https://github.com/paritytech/polkadot-sdk?branch=master#74a42cebc1a9fd4e4a7713d5e41caba77a0fa172"
 dependencies = [
  "array-bytes 6.2.2",
  "bounded-collections",
@@ -8993,7 +9418,7 @@ dependencies = [
 [[package]]
 name = "staging-xcm-builder"
 version = "7.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=master#e6bd9205432bb524e94c9bd13048d645ec9aa5c7"
+source = "git+https://github.com/paritytech/polkadot-sdk?branch=master#74a42cebc1a9fd4e4a7713d5e41caba77a0fa172"
 dependencies = [
  "frame-support",
  "frame-system",
@@ -9015,7 +9440,7 @@ dependencies = [
 [[package]]
 name = "staging-xcm-executor"
 version = "7.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=master#e6bd9205432bb524e94c9bd13048d645ec9aa5c7"
+source = "git+https://github.com/paritytech/polkadot-sdk?branch=master#74a42cebc1a9fd4e4a7713d5e41caba77a0fa172"
 dependencies = [
  "environmental",
  "frame-benchmarking",
@@ -9038,6 +9463,26 @@ name = "static_assertions"
 version = "1.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a2eb9349b6444b326872e140eb1cf5e7c522154d69e7a0ffb0fb81c06b37543f"
+
+[[package]]
+name = "str0m"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ee48572247f422dcbe68630c973f8296fbd5157119cd36a3223e48bf83d47727"
+dependencies = [
+ "combine",
+ "crc",
+ "hmac 0.12.1",
+ "once_cell",
+ "openssl",
+ "openssl-sys",
+ "rand 0.8.5",
+ "sctp-proto",
+ "serde",
+ "sha-1 0.10.1",
+ "thiserror",
+ "tracing",
+]
 
 [[package]]
 name = "strsim"
@@ -9077,33 +9522,11 @@ dependencies = [
 
 [[package]]
 name = "strum"
-version = "0.24.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "063e6045c0e62079840579a7e47a355ae92f60eb74daaf156fb1e84ba164e63f"
-dependencies = [
- "strum_macros 0.24.3",
-]
-
-[[package]]
-name = "strum"
 version = "0.26.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5d8cec3501a5194c432b2b7976db6b7d10ec95c253208b45f83f7136aa985e29"
 dependencies = [
- "strum_macros 0.26.2",
-]
-
-[[package]]
-name = "strum_macros"
-version = "0.24.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1e385be0d24f186b4ce2f9982191e7101bb737312ad61c1f2f984f34bcf85d59"
-dependencies = [
- "heck 0.4.1",
- "proc-macro2 1.0.79",
- "quote 1.0.35",
- "rustversion",
- "syn 1.0.109",
+ "strum_macros",
 ]
 
 [[package]]
@@ -9116,13 +9539,13 @@ dependencies = [
  "proc-macro2 1.0.79",
  "quote 1.0.35",
  "rustversion",
- "syn 2.0.57",
+ "syn 2.0.58",
 ]
 
 [[package]]
 name = "substrate-bip39"
 version = "0.4.7"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=master#e6bd9205432bb524e94c9bd13048d645ec9aa5c7"
+source = "git+https://github.com/paritytech/polkadot-sdk?branch=master#74a42cebc1a9fd4e4a7713d5e41caba77a0fa172"
 dependencies = [
  "hmac 0.12.1",
  "pbkdf2",
@@ -9134,7 +9557,7 @@ dependencies = [
 [[package]]
 name = "substrate-prometheus-endpoint"
 version = "0.17.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=master#e6bd9205432bb524e94c9bd13048d645ec9aa5c7"
+source = "git+https://github.com/paritytech/polkadot-sdk?branch=master#74a42cebc1a9fd4e4a7713d5e41caba77a0fa172"
 dependencies = [
  "hyper",
  "log",
@@ -9192,7 +9615,7 @@ dependencies = [
  "sp-keyring",
  "sp-runtime",
  "structopt",
- "strum 0.26.2",
+ "strum",
  "substrate-relay-helper",
  "tempfile",
 ]
@@ -9236,7 +9659,7 @@ dependencies = [
  "sp-core",
  "sp-runtime",
  "structopt",
- "strum 0.26.2",
+ "strum",
  "thiserror",
 ]
 
@@ -9306,7 +9729,7 @@ dependencies = [
  "quote 1.0.35",
  "scale-info",
  "subxt-metadata",
- "syn 2.0.57",
+ "syn 2.0.58",
  "thiserror",
  "tokio",
 ]
@@ -9337,7 +9760,7 @@ dependencies = [
  "darling 0.20.8",
  "proc-macro-error",
  "subxt-codegen",
- "syn 2.0.57",
+ "syn 2.0.58",
 ]
 
 [[package]]
@@ -9377,9 +9800,9 @@ dependencies = [
 
 [[package]]
 name = "syn"
-version = "2.0.57"
+version = "2.0.58"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "11a6ae1e52eb25aab8f3fb9fca13be982a373b8f1157ca14b897a825ba4a2d35"
+checksum = "44cfb93f38070beee36b3fef7d4f5a16f27751d94b187b666a5cc5e9b0d30687"
 dependencies = [
  "proc-macro2 1.0.79",
  "quote 1.0.35",
@@ -9400,11 +9823,11 @@ dependencies = [
 
 [[package]]
 name = "sysinfo"
-version = "0.30.7"
+version = "0.30.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0c385888ef380a852a16209afc8cfad22795dd8873d69c9a14d2e2088f118d18"
+checksum = "e9a84fe4cfc513b41cb2596b624e561ec9e7e1c4b46328e496ed56a53514ef2a"
 dependencies = [
- "cfg-if 1.0.0",
+ "cfg-if",
  "core-foundation-sys",
  "libc",
  "ntapi",
@@ -9452,7 +9875,7 @@ version = "3.10.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "85b77fafb263dd9d05cbeac119526425676db3784113aa9295c88498cbf8bff1"
 dependencies = [
- "cfg-if 1.0.0",
+ "cfg-if",
  "fastrand 2.0.2",
  "rustix 0.38.32",
  "windows-sys 0.52.0",
@@ -9508,7 +9931,7 @@ checksum = "e4c60d69f36615a077cc7663b9cb8e42275722d23e58a7fa3d2c7f2915d09d04"
 dependencies = [
  "proc-macro2 1.0.79",
  "quote 1.0.35",
- "syn 2.0.57",
+ "syn 2.0.58",
 ]
 
 [[package]]
@@ -9519,7 +9942,7 @@ checksum = "c61f3ba182994efc43764a46c018c347bc492c79f024e705f46567b418f6d4f7"
 dependencies = [
  "proc-macro2 1.0.79",
  "quote 1.0.35",
- "syn 2.0.57",
+ "syn 2.0.58",
 ]
 
 [[package]]
@@ -9528,7 +9951,7 @@ version = "1.1.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8b9ef9bad013ada3808854ceac7b46812a6465ba368859a37e2100283d2d719c"
 dependencies = [
- "cfg-if 1.0.0",
+ "cfg-if",
  "once_cell",
 ]
 
@@ -9615,7 +10038,7 @@ checksum = "5b8a1e28f2deaa14e508979454cb3a223b10b938b45af148bc0986de36f1923b"
 dependencies = [
  "proc-macro2 1.0.79",
  "quote 1.0.35",
- "syn 2.0.57",
+ "syn 2.0.58",
 ]
 
 [[package]]
@@ -9649,6 +10072,21 @@ dependencies = [
  "pin-project-lite 0.2.14",
  "tokio",
  "tokio-util",
+]
+
+[[package]]
+name = "tokio-tungstenite"
+version = "0.20.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "212d5dcb2a1ce06d81107c3d0ffa3121fe974b73f068c8282cb1c32328113b6c"
+dependencies = [
+ "futures-util",
+ "log",
+ "rustls 0.21.10",
+ "rustls-native-certs 0.6.3",
+ "tokio",
+ "tokio-rustls 0.24.1",
+ "tungstenite",
 ]
 
 [[package]]
@@ -9778,7 +10216,7 @@ checksum = "34704c8d6ebcbc939824180af020566b01a7c01f80641264eba0999f6c2b6be7"
 dependencies = [
  "proc-macro2 1.0.79",
  "quote 1.0.35",
- "syn 2.0.57",
+ "syn 2.0.58",
 ]
 
 [[package]]
@@ -9803,9 +10241,9 @@ dependencies = [
 
 [[package]]
 name = "tracing-log"
-version = "0.1.4"
+version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f751112709b4e791d8ce53e32c4ed2d353565a795ce84da2285393f41557bdf2"
+checksum = "ee855f1f400bd0e5c02d150ae5de3840039a3f54b025156404e34c23c03f47c3"
 dependencies = [
  "log",
  "once_cell",
@@ -9813,45 +10251,30 @@ dependencies = [
 ]
 
 [[package]]
-name = "tracing-serde"
-version = "0.1.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bc6b213177105856957181934e4920de57730fc69bf42c37ee5bb664d406d9e1"
-dependencies = [
- "serde",
- "tracing-core",
-]
-
-[[package]]
 name = "tracing-subscriber"
-version = "0.2.25"
+version = "0.3.18"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0e0d2eaa99c3c2e41547cfa109e910a68ea03823cccad4a0525dcbc9b01e8c71"
+checksum = "ad0f048c97dbd9faa9b7df56362b8ebcaa52adb06b498c050d2f4e32f90a7a8b"
 dependencies = [
- "ansi_term",
- "chrono",
- "lazy_static",
  "matchers",
+ "nu-ansi-term",
+ "once_cell",
  "regex",
- "serde",
- "serde_json",
  "sharded-slab",
  "smallvec",
  "thread_local",
  "tracing",
  "tracing-core",
  "tracing-log",
- "tracing-serde",
 ]
 
 [[package]]
 name = "trie-db"
-version = "0.28.0"
+version = "0.29.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ff28e0f815c2fea41ebddf148e008b077d2faddb026c9555b29696114d602642"
+checksum = "65ed83be775d85ebb0e272914fff6462c39b3ddd6dc67b5c1c41271aad280c69"
 dependencies = [
  "hash-db",
- "hashbrown 0.13.2",
  "log",
  "rustc-hex",
  "smallvec",
@@ -9873,18 +10296,43 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "4f7f83d1e4a0e4358ac54c5c3681e5d7da5efc5a7a632c90bb6d6669ddd9bc26"
 dependencies = [
  "async-trait",
- "cfg-if 1.0.0",
+ "cfg-if",
  "data-encoding",
- "enum-as-inner",
+ "enum-as-inner 0.5.1",
  "futures-channel",
  "futures-io",
  "futures-util",
  "idna 0.2.3",
  "ipnet",
  "lazy_static",
- "rand",
+ "rand 0.8.5",
  "smallvec",
  "socket2 0.4.10",
+ "thiserror",
+ "tinyvec",
+ "tokio",
+ "tracing",
+ "url",
+]
+
+[[package]]
+name = "trust-dns-proto"
+version = "0.23.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3119112651c157f4488931a01e586aa459736e9d6046d3bd9105ffb69352d374"
+dependencies = [
+ "async-trait",
+ "cfg-if",
+ "data-encoding",
+ "enum-as-inner 0.6.0",
+ "futures-channel",
+ "futures-io",
+ "futures-util",
+ "idna 0.4.0",
+ "ipnet",
+ "once_cell",
+ "rand 0.8.5",
+ "smallvec",
  "thiserror",
  "tinyvec",
  "tokio",
@@ -9898,7 +10346,7 @@ version = "0.22.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "aff21aa4dcefb0a1afbfac26deb0adc93888c7d295fb63ab273ef276ba2b7cfe"
 dependencies = [
- "cfg-if 1.0.0",
+ "cfg-if",
  "futures-util",
  "ipconfig",
  "lazy_static",
@@ -9909,7 +10357,28 @@ dependencies = [
  "thiserror",
  "tokio",
  "tracing",
- "trust-dns-proto",
+ "trust-dns-proto 0.22.0",
+]
+
+[[package]]
+name = "trust-dns-resolver"
+version = "0.23.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "10a3e6c3aff1718b3c73e395d1f35202ba2ffa847c6a62eea0db8fb4cfe30be6"
+dependencies = [
+ "cfg-if",
+ "futures-util",
+ "ipconfig",
+ "lru-cache",
+ "once_cell",
+ "parking_lot 0.12.1",
+ "rand 0.8.5",
+ "resolv-conf",
+ "smallvec",
+ "thiserror",
+ "tokio",
+ "tracing",
+ "trust-dns-proto 0.23.2",
 ]
 
 [[package]]
@@ -9925,14 +10394,34 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f4f195fd851901624eee5a58c4bb2b4f06399148fcd0ed336e6f1cb60a9881df"
 
 [[package]]
+name = "tungstenite"
+version = "0.20.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9e3dac10fd62eaf6617d3a904ae222845979aec67c615d1c842b4002c7666fb9"
+dependencies = [
+ "byteorder",
+ "bytes",
+ "data-encoding",
+ "http",
+ "httparse",
+ "log",
+ "rand 0.8.5",
+ "rustls 0.21.10",
+ "sha1",
+ "thiserror",
+ "url",
+ "utf-8",
+]
+
+[[package]]
 name = "twox-hash"
 version = "1.6.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "97fee6b57c6a41524a810daee9286c02d7752c4253064d0b05472833a438f675"
 dependencies = [
- "cfg-if 0.1.10",
+ "cfg-if",
  "digest 0.10.7",
- "rand",
+ "rand 0.8.5",
  "static_assertions",
 ]
 
@@ -10019,6 +10508,7 @@ dependencies = [
  "bytes",
  "futures-io",
  "futures-util",
+ "tokio-util",
 ]
 
 [[package]]
@@ -10043,6 +10533,12 @@ dependencies = [
  "idna 0.5.0",
  "percent-encoding",
 ]
+
+[[package]]
+name = "utf-8"
+version = "0.7.6"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "09cc8ee72d2a9becf2f2febe0205bbed8fc6615b7cb429ad062dc7b7ddd036a9"
 
 [[package]]
 name = "utf8parse"
@@ -10101,8 +10597,8 @@ dependencies = [
  "arrayref",
  "constcat",
  "digest 0.10.7",
- "rand",
- "rand_chacha",
+ "rand 0.8.5",
+ "rand_chacha 0.3.1",
  "rand_core 0.6.4",
  "sha2 0.10.8",
  "sha3",
@@ -10153,7 +10649,7 @@ version = "0.2.92"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "4be2531df63900aeb2bca0daaaddec08491ee64ceecbee5076636a3b026795a8"
 dependencies = [
- "cfg-if 1.0.0",
+ "cfg-if",
  "wasm-bindgen-macro",
 ]
 
@@ -10168,7 +10664,7 @@ dependencies = [
  "once_cell",
  "proc-macro2 1.0.79",
  "quote 1.0.35",
- "syn 2.0.57",
+ "syn 2.0.58",
  "wasm-bindgen-shared",
 ]
 
@@ -10178,7 +10674,7 @@ version = "0.4.42"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "76bc14366121efc8dbb487ab05bcc9d346b3b5ec0eaa76e46594cabbe51762c0"
 dependencies = [
- "cfg-if 1.0.0",
+ "cfg-if",
  "js-sys",
  "wasm-bindgen",
  "web-sys",
@@ -10202,7 +10698,7 @@ checksum = "e94f17b526d0a461a191c78ea52bbce64071ed5c04c9ffe424dcb38f74171bb7"
 dependencies = [
  "proc-macro2 1.0.79",
  "quote 1.0.35",
- "syn 2.0.57",
+ "syn 2.0.58",
  "wasm-bindgen-backend",
  "wasm-bindgen-shared",
 ]
@@ -10296,7 +10792,7 @@ checksum = "f907fdead3153cb9bfb7a93bbd5b62629472dc06dee83605358c64c52ed3dda9"
 dependencies = [
  "anyhow",
  "bincode",
- "cfg-if 1.0.0",
+ "cfg-if",
  "indexmap 1.9.3",
  "libc",
  "log",
@@ -10322,7 +10818,7 @@ version = "8.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d3b9daa7c14cd4fa3edbf69de994408d5f4b7b0959ac13fa69d465f6597f810d"
 dependencies = [
- "cfg-if 1.0.0",
+ "cfg-if",
 ]
 
 [[package]]
@@ -10410,7 +10906,7 @@ dependencies = [
  "addr2line 0.19.0",
  "anyhow",
  "bincode",
- "cfg-if 1.0.0",
+ "cfg-if",
  "cpp_demangle",
  "gimli 0.27.3",
  "log",
@@ -10442,7 +10938,7 @@ version = "8.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "aecae978b13f7f67efb23bd827373ace4578f2137ec110bbf6a4a7cde4121bbd"
 dependencies = [
- "cfg-if 1.0.0",
+ "cfg-if",
  "libc",
  "windows-sys 0.45.0",
 ]
@@ -10455,7 +10951,7 @@ checksum = "658cf6f325232b6760e202e5255d823da5e348fdea827eff0a2a22319000b441"
 dependencies = [
  "anyhow",
  "cc",
- "cfg-if 1.0.0",
+ "cfg-if",
  "indexmap 1.9.3",
  "libc",
  "log",
@@ -10463,7 +10959,7 @@ dependencies = [
  "memfd",
  "memoffset",
  "paste",
- "rand",
+ "rand 0.8.5",
  "rustix 0.36.17",
  "wasmtime-asm-macros",
  "wasmtime-environ",
@@ -10536,9 +11032,9 @@ dependencies = [
 
 [[package]]
 name = "widestring"
-version = "1.0.2"
+version = "1.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "653f141f39ec16bba3c5abe400a0c60da7468261cc2cbf36805022876bc721a8"
+checksum = "7219d36b6eac893fa81e84ebe06485e7dcbb616177469b142df14f1f4deb1311"
 
 [[package]]
 name = "winapi"
@@ -10607,6 +11103,21 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "33ab640c8d7e35bf8ba19b884ba838ceb4fba93a4e8c65a9059d08afcfc683d9"
 dependencies = [
  "windows-targets 0.52.4",
+]
+
+[[package]]
+name = "windows-sys"
+version = "0.42.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5a3e1820f08b8513f676f7ab6c1f99ff312fb97b553d30ff4dd86f9f15728aa7"
+dependencies = [
+ "windows_aarch64_gnullvm 0.42.2",
+ "windows_aarch64_msvc 0.42.2",
+ "windows_i686_gnu 0.42.2",
+ "windows_i686_msvc 0.42.2",
+ "windows_x86_64_gnu 0.42.2",
+ "windows_x86_64_gnullvm 0.42.2",
+ "windows_x86_64_msvc 0.42.2",
 ]
 
 [[package]]
@@ -10831,7 +11342,7 @@ version = "0.50.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "524e57b2c537c0f9b1e69f1965311ec12182b4122e45035b1508cd24d2adadb1"
 dependencies = [
- "cfg-if 1.0.0",
+ "cfg-if",
  "windows-sys 0.48.0",
 ]
 
@@ -10886,14 +11397,31 @@ dependencies = [
 ]
 
 [[package]]
+name = "x509-parser"
+version = "0.15.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7069fba5b66b9193bd2c5d3d4ff12b839118f6bcbef5328efafafb5395cf63da"
+dependencies = [
+ "asn1-rs",
+ "data-encoding",
+ "der-parser",
+ "lazy_static",
+ "nom",
+ "oid-registry",
+ "rusticata-macros",
+ "thiserror",
+ "time",
+]
+
+[[package]]
 name = "xcm-procedural"
 version = "7.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=master#e6bd9205432bb524e94c9bd13048d645ec9aa5c7"
+source = "git+https://github.com/paritytech/polkadot-sdk?branch=master#74a42cebc1a9fd4e4a7713d5e41caba77a0fa172"
 dependencies = [
  "Inflector",
  "proc-macro2 1.0.79",
  "quote 1.0.35",
- "syn 2.0.57",
+ "syn 2.0.58",
 ]
 
 [[package]]
@@ -10906,7 +11434,7 @@ dependencies = [
  "log",
  "nohash-hasher",
  "parking_lot 0.12.1",
- "rand",
+ "rand 0.8.5",
  "static_assertions",
 ]
 
@@ -10942,7 +11470,7 @@ checksum = "9ce1b18ccd8e73a9321186f97e46f9f04b778851177567b1975109d26a08d2a6"
 dependencies = [
  "proc-macro2 1.0.79",
  "quote 1.0.35",
- "syn 2.0.57",
+ "syn 2.0.58",
 ]
 
 [[package]]
@@ -10962,7 +11490,7 @@ checksum = "ce36e65b0d2999d2aafac989fb249189a141aee1f53c612c1f37d72631959f69"
 dependencies = [
  "proc-macro2 1.0.79",
  "quote 1.0.35",
- "syn 2.0.57",
+ "syn 2.0.58",
 ]
 
 [[package]]
