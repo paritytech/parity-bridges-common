@@ -84,9 +84,9 @@ dependencies = [
 
 [[package]]
 name = "ahash"
-version = "0.8.7"
+version = "0.8.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "77c3a9648d43b9cd48db467b3f87fdd6e146bcc88ab0180006cef2179fe11d01"
+checksum = "e89da841a80418a9b391ebaea17f5c112ffaaa96f621d2c285b5174da76b9011"
 dependencies = [
  "cfg-if 1.0.0",
  "getrandom 0.2.12",
@@ -3316,7 +3316,7 @@ version = "0.13.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "43a3c133739dddd0d2990f9a4bdf8eb4b21ef50e4851ca85ab661199821d510e"
 dependencies = [
- "ahash 0.8.7",
+ "ahash 0.8.11",
 ]
 
 [[package]]
@@ -3325,7 +3325,7 @@ version = "0.14.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "290f1a1d9242c78d09ce40a5e87e7554ee637af1351968159f4952f028f75604"
 dependencies = [
- "ahash 0.8.7",
+ "ahash 0.8.11",
  "allocator-api2",
  "serde",
 ]
@@ -6394,11 +6394,11 @@ dependencies = [
 
 [[package]]
 name = "quick_cache"
-version = "0.4.2"
+version = "0.5.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b1380629287ed1247c1e0fcc6d43efdcec508b65382c9ab775cc8f3df7ca07b0"
+checksum = "347e1a588d1de074eeb3c00eadff93db4db65aeb62aee852b1efd0949fe65b6c"
 dependencies = [
- "ahash 0.8.7",
+ "ahash 0.8.11",
  "equivalent",
  "hashbrown 0.14.3",
  "parking_lot 0.12.1",
@@ -7621,7 +7621,7 @@ version = "0.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "772575a524feeb803e5b0fcbc6dd9f367e579488197c94c6e4023aad2305774d"
 dependencies = [
- "ahash 0.8.7",
+ "ahash 0.8.11",
  "cfg-if 1.0.0",
  "hashbrown 0.13.2",
 ]
@@ -8846,7 +8846,7 @@ name = "sp-trie"
 version = "22.0.0"
 source = "git+https://github.com/paritytech/polkadot-sdk?branch=master#dcc76525d98a097be152293eee3389f6af5c4404"
 dependencies = [
- "ahash 0.8.7",
+ "ahash 0.8.11",
  "hash-db",
  "lazy_static",
  "memory-db",
