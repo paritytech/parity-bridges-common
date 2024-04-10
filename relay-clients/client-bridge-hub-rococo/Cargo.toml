@@ -16,15 +16,15 @@ subxt = { version = "0.32.1", default-features = false, features = ["native"] }
 
 # Bridge dependencies
 
-bp-bridge-hub-rococo = { path = "../../chains/chain-bridge-hub-rococo" }
-bp-header-chain = { path = "../../primitives/header-chain" }
-bp-messages = { path = "../../primitives/messages" }
-bp-parachains = { path = "../../primitives/parachains" }
-bp-polkadot-core = { path = "../../primitives/polkadot-core" }
-bp-runtime = { path = "../../primitives/runtime" }
+bp-bridge-hub-rococo = { git = "https://github.com/paritytech/polkadot-sdk", branch = "master" }
+bp-header-chain = { git = "https://github.com/paritytech/polkadot-sdk", branch = "master" }
+bp-messages = { git = "https://github.com/paritytech/polkadot-sdk", branch = "master" }
+bp-parachains = { git = "https://github.com/paritytech/polkadot-sdk", branch = "master" }
+bp-polkadot-core = { git = "https://github.com/paritytech/polkadot-sdk", branch = "master" }
+bp-runtime = { git = "https://github.com/paritytech/polkadot-sdk", branch = "master" }
 
-bridge-runtime-common = { path = "../../bin/runtime-common" }
-relay-substrate-client = { path = "../../relays/client-substrate" }
+bridge-runtime-common = { git = "https://github.com/paritytech/polkadot-sdk", branch = "master" }
+relay-substrate-client = { git = "https://github.com/paritytech/polkadot-sdk", branch = "master" }
 
 # Substrate Dependencies
 
