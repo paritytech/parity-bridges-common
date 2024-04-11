@@ -384,6 +384,7 @@ mod tests {
 		DefaultRefundableParachainId,
 	};
 	use bp_polkadot_core::parachains::ParaId;
+	use bp_runtime::HeaderId;
 	use codec::Encode;
 	use frame_support::assert_err;
 	use sp_runtime::{
@@ -607,7 +608,7 @@ mod tests {
 				&Some(relayer_account_at_this_chain()),
 				true,
 				Some(SubmitParachainHeadsInfo {
-					at_relay_block: (150, Default::default()),
+					at_relay_block: HeaderId(150, Default::default()),
 					para_id: ParaId(TestParachain::get()),
 					para_head_hash: [150u8; 32].into(),
 					is_free_execution_expected: false,
@@ -629,7 +630,7 @@ mod tests {
 				&Some(relayer_account_at_this_chain()),
 				false,
 				Some(SubmitParachainHeadsInfo {
-					at_relay_block: (100, Default::default()),
+					at_relay_block: HeaderId(100, Default::default()),
 					para_id: ParaId(TestParachain::get()),
 					para_head_hash: [100u8; 32].into(),
 					is_free_execution_expected: false,
