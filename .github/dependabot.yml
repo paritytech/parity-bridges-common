@@ -15,6 +15,15 @@ updates:
   - dependency-name: bridge-runtime-common
     versions:
       - ">= 0"
+  - dependency-name: equivocation-detector
+    versions:
+      - ">= 0"
+  - dependency-name: finality-relay
+    versions:
+      - ">= 0"
+  - dependency-name: messages-relay
+    versions:
+      - ">= 0"
   - dependency-name: parachains-relay
     versions:
       - ">= 0"
@@ -22,6 +31,9 @@ updates:
     versions:
       - ">= 0"
   - dependency-name: relay-utils
+    versions:
+      - ">= 0"
+  - dependency-name: substrate-relay-helper
     versions:
       - ">= 0"
   # Substrate polkadot-sdk (+ Polkadot/Cumulus pallets) dependencies
