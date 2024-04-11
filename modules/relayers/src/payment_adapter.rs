@@ -16,17 +16,21 @@
 
 //! Code that allows relayers pallet to be used as a payment mechanism for the messages pallet.
 
-use crate::{Config, Pallet};
+use crate::{ActiveLaneRelayers, Config, Pallet};
 
 use bp_messages::{
 	source_chain::{DeliveryConfirmationPayments, RelayersRewards},
+	target_chain::DeliveryPayments,
 	LaneId, MessageNonce,
 };
-use bp_relayers::{RewardsAccountOwner, RewardsAccountParams};
+use bp_relayers::{RelayerRewardAtSource, RewardsAccountOwner, RewardsAccountParams};
 use bp_runtime::Chain;
-use frame_support::traits::Get;
-use sp_arithmetic::traits::{Saturating, UniqueSaturatedFrom};
-use sp_runtime::traits::UniqueSaturatedInto;
+use frame_support::weights::Weight;
+use sp_arithmetic::traits::UniqueSaturatedFrom;
+use sp_runtime::{
+	traits::{Get, UniqueSaturatedInto},
+	Saturating,
+};
 use sp_std::{collections::vec_deque::VecDeque, marker::PhantomData, ops::RangeInclusive};
 
 /// Adapter that allows relayers pallet to be used as a delivery+dispatch payment mechanism
@@ -89,6 +93,41 @@ where
 	}
 }
 
+impl<T, MI, DefaultRewardPerMessage, MaxRewardPerMessage> DeliveryPayments<T::AccountId>
+	for DeliveryConfirmationPaymentsAdapter<T, MI, DefaultRewardPerMessage, MaxRewardPerMessage>
+where
+	T: Config + pallet_bridge_messages::Config<MI>,
+	MI: 'static,
+{
+	type Error = &'static str;
+
+	fn relayer_reward_per_message(
+		lane: LaneId,
+		relayer: &T::AccountId,
+	) -> Option<RelayerRewardAtSource> {
+		ActiveLaneRelayers::<T>::get(lane)
+			.relayer(relayer)
+			.map(|r| r.relayer_reward_per_message())
+	}
+
+	fn pay_reward(
+		lane_id: LaneId,
+		relayer: T::AccountId,
+		_total_messages: MessageNonce,
+		valid_messages: MessageNonce,
+		_actual_weight: Weight,
+	) {
+		if valid_messages == 0 {
+			return
+		}
+
+		// remember that the relayer has delivered messages
+		ActiveLaneRelayers::<T>::mutate_extant(lane_id, |active_lane_relayers| {
+			active_lane_relayers.note_delivered_message(&relayer);
+		});
+	}
+}
+
 /// Register relayer rewards for delivering messages.
 fn register_relayers_rewards<T: Config>(
 	relayers_rewards: RelayersRewards<T::AccountId, T::Reward>,
@@ -103,6 +142,7 @@ fn register_relayers_rewards<T: Config>(
 mod tests {
 	use super::*;
 	use crate::{mock::*, RelayerRewards};
+	use frame_support::assert_ok;
 
 	const RELAYER_1: ThisChainAccountId = 1;
 	const RELAYER_2: ThisChainAccountId = 2;
@@ -165,7 +205,9 @@ mod tests {
 				bp_messages::DeliveredMessages::new(1, Some(MAX_REWARD_PER_MESSAGE + 1));
 			delivered_messages.note_dispatched_message();
 
-			TestDeliveryConfirmationPaymentsAdapter::pay_reward(
+			<TestDeliveryConfirmationPaymentsAdapter as DeliveryConfirmationPayments<
+				ThisChainAccountId,
+			>>::pay_reward(
 				test_lane_id(),
 				vec![bp_messages::UnrewardedRelayer { relayer: 42, messages: delivered_messages }]
 					.into(),
@@ -178,5 +220,46 @@ mod tests {
 				Some(MAX_REWARD_PER_MESSAGE * 2),
 			);
 		});
+	}
+
+	#[test]
+	fn relayer_reward_per_message_works() {
+		run_test(|| {
+			assert_ok!(BridgeRelayers::increase_stake(
+				RuntimeOrigin::signed(REGISTER_RELAYER),
+				Stake::get() + LaneStake::get()
+			));
+			assert_ok!(BridgeRelayers::register(RuntimeOrigin::signed(REGISTER_RELAYER), 150));
+			assert_ok!(BridgeRelayers::register_at_lane(
+				RuntimeOrigin::signed(REGISTER_RELAYER),
+				test_lane_id(),
+				42,
+			));
+			System::set_block_number(
+				BridgeRelayers::next_lane_relayers(test_lane_id()).unwrap().may_enact_at(),
+			);
+			assert_ok!(BridgeRelayers::advance_lane_epoch(
+				RuntimeOrigin::signed(REGISTER_RELAYER),
+				test_lane_id(),
+			));
+
+			// for unregistered relayer it returns `None`
+			assert_eq!(
+				TestDeliveryConfirmationPaymentsAdapter::relayer_reward_per_message(
+					test_lane_id(),
+					&REGULAR_RELAYER
+				),
+				None,
+			);
+
+			// for registered relayer it returns its expected reward
+			assert_eq!(
+				TestDeliveryConfirmationPaymentsAdapter::relayer_reward_per_message(
+					test_lane_id(),
+					&REGISTER_RELAYER
+				),
+				Some(42),
+			);
+		})
 	}
 }

@@ -1128,6 +1128,11 @@ mod tests {
 		run_test(|| {
 			initialize_environment(100, 100, 100);
 
+			BridgeRelayers::increase_stake(
+				RuntimeOrigin::signed(relayer_account_at_this_chain()),
+				Stake::get(),
+			)
+			.unwrap();
 			BridgeRelayers::register(RuntimeOrigin::signed(relayer_account_at_this_chain()), 1000)
 				.unwrap();
 
@@ -1158,6 +1163,11 @@ mod tests {
 		run_test(|| {
 			initialize_environment(100, 100, 100);
 
+			BridgeRelayers::increase_stake(
+				RuntimeOrigin::signed(relayer_account_at_this_chain()),
+				Stake::get(),
+			)
+			.unwrap();
 			BridgeRelayers::register(RuntimeOrigin::signed(relayer_account_at_this_chain()), 1000)
 				.unwrap();
 
@@ -1770,6 +1780,11 @@ mod tests {
 			);
 
 			// slashing works for message delivery calls
+			BridgeRelayers::increase_stake(
+				RuntimeOrigin::signed(relayer_account_at_this_chain()),
+				test_stake,
+			)
+			.unwrap();
 			BridgeRelayers::register(RuntimeOrigin::signed(relayer_account_at_this_chain()), 1000)
 				.unwrap();
 			assert_eq!(Balances::reserved_balance(relayer_account_at_this_chain()), test_stake);
@@ -1780,6 +1795,11 @@ mod tests {
 				Balances::free_balance(delivery_rewards_account())
 			);
 
+			BridgeRelayers::increase_stake(
+				RuntimeOrigin::signed(relayer_account_at_this_chain()),
+				test_stake,
+			)
+			.unwrap();
 			BridgeRelayers::register(RuntimeOrigin::signed(relayer_account_at_this_chain()), 1000)
 				.unwrap();
 			assert_eq!(Balances::reserved_balance(relayer_account_at_this_chain()), test_stake);
@@ -1790,6 +1810,11 @@ mod tests {
 				Balances::free_balance(delivery_rewards_account())
 			);
 
+			BridgeRelayers::increase_stake(
+				RuntimeOrigin::signed(relayer_account_at_this_chain()),
+				test_stake,
+			)
+			.unwrap();
 			BridgeRelayers::register(RuntimeOrigin::signed(relayer_account_at_this_chain()), 1000)
 				.unwrap();
 			assert_eq!(Balances::reserved_balance(relayer_account_at_this_chain()), test_stake);
@@ -2143,6 +2168,11 @@ mod tests {
 			initialize_environment(100, 100, best_delivered_message);
 
 			// register relayer so it gets priority boost
+			BridgeRelayers::increase_stake(
+				RuntimeOrigin::signed(relayer_account_at_this_chain()),
+				Stake::get(),
+			)
+			.unwrap();
 			BridgeRelayers::register(RuntimeOrigin::signed(relayer_account_at_this_chain()), 1000)
 				.unwrap();
 

@@ -84,6 +84,11 @@ impl RewardsAccountParams {
 	) -> Self {
 		Self { lane_id, bridged_chain_id, owner }
 	}
+
+	/// Return lane identifier.
+	pub fn lane_id(&self) -> LaneId {
+		self.lane_id
+	}
 }
 
 impl TypeId for RewardsAccountParams {

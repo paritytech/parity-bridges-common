@@ -166,6 +166,7 @@ pub type TestStakeAndSlash = pallet_bridge_relayers::StakeAndSlashNamed<
 	Balances,
 	ReserveId,
 	Stake,
+	LaneStake,
 	Lease,
 >;
 
@@ -189,6 +190,7 @@ parameter_types! {
 	pub const ExistentialDeposit: ThisChainBalance = 1;
 	pub const ReserveId: [u8; 8] = *b"brdgrlrs";
 	pub const Stake: ThisChainBalance = 1_000;
+	pub const LaneStake: ThisChainBalance = 100;
 	pub const Lease: ThisChainBlockNumber = 8;
 	pub const TargetBlockFullness: Perquintill = Perquintill::from_percent(25);
 	pub const TransactionBaseFee: ThisChainBalance = 0;
@@ -198,8 +200,11 @@ parameter_types! {
 	pub MaximumMultiplier: Multiplier = sp_runtime::traits::Bounded::max_value();
 	pub MaxActiveRelayersPerLane: u32 = 4;
 	pub MaxNextRelayersPerLane: u32 = 16;
+	pub InitialElectionLength: u32 = 4;
 	pub SlotLength: u32 = 16;
-	pub PriorityBoostForActiveLaneRelayer: TransactionPriority = 1;
+	pub EpochLength: u32 = 1_024;
+	pub MaxLanesPerRelayer: u32 = 4;
+	pub PriorityBoostForActiveLaneRelayer: TransactionPriority = 4;
 }
 
 #[derive_impl(frame_system::config_preludes::TestDefaultConfig as frame_system::DefaultConfig)]
@@ -287,9 +292,12 @@ impl pallet_bridge_relayers::Config for TestRuntime {
 	type Reward = ThisChainBalance;
 	type PaymentProcedure = TestPaymentProcedure;
 	type StakeAndSlash = TestStakeAndSlash;
+	type MaxLanesPerRelayer = MaxLanesPerRelayer;
 	type MaxActiveRelayersPerLane = MaxActiveRelayersPerLane;
 	type MaxNextRelayersPerLane = MaxNextRelayersPerLane;
+	type InitialElectionLength = InitialElectionLength;
 	type SlotLength = SlotLength;
+	type EpochLength = EpochLength;
 	type PriorityBoostPerMessage = ConstU64<1>;
 	type PriorityBoostForActiveLaneRelayer = PriorityBoostForActiveLaneRelayer;
 	type WeightInfo = ();
@@ -318,6 +326,8 @@ pub const FAILING_RELAYER: ThisChainAccountId = 2;
 
 /// Relayer that is able to register.
 pub const REGISTER_RELAYER: ThisChainAccountId = 42;
+/// Another relayer that is able to register.
+pub const REGISTER_RELAYER_2: ThisChainAccountId = 43;
 
 /// Payment procedure that rejects payments to the `FAILING_RELAYER`.
 pub struct TestPaymentProcedure;
@@ -395,7 +405,14 @@ pub fn new_test_ext() -> sp_io::TestExternalities {
 /// Run pallet test.
 pub fn run_test<T>(test: impl FnOnce() -> T) -> T {
 	new_test_ext().execute_with(|| {
+		Balances::mint_into(
+			&TestPaymentProcedure::rewards_account(test_reward_account_param()),
+			ExistentialDeposit::get(),
+		)
+		.unwrap();
 		Balances::mint_into(&REGISTER_RELAYER, ExistentialDeposit::get() + 10 * Stake::get())
+			.unwrap();
+		Balances::mint_into(&REGISTER_RELAYER_2, ExistentialDeposit::get() + 10 * Stake::get())
 			.unwrap();
 
 		test()

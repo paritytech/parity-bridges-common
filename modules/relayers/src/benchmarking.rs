@@ -23,8 +23,10 @@ use crate::*;
 use bp_messages::LaneId;
 use bp_relayers::RewardsAccountOwner;
 use frame_benchmarking::v2::*;
-use frame_system::RawOrigin;
+use frame_support::traits::Get;
+use frame_system::{pallet_prelude::BlockNumberFor, RawOrigin};
 use sp_runtime::traits::One;
+use sp_std::vec::Vec;
 
 /// Reward amount that is (hopefully) is larger than existential deposit across all chains.
 const REWARD_AMOUNT: u32 = u32::MAX;
@@ -38,6 +40,47 @@ pub trait Config: crate::Config {
 	fn prepare_rewards_account(account_params: RewardsAccountParams, reward: Self::Reward);
 	/// Give enough balance to given account.
 	fn deposit_account(account: Self::AccountId, balance: Self::Reward);
+}
+
+/// Return lane id that we use in tests.
+fn lane_id(i: u32) -> LaneId {
+	LaneId::new(i, i)
+}
+
+/// Return block number until which our test registration is considered valid.
+fn valid_till<T: Config>() -> BlockNumberFor<T> {
+	frame_system::Pallet::<T>::block_number()
+		.saturating_add(crate::Pallet::<T>::required_registration_lease())
+		.saturating_add(One::one())
+		.saturating_add(One::one())
+}
+
+/// Add basic relayer registration and optionally lane registrations.
+fn register_relayer<T: Config>(
+	relayer: &T::AccountId,
+	lanes_reg_count: u32,
+	expected_reward: RelayerRewardAtSource,
+) {
+	let stake = crate::Pallet::<T>::base_stake().saturating_add(
+		crate::Pallet::<T>::stake_per_lane().saturating_mul((lanes_reg_count + 1).into()),
+	);
+	T::deposit_account(relayer.clone(), stake);
+	crate::Pallet::<T>::increase_stake(RawOrigin::Signed(relayer.clone()).into(), stake).unwrap();
+	crate::Pallet::<T>::register(RawOrigin::Signed(relayer.clone()).into(), valid_till::<T>())
+		.unwrap();
+
+	for i in 0..lanes_reg_count {
+		crate::Pallet::<T>::register_at_lane(
+			RawOrigin::Signed(relayer.clone()).into(),
+			lane_id(i),
+			expected_reward,
+		)
+		.unwrap();
+	}
+	assert_eq!(
+		crate::Pallet::<T>::registered_relayer(&relayer).map(|reg| reg.lanes().len() as u32),
+		Some(lanes_reg_count),
+	);
 }
 
 #[benchmarks]
@@ -64,16 +107,54 @@ mod benchmarks {
 		// also completed successfully
 	}
 
+	/// Benchmark `increase_stake` call.
+	#[benchmark]
+	fn increase_stake() {
+		let relayer: T::AccountId = whitelisted_caller();
+		let stake = crate::Pallet::<T>::base_stake();
+		T::deposit_account(relayer.clone(), stake);
+
+		#[extrinsic_call]
+		_(RawOrigin::Signed(relayer.clone()), stake);
+
+		assert_eq!(
+			crate::Pallet::<T>::registered_relayer(&relayer).map(|reg| reg.current_stake()),
+			Some(stake),
+		);
+	}
+
+	/// Benchmark `decrease_stake` call.
+	#[benchmark]
+	fn decrease_stake() {
+		let relayer: T::AccountId = whitelisted_caller();
+		let base_stake = crate::Pallet::<T>::base_stake();
+		let stake = base_stake.saturating_add(100u32.into());
+		T::deposit_account(relayer.clone(), stake);
+		crate::Pallet::<T>::increase_stake(RawOrigin::Signed(relayer.clone()).into(), stake)
+			.unwrap();
+
+		#[extrinsic_call]
+		_(RawOrigin::Signed(relayer.clone()), 100u32.into());
+
+		assert_eq!(
+			crate::Pallet::<T>::registered_relayer(&relayer).map(|reg| reg.current_stake()),
+			Some(base_stake),
+		);
+	}
+
 	/// Benchmark `register` call.
 	#[benchmark]
 	fn register() {
 		let relayer: T::AccountId = whitelisted_caller();
+		let base_stake = crate::Pallet::<T>::base_stake();
 		let valid_till = frame_system::Pallet::<T>::block_number()
 			.saturating_add(crate::Pallet::<T>::required_registration_lease())
 			.saturating_add(One::one())
 			.saturating_add(One::one());
 
-		T::deposit_account(relayer.clone(), crate::Pallet::<T>::required_stake());
+		T::deposit_account(relayer.clone(), base_stake);
+		crate::Pallet::<T>::increase_stake(RawOrigin::Signed(relayer.clone()).into(), base_stake)
+			.unwrap();
 
 		#[extrinsic_call]
 		_(RawOrigin::Signed(relayer.clone()), valid_till);
@@ -85,20 +166,112 @@ mod benchmarks {
 	#[benchmark]
 	fn deregister() {
 		let relayer: T::AccountId = whitelisted_caller();
-		let valid_till = frame_system::Pallet::<T>::block_number()
-			.saturating_add(crate::Pallet::<T>::required_registration_lease())
-			.saturating_add(One::one())
-			.saturating_add(One::one());
-		T::deposit_account(relayer.clone(), crate::Pallet::<T>::required_stake());
-		crate::Pallet::<T>::register(RawOrigin::Signed(relayer.clone()).into(), valid_till)
-			.unwrap();
-
-		frame_system::Pallet::<T>::set_block_number(valid_till.saturating_add(One::one()));
+		register_relayer::<T>(&relayer, 0, 0);
+		frame_system::Pallet::<T>::set_block_number(valid_till::<T>().saturating_add(One::one()));
 
 		#[extrinsic_call]
 		_(RawOrigin::Signed(relayer.clone()));
 
 		assert!(!crate::Pallet::<T>::is_registration_active(&relayer));
+	}
+
+	/// Benchmark `register_at_lane` call. The worst case for this call is when:
+	///
+	/// - relayer has `T::MaxLanesPerRelayer::get() - 1` lane registrations;
+	///
+	/// - there are no other relayers registered at that lane yet;
+	#[benchmark]
+	fn register_at_lane() {
+		let relayer: T::AccountId = whitelisted_caller();
+		let max_lanes_per_relayer = T::MaxLanesPerRelayer::get();
+		register_relayer::<T>(&relayer, max_lanes_per_relayer - 1, 0);
+
+		#[extrinsic_call]
+		_(RawOrigin::Signed(relayer.clone()), lane_id(max_lanes_per_relayer), 0);
+
+		assert_eq!(
+			crate::Pallet::<T>::registered_relayer(&relayer).map(|reg| reg.lanes().len() as u32),
+			Some(max_lanes_per_relayer),
+		);
+	}
+
+	/// Benchmark `deregister_at_lane` call. The worst case for this call is when relayer is not in
+	/// the active relayers set.
+	#[benchmark]
+	fn deregister_at_lane() {
+		let relayer: T::AccountId = whitelisted_caller();
+		let max_lanes_per_relayer = T::MaxLanesPerRelayer::get();
+		register_relayer::<T>(&relayer, max_lanes_per_relayer, 0);
+
+		#[extrinsic_call]
+		_(RawOrigin::Signed(relayer.clone()), lane_id(0));
+
+		assert_eq!(
+			crate::Pallet::<T>::registered_relayer(&relayer).map(|reg| reg.lanes().len() as u32),
+			Some(max_lanes_per_relayer - 1),
+		);
+	}
+
+	// Benchmark `advance_lane_epoch` call. The worst case for this call is when active set is
+	// completely replaced with a next set.
+	#[benchmark]
+	fn advance_lane_epoch() {
+		let current_block_number = frame_system::Pallet::<T>::block_number();
+
+		// prepare active relayers set with max possible relayers count
+		let max_active_relayers_per_lane = T::MaxActiveRelayersPerLane::get();
+		let active_relayers = (0..max_active_relayers_per_lane)
+			.map(|i| account("relayer", i, 0))
+			.collect::<Vec<_>>();
+		let mut active_relayers_set =
+			ActiveLaneRelayersSet::<_, BlockNumberFor<T>, T::MaxActiveRelayersPerLane>::default();
+		let mut next_relayers_set =
+			NextLaneRelayersSet::<_, BlockNumberFor<T>, T::MaxNextRelayersPerLane>::empty(
+				current_block_number,
+			);
+		for active_relayer in &active_relayers {
+			register_relayer::<T>(active_relayer, 1, 1);
+			assert!(next_relayers_set.try_insert(active_relayer.clone(), 0));
+		}
+		active_relayers_set.activate_next_set(current_block_number, next_relayers_set, |_| true);
+		ActiveLaneRelayers::<T>::insert(lane_id(0), active_relayers_set);
+
+		// prepare next relayers set with max possible relayers count
+		let max_next_relayers_per_lane = T::MaxNextRelayersPerLane::get();
+		let next_relayers = (0..max_next_relayers_per_lane)
+			.map(|i| account::<T::AccountId>("relayer", max_active_relayers_per_lane + i, 0))
+			.collect::<Vec<_>>();
+		for next_relayer in &next_relayers {
+			register_relayer::<T>(next_relayer, 1, 0);
+		}
+
+		// set next block to block where next set can be activated
+		frame_system::Pallet::<T>::set_block_number(
+			NextLaneRelayers::<T>::get(lane_id(0)).unwrap().may_enact_at(),
+		);
+
+		#[extrinsic_call]
+		_(RawOrigin::Signed(whitelisted_caller()), lane_id(0));
+
+		// active relayers are replaced with next relayers
+		assert_eq!(
+			crate::Pallet::<T>::active_lane_relayers(&lane_id(0))
+				.relayers()
+				.iter()
+				.map(|r| r.relayer())
+				.collect::<Vec<_>>(),
+			next_relayers.iter().take(max_active_relayers_per_lane as _).collect::<Vec<_>>(),
+		);
+
+		// all (previous) active relayers have no lane registration
+		active_relayers
+			.into_iter()
+			.all(|r| crate::Pallet::<T>::registered_relayer(&r).unwrap().lanes().len() == 0);
+
+		// all (previous) next relayers have no lane registration
+		next_relayers
+			.into_iter()
+			.all(|r| crate::Pallet::<T>::registered_relayer(&r).unwrap().lanes().len() == 1);
 	}
 
 	/// Benchmark `slash_and_deregister` method of the pallet. We are adding this weight to
@@ -108,13 +281,18 @@ mod benchmarks {
 	fn slash_and_deregister() {
 		// prepare and register relayer account
 		let relayer: T::AccountId = whitelisted_caller();
-		let valid_till = frame_system::Pallet::<T>::block_number()
-			.saturating_add(crate::Pallet::<T>::required_registration_lease())
-			.saturating_add(One::one())
-			.saturating_add(One::one());
-		T::deposit_account(relayer.clone(), crate::Pallet::<T>::required_stake());
-		crate::Pallet::<T>::register(RawOrigin::Signed(relayer.clone()).into(), valid_till)
+		let max_lanes_per_relayer = T::MaxLanesPerRelayer::get();
+		register_relayer::<T>(&relayer, max_lanes_per_relayer, 1);
+
+		// also register relayer in next lane relayers set (with better bid)
+		for i in 0..max_lanes_per_relayer {
+			crate::Pallet::<T>::register_at_lane(
+				RawOrigin::Signed(relayer.clone()).into(),
+				lane_id(i),
+				0,
+			)
 			.unwrap();
+		}
 
 		// create slash destination account
 		let lane = LaneId::new(1, 2);
@@ -128,6 +306,15 @@ mod benchmarks {
 		}
 
 		assert!(!crate::Pallet::<T>::is_registration_active(&relayer));
+		for i in 0..max_lanes_per_relayer {
+			assert!(crate::Pallet::<T>::active_lane_relayers(lane_id(i))
+				.relayer(&relayer)
+				.is_none(),);
+			assert!(crate::Pallet::<T>::next_lane_relayers(lane_id(i))
+				.unwrap_or_else(|| NextLaneRelayersSet::empty(Zero::zero()))
+				.relayer(&relayer)
+				.is_none(),);
+		}
 	}
 
 	// Benchmark `register_relayer_reward` method of the pallet. We are adding this weight to
