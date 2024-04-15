@@ -8,7 +8,7 @@
 #
 # See the `deployments/README.md` for all the available `PROJECT` values.
 
-FROM docker.io/paritytech/ci-unified:latest as builder
+FROM docker.io/paritytech/ci-unified:bullseye-1.77.0-2024-04-10-v20240408 as builder
 USER root
 WORKDIR /parity-bridges-common
 
