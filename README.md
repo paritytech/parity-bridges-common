@@ -41,7 +41,7 @@ Also you can build the repo with [Parity CI Docker
 image](https://github.com/paritytech/scripts/tree/master/dockerfiles/ci-unified):
 
 ```bash
-docker pull paritytech/ci-unified:latest
+docker pull paritytech/ci-unified:bullseye-1.77.0-2024-04-10-v20240408
 mkdir ~/cache
 chown 1000:1000 ~/cache #processes in the container runs as "nonroot" user with UID 1000
 docker run --rm -it -w /shellhere/parity-bridges-common \
@@ -49,7 +49,7 @@ docker run --rm -it -w /shellhere/parity-bridges-common \
                     -v "$(pwd)":/shellhere/parity-bridges-common \
                     -e CARGO_HOME=/cache/cargo/ \
                     -e SCCACHE_DIR=/cache/sccache/ \
-                    -e CARGO_TARGET_DIR=/cache/target/  paritytech/ci-unified:latest cargo build --all
+                    -e CARGO_TARGET_DIR=/cache/target/  paritytech/ci-unified:bullseye-1.77.0-2024-04-10-v20240408 cargo build --all
 #artifacts can be found in ~/cache/target
 ```
 
