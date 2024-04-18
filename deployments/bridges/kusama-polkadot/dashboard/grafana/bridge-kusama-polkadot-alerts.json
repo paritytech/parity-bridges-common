@@ -1,0 +1,1656 @@
+{
+  "apiVersion": 1,
+  "groups": [
+    {
+      "orgId": 1,
+      "name": "Bridge Kusama <> Polkadot",
+      "folder": "bridges",
+      "interval": "1m",
+      "rules": [
+        {
+          "uid": "adizmaavld2psc",
+          "title": "Polkadot -> KusamaBridgeHub finality sync lags (00000001)",
+          "condition": "D",
+          "data": [
+            {
+              "refId": "A",
+              "relativeTimeRange": {
+                "from": 21600,
+                "to": 0
+              },
+              "datasourceUid": "PC96415006F908B67",
+              "model": {
+                "datasource": {
+                  "type": "prometheus",
+                  "uid": "PC96415006F908B67"
+                },
+                "editorMode": "code",
+                "expr": "max(increase(Polkadot_to_BridgeHubKusama_Sync_best_source_at_target_block_number{domain=\"parity-chains\"}[24h]))",
+                "instant": false,
+                "interval": "",
+                "intervalMs": 30000,
+                "legendFormat": "At Polkadot",
+                "maxDataPoints": 43200,
+                "range": true,
+                "refId": "A"
+              }
+            },
+            {
+              "refId": "C",
+              "relativeTimeRange": {
+                "from": 21600,
+                "to": 0
+              },
+              "datasourceUid": "__expr__",
+              "model": {
+                "conditions": [
+                  {
+                    "evaluator": {
+                      "params": [],
+                      "type": "gt"
+                    },
+                    "operator": {
+                      "type": "and"
+                    },
+                    "query": {
+                      "params": [
+                        "C"
+                      ]
+                    },
+                    "reducer": {
+                      "params": [],
+                      "type": "last"
+                    },
+                    "type": "query"
+                  }
+                ],
+                "datasource": {
+                  "type": "__expr__",
+                  "uid": "__expr__"
+                },
+                "expression": "A",
+                "intervalMs": 1000,
+                "maxDataPoints": 43200,
+                "reducer": "max",
+                "refId": "C",
+                "type": "reduce"
+              }
+            },
+            {
+              "refId": "D",
+              "relativeTimeRange": {
+                "from": 21600,
+                "to": 0
+              },
+              "datasourceUid": "__expr__",
+              "model": {
+                "conditions": [
+                  {
+                    "evaluator": {
+                      "params": [
+                        5000
+                      ],
+                      "type": "lt"
+                    },
+                    "operator": {
+                      "type": "and"
+                    },
+                    "query": {
+                      "params": [
+                        "D"
+                      ]
+                    },
+                    "reducer": {
+                      "params": [],
+                      "type": "last"
+                    },
+                    "type": "query"
+                  }
+                ],
+                "datasource": {
+                  "type": "__expr__",
+                  "uid": "__expr__"
+                },
+                "expression": "C",
+                "intervalMs": 1000,
+                "maxDataPoints": 43200,
+                "refId": "D",
+                "type": "threshold"
+              }
+            }
+          ],
+          "dasboardUid": "zqjpkXxnk",
+          "panelId": 2,
+          "noDataState": "OK",
+          "execErrState": "OK",
+          "for": "5m",
+          "annotations": {
+            "__dashboardUid__": "zqjpkXxnk",
+            "__panelId__": "2",
+            "summary": "Less than 5000 Polkadot headers (~1/2 era) have been synced to KusamaBridgeHub in last 25 hours. Relay is not running?"
+          },
+          "labels": {
+            "matrix_room": "FqmgUhjOliBGoncGwm"
+          },
+          "isPaused": false
+        },
+        {
+          "uid": "cdiznm0i2tslca",
+          "title": "PolkadotBridgeHub -> KusamaBridgeHub delivery lags (00000001)",
+          "condition": "B",
+          "data": [
+            {
+              "refId": "A",
+              "relativeTimeRange": {
+                "from": 21600,
+                "to": 0
+              },
+              "datasourceUid": "PC96415006F908B67",
+              "model": {
+                "datasource": {
+                  "type": "prometheus",
+                  "uid": "PC96415006F908B67"
+                },
+                "editorMode": "code",
+                "expr": "((vector(0) and ((BridgeHubPolkadot_to_BridgeHubKusama_MessageLane_00000001_lane_state_nonces{domain=\"parity-chains\",type=\"source_latest_generated\"} > on () BridgeHubPolkadot_to_BridgeHubKusama_MessageLane_00000001_lane_state_nonces{domain=\"parity-chains\",type=\"target_latest_received\"}))) or vector(1)) + on () increase(BridgeHubPolkadot_to_BridgeHubKusama_MessageLane_00000001_lane_state_nonces{domain=\"parity-chains\",type=\"target_latest_received\"}[10m]) * on () ((vector(1) and ((BridgeHubPolkadot_to_BridgeHubKusama_MessageLane_00000001_lane_state_nonces{domain=\"parity-chains\",type=\"source_latest_generated\"} > on () BridgeHubPolkadot_to_BridgeHubKusama_MessageLane_00000001_lane_state_nonces{domain=\"parity-chains\",type=\"target_latest_received\"}))) or vector(0))",
+                "instant": false,
+                "interval": "",
+                "intervalMs": 30000,
+                "legendFormat": "Undelivered messages",
+                "maxDataPoints": 43200,
+                "range": true,
+                "refId": "A"
+              }
+            },
+            {
+              "refId": "B",
+              "relativeTimeRange": {
+                "from": 600,
+                "to": 0
+              },
+              "datasourceUid": "__expr__",
+              "model": {
+                "conditions": [
+                  {
+                    "evaluator": {
+                      "params": [
+                        1,
+                        0
+                      ],
+                      "type": "lt"
+                    },
+                    "operator": {
+                      "type": "and"
+                    },
+                    "query": {
+                      "params": [
+                        "A"
+                      ]
+                    },
+                    "reducer": {
+                      "params": [],
+                      "type": "max"
+                    },
+                    "type": "query"
+                  }
+                ],
+                "datasource": {
+                  "name": "Expression",
+                  "type": "__expr__",
+                  "uid": "__expr__"
+                },
+                "expression": "",
+                "hide": false,
+                "intervalMs": 1000,
+                "maxDataPoints": 43200,
+                "refId": "B",
+                "type": "classic_conditions"
+              }
+            }
+          ],
+          "dasboardUid": "zqjpkXxnk",
+          "panelId": 14,
+          "noDataState": "OK",
+          "execErrState": "OK",
+          "for": "10m",
+          "annotations": {
+            "__dashboardUid__": "zqjpkXxnk",
+            "__panelId__": "14",
+            "summary": "Messages from PolkadotBridgeHub to KusamaBridgeHub (00000001) are either not delivered, or are delivered with lags"
+          },
+          "labels": {
+            "matrix_room": "FqmgUhjOliBGoncGwm"
+          },
+          "isPaused": false
+        },
+        {
+          "uid": "adizouqsgd62od",
+          "title": "PolkadotBridgeHub -> KusamaBridgeHub confirmation lags (00000001)",
+          "condition": "B",
+          "data": [
+            {
+              "refId": "A",
+              "relativeTimeRange": {
+                "from": 21600,
+                "to": 0
+              },
+              "datasourceUid": "PC96415006F908B67",
+              "model": {
+                "datasource": {
+                  "type": "prometheus",
+                  "uid": "PC96415006F908B67"
+                },
+                "editorMode": "code",
+                "expr": "scalar(max_over_time(BridgeHubPolkadot_to_BridgeHubKusama_MessageLane_00000001_lane_state_nonces{domain=\"parity-chains\",type=\"target_latest_received\"}[2m]) OR on() vector(0)) - scalar(max_over_time(BridgeHubPolkadot_to_BridgeHubKusama_MessageLane_00000001_lane_state_nonces{domain=\"parity-chains\",type=\"source_latest_confirmed\"}[2m]) OR on() vector(0))",
+                "instant": false,
+                "interval": "",
+                "intervalMs": 30000,
+                "legendFormat": "Unconfirmed messages",
+                "maxDataPoints": 43200,
+                "range": true,
+                "refId": "A"
+              }
+            },
+            {
+              "refId": "B",
+              "relativeTimeRange": {
+                "from": 0,
+                "to": 0
+              },
+              "datasourceUid": "__expr__",
+              "model": {
+                "conditions": [
+                  {
+                    "evaluator": {
+                      "params": [
+                        50,
+                        0
+                      ],
+                      "type": "gt"
+                    },
+                    "operator": {
+                      "type": "and"
+                    },
+                    "query": {
+                      "params": [
+                        "A"
+                      ]
+                    },
+                    "reducer": {
+                      "params": [],
+                      "type": "max"
+                    },
+                    "type": "query"
+                  }
+                ],
+                "datasource": {
+                  "name": "Expression",
+                  "type": "__expr__",
+                  "uid": "__expr__"
+                },
+                "expression": "",
+                "intervalMs": 1000,
+                "maxDataPoints": 43200,
+                "refId": "B",
+                "type": "classic_conditions"
+              }
+            }
+          ],
+          "dasboardUid": "zqjpkXxnk",
+          "panelId": 16,
+          "noDataState": "OK",
+          "execErrState": "OK",
+          "for": "10m",
+          "annotations": {
+            "__dashboardUid__": "zqjpkXxnk",
+            "__panelId__": "16",
+            "summary": "Messages from PolkadotBridgeHub to KusamaBridgeHub (00000001) are either not confirmed, or are confirmed with lags"
+          },
+          "labels": {
+            "matrix_room": "FqmgUhjOliBGoncGwm"
+          },
+          "isPaused": false
+        },
+        {
+          "uid": "fdizp9l7o5rswf",
+          "title": "PolkadotBridgeHub -> KusamaBridgeHub reward lags (00000002)",
+          "condition": "B",
+          "data": [
+            {
+              "refId": "A",
+              "relativeTimeRange": {
+                "from": 21600,
+                "to": 0
+              },
+              "datasourceUid": "PC96415006F908B67",
+              "model": {
+                "datasource": {
+                  "type": "prometheus",
+                  "uid": "PC96415006F908B67"
+                },
+                "editorMode": "code",
+                "expr": "scalar(max_over_time(BridgeHubPolkadot_to_BridgeHubKusama_MessageLane_00000001_lane_state_nonces{domain=\"parity-chains\",type=\"source_latest_confirmed\"}[2m]) OR on() vector(0)) - scalar(max_over_time(BridgeHubPolkadot_to_BridgeHubKusama_MessageLane_00000001_lane_state_nonces{domain=\"parity-chains\",type=\"target_latest_confirmed\"}[2m]) OR on() vector(0))",
+                "instant": false,
+                "interval": "",
+                "intervalMs": 30000,
+                "legendFormat": "Unconfirmed rewards",
+                "maxDataPoints": 43200,
+                "range": true,
+                "refId": "A"
+              }
+            },
+            {
+              "refId": "B",
+              "relativeTimeRange": {
+                "from": 0,
+                "to": 0
+              },
+              "datasourceUid": "__expr__",
+              "model": {
+                "conditions": [
+                  {
+                    "evaluator": {
+                      "params": [
+                        10,
+                        0
+                      ],
+                      "type": "gt"
+                    },
+                    "operator": {
+                      "type": "and"
+                    },
+                    "query": {
+                      "params": [
+                        "A"
+                      ]
+                    },
+                    "reducer": {
+                      "params": [],
+                      "type": "min"
+                    },
+                    "type": "query"
+                  }
+                ],
+                "datasource": {
+                  "name": "Expression",
+                  "type": "__expr__",
+                  "uid": "__expr__"
+                },
+                "expression": "",
+                "hide": false,
+                "intervalMs": 1000,
+                "maxDataPoints": 43200,
+                "refId": "B",
+                "type": "classic_conditions"
+              }
+            }
+          ],
+          "dasboardUid": "zqjpkXxnk",
+          "panelId": 18,
+          "noDataState": "OK",
+          "execErrState": "OK",
+          "for": "10m",
+          "annotations": {
+            "__dashboardUid__": "zqjpkXxnk",
+            "__panelId__": "18",
+            "summary": "Rewards for messages from PolkadotBridgeHub to KusamaBridgeHub (00000001) are either not confirmed, or are confirmed with lags"
+          },
+          "labels": {
+            "matrix_room": "FqmgUhjOliBGoncGwm"
+          },
+          "isPaused": false
+        },
+        {
+          "uid": "bdizqaq47emf4f",
+          "title": "Kusama -> PolkadotBridgeHub finality sync lags (00000001)",
+          "condition": "D",
+          "data": [
+            {
+              "refId": "A",
+              "relativeTimeRange": {
+                "from": 21600,
+                "to": 0
+              },
+              "datasourceUid": "PC96415006F908B67",
+              "model": {
+                "datasource": {
+                  "type": "prometheus",
+                  "uid": "PC96415006F908B67"
+                },
+                "editorMode": "code",
+                "expr": "max(increase(Kusama_to_BridgeHubPolkadot_Sync_best_source_at_target_block_number{domain=\"parity-chains\"}[24h]))",
+                "instant": false,
+                "interval": "",
+                "intervalMs": 30000,
+                "legendFormat": "At Kusama",
+                "maxDataPoints": 43200,
+                "range": true,
+                "refId": "A"
+              }
+            },
+            {
+              "refId": "C",
+              "relativeTimeRange": {
+                "from": 21600,
+                "to": 0
+              },
+              "datasourceUid": "__expr__",
+              "model": {
+                "conditions": [
+                  {
+                    "evaluator": {
+                      "params": [],
+                      "type": "gt"
+                    },
+                    "operator": {
+                      "type": "and"
+                    },
+                    "query": {
+                      "params": [
+                        "C"
+                      ]
+                    },
+                    "reducer": {
+                      "params": [],
+                      "type": "last"
+                    },
+                    "type": "query"
+                  }
+                ],
+                "datasource": {
+                  "type": "__expr__",
+                  "uid": "__expr__"
+                },
+                "expression": "A",
+                "intervalMs": 1000,
+                "maxDataPoints": 43200,
+                "reducer": "max",
+                "refId": "C",
+                "type": "reduce"
+              }
+            },
+            {
+              "refId": "D",
+              "relativeTimeRange": {
+                "from": 21600,
+                "to": 0
+              },
+              "datasourceUid": "__expr__",
+              "model": {
+                "conditions": [
+                  {
+                    "evaluator": {
+                      "params": [
+                        5000
+                      ],
+                      "type": "lt"
+                    },
+                    "operator": {
+                      "type": "and"
+                    },
+                    "query": {
+                      "params": [
+                        "D"
+                      ]
+                    },
+                    "reducer": {
+                      "params": [],
+                      "type": "last"
+                    },
+                    "type": "query"
+                  }
+                ],
+                "datasource": {
+                  "type": "__expr__",
+                  "uid": "__expr__"
+                },
+                "expression": "C",
+                "intervalMs": 1000,
+                "maxDataPoints": 43200,
+                "refId": "D",
+                "type": "threshold"
+              }
+            }
+          ],
+          "dasboardUid": "tkpc6_bnk",
+          "panelId": 6,
+          "noDataState": "OK",
+          "execErrState": "OK",
+          "for": "5m",
+          "annotations": {
+            "__dashboardUid__": "tkpc6_bnk",
+            "__panelId__": "6",
+            "summary": "Less than 5000 Kusama headers (~1/2 era) have been synced to PolkadotBridgeHub in last 25 hours. Relay is not running?"
+          },
+          "labels": {
+            "matrix_room": "FqmgUhjOliBGoncGwm"
+          },
+          "isPaused": false
+        },
+        {
+          "uid": "adizvdppi4cu8b",
+          "title": "KusamaBridgeHub -> PolkadotBridgeHub delivery lags (00000001)",
+          "condition": "A",
+          "data": [
+            {
+              "refId": "B",
+              "relativeTimeRange": {
+                "from": 21600,
+                "to": 0
+              },
+              "datasourceUid": "PC96415006F908B67",
+              "model": {
+                "datasource": {
+                  "type": "prometheus",
+                  "uid": "PC96415006F908B67"
+                },
+                "editorMode": "code",
+                "expr": "((vector(0) and ((BridgeHubKusama_to_BridgeHubPolkadot_MessageLane_00000001_lane_state_nonces{domain=\"parity-chains\",type=\"source_latest_generated\"} > on () BridgeHubKusama_to_BridgeHubPolkadot_MessageLane_00000001_lane_state_nonces{domain=\"parity-chains\",type=\"target_latest_received\"}))) or vector(1)) + on () increase(BridgeHubKusama_to_BridgeHubPolkadot_MessageLane_00000001_lane_state_nonces{domain=\"parity-chains\",type=\"target_latest_received\"}[10m]) * on () ((vector(1) and ((BridgeHubKusama_to_BridgeHubPolkadot_MessageLane_00000001_lane_state_nonces{domain=\"parity-chains\",type=\"source_latest_generated\"} > on () BridgeHubKusama_to_BridgeHubPolkadot_MessageLane_00000001_lane_state_nonces{domain=\"parity-chains\",type=\"target_latest_received\"}))) or vector(0))",
+                "instant": false,
+                "interval": "",
+                "intervalMs": 30000,
+                "legendFormat": "1 if all messages are delivered. Otherwise - number of delivered messages in last 10m",
+                "maxDataPoints": 43200,
+                "range": true,
+                "refId": "B"
+              }
+            },
+            {
+              "refId": "A",
+              "relativeTimeRange": {
+                "from": 0,
+                "to": 0
+              },
+              "datasourceUid": "__expr__",
+              "model": {
+                "conditions": [
+                  {
+                    "evaluator": {
+                      "params": [
+                        1,
+                        0
+                      ],
+                      "type": "lt"
+                    },
+                    "operator": {
+                      "type": "and"
+                    },
+                    "query": {
+                      "params": [
+                        "B"
+                      ]
+                    },
+                    "reducer": {
+                      "params": [],
+                      "type": "max"
+                    },
+                    "type": "query"
+                  }
+                ],
+                "datasource": {
+                  "name": "Expression",
+                  "type": "__expr__",
+                  "uid": "__expr__"
+                },
+                "expression": "",
+                "intervalMs": 1000,
+                "maxDataPoints": 43200,
+                "refId": "A",
+                "type": "classic_conditions"
+              }
+            }
+          ],
+          "dasboardUid": "tkpc6_bnk",
+          "panelId": 12,
+          "noDataState": "OK",
+          "execErrState": "OK",
+          "for": "10m",
+          "annotations": {
+            "__dashboardUid__": "tkpc6_bnk",
+            "__panelId__": "12",
+            "summary": "Messages from KusamaBridgeHub to PolkadotBridgeHub (00000001) are either not delivered, or are delivered with lags"
+          },
+          "labels": {
+            "matrix_room": "FqmgUhjOliBGoncGwm"
+          },
+          "isPaused": false
+        },
+        {
+          "uid": "ddizvjxnpwa2ob",
+          "title": "KusamaBridgeHub -> PolkadotBridgeHub confirmation lags (00000001)",
+          "condition": "B",
+          "data": [
+            {
+              "refId": "A",
+              "relativeTimeRange": {
+                "from": 21600,
+                "to": 0
+              },
+              "datasourceUid": "PC96415006F908B67",
+              "model": {
+                "datasource": {
+                  "type": "prometheus",
+                  "uid": "PC96415006F908B67"
+                },
+                "editorMode": "code",
+                "expr": "scalar(max_over_time(KusamaBridgeHub_to_PolkadotBridgeHub_MessageLane_00000001_lane_state_nonces{domain=\"parity-chains\",type=\"target_latest_received\"}[2m]) OR on() vector(0)) - scalar(max_over_time(KusamaBridgeHub_to_PolkadotBridgeHub_MessageLane_00000001_lane_state_nonces{domain=\"parity-chains\",type=\"source_latest_confirmed\"}[2m]) OR on() vector(0))",
+                "instant": false,
+                "interval": "",
+                "intervalMs": 30000,
+                "legendFormat": "Unconfirmed messages",
+                "maxDataPoints": 43200,
+                "range": true,
+                "refId": "A"
+              }
+            },
+            {
+              "refId": "B",
+              "relativeTimeRange": {
+                "from": 0,
+                "to": 0
+              },
+              "datasourceUid": "__expr__",
+              "model": {
+                "conditions": [
+                  {
+                    "evaluator": {
+                      "params": [
+                        50,
+                        0
+                      ],
+                      "type": "gt"
+                    },
+                    "operator": {
+                      "type": "and"
+                    },
+                    "query": {
+                      "params": [
+                        "A"
+                      ]
+                    },
+                    "reducer": {
+                      "params": [],
+                      "type": "min"
+                    },
+                    "type": "query"
+                  }
+                ],
+                "datasource": {
+                  "name": "Expression",
+                  "type": "__expr__",
+                  "uid": "__expr__"
+                },
+                "expression": "",
+                "hide": false,
+                "intervalMs": 1000,
+                "maxDataPoints": 43200,
+                "refId": "B",
+                "type": "classic_conditions"
+              }
+            }
+          ],
+          "dasboardUid": "tkpc6_bnk",
+          "panelId": 14,
+          "noDataState": "OK",
+          "execErrState": "OK",
+          "for": "10m",
+          "annotations": {
+            "__dashboardUid__": "tkpc6_bnk",
+            "__panelId__": "14"
+          },
+          "labels": {
+            "matrix_room": "FqmgUhjOliBGoncGwm"
+          },
+          "isPaused": false
+        },
+        {
+          "uid": "fdizvp3bz6oe8c",
+          "title": "KusamaBridgeHub -> PolkadotBridgeHub reward lags (00000002)",
+          "condition": "B",
+          "data": [
+            {
+              "refId": "A",
+              "relativeTimeRange": {
+                "from": 21600,
+                "to": 0
+              },
+              "datasourceUid": "PC96415006F908B67",
+              "model": {
+                "datasource": {
+                  "type": "prometheus",
+                  "uid": "PC96415006F908B67"
+                },
+                "editorMode": "code",
+                "expr": "scalar(max_over_time(BridgeHubKusama_to_BridgeHubPolkadot_MessageLane_00000001_lane_state_nonces{domain=\"parity-chains\",type=\"source_latest_confirmed\"}[2m]) OR on() vector(0)) - scalar(max_over_time(BridgeHubKusama_to_BridgeHubPolkadot_MessageLane_00000001_lane_state_nonces{domain=\"parity-chains\",type=\"target_latest_confirmed\"}[2m]) OR on() vector(0))",
+                "interval": "",
+                "intervalMs": 30000,
+                "legendFormat": "Unconfirmed rewards",
+                "maxDataPoints": 43200,
+                "range": true,
+                "refId": "A"
+              }
+            },
+            {
+              "refId": "B",
+              "relativeTimeRange": {
+                "from": 0,
+                "to": 0
+              },
+              "datasourceUid": "__expr__",
+              "model": {
+                "conditions": [
+                  {
+                    "evaluator": {
+                      "params": [
+                        10,
+                        0
+                      ],
+                      "type": "gt"
+                    },
+                    "operator": {
+                      "type": "and"
+                    },
+                    "query": {
+                      "params": [
+                        "A"
+                      ]
+                    },
+                    "reducer": {
+                      "params": [],
+                      "type": "min"
+                    },
+                    "type": "query"
+                  }
+                ],
+                "datasource": {
+                  "name": "Expression",
+                  "type": "__expr__",
+                  "uid": "__expr__"
+                },
+                "expression": "",
+                "hide": false,
+                "intervalMs": 1000,
+                "maxDataPoints": 43200,
+                "refId": "B",
+                "type": "classic_conditions"
+              }
+            }
+          ],
+          "dasboardUid": "tkpc6_bnk",
+          "panelId": 15,
+          "noDataState": "OK",
+          "execErrState": "OK",
+          "for": "10m",
+          "annotations": {
+            "__dashboardUid__": "tkpc6_bnk",
+            "__panelId__": "15",
+            "summary": "Rewards for messages from KusamaBridgeHub to PolkadotBridgeHub (00000001) are either not confirmed, or are confirmed with lags"
+          },
+          "labels": {
+            "matrix_room": "FqmgUhjOliBGoncGwm"
+          },
+          "isPaused": false
+        },
+        {
+          "uid": "edizwf9kbhhxcc",
+          "title": "KusamaBridgeHub <> PolkadotBridgeHub relay (00000001) node is down",
+          "condition": "C",
+          "data": [
+            {
+              "refId": "A",
+              "relativeTimeRange": {
+                "from": 21600,
+                "to": 0
+              },
+              "datasourceUid": "PC96415006F908B67",
+              "model": {
+                "datasource": {
+                  "type": "prometheus",
+                  "uid": "PC96415006F908B67"
+                },
+                "editorMode": "code",
+                "exemplar": false,
+                "expr": "up{domain=\"parity-chains\",container=\"bridges-common-relay\"}",
+                "instant": false,
+                "interval": "",
+                "intervalMs": 30000,
+                "legendFormat": "Is relay running",
+                "maxDataPoints": 43200,
+                "range": true,
+                "refId": "A"
+              }
+            },
+            {
+              "refId": "B",
+              "relativeTimeRange": {
+                "from": 0,
+                "to": 0
+              },
+              "datasourceUid": "__expr__",
+              "model": {
+                "conditions": [
+                  {
+                    "evaluator": {
+                      "params": [],
+                      "type": "gt"
+                    },
+                    "operator": {
+                      "type": "and"
+                    },
+                    "query": {
+                      "params": [
+                        "B"
+                      ]
+                    },
+                    "reducer": {
+                      "params": [],
+                      "type": "last"
+                    },
+                    "type": "query"
+                  }
+                ],
+                "datasource": {
+                  "type": "__expr__",
+                  "uid": "__expr__"
+                },
+                "expression": "A",
+                "intervalMs": 1000,
+                "maxDataPoints": 43200,
+                "reducer": "min",
+                "refId": "B",
+                "type": "reduce"
+              }
+            },
+            {
+              "refId": "C",
+              "relativeTimeRange": {
+                "from": 0,
+                "to": 0
+              },
+              "datasourceUid": "__expr__",
+              "model": {
+                "conditions": [
+                  {
+                    "evaluator": {
+                      "params": [
+                        1
+                      ],
+                      "type": "lt"
+                    },
+                    "operator": {
+                      "type": "and"
+                    },
+                    "query": {
+                      "params": [
+                        "C"
+                      ]
+                    },
+                    "reducer": {
+                      "params": [],
+                      "type": "last"
+                    },
+                    "type": "query"
+                  }
+                ],
+                "datasource": {
+                  "type": "__expr__",
+                  "uid": "__expr__"
+                },
+                "expression": "B",
+                "intervalMs": 1000,
+                "maxDataPoints": 43200,
+                "refId": "C",
+                "type": "threshold"
+              }
+            }
+          ],
+          "dasboardUid": "UFsgpJtVz",
+          "panelId": 16,
+          "noDataState": "OK",
+          "execErrState": "OK",
+          "for": "5m",
+          "annotations": {
+            "__dashboardUid__": "UFsgpJtVz",
+            "__panelId__": "16",
+            "summary": "KusamaBridgeHub <> PolkadotBridgeHub relay (00000001) node is down"
+          },
+          "labels": {
+            "matrix_room": "FqmgUhjOliBGoncGwm"
+          },
+          "isPaused": false
+        },
+        {
+          "uid": "adizwlq6yk83kc",
+          "title": "Version guard has aborted KusamaBridgeHub <> PolkadotBridgeHub relay (00000001)",
+          "condition": "C",
+          "data": [
+            {
+              "refId": "A",
+              "queryType": "range",
+              "relativeTimeRange": {
+                "from": 21600,
+                "to": 0
+              },
+              "datasourceUid": "P7028671862427D8D",
+              "model": {
+                "datasource": {
+                  "type": "loki",
+                  "uid": "P7028671862427D8D"
+                },
+                "editorMode": "code",
+                "expr": "count_over_time({container=\"bridges-common-relay\"} |= `Aborting relay` [1m])",
+                "intervalMs": 1000,
+                "legendFormat": "Errors per minute",
+                "maxDataPoints": 43200,
+                "queryType": "range",
+                "refId": "A"
+              }
+            },
+            {
+              "refId": "B",
+              "relativeTimeRange": {
+                "from": 21600,
+                "to": 0
+              },
+              "datasourceUid": "__expr__",
+              "model": {
+                "conditions": [
+                  {
+                    "evaluator": {
+                      "params": [],
+                      "type": "gt"
+                    },
+                    "operator": {
+                      "type": "and"
+                    },
+                    "query": {
+                      "params": [
+                        "B"
+                      ]
+                    },
+                    "reducer": {
+                      "params": [],
+                      "type": "last"
+                    },
+                    "type": "query"
+                  }
+                ],
+                "datasource": {
+                  "type": "__expr__",
+                  "uid": "__expr__"
+                },
+                "expression": "A",
+                "intervalMs": 1000,
+                "maxDataPoints": 43200,
+                "reducer": "max",
+                "refId": "B",
+                "type": "reduce"
+              }
+            },
+            {
+              "refId": "C",
+              "relativeTimeRange": {
+                "from": 21600,
+                "to": 0
+              },
+              "datasourceUid": "__expr__",
+              "model": {
+                "conditions": [
+                  {
+                    "evaluator": {
+                      "params": [
+                        0
+                      ],
+                      "type": "gt"
+                    },
+                    "operator": {
+                      "type": "and"
+                    },
+                    "query": {
+                      "params": [
+                        "C"
+                      ]
+                    },
+                    "reducer": {
+                      "params": [],
+                      "type": "last"
+                    },
+                    "type": "query"
+                  }
+                ],
+                "datasource": {
+                  "type": "__expr__",
+                  "uid": "__expr__"
+                },
+                "expression": "B",
+                "intervalMs": 1000,
+                "maxDataPoints": 43200,
+                "refId": "C",
+                "type": "threshold"
+              }
+            }
+          ],
+          "dasboardUid": "UFsgpJtVz",
+          "panelId": 11,
+          "noDataState": "OK",
+          "execErrState": "OK",
+          "for": "0s",
+          "annotations": {
+            "__dashboardUid__": "UFsgpJtVz",
+            "__panelId__": "11",
+            "summary": "The KusamaBridgeHub <> PolkadotBridgeHub relay (00000001) has been aborted by version guard - i.e. one of chains has been upgraded and relay wasn't redeployed"
+          },
+          "labels": {
+            "matrix_room": "FqmgUhjOliBGoncGwm"
+          },
+          "isPaused": false
+        },
+        {
+          "uid": "fdizwsne5dz40b",
+          "title": "Kusama headers mismatch",
+          "condition": "C",
+          "data": [
+            {
+              "refId": "A",
+              "relativeTimeRange": {
+                "from": 21600,
+                "to": 0
+              },
+              "datasourceUid": "PC96415006F908B67",
+              "model": {
+                "datasource": {
+                  "type": "prometheus",
+                  "uid": "PC96415006F908B67"
+                },
+                "editorMode": "code",
+                "expr": "Kusama_to_BridgeHubPolkadot_Sync_is_source_and_source_at_target_using_different_forks{domain=\"parity-chains\"}",
+                "interval": "",
+                "intervalMs": 30000,
+                "legendFormat": "Best BridgeHubKusama header at BridgeHubPolkadot doesn't match the same header of BridgeHubKusama",
+                "maxDataPoints": 43200,
+                "range": true,
+                "refId": "A"
+              }
+            },
+            {
+              "refId": "B",
+              "relativeTimeRange": {
+                "from": 0,
+                "to": 0
+              },
+              "datasourceUid": "__expr__",
+              "model": {
+                "conditions": [
+                  {
+                    "evaluator": {
+                      "params": [],
+                      "type": "gt"
+                    },
+                    "operator": {
+                      "type": "and"
+                    },
+                    "query": {
+                      "params": [
+                        "B"
+                      ]
+                    },
+                    "reducer": {
+                      "params": [],
+                      "type": "last"
+                    },
+                    "type": "query"
+                  }
+                ],
+                "datasource": {
+                  "type": "__expr__",
+                  "uid": "__expr__"
+                },
+                "expression": "A",
+                "intervalMs": 1000,
+                "maxDataPoints": 43200,
+                "reducer": "last",
+                "refId": "B",
+                "type": "reduce"
+              }
+            },
+            {
+              "refId": "C",
+              "relativeTimeRange": {
+                "from": 0,
+                "to": 0
+              },
+              "datasourceUid": "__expr__",
+              "model": {
+                "conditions": [
+                  {
+                    "evaluator": {
+                      "params": [
+                        0
+                      ],
+                      "type": "gt"
+                    },
+                    "operator": {
+                      "type": "and"
+                    },
+                    "query": {
+                      "params": [
+                        "C"
+                      ]
+                    },
+                    "reducer": {
+                      "params": [],
+                      "type": "last"
+                    },
+                    "type": "query"
+                  }
+                ],
+                "datasource": {
+                  "type": "__expr__",
+                  "uid": "__expr__"
+                },
+                "expression": "B",
+                "intervalMs": 1000,
+                "maxDataPoints": 43200,
+                "refId": "C",
+                "type": "threshold"
+              }
+            }
+          ],
+          "dasboardUid": "UFsgpJtVz",
+          "panelId": 12,
+          "noDataState": "OK",
+          "execErrState": "OK",
+          "for": "10m",
+          "annotations": {
+            "__dashboardUid__": "UFsgpJtVz",
+            "__panelId__": "12",
+            "summary": "Best Kusama header at BridgeHubPolkadot (00000001) doesn't match the same header at Kusama"
+          },
+          "labels": {
+            "matrix_room": "FqmgUhjOliBGoncGwm"
+          },
+          "isPaused": false
+        },
+        {
+          "uid": "ddizwvw3dlzi8e",
+          "title": "Polkadot headers mismatch",
+          "condition": "C",
+          "data": [
+            {
+              "refId": "A",
+              "relativeTimeRange": {
+                "from": 21600,
+                "to": 0
+              },
+              "datasourceUid": "PC96415006F908B67",
+              "model": {
+                "datasource": {
+                  "type": "prometheus",
+                  "uid": "PC96415006F908B67"
+                },
+                "editorMode": "code",
+                "expr": "Polkadot_to_BridgeHubKusama_Sync_is_source_and_source_at_target_using_different_forks{domain=\"parity-chains\"}",
+                "interval": "",
+                "intervalMs": 30000,
+                "legendFormat": "Best BridgeHubKusama header at BridgeHubPolkadot doesn't match the same header of BridgeHubKusama",
+                "maxDataPoints": 43200,
+                "range": true,
+                "refId": "A"
+              }
+            },
+            {
+              "refId": "B",
+              "relativeTimeRange": {
+                "from": 0,
+                "to": 0
+              },
+              "datasourceUid": "__expr__",
+              "model": {
+                "conditions": [
+                  {
+                    "evaluator": {
+                      "params": [],
+                      "type": "gt"
+                    },
+                    "operator": {
+                      "type": "and"
+                    },
+                    "query": {
+                      "params": [
+                        "B"
+                      ]
+                    },
+                    "reducer": {
+                      "params": [],
+                      "type": "last"
+                    },
+                    "type": "query"
+                  }
+                ],
+                "datasource": {
+                  "type": "__expr__",
+                  "uid": "__expr__"
+                },
+                "expression": "A",
+                "intervalMs": 1000,
+                "maxDataPoints": 43200,
+                "reducer": "last",
+                "refId": "B",
+                "type": "reduce"
+              }
+            },
+            {
+              "refId": "C",
+              "relativeTimeRange": {
+                "from": 0,
+                "to": 0
+              },
+              "datasourceUid": "__expr__",
+              "model": {
+                "conditions": [
+                  {
+                    "evaluator": {
+                      "params": [
+                        0
+                      ],
+                      "type": "gt"
+                    },
+                    "operator": {
+                      "type": "and"
+                    },
+                    "query": {
+                      "params": [
+                        "C"
+                      ]
+                    },
+                    "reducer": {
+                      "params": [],
+                      "type": "last"
+                    },
+                    "type": "query"
+                  }
+                ],
+                "datasource": {
+                  "type": "__expr__",
+                  "uid": "__expr__"
+                },
+                "expression": "B",
+                "intervalMs": 1000,
+                "maxDataPoints": 43200,
+                "refId": "C",
+                "type": "threshold"
+              }
+            }
+          ],
+          "dasboardUid": "UFsgpJtVz",
+          "panelId": 13,
+          "noDataState": "NoData",
+          "execErrState": "Error",
+          "for": "10m",
+          "annotations": {
+            "__dashboardUid__": "UFsgpJtVz",
+            "__panelId__": "13",
+            "summary": "Best Polkadot header at BridgeHubKusama (00000001) doesn't match the same header at Polkadot"
+          },
+          "labels": {
+            "matrix_room": "FqmgUhjOliBGoncGwm"
+          },
+          "isPaused": false
+        },
+        {
+          "uid": "bdizx0xdiomwwc",
+          "title": "BridgeHubKusama headers mismatch",
+          "condition": "B",
+          "data": [
+            {
+              "refId": "A",
+              "relativeTimeRange": {
+                "from": 21600,
+                "to": 0
+              },
+              "datasourceUid": "PC96415006F908B67",
+              "model": {
+                "datasource": {
+                  "type": "prometheus",
+                  "uid": "PC96415006F908B67"
+                },
+                "editorMode": "code",
+                "expr": "BridgeHubKusama_to_BridgeHubPolkadot_MessageLane_00000001_is_source_and_source_at_target_using_different_forks{domain=\"parity-chains\"}",
+                "interval": "",
+                "intervalMs": 30000,
+                "legendFormat": "Best BridgeHubKusama header at BridgeHubPolkadot doesn't match the same header of BridgeHubKusama",
+                "maxDataPoints": 43200,
+                "range": true,
+                "refId": "A"
+              }
+            },
+            {
+              "refId": "B",
+              "relativeTimeRange": {
+                "from": 0,
+                "to": 0
+              },
+              "datasourceUid": "__expr__",
+              "model": {
+                "conditions": [
+                  {
+                    "evaluator": {
+                      "params": [
+                        0,
+                        0
+                      ],
+                      "type": "gt"
+                    },
+                    "operator": {
+                      "type": "and"
+                    },
+                    "query": {
+                      "params": [
+                        "A"
+                      ]
+                    },
+                    "reducer": {
+                      "params": [],
+                      "type": "max"
+                    },
+                    "type": "query"
+                  }
+                ],
+                "datasource": {
+                  "name": "Expression",
+                  "type": "__expr__",
+                  "uid": "__expr__"
+                },
+                "expression": "",
+                "hide": false,
+                "intervalMs": 1000,
+                "maxDataPoints": 43200,
+                "refId": "B",
+                "type": "classic_conditions"
+              }
+            }
+          ],
+          "dasboardUid": "UFsgpJtVz",
+          "panelId": 2,
+          "noDataState": "OK",
+          "execErrState": "OK",
+          "for": "10m",
+          "annotations": {
+            "__dashboardUid__": "UFsgpJtVz",
+            "__panelId__": "2",
+            "summary": "Best BridgeHubKusama header at BridgeHubPolkadot (00000001) doesn't match the same header at BridgeHubKusama"
+          },
+          "labels": {
+            "matrix_room": "FqmgUhjOliBGoncGwm"
+          },
+          "isPaused": false
+        },
+        {
+          "uid": "fdizx4hrhg2yod",
+          "title": "BridgeHubPolkadot headers mismatch",
+          "condition": "B",
+          "data": [
+            {
+              "refId": "A",
+              "relativeTimeRange": {
+                "from": 21600,
+                "to": 0
+              },
+              "datasourceUid": "PC96415006F908B67",
+              "model": {
+                "datasource": {
+                  "type": "prometheus",
+                  "uid": "PC96415006F908B67"
+                },
+                "editorMode": "code",
+                "expr": "BridgeHubPolkadot_to_BridgeHubKusama_MessageLane_00000001_is_source_and_source_at_target_using_different_forks{domain=\"parity-chains\"}",
+                "interval": "",
+                "intervalMs": 30000,
+                "legendFormat": "Best BridgeHubKusama header at BridgeHubPolkadot doesn't match the same header of BridgeHubKusama",
+                "maxDataPoints": 43200,
+                "range": true,
+                "refId": "A"
+              }
+            },
+            {
+              "refId": "B",
+              "relativeTimeRange": {
+                "from": 0,
+                "to": 0
+              },
+              "datasourceUid": "__expr__",
+              "model": {
+                "conditions": [
+                  {
+                    "evaluator": {
+                      "params": [
+                        0,
+                        0
+                      ],
+                      "type": "gt"
+                    },
+                    "operator": {
+                      "type": "and"
+                    },
+                    "query": {
+                      "params": [
+                        "A"
+                      ]
+                    },
+                    "reducer": {
+                      "params": [],
+                      "type": "max"
+                    },
+                    "type": "query"
+                  }
+                ],
+                "datasource": {
+                  "name": "Expression",
+                  "type": "__expr__",
+                  "uid": "__expr__"
+                },
+                "expression": "",
+                "hide": false,
+                "intervalMs": 1000,
+                "maxDataPoints": 43200,
+                "refId": "B",
+                "type": "classic_conditions"
+              }
+            }
+          ],
+          "dasboardUid": "UFsgpJtVz",
+          "panelId": 3,
+          "noDataState": "OK",
+          "execErrState": "OK",
+          "for": "10m",
+          "annotations": {
+            "__dashboardUid__": "UFsgpJtVz",
+            "__panelId__": "3",
+            "summary": "Best BridgeHubPolkadot header at BridgeHubKusama (00000001) doesn't match the same header at BridgeHubPolkadot"
+          },
+          "labels": {
+            "matrix_room": "FqmgUhjOliBGoncGwm"
+          },
+          "isPaused": false
+        },
+        {
+          "uid": "cdizxaawyvldsb",
+          "title": "Relay balances at KusamaBridgeHub",
+          "condition": "B",
+          "data": [
+            {
+              "refId": "A",
+              "relativeTimeRange": {
+                "from": 21600,
+                "to": 0
+              },
+              "datasourceUid": "PC96415006F908B67",
+              "model": {
+                "datasource": {
+                  "type": "prometheus",
+                  "uid": "PC96415006F908B67"
+                },
+                "editorMode": "code",
+                "expr": "last_over_time(at_BridgeHubKusama_relay_BridgeHubPolkadotMessages_balance{domain=\"parity-chains\"}[1h])",
+                "instant": false,
+                "interval": "",
+                "intervalMs": 30000,
+                "legendFormat": "Messages Relay Balance",
+                "maxDataPoints": 43200,
+                "range": true,
+                "refId": "A"
+              }
+            },
+            {
+              "refId": "B",
+              "relativeTimeRange": {
+                "from": 0,
+                "to": 0
+              },
+              "datasourceUid": "__expr__",
+              "model": {
+                "conditions": [
+                  {
+                    "evaluator": {
+                      "params": [
+                        2,
+                        0
+                      ],
+                      "type": "lt"
+                    },
+                    "operator": {
+                      "type": "and"
+                    },
+                    "query": {
+                      "params": [
+                        "A"
+                      ]
+                    },
+                    "reducer": {
+                      "params": [],
+                      "type": "last"
+                    },
+                    "type": "query"
+                  }
+                ],
+                "datasource": {
+                  "name": "Expression",
+                  "type": "__expr__",
+                  "uid": "__expr__"
+                },
+                "expression": "",
+                "intervalMs": 1000,
+                "maxDataPoints": 43200,
+                "refId": "B",
+                "type": "classic_conditions"
+              }
+            }
+          ],
+          "dasboardUid": "UFsgpJtVz",
+          "panelId": 5,
+          "noDataState": "NoData",
+          "execErrState": "Error",
+          "for": "10m",
+          "annotations": {
+            "__dashboardUid__": "UFsgpJtVz",
+            "__panelId__": "5",
+            "summary": "With-PolkadotBridgeHub messages relay balance at KusamaBridgeHub (00000001) is too low"
+          },
+          "labels": {
+            "matrix_room": "FqmgUhjOliBGoncGwm"
+          },
+          "isPaused": false
+        },
+        {
+          "uid": "fdizxtuxuza4gd",
+          "title": "Relay balances at PolkadotBridgeHub",
+          "condition": "B",
+          "data": [
+            {
+              "refId": "A",
+              "relativeTimeRange": {
+                "from": 21600,
+                "to": 0
+              },
+              "datasourceUid": "PC96415006F908B67",
+              "model": {
+                "datasource": {
+                  "type": "prometheus",
+                  "uid": "PC96415006F908B67"
+                },
+                "editorMode": "code",
+                "expr": "last_over_time(at_BridgeHubPolkadot_relay_BridgeHubKusamaMessages_balance{domain=\"parity-chains\"}[1h])",
+                "instant": false,
+                "interval": "",
+                "intervalMs": 30000,
+                "legendFormat": "Messages Relay Balance",
+                "maxDataPoints": 43200,
+                "range": true,
+                "refId": "A"
+              }
+            },
+            {
+              "refId": "B",
+              "relativeTimeRange": {
+                "from": 0,
+                "to": 0
+              },
+              "datasourceUid": "__expr__",
+              "model": {
+                "conditions": [
+                  {
+                    "evaluator": {
+                      "params": [
+                        10,
+                        0
+                      ],
+                      "type": "lt"
+                    },
+                    "operator": {
+                      "type": "and"
+                    },
+                    "query": {
+                      "params": [
+                        "A"
+                      ]
+                    },
+                    "reducer": {
+                      "params": [],
+                      "type": "last"
+                    },
+                    "type": "query"
+                  }
+                ],
+                "datasource": {
+                  "name": "Expression",
+                  "type": "__expr__",
+                  "uid": "__expr__"
+                },
+                "expression": "",
+                "hide": false,
+                "intervalMs": 1000,
+                "maxDataPoints": 43200,
+                "refId": "B",
+                "type": "classic_conditions"
+              }
+            }
+          ],
+          "dasboardUid": "UFsgpJtVz",
+          "panelId": 6,
+          "noDataState": "OK",
+          "execErrState": "OK",
+          "for": "10m",
+          "annotations": {
+            "__dashboardUid__": "UFsgpJtVz",
+            "__panelId__": "6",
+            "summary": "With-KusamaBridgeHub messages relay balance at PolkadotBridgeHub (00000001) is too low"
+          },
+          "labels": {
+            "matrix_room": "FqmgUhjOliBGoncGwm"
+          },
+          "isPaused": false
+        }
+      ]
+    }
+  ]
+}
