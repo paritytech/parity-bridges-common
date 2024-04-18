@@ -13,6 +13,8 @@ cargo run --bin runtime-codegen -- --from-node-url "wss://rpc.polkadot.io:443" >
 # TODO: there is a bug, probably needs to update subxt, generates: `::sp_runtime::generic::Header<::core::primitive::u32>` withtout second `Hash` parameter.
 # cargo run --bin runtime-codegen -- --from-wasm-file ../../../polkadot-sdk/target/release/wbuild/bridge-hub-rococo-runtime/bridge_hub_rococo_runtime.compact.compressed.wasm > ../../relays/client-bridge-hub-rococo/src/codegen_runtime.rs
 # cargo run --bin runtime-codegen -- --from-wasm-file ../../../polkadot-sdk/target/release/wbuild/bridge-hub-westend-runtime/bridge_hub_westend_runtime.compact.compressed.wasm > ../../relays/client-bridge-hub-westend/src/codegen_runtime.rs
+# OR
+# cargo run --bin runtime-codegen -- --from-node-url wss://kusama-bridge-hub-rpc.polkadot.io/ > ../../relay-clients/client-bridge-hub-kusama/src/codegen_runtime.rs
 
 cd -
 cargo fmt --all

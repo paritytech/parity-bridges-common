@@ -6,16 +6,16 @@ come first and details come in the last sections.
 ### Making a Release
 
 All releases are supposed to be done from the
-[`polkadot-staging` branch](https://github.com/paritytech/parity-bridges-common/tree/polkadot-staging).
+[`master` branch](https://github.com/paritytech/parity-bridges-common/tree/master).
 This branch is assumed to contain changes, that are reviewed and audited.
 
 To prepare a release:
 
 1. Make sure all required changes are merged to the
-  [`polkadot-staging` branch](https://github.com/paritytech/parity-bridges-common/tree/polkadot-staging);
+  [`master` branch](https://github.com/paritytech/parity-bridges-common/tree/master);
 
 2. Select release version: go to the `Cargo.toml` of `substrate-relay` crate
-  ([here](https://github.com/paritytech/parity-bridges-common/blob/polkadot-staging/relays/bin-substrate/Cargo.toml#L3))
+  ([here](https://github.com/paritytech/parity-bridges-common/blob/master/relays/bin-substrate/Cargo.toml#L3))
   to look for the latest version. Then increment the minor or major version.
 
     **NOTE**: we are not going to properly support [semver](https://semver.org)
@@ -28,11 +28,11 @@ To prepare a release:
   It could be combined with the (1) if changes are not large. Make sure to
   add the [`A-release`](https://github.com/paritytech/parity-bridges-common/labels/A-release)
   label to your PR - in the future we'll add workflow to make pre-releases
-  when such PR is merged to the `polkadot-staging` branch;
+  when such PR is merged to the `master` branch;
 
 4. Wait for approvals and merge PR, mentioned in (3);
 
-5. Checkout updated `polkadot-staging` branch and do `git pull`;
+5. Checkout updated `master` branch and do `git pull`;
 
 6. Make a new git tag with the `substrate-relay` version:
 ```sh
@@ -123,15 +123,15 @@ support it. Normally it means:
 
 1. Bumping bundled chain versions in following places:
 
-- for `Rococo` and `RBH`: [here](https://github.com/paritytech/parity-bridges-common/blob/polkadot-staging/relays/bin-substrate/src/chains/rococo.rs);
+- for `Rococo` and `RBH`: [here](https://github.com/paritytech/parity-bridges-common/blob/master/relays/bin-substrate/src/chains/rococo.rs);
 
-- for `Westend` and `WBH`: [here](https://github.com/paritytech/parity-bridges-common/blob/polkadot-staging/relays/bin-substrate/src/chains/westend.rs);
+- for `Westend` and `WBH`: [here](https://github.com/paritytech/parity-bridges-common/blob/master/relays/bin-substrate/src/chains/westend.rs);
 
-- for `Kusama` and `KBH`: [here](https://github.com/paritytech/parity-bridges-common/blob/polkadot-staging/relays/bin-substrate/src/chains/polkadot.rs)
+- for `Kusama` and `KBH`: [here](https://github.com/paritytech/parity-bridges-common/blob/master/relays/bin-substrate/src/chains/polkadot.rs)
 
-- for `Polkadot` and `PBH`: [here](https://github.com/paritytech/parity-bridges-common/blob/polkadot-staging/relays/bin-substrate/src/chains/polkadot.rs);
+- for `Polkadot` and `PBH`: [here](https://github.com/paritytech/parity-bridges-common/blob/master/relays/bin-substrate/src/chains/polkadot.rs);
 
-- for `PBC`: [here](https://github.com/paritytech/parity-bridges-common/blob/polkadot-staging/relays/bin-substrate/src/chains/polkadot_bulletin.rs).
+- for `PBC`: [here](https://github.com/paritytech/parity-bridges-common/blob/master/relays/bin-substrate/src/chains/polkadot_bulletin.rs).
 
 2. Regenerating bundled runtime wrapper code using `runtime-codegen` binary:
 
