@@ -127,5 +127,5 @@ impl ChainWithMessages for BridgeHubPolkadot {
 
 impl ChainWithRuntimeVersion for BridgeHubPolkadot {
 	const RUNTIME_VERSION: Option<SimpleRuntimeVersion> =
-		Some(SimpleRuntimeVersion { spec_version: 1_001_000, transaction_version: 3 });
+		Some(SimpleRuntimeVersion { spec_version: 1_002_000, transaction_version: 3 });
 }
