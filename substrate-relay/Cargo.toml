@@ -17,6 +17,7 @@ codec = { package = "parity-scale-codec", version = "3.6.1" }
 env_logger = "0.11"
 futures = "0.3.30"
 hex = "0.4"
+hex-literal = "0.4"
 log = { workspace = true }
 num-format = "0.4"
 num-traits = "0.2"
@@ -61,7 +62,6 @@ sp-runtime = { git = "https://github.com/paritytech/polkadot-sdk", branch = "sv-
 
 [dev-dependencies]
 bp-test-utils = { git = "https://github.com/paritytech/polkadot-sdk", branch = "sv-bridge-relayer-compatibility-tests" }
-hex-literal = "0.4"
 sp-keyring = { git = "https://github.com/paritytech/polkadot-sdk", branch = "sv-bridge-relayer-compatibility-tests" }
 tempfile = "3.10"
 finality-grandpa = { version = "0.16.2" }
