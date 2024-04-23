@@ -33,7 +33,7 @@ pub struct BridgeHubRococoToBridgeHubWestend;
 impl SubstrateParachainsPipeline for BridgeHubRococoToBridgeHubWestend {
 	const RELAYER_VERSION: Option<RelayerVersion> = Some(RelayerVersion {
 		manual: 0,
-		auto: H256(hex!("0000000000000000000000000000000000000000000000000000000000000000")),
+		auto: H256(hex!("938c8cddccea01a54fb58e8b949f501998f31c5d4edea176722c706b032e1ddd")),
 	});
 
 	type SourceParachain = relay_bridge_hub_rococo_client::BridgeHubRococo;
