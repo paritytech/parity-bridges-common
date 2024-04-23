@@ -16,22 +16,22 @@ subxt = { version = "0.35.3", default-features = false, features = ["native"] }
 
 # Bridge dependencies
 
-bp-bridge-hub-westend = { git = "https://github.com/paritytech/polkadot-sdk", branch = "master" }
-bp-header-chain = { git = "https://github.com/paritytech/polkadot-sdk", branch = "master" }
-bp-messages = { git = "https://github.com/paritytech/polkadot-sdk", branch = "master" }
-bp-parachains = { git = "https://github.com/paritytech/polkadot-sdk", branch = "master" }
-bp-polkadot-core = { git = "https://github.com/paritytech/polkadot-sdk", branch = "master" }
-bp-rococo = { git = "https://github.com/paritytech/polkadot-sdk", branch = "master" }
+bp-bridge-hub-westend = { git = "https://github.com/paritytech/polkadot-sdk", branch = "sv-bridge-relayer-compatibility-tests" }
+bp-header-chain = { git = "https://github.com/paritytech/polkadot-sdk", branch = "sv-bridge-relayer-compatibility-tests" }
+bp-messages = { git = "https://github.com/paritytech/polkadot-sdk", branch = "sv-bridge-relayer-compatibility-tests" }
+bp-parachains = { git = "https://github.com/paritytech/polkadot-sdk", branch = "sv-bridge-relayer-compatibility-tests" }
+bp-polkadot-core = { git = "https://github.com/paritytech/polkadot-sdk", branch = "sv-bridge-relayer-compatibility-tests" }
+bp-rococo = { git = "https://github.com/paritytech/polkadot-sdk", branch = "sv-bridge-relayer-compatibility-tests" }
 
-bridge-runtime-common = { git = "https://github.com/paritytech/polkadot-sdk", branch = "master" }
-relay-substrate-client = { git = "https://github.com/paritytech/polkadot-sdk", branch = "master" }
+bridge-runtime-common = { git = "https://github.com/paritytech/polkadot-sdk", branch = "sv-bridge-relayer-compatibility-tests" }
+relay-substrate-client = { git = "https://github.com/paritytech/polkadot-sdk", branch = "sv-bridge-relayer-compatibility-tests" }
 
 # Substrate Dependencies
 
-sp-core = { git = "https://github.com/paritytech/polkadot-sdk", branch = "master" }
-sp-runtime = { git = "https://github.com/paritytech/polkadot-sdk", branch = "master" }
-sp-weights = { git = "https://github.com/paritytech/polkadot-sdk", branch = "master" }
+sp-core = { git = "https://github.com/paritytech/polkadot-sdk", branch = "sv-bridge-relayer-compatibility-tests" }
+sp-runtime = { git = "https://github.com/paritytech/polkadot-sdk", branch = "sv-bridge-relayer-compatibility-tests" }
+sp-weights = { git = "https://github.com/paritytech/polkadot-sdk", branch = "sv-bridge-relayer-compatibility-tests" }
 
 [dev-dependencies]
-bp-runtime = { git = "https://github.com/paritytech/polkadot-sdk", branch = "master" }
-sp-consensus-grandpa = { git = "https://github.com/paritytech/polkadot-sdk", branch = "master" }
+bp-runtime = { git = "https://github.com/paritytech/polkadot-sdk", branch = "sv-bridge-relayer-compatibility-tests" }
+sp-consensus-grandpa = { git = "https://github.com/paritytech/polkadot-sdk", branch = "sv-bridge-relayer-compatibility-tests" }

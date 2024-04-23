@@ -16,6 +16,7 @@
 
 //! BridgeHubPolkadot-to-BridgeHubKusama messages sync entrypoint.
 
+use bp_runtime::RelayerVersion;
 use relay_bridge_hub_kusama_client::BridgeHubKusama;
 use relay_bridge_hub_polkadot_client::BridgeHubPolkadot;
 use substrate_relay_helper::{
@@ -55,6 +56,9 @@ substrate_relay_helper::generate_receive_message_delivery_proof_call_builder!(
 pub struct BridgeHubPolkadotMessagesToBridgeHubKusamaMessageLane;
 
 impl SubstrateMessageLane for BridgeHubPolkadotMessagesToBridgeHubKusamaMessageLane {
+	const AT_SOURCE_CHAIN_RELAYER_VERSION: Option<RelayerVersion> = None;
+	const AT_TARGET_CHAIN_RELAYER_VERSION: Option<RelayerVersion> = None;
+
 	type SourceChain = BridgeHubPolkadot;
 	type TargetChain = BridgeHubKusama;
 

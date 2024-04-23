@@ -67,6 +67,8 @@ impl Chain for PolkadotBulletin {
 	const NAME: &'static str = "PolkadotBulletin";
 	const BEST_FINALIZED_HEADER_ID_METHOD: &'static str =
 		bp_polkadot_bulletin::BEST_FINALIZED_POLKADOT_BULLETIN_HEADER_METHOD;
+	const WITH_CHAIN_COMPATIBLE_FINALITY_RELAYER_VERSION_METHOD: &'static str =
+		bp_polkadot_bulletin::POLKADOT_BULLETIN_FINALITY_COMPATIBLE_RELAYER_VERSION;
 	const AVERAGE_BLOCK_INTERVAL: Duration = Duration::from_secs(6);
 
 	type SignedBlock = bp_polkadot_bulletin::SignedBlock;
@@ -85,6 +87,8 @@ impl ChainWithMessages for PolkadotBulletin {
 	// to be changed when we'll polish the bridge configuration
 	const WITH_CHAIN_RELAYERS_PALLET_NAME: Option<&'static str> = None;
 
+	const WITH_CHAIN_COMPATIBLE_MESSAGES_RELAYER_VERSION_METHOD: &'static str =
+		bp_polkadot_bulletin::FROM_POLKADOT_BULLETIN_MESSAGES_COMPATIBLE_RELAYER_VERSION;
 	const TO_CHAIN_MESSAGE_DETAILS_METHOD: &'static str =
 		bp_polkadot_bulletin::TO_POLKADOT_BULLETIN_MESSAGE_DETAILS_METHOD;
 	const FROM_CHAIN_MESSAGE_DETAILS_METHOD: &'static str =

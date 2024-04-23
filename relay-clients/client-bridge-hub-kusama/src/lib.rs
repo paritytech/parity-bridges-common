@@ -52,6 +52,8 @@ impl Chain for BridgeHubKusama {
 	const NAME: &'static str = "BridgeHubKusama";
 	const BEST_FINALIZED_HEADER_ID_METHOD: &'static str =
 		bp_bridge_hub_kusama::BEST_FINALIZED_BRIDGE_HUB_KUSAMA_HEADER_METHOD;
+	const WITH_CHAIN_COMPATIBLE_FINALITY_RELAYER_VERSION_METHOD: &'static str =
+		bp_bridge_hub_kusama::BRIDGE_HUB_KUSAMA_FINALITY_COMPATIBLE_RELAYER_VERSION;
 	const AVERAGE_BLOCK_INTERVAL: Duration = AVERAGE_BLOCK_INTERVAL;
 
 	type SignedBlock = bp_bridge_hub_kusama::SignedBlock;
@@ -115,6 +117,8 @@ impl ChainWithMessages for BridgeHubKusama {
 	const WITH_CHAIN_RELAYERS_PALLET_NAME: Option<&'static str> =
 		Some(bp_bridge_hub_kusama::WITH_BRIDGE_HUB_KUSAMA_RELAYERS_PALLET_NAME);
 
+	const WITH_CHAIN_COMPATIBLE_MESSAGES_RELAYER_VERSION_METHOD: &'static str =
+		bp_bridge_hub_kusama::FROM_BRIDGE_HUB_KUSAMA_MESSAGES_COMPATIBLE_RELAYER_VERSION;
 	const TO_CHAIN_MESSAGE_DETAILS_METHOD: &'static str =
 		bp_bridge_hub_kusama::TO_BRIDGE_HUB_KUSAMA_MESSAGE_DETAILS_METHOD;
 	const FROM_CHAIN_MESSAGE_DETAILS_METHOD: &'static str =

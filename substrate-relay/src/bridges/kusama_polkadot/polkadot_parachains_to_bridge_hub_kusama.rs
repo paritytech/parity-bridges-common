@@ -17,6 +17,7 @@
 //! Polkadot-to-BridgeHubKusama parachains sync entrypoint.
 
 use bp_polkadot_core::parachains::{ParaHash, ParaHeadsProof, ParaId};
+use bp_runtime::RelayerVersion;
 use relay_substrate_client::{CallOf, HeaderIdOf};
 use substrate_relay_helper::{
 	cli::bridge::{CliBridgeBase, MessagesCliBridge, ParachainToRelayHeadersCliBridge},
@@ -28,6 +29,8 @@ use substrate_relay_helper::{
 pub struct BridgeHubPolkadotToBridgeHubKusama;
 
 impl SubstrateParachainsPipeline for BridgeHubPolkadotToBridgeHubKusama {
+	const RELAYER_VERSION: Option<RelayerVersion> = None;
+
 	type SourceParachain = relay_bridge_hub_polkadot_client::BridgeHubPolkadot;
 	type SourceRelayChain = relay_polkadot_client::Polkadot;
 	type TargetChain = relay_bridge_hub_kusama_client::BridgeHubKusama;

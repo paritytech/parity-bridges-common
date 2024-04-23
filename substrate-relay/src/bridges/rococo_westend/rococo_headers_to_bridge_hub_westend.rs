@@ -17,6 +17,9 @@
 //! Rococo-to-Westend bridge hubs headers sync entrypoint.
 
 use async_trait::async_trait;
+use bp_runtime::RelayerVersion;
+use hex_literal::hex;
+use sp_core::H256;
 use substrate_relay_helper::{
 	equivocation::SubstrateEquivocationDetectionPipeline,
 	finality::SubstrateFinalitySyncPipeline,
@@ -55,6 +58,10 @@ impl SubstrateFinalityPipeline for RococoFinalityToBridgeHubWestend {
 
 #[async_trait]
 impl SubstrateFinalitySyncPipeline for RococoFinalityToBridgeHubWestend {
+	const RELAYER_VERSION: Option<RelayerVersion> = Some(RelayerVersion {
+		manual: 0,
+		auto: H256(hex!("0000000000000000000000000000000000000000000000000000000000000000")),
+	});
 	type SubmitFinalityProofCallBuilder = SubmitFinalityProofCallBuilder;
 }
 

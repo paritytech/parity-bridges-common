@@ -58,6 +58,8 @@ impl Chain for Kusama {
 	const NAME: &'static str = "Kusama";
 	const BEST_FINALIZED_HEADER_ID_METHOD: &'static str =
 		bp_kusama::BEST_FINALIZED_KUSAMA_HEADER_METHOD;
+	const WITH_CHAIN_COMPATIBLE_FINALITY_RELAYER_VERSION_METHOD: &'static str =
+		bp_kusama::KUSAMA_FINALITY_COMPATIBLE_RELAYER_VERSION;
 	const AVERAGE_BLOCK_INTERVAL: Duration = Duration::from_secs(6);
 
 	type SignedBlock = bp_kusama::SignedBlock;

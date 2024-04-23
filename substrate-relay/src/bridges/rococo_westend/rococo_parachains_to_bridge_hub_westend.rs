@@ -17,7 +17,10 @@
 //! Westend-to-Rococo parachains sync entrypoint.
 
 use bp_polkadot_core::parachains::{ParaHash, ParaHeadsProof, ParaId};
+use bp_runtime::RelayerVersion;
+use hex_literal::hex;
 use relay_substrate_client::{CallOf, HeaderIdOf};
+use sp_core::H256;
 use substrate_relay_helper::{
 	cli::bridge::{CliBridgeBase, MessagesCliBridge, ParachainToRelayHeadersCliBridge},
 	parachains::{SubmitParachainHeadsCallBuilder, SubstrateParachainsPipeline},
@@ -28,6 +31,11 @@ use substrate_relay_helper::{
 pub struct BridgeHubRococoToBridgeHubWestend;
 
 impl SubstrateParachainsPipeline for BridgeHubRococoToBridgeHubWestend {
+	const RELAYER_VERSION: Option<RelayerVersion> = Some(RelayerVersion {
+		manual: 0,
+		auto: H256(hex!("0000000000000000000000000000000000000000000000000000000000000000")),
+	});
+
 	type SourceParachain = relay_bridge_hub_rococo_client::BridgeHubRococo;
 	type SourceRelayChain = relay_rococo_client::Rococo;
 	type TargetChain = relay_bridge_hub_westend_client::BridgeHubWestend;

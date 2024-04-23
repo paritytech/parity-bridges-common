@@ -16,6 +16,7 @@
 
 //! PolkadotBulletin-to-BridgeHubPolkadot messages sync entrypoint.
 
+use bp_runtime::RelayerVersion;
 use relay_bridge_hub_polkadot_client::BridgeHubPolkadot;
 use relay_polkadot_bulletin_client::PolkadotBulletin;
 use substrate_relay_helper::{
@@ -56,6 +57,9 @@ substrate_relay_helper::generate_receive_message_delivery_proof_call_builder!(
 pub struct PolkadotBulletinMessagesToBridgeHubPolkadotMessageLane;
 
 impl SubstrateMessageLane for PolkadotBulletinMessagesToBridgeHubPolkadotMessageLane {
+	const AT_SOURCE_CHAIN_RELAYER_VERSION: Option<RelayerVersion> = None;
+	const AT_TARGET_CHAIN_RELAYER_VERSION: Option<RelayerVersion> = None;
+
 	type SourceChain = PolkadotBulletin;
 	type TargetChain = BridgeHubPolkadot;
 

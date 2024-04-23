@@ -58,6 +58,8 @@ impl Chain for Rococo {
 	const NAME: &'static str = "Rococo";
 	const BEST_FINALIZED_HEADER_ID_METHOD: &'static str =
 		bp_rococo::BEST_FINALIZED_ROCOCO_HEADER_METHOD;
+	const WITH_CHAIN_COMPATIBLE_FINALITY_RELAYER_VERSION_METHOD: &'static str =
+		bp_rococo::ROCOCO_FINALITY_COMPATIBLE_RELAYER_VERSION;
 	const AVERAGE_BLOCK_INTERVAL: Duration = Duration::from_secs(6);
 
 	type SignedBlock = bp_rococo::SignedBlock;

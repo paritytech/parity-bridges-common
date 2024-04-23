@@ -16,8 +16,11 @@
 
 //! BridgeHubWestend-to-BridgeHubRococo messages sync entrypoint.
 
+use bp_runtime::RelayerVersion;
+use hex_literal::hex;
 use relay_bridge_hub_rococo_client::BridgeHubRococo;
 use relay_bridge_hub_westend_client::BridgeHubWestend;
+use sp_core::H256;
 use substrate_relay_helper::{
 	cli::bridge::{CliBridgeBase, MessagesCliBridge},
 	messages_lane::SubstrateMessageLane,
@@ -54,6 +57,15 @@ substrate_relay_helper::generate_receive_message_delivery_proof_call_builder!(
 pub struct BridgeHubWestendMessagesToBridgeHubRococoMessageLane;
 
 impl SubstrateMessageLane for BridgeHubWestendMessagesToBridgeHubRococoMessageLane {
+	const AT_SOURCE_CHAIN_RELAYER_VERSION: Option<RelayerVersion> = Some(RelayerVersion {
+		manual: 0,
+		auto: H256(hex!("0000000000000000000000000000000000000000000000000000000000000000")),
+	});
+	const AT_TARGET_CHAIN_RELAYER_VERSION: Option<RelayerVersion> = Some(RelayerVersion {
+		manual: 0,
+		auto: H256(hex!("0000000000000000000000000000000000000000000000000000000000000000")),
+	});
+
 	type SourceChain = BridgeHubWestend;
 	type TargetChain = BridgeHubRococo;
 
