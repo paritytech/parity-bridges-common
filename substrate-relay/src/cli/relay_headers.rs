@@ -48,16 +48,6 @@ pub struct RelayHeaders {
 	params: RelayHeadersParams,
 }
 
-impl RelayHeaders {
-	fn headers_to_relay(&self) -> HeadersToRelay {
-		match (self.only_mandatory_headers, self.only_free_headers) {
-			(_, true) => HeadersToRelay::Free,
-			(true, false) => HeadersToRelay::Mandatory,
-			_ => HeadersToRelay::All,
-		}
-	}
-}
-
 #[derive(Debug, EnumString, VariantNames)]
 #[strum(serialize_all = "kebab_case")]
 /// Headers relay bridge.
@@ -86,9 +76,9 @@ impl RelayHeaders {
 	pub async fn run(self) -> anyhow::Result<()> {
 		match self.bridge {
 			RelayHeadersBridge::RococoToBridgeHubWestend =>
-				RococoToBridgeHubWestendCliBridge::relay_headers(self),
+				RococoToBridgeHubWestendCliBridge::relay_headers(self.params),
 			RelayHeadersBridge::WestendToBridgeHubRococo =>
-				WestendToBridgeHubRococoCliBridge::relay_headers(self),
+				WestendToBridgeHubRococoCliBridge::relay_headers(self.params),
 			RelayHeadersBridge::KusamaToBridgeHubPolkadot =>
 				KusamaToBridgeHubPolkadotCliBridge::relay_headers(self.params),
 			RelayHeadersBridge::PolkadotToBridgeHubKusama =>
