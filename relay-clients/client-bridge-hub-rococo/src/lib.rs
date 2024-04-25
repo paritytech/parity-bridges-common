@@ -127,5 +127,5 @@ impl ChainWithMessages for BridgeHubRococo {
 
 impl ChainWithRuntimeVersion for BridgeHubRococo {
 	const RUNTIME_VERSION: Option<SimpleRuntimeVersion> =
-		Some(SimpleRuntimeVersion { spec_version: 1_009_000, transaction_version: 4 });
+		Some(SimpleRuntimeVersion { spec_version: 1_010_000, transaction_version: 4 });
 }
