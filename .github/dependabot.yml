@@ -8,7 +8,35 @@ updates:
     timezone: Europe/Berlin
   open-pull-requests-limit: 20
   ignore:
-  # Substrate (+ Polkadot/Cumulus pallets) dependencies
+  # Bridges polkadot-sdk dependencies
+  - dependency-name: bp-*
+    versions:
+      - ">= 0"
+  - dependency-name: bridge-runtime-common
+    versions:
+      - ">= 0"
+  - dependency-name: equivocation-detector
+    versions:
+      - ">= 0"
+  - dependency-name: finality-relay
+    versions:
+      - ">= 0"
+  - dependency-name: messages-relay
+    versions:
+      - ">= 0"
+  - dependency-name: parachains-relay
+    versions:
+      - ">= 0"
+  - dependency-name: relay-substrate-client
+    versions:
+      - ">= 0"
+  - dependency-name: relay-utils
+    versions:
+      - ">= 0"
+  - dependency-name: substrate-relay-helper
+    versions:
+      - ">= 0"
+  # Substrate polkadot-sdk (+ Polkadot/Cumulus pallets) dependencies
   - dependency-name: beefy-*
     versions:
     - ">= 0"
@@ -42,7 +70,7 @@ updates:
   - dependency-name: binary-merkle-tree
     versions:
     - ">= 0"
-  # Polkadot dependencies
+  # Polkadot polkadot-sdk dependencies
   - dependency-name: kusama-*
     versions:
     - ">= 0"
@@ -52,7 +80,7 @@ updates:
   - dependency-name: xcm*
     versions:
     - ">= 0"
-  # Cumulus dependencies
+  # Cumulus polkadot-sdk dependencies
   - dependency-name: cumulus-*
     versions:
     - ">= 0"

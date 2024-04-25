@@ -1,0 +1,34 @@
+[package]
+name = "relay-polkadot-bulletin-client"
+version = "0.1.0"
+authors.workspace = true
+edition.workspace = true
+license = "GPL-3.0-or-later WITH Classpath-exception-2.0"
+repository.workspace = true
+
+[lints]
+workspace = true
+
+[dependencies]
+codec = { package = "parity-scale-codec", version = "3.6.1", features = ["derive"] }
+scale-info = { version = "2.11.1", default-features = false, features = ["derive"] }
+subxt = { version = "0.35.3", default-features = false, features = ["native"] }
+
+# Bridge dependencies
+
+bp-header-chain = { git = "https://github.com/paritytech/polkadot-sdk", branch = "master" }
+bp-messages = { git = "https://github.com/paritytech/polkadot-sdk", branch = "master" }
+bp-polkadot-core = { git = "https://github.com/paritytech/polkadot-sdk", branch = "master" }
+bp-polkadot-bulletin = { git = "https://github.com/paritytech/polkadot-sdk", branch = "master" }
+bp-runtime = { git = "https://github.com/paritytech/polkadot-sdk", branch = "master" }
+bridge-runtime-common = { git = "https://github.com/paritytech/polkadot-sdk", branch = "master" }
+relay-substrate-client = { git = "https://github.com/paritytech/polkadot-sdk", branch = "master" }
+relay-utils = { git = "https://github.com/paritytech/polkadot-sdk", branch = "master" }
+
+# Substrate Dependencies
+
+sp-consensus-grandpa = { git = "https://github.com/paritytech/polkadot-sdk", branch = "master" }
+sp-core = { git = "https://github.com/paritytech/polkadot-sdk", branch = "master" }
+sp-runtime = { git = "https://github.com/paritytech/polkadot-sdk", branch = "master" }
+sp-session = { git = "https://github.com/paritytech/polkadot-sdk", branch = "master" }
+sp-weights = { git = "https://github.com/paritytech/polkadot-sdk", branch = "master" }
