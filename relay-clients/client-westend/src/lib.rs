@@ -58,6 +58,8 @@ impl Chain for Westend {
 	const NAME: &'static str = "Westend";
 	const BEST_FINALIZED_HEADER_ID_METHOD: &'static str =
 		bp_westend::BEST_FINALIZED_WESTEND_HEADER_METHOD;
+	const FREE_HEADERS_INTERVAL_METHOD: &'static str =
+		bp_westend::FREE_HEADERS_INTERVAL_FOR_WESTEND_METHOD;
 	const AVERAGE_BLOCK_INTERVAL: Duration = Duration::from_secs(6);
 
 	type SignedBlock = bp_westend::SignedBlock;
@@ -73,6 +75,8 @@ impl ChainWithGrandpa for Westend {
 
 impl RelayChain for Westend {
 	const PARAS_PALLET_NAME: &'static str = bp_westend::PARAS_PALLET_NAME;
+	const WITH_CHAIN_BRIDGE_PARACHAINS_PALLET_NAME: &'static str =
+		bp_westend::WITH_WESTEND_BRIDGE_PARACHAINS_PALLET_NAME;
 }
 
 impl ChainWithBalances for Westend {
@@ -118,5 +122,5 @@ impl ChainWithTransactions for Westend {
 
 impl ChainWithRuntimeVersion for Westend {
 	const RUNTIME_VERSION: Option<SimpleRuntimeVersion> =
-		Some(SimpleRuntimeVersion { spec_version: 1_009_000, transaction_version: 24 });
+		Some(SimpleRuntimeVersion { spec_version: 1_010_000, transaction_version: 24 });
 }

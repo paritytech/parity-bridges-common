@@ -309,6 +309,7 @@ mod tests {
 					shared: HeadersAndMessagesSharedParams {
 						lane: vec![HexLaneId([0x00, 0x00, 0x00, 0x00])],
 						only_mandatory_headers: false,
+						only_free_headers: false,
 						prometheus_params: PrometheusParams {
 							no_prometheus: false,
 							prometheus_host: "0.0.0.0".into(),

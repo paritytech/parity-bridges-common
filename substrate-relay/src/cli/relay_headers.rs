@@ -30,6 +30,10 @@ use crate::bridges::{
 		rococo_bulletin_headers_to_bridge_hub_rococo::RococoBulletinToBridgeHubRococoCliBridge,
 		rococo_headers_to_rococo_bulletin::RococoToRococoBulletinCliBridge,
 	},
+	rococo_westend::{
+		rococo_headers_to_bridge_hub_westend::RococoToBridgeHubWestendCliBridge,
+		westend_headers_to_bridge_hub_rococo::WestendToBridgeHubRococoCliBridge,
+	},
 };
 
 use substrate_relay_helper::cli::relay_headers::{HeadersRelayer, RelayHeadersParams};
@@ -48,6 +52,8 @@ pub struct RelayHeaders {
 #[strum(serialize_all = "kebab_case")]
 /// Headers relay bridge.
 pub enum RelayHeadersBridge {
+	RococoToBridgeHubWestend,
+	WestendToBridgeHubRococo,
 	KusamaToBridgeHubPolkadot,
 	PolkadotToBridgeHubKusama,
 	PolkadotToPolkadotBulletin,
@@ -56,6 +62,8 @@ pub enum RelayHeadersBridge {
 	RococoBulletinToBridgeHubRococo,
 }
 
+impl HeadersRelayer for RococoToBridgeHubWestendCliBridge {}
+impl HeadersRelayer for WestendToBridgeHubRococoCliBridge {}
 impl HeadersRelayer for KusamaToBridgeHubPolkadotCliBridge {}
 impl HeadersRelayer for PolkadotToBridgeHubKusamaCliBridge {}
 impl HeadersRelayer for PolkadotToPolkadotBulletinCliBridge {}
@@ -67,6 +75,10 @@ impl RelayHeaders {
 	/// Run the command.
 	pub async fn run(self) -> anyhow::Result<()> {
 		match self.bridge {
+			RelayHeadersBridge::RococoToBridgeHubWestend =>
+				RococoToBridgeHubWestendCliBridge::relay_headers(self.params),
+			RelayHeadersBridge::WestendToBridgeHubRococo =>
+				WestendToBridgeHubRococoCliBridge::relay_headers(self.params),
 			RelayHeadersBridge::KusamaToBridgeHubPolkadot =>
 				KusamaToBridgeHubPolkadotCliBridge::relay_headers(self.params),
 			RelayHeadersBridge::PolkadotToBridgeHubKusama =>

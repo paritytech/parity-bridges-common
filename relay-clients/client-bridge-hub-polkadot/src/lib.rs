@@ -56,6 +56,8 @@ impl Chain for BridgeHubPolkadot {
 	const NAME: &'static str = "BridgeHubPolkadot";
 	const BEST_FINALIZED_HEADER_ID_METHOD: &'static str =
 		bp_bridge_hub_polkadot::BEST_FINALIZED_BRIDGE_HUB_POLKADOT_HEADER_METHOD;
+	const FREE_HEADERS_INTERVAL_METHOD: &'static str =
+		bp_bridge_hub_polkadot::FREE_HEADERS_INTERVAL_FOR_BRIDGE_HUB_POLKADOT_METHOD;
 	const AVERAGE_BLOCK_INTERVAL: Duration = AVERAGE_BLOCK_INTERVAL;
 
 	type SignedBlock = bp_bridge_hub_polkadot::SignedBlock;

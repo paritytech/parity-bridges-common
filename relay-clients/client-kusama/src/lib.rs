@@ -58,6 +58,8 @@ impl Chain for Kusama {
 	const NAME: &'static str = "Kusama";
 	const BEST_FINALIZED_HEADER_ID_METHOD: &'static str =
 		bp_kusama::BEST_FINALIZED_KUSAMA_HEADER_METHOD;
+	const FREE_HEADERS_INTERVAL_METHOD: &'static str =
+		bp_kusama::FREE_HEADERS_INTERVAL_FOR_KUSAMA_METHOD;
 	const AVERAGE_BLOCK_INTERVAL: Duration = Duration::from_secs(6);
 
 	type SignedBlock = bp_kusama::SignedBlock;
@@ -79,6 +81,8 @@ impl ChainWithBalances for Kusama {
 
 impl RelayChain for Kusama {
 	const PARAS_PALLET_NAME: &'static str = bp_kusama::PARAS_PALLET_NAME;
+	const WITH_CHAIN_BRIDGE_PARACHAINS_PALLET_NAME: &'static str =
+		bp_kusama::WITH_KUSAMA_BRIDGE_PARACHAINS_PALLET_NAME;
 }
 
 impl ChainWithTransactions for Kusama {
