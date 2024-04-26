@@ -51,6 +51,8 @@ pub enum Command {
 	/// The on-chain bridge component should have been already initialized with
 	/// `init-bridge` sub-command.
 	RelayHeaders(relay_headers::RelayHeaders),
+	/// Relay single header.
+	RelayHeader(relay_headers::RelayHeader),
 	/// Relay parachain heads.
 	RelayParachains(relay_parachains::RelayParachains),
 	/// Start messages relay between two chains.
@@ -95,6 +97,7 @@ impl Command {
 		match self {
 			Self::InitBridge(arg) => arg.run().await?,
 			Self::RelayHeaders(arg) => arg.run().await?,
+			Self::RelayHeader(arg) => arg.run().await?,
 			Self::RelayParachains(arg) => arg.run().await?,
 			Self::RelayMessages(arg) => arg.run().await?,
 			Self::RelayHeadersAndMessages(arg) => arg.run().await?,

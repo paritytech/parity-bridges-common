@@ -36,7 +36,9 @@ use crate::bridges::{
 	},
 };
 
-use substrate_relay_helper::cli::relay_headers::{HeadersRelayer, RelayHeadersParams};
+use substrate_relay_helper::cli::relay_headers::{
+	HeadersRelayer, RelayHeaderParams, RelayHeadersParams,
+};
 
 /// Start headers relayer process.
 #[derive(StructOpt)]
@@ -46,6 +48,16 @@ pub struct RelayHeaders {
 	bridge: RelayHeadersBridge,
 	#[structopt(flatten)]
 	params: RelayHeadersParams,
+}
+
+/// Relay single header.
+#[derive(StructOpt)]
+pub struct RelayHeader {
+	/// A bridge instance to relay headers for.
+	#[structopt(possible_values = RelayHeadersBridge::VARIANTS, case_insensitive = true)]
+	bridge: RelayHeadersBridge,
+	#[structopt(flatten)]
+	params: RelayHeaderParams,
 }
 
 #[derive(Debug, EnumString, VariantNames)]
@@ -91,6 +103,31 @@ impl RelayHeaders {
 				RococoToRococoBulletinCliBridge::relay_headers(self.params),
 			RelayHeadersBridge::RococoBulletinToBridgeHubRococo =>
 				RococoBulletinToBridgeHubRococoCliBridge::relay_headers(self.params),
+		}
+		.await
+	}
+}
+
+impl RelayHeader {
+	/// Run the command.
+	pub async fn run(self) -> anyhow::Result<()> {
+		match self.bridge {
+			RelayHeadersBridge::RococoToBridgeHubWestend =>
+				RococoToBridgeHubWestendCliBridge::relay_header(self.params),
+			RelayHeadersBridge::WestendToBridgeHubRococo =>
+				WestendToBridgeHubRococoCliBridge::relay_header(self.params),
+			RelayHeadersBridge::KusamaToBridgeHubPolkadot =>
+				KusamaToBridgeHubPolkadotCliBridge::relay_header(self.params),
+			RelayHeadersBridge::PolkadotToBridgeHubKusama =>
+				PolkadotToBridgeHubKusamaCliBridge::relay_header(self.params),
+			RelayHeadersBridge::PolkadotToPolkadotBulletin =>
+				PolkadotToPolkadotBulletinCliBridge::relay_header(self.params),
+			RelayHeadersBridge::PolkadotBulletinToBridgeHubPolkadot =>
+				PolkadotBulletinToBridgeHubPolkadotCliBridge::relay_header(self.params),
+			RelayHeadersBridge::RococoToRococoBulletin =>
+				RococoToRococoBulletinCliBridge::relay_header(self.params),
+			RelayHeadersBridge::RococoBulletinToBridgeHubRococo =>
+				RococoBulletinToBridgeHubRococoCliBridge::relay_header(self.params),
 		}
 		.await
 	}
