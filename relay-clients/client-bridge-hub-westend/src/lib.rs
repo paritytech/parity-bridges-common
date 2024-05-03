@@ -54,6 +54,8 @@ impl Chain for BridgeHubWestend {
 		bp_bridge_hub_westend::BEST_FINALIZED_BRIDGE_HUB_WESTEND_HEADER_METHOD;
 	const WITH_CHAIN_COMPATIBLE_FINALITY_RELAYER_VERSION_METHOD: &'static str =
 		bp_bridge_hub_westend::BRIDGE_HUB_WESTEND_FINALITY_COMPATIBLE_RELAYER_VERSION;
+	const FREE_HEADERS_INTERVAL_METHOD: &'static str =
+		bp_bridge_hub_westend::FREE_HEADERS_INTERVAL_FOR_BRIDGE_HUB_WESTEND_METHOD;
 	const AVERAGE_BLOCK_INTERVAL: Duration = AVERAGE_BLOCK_INTERVAL;
 
 	type SignedBlock = bp_bridge_hub_westend::SignedBlock;
@@ -127,5 +129,5 @@ impl ChainWithMessages for BridgeHubWestend {
 
 impl ChainWithRuntimeVersion for BridgeHubWestend {
 	const RUNTIME_VERSION: Option<SimpleRuntimeVersion> =
-		Some(SimpleRuntimeVersion { spec_version: 1_009_000, transaction_version: 4 });
+		Some(SimpleRuntimeVersion { spec_version: 1_010_000, transaction_version: 4 });
 }

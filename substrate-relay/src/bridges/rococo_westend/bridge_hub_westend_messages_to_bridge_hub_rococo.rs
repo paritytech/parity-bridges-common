@@ -17,10 +17,8 @@
 //! BridgeHubWestend-to-BridgeHubRococo messages sync entrypoint.
 
 use bp_runtime::RelayerVersion;
-use hex_literal::hex;
 use relay_bridge_hub_rococo_client::BridgeHubRococo;
 use relay_bridge_hub_westend_client::BridgeHubWestend;
-use sp_core::H256;
 use substrate_relay_helper::{
 	cli::bridge::{CliBridgeBase, MessagesCliBridge},
 	messages_lane::SubstrateMessageLane,

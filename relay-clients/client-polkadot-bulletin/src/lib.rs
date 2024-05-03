@@ -69,6 +69,8 @@ impl Chain for PolkadotBulletin {
 		bp_polkadot_bulletin::BEST_FINALIZED_POLKADOT_BULLETIN_HEADER_METHOD;
 	const WITH_CHAIN_COMPATIBLE_FINALITY_RELAYER_VERSION_METHOD: &'static str =
 		bp_polkadot_bulletin::POLKADOT_BULLETIN_FINALITY_COMPATIBLE_RELAYER_VERSION;
+	const FREE_HEADERS_INTERVAL_METHOD: &'static str =
+		bp_polkadot_bulletin::FREE_HEADERS_INTERVAL_FOR_POLKADOT_BULLETIN_METHOD;
 	const AVERAGE_BLOCK_INTERVAL: Duration = Duration::from_secs(6);
 
 	type SignedBlock = bp_polkadot_bulletin::SignedBlock;

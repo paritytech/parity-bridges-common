@@ -47,6 +47,7 @@ impl SubmitParachainHeadsCallBuilder<RococoToRococoBulletin> for RococoToRococoB
 		at_relay_block: HeaderIdOf<relay_rococo_client::Rococo>,
 		parachains: Vec<(ParaId, ParaHash)>,
 		parachain_heads_proof: ParaHeadsProof,
+		_is_free_execution_expected: bool,
 	) -> CallOf<relay_polkadot_bulletin_client::PolkadotBulletin> {
 		relay_polkadot_bulletin_client::RuntimeCall::BridgePolkadotParachains(
 			relay_polkadot_bulletin_client::BridgePolkadotParachainsCall::submit_parachain_heads {

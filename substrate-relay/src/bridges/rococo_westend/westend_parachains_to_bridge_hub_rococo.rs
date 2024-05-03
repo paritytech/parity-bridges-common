@@ -18,9 +18,7 @@
 
 use bp_polkadot_core::parachains::{ParaHash, ParaHeadsProof, ParaId};
 use bp_runtime::RelayerVersion;
-use hex_literal::hex;
 use relay_substrate_client::{CallOf, HeaderIdOf};
-use sp_core::H256;
 use substrate_relay_helper::{
 	cli::bridge::{CliBridgeBase, MessagesCliBridge, ParachainToRelayHeadersCliBridge},
 	parachains::{SubmitParachainHeadsCallBuilder, SubstrateParachainsPipeline},
@@ -48,12 +46,14 @@ impl SubmitParachainHeadsCallBuilder<BridgeHubWestendToBridgeHubRococo>
 		at_relay_block: HeaderIdOf<relay_westend_client::Westend>,
 		parachains: Vec<(ParaId, ParaHash)>,
 		parachain_heads_proof: ParaHeadsProof,
+		is_free_execution_expected: bool,
 	) -> CallOf<relay_bridge_hub_rococo_client::BridgeHubRococo> {
 		relay_bridge_hub_rococo_client::RuntimeCall::BridgeWestendParachains(
-			relay_bridge_hub_rococo_client::BridgeParachainCall::submit_parachain_heads {
+			relay_bridge_hub_rococo_client::BridgeParachainCall::submit_parachain_heads_ex {
 				at_relay_block: (at_relay_block.0, at_relay_block.1),
 				parachains,
 				parachain_heads_proof,
+				is_free_execution_expected,
 			},
 		)
 	}

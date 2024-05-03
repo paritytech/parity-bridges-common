@@ -60,6 +60,8 @@ impl Chain for Polkadot {
 		bp_polkadot::BEST_FINALIZED_POLKADOT_HEADER_METHOD;
 	const WITH_CHAIN_COMPATIBLE_FINALITY_RELAYER_VERSION_METHOD: &'static str =
 		bp_polkadot::POLKADOT_FINALITY_COMPATIBLE_RELAYER_VERSION;
+	const FREE_HEADERS_INTERVAL_METHOD: &'static str =
+		bp_polkadot::FREE_HEADERS_INTERVAL_FOR_POLKADOT_METHOD;
 	const AVERAGE_BLOCK_INTERVAL: Duration = Duration::from_secs(6);
 
 	type SignedBlock = bp_polkadot::SignedBlock;
@@ -81,6 +83,8 @@ impl ChainWithBalances for Polkadot {
 
 impl RelayChain for Polkadot {
 	const PARAS_PALLET_NAME: &'static str = bp_polkadot::PARAS_PALLET_NAME;
+	const WITH_CHAIN_BRIDGE_PARACHAINS_PALLET_NAME: &'static str =
+		bp_polkadot::WITH_POLKADOT_BRIDGE_PARACHAINS_PALLET_NAME;
 }
 
 impl ChainWithTransactions for Polkadot {
