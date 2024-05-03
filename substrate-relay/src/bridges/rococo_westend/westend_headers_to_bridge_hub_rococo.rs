@@ -58,10 +58,8 @@ impl SubstrateFinalityPipeline for WestendFinalityToBridgeHubRococo {
 
 #[async_trait]
 impl SubstrateFinalitySyncPipeline for WestendFinalityToBridgeHubRococo {
-	const RELAYER_VERSION: Option<RelayerVersion> = Some(RelayerVersion {
-		manual: 0,
-		auto: H256(hex!("f3b72b260a9262b1a9cc09c87ece99e305cdb8e6d1e052eaba9eec2f4cf368a1")),
-	});
+	const RELAYER_VERSION: Option<RelayerVersion> = Some(RelayerVersion::from_manual(0));
+
 	type SubmitFinalityProofCallBuilder = SubmitFinalityProofCallBuilder;
 }
 

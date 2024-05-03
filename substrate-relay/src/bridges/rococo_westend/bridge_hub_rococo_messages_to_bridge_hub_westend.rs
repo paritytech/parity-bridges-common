@@ -57,14 +57,8 @@ substrate_relay_helper::generate_receive_message_delivery_proof_call_builder!(
 pub struct BridgeHubRococoMessagesToBridgeHubWestendMessageLane;
 
 impl SubstrateMessageLane for BridgeHubRococoMessagesToBridgeHubWestendMessageLane {
-	const AT_SOURCE_CHAIN_RELAYER_VERSION: Option<RelayerVersion> = Some(RelayerVersion {
-		manual: 0,
-		auto: H256(hex!("ec797ce348d5ce03001b3000f16b7623b0f6b654e441caf8289608e476223969")),
-	});
-	const AT_TARGET_CHAIN_RELAYER_VERSION: Option<RelayerVersion> = Some(RelayerVersion {
-		manual: 0,
-		auto: H256(hex!("815e02321b71bf951f7054f78929c11be5b9056ffc954980d94931b4522a7f02")),
-	});
+	const AT_SOURCE_CHAIN_RELAYER_VERSION: Option<RelayerVersion> = Some(RelayerVersion::from_manual(0));
+	const AT_TARGET_CHAIN_RELAYER_VERSION: Option<RelayerVersion> = Some(RelayerVersion::from_manual(0));
 
 	type SourceChain = BridgeHubRococo;
 	type TargetChain = BridgeHubWestend;

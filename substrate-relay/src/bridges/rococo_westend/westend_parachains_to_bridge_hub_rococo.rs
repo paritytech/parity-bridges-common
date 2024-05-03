@@ -31,10 +31,7 @@ use substrate_relay_helper::{
 pub struct BridgeHubWestendToBridgeHubRococo;
 
 impl SubstrateParachainsPipeline for BridgeHubWestendToBridgeHubRococo {
-	const RELAYER_VERSION: Option<RelayerVersion> = Some(RelayerVersion {
-		manual: 0,
-		auto: H256(hex!("53c49a5c17f529842eb2f2a85053415ff77be4331c90e0a6f26594686fdfb6ce")),
-	});
+	const RELAYER_VERSION: Option<RelayerVersion> = Some(RelayerVersion::from_manual(0));
 
 	type SourceParachain = relay_bridge_hub_westend_client::BridgeHubWestend;
 	type SourceRelayChain = relay_westend_client::Westend;
