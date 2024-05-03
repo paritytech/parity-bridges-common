@@ -17,6 +17,7 @@
 //! Polkadot-to-PolkadotBulletin headers sync entrypoint.
 
 use async_trait::async_trait;
+use bp_runtime::RelayerVersion;
 use substrate_relay_helper::{
 	equivocation::SubstrateEquivocationDetectionPipeline,
 	finality::SubstrateFinalitySyncPipeline,
@@ -55,6 +56,7 @@ impl SubstrateFinalityPipeline for PolkadotFinalityToPolkadotBulletin {
 
 #[async_trait]
 impl SubstrateFinalitySyncPipeline for PolkadotFinalityToPolkadotBulletin {
+	const RELAYER_VERSION: Option<RelayerVersion> = None;
 	type SubmitFinalityProofCallBuilder = SubmitFinalityProofCallBuilder;
 }
 

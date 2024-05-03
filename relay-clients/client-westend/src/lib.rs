@@ -58,6 +58,8 @@ impl Chain for Westend {
 	const NAME: &'static str = "Westend";
 	const BEST_FINALIZED_HEADER_ID_METHOD: &'static str =
 		bp_westend::BEST_FINALIZED_WESTEND_HEADER_METHOD;
+	const WITH_CHAIN_COMPATIBLE_FINALITY_RELAYER_VERSION_METHOD: &'static str =
+		bp_westend::WESTEND_FINALITY_COMPATIBLE_RELAYER_VERSION;
 	const FREE_HEADERS_INTERVAL_METHOD: &'static str =
 		bp_westend::FREE_HEADERS_INTERVAL_FOR_WESTEND_METHOD;
 	const AVERAGE_BLOCK_INTERVAL: Duration = Duration::from_secs(6);

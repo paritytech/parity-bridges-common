@@ -17,6 +17,7 @@
 //! Westend-to-Rococo parachains sync entrypoint.
 
 use bp_polkadot_core::parachains::{ParaHash, ParaHeadsProof, ParaId};
+use bp_runtime::RelayerVersion;
 use relay_substrate_client::{CallOf, HeaderIdOf};
 use substrate_relay_helper::{
 	cli::bridge::{CliBridgeBase, MessagesCliBridge, ParachainToRelayHeadersCliBridge},
@@ -28,6 +29,8 @@ use substrate_relay_helper::{
 pub struct BridgeHubRococoToBridgeHubWestend;
 
 impl SubstrateParachainsPipeline for BridgeHubRococoToBridgeHubWestend {
+	const RELAYER_VERSION: Option<RelayerVersion> = Some(RelayerVersion::from_manual(0));
+
 	type SourceParachain = relay_bridge_hub_rococo_client::BridgeHubRococo;
 	type SourceRelayChain = relay_rococo_client::Rococo;
 	type TargetChain = relay_bridge_hub_westend_client::BridgeHubWestend;

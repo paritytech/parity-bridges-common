@@ -16,6 +16,7 @@
 
 //! BridgeHubWestend-to-BridgeHubRococo messages sync entrypoint.
 
+use bp_runtime::RelayerVersion;
 use relay_bridge_hub_rococo_client::BridgeHubRococo;
 use relay_bridge_hub_westend_client::BridgeHubWestend;
 use substrate_relay_helper::{
@@ -54,6 +55,9 @@ substrate_relay_helper::generate_receive_message_delivery_proof_call_builder!(
 pub struct BridgeHubWestendMessagesToBridgeHubRococoMessageLane;
 
 impl SubstrateMessageLane for BridgeHubWestendMessagesToBridgeHubRococoMessageLane {
+	const AT_SOURCE_CHAIN_RELAYER_VERSION: Option<RelayerVersion> = Some(RelayerVersion::from_manual(0));
+	const AT_TARGET_CHAIN_RELAYER_VERSION: Option<RelayerVersion> = Some(RelayerVersion::from_manual(0));
+
 	type SourceChain = BridgeHubWestend;
 	type TargetChain = BridgeHubRococo;
 

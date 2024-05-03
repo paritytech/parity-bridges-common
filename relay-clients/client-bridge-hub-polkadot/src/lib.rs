@@ -56,6 +56,8 @@ impl Chain for BridgeHubPolkadot {
 	const NAME: &'static str = "BridgeHubPolkadot";
 	const BEST_FINALIZED_HEADER_ID_METHOD: &'static str =
 		bp_bridge_hub_polkadot::BEST_FINALIZED_BRIDGE_HUB_POLKADOT_HEADER_METHOD;
+	const WITH_CHAIN_COMPATIBLE_FINALITY_RELAYER_VERSION_METHOD: &'static str =
+		bp_bridge_hub_polkadot::BRIDGE_HUB_POLKADOT_FINALITY_COMPATIBLE_RELAYER_VERSION;
 	const FREE_HEADERS_INTERVAL_METHOD: &'static str =
 		bp_bridge_hub_polkadot::FREE_HEADERS_INTERVAL_FOR_BRIDGE_HUB_POLKADOT_METHOD;
 	const AVERAGE_BLOCK_INTERVAL: Duration = AVERAGE_BLOCK_INTERVAL;
@@ -121,6 +123,8 @@ impl ChainWithMessages for BridgeHubPolkadot {
 	const WITH_CHAIN_RELAYERS_PALLET_NAME: Option<&'static str> =
 		Some(bp_bridge_hub_polkadot::WITH_BRIDGE_HUB_POLKADOT_RELAYERS_PALLET_NAME);
 
+	const WITH_CHAIN_COMPATIBLE_MESSAGES_RELAYER_VERSION_METHOD: &'static str =
+		bp_bridge_hub_polkadot::FROM_BRIDGE_HUB_POLKADOT_MESSAGES_COMPATIBLE_RELAYER_VERSION;
 	const TO_CHAIN_MESSAGE_DETAILS_METHOD: &'static str =
 		bp_bridge_hub_polkadot::TO_BRIDGE_HUB_POLKADOT_MESSAGE_DETAILS_METHOD;
 	const FROM_CHAIN_MESSAGE_DETAILS_METHOD: &'static str =

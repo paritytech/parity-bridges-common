@@ -82,6 +82,8 @@ impl relay_substrate_client::Chain for RococoAsPolkadot {
 	const NAME: &'static str = relay_rococo_client::Rococo::NAME;
 	const BEST_FINALIZED_HEADER_ID_METHOD: &'static str =
 		relay_polkadot_client::Polkadot::BEST_FINALIZED_HEADER_ID_METHOD;
+	const WITH_CHAIN_COMPATIBLE_FINALITY_RELAYER_VERSION_METHOD: &'static str =
+		relay_polkadot_client::Polkadot::WITH_CHAIN_COMPATIBLE_FINALITY_RELAYER_VERSION_METHOD;
 	const FREE_HEADERS_INTERVAL_METHOD: &'static str =
 		relay_polkadot_client::Polkadot::FREE_HEADERS_INTERVAL_METHOD;
 	const AVERAGE_BLOCK_INTERVAL: Duration = relay_rococo_client::Rococo::AVERAGE_BLOCK_INTERVAL;
@@ -186,6 +188,8 @@ impl relay_substrate_client::Chain for BridgeHubRococoAsBridgeHubPolkadot {
 	const NAME: &'static str = relay_bridge_hub_rococo_client::BridgeHubRococo::NAME;
 	const BEST_FINALIZED_HEADER_ID_METHOD: &'static str =
 		relay_bridge_hub_polkadot_client::BridgeHubPolkadot::BEST_FINALIZED_HEADER_ID_METHOD;
+	const WITH_CHAIN_COMPATIBLE_FINALITY_RELAYER_VERSION_METHOD: &'static str =
+		relay_bridge_hub_rococo_client::BridgeHubRococo::WITH_CHAIN_COMPATIBLE_FINALITY_RELAYER_VERSION_METHOD;
 	const FREE_HEADERS_INTERVAL_METHOD: &'static str =
 		relay_bridge_hub_polkadot_client::BridgeHubPolkadot::FREE_HEADERS_INTERVAL_METHOD;
 	const AVERAGE_BLOCK_INTERVAL: Duration =
@@ -232,6 +236,8 @@ impl relay_substrate_client::ChainWithMessages for BridgeHubRococoAsBridgeHubPol
 	const WITH_CHAIN_RELAYERS_PALLET_NAME: Option<&'static str> =
 		relay_bridge_hub_polkadot_client::BridgeHubPolkadot::WITH_CHAIN_RELAYERS_PALLET_NAME;
 
+	const WITH_CHAIN_COMPATIBLE_MESSAGES_RELAYER_VERSION_METHOD: &'static str =
+	relay_bridge_hub_polkadot_client::BridgeHubPolkadot::WITH_CHAIN_COMPATIBLE_MESSAGES_RELAYER_VERSION_METHOD;
 	const TO_CHAIN_MESSAGE_DETAILS_METHOD: &'static str =
 		relay_bridge_hub_polkadot_client::BridgeHubPolkadot::TO_CHAIN_MESSAGE_DETAILS_METHOD;
 	const FROM_CHAIN_MESSAGE_DETAILS_METHOD: &'static str =

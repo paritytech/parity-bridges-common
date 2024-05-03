@@ -17,6 +17,7 @@
 //! RococoBulletin-to-BridgeHubRococo messages sync entrypoint.
 
 use super::BridgeHubRococoAsBridgeHubPolkadot;
+use bp_runtime::RelayerVersion;
 use relay_polkadot_bulletin_client::PolkadotBulletin as RococoBulletin;
 use substrate_relay_helper::{
 	cli::bridge::{CliBridgeBase, MessagesCliBridge},
@@ -55,6 +56,9 @@ substrate_relay_helper::generate_receive_message_delivery_proof_call_builder!(
 pub struct RococoBulletinMessagesToBridgeHubRococoMessageLane;
 
 impl SubstrateMessageLane for RococoBulletinMessagesToBridgeHubRococoMessageLane {
+	const AT_SOURCE_CHAIN_RELAYER_VERSION: Option<RelayerVersion> = None;
+	const AT_TARGET_CHAIN_RELAYER_VERSION: Option<RelayerVersion> = None;
+
 	type SourceChain = RococoBulletin;
 	type TargetChain = BridgeHubRococoAsBridgeHubPolkadot;
 

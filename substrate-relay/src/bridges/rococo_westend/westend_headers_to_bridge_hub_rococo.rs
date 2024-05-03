@@ -17,6 +17,7 @@
 //! Westend-to-Rococo bridge hubs headers sync entrypoint.
 
 use async_trait::async_trait;
+use bp_runtime::RelayerVersion;
 use substrate_relay_helper::{
 	equivocation::SubstrateEquivocationDetectionPipeline,
 	finality::SubstrateFinalitySyncPipeline,
@@ -55,6 +56,8 @@ impl SubstrateFinalityPipeline for WestendFinalityToBridgeHubRococo {
 
 #[async_trait]
 impl SubstrateFinalitySyncPipeline for WestendFinalityToBridgeHubRococo {
+	const RELAYER_VERSION: Option<RelayerVersion> = Some(RelayerVersion::from_manual(0));
+
 	type SubmitFinalityProofCallBuilder = SubmitFinalityProofCallBuilder;
 }
 

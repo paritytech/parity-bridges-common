@@ -21,6 +21,7 @@ use substrate_relay_helper::cli::bridge::{
 };
 
 use async_trait::async_trait;
+use bp_runtime::RelayerVersion;
 use substrate_relay_helper::{
 	equivocation::SubstrateEquivocationDetectionPipeline,
 	finality::SubstrateFinalitySyncPipeline,
@@ -55,6 +56,7 @@ impl SubstrateFinalityPipeline for PolkadotFinalityToBridgeHubKusama {
 
 #[async_trait]
 impl SubstrateFinalitySyncPipeline for PolkadotFinalityToBridgeHubKusama {
+	const RELAYER_VERSION: Option<RelayerVersion> = None;
 	type SubmitFinalityProofCallBuilder = SubmitFinalityProofCallBuilder;
 }
 

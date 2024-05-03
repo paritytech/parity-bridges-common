@@ -21,7 +21,7 @@ use substrate_relay_helper::cli::bridge::{
 };
 
 use bp_polkadot_core::parachains::{ParaHash, ParaHeadsProof, ParaId};
-use bp_runtime::Chain;
+use bp_runtime::{Chain, RelayerVersion};
 use relay_substrate_client::{CallOf, HeaderIdOf};
 use substrate_relay_helper::{
 	messages_lane::MessagesRelayLimits,
@@ -33,6 +33,8 @@ use substrate_relay_helper::{
 pub struct PolkadotToPolkadotBulletin;
 
 impl SubstrateParachainsPipeline for PolkadotToPolkadotBulletin {
+	const RELAYER_VERSION: Option<RelayerVersion> = None;
+
 	type SourceParachain = relay_bridge_hub_polkadot_client::BridgeHubPolkadot;
 	type SourceRelayChain = relay_polkadot_client::Polkadot;
 	type TargetChain = relay_polkadot_bulletin_client::PolkadotBulletin;

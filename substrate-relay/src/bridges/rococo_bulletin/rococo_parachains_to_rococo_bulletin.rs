@@ -19,7 +19,7 @@
 use super::{BridgeHubRococoAsBridgeHubPolkadot, RococoAsPolkadot};
 
 use bp_polkadot_core::parachains::{ParaHash, ParaHeadsProof, ParaId};
-use bp_runtime::Chain;
+use bp_runtime::{Chain, RelayerVersion};
 use relay_substrate_client::{CallOf, HeaderIdOf};
 use substrate_relay_helper::{
 	cli::bridge::{CliBridgeBase, MessagesCliBridge, ParachainToRelayHeadersCliBridge},
@@ -32,6 +32,8 @@ use substrate_relay_helper::{
 pub struct RococoToRococoBulletin;
 
 impl SubstrateParachainsPipeline for RococoToRococoBulletin {
+	const RELAYER_VERSION: Option<RelayerVersion> = None;
+
 	type SourceParachain = BridgeHubRococoAsBridgeHubPolkadot;
 	type SourceRelayChain = RococoAsPolkadot;
 	type TargetChain = relay_polkadot_bulletin_client::PolkadotBulletin;
