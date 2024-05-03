@@ -28,7 +28,7 @@ use crate::bridges::{
 };
 use structopt::StructOpt;
 use strum::{EnumString, VariantNames};
-use substrate_relay_helper::cli::relay_parachains::{ParachainsRelayer, RelayParachainsParams};
+use substrate_relay_helper::cli::relay_parachains::{ParachainsRelayer, RelayParachainHeadParams, RelayParachainsParams};
 
 /// Start parachain heads relayer process.
 #[derive(StructOpt)]
@@ -38,6 +38,16 @@ pub struct RelayParachains {
 	bridge: RelayParachainsBridge,
 	#[structopt(flatten)]
 	params: RelayParachainsParams,
+}
+
+/// Relay single parachain head.
+#[derive(StructOpt)]
+pub struct RelayParachainHead {
+	/// A bridge instance to relay parachains heads for.
+	#[structopt(possible_values = RelayParachainsBridge::VARIANTS, case_insensitive = true)]
+	bridge: RelayParachainsBridge,
+	#[structopt(flatten)]
+	params: RelayParachainHeadParams,
 }
 
 /// Parachain heads relay bridge.
@@ -75,6 +85,27 @@ impl RelayParachains {
 				PolkadotToPolkadotBulletinCliBridge::relay_parachains(self.params),
 			RelayParachainsBridge::RococoToRococoBulletin =>
 				RococoToRococoBulletinCliBridge::relay_parachains(self.params),
+		}
+		.await
+	}
+}
+
+impl RelayParachainHead {
+	/// Run the command.
+	pub async fn run(self) -> anyhow::Result<()> {
+		match self.bridge {
+			RelayParachainsBridge::RococoToBridgeHubWestend =>
+				BridgeHubRococoToBridgeHubWestendCliBridge::relay_parachain_head(self.params),
+			RelayParachainsBridge::WestendToBridgeHubRococo =>
+				BridgeHubWestendToBridgeHubRococoCliBridge::relay_parachain_head(self.params),
+			RelayParachainsBridge::KusamaToBridgeHubPolkadot =>
+				BridgeHubKusamaToBridgeHubPolkadotCliBridge::relay_parachain_head(self.params),
+			RelayParachainsBridge::PolkadotToBridgeHubKusama =>
+				BridgeHubPolkadotToBridgeHubKusamaCliBridge::relay_parachain_head(self.params),
+			RelayParachainsBridge::PolkadotToPolkadotBulletin =>
+				PolkadotToPolkadotBulletinCliBridge::relay_parachain_head(self.params),
+			RelayParachainsBridge::RococoToRococoBulletin =>
+				RococoToRococoBulletinCliBridge::relay_parachain_head(self.params),
 		}
 		.await
 	}

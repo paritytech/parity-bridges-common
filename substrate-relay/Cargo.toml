@@ -27,19 +27,19 @@ signal-hook-async-std = "0.2.2"
 strum = { version = "0.26.2", features = ["derive"] }
 
 # Bridge dependencies
-bp-bridge-hub-polkadot = { git = "https://github.com/paritytech/polkadot-sdk", branch = "master" }
-bp-bridge-hub-rococo = { git = "https://github.com/paritytech/polkadot-sdk", branch = "master" }
-bp-header-chain = { git = "https://github.com/paritytech/polkadot-sdk", branch = "master" }
-bp-messages = { git = "https://github.com/paritytech/polkadot-sdk", branch = "master" }
-bp-parachains = { git = "https://github.com/paritytech/polkadot-sdk", branch = "master" }
-bp-polkadot-bulletin = { git = "https://github.com/paritytech/polkadot-sdk", branch = "master" }
-bp-polkadot = { git = "https://github.com/paritytech/polkadot-sdk", branch = "master" }
-bp-polkadot-core = { git = "https://github.com/paritytech/polkadot-sdk", branch = "master" }
-bp-rococo = { git = "https://github.com/paritytech/polkadot-sdk", branch = "master" }
-bp-runtime = { git = "https://github.com/paritytech/polkadot-sdk", branch = "master" }
-bridge-runtime-common = { git = "https://github.com/paritytech/polkadot-sdk", branch = "master" }
-pallet-bridge-parachains = { git = "https://github.com/paritytech/polkadot-sdk", branch = "master" }
-parachains-relay = { git = "https://github.com/paritytech/polkadot-sdk", branch = "master" }
+bp-bridge-hub-polkadot = { git = "https://github.com/paritytech/polkadot-sdk", branch = "sv-relay-single-parachain-header" }
+bp-bridge-hub-rococo = { git = "https://github.com/paritytech/polkadot-sdk", branch = "sv-relay-single-parachain-header" }
+bp-header-chain = { git = "https://github.com/paritytech/polkadot-sdk", branch = "sv-relay-single-parachain-header" }
+bp-messages = { git = "https://github.com/paritytech/polkadot-sdk", branch = "sv-relay-single-parachain-header" }
+bp-parachains = { git = "https://github.com/paritytech/polkadot-sdk", branch = "sv-relay-single-parachain-header" }
+bp-polkadot-bulletin = { git = "https://github.com/paritytech/polkadot-sdk", branch = "sv-relay-single-parachain-header" }
+bp-polkadot = { git = "https://github.com/paritytech/polkadot-sdk", branch = "sv-relay-single-parachain-header" }
+bp-polkadot-core = { git = "https://github.com/paritytech/polkadot-sdk", branch = "sv-relay-single-parachain-header" }
+bp-rococo = { git = "https://github.com/paritytech/polkadot-sdk", branch = "sv-relay-single-parachain-header" }
+bp-runtime = { git = "https://github.com/paritytech/polkadot-sdk", branch = "sv-relay-single-parachain-header" }
+bridge-runtime-common = { git = "https://github.com/paritytech/polkadot-sdk", branch = "sv-relay-single-parachain-header" }
+pallet-bridge-parachains = { git = "https://github.com/paritytech/polkadot-sdk", branch = "sv-relay-single-parachain-header" }
+parachains-relay = { git = "https://github.com/paritytech/polkadot-sdk", branch = "sv-relay-single-parachain-header" }
 relay-bridge-hub-kusama-client = { path = "../relay-clients/client-bridge-hub-kusama" }
 relay-bridge-hub-polkadot-client = { path = "../relay-clients/client-bridge-hub-polkadot" }
 relay-bridge-hub-rococo-client = { path = "../relay-clients/client-bridge-hub-rococo" }
@@ -48,20 +48,20 @@ relay-kusama-client = { path = "../relay-clients/client-kusama" }
 relay-polkadot-client = { path = "../relay-clients/client-polkadot" }
 relay-polkadot-bulletin-client = { path = "../relay-clients/client-polkadot-bulletin" }
 relay-rococo-client = { path = "../relay-clients/client-rococo" }
-relay-substrate-client = { git = "https://github.com/paritytech/polkadot-sdk", branch = "master" }
-relay-utils = { git = "https://github.com/paritytech/polkadot-sdk", branch = "master" }
+relay-substrate-client = { git = "https://github.com/paritytech/polkadot-sdk", branch = "sv-relay-single-parachain-header" }
+relay-utils = { git = "https://github.com/paritytech/polkadot-sdk", branch = "sv-relay-single-parachain-header" }
 relay-westend-client = { path = "../relay-clients/client-westend" }
-substrate-relay-helper = { git = "https://github.com/paritytech/polkadot-sdk", branch = "master" }
+substrate-relay-helper = { git = "https://github.com/paritytech/polkadot-sdk", branch = "sv-relay-single-parachain-header" }
 
 # Substrate Dependencies
 
-frame-support = { git = "https://github.com/paritytech/polkadot-sdk", branch = "master" }
-sp-core = { git = "https://github.com/paritytech/polkadot-sdk", branch = "master" }
-sp-runtime = { git = "https://github.com/paritytech/polkadot-sdk", branch = "master" }
+frame-support = { git = "https://github.com/paritytech/polkadot-sdk", branch = "sv-relay-single-parachain-header" }
+sp-core = { git = "https://github.com/paritytech/polkadot-sdk", branch = "sv-relay-single-parachain-header" }
+sp-runtime = { git = "https://github.com/paritytech/polkadot-sdk", branch = "sv-relay-single-parachain-header" }
 
 [dev-dependencies]
-bp-test-utils = { git = "https://github.com/paritytech/polkadot-sdk", branch = "master" }
+bp-test-utils = { git = "https://github.com/paritytech/polkadot-sdk", branch = "sv-relay-single-parachain-header" }
 hex-literal = "0.4"
-sp-keyring = { git = "https://github.com/paritytech/polkadot-sdk", branch = "master" }
+sp-keyring = { git = "https://github.com/paritytech/polkadot-sdk", branch = "sv-relay-single-parachain-header" }
 tempfile = "3.10"
 finality-grandpa = { version = "0.16.2" }
