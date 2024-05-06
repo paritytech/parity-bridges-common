@@ -35,7 +35,9 @@ use crate::bridges::{
 		bridge_hub_westend_messages_to_bridge_hub_rococo::BridgeHubWestendToBridgeHubRococoMessagesCliBridge,
 	},
 };
-use substrate_relay_helper::cli::relay_messages::{MessagesRelayer, RelayMessagesParams, RelayMessagesRangeParams};
+use substrate_relay_helper::cli::relay_messages::{
+	MessagesRelayer, RelayMessagesParams, RelayMessagesRangeParams,
+};
 
 #[derive(Debug, PartialEq, Eq, EnumString, VariantNames)]
 #[strum(serialize_all = "kebab_case")]
@@ -110,17 +112,29 @@ impl RelayMessagesRange {
 	pub async fn run(self) -> anyhow::Result<()> {
 		match self.bridge {
 			FullBridge::BridgeHubRococoToBridgeHubWestend =>
-				BridgeHubRococoToBridgeHubWestendMessagesCliBridge::relay_messages_range(self.params),
+				BridgeHubRococoToBridgeHubWestendMessagesCliBridge::relay_messages_range(
+					self.params,
+				),
 			FullBridge::BridgeHubWestendToBridgeHubRococo =>
-				BridgeHubWestendToBridgeHubRococoMessagesCliBridge::relay_messages_range(self.params),
+				BridgeHubWestendToBridgeHubRococoMessagesCliBridge::relay_messages_range(
+					self.params,
+				),
 			FullBridge::BridgeHubKusamaToBridgeHubPolkadot =>
-				BridgeHubKusamaToBridgeHubPolkadotMessagesCliBridge::relay_messages_range(self.params),
+				BridgeHubKusamaToBridgeHubPolkadotMessagesCliBridge::relay_messages_range(
+					self.params,
+				),
 			FullBridge::BridgeHubPolkadotToBridgeHubKusama =>
-				BridgeHubPolkadotToBridgeHubKusamaMessagesCliBridge::relay_messages_range(self.params),
+				BridgeHubPolkadotToBridgeHubKusamaMessagesCliBridge::relay_messages_range(
+					self.params,
+				),
 			FullBridge::PolkadotBulletinToBridgeHubPolkadot =>
-				PolkadotBulletinToBridgeHubPolkadotMessagesCliBridge::relay_messages_range(self.params),
+				PolkadotBulletinToBridgeHubPolkadotMessagesCliBridge::relay_messages_range(
+					self.params,
+				),
 			FullBridge::BridgeHubPolkadotToPolkadotBulletin =>
-				BridgeHubPolkadotToPolkadotBulletinMessagesCliBridge::relay_messages_range(self.params),
+				BridgeHubPolkadotToPolkadotBulletinMessagesCliBridge::relay_messages_range(
+					self.params,
+				),
 			FullBridge::RococoBulletinToBridgeHubRococo =>
 				RococoBulletinToBridgeHubRococoMessagesCliBridge::relay_messages_range(self.params),
 			FullBridge::BridgeHubRococoToRococoBulletin =>
