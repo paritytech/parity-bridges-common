@@ -60,6 +60,8 @@ pub enum Command {
 	/// Ties up to `Messages` pallets on both chains and starts relaying messages.
 	/// Requires the header relay to be already running.
 	RelayMessages(relay_messages::RelayMessages),
+	/// Relay a range of messages.
+	RelayMessagesRange(relay_messages::RelayMessagesRange),
 	/// Start headers and messages relay between two Substrate chains.
 	///
 	/// This high-level relay internally starts four low-level relays: two `RelayHeaders`
@@ -100,6 +102,7 @@ impl Command {
 			Self::RelayHeader(arg) => arg.run().await?,
 			Self::RelayParachains(arg) => arg.run().await?,
 			Self::RelayMessages(arg) => arg.run().await?,
+			Self::RelayMessagesRange(arg) => arg.run().await?,
 			Self::RelayHeadersAndMessages(arg) => arg.run().await?,
 			Self::DetectEquivocations(arg) => arg.run().await?,
 		}
