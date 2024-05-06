@@ -28,7 +28,9 @@ use crate::bridges::{
 };
 use structopt::StructOpt;
 use strum::{EnumString, VariantNames};
-use substrate_relay_helper::cli::relay_parachains::{ParachainsRelayer, RelayParachainHeadParams, RelayParachainsParams};
+use substrate_relay_helper::cli::relay_parachains::{
+	ParachainsRelayer, RelayParachainHeadParams, RelayParachainsParams,
+};
 
 /// Start parachain heads relayer process.
 #[derive(StructOpt)]

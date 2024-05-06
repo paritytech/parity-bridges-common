@@ -16,17 +16,17 @@ subxt = { version = "0.35.3", default-features = false, features = ["native"] }
 
 # Bridge dependencies
 
-bp-kusama = { git = "https://github.com/paritytech/polkadot-sdk", branch = "sv-relay-single-parachain-header" }
-bp-polkadot-core = { git = "https://github.com/paritytech/polkadot-sdk", branch = "sv-relay-single-parachain-header" }
-bp-runtime = { git = "https://github.com/paritytech/polkadot-sdk", branch = "sv-relay-single-parachain-header" }
+bp-kusama = { git = "https://github.com/paritytech/polkadot-sdk", branch = "master" }
+bp-polkadot-core = { git = "https://github.com/paritytech/polkadot-sdk", branch = "master" }
+bp-runtime = { git = "https://github.com/paritytech/polkadot-sdk", branch = "master" }
 
-relay-substrate-client = { git = "https://github.com/paritytech/polkadot-sdk", branch = "sv-relay-single-parachain-header" }
-relay-utils = { git = "https://github.com/paritytech/polkadot-sdk", branch = "sv-relay-single-parachain-header" }
+relay-substrate-client = { git = "https://github.com/paritytech/polkadot-sdk", branch = "master" }
+relay-utils = { git = "https://github.com/paritytech/polkadot-sdk", branch = "master" }
 
 # Substrate Dependencies
 
-sp-consensus-grandpa = { git = "https://github.com/paritytech/polkadot-sdk", branch = "sv-relay-single-parachain-header" }
-sp-core = { git = "https://github.com/paritytech/polkadot-sdk", branch = "sv-relay-single-parachain-header" }
-sp-runtime = { git = "https://github.com/paritytech/polkadot-sdk", branch = "sv-relay-single-parachain-header" }
-sp-session = { git = "https://github.com/paritytech/polkadot-sdk", branch = "sv-relay-single-parachain-header" }
-sp-weights = { git = "https://github.com/paritytech/polkadot-sdk", branch = "sv-relay-single-parachain-header" }
+sp-consensus-grandpa = { git = "https://github.com/paritytech/polkadot-sdk", branch = "master" }
+sp-core = { git = "https://github.com/paritytech/polkadot-sdk", branch = "master" }
+sp-runtime = { git = "https://github.com/paritytech/polkadot-sdk", branch = "master" }
+sp-session = { git = "https://github.com/paritytech/polkadot-sdk", branch = "master" }
+sp-weights = { git = "https://github.com/paritytech/polkadot-sdk", branch = "master" }
