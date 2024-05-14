@@ -62,6 +62,8 @@ pub enum Command {
 	RelayMessages(relay_messages::RelayMessages),
 	/// Relay a range of messages.
 	RelayMessagesRange(relay_messages::RelayMessagesRange),
+	/// Relay messages delivery confirmation.
+	RelayMessagesDeliveryConfirmation(relay_messages::RelayMessagesDeliveryConfirmation),
 	/// Start headers and messages relay between two Substrate chains.
 	///
 	/// This high-level relay internally starts four low-level relays: two `RelayHeaders`
@@ -103,6 +105,7 @@ impl Command {
 			Self::RelayParachains(arg) => arg.run().await?,
 			Self::RelayMessages(arg) => arg.run().await?,
 			Self::RelayMessagesRange(arg) => arg.run().await?,
+			Self::RelayMessagesDeliveryConfirmation(arg) => arg.run().await?,
 			Self::RelayHeadersAndMessages(arg) => arg.run().await?,
 			Self::DetectEquivocations(arg) => arg.run().await?,
 		}
