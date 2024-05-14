@@ -17,7 +17,7 @@ codec = { package = "parity-scale-codec", version = "3.6.1", default-features = 
 color-eyre = "0.6.1"
 proc-macro2 = "1.0.56"
 quote = { version = "1.0.33" }
-subxt-codegen = { git = "https://github.com/paritytech/subxt", branch = "master", default-features = false, features = ["fetch-metadata"] }
-wasm-loader = { git = "https://github.com/chevdor/subwasm", branch = "master" }
-wasm-testbed = { git = "https://github.com/chevdor/subwasm", branch = "master" }
+subxt-codegen = { git = "https://github.com/paritytech/subxt", default-features = false, features = ["fetch-metadata"] , branch = "bko-bridges-backports-and-nits" }
+wasm-loader = { git = "https://github.com/chevdor/subwasm", branch = "bko-bridges-backports-and-nits" }
+wasm-testbed = { git = "https://github.com/chevdor/subwasm", branch = "bko-bridges-backports-and-nits" }
 
