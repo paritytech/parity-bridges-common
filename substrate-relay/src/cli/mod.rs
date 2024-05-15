@@ -55,6 +55,8 @@ pub enum Command {
 	RelayHeader(relay_headers::RelayHeader),
 	/// Relay parachain heads.
 	RelayParachains(relay_parachains::RelayParachains),
+	/// Relay single parachain head.
+	RelayParachainHead(relay_parachains::RelayParachainHead),
 	/// Start messages relay between two chains.
 	///
 	/// Ties up to `Messages` pallets on both chains and starts relaying messages.
@@ -101,6 +103,7 @@ impl Command {
 			Self::RelayHeaders(arg) => arg.run().await?,
 			Self::RelayHeader(arg) => arg.run().await?,
 			Self::RelayParachains(arg) => arg.run().await?,
+			Self::RelayParachainHead(arg) => arg.run().await?,
 			Self::RelayMessages(arg) => arg.run().await?,
 			Self::RelayMessagesRange(arg) => arg.run().await?,
 			Self::RelayHeadersAndMessages(arg) => arg.run().await?,
