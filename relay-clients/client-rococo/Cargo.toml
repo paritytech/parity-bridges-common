@@ -16,16 +16,16 @@ subxt = { version = "0.35.3", default-features = false, features = ["native"] }
 
 # Bridge dependencies
 
-bp-polkadot-core = { git = "https://github.com/paritytech/polkadot-sdk", branch = "sv-add-subcommand-to-relay-messages-range" }
-bp-rococo = { git = "https://github.com/paritytech/polkadot-sdk", branch = "sv-add-subcommand-to-relay-messages-range" }
+bp-polkadot-core = { git = "https://github.com/paritytech/polkadot-sdk", branch = "master" }
+bp-rococo = { git = "https://github.com/paritytech/polkadot-sdk", branch = "master" }
 
-relay-substrate-client = { git = "https://github.com/paritytech/polkadot-sdk", branch = "sv-add-subcommand-to-relay-messages-range" }
-relay-utils = { git = "https://github.com/paritytech/polkadot-sdk", branch = "sv-add-subcommand-to-relay-messages-range" }
+relay-substrate-client = { git = "https://github.com/paritytech/polkadot-sdk", branch = "master" }
+relay-utils = { git = "https://github.com/paritytech/polkadot-sdk", branch = "master" }
 
 # Substrate Dependencies
 
-sp-consensus-grandpa = { git = "https://github.com/paritytech/polkadot-sdk", branch = "sv-add-subcommand-to-relay-messages-range" }
-sp-core = { git = "https://github.com/paritytech/polkadot-sdk", branch = "sv-add-subcommand-to-relay-messages-range" }
-sp-runtime = { git = "https://github.com/paritytech/polkadot-sdk", branch = "sv-add-subcommand-to-relay-messages-range" }
-sp-session = { git = "https://github.com/paritytech/polkadot-sdk", branch = "sv-add-subcommand-to-relay-messages-range" }
-sp-weights = { git = "https://github.com/paritytech/polkadot-sdk", branch = "sv-add-subcommand-to-relay-messages-range" }
+sp-consensus-grandpa = { git = "https://github.com/paritytech/polkadot-sdk", branch = "master" }
+sp-core = { git = "https://github.com/paritytech/polkadot-sdk", branch = "master" }
+sp-runtime = { git = "https://github.com/paritytech/polkadot-sdk", branch = "master" }
+sp-session = { git = "https://github.com/paritytech/polkadot-sdk", branch = "master" }
+sp-weights = { git = "https://github.com/paritytech/polkadot-sdk", branch = "master" }
