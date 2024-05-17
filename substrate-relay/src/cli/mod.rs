@@ -96,6 +96,12 @@ impl Command {
 		}
 	}
 
+	// Set relayer version metric value.
+	fn init_version(&self) {
+		*relay_utils::initialize::RELAYER_VERSION.lock() =
+			option_env!("CARGO_PKG_VERSION").map(Into::into);
+	}
+
 	/// Run the command.
 	async fn do_run(self) -> anyhow::Result<()> {
 		match self {
@@ -115,6 +121,7 @@ impl Command {
 	/// Run the command.
 	pub async fn run(self) {
 		self.init_logger();
+		self.init_version();
 
 		let exit_signals = match Signals::new([SIGINT, SIGTERM]) {
 			Ok(signals) => signals,
