@@ -98,7 +98,8 @@ impl Command {
 
 	// Set relayer version metric value.
 	fn init_version(&self) {
-		*relay_utils::initialize::RELAYER_VERSION.lock() = option_env!("CARGO_PKG_VERSION").map(Into::into);
+		*relay_utils::initialize::RELAYER_VERSION.lock() =
+			option_env!("CARGO_PKG_VERSION").map(Into::into);
 	}
 
 	/// Run the command.
