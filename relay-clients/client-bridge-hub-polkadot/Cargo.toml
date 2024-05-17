@@ -16,19 +16,19 @@ subxt = { version = "0.35.3", default-features = false, features = ["native"] }
 
 # Bridge dependencies
 
-bp-bridge-hub-polkadot = { git = "https://github.com/paritytech/polkadot-sdk", branch = "master" }
-bp-header-chain = { git = "https://github.com/paritytech/polkadot-sdk", branch = "master" }
-bp-messages = { git = "https://github.com/paritytech/polkadot-sdk", branch = "master" }
-bp-parachains = { git = "https://github.com/paritytech/polkadot-sdk", branch = "master" }
-bp-polkadot = { git = "https://github.com/paritytech/polkadot-sdk", branch = "master" }
-bp-polkadot-core = { git = "https://github.com/paritytech/polkadot-sdk", branch = "master" }
-bp-kusama = { git = "https://github.com/paritytech/polkadot-sdk", branch = "master" }
-bp-runtime = { git = "https://github.com/paritytech/polkadot-sdk", branch = "master" }
-bridge-runtime-common = { git = "https://github.com/paritytech/polkadot-sdk", branch = "master" }
-relay-substrate-client = { git = "https://github.com/paritytech/polkadot-sdk", branch = "master" }
+bp-bridge-hub-polkadot = { git = "https://github.com/paritytech/polkadot-sdk", branch = "sv-fix-relayer-version-metric" }
+bp-header-chain = { git = "https://github.com/paritytech/polkadot-sdk", branch = "sv-fix-relayer-version-metric" }
+bp-messages = { git = "https://github.com/paritytech/polkadot-sdk", branch = "sv-fix-relayer-version-metric" }
+bp-parachains = { git = "https://github.com/paritytech/polkadot-sdk", branch = "sv-fix-relayer-version-metric" }
+bp-polkadot = { git = "https://github.com/paritytech/polkadot-sdk", branch = "sv-fix-relayer-version-metric" }
+bp-polkadot-core = { git = "https://github.com/paritytech/polkadot-sdk", branch = "sv-fix-relayer-version-metric" }
+bp-kusama = { git = "https://github.com/paritytech/polkadot-sdk", branch = "sv-fix-relayer-version-metric" }
+bp-runtime = { git = "https://github.com/paritytech/polkadot-sdk", branch = "sv-fix-relayer-version-metric" }
+bridge-runtime-common = { git = "https://github.com/paritytech/polkadot-sdk", branch = "sv-fix-relayer-version-metric" }
+relay-substrate-client = { git = "https://github.com/paritytech/polkadot-sdk", branch = "sv-fix-relayer-version-metric" }
 
 # Substrate Dependencies
 
-sp-core = { git = "https://github.com/paritytech/polkadot-sdk", branch = "master" }
-sp-runtime = { git = "https://github.com/paritytech/polkadot-sdk", branch = "master" }
-sp-weights = { git = "https://github.com/paritytech/polkadot-sdk", branch = "master" }
+sp-core = { git = "https://github.com/paritytech/polkadot-sdk", branch = "sv-fix-relayer-version-metric" }
+sp-runtime = { git = "https://github.com/paritytech/polkadot-sdk", branch = "sv-fix-relayer-version-metric" }
+sp-weights = { git = "https://github.com/paritytech/polkadot-sdk", branch = "sv-fix-relayer-version-metric" }
