@@ -36,7 +36,8 @@ use crate::bridges::{
 	},
 };
 use substrate_relay_helper::cli::relay_messages::{
-	MessagesRelayer, RelayMessagesParams, RelayMessagesRangeParams, RelayMessagesDeliveryConfirmationParams,
+	MessagesRelayer, RelayMessagesDeliveryConfirmationParams, RelayMessagesParams,
+	RelayMessagesRangeParams,
 };
 
 #[derive(Debug, PartialEq, Eq, EnumString, VariantNames)]
