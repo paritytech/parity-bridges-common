@@ -36,7 +36,8 @@ use crate::bridges::{
 	},
 };
 use substrate_relay_helper::cli::relay_messages::{
-	MessagesRelayer, RelayMessagesParams, RelayMessagesRangeParams,
+	MessagesRelayer, RelayMessagesDeliveryConfirmationParams, RelayMessagesParams,
+	RelayMessagesRangeParams,
 };
 
 #[derive(Debug, PartialEq, Eq, EnumString, VariantNames)]
@@ -71,6 +72,16 @@ pub struct RelayMessagesRange {
 	bridge: FullBridge,
 	#[structopt(flatten)]
 	params: RelayMessagesRangeParams,
+}
+
+/// Relay messages delivery confirmation.
+#[derive(StructOpt)]
+pub struct RelayMessagesDeliveryConfirmation {
+	/// A bridge instance to relay messages for.
+	#[structopt(possible_values = FullBridge::VARIANTS, case_insensitive = true)]
+	bridge: FullBridge,
+	#[structopt(flatten)]
+	params: RelayMessagesDeliveryConfirmationParams,
 }
 
 impl MessagesRelayer for BridgeHubRococoToBridgeHubWestendMessagesCliBridge {}
@@ -139,6 +150,43 @@ impl RelayMessagesRange {
 				RococoBulletinToBridgeHubRococoMessagesCliBridge::relay_messages_range(self.params),
 			FullBridge::BridgeHubRococoToRococoBulletin =>
 				BridgeHubRococoToRococoBulletinMessagesCliBridge::relay_messages_range(self.params),
+		}
+		.await
+	}
+}
+
+impl RelayMessagesDeliveryConfirmation {
+	/// Run the command.
+	pub async fn run(self) -> anyhow::Result<()> {
+		match self.bridge {
+			FullBridge::BridgeHubRococoToBridgeHubWestend =>
+				BridgeHubRococoToBridgeHubWestendMessagesCliBridge::relay_messages_delivery_confirmation(
+					self.params,
+				),
+			FullBridge::BridgeHubWestendToBridgeHubRococo =>
+				BridgeHubWestendToBridgeHubRococoMessagesCliBridge::relay_messages_delivery_confirmation(
+					self.params,
+				),
+			FullBridge::BridgeHubKusamaToBridgeHubPolkadot =>
+				BridgeHubKusamaToBridgeHubPolkadotMessagesCliBridge::relay_messages_delivery_confirmation(
+					self.params,
+				),
+			FullBridge::BridgeHubPolkadotToBridgeHubKusama =>
+				BridgeHubPolkadotToBridgeHubKusamaMessagesCliBridge::relay_messages_delivery_confirmation(
+					self.params,
+				),
+			FullBridge::PolkadotBulletinToBridgeHubPolkadot =>
+				PolkadotBulletinToBridgeHubPolkadotMessagesCliBridge::relay_messages_delivery_confirmation(
+					self.params,
+				),
+			FullBridge::BridgeHubPolkadotToPolkadotBulletin =>
+				BridgeHubPolkadotToPolkadotBulletinMessagesCliBridge::relay_messages_delivery_confirmation(
+					self.params,
+				),
+			FullBridge::RococoBulletinToBridgeHubRococo =>
+				RococoBulletinToBridgeHubRococoMessagesCliBridge::relay_messages_delivery_confirmation(self.params),
+			FullBridge::BridgeHubRococoToRococoBulletin =>
+				BridgeHubRococoToRococoBulletinMessagesCliBridge::relay_messages_delivery_confirmation(self.params),
 		}
 		.await
 	}
