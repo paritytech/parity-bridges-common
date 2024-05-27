@@ -397,5 +397,11 @@ deploy-bridges-common-relay-testnet:
   script:
     - echo "Starting deploy version=${VERSION}"
     - argocd app list
-    - argocd app set  $APP --helm-set bridges-common-relay.image.tag=$VERSION
+    - argocd app set  $APP
+         --helm-set headers-a.image.tag=$VERSION
+         --helm-set headers-b.image.tag=$VERSION
+         --helm-set parachains-a.image.tag=$VERSION
+         --helm-set parachains-b.image.tag=$VERSION
+         --helm-set messages-a.image.tag=$VERSION
+         --helm-set messages-b.image.tag=$VERSION
     - argocd app sync $APP --async

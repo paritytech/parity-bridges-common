@@ -55,6 +55,8 @@ pub enum Command {
 	RelayHeader(relay_headers::RelayHeader),
 	/// Relay parachain heads.
 	RelayParachains(relay_parachains::RelayParachains),
+	/// Relay single parachain head.
+	RelayParachainHead(relay_parachains::RelayParachainHead),
 	/// Start messages relay between two chains.
 	///
 	/// Ties up to `Messages` pallets on both chains and starts relaying messages.
@@ -96,6 +98,12 @@ impl Command {
 		}
 	}
 
+	// Set relayer version metric value.
+	fn init_version(&self) {
+		*relay_utils::initialize::RELAYER_VERSION.lock() =
+			option_env!("CARGO_PKG_VERSION").map(Into::into);
+	}
+
 	/// Run the command.
 	async fn do_run(self) -> anyhow::Result<()> {
 		match self {
@@ -103,6 +111,7 @@ impl Command {
 			Self::RelayHeaders(arg) => arg.run().await?,
 			Self::RelayHeader(arg) => arg.run().await?,
 			Self::RelayParachains(arg) => arg.run().await?,
+			Self::RelayParachainHead(arg) => arg.run().await?,
 			Self::RelayMessages(arg) => arg.run().await?,
 			Self::RelayMessagesRange(arg) => arg.run().await?,
 			Self::RelayMessagesDeliveryConfirmation(arg) => arg.run().await?,
@@ -115,6 +124,7 @@ impl Command {
 	/// Run the command.
 	pub async fn run(self) {
 		self.init_logger();
+		self.init_version();
 
 		let exit_signals = match Signals::new([SIGINT, SIGTERM]) {
 			Ok(signals) => signals,
