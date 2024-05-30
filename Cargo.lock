@@ -9414,7 +9414,7 @@ dependencies = [
 
 [[package]]
 name = "substrate-relay"
-version = "1.6.0"
+version = "1.6.0-client-v2"
 dependencies = [
  "anyhow",
  "async-std",
