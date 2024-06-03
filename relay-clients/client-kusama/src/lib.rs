@@ -33,7 +33,7 @@ use std::time::Duration;
 
 pub use codegen_runtime::api::runtime_types;
 
-pub type RuntimeCall = runtime_types::kusama_runtime::RuntimeCall;
+pub type RuntimeCall = runtime_types::staging_kusama_runtime::RuntimeCall;
 
 pub type GrandpaCall = runtime_types::pallet_grandpa::pallet::Call;
 
@@ -122,5 +122,5 @@ impl ChainWithTransactions for Kusama {
 
 impl ChainWithRuntimeVersion for Kusama {
 	const RUNTIME_VERSION: Option<SimpleRuntimeVersion> =
-		Some(SimpleRuntimeVersion { spec_version: 1_001_002, transaction_version: 25 });
+		Some(SimpleRuntimeVersion { spec_version: 1_002_004, transaction_version: 25 });
 }
