@@ -440,7 +440,10 @@ pub mod api {
 					report_equivocation {
 						equivocation_proof: ::std::boxed::Box<
 							runtime_types::sp_consensus_slots::EquivocationProof<
-								::sp_runtime::generic::Header<::core::primitive::u32>,
+								::sp_runtime::generic::Header<
+									::core::primitive::u32,
+									::sp_runtime::traits::BlakeTwo256,
+								>,
 								runtime_types::sp_consensus_babe::app::Public,
 							>,
 						>,
@@ -450,7 +453,10 @@ pub mod api {
 					report_equivocation_unsigned {
 						equivocation_proof: ::std::boxed::Box<
 							runtime_types::sp_consensus_slots::EquivocationProof<
-								::sp_runtime::generic::Header<::core::primitive::u32>,
+								::sp_runtime::generic::Header<
+									::core::primitive::u32,
+									::sp_runtime::traits::BlakeTwo256,
+								>,
 								runtime_types::sp_consensus_babe::app::Public,
 							>,
 						>,
@@ -6616,7 +6622,10 @@ pub mod api {
 						#[codec(index = 0)]
 						enter {
 							data: runtime_types::polkadot_primitives::v6::InherentData<
-								::sp_runtime::generic::Header<::core::primitive::u32>,
+								::sp_runtime::generic::Header<
+									::core::primitive::u32,
+									::sp_runtime::traits::BlakeTwo256,
+								>,
 							>,
 						},
 					}
