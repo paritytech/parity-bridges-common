@@ -121,17 +121,17 @@ chain runtimes are changes: `Polkadot`, `Kusama`, `PBH`, `KBH`.
 When one of involved chains is upgraded, we need to update the relayer code to
 support it. Normally it means:
 
-1. Bumping bundled chain versions in following places:
+1. Bumping bundled chain versions (`spec_version`, `transaction_version`) in following places:
 
-- for `Rococo` and `RBH`: [here](https://github.com/paritytech/parity-bridges-common/blob/master/relays/bin-substrate/src/chains/rococo.rs);
+- for `Rococo` [here](https://github.com/paritytech/parity-bridges-common/blob/master/relay-clients/client-rococo/src/lib.rs) and `RBH` [here](https://github.com/paritytech/parity-bridges-common/blob/master/relay-clients/client-bridge-hub-rococo/src/lib.rs);
 
-- for `Westend` and `WBH`: [here](https://github.com/paritytech/parity-bridges-common/blob/master/relays/bin-substrate/src/chains/westend.rs);
+- for `Westend` [here](https://github.com/paritytech/parity-bridges-common/blob/master/relay-clients/client-westend/src/lib.rs) and `WBH` [here](https://github.com/paritytech/parity-bridges-common/blob/master/relay-clients/client-bridge-hub-westend/src/lib.rs);
 
-- for `Kusama` and `KBH`: [here](https://github.com/paritytech/parity-bridges-common/blob/master/relays/bin-substrate/src/chains/polkadot.rs)
+- for `Kusama` [here](https://github.com/paritytech/parity-bridges-common/blob/master/relay-clients/client-kusama/src/lib.rs) and `KBH` [here](https://github.com/paritytech/parity-bridges-common/blob/master/relay-clients/client-bridge-hub-kusama/src/lib.rs);
 
-- for `Polkadot` and `PBH`: [here](https://github.com/paritytech/parity-bridges-common/blob/master/relays/bin-substrate/src/chains/polkadot.rs);
+- for `Polkadot` [here](https://github.com/paritytech/parity-bridges-common/blob/master/relay-clients/client-polkadot/src/lib.rs) and `PBH` [here](https://github.com/paritytech/parity-bridges-common/blob/master/relay-clients/client-bridge-hub-polkadot/src/lib.rs);
 
-- for `PBC`: [here](https://github.com/paritytech/parity-bridges-common/blob/master/relays/bin-substrate/src/chains/polkadot_bulletin.rs).
+- for `PBC` [here](https://github.com/paritytech/parity-bridges-common/blob/master/relay-clients/client-polkadot-bulletin/src/lib.rs).
 
 2. Regenerating bundled runtime wrapper code using `runtime-codegen` binary:
 
@@ -139,7 +139,7 @@ If you can start updated chain node, it could be done using following command
 (assuming you're in the root of the repository):
 ```sh
 cd tools/runtime-codegen
-cargo run --bin runtime-codegen -- --from-node-url "wss://rococo-rpc.polkadot.io:443" > ../../relays/client-rococo/src/codegen_runtime.rs
+cargo run --bin runtime-codegen -- --from-node-url "wss://rococo-rpc.polkadot.io:443" > ../../relay-clients/client-rococo/src/codegen_runtime.rs
 ```
 
 Otherwise, you'll need a runtime file. You may download it from:
@@ -158,9 +158,10 @@ cargo run --bin runtime-codegen -- --from-wasm-file rococo_runtime.compact.compr
 
 **IMPORTANT**: due to [well-known issue](https://github.com/paritytech/parity-bridges-common/issues/2669)
 with runtime codegen, you'll get compilation errors after updating.
-To fix it, execute following commands:
+To fix it, execute following commands
+(assuming you're back in the root of the repository):
 ```sh
-cargo +nightly fmt --all
 find . -name codegen_runtime.rs -exec \
     sed -i 's/::sp_runtime::generic::Header<::core::primitive::u32>/::sp_runtime::generic::Header<::core::primitive::u32, ::sp_runtime::traits::BlakeTwo256>/g' {} +
+cargo +nightly fmt --all
 ```
