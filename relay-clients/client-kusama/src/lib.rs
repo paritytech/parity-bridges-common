@@ -33,7 +33,7 @@ use std::time::Duration;
 
 pub use codegen_runtime::api::runtime_types;
 
-pub type RuntimeCall = runtime_types::kusama_runtime::RuntimeCall;
+pub type RuntimeCall = runtime_types::staging_kusama_runtime::RuntimeCall;
 
 pub type GrandpaCall = runtime_types::pallet_grandpa::pallet::Call;
 
