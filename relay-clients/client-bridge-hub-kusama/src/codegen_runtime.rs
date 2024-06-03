@@ -309,8 +309,6 @@ pub mod api {
 				PolkadotXcm(runtime_types::pallet_xcm::pallet::Call),
 				#[codec(index = 32)]
 				CumulusXcm(runtime_types::cumulus_pallet_xcm::pallet::Call),
-				#[codec(index = 33)]
-				DmpQueue(runtime_types::cumulus_pallet_dmp_queue::pallet::Call),
 				#[codec(index = 40)]
 				Utility(runtime_types::pallet_utility::pallet::Call),
 				#[codec(index = 41)]
@@ -401,8 +399,6 @@ pub mod api {
 				PolkadotXcm(runtime_types::pallet_xcm::pallet::Event),
 				#[codec(index = 32)]
 				CumulusXcm(runtime_types::cumulus_pallet_xcm::pallet::Event),
-				#[codec(index = 33)]
-				DmpQueue(runtime_types::cumulus_pallet_dmp_queue::pallet::Event),
 				#[codec(index = 40)]
 				Utility(runtime_types::pallet_utility::pallet::Event),
 				#[codec(index = 41)]
@@ -457,62 +453,6 @@ pub mod api {
 				pub struct RefundBridgedParachainMessages;
 				#[derive(:: codec :: Decode, :: codec :: Encode, Clone, Debug, PartialEq)]
 				pub struct RefundSignedExtensionAdapter<_0>(pub _0);
-			}
-		}
-		pub mod cumulus_pallet_dmp_queue {
-			use super::runtime_types;
-			pub mod pallet {
-				use super::runtime_types;
-				#[derive(:: codec :: Decode, :: codec :: Encode, Clone, Debug, PartialEq)]
-				pub enum Call {}
-				#[derive(:: codec :: Decode, :: codec :: Encode, Clone, Debug, PartialEq)]
-				pub enum Event {
-					#[codec(index = 0)]
-					StartedExport,
-					#[codec(index = 1)]
-					Exported { page: ::core::primitive::u32 },
-					#[codec(index = 2)]
-					ExportFailed { page: ::core::primitive::u32 },
-					#[codec(index = 3)]
-					CompletedExport,
-					#[codec(index = 4)]
-					StartedOverweightExport,
-					#[codec(index = 5)]
-					ExportedOverweight { index: ::core::primitive::u64 },
-					#[codec(index = 6)]
-					ExportOverweightFailed { index: ::core::primitive::u64 },
-					#[codec(index = 7)]
-					CompletedOverweightExport,
-					#[codec(index = 8)]
-					StartedCleanup,
-					#[codec(index = 9)]
-					CleanedSome { keys_removed: ::core::primitive::u32 },
-					#[codec(index = 10)]
-					Completed { error: ::core::primitive::bool },
-				}
-				#[derive(:: codec :: Decode, :: codec :: Encode, Clone, Debug, PartialEq)]
-				pub enum MigrationState {
-					#[codec(index = 0)]
-					NotStarted,
-					#[codec(index = 1)]
-					StartedExport { next_begin_used: ::core::primitive::u32 },
-					#[codec(index = 2)]
-					CompletedExport,
-					#[codec(index = 3)]
-					StartedOverweightExport { next_overweight_index: ::core::primitive::u64 },
-					#[codec(index = 4)]
-					CompletedOverweightExport,
-					#[codec(index = 5)]
-					StartedCleanup {
-						cursor: ::core::option::Option<
-							runtime_types::bounded_collections::bounded_vec::BoundedVec<
-								::core::primitive::u8,
-							>,
-						>,
-					},
-					#[codec(index = 6)]
-					Completed,
-				}
 			}
 		}
 		pub mod cumulus_pallet_parachain_system {
@@ -1962,80 +1902,7 @@ pub mod api {
 				use super::runtime_types;
 				#[derive(:: codec :: Decode, :: codec :: Encode, Clone, Debug, PartialEq)]
 				pub enum Call {
-					#[codec(index = 0)]
-					send {
-						dest: ::std::boxed::Box<runtime_types::xcm::VersionedLocation>,
-						message: ::std::boxed::Box<runtime_types::xcm::VersionedXcm>,
-					},
-					#[codec(index = 1)]
-					teleport_assets {
-						dest: ::std::boxed::Box<runtime_types::xcm::VersionedLocation>,
-						beneficiary: ::std::boxed::Box<runtime_types::xcm::VersionedLocation>,
-						assets: ::std::boxed::Box<runtime_types::xcm::VersionedAssets>,
-						fee_asset_item: ::core::primitive::u32,
-					},
-					#[codec(index = 2)]
-					reserve_transfer_assets {
-						dest: ::std::boxed::Box<runtime_types::xcm::VersionedLocation>,
-						beneficiary: ::std::boxed::Box<runtime_types::xcm::VersionedLocation>,
-						assets: ::std::boxed::Box<runtime_types::xcm::VersionedAssets>,
-						fee_asset_item: ::core::primitive::u32,
-					},
-					#[codec(index = 3)]
-					execute {
-						message: ::std::boxed::Box<runtime_types::xcm::VersionedXcm2>,
-						max_weight: ::sp_weights::Weight,
-					},
-					#[codec(index = 4)]
-					force_xcm_version {
-						location:
-							::std::boxed::Box<runtime_types::staging_xcm::v4::location::Location>,
-						version: ::core::primitive::u32,
-					},
-					#[codec(index = 5)]
-					force_default_xcm_version {
-						maybe_xcm_version: ::core::option::Option<::core::primitive::u32>,
-					},
-					#[codec(index = 6)]
-					force_subscribe_version_notify {
-						location: ::std::boxed::Box<runtime_types::xcm::VersionedLocation>,
-					},
-					#[codec(index = 7)]
-					force_unsubscribe_version_notify {
-						location: ::std::boxed::Box<runtime_types::xcm::VersionedLocation>,
-					},
-					#[codec(index = 8)]
-					limited_reserve_transfer_assets {
-						dest: ::std::boxed::Box<runtime_types::xcm::VersionedLocation>,
-						beneficiary: ::std::boxed::Box<runtime_types::xcm::VersionedLocation>,
-						assets: ::std::boxed::Box<runtime_types::xcm::VersionedAssets>,
-						fee_asset_item: ::core::primitive::u32,
-						weight_limit: runtime_types::xcm::v3::WeightLimit,
-					},
-					#[codec(index = 9)]
-					limited_teleport_assets {
-						dest: ::std::boxed::Box<runtime_types::xcm::VersionedLocation>,
-						beneficiary: ::std::boxed::Box<runtime_types::xcm::VersionedLocation>,
-						assets: ::std::boxed::Box<runtime_types::xcm::VersionedAssets>,
-						fee_asset_item: ::core::primitive::u32,
-						weight_limit: runtime_types::xcm::v3::WeightLimit,
-					},
-					#[codec(index = 10)]
-					force_suspension { suspended: ::core::primitive::bool },
-					#[codec(index = 11)]
-					transfer_assets {
-						dest: ::std::boxed::Box<runtime_types::xcm::VersionedLocation>,
-						beneficiary: ::std::boxed::Box<runtime_types::xcm::VersionedLocation>,
-						assets: ::std::boxed::Box<runtime_types::xcm::VersionedAssets>,
-						fee_asset_item: ::core::primitive::u32,
-						weight_limit: runtime_types::xcm::v3::WeightLimit,
-					},
-					#[codec(index = 12)]
-					claim_assets {
-						assets: ::std::boxed::Box<runtime_types::xcm::VersionedAssets>,
-						beneficiary: ::std::boxed::Box<runtime_types::xcm::VersionedLocation>,
-					},
-				}
+					# [codec (index = 0)] send { dest : :: std :: boxed :: Box < runtime_types :: xcm :: VersionedLocation > , message : :: std :: boxed :: Box < runtime_types :: xcm :: VersionedXcm > , } , # [codec (index = 1)] teleport_assets { dest : :: std :: boxed :: Box < runtime_types :: xcm :: VersionedLocation > , beneficiary : :: std :: boxed :: Box < runtime_types :: xcm :: VersionedLocation > , assets : :: std :: boxed :: Box < runtime_types :: xcm :: VersionedAssets > , fee_asset_item : :: core :: primitive :: u32 , } , # [codec (index = 2)] reserve_transfer_assets { dest : :: std :: boxed :: Box < runtime_types :: xcm :: VersionedLocation > , beneficiary : :: std :: boxed :: Box < runtime_types :: xcm :: VersionedLocation > , assets : :: std :: boxed :: Box < runtime_types :: xcm :: VersionedAssets > , fee_asset_item : :: core :: primitive :: u32 , } , # [codec (index = 3)] execute { message : :: std :: boxed :: Box < runtime_types :: xcm :: VersionedXcm2 > , max_weight : :: sp_weights :: Weight , } , # [codec (index = 4)] force_xcm_version { location : :: std :: boxed :: Box < runtime_types :: staging_xcm :: v4 :: location :: Location > , version : :: core :: primitive :: u32 , } , # [codec (index = 5)] force_default_xcm_version { maybe_xcm_version : :: core :: option :: Option < :: core :: primitive :: u32 > , } , # [codec (index = 6)] force_subscribe_version_notify { location : :: std :: boxed :: Box < runtime_types :: xcm :: VersionedLocation > , } , # [codec (index = 7)] force_unsubscribe_version_notify { location : :: std :: boxed :: Box < runtime_types :: xcm :: VersionedLocation > , } , # [codec (index = 8)] limited_reserve_transfer_assets { dest : :: std :: boxed :: Box < runtime_types :: xcm :: VersionedLocation > , beneficiary : :: std :: boxed :: Box < runtime_types :: xcm :: VersionedLocation > , assets : :: std :: boxed :: Box < runtime_types :: xcm :: VersionedAssets > , fee_asset_item : :: core :: primitive :: u32 , weight_limit : runtime_types :: xcm :: v3 :: WeightLimit , } , # [codec (index = 9)] limited_teleport_assets { dest : :: std :: boxed :: Box < runtime_types :: xcm :: VersionedLocation > , beneficiary : :: std :: boxed :: Box < runtime_types :: xcm :: VersionedLocation > , assets : :: std :: boxed :: Box < runtime_types :: xcm :: VersionedAssets > , fee_asset_item : :: core :: primitive :: u32 , weight_limit : runtime_types :: xcm :: v3 :: WeightLimit , } , # [codec (index = 10)] force_suspension { suspended : :: core :: primitive :: bool , } , # [codec (index = 11)] transfer_assets { dest : :: std :: boxed :: Box < runtime_types :: xcm :: VersionedLocation > , beneficiary : :: std :: boxed :: Box < runtime_types :: xcm :: VersionedLocation > , assets : :: std :: boxed :: Box < runtime_types :: xcm :: VersionedAssets > , fee_asset_item : :: core :: primitive :: u32 , weight_limit : runtime_types :: xcm :: v3 :: WeightLimit , } , # [codec (index = 12)] claim_assets { assets : :: std :: boxed :: Box < runtime_types :: xcm :: VersionedAssets > , beneficiary : :: std :: boxed :: Box < runtime_types :: xcm :: VersionedLocation > , } , # [codec (index = 13)] transfer_assets_using_type_and_then { dest : :: std :: boxed :: Box < runtime_types :: xcm :: VersionedLocation > , assets : :: std :: boxed :: Box < runtime_types :: xcm :: VersionedAssets > , assets_transfer_type : :: std :: boxed :: Box < runtime_types :: staging_xcm_executor :: traits :: asset_transfer :: TransferType > , remote_fees_id : :: std :: boxed :: Box < runtime_types :: xcm :: VersionedAssetId > , fees_transfer_type : :: std :: boxed :: Box < runtime_types :: staging_xcm_executor :: traits :: asset_transfer :: TransferType > , custom_xcm_on_dest : :: std :: boxed :: Box < runtime_types :: xcm :: VersionedXcm > , weight_limit : runtime_types :: xcm :: v3 :: WeightLimit , } , }
 				#[derive(:: codec :: Decode, :: codec :: Encode, Clone, Debug, PartialEq)]
 				pub enum Error {
 					#[codec(index = 0)]
@@ -2762,52 +2629,54 @@ pub mod api {
 					#[codec(index = 0)]
 					SkippedSyncCommitteePeriod,
 					#[codec(index = 1)]
-					IrrelevantUpdate,
+					SyncCommitteeUpdateRequired,
 					#[codec(index = 2)]
-					NotBootstrapped,
+					IrrelevantUpdate,
 					#[codec(index = 3)]
-					SyncCommitteeParticipantsNotSupermajority,
+					NotBootstrapped,
 					#[codec(index = 4)]
-					InvalidHeaderMerkleProof,
+					SyncCommitteeParticipantsNotSupermajority,
 					#[codec(index = 5)]
-					InvalidSyncCommitteeMerkleProof,
+					InvalidHeaderMerkleProof,
 					#[codec(index = 6)]
-					InvalidExecutionHeaderProof,
+					InvalidSyncCommitteeMerkleProof,
 					#[codec(index = 7)]
-					InvalidAncestryMerkleProof,
+					InvalidExecutionHeaderProof,
 					#[codec(index = 8)]
-					InvalidBlockRootsRootMerkleProof,
+					InvalidAncestryMerkleProof,
 					#[codec(index = 9)]
-					InvalidFinalizedHeaderGap,
+					InvalidBlockRootsRootMerkleProof,
 					#[codec(index = 10)]
-					HeaderNotFinalized,
+					InvalidFinalizedHeaderGap,
 					#[codec(index = 11)]
-					BlockBodyHashTreeRootFailed,
+					HeaderNotFinalized,
 					#[codec(index = 12)]
-					HeaderHashTreeRootFailed,
+					BlockBodyHashTreeRootFailed,
 					#[codec(index = 13)]
-					SyncCommitteeHashTreeRootFailed,
+					HeaderHashTreeRootFailed,
 					#[codec(index = 14)]
-					SigningRootHashTreeRootFailed,
+					SyncCommitteeHashTreeRootFailed,
 					#[codec(index = 15)]
-					ForkDataHashTreeRootFailed,
+					SigningRootHashTreeRootFailed,
 					#[codec(index = 16)]
-					ExpectedFinalizedHeaderNotStored,
+					ForkDataHashTreeRootFailed,
 					#[codec(index = 17)]
-					BLSPreparePublicKeysFailed,
+					ExpectedFinalizedHeaderNotStored,
 					#[codec(index = 18)]
+					BLSPreparePublicKeysFailed,
+					#[codec(index = 19)]
 					BLSVerificationFailed(
 						runtime_types::snowbridge_beacon_primitives::bls::BlsError,
 					),
-					#[codec(index = 19)]
-					InvalidUpdateSlot,
 					#[codec(index = 20)]
-					InvalidSyncCommitteeUpdate,
+					InvalidUpdateSlot,
 					#[codec(index = 21)]
-					ExecutionHeaderTooFarBehind,
+					InvalidSyncCommitteeUpdate,
 					#[codec(index = 22)]
-					ExecutionHeaderSkippedBlock,
+					ExecutionHeaderTooFarBehind,
 					#[codec(index = 23)]
+					ExecutionHeaderSkippedBlock,
+					#[codec(index = 24)]
 					Halted,
 				}
 				#[derive(:: codec :: Decode, :: codec :: Encode, Clone, Debug, PartialEq)]
@@ -4104,6 +3973,26 @@ pub mod api {
 				pub struct Xcm(pub ::std::vec::Vec<runtime_types::staging_xcm::v4::Instruction>);
 				#[derive(:: codec :: Decode, :: codec :: Encode, Clone, Debug, PartialEq)]
 				pub struct Xcm2(pub ::std::vec::Vec<runtime_types::staging_xcm::v4::Instruction2>);
+			}
+		}
+		pub mod staging_xcm_executor {
+			use super::runtime_types;
+			pub mod traits {
+				use super::runtime_types;
+				pub mod asset_transfer {
+					use super::runtime_types;
+					#[derive(:: codec :: Decode, :: codec :: Encode, Clone, Debug, PartialEq)]
+					pub enum TransferType {
+						#[codec(index = 0)]
+						Teleport,
+						#[codec(index = 1)]
+						LocalReserve,
+						#[codec(index = 2)]
+						DestinationReserve,
+						#[codec(index = 3)]
+						RemoteReserve(runtime_types::xcm::VersionedLocation),
+					}
+				}
 			}
 		}
 		pub mod xcm {
