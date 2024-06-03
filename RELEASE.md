@@ -161,6 +161,7 @@ with runtime codegen, you'll get compilation errors after updating.
 To fix it, execute following commands
 (assuming you're back in the root of the repository):
 ```sh
+cargo +nightly fmt --all
 find . -name codegen_runtime.rs -exec \
     sed -i 's/::sp_runtime::generic::Header<::core::primitive::u32>/::sp_runtime::generic::Header<::core::primitive::u32, ::sp_runtime::traits::BlakeTwo256>/g' {} +
 cargo +nightly fmt --all
