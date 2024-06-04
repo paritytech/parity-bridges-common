@@ -36,3 +36,5 @@ cargo +nightly fmt --all
 # cd polkadot-bulletin-chain
 # cargo run
 # cargo run --bin runtime-codegen -- --from-node-url "ws://127.0.0.1:9944" > ../../relays/client-polkadot-bulletin/src/codegen_runtime.rs
+
+cargo check --workspace
