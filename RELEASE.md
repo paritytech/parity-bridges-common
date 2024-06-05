@@ -135,6 +135,8 @@ support it. Normally it means:
 
 2. Regenerating bundled runtime wrapper code using `runtime-codegen` binary:
 
+_(You can use the pre-defined `./scripts/regenerate_runtimes.sh` to regenerate all supported runtimes. If you need just a particular runtime, then follow the commands below.)_
+
 If you can start updated chain node, it could be done using following command
 (assuming you're in the root of the repository):
 ```sh

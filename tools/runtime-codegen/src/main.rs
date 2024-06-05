@@ -75,8 +75,11 @@ impl TypeSubstitute {
 }
 
 fn print_runtime(runtime_api: proc_macro2::TokenStream) {
-	println!(
-		"// Copyright 2019-2023 Parity Technologies (UK) Ltd.
+	let syn_tree = syn::parse_file(&runtime_api.to_string()).unwrap();
+	let pretty_runtime_api = prettyplease::unparse(&syn_tree);
+
+	indoc::printdoc!(
+		"// Copyright (C) Parity Technologies (UK) Ltd.
 		// This file is part of Parity Bridges Common.
 
 		// Parity Bridges Common is free software: you can redistribute it and/or modify
@@ -99,7 +102,7 @@ fn print_runtime(runtime_api: proc_macro2::TokenStream) {
 		{}
 		",
 		env::args().collect::<Vec<String>>().join(" "),
-		runtime_api
+		pretty_runtime_api
 	);
 }
 
