@@ -17,8 +17,8 @@ cargo run --bin runtime-codegen -- --from-node-url "wss://polkadot-bridge-hub-rp
 
 # For `polkadot-sdk` testnet runtimes:
 # TODO: there is a bug, probably needs to update subxt, generates: `::sp_runtime::generic::Header<::core::primitive::u32>` withtout second `Hash` parameter.
-# cargo run --bin runtime-codegen -- --from-wasm-file ../../../polkadot-sdk/target/release/wbuild/bridge-hub-rococo-runtime/bridge_hub_rococo_runtime.compact.compressed.wasm > ../../relays/client-bridge-hub-rococo/src/codegen_runtime.rs
-# cargo run --bin runtime-codegen -- --from-wasm-file ../../../polkadot-sdk/target/release/wbuild/bridge-hub-westend-runtime/bridge_hub_westend_runtime.compact.compressed.wasm > ../../relays/client-bridge-hub-westend/src/codegen_runtime.rs
+# cargo run --bin runtime-codegen -- --from-wasm-file ../../../polkadot-sdk/target/release/wbuild/bridge-hub-rococo-runtime/bridge_hub_rococo_runtime.compact.compressed.wasm > ../../relay-clients/client-bridge-hub-rococo/src/codegen_runtime.rs
+# cargo run --bin runtime-codegen -- --from-wasm-file ../../../polkadot-sdk/target/release/wbuild/bridge-hub-westend-runtime/bridge_hub_westend_runtime.compact.compressed.wasm > ../../relay-clients/client-bridge-hub-westend/src/codegen_runtime.rs
 
 cd -
 cargo +nightly fmt --all
@@ -35,6 +35,6 @@ cargo +nightly fmt --all
 # git clone https://github.com/zdave-parity/polkadot-bulletin-chain.git
 # cd polkadot-bulletin-chain
 # cargo run
-# cargo run --bin runtime-codegen -- --from-node-url "ws://127.0.0.1:9944" > ../../relays/client-polkadot-bulletin/src/codegen_runtime.rs
+# cargo run --bin runtime-codegen -- --from-node-url "ws://127.0.0.1:9944" > ../../relay-clients/client-polkadot-bulletin/src/codegen_runtime.rs
 
 cargo check --workspace

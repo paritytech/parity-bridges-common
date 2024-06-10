@@ -15,7 +15,7 @@ To prepare a release:
   [`master` branch](https://github.com/paritytech/parity-bridges-common/tree/master);
 
 2. Select release version: go to the `Cargo.toml` of `substrate-relay` crate
-  ([here](https://github.com/paritytech/parity-bridges-common/blob/master/relays/bin-substrate/Cargo.toml#L3))
+  ([here](https://github.com/paritytech/parity-bridges-common/blob/master/substrate-relay/Cargo.toml#L3))
   to look for the latest version. Then increment the minor or major version.
 
     **NOTE**: we are not going to properly support [semver](https://semver.org)
@@ -118,7 +118,7 @@ chain runtimes are changes: `Polkadot`, `Kusama`, `PBH`, `KBH`.
 
 ### Adding Support for Updated Chain
 
-When one of involved chains is upgraded, we need to update the relayer code to
+When one of the involved chains is upgraded or will be upgraded very soon (e.g., the enactment period ends in a few days), we need to update the relayer code to
 support it. Normally it means:
 
 1. Bumping bundled chain versions (`spec_version`, `transaction_version`) in following places:
@@ -135,7 +135,7 @@ support it. Normally it means:
 
 2. Regenerating bundled runtime wrapper code using `runtime-codegen` binary:
 
-_(You can use the pre-defined `./scripts/regenerate_runtimes.sh` to regenerate all supported runtimes. If you need just a particular runtime, then follow the commands below.)_
+_(You can use the pre-defined `./scripts/regenerate_runtimes.sh` to regenerate all supported **already enacted live** runtimes. If you need just a particular runtime or a runtime which is not yet enacted, then follow the commands below.)_
 
 If you can start updated chain node, it could be done using following command
 (assuming you're in the root of the repository):
@@ -155,7 +155,8 @@ Otherwise, you'll need a runtime file. You may download it from:
 Then use the following command:
 ```sh
 cd tools/runtime-codegen
-cargo run --bin runtime-codegen -- --from-wasm-file rococo_runtime.compact.compressed.wasm > ../../relays/client-rococo/src/codegen_runtime.rs
+curl -sL https://github.com/polkadot-fellows/runtimes/releases/download/v1.2.4/bridge-hub-polkadot_runtime-v1002004.compact.compressed.wasm -o bridge-hub-polkadot_runtime-v1002004.compact.compressed.wasm
+cargo run --bin runtime-codegen -- --from-wasm-file bridge-hub-polkadot_runtime-v1002004.compact.compressed.wasm > ../../relay-clients/client-bridge-hub-polkadot/src/codegen_runtime.rs
 ```
 
 **IMPORTANT**: due to [well-known issue](https://github.com/paritytech/parity-bridges-common/issues/2669)
