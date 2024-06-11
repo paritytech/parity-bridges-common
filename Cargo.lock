@@ -6785,6 +6785,7 @@ dependencies = [
  "bp-parachains",
  "bp-polkadot",
  "bp-polkadot-core",
+ "bp-runtime",
  "bridge-runtime-common",
  "parity-scale-codec",
  "relay-substrate-client",

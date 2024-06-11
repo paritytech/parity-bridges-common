@@ -22,6 +22,7 @@ bp-messages = { git = "https://github.com/paritytech/polkadot-sdk", branch = "ma
 bp-parachains = { git = "https://github.com/paritytech/polkadot-sdk", branch = "master" }
 bp-polkadot = { git = "https://github.com/paritytech/polkadot-sdk", branch = "master" }
 bp-polkadot-core = { git = "https://github.com/paritytech/polkadot-sdk", branch = "master" }
+bp-runtime = { git = "https://github.com/paritytech/polkadot-sdk", branch = "master" }
 bridge-runtime-common = { git = "https://github.com/paritytech/polkadot-sdk", branch = "master" }
 relay-substrate-client = { git = "https://github.com/paritytech/polkadot-sdk", branch = "master" }
 

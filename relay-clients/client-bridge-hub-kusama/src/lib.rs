@@ -18,8 +18,9 @@
 
 pub mod codegen_runtime;
 
-use bp_bridge_hub_kusama::{SignedExtension, AVERAGE_BLOCK_INTERVAL};
+use bp_bridge_hub_kusama::AVERAGE_BLOCK_INTERVAL;
 use bp_polkadot::SuffixedCommonSignedExtensionExt;
+use bp_polkadot_core::SuffixedCommonSignedExtension;
 use codec::Encode;
 use relay_substrate_client::{
 	calls::UtilityCall as MockUtilityCall, Chain, ChainWithBalances, ChainWithMessages,
@@ -32,6 +33,19 @@ use sp_runtime::{generic::SignedPayload, traits::IdentifyAccount};
 use std::time::Duration;
 
 pub use codegen_runtime::api::runtime_types;
+
+use bp_runtime::extensions::{
+	BridgeRejectObsoleteHeadersAndMessages, GenericSignedExtensionSchema,
+	RefundBridgedParachainMessagesSchema,
+};
+
+pub type CheckMetadataHash = GenericSignedExtensionSchema<(), Option<[u8; 32]>>;
+
+pub type SignedExtension = SuffixedCommonSignedExtension<(
+	BridgeRejectObsoleteHeadersAndMessages,
+	RefundBridgedParachainMessagesSchema,
+	CheckMetadataHash,
+)>;
 
 pub type RuntimeCall = runtime_types::bridge_hub_kusama_runtime::RuntimeCall;
 pub type BridgeMessagesCall = runtime_types::pallet_bridge_messages::pallet::Call;
@@ -96,7 +110,7 @@ impl ChainWithTransactions for BridgeHubKusama {
 				param.genesis_hash,
 				unsigned.nonce,
 				unsigned.tip,
-				(((), ()), ((), ())),
+				(((), (), ()), ((), (), None)),
 			),
 		)?;
 
