@@ -33,13 +33,14 @@ use sp_runtime::{generic::SignedPayload, traits::IdentifyAccount};
 use std::time::Duration;
 
 pub use codegen_runtime::api::runtime_types;
+use runtime_types::frame_metadata_hash_extension::Mode;
 
 use bp_runtime::extensions::{
 	BridgeRejectObsoleteHeadersAndMessages, GenericSignedExtensionSchema,
 	RefundBridgedParachainMessagesSchema,
 };
 
-pub type CheckMetadataHash = GenericSignedExtensionSchema<(), Option<[u8; 32]>>;
+pub type CheckMetadataHash = GenericSignedExtensionSchema<Mode, Option<[u8; 32]>>;
 
 pub type SignedExtension = SuffixedCommonSignedExtension<(
 	BridgeRejectObsoleteHeadersAndMessages,
@@ -110,7 +111,7 @@ impl ChainWithTransactions for BridgeHubKusama {
 				param.genesis_hash,
 				unsigned.nonce,
 				unsigned.tip,
-				(((), (), ()), ((), (), None)),
+				(((), (), Mode::Disabled), ((), (), None)),
 			),
 		)?;
 
