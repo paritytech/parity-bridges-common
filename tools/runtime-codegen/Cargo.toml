@@ -21,4 +21,3 @@ proc-macro2 = "1.0.56"
 subxt-codegen = { version = "0.37.0", features = ["fetch-metadata"] }
 wasm-loader = { git = "https://github.com/chevdor/subwasm", branch = "master" }
 wasm-testbed = { git = "https://github.com/chevdor/subwasm", branch = "master" }
-
