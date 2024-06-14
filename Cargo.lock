@@ -1111,30 +1111,15 @@ dependencies = [
 [[package]]
 name = "bp-bridge-hub-cumulus"
 version = "0.7.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits#87a52dbe55163e5cdde3953fc08e18653ce78fcf"
-dependencies = [
- "bp-messages 0.7.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "bp-polkadot-core 0.7.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "bp-runtime 0.7.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "frame-support 28.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "frame-system 28.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "polkadot-primitives 7.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "sp-api 26.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "sp-std 14.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
-]
-
-[[package]]
-name = "bp-bridge-hub-cumulus"
-version = "0.7.0"
 source = "git+https://github.com/paritytech/polkadot-sdk?branch=master#977254ccb1afca975780987ff9f19f356e99378f"
 dependencies = [
- "bp-messages 0.7.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
- "bp-polkadot-core 0.7.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
- "bp-runtime 0.7.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
- "frame-support 28.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
- "frame-system 28.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
- "polkadot-primitives 7.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
- "sp-api 26.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
+ "bp-messages",
+ "bp-polkadot-core",
+ "bp-runtime",
+ "frame-support",
+ "frame-system",
+ "polkadot-primitives",
+ "sp-api",
  "sp-std 14.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
 ]
 
@@ -1143,72 +1128,55 @@ name = "bp-bridge-hub-kusama"
 version = "0.6.0"
 source = "git+https://github.com/paritytech/polkadot-sdk?branch=master#977254ccb1afca975780987ff9f19f356e99378f"
 dependencies = [
- "bp-bridge-hub-cumulus 0.7.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
- "bp-messages 0.7.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
- "bp-runtime 0.7.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
- "frame-support 28.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
- "sp-api 26.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
- "sp-runtime 31.0.1 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
+ "bp-bridge-hub-cumulus",
+ "bp-messages",
+ "bp-runtime",
+ "frame-support",
+ "sp-api",
+ "sp-runtime",
  "sp-std 14.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
 ]
 
 [[package]]
 name = "bp-bridge-hub-polkadot"
 version = "0.6.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits#87a52dbe55163e5cdde3953fc08e18653ce78fcf"
+source = "git+https://github.com/paritytech/polkadot-sdk?branch=master#977254ccb1afca975780987ff9f19f356e99378f"
 dependencies = [
- "bp-bridge-hub-cumulus 0.7.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "bp-messages 0.7.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "bp-runtime 0.7.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "frame-support 28.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "sp-api 26.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "sp-runtime 31.0.1 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "sp-std 14.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
+ "bp-bridge-hub-cumulus",
+ "bp-messages",
+ "bp-runtime",
+ "frame-support",
+ "sp-api",
+ "sp-runtime",
+ "sp-std 14.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
 ]
 
 [[package]]
 name = "bp-bridge-hub-rococo"
 version = "0.7.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits#87a52dbe55163e5cdde3953fc08e18653ce78fcf"
+source = "git+https://github.com/paritytech/polkadot-sdk?branch=master#977254ccb1afca975780987ff9f19f356e99378f"
 dependencies = [
- "bp-bridge-hub-cumulus 0.7.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "bp-messages 0.7.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "bp-runtime 0.7.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "frame-support 28.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "sp-api 26.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "sp-runtime 31.0.1 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "sp-std 14.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
+ "bp-bridge-hub-cumulus",
+ "bp-messages",
+ "bp-runtime",
+ "frame-support",
+ "sp-api",
+ "sp-runtime",
+ "sp-std 14.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
 ]
 
 [[package]]
 name = "bp-bridge-hub-westend"
 version = "0.3.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits#87a52dbe55163e5cdde3953fc08e18653ce78fcf"
+source = "git+https://github.com/paritytech/polkadot-sdk?branch=master#977254ccb1afca975780987ff9f19f356e99378f"
 dependencies = [
- "bp-bridge-hub-cumulus 0.7.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "bp-messages 0.7.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "bp-runtime 0.7.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "frame-support 28.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "sp-api 26.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "sp-runtime 31.0.1 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "sp-std 14.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
-]
-
-[[package]]
-name = "bp-header-chain"
-version = "0.7.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits#87a52dbe55163e5cdde3953fc08e18653ce78fcf"
-dependencies = [
- "bp-runtime 0.7.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "finality-grandpa",
- "frame-support 28.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "parity-scale-codec",
- "scale-info",
- "serde",
- "sp-consensus-grandpa 13.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "sp-core 28.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "sp-runtime 31.0.1 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "sp-std 14.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
+ "bp-bridge-hub-cumulus",
+ "bp-messages",
+ "bp-runtime",
+ "frame-support",
+ "sp-api",
+ "sp-runtime",
+ "sp-std 14.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
 ]
 
 [[package]]
@@ -1216,44 +1184,29 @@ name = "bp-header-chain"
 version = "0.7.0"
 source = "git+https://github.com/paritytech/polkadot-sdk?branch=master#977254ccb1afca975780987ff9f19f356e99378f"
 dependencies = [
- "bp-runtime 0.7.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
+ "bp-runtime",
  "finality-grandpa",
- "frame-support 28.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
+ "frame-support",
  "parity-scale-codec",
  "scale-info",
  "serde",
- "sp-consensus-grandpa 13.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
- "sp-core 28.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
- "sp-runtime 31.0.1 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
+ "sp-consensus-grandpa",
+ "sp-core",
+ "sp-runtime",
  "sp-std 14.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
 ]
 
 [[package]]
 name = "bp-kusama"
 version = "0.5.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits#87a52dbe55163e5cdde3953fc08e18653ce78fcf"
+source = "git+https://github.com/paritytech/polkadot-sdk?branch=master#977254ccb1afca975780987ff9f19f356e99378f"
 dependencies = [
- "bp-header-chain 0.7.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "bp-polkadot-core 0.7.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "bp-runtime 0.7.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "frame-support 28.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "sp-api 26.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "sp-std 14.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
-]
-
-[[package]]
-name = "bp-messages"
-version = "0.7.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits#87a52dbe55163e5cdde3953fc08e18653ce78fcf"
-dependencies = [
- "bp-header-chain 0.7.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "bp-runtime 0.7.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "frame-support 28.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "parity-scale-codec",
- "scale-info",
- "serde",
- "sp-core 28.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "sp-std 14.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
+ "bp-header-chain",
+ "bp-polkadot-core",
+ "bp-runtime",
+ "frame-support",
+ "sp-api",
+ "sp-std 14.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
 ]
 
 [[package]]
@@ -1261,31 +1214,14 @@ name = "bp-messages"
 version = "0.7.0"
 source = "git+https://github.com/paritytech/polkadot-sdk?branch=master#977254ccb1afca975780987ff9f19f356e99378f"
 dependencies = [
- "bp-header-chain 0.7.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
- "bp-runtime 0.7.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
- "frame-support 28.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
+ "bp-header-chain",
+ "bp-runtime",
+ "frame-support",
  "parity-scale-codec",
  "scale-info",
  "serde",
- "sp-core 28.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
+ "sp-core",
  "sp-std 14.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
-]
-
-[[package]]
-name = "bp-parachains"
-version = "0.7.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits#87a52dbe55163e5cdde3953fc08e18653ce78fcf"
-dependencies = [
- "bp-header-chain 0.7.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "bp-polkadot-core 0.7.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "bp-runtime 0.7.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "frame-support 28.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "impl-trait-for-tuples",
- "parity-scale-codec",
- "scale-info",
- "sp-core 28.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "sp-runtime 31.0.1 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "sp-std 14.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
 ]
 
 [[package]]
@@ -1293,29 +1229,16 @@ name = "bp-parachains"
 version = "0.7.0"
 source = "git+https://github.com/paritytech/polkadot-sdk?branch=master#977254ccb1afca975780987ff9f19f356e99378f"
 dependencies = [
- "bp-header-chain 0.7.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
- "bp-polkadot-core 0.7.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
- "bp-runtime 0.7.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
- "frame-support 28.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
+ "bp-header-chain",
+ "bp-polkadot-core",
+ "bp-runtime",
+ "frame-support",
  "impl-trait-for-tuples",
  "parity-scale-codec",
  "scale-info",
- "sp-core 28.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
- "sp-runtime 31.0.1 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
+ "sp-core",
+ "sp-runtime",
  "sp-std 14.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
-]
-
-[[package]]
-name = "bp-polkadot"
-version = "0.5.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits#87a52dbe55163e5cdde3953fc08e18653ce78fcf"
-dependencies = [
- "bp-header-chain 0.7.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "bp-polkadot-core 0.7.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "bp-runtime 0.7.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "frame-support 28.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "sp-api 26.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "sp-std 14.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
 ]
 
 [[package]]
@@ -1323,48 +1246,30 @@ name = "bp-polkadot"
 version = "0.5.0"
 source = "git+https://github.com/paritytech/polkadot-sdk?branch=master#977254ccb1afca975780987ff9f19f356e99378f"
 dependencies = [
- "bp-header-chain 0.7.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
- "bp-polkadot-core 0.7.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
- "bp-runtime 0.7.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
- "frame-support 28.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
- "sp-api 26.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
+ "bp-header-chain",
+ "bp-polkadot-core",
+ "bp-runtime",
+ "frame-support",
+ "sp-api",
  "sp-std 14.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
 ]
 
 [[package]]
 name = "bp-polkadot-bulletin"
 version = "0.4.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits#87a52dbe55163e5cdde3953fc08e18653ce78fcf"
+source = "git+https://github.com/paritytech/polkadot-sdk?branch=master#977254ccb1afca975780987ff9f19f356e99378f"
 dependencies = [
- "bp-header-chain 0.7.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "bp-messages 0.7.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "bp-polkadot-core 0.7.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "bp-runtime 0.7.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "frame-support 28.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "frame-system 28.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
+ "bp-header-chain",
+ "bp-messages",
+ "bp-polkadot-core",
+ "bp-runtime",
+ "frame-support",
+ "frame-system",
  "parity-scale-codec",
  "scale-info",
- "sp-api 26.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "sp-runtime 31.0.1 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "sp-std 14.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
-]
-
-[[package]]
-name = "bp-polkadot-core"
-version = "0.7.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits#87a52dbe55163e5cdde3953fc08e18653ce78fcf"
-dependencies = [
- "bp-messages 0.7.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "bp-runtime 0.7.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "frame-support 28.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "frame-system 28.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "parity-scale-codec",
- "parity-util-mem",
- "scale-info",
- "serde",
- "sp-core 28.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "sp-runtime 31.0.1 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "sp-std 14.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
+ "sp-api",
+ "sp-runtime",
+ "sp-std 14.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
 ]
 
 [[package]]
@@ -1372,81 +1277,44 @@ name = "bp-polkadot-core"
 version = "0.7.0"
 source = "git+https://github.com/paritytech/polkadot-sdk?branch=master#977254ccb1afca975780987ff9f19f356e99378f"
 dependencies = [
- "bp-messages 0.7.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
- "bp-runtime 0.7.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
- "frame-support 28.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
- "frame-system 28.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
+ "bp-messages",
+ "bp-runtime",
+ "frame-support",
+ "frame-system",
  "parity-scale-codec",
  "parity-util-mem",
  "scale-info",
  "serde",
- "sp-core 28.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
- "sp-runtime 31.0.1 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
+ "sp-core",
+ "sp-runtime",
  "sp-std 14.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
 ]
 
 [[package]]
 name = "bp-relayers"
 version = "0.7.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits#87a52dbe55163e5cdde3953fc08e18653ce78fcf"
-dependencies = [
- "bp-messages 0.7.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "bp-runtime 0.7.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "frame-support 28.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "parity-scale-codec",
- "scale-info",
- "sp-runtime 31.0.1 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "sp-std 14.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
-]
-
-[[package]]
-name = "bp-relayers"
-version = "0.7.0"
 source = "git+https://github.com/paritytech/polkadot-sdk?branch=master#977254ccb1afca975780987ff9f19f356e99378f"
 dependencies = [
- "bp-messages 0.7.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
- "bp-runtime 0.7.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
- "frame-support 28.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
+ "bp-messages",
+ "bp-runtime",
+ "frame-support",
  "parity-scale-codec",
  "scale-info",
- "sp-runtime 31.0.1 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
+ "sp-runtime",
  "sp-std 14.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
 ]
 
 [[package]]
 name = "bp-rococo"
 version = "0.6.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits#87a52dbe55163e5cdde3953fc08e18653ce78fcf"
+source = "git+https://github.com/paritytech/polkadot-sdk?branch=master#977254ccb1afca975780987ff9f19f356e99378f"
 dependencies = [
- "bp-header-chain 0.7.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "bp-polkadot-core 0.7.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "bp-runtime 0.7.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "frame-support 28.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "sp-api 26.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "sp-std 14.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
-]
-
-[[package]]
-name = "bp-runtime"
-version = "0.7.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits#87a52dbe55163e5cdde3953fc08e18653ce78fcf"
-dependencies = [
- "frame-support 28.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "frame-system 28.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "hash-db",
- "impl-trait-for-tuples",
- "log",
- "num-traits",
- "parity-scale-codec",
- "scale-info",
- "serde",
- "sp-core 28.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "sp-io 30.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "sp-runtime 31.0.1 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "sp-state-machine 0.35.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "sp-std 14.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "sp-trie 29.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "trie-db",
+ "bp-header-chain",
+ "bp-polkadot-core",
+ "bp-runtime",
+ "frame-support",
+ "sp-api",
+ "sp-std 14.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
 ]
 
 [[package]]
@@ -1454,8 +1322,8 @@ name = "bp-runtime"
 version = "0.7.0"
 source = "git+https://github.com/paritytech/polkadot-sdk?branch=master#977254ccb1afca975780987ff9f19f356e99378f"
 dependencies = [
- "frame-support 28.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
- "frame-system 28.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
+ "frame-support",
+ "frame-system",
  "hash-db",
  "impl-trait-for-tuples",
  "log",
@@ -1463,33 +1331,13 @@ dependencies = [
  "parity-scale-codec",
  "scale-info",
  "serde",
- "sp-core 28.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
- "sp-io 30.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
- "sp-runtime 31.0.1 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
- "sp-state-machine 0.35.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
+ "sp-core",
+ "sp-io",
+ "sp-runtime",
+ "sp-state-machine",
  "sp-std 14.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
- "sp-trie 29.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
+ "sp-trie",
  "trie-db",
-]
-
-[[package]]
-name = "bp-test-utils"
-version = "0.7.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits#87a52dbe55163e5cdde3953fc08e18653ce78fcf"
-dependencies = [
- "bp-header-chain 0.7.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "bp-parachains 0.7.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "bp-polkadot-core 0.7.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "bp-runtime 0.7.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "ed25519-dalek 2.1.1",
- "finality-grandpa",
- "parity-scale-codec",
- "sp-application-crypto 30.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "sp-consensus-grandpa 13.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "sp-core 28.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "sp-runtime 31.0.1 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "sp-std 14.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "sp-trie 29.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
 ]
 
 [[package]]
@@ -1497,40 +1345,32 @@ name = "bp-test-utils"
 version = "0.7.0"
 source = "git+https://github.com/paritytech/polkadot-sdk?branch=master#977254ccb1afca975780987ff9f19f356e99378f"
 dependencies = [
- "bp-header-chain 0.7.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
- "bp-parachains 0.7.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
- "bp-polkadot-core 0.7.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
- "bp-runtime 0.7.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
+ "bp-header-chain",
+ "bp-parachains",
+ "bp-polkadot-core",
+ "bp-runtime",
  "ed25519-dalek 2.1.1",
  "finality-grandpa",
  "parity-scale-codec",
- "sp-application-crypto 30.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
- "sp-consensus-grandpa 13.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
- "sp-core 28.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
- "sp-runtime 31.0.1 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
+ "sp-application-crypto",
+ "sp-consensus-grandpa",
+ "sp-core",
+ "sp-runtime",
  "sp-std 14.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
- "sp-trie 29.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
+ "sp-trie",
 ]
 
 [[package]]
 name = "bp-westend"
 version = "0.3.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits#87a52dbe55163e5cdde3953fc08e18653ce78fcf"
+source = "git+https://github.com/paritytech/polkadot-sdk?branch=master#977254ccb1afca975780987ff9f19f356e99378f"
 dependencies = [
- "bp-header-chain 0.7.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "bp-polkadot-core 0.7.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "bp-runtime 0.7.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "frame-support 28.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "sp-api 26.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "sp-std 14.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
-]
-
-[[package]]
-name = "bp-xcm-bridge-hub"
-version = "0.2.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits#87a52dbe55163e5cdde3953fc08e18653ce78fcf"
-dependencies = [
- "sp-std 14.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
+ "bp-header-chain",
+ "bp-polkadot-core",
+ "bp-runtime",
+ "frame-support",
+ "sp-api",
+ "sp-std 14.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
 ]
 
 [[package]]
@@ -1544,59 +1384,12 @@ dependencies = [
 [[package]]
 name = "bp-xcm-bridge-hub-router"
 version = "0.6.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits#87a52dbe55163e5cdde3953fc08e18653ce78fcf"
-dependencies = [
- "parity-scale-codec",
- "scale-info",
- "sp-core 28.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "sp-runtime 31.0.1 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
-]
-
-[[package]]
-name = "bp-xcm-bridge-hub-router"
-version = "0.6.0"
 source = "git+https://github.com/paritytech/polkadot-sdk?branch=master#977254ccb1afca975780987ff9f19f356e99378f"
 dependencies = [
  "parity-scale-codec",
  "scale-info",
- "sp-core 28.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
- "sp-runtime 31.0.1 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
-]
-
-[[package]]
-name = "bridge-runtime-common"
-version = "0.7.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits#87a52dbe55163e5cdde3953fc08e18653ce78fcf"
-dependencies = [
- "bp-header-chain 0.7.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "bp-messages 0.7.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "bp-parachains 0.7.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "bp-polkadot-core 0.7.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "bp-relayers 0.7.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "bp-runtime 0.7.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "bp-xcm-bridge-hub 0.2.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "bp-xcm-bridge-hub-router 0.6.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "frame-support 28.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "frame-system 28.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "hash-db",
- "log",
- "pallet-bridge-grandpa 0.7.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "pallet-bridge-messages 0.7.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "pallet-bridge-parachains 0.7.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "pallet-bridge-relayers 0.7.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "pallet-transaction-payment 28.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "pallet-utility 28.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "parity-scale-codec",
- "scale-info",
- "sp-api 26.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "sp-core 28.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "sp-io 30.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "sp-runtime 31.0.1 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "sp-std 14.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "sp-trie 29.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "staging-xcm 7.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "staging-xcm-builder 7.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "tuplex",
+ "sp-core",
+ "sp-runtime",
 ]
 
 [[package]]
@@ -1604,34 +1397,34 @@ name = "bridge-runtime-common"
 version = "0.7.0"
 source = "git+https://github.com/paritytech/polkadot-sdk?branch=master#977254ccb1afca975780987ff9f19f356e99378f"
 dependencies = [
- "bp-header-chain 0.7.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
- "bp-messages 0.7.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
- "bp-parachains 0.7.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
- "bp-polkadot-core 0.7.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
- "bp-relayers 0.7.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
- "bp-runtime 0.7.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
- "bp-xcm-bridge-hub 0.2.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
- "bp-xcm-bridge-hub-router 0.6.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
- "frame-support 28.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
- "frame-system 28.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
+ "bp-header-chain",
+ "bp-messages",
+ "bp-parachains",
+ "bp-polkadot-core",
+ "bp-relayers",
+ "bp-runtime",
+ "bp-xcm-bridge-hub",
+ "bp-xcm-bridge-hub-router",
+ "frame-support",
+ "frame-system",
  "hash-db",
  "log",
- "pallet-bridge-grandpa 0.7.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
- "pallet-bridge-messages 0.7.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
- "pallet-bridge-parachains 0.7.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
- "pallet-bridge-relayers 0.7.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
- "pallet-transaction-payment 28.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
- "pallet-utility 28.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
+ "pallet-bridge-grandpa",
+ "pallet-bridge-messages",
+ "pallet-bridge-parachains",
+ "pallet-bridge-relayers",
+ "pallet-transaction-payment",
+ "pallet-utility",
  "parity-scale-codec",
  "scale-info",
- "sp-api 26.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
- "sp-core 28.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
- "sp-io 30.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
- "sp-runtime 31.0.1 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
+ "sp-api",
+ "sp-core",
+ "sp-io",
+ "sp-runtime",
  "sp-std 14.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
- "sp-trie 29.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
- "staging-xcm 7.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
- "staging-xcm-builder 7.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
+ "sp-trie",
+ "staging-xcm",
+ "staging-xcm-builder",
  "tuplex",
 ]
 
@@ -2798,17 +2591,17 @@ checksum = "5443807d6dff69373d433ab9ef5378ad8df50ca6298caf15de6e52e24aaf54d5"
 [[package]]
 name = "equivocation-detector"
 version = "0.1.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits#87a52dbe55163e5cdde3953fc08e18653ce78fcf"
+source = "git+https://github.com/paritytech/polkadot-sdk?branch=master#977254ccb1afca975780987ff9f19f356e99378f"
 dependencies = [
  "async-std",
  "async-trait",
- "bp-header-chain 0.7.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "finality-relay 0.1.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "frame-support 28.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
+ "bp-header-chain",
+ "finality-relay",
+ "frame-support",
  "futures",
  "log",
  "num-traits",
- "relay-utils 0.1.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
+ "relay-utils",
 ]
 
 [[package]]
@@ -2989,31 +2782,16 @@ dependencies = [
 [[package]]
 name = "finality-relay"
 version = "0.1.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits#87a52dbe55163e5cdde3953fc08e18653ce78fcf"
-dependencies = [
- "async-std",
- "async-trait",
- "backoff",
- "bp-header-chain 0.7.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "futures",
- "log",
- "num-traits",
- "relay-utils 0.1.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
-]
-
-[[package]]
-name = "finality-relay"
-version = "0.1.0"
 source = "git+https://github.com/paritytech/polkadot-sdk?branch=master#977254ccb1afca975780987ff9f19f356e99378f"
 dependencies = [
  "async-std",
  "async-trait",
  "backoff",
- "bp-header-chain 0.7.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
+ "bp-header-chain",
  "futures",
  "log",
  "num-traits",
- "relay-utils 0.1.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
+ "relay-utils",
 ]
 
 [[package]]
@@ -3103,47 +2881,22 @@ checksum = "6c2141d6d6c8512188a7891b4b01590a45f6dac67afb4f255c4124dbb86d4eaa"
 [[package]]
 name = "frame-benchmarking"
 version = "28.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits#87a52dbe55163e5cdde3953fc08e18653ce78fcf"
-dependencies = [
- "frame-support 28.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "frame-support-procedural 23.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "frame-system 28.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "linregress",
- "log",
- "parity-scale-codec",
- "paste",
- "scale-info",
- "serde",
- "sp-api 26.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "sp-application-crypto 30.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "sp-core 28.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "sp-io 30.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "sp-runtime 31.0.1 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "sp-runtime-interface 24.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "sp-std 14.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "sp-storage 19.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "static_assertions",
-]
-
-[[package]]
-name = "frame-benchmarking"
-version = "28.0.0"
 source = "git+https://github.com/paritytech/polkadot-sdk?branch=master#977254ccb1afca975780987ff9f19f356e99378f"
 dependencies = [
- "frame-support 28.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
- "frame-support-procedural 23.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
- "frame-system 28.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
+ "frame-support",
+ "frame-support-procedural",
+ "frame-system",
  "linregress",
  "log",
  "parity-scale-codec",
  "paste",
  "scale-info",
  "serde",
- "sp-api 26.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
- "sp-application-crypto 30.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
- "sp-core 28.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
- "sp-io 30.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
- "sp-runtime 31.0.1 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
+ "sp-api",
+ "sp-application-crypto",
+ "sp-core",
+ "sp-io",
+ "sp-runtime",
  "sp-runtime-interface 24.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
  "sp-std 14.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
  "sp-storage 19.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
@@ -3176,47 +2929,6 @@ dependencies = [
 [[package]]
 name = "frame-support"
 version = "28.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits#87a52dbe55163e5cdde3953fc08e18653ce78fcf"
-dependencies = [
- "aquamarine",
- "array-bytes",
- "bitflags 1.3.2",
- "docify",
- "environmental",
- "frame-metadata 16.0.0",
- "frame-support-procedural 23.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "impl-trait-for-tuples",
- "k256",
- "log",
- "macro_magic",
- "parity-scale-codec",
- "paste",
- "scale-info",
- "serde",
- "serde_json",
- "smallvec",
- "sp-api 26.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "sp-arithmetic 23.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "sp-core 28.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "sp-crypto-hashing-proc-macro 0.1.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "sp-debug-derive 14.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "sp-genesis-builder 0.8.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "sp-inherents 26.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "sp-io 30.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "sp-metadata-ir 0.6.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "sp-runtime 31.0.1 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "sp-staking 26.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "sp-state-machine 0.35.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "sp-std 14.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "sp-tracing 16.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "sp-weights 27.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "static_assertions",
- "tt-call",
-]
-
-[[package]]
-name = "frame-support"
-version = "28.0.0"
 source = "git+https://github.com/paritytech/polkadot-sdk?branch=master#977254ccb1afca975780987ff9f19f356e99378f"
 dependencies = [
  "aquamarine",
@@ -3225,7 +2937,7 @@ dependencies = [
  "docify",
  "environmental",
  "frame-metadata 16.0.0",
- "frame-support-procedural 23.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
+ "frame-support-procedural",
  "impl-trait-for-tuples",
  "k256",
  "log",
@@ -3236,42 +2948,23 @@ dependencies = [
  "serde",
  "serde_json",
  "smallvec",
- "sp-api 26.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
- "sp-arithmetic 23.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
- "sp-core 28.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
- "sp-crypto-hashing-proc-macro 0.1.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
+ "sp-api",
+ "sp-arithmetic",
+ "sp-core",
+ "sp-crypto-hashing-proc-macro",
  "sp-debug-derive 14.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
- "sp-genesis-builder 0.8.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
- "sp-inherents 26.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
- "sp-io 30.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
- "sp-metadata-ir 0.6.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
- "sp-runtime 31.0.1 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
- "sp-staking 26.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
- "sp-state-machine 0.35.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
+ "sp-genesis-builder",
+ "sp-inherents",
+ "sp-io",
+ "sp-metadata-ir",
+ "sp-runtime",
+ "sp-staking",
+ "sp-state-machine",
  "sp-std 14.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
  "sp-tracing 16.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
- "sp-weights 27.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
+ "sp-weights",
  "static_assertions",
  "tt-call",
-]
-
-[[package]]
-name = "frame-support-procedural"
-version = "23.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits#87a52dbe55163e5cdde3953fc08e18653ce78fcf"
-dependencies = [
- "Inflector",
- "cfg-expr",
- "derive-syn-parse 0.2.0",
- "expander",
- "frame-support-procedural-tools 10.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "itertools 0.11.0",
- "macro_magic",
- "proc-macro-warning",
- "proc-macro2 1.0.85",
- "quote 1.0.36",
- "sp-crypto-hashing 0.1.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "syn 2.0.60",
 ]
 
 [[package]]
@@ -3283,7 +2976,7 @@ dependencies = [
  "cfg-expr",
  "derive-syn-parse 0.2.0",
  "expander",
- "frame-support-procedural-tools 10.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
+ "frame-support-procedural-tools",
  "itertools 0.11.0",
  "macro_magic",
  "proc-macro-warning",
@@ -3296,32 +2989,10 @@ dependencies = [
 [[package]]
 name = "frame-support-procedural-tools"
 version = "10.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits#87a52dbe55163e5cdde3953fc08e18653ce78fcf"
-dependencies = [
- "frame-support-procedural-tools-derive 11.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "proc-macro-crate 3.1.0",
- "proc-macro2 1.0.85",
- "quote 1.0.36",
- "syn 2.0.60",
-]
-
-[[package]]
-name = "frame-support-procedural-tools"
-version = "10.0.0"
 source = "git+https://github.com/paritytech/polkadot-sdk?branch=master#977254ccb1afca975780987ff9f19f356e99378f"
 dependencies = [
- "frame-support-procedural-tools-derive 11.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
+ "frame-support-procedural-tools-derive",
  "proc-macro-crate 3.1.0",
- "proc-macro2 1.0.85",
- "quote 1.0.36",
- "syn 2.0.60",
-]
-
-[[package]]
-name = "frame-support-procedural-tools-derive"
-version = "11.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits#87a52dbe55163e5cdde3953fc08e18653ce78fcf"
-dependencies = [
  "proc-macro2 1.0.85",
  "quote 1.0.36",
  "syn 2.0.60",
@@ -3340,41 +3011,21 @@ dependencies = [
 [[package]]
 name = "frame-system"
 version = "28.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits#87a52dbe55163e5cdde3953fc08e18653ce78fcf"
-dependencies = [
- "cfg-if",
- "docify",
- "frame-support 28.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "log",
- "parity-scale-codec",
- "scale-info",
- "serde",
- "sp-core 28.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "sp-io 30.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "sp-runtime 31.0.1 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "sp-std 14.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "sp-version 29.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "sp-weights 27.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
-]
-
-[[package]]
-name = "frame-system"
-version = "28.0.0"
 source = "git+https://github.com/paritytech/polkadot-sdk?branch=master#977254ccb1afca975780987ff9f19f356e99378f"
 dependencies = [
  "cfg-if",
  "docify",
- "frame-support 28.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
+ "frame-support",
  "log",
  "parity-scale-codec",
  "scale-info",
  "serde",
- "sp-core 28.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
- "sp-io 30.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
- "sp-runtime 31.0.1 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
+ "sp-core",
+ "sp-io",
+ "sp-runtime",
  "sp-std 14.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
- "sp-version 29.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
- "sp-weights 27.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
+ "sp-version",
+ "sp-weights",
 ]
 
 [[package]]
@@ -5205,20 +4856,20 @@ dependencies = [
 [[package]]
 name = "messages-relay"
 version = "0.1.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits#87a52dbe55163e5cdde3953fc08e18653ce78fcf"
+source = "git+https://github.com/paritytech/polkadot-sdk?branch=master#977254ccb1afca975780987ff9f19f356e99378f"
 dependencies = [
  "async-std",
  "async-trait",
- "bp-messages 0.7.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
+ "bp-messages",
  "env_logger 0.11.3",
- "finality-relay 0.1.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
+ "finality-relay",
  "futures",
  "hex",
  "log",
  "num-traits",
  "parking_lot 0.12.1",
- "relay-utils 0.1.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "sp-arithmetic 23.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
+ "relay-utils",
+ "sp-arithmetic",
 ]
 
 [[package]]
@@ -5796,31 +5447,15 @@ checksum = "b15813163c1d831bf4a13c3610c05c0d03b39feb07f7e09fa234dac9b15aaf39"
 [[package]]
 name = "pallet-authorship"
 version = "28.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits#87a52dbe55163e5cdde3953fc08e18653ce78fcf"
+source = "git+https://github.com/paritytech/polkadot-sdk?branch=master#977254ccb1afca975780987ff9f19f356e99378f"
 dependencies = [
- "frame-support 28.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "frame-system 28.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
+ "frame-support",
+ "frame-system",
  "impl-trait-for-tuples",
  "parity-scale-codec",
  "scale-info",
- "sp-runtime 31.0.1 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "sp-std 14.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
-]
-
-[[package]]
-name = "pallet-balances"
-version = "28.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits#87a52dbe55163e5cdde3953fc08e18653ce78fcf"
-dependencies = [
- "docify",
- "frame-benchmarking 28.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "frame-support 28.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "frame-system 28.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "log",
- "parity-scale-codec",
- "scale-info",
- "sp-runtime 31.0.1 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "sp-std 14.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
+ "sp-runtime",
+ "sp-std 14.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
 ]
 
 [[package]]
@@ -5829,35 +5464,14 @@ version = "28.0.0"
 source = "git+https://github.com/paritytech/polkadot-sdk?branch=master#977254ccb1afca975780987ff9f19f356e99378f"
 dependencies = [
  "docify",
- "frame-benchmarking 28.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
- "frame-support 28.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
- "frame-system 28.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
+ "frame-benchmarking",
+ "frame-support",
+ "frame-system",
  "log",
  "parity-scale-codec",
  "scale-info",
- "sp-runtime 31.0.1 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
+ "sp-runtime",
  "sp-std 14.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
-]
-
-[[package]]
-name = "pallet-bridge-grandpa"
-version = "0.7.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits#87a52dbe55163e5cdde3953fc08e18653ce78fcf"
-dependencies = [
- "bp-header-chain 0.7.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "bp-runtime 0.7.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "bp-test-utils 0.7.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "finality-grandpa",
- "frame-benchmarking 28.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "frame-support 28.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "frame-system 28.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "log",
- "parity-scale-codec",
- "scale-info",
- "sp-consensus-grandpa 13.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "sp-runtime 31.0.1 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "sp-std 14.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "sp-trie 29.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
 ]
 
 [[package]]
@@ -5865,38 +5479,20 @@ name = "pallet-bridge-grandpa"
 version = "0.7.0"
 source = "git+https://github.com/paritytech/polkadot-sdk?branch=master#977254ccb1afca975780987ff9f19f356e99378f"
 dependencies = [
- "bp-header-chain 0.7.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
- "bp-runtime 0.7.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
- "bp-test-utils 0.7.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
+ "bp-header-chain",
+ "bp-runtime",
+ "bp-test-utils",
  "finality-grandpa",
- "frame-benchmarking 28.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
- "frame-support 28.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
- "frame-system 28.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
+ "frame-benchmarking",
+ "frame-support",
+ "frame-system",
  "log",
  "parity-scale-codec",
  "scale-info",
- "sp-consensus-grandpa 13.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
- "sp-runtime 31.0.1 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
+ "sp-consensus-grandpa",
+ "sp-runtime",
  "sp-std 14.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
- "sp-trie 29.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
-]
-
-[[package]]
-name = "pallet-bridge-messages"
-version = "0.7.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits#87a52dbe55163e5cdde3953fc08e18653ce78fcf"
-dependencies = [
- "bp-messages 0.7.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "bp-runtime 0.7.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "frame-benchmarking 28.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "frame-support 28.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "frame-system 28.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "log",
- "num-traits",
- "parity-scale-codec",
- "scale-info",
- "sp-runtime 31.0.1 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "sp-std 14.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
+ "sp-trie",
 ]
 
 [[package]]
@@ -5904,38 +5500,17 @@ name = "pallet-bridge-messages"
 version = "0.7.0"
 source = "git+https://github.com/paritytech/polkadot-sdk?branch=master#977254ccb1afca975780987ff9f19f356e99378f"
 dependencies = [
- "bp-messages 0.7.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
- "bp-runtime 0.7.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
- "frame-benchmarking 28.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
- "frame-support 28.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
- "frame-system 28.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
+ "bp-messages",
+ "bp-runtime",
+ "frame-benchmarking",
+ "frame-support",
+ "frame-system",
  "log",
  "num-traits",
  "parity-scale-codec",
  "scale-info",
- "sp-runtime 31.0.1 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
+ "sp-runtime",
  "sp-std 14.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
-]
-
-[[package]]
-name = "pallet-bridge-parachains"
-version = "0.7.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits#87a52dbe55163e5cdde3953fc08e18653ce78fcf"
-dependencies = [
- "bp-header-chain 0.7.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "bp-parachains 0.7.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "bp-polkadot-core 0.7.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "bp-runtime 0.7.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "frame-benchmarking 28.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "frame-support 28.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "frame-system 28.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "log",
- "pallet-bridge-grandpa 0.7.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "parity-scale-codec",
- "scale-info",
- "sp-runtime 31.0.1 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "sp-std 14.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "sp-trie 29.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
 ]
 
 [[package]]
@@ -5943,40 +5518,20 @@ name = "pallet-bridge-parachains"
 version = "0.7.0"
 source = "git+https://github.com/paritytech/polkadot-sdk?branch=master#977254ccb1afca975780987ff9f19f356e99378f"
 dependencies = [
- "bp-header-chain 0.7.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
- "bp-parachains 0.7.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
- "bp-polkadot-core 0.7.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
- "bp-runtime 0.7.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
- "frame-benchmarking 28.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
- "frame-support 28.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
- "frame-system 28.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
+ "bp-header-chain",
+ "bp-parachains",
+ "bp-polkadot-core",
+ "bp-runtime",
+ "frame-benchmarking",
+ "frame-support",
+ "frame-system",
  "log",
- "pallet-bridge-grandpa 0.7.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
+ "pallet-bridge-grandpa",
  "parity-scale-codec",
  "scale-info",
- "sp-runtime 31.0.1 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
+ "sp-runtime",
  "sp-std 14.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
- "sp-trie 29.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
-]
-
-[[package]]
-name = "pallet-bridge-relayers"
-version = "0.7.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits#87a52dbe55163e5cdde3953fc08e18653ce78fcf"
-dependencies = [
- "bp-messages 0.7.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "bp-relayers 0.7.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "bp-runtime 0.7.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "frame-benchmarking 28.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "frame-support 28.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "frame-system 28.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "log",
- "pallet-bridge-messages 0.7.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "parity-scale-codec",
- "scale-info",
- "sp-arithmetic 23.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "sp-runtime 31.0.1 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "sp-std 14.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
+ "sp-trie",
 ]
 
 [[package]]
@@ -5984,100 +5539,84 @@ name = "pallet-bridge-relayers"
 version = "0.7.0"
 source = "git+https://github.com/paritytech/polkadot-sdk?branch=master#977254ccb1afca975780987ff9f19f356e99378f"
 dependencies = [
- "bp-messages 0.7.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
- "bp-relayers 0.7.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
- "bp-runtime 0.7.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
- "frame-benchmarking 28.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
- "frame-support 28.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
- "frame-system 28.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
+ "bp-messages",
+ "bp-relayers",
+ "bp-runtime",
+ "frame-benchmarking",
+ "frame-support",
+ "frame-system",
  "log",
- "pallet-bridge-messages 0.7.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
+ "pallet-bridge-messages",
  "parity-scale-codec",
  "scale-info",
- "sp-arithmetic 23.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
- "sp-runtime 31.0.1 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
+ "sp-arithmetic",
+ "sp-runtime",
  "sp-std 14.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
 ]
 
 [[package]]
 name = "pallet-grandpa"
 version = "28.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits#87a52dbe55163e5cdde3953fc08e18653ce78fcf"
+source = "git+https://github.com/paritytech/polkadot-sdk?branch=master#977254ccb1afca975780987ff9f19f356e99378f"
 dependencies = [
- "frame-benchmarking 28.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "frame-support 28.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "frame-system 28.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
+ "frame-benchmarking",
+ "frame-support",
+ "frame-system",
  "log",
  "pallet-authorship",
  "pallet-session",
  "parity-scale-codec",
  "scale-info",
- "sp-application-crypto 30.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "sp-consensus-grandpa 13.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "sp-core 28.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "sp-io 30.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "sp-runtime 31.0.1 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
+ "sp-application-crypto",
+ "sp-consensus-grandpa",
+ "sp-core",
+ "sp-io",
+ "sp-runtime",
  "sp-session",
- "sp-staking 26.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "sp-std 14.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
+ "sp-staking",
+ "sp-std 14.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
 ]
 
 [[package]]
 name = "pallet-session"
 version = "28.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits#87a52dbe55163e5cdde3953fc08e18653ce78fcf"
+source = "git+https://github.com/paritytech/polkadot-sdk?branch=master#977254ccb1afca975780987ff9f19f356e99378f"
 dependencies = [
- "frame-support 28.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "frame-system 28.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
+ "frame-support",
+ "frame-system",
  "impl-trait-for-tuples",
  "log",
  "pallet-timestamp",
  "parity-scale-codec",
  "scale-info",
- "sp-core 28.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "sp-io 30.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "sp-runtime 31.0.1 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
+ "sp-core",
+ "sp-io",
+ "sp-runtime",
  "sp-session",
- "sp-staking 26.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "sp-state-machine 0.35.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "sp-std 14.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "sp-trie 29.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
+ "sp-staking",
+ "sp-state-machine",
+ "sp-std 14.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
+ "sp-trie",
 ]
 
 [[package]]
 name = "pallet-timestamp"
 version = "27.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits#87a52dbe55163e5cdde3953fc08e18653ce78fcf"
+source = "git+https://github.com/paritytech/polkadot-sdk?branch=master#977254ccb1afca975780987ff9f19f356e99378f"
 dependencies = [
  "docify",
- "frame-benchmarking 28.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "frame-support 28.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "frame-system 28.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
+ "frame-benchmarking",
+ "frame-support",
+ "frame-system",
  "log",
  "parity-scale-codec",
  "scale-info",
- "sp-inherents 26.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "sp-io 30.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "sp-runtime 31.0.1 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "sp-std 14.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "sp-storage 19.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "sp-timestamp 26.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
-]
-
-[[package]]
-name = "pallet-transaction-payment"
-version = "28.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits#87a52dbe55163e5cdde3953fc08e18653ce78fcf"
-dependencies = [
- "frame-support 28.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "frame-system 28.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "parity-scale-codec",
- "scale-info",
- "serde",
- "sp-core 28.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "sp-io 30.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "sp-runtime 31.0.1 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "sp-std 14.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
+ "sp-inherents",
+ "sp-io",
+ "sp-runtime",
+ "sp-std 14.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
+ "sp-storage 19.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
+ "sp-timestamp",
 ]
 
 [[package]]
@@ -6085,55 +5624,27 @@ name = "pallet-transaction-payment"
 version = "28.0.0"
 source = "git+https://github.com/paritytech/polkadot-sdk?branch=master#977254ccb1afca975780987ff9f19f356e99378f"
 dependencies = [
- "frame-support 28.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
- "frame-system 28.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
+ "frame-support",
+ "frame-system",
  "parity-scale-codec",
  "scale-info",
  "serde",
- "sp-core 28.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
- "sp-io 30.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
- "sp-runtime 31.0.1 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
+ "sp-core",
+ "sp-io",
+ "sp-runtime",
  "sp-std 14.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
 ]
 
 [[package]]
 name = "pallet-transaction-payment-rpc-runtime-api"
 version = "28.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits#87a52dbe55163e5cdde3953fc08e18653ce78fcf"
-dependencies = [
- "pallet-transaction-payment 28.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "parity-scale-codec",
- "sp-api 26.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "sp-runtime 31.0.1 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "sp-weights 27.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
-]
-
-[[package]]
-name = "pallet-transaction-payment-rpc-runtime-api"
-version = "28.0.0"
 source = "git+https://github.com/paritytech/polkadot-sdk?branch=master#977254ccb1afca975780987ff9f19f356e99378f"
 dependencies = [
- "pallet-transaction-payment 28.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
+ "pallet-transaction-payment",
  "parity-scale-codec",
- "sp-api 26.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
- "sp-runtime 31.0.1 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
- "sp-weights 27.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
-]
-
-[[package]]
-name = "pallet-utility"
-version = "28.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits#87a52dbe55163e5cdde3953fc08e18653ce78fcf"
-dependencies = [
- "frame-benchmarking 28.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "frame-support 28.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "frame-system 28.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "parity-scale-codec",
- "scale-info",
- "sp-core 28.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "sp-io 30.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "sp-runtime 31.0.1 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "sp-std 14.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
+ "sp-api",
+ "sp-runtime",
+ "sp-weights",
 ]
 
 [[package]]
@@ -6141,29 +5652,29 @@ name = "pallet-utility"
 version = "28.0.0"
 source = "git+https://github.com/paritytech/polkadot-sdk?branch=master#977254ccb1afca975780987ff9f19f356e99378f"
 dependencies = [
- "frame-benchmarking 28.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
- "frame-support 28.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
- "frame-system 28.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
+ "frame-benchmarking",
+ "frame-support",
+ "frame-system",
  "parity-scale-codec",
  "scale-info",
- "sp-core 28.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
- "sp-io 30.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
- "sp-runtime 31.0.1 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
+ "sp-core",
+ "sp-io",
+ "sp-runtime",
  "sp-std 14.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
 ]
 
 [[package]]
 name = "parachains-relay"
 version = "0.1.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits#87a52dbe55163e5cdde3953fc08e18653ce78fcf"
+source = "git+https://github.com/paritytech/polkadot-sdk?branch=master#977254ccb1afca975780987ff9f19f356e99378f"
 dependencies = [
  "async-std",
  "async-trait",
- "bp-polkadot-core 0.7.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
+ "bp-polkadot-core",
  "futures",
  "log",
- "relay-substrate-client 0.1.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "relay-utils 0.1.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
+ "relay-substrate-client",
+ "relay-utils",
 ]
 
 [[package]]
@@ -6433,42 +5944,13 @@ checksum = "db23d408679286588f4d4644f965003d056e3dd5abcaaa938116871d7ce2fee7"
 [[package]]
 name = "polkadot-core-primitives"
 version = "7.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits#87a52dbe55163e5cdde3953fc08e18653ce78fcf"
-dependencies = [
- "parity-scale-codec",
- "scale-info",
- "sp-core 28.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "sp-runtime 31.0.1 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "sp-std 14.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
-]
-
-[[package]]
-name = "polkadot-core-primitives"
-version = "7.0.0"
 source = "git+https://github.com/paritytech/polkadot-sdk?branch=master#977254ccb1afca975780987ff9f19f356e99378f"
 dependencies = [
  "parity-scale-codec",
  "scale-info",
- "sp-core 28.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
- "sp-runtime 31.0.1 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
+ "sp-core",
+ "sp-runtime",
  "sp-std 14.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
-]
-
-[[package]]
-name = "polkadot-parachain-primitives"
-version = "6.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits#87a52dbe55163e5cdde3953fc08e18653ce78fcf"
-dependencies = [
- "bounded-collections",
- "derive_more",
- "parity-scale-codec",
- "polkadot-core-primitives 7.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "scale-info",
- "serde",
- "sp-core 28.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "sp-runtime 31.0.1 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "sp-std 14.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "sp-weights 27.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
 ]
 
 [[package]]
@@ -6479,40 +5961,13 @@ dependencies = [
  "bounded-collections",
  "derive_more",
  "parity-scale-codec",
- "polkadot-core-primitives 7.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
+ "polkadot-core-primitives",
  "scale-info",
  "serde",
- "sp-core 28.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
- "sp-runtime 31.0.1 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
+ "sp-core",
+ "sp-runtime",
  "sp-std 14.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
- "sp-weights 27.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
-]
-
-[[package]]
-name = "polkadot-primitives"
-version = "7.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits#87a52dbe55163e5cdde3953fc08e18653ce78fcf"
-dependencies = [
- "bitvec",
- "hex-literal",
- "log",
- "parity-scale-codec",
- "polkadot-core-primitives 7.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "polkadot-parachain-primitives 6.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "scale-info",
- "serde",
- "sp-api 26.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "sp-application-crypto 30.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "sp-arithmetic 23.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "sp-authority-discovery 26.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "sp-consensus-slots 0.32.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "sp-core 28.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "sp-inherents 26.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "sp-io 30.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "sp-keystore 0.34.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "sp-runtime 31.0.1 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "sp-staking 26.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "sp-std 14.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
+ "sp-weights",
 ]
 
 [[package]]
@@ -6524,21 +5979,21 @@ dependencies = [
  "hex-literal",
  "log",
  "parity-scale-codec",
- "polkadot-core-primitives 7.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
- "polkadot-parachain-primitives 6.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
+ "polkadot-core-primitives",
+ "polkadot-parachain-primitives",
  "scale-info",
  "serde",
- "sp-api 26.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
- "sp-application-crypto 30.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
- "sp-arithmetic 23.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
- "sp-authority-discovery 26.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
- "sp-consensus-slots 0.32.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
- "sp-core 28.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
- "sp-inherents 26.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
- "sp-io 30.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
- "sp-keystore 0.34.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
- "sp-runtime 31.0.1 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
- "sp-staking 26.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
+ "sp-api",
+ "sp-application-crypto",
+ "sp-arithmetic",
+ "sp-authority-discovery",
+ "sp-consensus-slots",
+ "sp-core",
+ "sp-inherents",
+ "sp-io",
+ "sp-keystore",
+ "sp-runtime",
+ "sp-staking",
  "sp-std 14.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
 ]
 
@@ -7373,19 +6828,19 @@ name = "relay-bridge-hub-kusama-client"
 version = "0.1.0"
 dependencies = [
  "bp-bridge-hub-kusama",
- "bp-header-chain 0.7.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
- "bp-messages 0.7.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
- "bp-parachains 0.7.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
- "bp-polkadot 0.5.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
- "bp-polkadot-core 0.7.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
- "bp-runtime 0.7.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
- "bridge-runtime-common 0.7.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
+ "bp-header-chain",
+ "bp-messages",
+ "bp-parachains",
+ "bp-polkadot",
+ "bp-polkadot-core",
+ "bp-runtime",
+ "bridge-runtime-common",
  "parity-scale-codec",
- "relay-substrate-client 0.1.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
+ "relay-substrate-client",
  "scale-info",
- "sp-core 28.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "sp-runtime 31.0.1 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "sp-weights 27.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
+ "sp-core",
+ "sp-runtime",
+ "sp-weights",
  "subxt",
 ]
 
@@ -7394,20 +6849,20 @@ name = "relay-bridge-hub-polkadot-client"
 version = "0.1.0"
 dependencies = [
  "bp-bridge-hub-polkadot",
- "bp-header-chain 0.7.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
+ "bp-header-chain",
  "bp-kusama",
- "bp-messages 0.7.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "bp-parachains 0.7.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "bp-polkadot 0.5.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "bp-polkadot-core 0.7.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "bp-runtime 0.7.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "bridge-runtime-common 0.7.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
+ "bp-messages",
+ "bp-parachains",
+ "bp-polkadot",
+ "bp-polkadot-core",
+ "bp-runtime",
+ "bridge-runtime-common",
  "parity-scale-codec",
- "relay-substrate-client 0.1.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
+ "relay-substrate-client",
  "scale-info",
- "sp-core 28.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "sp-runtime 31.0.1 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "sp-weights 27.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
+ "sp-core",
+ "sp-runtime",
+ "sp-weights",
  "subxt",
 ]
 
@@ -7416,18 +6871,18 @@ name = "relay-bridge-hub-rococo-client"
 version = "0.1.0"
 dependencies = [
  "bp-bridge-hub-rococo",
- "bp-header-chain 0.7.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "bp-messages 0.7.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "bp-parachains 0.7.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "bp-polkadot-core 0.7.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "bp-runtime 0.7.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "bridge-runtime-common 0.7.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
+ "bp-header-chain",
+ "bp-messages",
+ "bp-parachains",
+ "bp-polkadot-core",
+ "bp-runtime",
+ "bridge-runtime-common",
  "parity-scale-codec",
- "relay-substrate-client 0.1.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
+ "relay-substrate-client",
  "scale-info",
- "sp-core 28.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "sp-runtime 31.0.1 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "sp-weights 27.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
+ "sp-core",
+ "sp-runtime",
+ "sp-weights",
  "subxt",
 ]
 
@@ -7436,20 +6891,20 @@ name = "relay-bridge-hub-westend-client"
 version = "0.1.0"
 dependencies = [
  "bp-bridge-hub-westend",
- "bp-header-chain 0.7.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "bp-messages 0.7.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "bp-parachains 0.7.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "bp-polkadot-core 0.7.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
+ "bp-header-chain",
+ "bp-messages",
+ "bp-parachains",
+ "bp-polkadot-core",
  "bp-rococo",
- "bp-runtime 0.7.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "bridge-runtime-common 0.7.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
+ "bp-runtime",
+ "bridge-runtime-common",
  "parity-scale-codec",
- "relay-substrate-client 0.1.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
+ "relay-substrate-client",
  "scale-info",
- "sp-consensus-grandpa 13.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "sp-core 28.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "sp-runtime 31.0.1 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "sp-weights 27.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
+ "sp-consensus-grandpa",
+ "sp-core",
+ "sp-runtime",
+ "sp-weights",
  "subxt",
 ]
 
@@ -7458,17 +6913,17 @@ name = "relay-kusama-client"
 version = "0.1.0"
 dependencies = [
  "bp-kusama",
- "bp-polkadot-core 0.7.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "bp-runtime 0.7.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
+ "bp-polkadot-core",
+ "bp-runtime",
  "parity-scale-codec",
- "relay-substrate-client 0.1.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "relay-utils 0.1.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
+ "relay-substrate-client",
+ "relay-utils",
  "scale-info",
- "sp-consensus-grandpa 13.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "sp-core 28.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "sp-runtime 31.0.1 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
+ "sp-consensus-grandpa",
+ "sp-core",
+ "sp-runtime",
  "sp-session",
- "sp-weights 27.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
+ "sp-weights",
  "subxt",
 ]
 
@@ -7476,21 +6931,21 @@ dependencies = [
 name = "relay-polkadot-bulletin-client"
 version = "0.1.0"
 dependencies = [
- "bp-header-chain 0.7.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "bp-messages 0.7.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
+ "bp-header-chain",
+ "bp-messages",
  "bp-polkadot-bulletin",
- "bp-polkadot-core 0.7.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "bp-runtime 0.7.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "bridge-runtime-common 0.7.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
+ "bp-polkadot-core",
+ "bp-runtime",
+ "bridge-runtime-common",
  "parity-scale-codec",
- "relay-substrate-client 0.1.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "relay-utils 0.1.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
+ "relay-substrate-client",
+ "relay-utils",
  "scale-info",
- "sp-consensus-grandpa 13.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "sp-core 28.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "sp-runtime 31.0.1 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
+ "sp-consensus-grandpa",
+ "sp-core",
+ "sp-runtime",
  "sp-session",
- "sp-weights 27.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
+ "sp-weights",
  "subxt",
 ]
 
@@ -7498,18 +6953,18 @@ dependencies = [
 name = "relay-polkadot-client"
 version = "0.1.0"
 dependencies = [
- "bp-polkadot 0.5.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "bp-polkadot-core 0.7.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "bp-runtime 0.7.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
+ "bp-polkadot",
+ "bp-polkadot-core",
+ "bp-runtime",
  "parity-scale-codec",
- "relay-substrate-client 0.1.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "relay-utils 0.1.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
+ "relay-substrate-client",
+ "relay-utils",
  "scale-info",
- "sp-consensus-grandpa 13.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "sp-core 28.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "sp-runtime 31.0.1 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
+ "sp-consensus-grandpa",
+ "sp-core",
+ "sp-runtime",
  "sp-session",
- "sp-weights 27.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
+ "sp-weights",
  "subxt",
 ]
 
@@ -7517,130 +6972,60 @@ dependencies = [
 name = "relay-rococo-client"
 version = "0.1.0"
 dependencies = [
- "bp-polkadot-core 0.7.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
+ "bp-polkadot-core",
  "bp-rococo",
  "parity-scale-codec",
- "relay-substrate-client 0.1.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "relay-utils 0.1.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
+ "relay-substrate-client",
+ "relay-utils",
  "scale-info",
- "sp-consensus-grandpa 13.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "sp-core 28.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "sp-runtime 31.0.1 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
+ "sp-consensus-grandpa",
+ "sp-core",
+ "sp-runtime",
  "sp-session",
- "sp-weights 27.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
+ "sp-weights",
  "subxt",
 ]
 
 [[package]]
 name = "relay-substrate-client"
 version = "0.1.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits#87a52dbe55163e5cdde3953fc08e18653ce78fcf"
-dependencies = [
- "async-std",
- "async-trait",
- "bp-header-chain 0.7.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "bp-messages 0.7.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "bp-polkadot-core 0.7.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "bp-runtime 0.7.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "finality-relay 0.1.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "frame-support 28.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "frame-system 28.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "futures",
- "jsonrpsee",
- "log",
- "num-traits",
- "pallet-balances 28.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "pallet-bridge-messages 0.7.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "pallet-transaction-payment 28.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "pallet-transaction-payment-rpc-runtime-api 28.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "pallet-utility 28.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "parity-scale-codec",
- "quick_cache",
- "rand 0.8.5",
- "relay-utils 0.1.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "sc-chain-spec 28.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "sc-rpc-api 0.33.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "sc-transaction-pool-api 28.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "scale-info",
- "sp-consensus-grandpa 13.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "sp-core 28.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "sp-rpc 26.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "sp-runtime 31.0.1 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "sp-std 14.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "sp-trie 29.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "sp-version 29.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "staging-xcm 7.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "thiserror",
- "tokio",
-]
-
-[[package]]
-name = "relay-substrate-client"
-version = "0.1.0"
 source = "git+https://github.com/paritytech/polkadot-sdk?branch=master#977254ccb1afca975780987ff9f19f356e99378f"
 dependencies = [
  "async-std",
  "async-trait",
- "bp-header-chain 0.7.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
- "bp-messages 0.7.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
- "bp-polkadot-core 0.7.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
- "bp-runtime 0.7.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
- "finality-relay 0.1.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
- "frame-support 28.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
- "frame-system 28.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
+ "bp-header-chain",
+ "bp-messages",
+ "bp-polkadot-core",
+ "bp-runtime",
+ "finality-relay",
+ "frame-support",
+ "frame-system",
  "futures",
  "jsonrpsee",
  "log",
  "num-traits",
- "pallet-balances 28.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
- "pallet-bridge-messages 0.7.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
- "pallet-transaction-payment 28.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
- "pallet-transaction-payment-rpc-runtime-api 28.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
- "pallet-utility 28.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
+ "pallet-balances",
+ "pallet-bridge-messages",
+ "pallet-transaction-payment",
+ "pallet-transaction-payment-rpc-runtime-api",
+ "pallet-utility",
  "parity-scale-codec",
  "quick_cache",
  "rand 0.8.5",
- "relay-utils 0.1.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
- "sc-chain-spec 28.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
- "sc-rpc-api 0.33.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
- "sc-transaction-pool-api 28.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
+ "relay-utils",
+ "sc-chain-spec",
+ "sc-rpc-api",
+ "sc-transaction-pool-api",
  "scale-info",
- "sp-consensus-grandpa 13.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
- "sp-core 28.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
- "sp-rpc 26.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
- "sp-runtime 31.0.1 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
+ "sp-consensus-grandpa",
+ "sp-core",
+ "sp-rpc",
+ "sp-runtime",
  "sp-std 14.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
- "sp-trie 29.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
- "sp-version 29.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
- "staging-xcm 7.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
+ "sp-trie",
+ "sp-version",
+ "staging-xcm",
  "thiserror",
- "tokio",
-]
-
-[[package]]
-name = "relay-utils"
-version = "0.1.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits#87a52dbe55163e5cdde3953fc08e18653ce78fcf"
-dependencies = [
- "ansi_term",
- "anyhow",
- "async-std",
- "async-trait",
- "backoff",
- "bp-runtime 0.7.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "env_logger 0.11.3",
- "futures",
- "isahc",
- "jsonpath_lib",
- "log",
- "num-traits",
- "parking_lot 0.12.1",
- "serde_json",
- "sp-runtime 31.0.1 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "substrate-prometheus-endpoint 0.17.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "sysinfo",
- "thiserror",
- "time",
  "tokio",
 ]
 
@@ -7654,7 +7039,7 @@ dependencies = [
  "async-std",
  "async-trait",
  "backoff",
- "bp-runtime 0.7.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
+ "bp-runtime",
  "env_logger 0.11.3",
  "futures",
  "isahc",
@@ -7663,8 +7048,8 @@ dependencies = [
  "num-traits",
  "parking_lot 0.12.1",
  "serde_json",
- "sp-runtime 31.0.1 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
- "substrate-prometheus-endpoint 0.17.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
+ "sp-runtime",
+ "substrate-prometheus-endpoint",
  "sysinfo",
  "thiserror",
  "time",
@@ -7675,18 +7060,18 @@ dependencies = [
 name = "relay-westend-client"
 version = "0.1.0"
 dependencies = [
- "bp-polkadot-core 0.7.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "bp-runtime 0.7.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
+ "bp-polkadot-core",
+ "bp-runtime",
  "bp-westend",
  "parity-scale-codec",
- "relay-substrate-client 0.1.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "relay-utils 0.1.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
+ "relay-substrate-client",
+ "relay-utils",
  "scale-info",
- "sp-consensus-grandpa 13.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "sp-core 28.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "sp-runtime 31.0.1 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
+ "sp-consensus-grandpa",
+ "sp-core",
+ "sp-runtime",
  "sp-session",
- "sp-weights 27.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
+ "sp-weights",
  "subxt",
 ]
 
@@ -8022,21 +7407,10 @@ dependencies = [
 [[package]]
 name = "sc-allocator"
 version = "23.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits#87a52dbe55163e5cdde3953fc08e18653ce78fcf"
-dependencies = [
- "log",
- "sp-core 28.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "sp-wasm-interface 20.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "thiserror",
-]
-
-[[package]]
-name = "sc-allocator"
-version = "23.0.0"
 source = "git+https://github.com/paritytech/polkadot-sdk?branch=master#977254ccb1afca975780987ff9f19f356e99378f"
 dependencies = [
  "log",
- "sp-core 28.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
+ "sp-core",
  "sp-wasm-interface 20.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
  "thiserror",
 ]
@@ -8044,33 +7418,6 @@ dependencies = [
 [[package]]
 name = "sc-chain-spec"
 version = "28.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits#87a52dbe55163e5cdde3953fc08e18653ce78fcf"
-dependencies = [
- "array-bytes",
- "docify",
- "log",
- "memmap2",
- "parity-scale-codec",
- "sc-chain-spec-derive 11.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "sc-client-api 28.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "sc-executor 0.32.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "sc-network 0.34.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "sc-telemetry 15.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "serde",
- "serde_json",
- "sp-blockchain 28.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "sp-core 28.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "sp-crypto-hashing 0.1.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "sp-genesis-builder 0.8.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "sp-io 30.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "sp-runtime 31.0.1 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "sp-state-machine 0.35.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "sp-tracing 16.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
-]
-
-[[package]]
-name = "sc-chain-spec"
-version = "28.0.0"
 source = "git+https://github.com/paritytech/polkadot-sdk?branch=master#977254ccb1afca975780987ff9f19f356e99378f"
 dependencies = [
  "array-bytes",
@@ -8078,70 +7425,32 @@ dependencies = [
  "log",
  "memmap2",
  "parity-scale-codec",
- "sc-chain-spec-derive 11.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
- "sc-client-api 28.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
- "sc-executor 0.32.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
- "sc-network 0.34.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
- "sc-telemetry 15.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
+ "sc-chain-spec-derive",
+ "sc-client-api",
+ "sc-executor",
+ "sc-network",
+ "sc-telemetry",
  "serde",
  "serde_json",
- "sp-blockchain 28.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
- "sp-core 28.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
+ "sp-blockchain",
+ "sp-core",
  "sp-crypto-hashing 0.1.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
- "sp-genesis-builder 0.8.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
- "sp-io 30.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
- "sp-runtime 31.0.1 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
- "sp-state-machine 0.35.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
+ "sp-genesis-builder",
+ "sp-io",
+ "sp-runtime",
+ "sp-state-machine",
  "sp-tracing 16.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
 ]
 
 [[package]]
 name = "sc-chain-spec-derive"
 version = "11.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits#87a52dbe55163e5cdde3953fc08e18653ce78fcf"
-dependencies = [
- "proc-macro-crate 3.1.0",
- "proc-macro2 1.0.85",
- "quote 1.0.36",
- "syn 2.0.60",
-]
-
-[[package]]
-name = "sc-chain-spec-derive"
-version = "11.0.0"
 source = "git+https://github.com/paritytech/polkadot-sdk?branch=master#977254ccb1afca975780987ff9f19f356e99378f"
 dependencies = [
  "proc-macro-crate 3.1.0",
  "proc-macro2 1.0.85",
  "quote 1.0.36",
  "syn 2.0.60",
-]
-
-[[package]]
-name = "sc-client-api"
-version = "28.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits#87a52dbe55163e5cdde3953fc08e18653ce78fcf"
-dependencies = [
- "fnv",
- "futures",
- "log",
- "parity-scale-codec",
- "parking_lot 0.12.1",
- "sc-executor 0.32.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "sc-transaction-pool-api 28.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "sc-utils 14.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "sp-api 26.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "sp-blockchain 28.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "sp-consensus 0.32.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "sp-core 28.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "sp-database 10.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "sp-externalities 0.25.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "sp-runtime 31.0.1 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "sp-state-machine 0.35.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "sp-statement-store 10.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "sp-storage 19.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "sp-trie 29.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "substrate-prometheus-endpoint 0.17.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
 ]
 
 [[package]]
@@ -8154,46 +7463,21 @@ dependencies = [
  "log",
  "parity-scale-codec",
  "parking_lot 0.12.1",
- "sc-executor 0.32.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
- "sc-transaction-pool-api 28.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
- "sc-utils 14.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
- "sp-api 26.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
- "sp-blockchain 28.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
- "sp-consensus 0.32.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
- "sp-core 28.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
- "sp-database 10.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
+ "sc-executor",
+ "sc-transaction-pool-api",
+ "sc-utils",
+ "sp-api",
+ "sp-blockchain",
+ "sp-consensus",
+ "sp-core",
+ "sp-database",
  "sp-externalities 0.25.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
- "sp-runtime 31.0.1 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
- "sp-state-machine 0.35.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
- "sp-statement-store 10.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
+ "sp-runtime",
+ "sp-state-machine",
+ "sp-statement-store",
  "sp-storage 19.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
- "sp-trie 29.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
- "substrate-prometheus-endpoint 0.17.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
-]
-
-[[package]]
-name = "sc-consensus"
-version = "0.33.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits#87a52dbe55163e5cdde3953fc08e18653ce78fcf"
-dependencies = [
- "async-trait",
- "futures",
- "futures-timer",
- "log",
- "mockall 0.11.4",
- "parking_lot 0.12.1",
- "sc-client-api 28.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "sc-network-types 0.10.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "sc-utils 14.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "serde",
- "sp-api 26.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "sp-blockchain 28.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "sp-consensus 0.32.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "sp-core 28.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "sp-runtime 31.0.1 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "sp-state-machine 0.35.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "substrate-prometheus-endpoint 0.17.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "thiserror",
+ "sp-trie",
+ "substrate-prometheus-endpoint",
 ]
 
 [[package]]
@@ -8207,41 +7491,18 @@ dependencies = [
  "log",
  "mockall 0.11.4",
  "parking_lot 0.12.1",
- "sc-client-api 28.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
- "sc-network-types 0.10.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
- "sc-utils 14.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
+ "sc-client-api",
+ "sc-network-types",
+ "sc-utils",
  "serde",
- "sp-api 26.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
- "sp-blockchain 28.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
- "sp-consensus 0.32.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
- "sp-core 28.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
- "sp-runtime 31.0.1 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
- "sp-state-machine 0.35.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
- "substrate-prometheus-endpoint 0.17.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
+ "sp-api",
+ "sp-blockchain",
+ "sp-consensus",
+ "sp-core",
+ "sp-runtime",
+ "sp-state-machine",
+ "substrate-prometheus-endpoint",
  "thiserror",
-]
-
-[[package]]
-name = "sc-executor"
-version = "0.32.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits#87a52dbe55163e5cdde3953fc08e18653ce78fcf"
-dependencies = [
- "parity-scale-codec",
- "parking_lot 0.12.1",
- "sc-executor-common 0.29.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "sc-executor-polkavm 0.29.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "sc-executor-wasmtime 0.29.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "schnellru",
- "sp-api 26.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "sp-core 28.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "sp-externalities 0.25.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "sp-io 30.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "sp-panic-handler 13.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "sp-runtime-interface 24.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "sp-trie 29.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "sp-version 29.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "sp-wasm-interface 20.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "tracing",
 ]
 
 [[package]]
@@ -8251,18 +7512,18 @@ source = "git+https://github.com/paritytech/polkadot-sdk?branch=master#977254ccb
 dependencies = [
  "parity-scale-codec",
  "parking_lot 0.12.1",
- "sc-executor-common 0.29.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
- "sc-executor-polkavm 0.29.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
- "sc-executor-wasmtime 0.29.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
+ "sc-executor-common",
+ "sc-executor-polkavm",
+ "sc-executor-wasmtime",
  "schnellru",
- "sp-api 26.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
- "sp-core 28.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
+ "sp-api",
+ "sp-core",
  "sp-externalities 0.25.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
- "sp-io 30.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
- "sp-panic-handler 13.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
+ "sp-io",
+ "sp-panic-handler",
  "sp-runtime-interface 24.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
- "sp-trie 29.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
- "sp-version 29.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
+ "sp-trie",
+ "sp-version",
  "sp-wasm-interface 20.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
  "tracing",
 ]
@@ -8270,38 +7531,14 @@ dependencies = [
 [[package]]
 name = "sc-executor-common"
 version = "0.29.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits#87a52dbe55163e5cdde3953fc08e18653ce78fcf"
-dependencies = [
- "polkavm",
- "sc-allocator 23.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "sp-maybe-compressed-blob 11.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "sp-wasm-interface 20.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "thiserror",
- "wasm-instrument",
-]
-
-[[package]]
-name = "sc-executor-common"
-version = "0.29.0"
 source = "git+https://github.com/paritytech/polkadot-sdk?branch=master#977254ccb1afca975780987ff9f19f356e99378f"
 dependencies = [
  "polkavm",
- "sc-allocator 23.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
- "sp-maybe-compressed-blob 11.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
+ "sc-allocator",
+ "sp-maybe-compressed-blob",
  "sp-wasm-interface 20.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
  "thiserror",
  "wasm-instrument",
-]
-
-[[package]]
-name = "sc-executor-polkavm"
-version = "0.29.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits#87a52dbe55163e5cdde3953fc08e18653ce78fcf"
-dependencies = [
- "log",
- "polkavm",
- "sc-executor-common 0.29.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "sp-wasm-interface 20.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
 ]
 
 [[package]]
@@ -8311,26 +7548,8 @@ source = "git+https://github.com/paritytech/polkadot-sdk?branch=master#977254ccb
 dependencies = [
  "log",
  "polkavm",
- "sc-executor-common 0.29.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
+ "sc-executor-common",
  "sp-wasm-interface 20.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
-]
-
-[[package]]
-name = "sc-executor-wasmtime"
-version = "0.29.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits#87a52dbe55163e5cdde3953fc08e18653ce78fcf"
-dependencies = [
- "anyhow",
- "cfg-if",
- "libc",
- "log",
- "parking_lot 0.12.1",
- "rustix 0.36.17",
- "sc-allocator 23.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "sc-executor-common 0.29.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "sp-runtime-interface 24.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "sp-wasm-interface 20.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "wasmtime",
 ]
 
 [[package]]
@@ -8344,8 +7563,8 @@ dependencies = [
  "log",
  "parking_lot 0.12.1",
  "rustix 0.36.17",
- "sc-allocator 23.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
- "sc-executor-common 0.29.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
+ "sc-allocator",
+ "sc-executor-common",
  "sp-runtime-interface 24.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
  "sp-wasm-interface 20.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
  "wasmtime",
@@ -8354,35 +7573,6 @@ dependencies = [
 [[package]]
 name = "sc-mixnet"
 version = "0.4.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits#87a52dbe55163e5cdde3953fc08e18653ce78fcf"
-dependencies = [
- "array-bytes",
- "arrayvec 0.7.4",
- "blake2 0.10.6",
- "bytes",
- "futures",
- "futures-timer",
- "log",
- "mixnet",
- "multiaddr",
- "parity-scale-codec",
- "parking_lot 0.12.1",
- "sc-client-api 28.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "sc-network 0.34.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "sc-network-types 0.10.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "sc-transaction-pool-api 28.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "sp-api 26.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "sp-consensus 0.32.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "sp-core 28.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "sp-keystore 0.34.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "sp-mixnet 0.4.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "sp-runtime 31.0.1 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "thiserror",
-]
-
-[[package]]
-name = "sc-mixnet"
-version = "0.4.0"
 source = "git+https://github.com/paritytech/polkadot-sdk?branch=master#977254ccb1afca975780987ff9f19f356e99378f"
 dependencies = [
  "array-bytes",
@@ -8396,68 +7586,17 @@ dependencies = [
  "multiaddr",
  "parity-scale-codec",
  "parking_lot 0.12.1",
- "sc-client-api 28.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
- "sc-network 0.34.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
- "sc-network-types 0.10.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
- "sc-transaction-pool-api 28.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
- "sp-api 26.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
- "sp-consensus 0.32.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
- "sp-core 28.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
- "sp-keystore 0.34.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
- "sp-mixnet 0.4.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
- "sp-runtime 31.0.1 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
+ "sc-client-api",
+ "sc-network",
+ "sc-network-types",
+ "sc-transaction-pool-api",
+ "sp-api",
+ "sp-consensus",
+ "sp-core",
+ "sp-keystore",
+ "sp-mixnet",
+ "sp-runtime",
  "thiserror",
-]
-
-[[package]]
-name = "sc-network"
-version = "0.34.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits#87a52dbe55163e5cdde3953fc08e18653ce78fcf"
-dependencies = [
- "array-bytes",
- "async-channel 1.9.0",
- "async-trait",
- "asynchronous-codec",
- "bytes",
- "cid 0.9.0",
- "either",
- "fnv",
- "futures",
- "futures-timer",
- "ip_network",
- "libp2p",
- "linked_hash_set",
- "litep2p",
- "log",
- "mockall 0.11.4",
- "once_cell",
- "parity-scale-codec",
- "parking_lot 0.12.1",
- "partial_sort",
- "pin-project",
- "prost 0.12.4",
- "prost-build 0.12.4",
- "rand 0.8.5",
- "sc-client-api 28.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "sc-network-common 0.33.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "sc-network-types 0.10.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "sc-utils 14.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "schnellru",
- "serde",
- "serde_json",
- "smallvec",
- "sp-arithmetic 23.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "sp-blockchain 28.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "sp-core 28.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "sp-runtime 31.0.1 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "substrate-prometheus-endpoint 0.17.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "thiserror",
- "tokio",
- "tokio-stream",
- "unsigned-varint",
- "void",
- "wasm-timer",
- "zeroize",
 ]
 
 [[package]]
@@ -8489,19 +7628,19 @@ dependencies = [
  "prost 0.12.4",
  "prost-build 0.12.4",
  "rand 0.8.5",
- "sc-client-api 28.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
- "sc-network-common 0.33.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
- "sc-network-types 0.10.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
- "sc-utils 14.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
+ "sc-client-api",
+ "sc-network-common",
+ "sc-network-types",
+ "sc-utils",
  "schnellru",
  "serde",
  "serde_json",
  "smallvec",
- "sp-arithmetic 23.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
- "sp-blockchain 28.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
- "sp-core 28.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
- "sp-runtime 31.0.1 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
- "substrate-prometheus-endpoint 0.17.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
+ "sp-arithmetic",
+ "sp-blockchain",
+ "sp-core",
+ "sp-runtime",
+ "substrate-prometheus-endpoint",
  "thiserror",
  "tokio",
  "tokio-stream",
@@ -8514,24 +7653,6 @@ dependencies = [
 [[package]]
 name = "sc-network-common"
 version = "0.33.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits#87a52dbe55163e5cdde3953fc08e18653ce78fcf"
-dependencies = [
- "async-trait",
- "bitflags 1.3.2",
- "futures",
- "libp2p-identity",
- "parity-scale-codec",
- "prost-build 0.12.4",
- "sc-consensus 0.33.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "sc-network-types 0.10.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "sp-consensus 0.32.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "sp-consensus-grandpa 13.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "sp-runtime 31.0.1 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
-]
-
-[[package]]
-name = "sc-network-common"
-version = "0.33.0"
 source = "git+https://github.com/paritytech/polkadot-sdk?branch=master#977254ccb1afca975780987ff9f19f356e99378f"
 dependencies = [
  "async-trait",
@@ -8540,27 +7661,11 @@ dependencies = [
  "libp2p-identity",
  "parity-scale-codec",
  "prost-build 0.12.4",
- "sc-consensus 0.33.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
- "sc-network-types 0.10.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
- "sp-consensus 0.32.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
- "sp-consensus-grandpa 13.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
- "sp-runtime 31.0.1 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
-]
-
-[[package]]
-name = "sc-network-types"
-version = "0.10.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits#87a52dbe55163e5cdde3953fc08e18653ce78fcf"
-dependencies = [
- "bs58 0.5.1",
- "ed25519-dalek 2.1.1",
- "libp2p-identity",
- "litep2p",
- "multiaddr",
- "multihash 0.17.0",
- "rand 0.8.5",
- "thiserror",
- "zeroize",
+ "sc-consensus",
+ "sc-network-types",
+ "sp-consensus",
+ "sp-consensus-grandpa",
+ "sp-runtime",
 ]
 
 [[package]]
@@ -8582,61 +7687,21 @@ dependencies = [
 [[package]]
 name = "sc-rpc-api"
 version = "0.33.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits#87a52dbe55163e5cdde3953fc08e18653ce78fcf"
-dependencies = [
- "jsonrpsee",
- "parity-scale-codec",
- "sc-chain-spec 28.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "sc-mixnet 0.4.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "sc-transaction-pool-api 28.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "scale-info",
- "serde",
- "serde_json",
- "sp-core 28.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "sp-rpc 26.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "sp-runtime 31.0.1 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "sp-version 29.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "thiserror",
-]
-
-[[package]]
-name = "sc-rpc-api"
-version = "0.33.0"
 source = "git+https://github.com/paritytech/polkadot-sdk?branch=master#977254ccb1afca975780987ff9f19f356e99378f"
 dependencies = [
  "jsonrpsee",
  "parity-scale-codec",
- "sc-chain-spec 28.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
- "sc-mixnet 0.4.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
- "sc-transaction-pool-api 28.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
+ "sc-chain-spec",
+ "sc-mixnet",
+ "sc-transaction-pool-api",
  "scale-info",
  "serde",
  "serde_json",
- "sp-core 28.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
- "sp-rpc 26.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
- "sp-runtime 31.0.1 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
- "sp-version 29.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
+ "sp-core",
+ "sp-rpc",
+ "sp-runtime",
+ "sp-version",
  "thiserror",
-]
-
-[[package]]
-name = "sc-telemetry"
-version = "15.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits#87a52dbe55163e5cdde3953fc08e18653ce78fcf"
-dependencies = [
- "chrono",
- "futures",
- "libp2p",
- "log",
- "parking_lot 0.12.1",
- "pin-project",
- "rand 0.8.5",
- "sc-network 0.34.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "sc-utils 14.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "serde",
- "serde_json",
- "thiserror",
- "wasm-timer",
 ]
 
 [[package]]
@@ -8651,8 +7716,8 @@ dependencies = [
  "parking_lot 0.12.1",
  "pin-project",
  "rand 0.8.5",
- "sc-network 0.34.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
- "sc-utils 14.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
+ "sc-network",
+ "sc-utils",
  "serde",
  "serde_json",
  "thiserror",
@@ -8662,22 +7727,6 @@ dependencies = [
 [[package]]
 name = "sc-transaction-pool-api"
 version = "28.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits#87a52dbe55163e5cdde3953fc08e18653ce78fcf"
-dependencies = [
- "async-trait",
- "futures",
- "log",
- "parity-scale-codec",
- "serde",
- "sp-blockchain 28.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "sp-core 28.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "sp-runtime 31.0.1 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "thiserror",
-]
-
-[[package]]
-name = "sc-transaction-pool-api"
-version = "28.0.0"
 source = "git+https://github.com/paritytech/polkadot-sdk?branch=master#977254ccb1afca975780987ff9f19f356e99378f"
 dependencies = [
  "async-trait",
@@ -8685,25 +7734,10 @@ dependencies = [
  "log",
  "parity-scale-codec",
  "serde",
- "sp-blockchain 28.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
- "sp-core 28.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
- "sp-runtime 31.0.1 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
+ "sp-blockchain",
+ "sp-core",
+ "sp-runtime",
  "thiserror",
-]
-
-[[package]]
-name = "sc-utils"
-version = "14.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits#87a52dbe55163e5cdde3953fc08e18653ce78fcf"
-dependencies = [
- "async-channel 1.9.0",
- "futures",
- "futures-timer",
- "lazy_static",
- "log",
- "parking_lot 0.12.1",
- "prometheus",
- "sp-arithmetic 23.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
 ]
 
 [[package]]
@@ -8718,7 +7752,7 @@ dependencies = [
  "log",
  "parking_lot 0.12.1",
  "prometheus",
- "sp-arithmetic 23.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
+ "sp-arithmetic",
 ]
 
 [[package]]
@@ -9424,64 +8458,28 @@ dependencies = [
 [[package]]
 name = "sp-api"
 version = "26.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits#87a52dbe55163e5cdde3953fc08e18653ce78fcf"
-dependencies = [
- "hash-db",
- "log",
- "parity-scale-codec",
- "scale-info",
- "sp-api-proc-macro 15.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "sp-core 28.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "sp-externalities 0.25.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "sp-metadata-ir 0.6.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "sp-runtime 31.0.1 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "sp-runtime-interface 24.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "sp-state-machine 0.35.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "sp-std 14.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "sp-trie 29.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "sp-version 29.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "thiserror",
-]
-
-[[package]]
-name = "sp-api"
-version = "26.0.0"
 source = "git+https://github.com/paritytech/polkadot-sdk?branch=master#977254ccb1afca975780987ff9f19f356e99378f"
 dependencies = [
  "hash-db",
  "log",
  "parity-scale-codec",
  "scale-info",
- "sp-api-proc-macro 15.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
- "sp-core 28.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
+ "sp-api-proc-macro",
+ "sp-core",
  "sp-externalities 0.25.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
- "sp-metadata-ir 0.6.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
- "sp-runtime 31.0.1 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
+ "sp-metadata-ir",
+ "sp-runtime",
  "sp-runtime-interface 24.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
- "sp-state-machine 0.35.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
+ "sp-state-machine",
  "sp-std 14.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
- "sp-trie 29.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
- "sp-version 29.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
+ "sp-trie",
+ "sp-version",
  "thiserror",
 ]
 
 [[package]]
 name = "sp-api-proc-macro"
 version = "15.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits#87a52dbe55163e5cdde3953fc08e18653ce78fcf"
-dependencies = [
- "Inflector",
- "blake2 0.10.6",
- "expander",
- "proc-macro-crate 3.1.0",
- "proc-macro2 1.0.85",
- "quote 1.0.36",
- "syn 2.0.60",
-]
-
-[[package]]
-name = "sp-api-proc-macro"
-version = "15.0.0"
 source = "git+https://github.com/paritytech/polkadot-sdk?branch=master#977254ccb1afca975780987ff9f19f356e99378f"
 dependencies = [
  "Inflector",
@@ -9496,42 +8494,14 @@ dependencies = [
 [[package]]
 name = "sp-application-crypto"
 version = "30.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits#87a52dbe55163e5cdde3953fc08e18653ce78fcf"
-dependencies = [
- "parity-scale-codec",
- "scale-info",
- "serde",
- "sp-core 28.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "sp-io 30.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "sp-std 14.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
-]
-
-[[package]]
-name = "sp-application-crypto"
-version = "30.0.0"
 source = "git+https://github.com/paritytech/polkadot-sdk?branch=master#977254ccb1afca975780987ff9f19f356e99378f"
 dependencies = [
  "parity-scale-codec",
  "scale-info",
  "serde",
- "sp-core 28.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
- "sp-io 30.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
+ "sp-core",
+ "sp-io",
  "sp-std 14.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
-]
-
-[[package]]
-name = "sp-arithmetic"
-version = "23.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits#87a52dbe55163e5cdde3953fc08e18653ce78fcf"
-dependencies = [
- "docify",
- "integer-sqrt",
- "num-traits",
- "parity-scale-codec",
- "scale-info",
- "serde",
- "sp-std 14.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "static_assertions",
 ]
 
 [[package]]
@@ -9570,43 +8540,13 @@ dependencies = [
 [[package]]
 name = "sp-authority-discovery"
 version = "26.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits#87a52dbe55163e5cdde3953fc08e18653ce78fcf"
-dependencies = [
- "parity-scale-codec",
- "scale-info",
- "sp-api 26.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "sp-application-crypto 30.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "sp-runtime 31.0.1 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
-]
-
-[[package]]
-name = "sp-authority-discovery"
-version = "26.0.0"
 source = "git+https://github.com/paritytech/polkadot-sdk?branch=master#977254ccb1afca975780987ff9f19f356e99378f"
 dependencies = [
  "parity-scale-codec",
  "scale-info",
- "sp-api 26.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
- "sp-application-crypto 30.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
- "sp-runtime 31.0.1 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
-]
-
-[[package]]
-name = "sp-blockchain"
-version = "28.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits#87a52dbe55163e5cdde3953fc08e18653ce78fcf"
-dependencies = [
- "futures",
- "log",
- "parity-scale-codec",
- "parking_lot 0.12.1",
- "schnellru",
- "sp-api 26.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "sp-consensus 0.32.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "sp-database 10.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "sp-runtime 31.0.1 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "sp-state-machine 0.35.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "thiserror",
+ "sp-api",
+ "sp-application-crypto",
+ "sp-runtime",
 ]
 
 [[package]]
@@ -9619,26 +8559,11 @@ dependencies = [
  "parity-scale-codec",
  "parking_lot 0.12.1",
  "schnellru",
- "sp-api 26.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
- "sp-consensus 0.32.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
- "sp-database 10.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
- "sp-runtime 31.0.1 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
- "sp-state-machine 0.35.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
- "thiserror",
-]
-
-[[package]]
-name = "sp-consensus"
-version = "0.32.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits#87a52dbe55163e5cdde3953fc08e18653ce78fcf"
-dependencies = [
- "async-trait",
- "futures",
- "log",
- "sp-core 28.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "sp-inherents 26.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "sp-runtime 31.0.1 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "sp-state-machine 0.35.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
+ "sp-api",
+ "sp-consensus",
+ "sp-database",
+ "sp-runtime",
+ "sp-state-machine",
  "thiserror",
 ]
 
@@ -9650,28 +8575,11 @@ dependencies = [
  "async-trait",
  "futures",
  "log",
- "sp-core 28.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
- "sp-inherents 26.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
- "sp-runtime 31.0.1 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
- "sp-state-machine 0.35.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
+ "sp-core",
+ "sp-inherents",
+ "sp-runtime",
+ "sp-state-machine",
  "thiserror",
-]
-
-[[package]]
-name = "sp-consensus-grandpa"
-version = "13.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits#87a52dbe55163e5cdde3953fc08e18653ce78fcf"
-dependencies = [
- "finality-grandpa",
- "log",
- "parity-scale-codec",
- "scale-info",
- "serde",
- "sp-api 26.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "sp-application-crypto 30.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "sp-core 28.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "sp-keystore 0.34.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "sp-runtime 31.0.1 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
 ]
 
 [[package]]
@@ -9684,22 +8592,11 @@ dependencies = [
  "parity-scale-codec",
  "scale-info",
  "serde",
- "sp-api 26.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
- "sp-application-crypto 30.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
- "sp-core 28.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
- "sp-keystore 0.34.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
- "sp-runtime 31.0.1 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
-]
-
-[[package]]
-name = "sp-consensus-slots"
-version = "0.32.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits#87a52dbe55163e5cdde3953fc08e18653ce78fcf"
-dependencies = [
- "parity-scale-codec",
- "scale-info",
- "serde",
- "sp-timestamp 26.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
+ "sp-api",
+ "sp-application-crypto",
+ "sp-core",
+ "sp-keystore",
+ "sp-runtime",
 ]
 
 [[package]]
@@ -9710,54 +8607,7 @@ dependencies = [
  "parity-scale-codec",
  "scale-info",
  "serde",
- "sp-timestamp 26.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
-]
-
-[[package]]
-name = "sp-core"
-version = "28.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits#87a52dbe55163e5cdde3953fc08e18653ce78fcf"
-dependencies = [
- "array-bytes",
- "bandersnatch_vrfs",
- "bitflags 1.3.2",
- "blake2 0.10.6",
- "bounded-collections",
- "bs58 0.5.1",
- "dyn-clonable",
- "ed25519-zebra",
- "futures",
- "hash-db",
- "hash256-std-hasher",
- "impl-serde",
- "itertools 0.11.0",
- "k256",
- "libsecp256k1",
- "log",
- "merlin",
- "parity-bip39",
- "parity-scale-codec",
- "parking_lot 0.12.1",
- "paste",
- "primitive-types",
- "rand 0.8.5",
- "scale-info",
- "schnorrkel",
- "secp256k1",
- "secrecy",
- "serde",
- "sp-crypto-hashing 0.1.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "sp-debug-derive 14.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "sp-externalities 0.25.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "sp-runtime-interface 24.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "sp-std 14.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "sp-storage 19.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "ss58-registry",
- "substrate-bip39 0.4.7 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "thiserror",
- "tracing",
- "w3f-bls",
- "zeroize",
+ "sp-timestamp",
 ]
 
 [[package]]
@@ -9800,7 +8650,7 @@ dependencies = [
  "sp-std 14.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
  "sp-storage 19.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
  "ss58-registry",
- "substrate-bip39 0.4.7 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
+ "substrate-bip39",
  "thiserror",
  "tracing",
  "w3f-bls",
@@ -9844,19 +8694,6 @@ dependencies = [
 [[package]]
 name = "sp-crypto-hashing"
 version = "0.1.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits#87a52dbe55163e5cdde3953fc08e18653ce78fcf"
-dependencies = [
- "blake2b_simd",
- "byteorder",
- "digest 0.10.7",
- "sha2 0.10.8",
- "sha3",
- "twox-hash",
-]
-
-[[package]]
-name = "sp-crypto-hashing"
-version = "0.1.0"
 source = "git+https://github.com/paritytech/polkadot-sdk?branch=master#977254ccb1afca975780987ff9f19f356e99378f"
 dependencies = [
  "blake2b_simd",
@@ -9865,16 +8702,6 @@ dependencies = [
  "sha2 0.10.8",
  "sha3",
  "twox-hash",
-]
-
-[[package]]
-name = "sp-crypto-hashing-proc-macro"
-version = "0.1.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits#87a52dbe55163e5cdde3953fc08e18653ce78fcf"
-dependencies = [
- "quote 1.0.36",
- "sp-crypto-hashing 0.1.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "syn 2.0.60",
 ]
 
 [[package]]
@@ -9890,29 +8717,10 @@ dependencies = [
 [[package]]
 name = "sp-database"
 version = "10.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits#87a52dbe55163e5cdde3953fc08e18653ce78fcf"
-dependencies = [
- "kvdb",
- "parking_lot 0.12.1",
-]
-
-[[package]]
-name = "sp-database"
-version = "10.0.0"
 source = "git+https://github.com/paritytech/polkadot-sdk?branch=master#977254ccb1afca975780987ff9f19f356e99378f"
 dependencies = [
  "kvdb",
  "parking_lot 0.12.1",
-]
-
-[[package]]
-name = "sp-debug-derive"
-version = "14.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits#87a52dbe55163e5cdde3953fc08e18653ce78fcf"
-dependencies = [
- "proc-macro2 1.0.85",
- "quote 1.0.36",
- "syn 2.0.60",
 ]
 
 [[package]]
@@ -9933,16 +8741,6 @@ dependencies = [
  "proc-macro2 1.0.85",
  "quote 1.0.36",
  "syn 2.0.60",
-]
-
-[[package]]
-name = "sp-externalities"
-version = "0.25.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits#87a52dbe55163e5cdde3953fc08e18653ce78fcf"
-dependencies = [
- "environmental",
- "parity-scale-codec",
- "sp-storage 19.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
 ]
 
 [[package]]
@@ -9968,38 +8766,13 @@ dependencies = [
 [[package]]
 name = "sp-genesis-builder"
 version = "0.8.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits#87a52dbe55163e5cdde3953fc08e18653ce78fcf"
-dependencies = [
- "parity-scale-codec",
- "scale-info",
- "serde_json",
- "sp-api 26.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "sp-runtime 31.0.1 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
-]
-
-[[package]]
-name = "sp-genesis-builder"
-version = "0.8.0"
 source = "git+https://github.com/paritytech/polkadot-sdk?branch=master#977254ccb1afca975780987ff9f19f356e99378f"
 dependencies = [
  "parity-scale-codec",
  "scale-info",
  "serde_json",
- "sp-api 26.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
- "sp-runtime 31.0.1 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
-]
-
-[[package]]
-name = "sp-inherents"
-version = "26.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits#87a52dbe55163e5cdde3953fc08e18653ce78fcf"
-dependencies = [
- "async-trait",
- "impl-trait-for-tuples",
- "parity-scale-codec",
- "scale-info",
- "sp-runtime 31.0.1 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "thiserror",
+ "sp-api",
+ "sp-runtime",
 ]
 
 [[package]]
@@ -10011,34 +8784,8 @@ dependencies = [
  "impl-trait-for-tuples",
  "parity-scale-codec",
  "scale-info",
- "sp-runtime 31.0.1 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
+ "sp-runtime",
  "thiserror",
-]
-
-[[package]]
-name = "sp-io"
-version = "30.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits#87a52dbe55163e5cdde3953fc08e18653ce78fcf"
-dependencies = [
- "bytes",
- "ed25519-dalek 2.1.1",
- "libsecp256k1",
- "log",
- "parity-scale-codec",
- "polkavm-derive",
- "rustversion",
- "secp256k1",
- "sp-core 28.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "sp-crypto-hashing 0.1.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "sp-externalities 0.25.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "sp-keystore 0.34.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "sp-runtime-interface 24.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "sp-state-machine 0.35.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "sp-std 14.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "sp-tracing 16.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "sp-trie 29.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "tracing",
- "tracing-core",
 ]
 
 [[package]]
@@ -10055,15 +8802,15 @@ dependencies = [
  "polkavm-derive",
  "rustversion",
  "secp256k1",
- "sp-core 28.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
+ "sp-core",
  "sp-crypto-hashing 0.1.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
  "sp-externalities 0.25.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
- "sp-keystore 0.34.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
+ "sp-keystore",
  "sp-runtime-interface 24.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
- "sp-state-machine 0.35.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
+ "sp-state-machine",
  "sp-std 14.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
  "sp-tracing 16.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
- "sp-trie 29.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
+ "sp-trie",
  "tracing",
  "tracing-core",
 ]
@@ -10071,61 +8818,31 @@ dependencies = [
 [[package]]
 name = "sp-keyring"
 version = "31.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits#87a52dbe55163e5cdde3953fc08e18653ce78fcf"
+source = "git+https://github.com/paritytech/polkadot-sdk?branch=master#977254ccb1afca975780987ff9f19f356e99378f"
 dependencies = [
- "sp-core 28.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "sp-runtime 31.0.1 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
+ "sp-core",
+ "sp-runtime",
  "strum",
 ]
 
 [[package]]
 name = "sp-keystore"
 version = "0.34.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits#87a52dbe55163e5cdde3953fc08e18653ce78fcf"
-dependencies = [
- "parity-scale-codec",
- "parking_lot 0.12.1",
- "sp-core 28.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "sp-externalities 0.25.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
-]
-
-[[package]]
-name = "sp-keystore"
-version = "0.34.0"
 source = "git+https://github.com/paritytech/polkadot-sdk?branch=master#977254ccb1afca975780987ff9f19f356e99378f"
 dependencies = [
  "parity-scale-codec",
  "parking_lot 0.12.1",
- "sp-core 28.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
+ "sp-core",
  "sp-externalities 0.25.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
 ]
 
 [[package]]
 name = "sp-maybe-compressed-blob"
 version = "11.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits#87a52dbe55163e5cdde3953fc08e18653ce78fcf"
-dependencies = [
- "thiserror",
- "zstd 0.12.4",
-]
-
-[[package]]
-name = "sp-maybe-compressed-blob"
-version = "11.0.0"
 source = "git+https://github.com/paritytech/polkadot-sdk?branch=master#977254ccb1afca975780987ff9f19f356e99378f"
 dependencies = [
  "thiserror",
  "zstd 0.12.4",
-]
-
-[[package]]
-name = "sp-metadata-ir"
-version = "0.6.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits#87a52dbe55163e5cdde3953fc08e18653ce78fcf"
-dependencies = [
- "frame-metadata 16.0.0",
- "parity-scale-codec",
- "scale-info",
 ]
 
 [[package]]
@@ -10141,33 +8858,12 @@ dependencies = [
 [[package]]
 name = "sp-mixnet"
 version = "0.4.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits#87a52dbe55163e5cdde3953fc08e18653ce78fcf"
-dependencies = [
- "parity-scale-codec",
- "scale-info",
- "sp-api 26.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "sp-application-crypto 30.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
-]
-
-[[package]]
-name = "sp-mixnet"
-version = "0.4.0"
 source = "git+https://github.com/paritytech/polkadot-sdk?branch=master#977254ccb1afca975780987ff9f19f356e99378f"
 dependencies = [
  "parity-scale-codec",
  "scale-info",
- "sp-api 26.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
- "sp-application-crypto 30.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
-]
-
-[[package]]
-name = "sp-panic-handler"
-version = "13.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits#87a52dbe55163e5cdde3953fc08e18653ce78fcf"
-dependencies = [
- "backtrace",
- "lazy_static",
- "regex",
+ "sp-api",
+ "sp-application-crypto",
 ]
 
 [[package]]
@@ -10183,46 +8879,11 @@ dependencies = [
 [[package]]
 name = "sp-rpc"
 version = "26.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits#87a52dbe55163e5cdde3953fc08e18653ce78fcf"
-dependencies = [
- "rustc-hash",
- "serde",
- "sp-core 28.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
-]
-
-[[package]]
-name = "sp-rpc"
-version = "26.0.0"
 source = "git+https://github.com/paritytech/polkadot-sdk?branch=master#977254ccb1afca975780987ff9f19f356e99378f"
 dependencies = [
  "rustc-hash",
  "serde",
- "sp-core 28.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
-]
-
-[[package]]
-name = "sp-runtime"
-version = "31.0.1"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits#87a52dbe55163e5cdde3953fc08e18653ce78fcf"
-dependencies = [
- "docify",
- "either",
- "hash256-std-hasher",
- "impl-trait-for-tuples",
- "log",
- "num-traits",
- "parity-scale-codec",
- "paste",
- "rand 0.8.5",
- "scale-info",
- "serde",
- "simple-mermaid",
- "sp-application-crypto 30.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "sp-arithmetic 23.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "sp-core 28.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "sp-io 30.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "sp-std 14.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "sp-weights 27.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
+ "sp-core",
 ]
 
 [[package]]
@@ -10242,31 +8903,12 @@ dependencies = [
  "scale-info",
  "serde",
  "simple-mermaid",
- "sp-application-crypto 30.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
- "sp-arithmetic 23.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
- "sp-core 28.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
- "sp-io 30.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
+ "sp-application-crypto",
+ "sp-arithmetic",
+ "sp-core",
+ "sp-io",
  "sp-std 14.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
- "sp-weights 27.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
-]
-
-[[package]]
-name = "sp-runtime-interface"
-version = "24.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits#87a52dbe55163e5cdde3953fc08e18653ce78fcf"
-dependencies = [
- "bytes",
- "impl-trait-for-tuples",
- "parity-scale-codec",
- "polkavm-derive",
- "primitive-types",
- "sp-externalities 0.25.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "sp-runtime-interface-proc-macro 17.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "sp-std 14.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "sp-storage 19.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "sp-tracing 16.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "sp-wasm-interface 20.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "static_assertions",
+ "sp-weights",
 ]
 
 [[package]]
@@ -10310,19 +8952,6 @@ dependencies = [
 [[package]]
 name = "sp-runtime-interface-proc-macro"
 version = "17.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits#87a52dbe55163e5cdde3953fc08e18653ce78fcf"
-dependencies = [
- "Inflector",
- "expander",
- "proc-macro-crate 3.1.0",
- "proc-macro2 1.0.85",
- "quote 1.0.36",
- "syn 2.0.60",
-]
-
-[[package]]
-name = "sp-runtime-interface-proc-macro"
-version = "17.0.0"
 source = "git+https://github.com/paritytech/polkadot-sdk?branch=master#977254ccb1afca975780987ff9f19f356e99378f"
 dependencies = [
  "Inflector",
@@ -10349,28 +8978,15 @@ dependencies = [
 [[package]]
 name = "sp-session"
 version = "27.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits#87a52dbe55163e5cdde3953fc08e18653ce78fcf"
+source = "git+https://github.com/paritytech/polkadot-sdk?branch=master#977254ccb1afca975780987ff9f19f356e99378f"
 dependencies = [
  "parity-scale-codec",
  "scale-info",
- "sp-api 26.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "sp-core 28.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "sp-keystore 0.34.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "sp-runtime 31.0.1 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "sp-staking 26.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
-]
-
-[[package]]
-name = "sp-staking"
-version = "26.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits#87a52dbe55163e5cdde3953fc08e18653ce78fcf"
-dependencies = [
- "impl-trait-for-tuples",
- "parity-scale-codec",
- "scale-info",
- "serde",
- "sp-core 28.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "sp-runtime 31.0.1 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
+ "sp-api",
+ "sp-core",
+ "sp-keystore",
+ "sp-runtime",
+ "sp-staking",
 ]
 
 [[package]]
@@ -10382,28 +8998,8 @@ dependencies = [
  "parity-scale-codec",
  "scale-info",
  "serde",
- "sp-core 28.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
- "sp-runtime 31.0.1 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
-]
-
-[[package]]
-name = "sp-state-machine"
-version = "0.35.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits#87a52dbe55163e5cdde3953fc08e18653ce78fcf"
-dependencies = [
- "hash-db",
- "log",
- "parity-scale-codec",
- "parking_lot 0.12.1",
- "rand 0.8.5",
- "smallvec",
- "sp-core 28.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "sp-externalities 0.25.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "sp-panic-handler 13.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "sp-trie 29.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "thiserror",
- "tracing",
- "trie-db",
+ "sp-core",
+ "sp-runtime",
 ]
 
 [[package]]
@@ -10417,37 +9013,13 @@ dependencies = [
  "parking_lot 0.12.1",
  "rand 0.8.5",
  "smallvec",
- "sp-core 28.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
+ "sp-core",
  "sp-externalities 0.25.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
- "sp-panic-handler 13.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
- "sp-trie 29.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
+ "sp-panic-handler",
+ "sp-trie",
  "thiserror",
  "tracing",
  "trie-db",
-]
-
-[[package]]
-name = "sp-statement-store"
-version = "10.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits#87a52dbe55163e5cdde3953fc08e18653ce78fcf"
-dependencies = [
- "aes-gcm",
- "curve25519-dalek 4.1.2",
- "ed25519-dalek 2.1.1",
- "hkdf",
- "parity-scale-codec",
- "rand 0.8.5",
- "scale-info",
- "sha2 0.10.8",
- "sp-api 26.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "sp-application-crypto 30.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "sp-core 28.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "sp-crypto-hashing 0.1.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "sp-externalities 0.25.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "sp-runtime 31.0.1 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "sp-runtime-interface 24.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "thiserror",
- "x25519-dalek 2.0.1",
 ]
 
 [[package]]
@@ -10463,21 +9035,16 @@ dependencies = [
  "rand 0.8.5",
  "scale-info",
  "sha2 0.10.8",
- "sp-api 26.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
- "sp-application-crypto 30.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
- "sp-core 28.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
+ "sp-api",
+ "sp-application-crypto",
+ "sp-core",
  "sp-crypto-hashing 0.1.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
  "sp-externalities 0.25.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
- "sp-runtime 31.0.1 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
+ "sp-runtime",
  "sp-runtime-interface 24.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
  "thiserror",
  "x25519-dalek 2.0.1",
 ]
-
-[[package]]
-name = "sp-std"
-version = "14.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits#87a52dbe55163e5cdde3953fc08e18653ce78fcf"
 
 [[package]]
 name = "sp-std"
@@ -10488,18 +9055,6 @@ source = "git+https://github.com/paritytech/polkadot-sdk?branch=master#977254ccb
 name = "sp-std"
 version = "14.0.0"
 source = "git+https://github.com/paritytech/polkadot-sdk#48d4f654612a67787426de426e462bd40f6f70f6"
-
-[[package]]
-name = "sp-storage"
-version = "19.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits#87a52dbe55163e5cdde3953fc08e18653ce78fcf"
-dependencies = [
- "impl-serde",
- "parity-scale-codec",
- "ref-cast",
- "serde",
- "sp-debug-derive 14.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
-]
 
 [[package]]
 name = "sp-storage"
@@ -10528,36 +9083,13 @@ dependencies = [
 [[package]]
 name = "sp-timestamp"
 version = "26.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits#87a52dbe55163e5cdde3953fc08e18653ce78fcf"
-dependencies = [
- "async-trait",
- "parity-scale-codec",
- "sp-inherents 26.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "sp-runtime 31.0.1 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "thiserror",
-]
-
-[[package]]
-name = "sp-timestamp"
-version = "26.0.0"
 source = "git+https://github.com/paritytech/polkadot-sdk?branch=master#977254ccb1afca975780987ff9f19f356e99378f"
 dependencies = [
  "async-trait",
  "parity-scale-codec",
- "sp-inherents 26.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
- "sp-runtime 31.0.1 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
+ "sp-inherents",
+ "sp-runtime",
  "thiserror",
-]
-
-[[package]]
-name = "sp-tracing"
-version = "16.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits#87a52dbe55163e5cdde3953fc08e18653ce78fcf"
-dependencies = [
- "parity-scale-codec",
- "tracing",
- "tracing-core",
- "tracing-subscriber",
 ]
 
 [[package]]
@@ -10585,29 +9117,6 @@ dependencies = [
 [[package]]
 name = "sp-trie"
 version = "29.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits#87a52dbe55163e5cdde3953fc08e18653ce78fcf"
-dependencies = [
- "ahash 0.8.11",
- "hash-db",
- "lazy_static",
- "memory-db",
- "nohash-hasher",
- "parity-scale-codec",
- "parking_lot 0.12.1",
- "rand 0.8.5",
- "scale-info",
- "schnellru",
- "sp-core 28.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "sp-externalities 0.25.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "thiserror",
- "tracing",
- "trie-db",
- "trie-root",
-]
-
-[[package]]
-name = "sp-trie"
-version = "29.0.0"
 source = "git+https://github.com/paritytech/polkadot-sdk?branch=master#977254ccb1afca975780987ff9f19f356e99378f"
 dependencies = [
  "ahash 0.8.11",
@@ -10620,7 +9129,7 @@ dependencies = [
  "rand 0.8.5",
  "scale-info",
  "schnellru",
- "sp-core 28.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
+ "sp-core",
  "sp-externalities 0.25.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
  "thiserror",
  "tracing",
@@ -10631,23 +9140,6 @@ dependencies = [
 [[package]]
 name = "sp-version"
 version = "29.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits#87a52dbe55163e5cdde3953fc08e18653ce78fcf"
-dependencies = [
- "impl-serde",
- "parity-scale-codec",
- "parity-wasm",
- "scale-info",
- "serde",
- "sp-crypto-hashing-proc-macro 0.1.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "sp-runtime 31.0.1 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "sp-std 14.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "sp-version-proc-macro 13.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "thiserror",
-]
-
-[[package]]
-name = "sp-version"
-version = "29.0.0"
 source = "git+https://github.com/paritytech/polkadot-sdk?branch=master#977254ccb1afca975780987ff9f19f356e99378f"
 dependencies = [
  "impl-serde",
@@ -10655,22 +9147,11 @@ dependencies = [
  "parity-wasm",
  "scale-info",
  "serde",
- "sp-crypto-hashing-proc-macro 0.1.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
- "sp-runtime 31.0.1 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
+ "sp-crypto-hashing-proc-macro",
+ "sp-runtime",
  "sp-std 14.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
- "sp-version-proc-macro 13.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
+ "sp-version-proc-macro",
  "thiserror",
-]
-
-[[package]]
-name = "sp-version-proc-macro"
-version = "13.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits#87a52dbe55163e5cdde3953fc08e18653ce78fcf"
-dependencies = [
- "parity-scale-codec",
- "proc-macro2 1.0.85",
- "quote 1.0.36",
- "syn 2.0.60",
 ]
 
 [[package]]
@@ -10682,18 +9163,6 @@ dependencies = [
  "proc-macro2 1.0.85",
  "quote 1.0.36",
  "syn 2.0.60",
-]
-
-[[package]]
-name = "sp-wasm-interface"
-version = "20.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits#87a52dbe55163e5cdde3953fc08e18653ce78fcf"
-dependencies = [
- "anyhow",
- "impl-trait-for-tuples",
- "log",
- "parity-scale-codec",
- "wasmtime",
 ]
 
 [[package]]
@@ -10721,20 +9190,6 @@ dependencies = [
 [[package]]
 name = "sp-weights"
 version = "27.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits#87a52dbe55163e5cdde3953fc08e18653ce78fcf"
-dependencies = [
- "bounded-collections",
- "parity-scale-codec",
- "scale-info",
- "serde",
- "smallvec",
- "sp-arithmetic 23.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "sp-debug-derive 14.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
-]
-
-[[package]]
-name = "sp-weights"
-version = "27.0.0"
 source = "git+https://github.com/paritytech/polkadot-sdk?branch=master#977254ccb1afca975780987ff9f19f356e99378f"
 dependencies = [
  "bounded-collections",
@@ -10742,7 +9197,7 @@ dependencies = [
  "scale-info",
  "serde",
  "smallvec",
- "sp-arithmetic 23.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
+ "sp-arithmetic",
  "sp-debug-derive 14.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
 ]
 
@@ -10792,24 +9247,6 @@ checksum = "a8f112729512f8e442d81f95a8a7ddf2b7c6b8a1a6f509a95864142b30cab2d3"
 [[package]]
 name = "staging-xcm"
 version = "7.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits#87a52dbe55163e5cdde3953fc08e18653ce78fcf"
-dependencies = [
- "array-bytes",
- "bounded-collections",
- "derivative",
- "environmental",
- "impl-trait-for-tuples",
- "log",
- "parity-scale-codec",
- "scale-info",
- "serde",
- "sp-weights 27.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "xcm-procedural 7.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
-]
-
-[[package]]
-name = "staging-xcm"
-version = "7.0.0"
 source = "git+https://github.com/paritytech/polkadot-sdk?branch=master#977254ccb1afca975780987ff9f19f356e99378f"
 dependencies = [
  "array-bytes",
@@ -10821,30 +9258,8 @@ dependencies = [
  "parity-scale-codec",
  "scale-info",
  "serde",
- "sp-weights 27.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
- "xcm-procedural 7.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
-]
-
-[[package]]
-name = "staging-xcm-builder"
-version = "7.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits#87a52dbe55163e5cdde3953fc08e18653ce78fcf"
-dependencies = [
- "frame-support 28.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "frame-system 28.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "impl-trait-for-tuples",
- "log",
- "pallet-transaction-payment 28.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "parity-scale-codec",
- "polkadot-parachain-primitives 6.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "scale-info",
- "sp-arithmetic 23.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "sp-io 30.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "sp-runtime 31.0.1 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "sp-std 14.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "sp-weights 27.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "staging-xcm 7.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "staging-xcm-executor 7.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
+ "sp-weights",
+ "xcm-procedural",
 ]
 
 [[package]]
@@ -10852,42 +9267,21 @@ name = "staging-xcm-builder"
 version = "7.0.0"
 source = "git+https://github.com/paritytech/polkadot-sdk?branch=master#977254ccb1afca975780987ff9f19f356e99378f"
 dependencies = [
- "frame-support 28.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
- "frame-system 28.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
+ "frame-support",
+ "frame-system",
  "impl-trait-for-tuples",
  "log",
- "pallet-transaction-payment 28.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
+ "pallet-transaction-payment",
  "parity-scale-codec",
- "polkadot-parachain-primitives 6.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
+ "polkadot-parachain-primitives",
  "scale-info",
- "sp-arithmetic 23.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
- "sp-io 30.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
- "sp-runtime 31.0.1 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
+ "sp-arithmetic",
+ "sp-io",
+ "sp-runtime",
  "sp-std 14.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
- "sp-weights 27.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
- "staging-xcm 7.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
- "staging-xcm-executor 7.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
-]
-
-[[package]]
-name = "staging-xcm-executor"
-version = "7.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits#87a52dbe55163e5cdde3953fc08e18653ce78fcf"
-dependencies = [
- "environmental",
- "frame-benchmarking 28.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "frame-support 28.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "impl-trait-for-tuples",
- "log",
- "parity-scale-codec",
- "scale-info",
- "sp-arithmetic 23.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "sp-core 28.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "sp-io 30.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "sp-runtime 31.0.1 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "sp-std 14.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "sp-weights 27.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "staging-xcm 7.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
+ "sp-weights",
+ "staging-xcm",
+ "staging-xcm-executor",
 ]
 
 [[package]]
@@ -10896,19 +9290,19 @@ version = "7.0.0"
 source = "git+https://github.com/paritytech/polkadot-sdk?branch=master#977254ccb1afca975780987ff9f19f356e99378f"
 dependencies = [
  "environmental",
- "frame-benchmarking 28.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
- "frame-support 28.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
+ "frame-benchmarking",
+ "frame-support",
  "impl-trait-for-tuples",
  "log",
  "parity-scale-codec",
  "scale-info",
- "sp-arithmetic 23.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
- "sp-core 28.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
- "sp-io 30.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
- "sp-runtime 31.0.1 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
+ "sp-arithmetic",
+ "sp-core",
+ "sp-io",
+ "sp-runtime",
  "sp-std 14.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
- "sp-weights 27.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
- "staging-xcm 7.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
+ "sp-weights",
+ "staging-xcm",
 ]
 
 [[package]]
@@ -10998,18 +9392,6 @@ dependencies = [
 [[package]]
 name = "substrate-bip39"
 version = "0.4.7"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits#87a52dbe55163e5cdde3953fc08e18653ce78fcf"
-dependencies = [
- "hmac 0.12.1",
- "pbkdf2",
- "schnorrkel",
- "sha2 0.10.8",
- "zeroize",
-]
-
-[[package]]
-name = "substrate-bip39"
-version = "0.4.7"
 source = "git+https://github.com/paritytech/polkadot-sdk?branch=master#977254ccb1afca975780987ff9f19f356e99378f"
 dependencies = [
  "hmac 0.12.1",
@@ -11017,18 +9399,6 @@ dependencies = [
  "schnorrkel",
  "sha2 0.10.8",
  "zeroize",
-]
-
-[[package]]
-name = "substrate-prometheus-endpoint"
-version = "0.17.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits#87a52dbe55163e5cdde3953fc08e18653ce78fcf"
-dependencies = [
- "hyper",
- "log",
- "prometheus",
- "thiserror",
- "tokio",
 ]
 
 [[package]]
@@ -11052,26 +9422,26 @@ dependencies = [
  "async-trait",
  "bp-bridge-hub-polkadot",
  "bp-bridge-hub-rococo",
- "bp-header-chain 0.7.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "bp-messages 0.7.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "bp-parachains 0.7.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "bp-polkadot 0.5.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
+ "bp-header-chain",
+ "bp-messages",
+ "bp-parachains",
+ "bp-polkadot",
  "bp-polkadot-bulletin",
- "bp-polkadot-core 0.7.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
+ "bp-polkadot-core",
  "bp-rococo",
- "bp-runtime 0.7.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "bp-test-utils 0.7.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "bridge-runtime-common 0.7.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
+ "bp-runtime",
+ "bp-test-utils",
+ "bridge-runtime-common",
  "env_logger 0.11.3",
  "finality-grandpa",
- "frame-support 28.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
+ "frame-support",
  "futures",
  "hex",
  "hex-literal",
  "log",
  "num-format",
  "num-traits",
- "pallet-bridge-parachains 0.7.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
+ "pallet-bridge-parachains",
  "parachains-relay",
  "parity-scale-codec",
  "rbtag",
@@ -11083,14 +9453,14 @@ dependencies = [
  "relay-polkadot-bulletin-client",
  "relay-polkadot-client",
  "relay-rococo-client",
- "relay-substrate-client 0.1.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "relay-utils 0.1.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
+ "relay-substrate-client",
+ "relay-utils",
  "relay-westend-client",
  "signal-hook",
  "signal-hook-async-std",
- "sp-core 28.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
+ "sp-core",
  "sp-keyring",
- "sp-runtime 31.0.1 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
+ "sp-runtime",
  "structopt",
  "strum",
  "substrate-relay-helper",
@@ -11100,41 +9470,41 @@ dependencies = [
 [[package]]
 name = "substrate-relay-helper"
 version = "0.1.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits#87a52dbe55163e5cdde3953fc08e18653ce78fcf"
+source = "git+https://github.com/paritytech/polkadot-sdk?branch=master#977254ccb1afca975780987ff9f19f356e99378f"
 dependencies = [
  "anyhow",
  "async-std",
  "async-trait",
- "bp-header-chain 0.7.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "bp-messages 0.7.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "bp-parachains 0.7.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "bp-polkadot-core 0.7.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "bp-relayers 0.7.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "bp-runtime 0.7.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "bridge-runtime-common 0.7.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
+ "bp-header-chain",
+ "bp-messages",
+ "bp-parachains",
+ "bp-polkadot-core",
+ "bp-relayers",
+ "bp-runtime",
+ "bridge-runtime-common",
  "equivocation-detector",
  "finality-grandpa",
- "finality-relay 0.1.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "frame-support 28.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "frame-system 28.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
+ "finality-relay",
+ "frame-support",
+ "frame-system",
  "futures",
  "hex",
  "log",
  "messages-relay",
  "num-traits",
- "pallet-balances 28.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "pallet-bridge-grandpa 0.7.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "pallet-bridge-messages 0.7.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "pallet-bridge-parachains 0.7.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
+ "pallet-balances",
+ "pallet-bridge-grandpa",
+ "pallet-bridge-messages",
+ "pallet-bridge-parachains",
  "pallet-grandpa",
  "parachains-relay",
  "parity-scale-codec",
  "rbtag",
- "relay-substrate-client 0.1.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "relay-utils 0.1.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "sp-consensus-grandpa 13.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "sp-core 28.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
- "sp-runtime 31.0.1 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits)",
+ "relay-substrate-client",
+ "relay-utils",
+ "sp-consensus-grandpa",
+ "sp-core",
+ "sp-runtime",
  "structopt",
  "strum",
  "thiserror",
@@ -12895,17 +11265,6 @@ dependencies = [
  "rusticata-macros",
  "thiserror",
  "time",
-]
-
-[[package]]
-name = "xcm-procedural"
-version = "7.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-backports-and-nits#87a52dbe55163e5cdde3953fc08e18653ce78fcf"
-dependencies = [
- "Inflector",
- "proc-macro2 1.0.85",
- "quote 1.0.36",
- "syn 2.0.60",
 ]
 
 [[package]]

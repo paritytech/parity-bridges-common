@@ -28,6 +28,6 @@ relay-substrate-client = { git = "https://github.com/paritytech/polkadot-sdk", b
 
 # Substrate Dependencies
 
-sp-core = { git = "https://github.com/paritytech/polkadot-sdk", branch = "bko-bridges-backports-and-nits" }
-sp-runtime = { git = "https://github.com/paritytech/polkadot-sdk", branch = "bko-bridges-backports-and-nits" }
-sp-weights = { git = "https://github.com/paritytech/polkadot-sdk", branch = "bko-bridges-backports-and-nits" }
+sp-core = { git = "https://github.com/paritytech/polkadot-sdk", branch = "master" }
+sp-runtime = { git = "https://github.com/paritytech/polkadot-sdk", branch = "master" }
+sp-weights = { git = "https://github.com/paritytech/polkadot-sdk", branch = "master" }
