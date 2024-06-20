@@ -1,0 +1,20 @@
+[package]
+name = "relay-legacy-client"
+version = "0.1.0"
+authors.workspace = true
+edition.workspace = true
+license = "GPL-3.0-or-later WITH Classpath-exception-2.0"
+repository.workspace = true
+
+[lints]
+workspace = true
+
+[dependencies]
+codec = { package = "parity-scale-codec", version = "3.6.1", features = ["derive"] }
+scale-info = { version = "2.11.3", default-features = false, features = ["derive"] }
+
+# Bridge dependencies
+bp-messages = { git = "https://github.com/paritytech/polkadot-sdk", branch = "bko-bridges-v2-compact-proofs" }
+
+# Substrate Dependencies
+sp-runtime = { git = "https://github.com/paritytech/polkadot-sdk", branch = "bko-bridges-v2-compact-proofs" }
