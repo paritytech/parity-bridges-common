@@ -77,7 +77,7 @@ version = "0.7.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "891477e0c6a8957309ee5c45a6368af3ae14bb510732d2684ffa19af310920f9"
 dependencies = [
- "getrandom 0.2.14",
+ "getrandom",
  "once_cell",
  "version_check",
 ]
@@ -89,7 +89,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e89da841a80418a9b391ebaea17f5c112ffaaa96f621d2c285b5174da76b9011"
 dependencies = [
  "cfg-if",
- "getrandom 0.2.14",
+ "getrandom",
  "once_cell",
  "version_check",
  "zerocopy",
@@ -481,7 +481,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "94893f1e0c6eeab764ade8dc4c0db24caf4fe7cbbaafc0eba0a9030f447b5185"
 dependencies = [
  "num-traits",
- "rand 0.8.5",
+ "rand",
  "rayon",
 ]
 
@@ -494,7 +494,7 @@ dependencies = [
  "ark-serialize",
  "ark-std",
  "digest 0.10.7",
- "rand_core 0.6.4",
+ "rand_core",
  "sha3",
 ]
 
@@ -531,8 +531,24 @@ version = "0.5.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7f6fd5ddaf0351dff5b8da21b2fb4ff8e08ddd02857f0bf69c47639106c0fff0"
 dependencies = [
- "asn1-rs-derive",
- "asn1-rs-impl",
+ "asn1-rs-derive 0.4.0",
+ "asn1-rs-impl 0.1.0",
+ "displaydoc",
+ "nom",
+ "num-traits",
+ "rusticata-macros",
+ "thiserror",
+ "time",
+]
+
+[[package]]
+name = "asn1-rs"
+version = "0.6.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "22ad1373757efa0f70ec53939aabc7152e1591cb485208052993070ac8d2429d"
+dependencies = [
+ "asn1-rs-derive 0.5.0",
+ "asn1-rs-impl 0.2.0",
  "displaydoc",
  "nom",
  "num-traits",
@@ -550,7 +566,19 @@ dependencies = [
  "proc-macro2 1.0.85",
  "quote 1.0.36",
  "syn 1.0.109",
- "synstructure",
+ "synstructure 0.12.6",
+]
+
+[[package]]
+name = "asn1-rs-derive"
+version = "0.5.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7378575ff571966e99a744addeff0bff98b8ada0dedf1956d59e634db95eaac1"
+dependencies = [
+ "proc-macro2 1.0.85",
+ "quote 1.0.36",
+ "syn 2.0.60",
+ "synstructure 0.13.1",
 ]
 
 [[package]]
@@ -562,6 +590,17 @@ dependencies = [
  "proc-macro2 1.0.85",
  "quote 1.0.36",
  "syn 1.0.109",
+]
+
+[[package]]
+name = "asn1-rs-impl"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7b18050c2cd6fe86c3a76584ef5e0baf286d038cda203eb6223df2cc413565f7"
+dependencies = [
+ "proc-macro2 1.0.85",
+ "quote 1.0.36",
+ "syn 2.0.60",
 ]
 
 [[package]]
@@ -815,6 +854,17 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1505bd5d3d116872e7271a6d4e16d81d0c8570876c8de68093a09ac269d8aac0"
 
 [[package]]
+name = "attohttpc"
+version = "0.24.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8d9a9bf8b79a749ee0b911b91b671cc2b6c670bdbc7e3dfd537576ddc94bb2a2"
+dependencies = [
+ "http 0.2.12",
+ "log",
+ "url",
+]
+
+[[package]]
 name = "atty"
 version = "0.2.14"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -837,9 +887,9 @@ version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b62ddb9cb1ec0a098ad4bbf9344d0713fa193ae1a80af55febcff2627b6a00c1"
 dependencies = [
- "getrandom 0.2.14",
+ "getrandom",
  "instant",
- "rand 0.8.5",
+ "rand",
 ]
 
 [[package]]
@@ -871,8 +921,8 @@ dependencies = [
  "dleq_vrf",
  "fflonk",
  "merlin",
- "rand_chacha 0.3.1",
- "rand_core 0.6.4",
+ "rand_chacha",
+ "rand_core",
  "ring 0.1.0",
  "sha2 0.10.8",
  "sp-ark-bls12-381",
@@ -1111,7 +1161,7 @@ dependencies = [
 [[package]]
 name = "bp-bridge-hub-cumulus"
 version = "0.7.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-v2-compact-proofs#55b3aeacca9236f382b2a6cf22df878f131c72ad"
+source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-v2-compact-proofs#7e6b6b20abac1cd24a7d7b8a837e8add10efa4c9"
 dependencies = [
  "bp-messages",
  "bp-polkadot-core",
@@ -1126,7 +1176,7 @@ dependencies = [
 [[package]]
 name = "bp-bridge-hub-kusama"
 version = "0.6.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-v2-compact-proofs#55b3aeacca9236f382b2a6cf22df878f131c72ad"
+source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-v2-compact-proofs#7e6b6b20abac1cd24a7d7b8a837e8add10efa4c9"
 dependencies = [
  "bp-bridge-hub-cumulus",
  "bp-messages",
@@ -1140,7 +1190,7 @@ dependencies = [
 [[package]]
 name = "bp-bridge-hub-polkadot"
 version = "0.6.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-v2-compact-proofs#55b3aeacca9236f382b2a6cf22df878f131c72ad"
+source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-v2-compact-proofs#7e6b6b20abac1cd24a7d7b8a837e8add10efa4c9"
 dependencies = [
  "bp-bridge-hub-cumulus",
  "bp-messages",
@@ -1154,7 +1204,7 @@ dependencies = [
 [[package]]
 name = "bp-bridge-hub-rococo"
 version = "0.7.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-v2-compact-proofs#55b3aeacca9236f382b2a6cf22df878f131c72ad"
+source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-v2-compact-proofs#7e6b6b20abac1cd24a7d7b8a837e8add10efa4c9"
 dependencies = [
  "bp-bridge-hub-cumulus",
  "bp-messages",
@@ -1168,7 +1218,7 @@ dependencies = [
 [[package]]
 name = "bp-bridge-hub-westend"
 version = "0.3.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-v2-compact-proofs#55b3aeacca9236f382b2a6cf22df878f131c72ad"
+source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-v2-compact-proofs#7e6b6b20abac1cd24a7d7b8a837e8add10efa4c9"
 dependencies = [
  "bp-bridge-hub-cumulus",
  "bp-messages",
@@ -1182,7 +1232,7 @@ dependencies = [
 [[package]]
 name = "bp-header-chain"
 version = "0.7.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-v2-compact-proofs#55b3aeacca9236f382b2a6cf22df878f131c72ad"
+source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-v2-compact-proofs#7e6b6b20abac1cd24a7d7b8a837e8add10efa4c9"
 dependencies = [
  "bp-runtime",
  "finality-grandpa",
@@ -1199,7 +1249,7 @@ dependencies = [
 [[package]]
 name = "bp-kusama"
 version = "0.5.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-v2-compact-proofs#55b3aeacca9236f382b2a6cf22df878f131c72ad"
+source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-v2-compact-proofs#7e6b6b20abac1cd24a7d7b8a837e8add10efa4c9"
 dependencies = [
  "bp-header-chain",
  "bp-polkadot-core",
@@ -1212,7 +1262,7 @@ dependencies = [
 [[package]]
 name = "bp-messages"
 version = "0.7.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-v2-compact-proofs#55b3aeacca9236f382b2a6cf22df878f131c72ad"
+source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-v2-compact-proofs#7e6b6b20abac1cd24a7d7b8a837e8add10efa4c9"
 dependencies = [
  "bp-header-chain",
  "bp-runtime",
@@ -1227,7 +1277,7 @@ dependencies = [
 [[package]]
 name = "bp-parachains"
 version = "0.7.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-v2-compact-proofs#55b3aeacca9236f382b2a6cf22df878f131c72ad"
+source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-v2-compact-proofs#7e6b6b20abac1cd24a7d7b8a837e8add10efa4c9"
 dependencies = [
  "bp-header-chain",
  "bp-polkadot-core",
@@ -1244,7 +1294,7 @@ dependencies = [
 [[package]]
 name = "bp-polkadot"
 version = "0.5.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-v2-compact-proofs#55b3aeacca9236f382b2a6cf22df878f131c72ad"
+source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-v2-compact-proofs#7e6b6b20abac1cd24a7d7b8a837e8add10efa4c9"
 dependencies = [
  "bp-header-chain",
  "bp-polkadot-core",
@@ -1257,7 +1307,7 @@ dependencies = [
 [[package]]
 name = "bp-polkadot-bulletin"
 version = "0.4.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-v2-compact-proofs#55b3aeacca9236f382b2a6cf22df878f131c72ad"
+source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-v2-compact-proofs#7e6b6b20abac1cd24a7d7b8a837e8add10efa4c9"
 dependencies = [
  "bp-header-chain",
  "bp-messages",
@@ -1275,7 +1325,7 @@ dependencies = [
 [[package]]
 name = "bp-polkadot-core"
 version = "0.7.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-v2-compact-proofs#55b3aeacca9236f382b2a6cf22df878f131c72ad"
+source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-v2-compact-proofs#7e6b6b20abac1cd24a7d7b8a837e8add10efa4c9"
 dependencies = [
  "bp-messages",
  "bp-runtime",
@@ -1293,7 +1343,7 @@ dependencies = [
 [[package]]
 name = "bp-relayers"
 version = "0.7.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-v2-compact-proofs#55b3aeacca9236f382b2a6cf22df878f131c72ad"
+source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-v2-compact-proofs#7e6b6b20abac1cd24a7d7b8a837e8add10efa4c9"
 dependencies = [
  "bp-messages",
  "bp-runtime",
@@ -1307,7 +1357,7 @@ dependencies = [
 [[package]]
 name = "bp-rococo"
 version = "0.6.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-v2-compact-proofs#55b3aeacca9236f382b2a6cf22df878f131c72ad"
+source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-v2-compact-proofs#7e6b6b20abac1cd24a7d7b8a837e8add10efa4c9"
 dependencies = [
  "bp-header-chain",
  "bp-polkadot-core",
@@ -1320,7 +1370,7 @@ dependencies = [
 [[package]]
 name = "bp-runtime"
 version = "0.7.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-v2-compact-proofs#55b3aeacca9236f382b2a6cf22df878f131c72ad"
+source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-v2-compact-proofs#7e6b6b20abac1cd24a7d7b8a837e8add10efa4c9"
 dependencies = [
  "frame-support",
  "frame-system",
@@ -1343,13 +1393,13 @@ dependencies = [
 [[package]]
 name = "bp-test-utils"
 version = "0.7.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-v2-compact-proofs#55b3aeacca9236f382b2a6cf22df878f131c72ad"
+source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-v2-compact-proofs#7e6b6b20abac1cd24a7d7b8a837e8add10efa4c9"
 dependencies = [
  "bp-header-chain",
  "bp-parachains",
  "bp-polkadot-core",
  "bp-runtime",
- "ed25519-dalek 2.1.1",
+ "ed25519-dalek",
  "finality-grandpa",
  "parity-scale-codec",
  "sp-application-crypto",
@@ -1363,7 +1413,7 @@ dependencies = [
 [[package]]
 name = "bp-westend"
 version = "0.3.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-v2-compact-proofs#55b3aeacca9236f382b2a6cf22df878f131c72ad"
+source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-v2-compact-proofs#7e6b6b20abac1cd24a7d7b8a837e8add10efa4c9"
 dependencies = [
  "bp-header-chain",
  "bp-polkadot-core",
@@ -1376,7 +1426,7 @@ dependencies = [
 [[package]]
 name = "bp-xcm-bridge-hub"
 version = "0.2.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-v2-compact-proofs#55b3aeacca9236f382b2a6cf22df878f131c72ad"
+source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-v2-compact-proofs#7e6b6b20abac1cd24a7d7b8a837e8add10efa4c9"
 dependencies = [
  "sp-std 14.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-v2-compact-proofs)",
 ]
@@ -1384,7 +1434,7 @@ dependencies = [
 [[package]]
 name = "bp-xcm-bridge-hub-router"
 version = "0.6.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-v2-compact-proofs#55b3aeacca9236f382b2a6cf22df878f131c72ad"
+source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-v2-compact-proofs#7e6b6b20abac1cd24a7d7b8a837e8add10efa4c9"
 dependencies = [
  "parity-scale-codec",
  "scale-info",
@@ -1395,7 +1445,7 @@ dependencies = [
 [[package]]
 name = "bridge-runtime-common"
 version = "0.7.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-v2-compact-proofs#55b3aeacca9236f382b2a6cf22df878f131c72ad"
+source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-v2-compact-proofs#7e6b6b20abac1cd24a7d7b8a837e8add10efa4c9"
 dependencies = [
  "bp-header-chain",
  "bp-messages",
@@ -1407,7 +1457,6 @@ dependencies = [
  "bp-xcm-bridge-hub-router",
  "frame-support",
  "frame-system",
- "hash-db",
  "log",
  "pallet-bridge-grandpa",
  "pallet-bridge-messages",
@@ -1417,8 +1466,6 @@ dependencies = [
  "pallet-utility",
  "parity-scale-codec",
  "scale-info",
- "sp-api",
- "sp-core",
  "sp-io",
  "sp-runtime",
  "sp-std 14.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-v2-compact-proofs)",
@@ -1506,6 +1553,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "cesu8"
+version = "1.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6d43a04d8753f35258c91f8ec639f792891f748a1edbd759cf1dcea3382ad83c"
+
+[[package]]
 name = "cfg-expr"
 version = "0.15.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1584,7 +1637,7 @@ dependencies = [
  "multibase",
  "multihash 0.17.0",
  "serde",
- "unsigned-varint",
+ "unsigned-varint 0.7.2",
 ]
 
 [[package]]
@@ -1597,7 +1650,7 @@ dependencies = [
  "multibase",
  "multihash 0.18.1",
  "serde",
- "unsigned-varint",
+ "unsigned-varint 0.7.2",
 ]
 
 [[package]]
@@ -1664,7 +1717,7 @@ dependencies = [
  "fflonk",
  "getrandom_or_panic",
  "merlin",
- "rand_chacha 0.3.1",
+ "rand_chacha",
 ]
 
 [[package]]
@@ -1703,7 +1756,7 @@ version = "0.1.16"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f9d839f2a20b0aee515dc581a6172f2321f96cab76c1a38a4c584a194955390e"
 dependencies = [
- "getrandom 0.2.14",
+ "getrandom",
  "once_cell",
  "tiny-keccak",
 ]
@@ -1944,7 +1997,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0dc92fb57ca44df6db8059111ab3af99a63d5d0f8375d9972e319a379c6bab76"
 dependencies = [
  "generic-array 0.14.7",
- "rand_core 0.6.4",
+ "rand_core",
  "subtle 2.5.0",
  "zeroize",
 ]
@@ -1956,7 +2009,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1bfb12502f3fc46cca1bb51ac28df9d618d813cdc3d2f25b9fe775a34af26bb3"
 dependencies = [
  "generic-array 0.14.7",
- "rand_core 0.6.4",
+ "rand_core",
  "typenum",
 ]
 
@@ -2000,7 +2053,7 @@ dependencies = [
  "openssl-probe",
  "openssl-sys",
  "schannel",
- "socket2 0.5.6",
+ "socket2 0.5.7",
  "windows-sys 0.52.0",
 ]
 
@@ -2022,29 +2075,15 @@ dependencies = [
 
 [[package]]
 name = "curve25519-dalek"
-version = "3.2.0"
+version = "4.1.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0b9fdf9972b2bd6af2d913799d9ebc165ea4d2e65878e329d9c6b372c4491b61"
-dependencies = [
- "byteorder",
- "digest 0.9.0",
- "rand_core 0.5.1",
- "subtle 2.5.0",
- "zeroize",
-]
-
-[[package]]
-name = "curve25519-dalek"
-version = "4.1.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0a677b8922c94e01bdbb12126b0bc852f00447528dee1782229af9c720c3f348"
+checksum = "97fb8b7c4503de7d6ae7b42ab72a5a59857b4c937ec27a3d4539dba95b5ab2be"
 dependencies = [
  "cfg-if",
  "cpufeatures",
  "curve25519-dalek-derive",
  "digest 0.10.7",
  "fiat-crypto",
- "platforms",
  "rustc_version",
  "subtle 2.5.0",
  "zeroize",
@@ -2173,7 +2212,21 @@ version = "8.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "dbd676fbbab537128ef0278adb5576cf363cff6aa22a7b24effe97347cfab61e"
 dependencies = [
- "asn1-rs",
+ "asn1-rs 0.5.2",
+ "displaydoc",
+ "nom",
+ "num-bigint",
+ "num-traits",
+ "rusticata-macros",
+]
+
+[[package]]
+name = "der-parser"
+version = "9.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5cd0a5c643689626bec213c4d8bd4d96acc8ffdb4ad4bb6bc16abf27d5f4b553"
+dependencies = [
+ "asn1-rs 0.6.1",
  "displaydoc",
  "nom",
  "num-bigint",
@@ -2414,17 +2467,8 @@ dependencies = [
  "elliptic-curve",
  "rfc6979",
  "serdect",
- "signature 2.2.0",
+ "signature",
  "spki",
-]
-
-[[package]]
-name = "ed25519"
-version = "1.5.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "91cff35c70bba8a626e3185d8cd48cc11b5437e1a5bcd15b9b5fa3c64b6dfee7"
-dependencies = [
- "signature 1.6.4",
 ]
 
 [[package]]
@@ -2434,21 +2478,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "115531babc129696a58c64a4fef0a8bf9e9698629fb97e9e40767d235cfbcd53"
 dependencies = [
  "pkcs8",
- "signature 2.2.0",
-]
-
-[[package]]
-name = "ed25519-dalek"
-version = "1.0.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c762bae6dcaf24c4c84667b8579785430908723d5c889f469d76a41d59cc7a9d"
-dependencies = [
- "curve25519-dalek 3.2.0",
- "ed25519 1.5.3",
- "rand 0.7.3",
- "serde",
- "sha2 0.9.9",
- "zeroize",
+ "signature",
 ]
 
 [[package]]
@@ -2457,9 +2487,9 @@ version = "2.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "4a3daa8e81a3963a60642bcc1f90a670680bd4a77535faa384e9d1c79d620871"
 dependencies = [
- "curve25519-dalek 4.1.2",
- "ed25519 2.2.3",
- "rand_core 0.6.4",
+ "curve25519-dalek",
+ "ed25519",
+ "rand_core",
  "serde",
  "sha2 0.10.8",
  "subtle 2.5.0",
@@ -2472,11 +2502,11 @@ version = "4.0.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7d9ce6874da5d4415896cd45ffbc4d1cfc0c4f9c079427bd870742c30f2f65a9"
 dependencies = [
- "curve25519-dalek 4.1.2",
- "ed25519 2.2.3",
+ "curve25519-dalek",
+ "ed25519",
  "hashbrown 0.14.5",
  "hex",
- "rand_core 0.6.4",
+ "rand_core",
  "sha2 0.10.8",
  "zeroize",
 ]
@@ -2500,7 +2530,7 @@ dependencies = [
  "generic-array 0.14.7",
  "group",
  "pkcs8",
- "rand_core 0.6.4",
+ "rand_core",
  "sec1",
  "serdect",
  "subtle 2.5.0",
@@ -2591,7 +2621,7 @@ checksum = "5443807d6dff69373d433ab9ef5378ad8df50ca6298caf15de6e52e24aaf54d5"
 [[package]]
 name = "equivocation-detector"
 version = "0.1.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-v2-compact-proofs#55b3aeacca9236f382b2a6cf22df878f131c72ad"
+source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-v2-compact-proofs#7e6b6b20abac1cd24a7d7b8a837e8add10efa4c9"
 dependencies = [
  "async-std",
  "async-trait",
@@ -2730,7 +2760,7 @@ version = "0.13.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ded41244b729663b1e574f1b4fb731469f69f79c17667b5d776b16cda0479449"
 dependencies = [
- "rand_core 0.6.4",
+ "rand_core",
  "subtle 2.5.0",
 ]
 
@@ -2775,14 +2805,14 @@ dependencies = [
  "log",
  "num-traits",
  "parity-scale-codec",
- "parking_lot 0.12.1",
+ "parking_lot 0.12.3",
  "scale-info",
 ]
 
 [[package]]
 name = "finality-relay"
 version = "0.1.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-v2-compact-proofs#55b3aeacca9236f382b2a6cf22df878f131c72ad"
+source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-v2-compact-proofs#7e6b6b20abac1cd24a7d7b8a837e8add10efa4c9"
 dependencies = [
  "async-std",
  "async-trait",
@@ -2811,7 +2841,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "835c052cb0c08c1acf6ffd71c022172e18723949c8282f2b9f27efbc51e64534"
 dependencies = [
  "byteorder",
- "rand 0.8.5",
+ "rand",
  "rustc-hex",
  "static_assertions",
 ]
@@ -2821,17 +2851,6 @@ name = "fixedbitset"
 version = "0.4.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0ce7134b9999ecaf8bcd65542e436736ef32ddca1b3e06094cb6ec5755203b80"
-
-[[package]]
-name = "flate2"
-version = "1.0.28"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "46303f565772937ffe1d394a4fac6f411c6013172fadde9dcdb1e147a086940e"
-dependencies = [
- "crc32fast",
- "libz-sys",
- "miniz_oxide",
-]
 
 [[package]]
 name = "float-cmp"
@@ -2881,7 +2900,7 @@ checksum = "6c2141d6d6c8512188a7891b4b01590a45f6dac67afb4f255c4124dbb86d4eaa"
 [[package]]
 name = "frame-benchmarking"
 version = "28.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-v2-compact-proofs#55b3aeacca9236f382b2a6cf22df878f131c72ad"
+source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-v2-compact-proofs#7e6b6b20abac1cd24a7d7b8a837e8add10efa4c9"
 dependencies = [
  "frame-support",
  "frame-support-procedural",
@@ -2929,7 +2948,7 @@ dependencies = [
 [[package]]
 name = "frame-support"
 version = "28.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-v2-compact-proofs#55b3aeacca9236f382b2a6cf22df878f131c72ad"
+source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-v2-compact-proofs#7e6b6b20abac1cd24a7d7b8a837e8add10efa4c9"
 dependencies = [
  "aquamarine",
  "array-bytes",
@@ -2970,7 +2989,7 @@ dependencies = [
 [[package]]
 name = "frame-support-procedural"
 version = "23.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-v2-compact-proofs#55b3aeacca9236f382b2a6cf22df878f131c72ad"
+source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-v2-compact-proofs#7e6b6b20abac1cd24a7d7b8a837e8add10efa4c9"
 dependencies = [
  "Inflector",
  "cfg-expr",
@@ -2979,7 +2998,7 @@ dependencies = [
  "frame-support-procedural-tools",
  "itertools 0.11.0",
  "macro_magic",
- "proc-macro-warning",
+ "proc-macro-warning 1.0.2",
  "proc-macro2 1.0.85",
  "quote 1.0.36",
  "sp-crypto-hashing 0.1.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-v2-compact-proofs)",
@@ -2989,7 +3008,7 @@ dependencies = [
 [[package]]
 name = "frame-support-procedural-tools"
 version = "10.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-v2-compact-proofs#55b3aeacca9236f382b2a6cf22df878f131c72ad"
+source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-v2-compact-proofs#7e6b6b20abac1cd24a7d7b8a837e8add10efa4c9"
 dependencies = [
  "frame-support-procedural-tools-derive",
  "proc-macro-crate 3.1.0",
@@ -3001,7 +3020,7 @@ dependencies = [
 [[package]]
 name = "frame-support-procedural-tools-derive"
 version = "11.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-v2-compact-proofs#55b3aeacca9236f382b2a6cf22df878f131c72ad"
+source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-v2-compact-proofs#7e6b6b20abac1cd24a7d7b8a837e8add10efa4c9"
 dependencies = [
  "proc-macro2 1.0.85",
  "quote 1.0.36",
@@ -3011,7 +3030,7 @@ dependencies = [
 [[package]]
 name = "frame-system"
 version = "28.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-v2-compact-proofs#55b3aeacca9236f382b2a6cf22df878f131c72ad"
+source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-v2-compact-proofs#7e6b6b20abac1cd24a7d7b8a837e8add10efa4c9"
 dependencies = [
  "cfg-if",
  "docify",
@@ -3055,6 +3074,16 @@ dependencies = [
  "futures-io",
  "futures-sink",
  "futures-task",
+ "futures-util",
+]
+
+[[package]]
+name = "futures-bounded"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8b07bbbe7d7e78809544c6f718d875627addc73a7c3582447abc052cd3dc67e0"
+dependencies = [
+ "futures-timer",
  "futures-util",
 ]
 
@@ -3133,13 +3162,12 @@ dependencies = [
 
 [[package]]
 name = "futures-rustls"
-version = "0.22.2"
+version = "0.24.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d2411eed028cdf8c8034eaf21f9915f956b6c3abec4d4c7949ee67f0721127bd"
+checksum = "35bd3cf68c183738046838e300353e4716c674dc5e56890de4826801a6622a28"
 dependencies = [
  "futures-io",
- "rustls 0.20.9",
- "webpki",
+ "rustls 0.21.10",
 ]
 
 [[package]]
@@ -3209,24 +3237,13 @@ dependencies = [
 
 [[package]]
 name = "getrandom"
-version = "0.1.16"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8fc3cb4d91f53b50155bdcfd23f6a4c39ae1969c2ae85982b135750cccaf5fce"
-dependencies = [
- "cfg-if",
- "libc",
- "wasi 0.9.0+wasi-snapshot-preview1",
-]
-
-[[package]]
-name = "getrandom"
 version = "0.2.14"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "94b22e06ecb0110981051723910cbf0b5f5e09a2062dd7663334ee79a9d1286c"
 dependencies = [
  "cfg-if",
  "libc",
- "wasi 0.11.0+wasi-snapshot-preview1",
+ "wasi",
 ]
 
 [[package]]
@@ -3235,8 +3252,8 @@ version = "0.0.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6ea1015b5a70616b688dc230cfe50c8af89d972cb132d5a622814d29773b10b9"
 dependencies = [
- "rand 0.8.5",
- "rand_core 0.6.4",
+ "rand",
+ "rand_core",
 ]
 
 [[package]]
@@ -3285,7 +3302,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f0f9ef7462f7c099f518d754361858f86d8a07af53ba9af0fe635bbccb151a63"
 dependencies = [
  "ff",
- "rand_core 0.6.4",
+ "rand_core",
  "subtle 2.5.0",
 ]
 
@@ -3300,7 +3317,7 @@ dependencies = [
  "futures-core",
  "futures-sink",
  "futures-util",
- "http",
+ "http 0.2.12",
  "indexmap 2.2.6",
  "slab",
  "tokio",
@@ -3486,13 +3503,24 @@ dependencies = [
 ]
 
 [[package]]
+name = "http"
+version = "1.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "21b9ddb458710bc376481b842f5da65cdf31522de232c1ca8146abce2a358258"
+dependencies = [
+ "bytes",
+ "fnv",
+ "itoa",
+]
+
+[[package]]
 name = "http-body"
 version = "0.4.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7ceab25649e9960c0311ea418d17bee82c0dcec1bd053b5f9a66e265a693bed2"
 dependencies = [
  "bytes",
- "http",
+ "http 0.2.12",
  "pin-project-lite 0.2.14",
 ]
 
@@ -3525,13 +3553,13 @@ dependencies = [
  "futures-core",
  "futures-util",
  "h2",
- "http",
+ "http 0.2.12",
  "http-body",
  "httparse",
  "httpdate",
  "itoa",
  "pin-project-lite 0.2.14",
- "socket2 0.5.6",
+ "socket2 0.5.7",
  "tokio",
  "tower-service",
  "tracing",
@@ -3545,7 +3573,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ec3efd23720e2049821a693cbc7e65ea87c72f1c58ff2f9522ff332b1491e590"
 dependencies = [
  "futures-util",
- "http",
+ "http 0.2.12",
  "hyper",
  "log",
  "rustls 0.21.10",
@@ -3641,6 +3669,25 @@ dependencies = [
  "system-configuration",
  "tokio",
  "windows 0.51.1",
+]
+
+[[package]]
+name = "igd-next"
+version = "0.14.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "064d90fec10d541084e7b39ead8875a5a80d9114a2b18791565253bae25f49e4"
+dependencies = [
+ "async-trait",
+ "attohttpc",
+ "bytes",
+ "futures",
+ "http 0.2.12",
+ "hyper",
+ "log",
+ "rand",
+ "tokio",
+ "url",
+ "xmltree",
 ]
 
 [[package]]
@@ -3777,7 +3824,7 @@ version = "0.3.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b58db92f96b720de98181bbbe63c831e87005ab460c1bf306eb2622b4707997f"
 dependencies = [
- "socket2 0.5.6",
+ "socket2 0.5.7",
  "widestring",
  "windows-sys 0.48.0",
  "winreg",
@@ -3814,7 +3861,7 @@ dependencies = [
  "encoding_rs",
  "event-listener 2.5.3",
  "futures-lite 1.13.0",
- "http",
+ "http 0.2.12",
  "log",
  "mime",
  "once_cell",
@@ -3861,6 +3908,26 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "49f1f14873335454500d59611f1cf4a4b0f786f9ac11f4312a78e4cf2566695b"
 
 [[package]]
+name = "jni"
+version = "0.19.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c6df18c2e3db7e453d3c6ac5b3e9d5182664d28788126d39b91f2d1e22b017ec"
+dependencies = [
+ "cesu8",
+ "combine",
+ "jni-sys",
+ "log",
+ "thiserror",
+ "walkdir",
+]
+
+[[package]]
+name = "jni-sys"
+version = "0.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8eaf4bc02d17cbdd7ff4c7438cafcdf7fb9a4613313ad11b4f8fefe7d3fa0130"
+
+[[package]]
 name = "jobserver"
 version = "0.1.30"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3895,12 +3962,23 @@ version = "0.22.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "cfdb12a2381ea5b2e68c3469ec604a007b367778cdb14d09612c8069ebd616ad"
 dependencies = [
- "jsonrpsee-client-transport",
- "jsonrpsee-core",
+ "jsonrpsee-client-transport 0.22.5",
+ "jsonrpsee-core 0.22.5",
  "jsonrpsee-http-client",
+ "jsonrpsee-types 0.22.5",
+ "jsonrpsee-ws-client 0.22.5",
+]
+
+[[package]]
+name = "jsonrpsee"
+version = "0.23.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "62b089779ad7f80768693755a031cc14a7766aba707cbe886674e3f79e9b7e47"
+dependencies = [
+ "jsonrpsee-core 0.23.2",
  "jsonrpsee-proc-macros",
- "jsonrpsee-types",
- "jsonrpsee-ws-client",
+ "jsonrpsee-types 0.23.2",
+ "jsonrpsee-ws-client 0.23.2",
  "tracing",
 ]
 
@@ -3911,15 +3989,38 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "4978087a58c3ab02efc5b07c5e5e2803024536106fd5506f558db172c889b3aa"
 dependencies = [
  "futures-util",
- "http",
- "jsonrpsee-core",
+ "http 0.2.12",
+ "jsonrpsee-core 0.22.5",
  "pin-project",
  "rustls-native-certs 0.7.0",
  "rustls-pki-types",
- "soketto",
+ "soketto 0.7.1",
  "thiserror",
  "tokio",
  "tokio-rustls 0.25.0",
+ "tokio-util",
+ "tracing",
+ "url",
+]
+
+[[package]]
+name = "jsonrpsee-client-transport"
+version = "0.23.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "08163edd8bcc466c33d79e10f695cdc98c00d1e6ddfb95cec41b6b0279dd5432"
+dependencies = [
+ "base64 0.22.0",
+ "futures-util",
+ "http 1.1.0",
+ "jsonrpsee-core 0.23.2",
+ "pin-project",
+ "rustls 0.23.7",
+ "rustls-pki-types",
+ "rustls-platform-verifier",
+ "soketto 0.8.0",
+ "thiserror",
+ "tokio",
+ "tokio-rustls 0.26.0",
  "tokio-util",
  "tracing",
  "url",
@@ -3937,10 +4038,33 @@ dependencies = [
  "futures-timer",
  "futures-util",
  "hyper",
- "jsonrpsee-types",
- "parking_lot 0.12.1",
+ "jsonrpsee-types 0.22.5",
  "pin-project",
- "rand 0.8.5",
+ "rustc-hash",
+ "serde",
+ "serde_json",
+ "thiserror",
+ "tokio",
+ "tokio-stream",
+ "tracing",
+]
+
+[[package]]
+name = "jsonrpsee-core"
+version = "0.23.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "79712302e737d23ca0daa178e752c9334846b08321d439fd89af9a384f8c830b"
+dependencies = [
+ "anyhow",
+ "async-trait",
+ "beef",
+ "futures-timer",
+ "futures-util",
+ "http 1.1.0",
+ "jsonrpsee-types 0.23.2",
+ "parking_lot 0.12.3",
+ "pin-project",
+ "rand",
  "rustc-hash",
  "serde",
  "serde_json",
@@ -3959,8 +4083,8 @@ dependencies = [
  "async-trait",
  "hyper",
  "hyper-rustls",
- "jsonrpsee-core",
- "jsonrpsee-types",
+ "jsonrpsee-core 0.22.5",
+ "jsonrpsee-types 0.22.5",
  "serde",
  "serde_json",
  "thiserror",
@@ -3972,11 +4096,11 @@ dependencies = [
 
 [[package]]
 name = "jsonrpsee-proc-macros"
-version = "0.22.5"
+version = "0.23.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7d0bb047e79a143b32ea03974a6bf59b62c2a4c5f5d42a381c907a8bbb3f75c0"
+checksum = "7895f186d5921065d96e16bd795e5ca89ac8356ec423fafc6e3d7cf8ec11aee4"
 dependencies = [
- "heck 0.4.1",
+ "heck 0.5.0",
  "proc-macro-crate 3.1.0",
  "proc-macro2 1.0.85",
  "quote 1.0.36",
@@ -3997,15 +4121,41 @@ dependencies = [
 ]
 
 [[package]]
+name = "jsonrpsee-types"
+version = "0.23.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d9c465fbe385238e861fdc4d1c85e04ada6c1fd246161d26385c1b311724d2af"
+dependencies = [
+ "beef",
+ "http 1.1.0",
+ "serde",
+ "serde_json",
+ "thiserror",
+]
+
+[[package]]
 name = "jsonrpsee-ws-client"
 version = "0.22.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "58b9db2dfd5bb1194b0ce921504df9ceae210a345bc2f6c5a61432089bbab070"
 dependencies = [
- "http",
- "jsonrpsee-client-transport",
- "jsonrpsee-core",
- "jsonrpsee-types",
+ "http 0.2.12",
+ "jsonrpsee-client-transport 0.22.5",
+ "jsonrpsee-core 0.22.5",
+ "jsonrpsee-types 0.22.5",
+ "url",
+]
+
+[[package]]
+name = "jsonrpsee-ws-client"
+version = "0.23.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1c28759775f5cb2f1ea9667672d3fe2b0e701d1f4b7b67954e60afe7fd058b5e"
+dependencies = [
+ "http 1.1.0",
+ "jsonrpsee-client-transport 0.23.2",
+ "jsonrpsee-core 0.23.2",
+ "jsonrpsee-types 0.23.2",
  "url",
 ]
 
@@ -4086,14 +4236,15 @@ dependencies = [
 
 [[package]]
 name = "libp2p"
-version = "0.51.4"
+version = "0.52.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f35eae38201a993ece6bdc823292d6abd1bffed1c4d0f4a3517d2bd8e1d917fe"
+checksum = "e94495eb319a85b70a68b85e2389a95bb3555c71c49025b78c691a854a7e6464"
 dependencies = [
  "bytes",
+ "either",
  "futures",
  "futures-timer",
- "getrandom 0.2.14",
+ "getrandom",
  "instant",
  "libp2p-allow-block-list",
  "libp2p-connection-limits",
@@ -4110,18 +4261,21 @@ dependencies = [
  "libp2p-request-response",
  "libp2p-swarm",
  "libp2p-tcp",
+ "libp2p-upnp",
  "libp2p-wasm-ext",
  "libp2p-websocket",
  "libp2p-yamux",
- "multiaddr",
+ "multiaddr 0.18.1",
  "pin-project",
+ "rw-stream-sink",
+ "thiserror",
 ]
 
 [[package]]
 name = "libp2p-allow-block-list"
-version = "0.1.1"
+version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "510daa05efbc25184458db837f6f9a5143888f1caa742426d92e1833ddd38a50"
+checksum = "55b46558c5c0bf99d3e2a1a38fd54ff5476ca66dd1737b12466a1824dd219311"
 dependencies = [
  "libp2p-core",
  "libp2p-identity",
@@ -4131,9 +4285,9 @@ dependencies = [
 
 [[package]]
 name = "libp2p-connection-limits"
-version = "0.1.0"
+version = "0.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4caa33f1d26ed664c4fe2cca81a08c8e07d4c1c04f2f4ac7655c2dd85467fda0"
+checksum = "2f5107ad45cb20b2f6c3628c7b6014b996fcb13a88053f4569c872c6e30abf58"
 dependencies = [
  "libp2p-core",
  "libp2p-identity",
@@ -4143,9 +4297,9 @@ dependencies = [
 
 [[package]]
 name = "libp2p-core"
-version = "0.39.2"
+version = "0.40.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3c1df63c0b582aa434fb09b2d86897fa2b419ffeccf934b36f87fcedc8e835c2"
+checksum = "dd44289ab25e4c9230d9246c475a22241e301b23e8f4061d3bdef304a1a99713"
 dependencies = [
  "either",
  "fnv",
@@ -4154,50 +4308,53 @@ dependencies = [
  "instant",
  "libp2p-identity",
  "log",
- "multiaddr",
- "multihash 0.17.0",
+ "multiaddr 0.18.1",
+ "multihash 0.19.1",
  "multistream-select",
  "once_cell",
- "parking_lot 0.12.1",
+ "parking_lot 0.12.3",
  "pin-project",
  "quick-protobuf",
- "rand 0.8.5",
+ "rand",
  "rw-stream-sink",
  "smallvec",
  "thiserror",
- "unsigned-varint",
+ "unsigned-varint 0.7.2",
  "void",
 ]
 
 [[package]]
 name = "libp2p-dns"
-version = "0.39.0"
+version = "0.40.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "146ff7034daae62077c415c2376b8057368042df6ab95f5432ad5e88568b1554"
+checksum = "e6a18db73084b4da2871438f6239fef35190b05023de7656e877c18a00541a3b"
 dependencies = [
+ "async-trait",
  "futures",
  "libp2p-core",
+ "libp2p-identity",
  "log",
- "parking_lot 0.12.1",
+ "parking_lot 0.12.3",
  "smallvec",
- "trust-dns-resolver 0.22.0",
+ "trust-dns-resolver",
 ]
 
 [[package]]
 name = "libp2p-identify"
-version = "0.42.2"
+version = "0.43.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5455f472243e63b9c497ff320ded0314254a9eb751799a39c283c6f20b793f3c"
+checksum = "45a96638a0a176bec0a4bcaebc1afa8cf909b114477209d7456ade52c61cd9cd"
 dependencies = [
  "asynchronous-codec",
  "either",
  "futures",
+ "futures-bounded",
  "futures-timer",
  "libp2p-core",
  "libp2p-identity",
  "libp2p-swarm",
  "log",
- "lru 0.10.1",
+ "lru 0.12.3",
  "quick-protobuf",
  "quick-protobuf-codec",
  "smallvec",
@@ -4207,27 +4364,27 @@ dependencies = [
 
 [[package]]
 name = "libp2p-identity"
-version = "0.1.3"
+version = "0.2.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "276bb57e7af15d8f100d3c11cbdd32c6752b7eef4ba7a18ecf464972c07abcce"
+checksum = "55cca1eb2bc1fd29f099f3daaab7effd01e1a54b7c577d0ed082521034d912e8"
 dependencies = [
- "bs58 0.4.0",
- "ed25519-dalek 2.1.1",
- "log",
- "multiaddr",
- "multihash 0.17.0",
+ "bs58 0.5.1",
+ "ed25519-dalek",
+ "hkdf",
+ "multihash 0.19.1",
  "quick-protobuf",
- "rand 0.8.5",
+ "rand",
  "sha2 0.10.8",
  "thiserror",
+ "tracing",
  "zeroize",
 ]
 
 [[package]]
 name = "libp2p-kad"
-version = "0.43.3"
+version = "0.44.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "39d5ef876a2b2323d63c258e63c2f8e36f205fe5a11f0b3095d59635650790ff"
+checksum = "16ea178dabba6dde6ffc260a8e0452ccdc8f79becf544946692fff9d412fc29d"
 dependencies = [
  "arrayvec 0.7.4",
  "asynchronous-codec",
@@ -4242,20 +4399,21 @@ dependencies = [
  "libp2p-swarm",
  "log",
  "quick-protobuf",
- "rand 0.8.5",
+ "quick-protobuf-codec",
+ "rand",
  "sha2 0.10.8",
  "smallvec",
  "thiserror",
  "uint",
- "unsigned-varint",
+ "unsigned-varint 0.7.2",
  "void",
 ]
 
 [[package]]
 name = "libp2p-mdns"
-version = "0.43.1"
+version = "0.44.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "19983e1f949f979a928f2c603de1cf180cc0dc23e4ac93a62651ccb18341460b"
+checksum = "42a2567c305232f5ef54185e9604579a894fd0674819402bb0ac0246da82f52a"
 dependencies = [
  "data-encoding",
  "futures",
@@ -4264,9 +4422,9 @@ dependencies = [
  "libp2p-identity",
  "libp2p-swarm",
  "log",
- "rand 0.8.5",
+ "rand",
  "smallvec",
- "socket2 0.4.10",
+ "socket2 0.5.7",
  "tokio",
  "trust-dns-proto 0.22.0",
  "void",
@@ -4274,63 +4432,69 @@ dependencies = [
 
 [[package]]
 name = "libp2p-metrics"
-version = "0.12.0"
+version = "0.13.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a42ec91e227d7d0dafa4ce88b333cdf5f277253873ab087555c92798db2ddd46"
+checksum = "239ba7d28f8d0b5d77760dc6619c05c7e88e74ec8fbbe97f856f20a56745e620"
 dependencies = [
+ "instant",
  "libp2p-core",
  "libp2p-identify",
+ "libp2p-identity",
  "libp2p-kad",
  "libp2p-ping",
  "libp2p-swarm",
+ "once_cell",
  "prometheus-client",
 ]
 
 [[package]]
 name = "libp2p-noise"
-version = "0.42.2"
+version = "0.43.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9c3673da89d29936bc6435bafc638e2f184180d554ce844db65915113f86ec5e"
+checksum = "d2eeec39ad3ad0677551907dd304b2f13f17208ccebe333bef194076cd2e8921"
 dependencies = [
  "bytes",
- "curve25519-dalek 3.2.0",
+ "curve25519-dalek",
  "futures",
  "libp2p-core",
  "libp2p-identity",
  "log",
+ "multiaddr 0.18.1",
+ "multihash 0.19.1",
  "once_cell",
  "quick-protobuf",
- "rand 0.8.5",
+ "rand",
  "sha2 0.10.8",
  "snow",
  "static_assertions",
  "thiserror",
- "x25519-dalek 1.1.1",
+ "x25519-dalek",
  "zeroize",
 ]
 
 [[package]]
 name = "libp2p-ping"
-version = "0.42.0"
+version = "0.43.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3e57759c19c28a73ef1eb3585ca410cefb72c1a709fcf6de1612a378e4219202"
+checksum = "e702d75cd0827dfa15f8fd92d15b9932abe38d10d21f47c50438c71dd1b5dae3"
 dependencies = [
  "either",
  "futures",
  "futures-timer",
  "instant",
  "libp2p-core",
+ "libp2p-identity",
  "libp2p-swarm",
  "log",
- "rand 0.8.5",
+ "rand",
  "void",
 ]
 
 [[package]]
 name = "libp2p-quic"
-version = "0.7.0-alpha.3"
+version = "0.9.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c6b26abd81cd2398382a1edfe739b539775be8a90fa6914f39b2ab49571ec735"
+checksum = "130d451d83f21b81eb7b35b360bc7972aeafb15177784adc56528db082e6b927"
 dependencies = [
  "bytes",
  "futures",
@@ -4340,19 +4504,21 @@ dependencies = [
  "libp2p-identity",
  "libp2p-tls",
  "log",
- "parking_lot 0.12.1",
- "quinn-proto",
- "rand 0.8.5",
- "rustls 0.20.9",
+ "parking_lot 0.12.3",
+ "quinn 0.10.2",
+ "rand",
+ "ring 0.16.20",
+ "rustls 0.21.10",
+ "socket2 0.5.7",
  "thiserror",
  "tokio",
 ]
 
 [[package]]
 name = "libp2p-request-response"
-version = "0.24.1"
+version = "0.25.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7ffdb374267d42dc5ed5bc53f6e601d4a64ac5964779c6e40bb9e4f14c1e30d5"
+checksum = "d8e3b4d67870478db72bac87bfc260ee6641d0734e0e3e275798f089c3fecfd4"
 dependencies = [
  "async-trait",
  "futures",
@@ -4360,15 +4526,17 @@ dependencies = [
  "libp2p-core",
  "libp2p-identity",
  "libp2p-swarm",
- "rand 0.8.5",
+ "log",
+ "rand",
  "smallvec",
+ "void",
 ]
 
 [[package]]
 name = "libp2p-swarm"
-version = "0.42.2"
+version = "0.43.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "903b3d592d7694e56204d211f29d31bc004be99386644ba8731fc3e3ef27b296"
+checksum = "580189e0074af847df90e75ef54f3f30059aedda37ea5a1659e8b9fca05c0141"
 dependencies = [
  "either",
  "fnv",
@@ -4379,7 +4547,9 @@ dependencies = [
  "libp2p-identity",
  "libp2p-swarm-derive",
  "log",
- "rand 0.8.5",
+ "multistream-select",
+ "once_cell",
+ "rand",
  "smallvec",
  "tokio",
  "void",
@@ -4387,36 +4557,39 @@ dependencies = [
 
 [[package]]
 name = "libp2p-swarm-derive"
-version = "0.32.0"
+version = "0.33.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0fba456131824ab6acd4c7bf61e9c0f0a3014b5fc9868ccb8e10d344594cdc4f"
+checksum = "c4d5ec2a3df00c7836d7696c136274c9c59705bac69133253696a6c932cd1d74"
 dependencies = [
  "heck 0.4.1",
+ "proc-macro-warning 0.4.2",
+ "proc-macro2 1.0.85",
  "quote 1.0.36",
- "syn 1.0.109",
+ "syn 2.0.60",
 ]
 
 [[package]]
 name = "libp2p-tcp"
-version = "0.39.0"
+version = "0.40.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "33d33698596d7722d85d3ab0c86c2c322254fce1241e91208e3679b4eb3026cf"
+checksum = "b558dd40d1bcd1aaaed9de898e9ec6a436019ecc2420dd0016e712fbb61c5508"
 dependencies = [
  "futures",
  "futures-timer",
  "if-watch",
  "libc",
  "libp2p-core",
+ "libp2p-identity",
  "log",
- "socket2 0.4.10",
+ "socket2 0.5.7",
  "tokio",
 ]
 
 [[package]]
 name = "libp2p-tls"
-version = "0.1.0"
+version = "0.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ff08d13d0dc66e5e9ba6279c1de417b84fa0d0adc3b03e5732928c180ec02781"
+checksum = "8218d1d5482b122ccae396bbf38abdcb283ecc96fa54760e1dfd251f0546ac61"
 dependencies = [
  "futures",
  "futures-rustls",
@@ -4424,51 +4597,68 @@ dependencies = [
  "libp2p-identity",
  "rcgen",
  "ring 0.16.20",
- "rustls 0.20.9",
+ "rustls 0.21.10",
+ "rustls-webpki 0.101.7",
  "thiserror",
- "webpki",
- "x509-parser 0.14.0",
+ "x509-parser 0.15.1",
  "yasna",
 ]
 
 [[package]]
-name = "libp2p-wasm-ext"
-version = "0.39.0"
+name = "libp2p-upnp"
+version = "0.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "77dff9d32353a5887adb86c8afc1de1a94d9e8c3bc6df8b2201d7cdf5c848f43"
+checksum = "82775a47b34f10f787ad3e2a22e2c1541e6ebef4fe9f28f3ac553921554c94c1"
+dependencies = [
+ "futures",
+ "futures-timer",
+ "igd-next",
+ "libp2p-core",
+ "libp2p-swarm",
+ "log",
+ "tokio",
+ "void",
+]
+
+[[package]]
+name = "libp2p-wasm-ext"
+version = "0.40.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1e5d8e3a9e07da0ef5b55a9f26c009c8fb3c725d492d8bb4b431715786eea79c"
 dependencies = [
  "futures",
  "js-sys",
  "libp2p-core",
- "parity-send-wrapper",
+ "send_wrapper",
  "wasm-bindgen",
  "wasm-bindgen-futures",
 ]
 
 [[package]]
 name = "libp2p-websocket"
-version = "0.41.0"
+version = "0.42.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "111273f7b3d3510524c752e8b7a5314b7f7a1fee7e68161c01a7d72cbb06db9f"
+checksum = "3facf0691bab65f571bc97c6c65ffa836248ca631d631b7691ac91deb7fceb5f"
 dependencies = [
  "either",
  "futures",
  "futures-rustls",
  "libp2p-core",
+ "libp2p-identity",
  "log",
- "parking_lot 0.12.1",
+ "parking_lot 0.12.3",
  "quicksink",
  "rw-stream-sink",
- "soketto",
+ "soketto 0.7.1",
  "url",
- "webpki-roots",
+ "webpki-roots 0.25.4",
 ]
 
 [[package]]
 name = "libp2p-yamux"
-version = "0.43.1"
+version = "0.44.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4dcd21d950662700a385d4c6d68e2f5f54d778e97068cdd718522222ef513bda"
+checksum = "8eedcb62824c4300efb9cfd4e2a6edaf3ca097b9e68b36dabe45a44469fd6a85"
 dependencies = [
  "futures",
  "libp2p-core",
@@ -4500,7 +4690,7 @@ dependencies = [
  "libsecp256k1-core",
  "libsecp256k1-gen-ecmult",
  "libsecp256k1-gen-genmult",
- "rand 0.8.5",
+ "rand",
  "serde",
  "sha2 0.9.9",
  "typenum",
@@ -4603,31 +4793,31 @@ dependencies = [
 
 [[package]]
 name = "litep2p"
-version = "0.5.0"
+version = "0.6.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7f02542ae3a94b4c4ffa37dc56388c923e286afa3bf65452e3984b50b2a2f316"
+checksum = "0f46c51c205264b834ceed95c8b195026e700494bc3991aaba3b4ea9e20626d9"
 dependencies = [
  "async-trait",
  "bs58 0.4.0",
  "bytes",
  "cid 0.10.1",
- "ed25519-dalek 1.0.1",
+ "ed25519-dalek",
  "futures",
  "futures-timer",
  "hex-literal",
  "indexmap 2.2.6",
  "libc",
  "mockall 0.12.1",
- "multiaddr",
+ "multiaddr 0.17.1",
  "multihash 0.17.0",
  "network-interface",
  "nohash-hasher",
- "parking_lot 0.12.1",
+ "parking_lot 0.12.3",
  "pin-project",
- "prost 0.11.9",
+ "prost 0.12.6",
  "prost-build 0.11.9",
- "quinn",
- "rand 0.8.5",
+ "quinn 0.9.4",
+ "rand",
  "rcgen",
  "ring 0.16.20",
  "rustls 0.20.9",
@@ -4636,7 +4826,7 @@ dependencies = [
  "simple-dns",
  "smallvec",
  "snow",
- "socket2 0.5.6",
+ "socket2 0.5.7",
  "static_assertions",
  "str0m",
  "thiserror",
@@ -4645,13 +4835,13 @@ dependencies = [
  "tokio-tungstenite",
  "tokio-util",
  "tracing",
- "trust-dns-resolver 0.23.2",
+ "trust-dns-resolver",
  "uint",
- "unsigned-varint",
+ "unsigned-varint 0.8.0",
  "url",
  "webpki",
- "x25519-dalek 2.0.1",
- "x509-parser 0.15.1",
+ "x25519-dalek",
+ "x509-parser 0.16.0",
  "yasna",
  "zeroize",
 ]
@@ -4682,15 +4872,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b6e8aaa3f231bb4bd57b84b2d5dc3ae7f350265df8aa96492e0bc394a1571909"
 dependencies = [
  "hashbrown 0.12.3",
-]
-
-[[package]]
-name = "lru"
-version = "0.10.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "718e8fae447df0c7e1ba7f5189829e63fd536945c8988d61444c19039f16b670"
-dependencies = [
- "hashbrown 0.13.2",
 ]
 
 [[package]]
@@ -4849,25 +5030,24 @@ checksum = "58c38e2799fc0978b65dfff8023ec7843e2330bb462f19198840b34b6582397d"
 dependencies = [
  "byteorder",
  "keccak",
- "rand_core 0.6.4",
+ "rand_core",
  "zeroize",
 ]
 
 [[package]]
 name = "messages-relay"
 version = "0.1.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-v2-compact-proofs#55b3aeacca9236f382b2a6cf22df878f131c72ad"
+source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-v2-compact-proofs#7e6b6b20abac1cd24a7d7b8a837e8add10efa4c9"
 dependencies = [
  "async-std",
  "async-trait",
  "bp-messages",
- "env_logger 0.11.3",
  "finality-relay",
  "futures",
  "hex",
  "log",
  "num-traits",
- "parking_lot 0.12.1",
+ "parking_lot 0.12.3",
  "relay-utils",
  "sp-arithmetic",
 ]
@@ -4900,7 +5080,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a4a650543ca06a924e8b371db273b2756685faae30f8487da1b56505a8f78b0c"
 dependencies = [
  "libc",
- "wasi 0.11.0+wasi-snapshot-preview1",
+ "wasi",
  "windows-sys 0.48.0",
 ]
 
@@ -4915,14 +5095,14 @@ dependencies = [
  "bitflags 1.3.2",
  "blake2 0.10.6",
  "c2-chacha",
- "curve25519-dalek 4.1.2",
+ "curve25519-dalek",
  "either",
  "hashlink",
  "lioness",
  "log",
- "parking_lot 0.12.1",
- "rand 0.8.5",
- "rand_chacha 0.3.1",
+ "parking_lot 0.12.3",
+ "rand",
+ "rand_chacha",
  "rand_distr",
  "subtle 2.5.0",
  "thiserror",
@@ -4998,7 +5178,26 @@ dependencies = [
  "percent-encoding",
  "serde",
  "static_assertions",
- "unsigned-varint",
+ "unsigned-varint 0.7.2",
+ "url",
+]
+
+[[package]]
+name = "multiaddr"
+version = "0.18.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8b852bc02a2da5feed68cd14fa50d0774b92790a5bdbfa932a813926c8472070"
+dependencies = [
+ "arrayref",
+ "byteorder",
+ "data-encoding",
+ "libp2p-identity",
+ "multibase",
+ "multihash 0.19.1",
+ "percent-encoding",
+ "serde",
+ "static_assertions",
+ "unsigned-varint 0.7.2",
  "url",
 ]
 
@@ -5027,7 +5226,7 @@ dependencies = [
  "multihash-derive",
  "sha2 0.10.8",
  "sha3",
- "unsigned-varint",
+ "unsigned-varint 0.7.2",
 ]
 
 [[package]]
@@ -5044,7 +5243,17 @@ dependencies = [
  "multihash-derive",
  "sha2 0.10.8",
  "sha3",
- "unsigned-varint",
+ "unsigned-varint 0.7.2",
+]
+
+[[package]]
+name = "multihash"
+version = "0.19.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "076d548d76a0e2a0d4ab471d0b1c36c577786dfc4471242035d97a12a735c492"
+dependencies = [
+ "core2",
+ "unsigned-varint 0.7.2",
 ]
 
 [[package]]
@@ -5058,7 +5267,7 @@ dependencies = [
  "proc-macro2 1.0.85",
  "quote 1.0.36",
  "syn 1.0.109",
- "synstructure",
+ "synstructure 0.12.6",
 ]
 
 [[package]]
@@ -5069,16 +5278,16 @@ checksum = "e5ce46fe64a9d73be07dcbe690a38ce1b293be448fd8ce1e6c1b8062c9f72c6a"
 
 [[package]]
 name = "multistream-select"
-version = "0.12.1"
+version = "0.13.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c8552ab875c1313b97b8d20cb857b9fd63e2d1d6a0a1b53ce9821e575405f27a"
+checksum = "ea0df8e5eec2298a62b326ee4f0d7fe1a6b90a09dfcf9df37b38f947a8c42f19"
 dependencies = [
  "bytes",
  "futures",
  "log",
  "pin-project",
  "smallvec",
- "unsigned-varint",
+ "unsigned-varint 0.7.2",
 ]
 
 [[package]]
@@ -5363,7 +5572,16 @@ version = "0.6.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9bedf36ffb6ba96c2eb7144ef6270557b52e54b20c0a8e1eb2ff99a6c6959bff"
 dependencies = [
- "asn1-rs",
+ "asn1-rs 0.5.2",
+]
+
+[[package]]
+name = "oid-registry"
+version = "0.7.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1c958dd45046245b9c3c2547369bb634eb461670b2e7e0de552905801a648d1d"
+dependencies = [
+ "asn1-rs 0.6.1",
 ]
 
 [[package]]
@@ -5447,7 +5665,7 @@ checksum = "b15813163c1d831bf4a13c3610c05c0d03b39feb07f7e09fa234dac9b15aaf39"
 [[package]]
 name = "pallet-authorship"
 version = "28.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-v2-compact-proofs#55b3aeacca9236f382b2a6cf22df878f131c72ad"
+source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-v2-compact-proofs#7e6b6b20abac1cd24a7d7b8a837e8add10efa4c9"
 dependencies = [
  "frame-support",
  "frame-system",
@@ -5461,7 +5679,7 @@ dependencies = [
 [[package]]
 name = "pallet-balances"
 version = "28.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-v2-compact-proofs#55b3aeacca9236f382b2a6cf22df878f131c72ad"
+source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-v2-compact-proofs#7e6b6b20abac1cd24a7d7b8a837e8add10efa4c9"
 dependencies = [
  "docify",
  "frame-benchmarking",
@@ -5477,12 +5695,11 @@ dependencies = [
 [[package]]
 name = "pallet-bridge-grandpa"
 version = "0.7.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-v2-compact-proofs#55b3aeacca9236f382b2a6cf22df878f131c72ad"
+source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-v2-compact-proofs#7e6b6b20abac1cd24a7d7b8a837e8add10efa4c9"
 dependencies = [
  "bp-header-chain",
  "bp-runtime",
  "bp-test-utils",
- "finality-grandpa",
  "frame-benchmarking",
  "frame-support",
  "frame-system",
@@ -5492,13 +5709,12 @@ dependencies = [
  "sp-consensus-grandpa",
  "sp-runtime",
  "sp-std 14.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-v2-compact-proofs)",
- "sp-trie",
 ]
 
 [[package]]
 name = "pallet-bridge-messages"
 version = "0.7.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-v2-compact-proofs#55b3aeacca9236f382b2a6cf22df878f131c72ad"
+source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-v2-compact-proofs#7e6b6b20abac1cd24a7d7b8a837e8add10efa4c9"
 dependencies = [
  "bp-header-chain",
  "bp-messages",
@@ -5518,7 +5734,7 @@ dependencies = [
 [[package]]
 name = "pallet-bridge-parachains"
 version = "0.7.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-v2-compact-proofs#55b3aeacca9236f382b2a6cf22df878f131c72ad"
+source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-v2-compact-proofs#7e6b6b20abac1cd24a7d7b8a837e8add10efa4c9"
 dependencies = [
  "bp-header-chain",
  "bp-parachains",
@@ -5533,13 +5749,12 @@ dependencies = [
  "scale-info",
  "sp-runtime",
  "sp-std 14.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-v2-compact-proofs)",
- "sp-trie",
 ]
 
 [[package]]
 name = "pallet-bridge-relayers"
 version = "0.7.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-v2-compact-proofs#55b3aeacca9236f382b2a6cf22df878f131c72ad"
+source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-v2-compact-proofs#7e6b6b20abac1cd24a7d7b8a837e8add10efa4c9"
 dependencies = [
  "bp-messages",
  "bp-relayers",
@@ -5559,7 +5774,7 @@ dependencies = [
 [[package]]
 name = "pallet-grandpa"
 version = "28.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-v2-compact-proofs#55b3aeacca9236f382b2a6cf22df878f131c72ad"
+source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-v2-compact-proofs#7e6b6b20abac1cd24a7d7b8a837e8add10efa4c9"
 dependencies = [
  "frame-benchmarking",
  "frame-support",
@@ -5582,7 +5797,7 @@ dependencies = [
 [[package]]
 name = "pallet-session"
 version = "28.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-v2-compact-proofs#55b3aeacca9236f382b2a6cf22df878f131c72ad"
+source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-v2-compact-proofs#7e6b6b20abac1cd24a7d7b8a837e8add10efa4c9"
 dependencies = [
  "frame-support",
  "frame-system",
@@ -5604,7 +5819,7 @@ dependencies = [
 [[package]]
 name = "pallet-timestamp"
 version = "27.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-v2-compact-proofs#55b3aeacca9236f382b2a6cf22df878f131c72ad"
+source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-v2-compact-proofs#7e6b6b20abac1cd24a7d7b8a837e8add10efa4c9"
 dependencies = [
  "docify",
  "frame-benchmarking",
@@ -5624,7 +5839,7 @@ dependencies = [
 [[package]]
 name = "pallet-transaction-payment"
 version = "28.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-v2-compact-proofs#55b3aeacca9236f382b2a6cf22df878f131c72ad"
+source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-v2-compact-proofs#7e6b6b20abac1cd24a7d7b8a837e8add10efa4c9"
 dependencies = [
  "frame-support",
  "frame-system",
@@ -5640,7 +5855,7 @@ dependencies = [
 [[package]]
 name = "pallet-transaction-payment-rpc-runtime-api"
 version = "28.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-v2-compact-proofs#55b3aeacca9236f382b2a6cf22df878f131c72ad"
+source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-v2-compact-proofs#7e6b6b20abac1cd24a7d7b8a837e8add10efa4c9"
 dependencies = [
  "pallet-transaction-payment",
  "parity-scale-codec",
@@ -5652,7 +5867,7 @@ dependencies = [
 [[package]]
 name = "pallet-utility"
 version = "28.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-v2-compact-proofs#55b3aeacca9236f382b2a6cf22df878f131c72ad"
+source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-v2-compact-proofs#7e6b6b20abac1cd24a7d7b8a837e8add10efa4c9"
 dependencies = [
  "frame-benchmarking",
  "frame-support",
@@ -5668,7 +5883,7 @@ dependencies = [
 [[package]]
 name = "parachains-relay"
 version = "0.1.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-v2-compact-proofs#55b3aeacca9236f382b2a6cf22df878f131c72ad"
+source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-v2-compact-proofs#7e6b6b20abac1cd24a7d7b8a837e8add10efa4c9"
 dependencies = [
  "async-std",
  "async-trait",
@@ -5686,8 +5901,8 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "4e69bf016dc406eff7d53a7d3f7cf1c2e72c82b9088aac1118591e36dd2cd3e9"
 dependencies = [
  "bitcoin_hashes 0.13.0",
- "rand 0.8.5",
- "rand_core 0.6.4",
+ "rand",
+ "rand_core",
  "serde",
  "unicode-normalization",
 ]
@@ -5720,12 +5935,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "parity-send-wrapper"
-version = "0.1.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "aa9777aa91b8ad9dd5aaa04a9b6bcb02c7f1deb952fca5a66034d5e63afc5c6f"
-
-[[package]]
 name = "parity-util-mem"
 version = "0.12.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -5737,7 +5946,7 @@ dependencies = [
  "impl-trait-for-tuples",
  "lru 0.8.1",
  "parity-util-mem-derive",
- "parking_lot 0.12.1",
+ "parking_lot 0.12.3",
  "primitive-types",
  "smallvec",
  "winapi",
@@ -5751,7 +5960,7 @@ checksum = "f557c32c6d268a07c921471619c0295f5efad3a0e76d4f97a05c091a51d110b2"
 dependencies = [
  "proc-macro2 1.0.85",
  "syn 1.0.109",
- "synstructure",
+ "synstructure 0.12.6",
 ]
 
 [[package]]
@@ -5779,12 +5988,12 @@ dependencies = [
 
 [[package]]
 name = "parking_lot"
-version = "0.12.1"
+version = "0.12.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3742b2c103b9f06bc9fff0a37ff4912935851bee6d36f3c02bcc755bcfec228f"
+checksum = "f1bf18183cf54e8d6059647fc3063646a1801cf30896933ec2311622cc4b9a27"
 dependencies = [
  "lock_api",
- "parking_lot_core 0.9.9",
+ "parking_lot_core 0.9.10",
 ]
 
 [[package]]
@@ -5803,15 +6012,15 @@ dependencies = [
 
 [[package]]
 name = "parking_lot_core"
-version = "0.9.9"
+version = "0.9.10"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4c42a9226546d68acdd9c0a280d17ce19bfe27a46bf68784e4066115788d008e"
+checksum = "1e401f977ab385c9e4e3ab30627d6f26d00e2c73eef317493c4ec6d468726cf8"
 dependencies = [
  "cfg-if",
  "libc",
- "redox_syscall 0.4.1",
+ "redox_syscall 0.5.2",
  "smallvec",
- "windows-targets 0.48.5",
+ "windows-targets 0.52.5",
 ]
 
 [[package]]
@@ -5827,7 +6036,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "346f04948ba92c43e8469c1ee6736c7563d71012b17d40745260fe106aac2166"
 dependencies = [
  "base64ct",
- "rand_core 0.6.4",
+ "rand_core",
  "subtle 2.5.0",
 ]
 
@@ -5938,15 +6147,9 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d231b230927b5e4ad203db57bbcbee2802f6bce620b1e4a9024a07d94e2907ec"
 
 [[package]]
-name = "platforms"
-version = "3.4.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "db23d408679286588f4d4644f965003d056e3dd5abcaaa938116871d7ce2fee7"
-
-[[package]]
 name = "polkadot-core-primitives"
 version = "7.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-v2-compact-proofs#55b3aeacca9236f382b2a6cf22df878f131c72ad"
+source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-v2-compact-proofs#7e6b6b20abac1cd24a7d7b8a837e8add10efa4c9"
 dependencies = [
  "parity-scale-codec",
  "scale-info",
@@ -5958,7 +6161,7 @@ dependencies = [
 [[package]]
 name = "polkadot-parachain-primitives"
 version = "6.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-v2-compact-proofs#55b3aeacca9236f382b2a6cf22df878f131c72ad"
+source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-v2-compact-proofs#7e6b6b20abac1cd24a7d7b8a837e8add10efa4c9"
 dependencies = [
  "bounded-collections",
  "derive_more",
@@ -5975,7 +6178,7 @@ dependencies = [
 [[package]]
 name = "polkadot-primitives"
 version = "7.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-v2-compact-proofs#55b3aeacca9236f382b2a6cf22df878f131c72ad"
+source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-v2-compact-proofs#7e6b6b20abac1cd24a7d7b8a837e8add10efa4c9"
 dependencies = [
  "bitvec",
  "hex-literal",
@@ -6262,6 +6465,17 @@ dependencies = [
 
 [[package]]
 name = "proc-macro-warning"
+version = "0.4.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3d1eaa7fa0aa1929ffdf7eeb6eac234dde6268914a14ad44d23521ab6a9b258e"
+dependencies = [
+ "proc-macro2 1.0.85",
+ "quote 1.0.36",
+ "syn 2.0.60",
+]
+
+[[package]]
+name = "proc-macro-warning"
 version = "1.0.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "834da187cfe638ae8abb0203f0b33e5ccdb02a28e7199f2f47b3e2754f50edca"
@@ -6299,19 +6513,19 @@ dependencies = [
  "fnv",
  "lazy_static",
  "memchr",
- "parking_lot 0.12.1",
+ "parking_lot 0.12.3",
  "thiserror",
 ]
 
 [[package]]
 name = "prometheus-client"
-version = "0.19.0"
+version = "0.21.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5d6fa99d535dd930d1249e6c79cb3c2915f9172a540fe2b02a4c8f9ca954721e"
+checksum = "3c99afa9a01501019ac3a14d71d9f94050346f55ca471ce90c799a15c58f61e2"
 dependencies = [
  "dtoa",
  "itoa",
- "parking_lot 0.12.1",
+ "parking_lot 0.12.3",
  "prometheus-client-derive-encode",
 ]
 
@@ -6338,12 +6552,12 @@ dependencies = [
 
 [[package]]
 name = "prost"
-version = "0.12.4"
+version = "0.12.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d0f5d036824e4761737860779c906171497f6d55681139d8312388f8fe398922"
+checksum = "deb1435c188b76130da55f17a466d252ff7b1418b2ad3e037d127b94e3411f29"
 dependencies = [
  "bytes",
- "prost-derive 0.12.5",
+ "prost-derive 0.12.6",
 ]
 
 [[package]]
@@ -6370,20 +6584,20 @@ dependencies = [
 
 [[package]]
 name = "prost-build"
-version = "0.12.4"
+version = "0.12.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "80b776a1b2dc779f5ee0641f8ade0125bc1298dd41a9a0c16d8bd57b42d222b1"
+checksum = "22505a5c94da8e3b7c2996394d1c933236c4d743e81a410bcca4e6989fc066a4"
 dependencies = [
  "bytes",
- "heck 0.5.0",
- "itertools 0.12.1",
+ "heck 0.4.1",
+ "itertools 0.10.5",
  "log",
  "multimap",
  "once_cell",
  "petgraph",
  "prettyplease 0.2.20",
- "prost 0.12.4",
- "prost-types 0.12.4",
+ "prost 0.12.6",
+ "prost-types 0.12.6",
  "regex",
  "syn 2.0.60",
  "tempfile",
@@ -6404,12 +6618,12 @@ dependencies = [
 
 [[package]]
 name = "prost-derive"
-version = "0.12.5"
+version = "0.12.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9554e3ab233f0a932403704f1a1d08c30d5ccd931adfdfa1e8b5a19b52c1d55a"
+checksum = "81bddcdb20abf9501610992b6759a4c888aef7d1a7247ef75e2404275ac24af1"
 dependencies = [
  "anyhow",
- "itertools 0.12.1",
+ "itertools 0.10.5",
  "proc-macro2 1.0.85",
  "quote 1.0.36",
  "syn 2.0.60",
@@ -6426,11 +6640,11 @@ dependencies = [
 
 [[package]]
 name = "prost-types"
-version = "0.12.4"
+version = "0.12.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3235c33eb02c1f1e212abdbe34c78b264b038fb58ca612664343271e36e55ffe"
+checksum = "9091c90b0a32608e984ff2fa4091273cbdd755d54935c51d520887f4a1dbd5b0"
 dependencies = [
- "prost 0.12.4",
+ "prost 0.12.6",
 ]
 
 [[package]]
@@ -6459,15 +6673,15 @@ dependencies = [
 
 [[package]]
 name = "quick-protobuf-codec"
-version = "0.1.0"
+version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1693116345026436eb2f10b677806169c1a1260c1c60eaaffe3fb5a29ae23d8b"
+checksum = "f8ededb1cd78531627244d51dd0c7139fbe736c7d57af0092a76f0ffb2f56e98"
 dependencies = [
  "asynchronous-codec",
  "bytes",
  "quick-protobuf",
  "thiserror",
- "unsigned-varint",
+ "unsigned-varint 0.7.2",
 ]
 
 [[package]]
@@ -6478,7 +6692,7 @@ checksum = "5253a3a0d56548d5b0be25414171dc780cc6870727746d05bd2bde352eee96c5"
 dependencies = [
  "ahash 0.8.11",
  "hashbrown 0.13.2",
- "parking_lot 0.12.1",
+ "parking_lot 0.12.3",
 ]
 
 [[package]]
@@ -6500,8 +6714,8 @@ checksum = "2e8b432585672228923edbbf64b8b12c14e1112f62e88737655b4a083dbcd78e"
 dependencies = [
  "bytes",
  "pin-project-lite 0.2.14",
- "quinn-proto",
- "quinn-udp",
+ "quinn-proto 0.9.6",
+ "quinn-udp 0.3.2",
  "rustc-hash",
  "rustls 0.20.9",
  "thiserror",
@@ -6511,13 +6725,31 @@ dependencies = [
 ]
 
 [[package]]
+name = "quinn"
+version = "0.10.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8cc2c5017e4b43d5995dcea317bc46c1e09404c0a9664d2908f7f02dfe943d75"
+dependencies = [
+ "bytes",
+ "futures-io",
+ "pin-project-lite 0.2.14",
+ "quinn-proto 0.10.6",
+ "quinn-udp 0.4.1",
+ "rustc-hash",
+ "rustls 0.21.10",
+ "thiserror",
+ "tokio",
+ "tracing",
+]
+
+[[package]]
 name = "quinn-proto"
 version = "0.9.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "94b0b33c13a79f669c85defaf4c275dc86a0c0372807d0ca3d78e0bb87274863"
 dependencies = [
  "bytes",
- "rand 0.8.5",
+ "rand",
  "ring 0.16.20",
  "rustc-hash",
  "rustls 0.20.9",
@@ -6529,16 +6761,46 @@ dependencies = [
 ]
 
 [[package]]
+name = "quinn-proto"
+version = "0.10.6"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "141bf7dfde2fbc246bfd3fe12f2455aa24b0fbd9af535d8c86c7bd1381ff2b1a"
+dependencies = [
+ "bytes",
+ "rand",
+ "ring 0.16.20",
+ "rustc-hash",
+ "rustls 0.21.10",
+ "slab",
+ "thiserror",
+ "tinyvec",
+ "tracing",
+]
+
+[[package]]
 name = "quinn-udp"
 version = "0.3.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "641538578b21f5e5c8ea733b736895576d0fe329bb883b937db6f4d163dbaaf4"
 dependencies = [
  "libc",
- "quinn-proto",
+ "quinn-proto 0.9.6",
  "socket2 0.4.10",
  "tracing",
  "windows-sys 0.42.0",
+]
+
+[[package]]
+name = "quinn-udp"
+version = "0.4.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "055b4e778e8feb9f93c4e439f71dc2156ef13360b432b799e179a8c4cdf0b1d7"
+dependencies = [
+ "bytes",
+ "libc",
+ "socket2 0.5.7",
+ "tracing",
+ "windows-sys 0.48.0",
 ]
 
 [[package]]
@@ -6567,36 +6829,13 @@ checksum = "dc33ff2d4973d518d823d61aa239014831e521c75da58e3df4840d3f47749d09"
 
 [[package]]
 name = "rand"
-version = "0.7.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6a6b1679d49b24bbfe0c803429aa1874472f50d9b363131f0e89fc356b544d03"
-dependencies = [
- "getrandom 0.1.16",
- "libc",
- "rand_chacha 0.2.2",
- "rand_core 0.5.1",
- "rand_hc",
-]
-
-[[package]]
-name = "rand"
 version = "0.8.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "34af8d1a0e25924bc5b7c43c079c942339d8f0a8b57c39049bef581b46327404"
 dependencies = [
  "libc",
- "rand_chacha 0.3.1",
- "rand_core 0.6.4",
-]
-
-[[package]]
-name = "rand_chacha"
-version = "0.2.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f4c8ed856279c9737206bf725bf36935d8666ead7aa69b52be55af369d193402"
-dependencies = [
- "ppv-lite86",
- "rand_core 0.5.1",
+ "rand_chacha",
+ "rand_core",
 ]
 
 [[package]]
@@ -6606,16 +6845,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e6c10a63a0fa32252be49d21e7709d4d4baf8d231c2dbce1eaa8141b9b127d88"
 dependencies = [
  "ppv-lite86",
- "rand_core 0.6.4",
-]
-
-[[package]]
-name = "rand_core"
-version = "0.5.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "90bde5296fc891b0cef12a6d03ddccc162ce7b2aff54160af9338f8d40df6d19"
-dependencies = [
- "getrandom 0.1.16",
+ "rand_core",
 ]
 
 [[package]]
@@ -6624,7 +6854,7 @@ version = "0.6.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ec0be4795e2f6a28069bec0b5ff3e2ac9bafc99e6a9a7dc3547996c5c816922c"
 dependencies = [
- "getrandom 0.2.14",
+ "getrandom",
 ]
 
 [[package]]
@@ -6634,16 +6864,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "32cb0b9bc82b0a0876c2dd994a7e7a2683d3e7390ca40e6886785ef0c7e3ee31"
 dependencies = [
  "num-traits",
- "rand 0.8.5",
-]
-
-[[package]]
-name = "rand_hc"
-version = "0.2.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ca3129af7b92a17112d59ad498c6f81eaf463253766b90396d39ea7a39d6613c"
-dependencies = [
- "rand_core 0.5.1",
+ "rand",
 ]
 
 [[package]]
@@ -6713,7 +6934,7 @@ dependencies = [
  "cfg_aliases",
  "finito",
  "futures",
- "jsonrpsee",
+ "jsonrpsee 0.22.5",
  "serde_json",
  "thiserror",
  "tokio",
@@ -6731,11 +6952,11 @@ dependencies = [
 
 [[package]]
 name = "redox_syscall"
-version = "0.4.1"
+version = "0.5.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4722d768eff46b75989dd134e5c353f0d6296e5aaa3132e776cbdb56be7731aa"
+checksum = "c82cf8cff14456045f55ec4241383baeff27af886adb72ffb2162f99911de0fd"
 dependencies = [
- "bitflags 1.3.2",
+ "bitflags 2.5.0",
 ]
 
 [[package]]
@@ -6744,7 +6965,7 @@ version = "0.4.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "bd283d9651eeda4b2a83a43c1c91b266c40fd76ecd39a50a8c630ae69dc72891"
 dependencies = [
- "getrandom 0.2.14",
+ "getrandom",
  "libredox",
  "thiserror",
 ]
@@ -7005,7 +7226,7 @@ dependencies = [
 [[package]]
 name = "relay-substrate-client"
 version = "0.1.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-v2-compact-proofs#55b3aeacca9236f382b2a6cf22df878f131c72ad"
+source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-v2-compact-proofs#7e6b6b20abac1cd24a7d7b8a837e8add10efa4c9"
 dependencies = [
  "async-std",
  "async-trait",
@@ -7015,24 +7236,22 @@ dependencies = [
  "bp-runtime",
  "finality-relay",
  "frame-support",
- "frame-system",
  "futures",
- "jsonrpsee",
+ "jsonrpsee 0.23.2",
  "log",
  "num-traits",
- "pallet-balances",
- "pallet-bridge-messages",
  "pallet-transaction-payment",
  "pallet-transaction-payment-rpc-runtime-api",
  "pallet-utility",
  "parity-scale-codec",
  "quick_cache",
- "rand 0.8.5",
+ "rand",
  "relay-utils",
  "sc-chain-spec",
  "sc-rpc-api",
  "sc-transaction-pool-api",
  "scale-info",
+ "serde_json",
  "sp-consensus-grandpa",
  "sp-core",
  "sp-rpc",
@@ -7048,7 +7267,7 @@ dependencies = [
 [[package]]
 name = "relay-utils"
 version = "0.1.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-v2-compact-proofs#55b3aeacca9236f382b2a6cf22df878f131c72ad"
+source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-v2-compact-proofs#7e6b6b20abac1cd24a7d7b8a837e8add10efa4c9"
 dependencies = [
  "ansi_term",
  "anyhow",
@@ -7062,7 +7281,7 @@ dependencies = [
  "jsonpath_lib",
  "log",
  "num-traits",
- "parking_lot 0.12.1",
+ "parking_lot 0.12.3",
  "serde_json",
  "sp-runtime",
  "substrate-prometheus-endpoint",
@@ -7150,7 +7369,7 @@ checksum = "c17fa4cb658e3583423e915b9f3acc01cceaee1860e33d59ebae66adc3a2dc0d"
 dependencies = [
  "cc",
  "cfg-if",
- "getrandom 0.2.14",
+ "getrandom",
  "libc",
  "spin 0.9.8",
  "untrusted 0.9.0",
@@ -7265,7 +7484,6 @@ version = "0.20.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1b80e3dec595989ea8510028f30c408a4630db12c9cbb8de34203b89d6577e99"
 dependencies = [
- "log",
  "ring 0.16.20",
  "sct",
  "webpki",
@@ -7290,6 +7508,21 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "99008d7ad0bbbea527ec27bddbc0e432c5b87d8175178cee68d2eec9c4a1813c"
 dependencies = [
  "log",
+ "ring 0.17.8",
+ "rustls-pki-types",
+ "rustls-webpki 0.102.2",
+ "subtle 2.5.0",
+ "zeroize",
+]
+
+[[package]]
+name = "rustls"
+version = "0.23.7"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ebbbdb961df0ad3f2652da8f3fdc4b36122f568f968f45ad3316f26c025c677b"
+dependencies = [
+ "log",
+ "once_cell",
  "ring 0.17.8",
  "rustls-pki-types",
  "rustls-webpki 0.102.2",
@@ -7348,6 +7581,33 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ecd36cc4259e3e4514335c4a138c6b43171a8d61d8f5c9348f9fc7529416f247"
 
 [[package]]
+name = "rustls-platform-verifier"
+version = "0.3.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3e3beb939bcd33c269f4bf946cc829fcd336370267c4a927ac0399c84a3151a1"
+dependencies = [
+ "core-foundation",
+ "core-foundation-sys",
+ "jni",
+ "log",
+ "once_cell",
+ "rustls 0.23.7",
+ "rustls-native-certs 0.7.0",
+ "rustls-platform-verifier-android",
+ "rustls-webpki 0.102.2",
+ "security-framework",
+ "security-framework-sys",
+ "webpki-roots 0.26.3",
+ "winapi",
+]
+
+[[package]]
+name = "rustls-platform-verifier-android"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "84e217e7fdc8466b5b35d30f8c0a30febd29173df4a3a0c2115d306b9c4117ad"
+
+[[package]]
 name = "rustls-webpki"
 version = "0.101.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -7387,9 +7647,9 @@ dependencies = [
 
 [[package]]
 name = "rw-stream-sink"
-version = "0.3.0"
+version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "26338f5e09bb721b85b135ea05af7767c90b52f6de4f087d4f4a3a9d64e7dc04"
+checksum = "d8c9026ff5d2f23da5e45bbc283f156383001bfb09c4e44256d02c1a685fe9a1"
 dependencies = [
  "futures",
  "pin-project",
@@ -7423,7 +7683,7 @@ dependencies = [
 [[package]]
 name = "sc-allocator"
 version = "23.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-v2-compact-proofs#55b3aeacca9236f382b2a6cf22df878f131c72ad"
+source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-v2-compact-proofs#7e6b6b20abac1cd24a7d7b8a837e8add10efa4c9"
 dependencies = [
  "log",
  "sp-core",
@@ -7434,7 +7694,7 @@ dependencies = [
 [[package]]
 name = "sc-chain-spec"
 version = "28.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-v2-compact-proofs#55b3aeacca9236f382b2a6cf22df878f131c72ad"
+source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-v2-compact-proofs#7e6b6b20abac1cd24a7d7b8a837e8add10efa4c9"
 dependencies = [
  "array-bytes",
  "docify",
@@ -7461,7 +7721,7 @@ dependencies = [
 [[package]]
 name = "sc-chain-spec-derive"
 version = "11.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-v2-compact-proofs#55b3aeacca9236f382b2a6cf22df878f131c72ad"
+source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-v2-compact-proofs#7e6b6b20abac1cd24a7d7b8a837e8add10efa4c9"
 dependencies = [
  "proc-macro-crate 3.1.0",
  "proc-macro2 1.0.85",
@@ -7472,13 +7732,13 @@ dependencies = [
 [[package]]
 name = "sc-client-api"
 version = "28.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-v2-compact-proofs#55b3aeacca9236f382b2a6cf22df878f131c72ad"
+source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-v2-compact-proofs#7e6b6b20abac1cd24a7d7b8a837e8add10efa4c9"
 dependencies = [
  "fnv",
  "futures",
  "log",
  "parity-scale-codec",
- "parking_lot 0.12.1",
+ "parking_lot 0.12.3",
  "sc-executor",
  "sc-transaction-pool-api",
  "sc-utils",
@@ -7499,14 +7759,13 @@ dependencies = [
 [[package]]
 name = "sc-consensus"
 version = "0.33.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-v2-compact-proofs#55b3aeacca9236f382b2a6cf22df878f131c72ad"
+source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-v2-compact-proofs#7e6b6b20abac1cd24a7d7b8a837e8add10efa4c9"
 dependencies = [
  "async-trait",
  "futures",
- "futures-timer",
  "log",
  "mockall 0.11.4",
- "parking_lot 0.12.1",
+ "parking_lot 0.12.3",
  "sc-client-api",
  "sc-network-types",
  "sc-utils",
@@ -7524,10 +7783,10 @@ dependencies = [
 [[package]]
 name = "sc-executor"
 version = "0.32.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-v2-compact-proofs#55b3aeacca9236f382b2a6cf22df878f131c72ad"
+source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-v2-compact-proofs#7e6b6b20abac1cd24a7d7b8a837e8add10efa4c9"
 dependencies = [
  "parity-scale-codec",
- "parking_lot 0.12.1",
+ "parking_lot 0.12.3",
  "sc-executor-common",
  "sc-executor-polkavm",
  "sc-executor-wasmtime",
@@ -7547,7 +7806,7 @@ dependencies = [
 [[package]]
 name = "sc-executor-common"
 version = "0.29.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-v2-compact-proofs#55b3aeacca9236f382b2a6cf22df878f131c72ad"
+source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-v2-compact-proofs#7e6b6b20abac1cd24a7d7b8a837e8add10efa4c9"
 dependencies = [
  "polkavm",
  "sc-allocator",
@@ -7560,7 +7819,7 @@ dependencies = [
 [[package]]
 name = "sc-executor-polkavm"
 version = "0.29.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-v2-compact-proofs#55b3aeacca9236f382b2a6cf22df878f131c72ad"
+source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-v2-compact-proofs#7e6b6b20abac1cd24a7d7b8a837e8add10efa4c9"
 dependencies = [
  "log",
  "polkavm",
@@ -7571,13 +7830,13 @@ dependencies = [
 [[package]]
 name = "sc-executor-wasmtime"
 version = "0.29.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-v2-compact-proofs#55b3aeacca9236f382b2a6cf22df878f131c72ad"
+source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-v2-compact-proofs#7e6b6b20abac1cd24a7d7b8a837e8add10efa4c9"
 dependencies = [
  "anyhow",
  "cfg-if",
  "libc",
  "log",
- "parking_lot 0.12.1",
+ "parking_lot 0.12.3",
  "rustix 0.36.17",
  "sc-allocator",
  "sc-executor-common",
@@ -7589,7 +7848,7 @@ dependencies = [
 [[package]]
 name = "sc-mixnet"
 version = "0.4.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-v2-compact-proofs#55b3aeacca9236f382b2a6cf22df878f131c72ad"
+source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-v2-compact-proofs#7e6b6b20abac1cd24a7d7b8a837e8add10efa4c9"
 dependencies = [
  "array-bytes",
  "arrayvec 0.7.4",
@@ -7599,9 +7858,9 @@ dependencies = [
  "futures-timer",
  "log",
  "mixnet",
- "multiaddr",
+ "multiaddr 0.18.1",
  "parity-scale-codec",
- "parking_lot 0.12.1",
+ "parking_lot 0.12.3",
  "sc-client-api",
  "sc-network",
  "sc-network-types",
@@ -7618,7 +7877,7 @@ dependencies = [
 [[package]]
 name = "sc-network"
 version = "0.34.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-v2-compact-proofs#55b3aeacca9236f382b2a6cf22df878f131c72ad"
+source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-v2-compact-proofs#7e6b6b20abac1cd24a7d7b8a837e8add10efa4c9"
 dependencies = [
  "array-bytes",
  "async-channel 1.9.0",
@@ -7638,12 +7897,12 @@ dependencies = [
  "mockall 0.11.4",
  "once_cell",
  "parity-scale-codec",
- "parking_lot 0.12.1",
+ "parking_lot 0.12.3",
  "partial_sort",
  "pin-project",
- "prost 0.12.4",
- "prost-build 0.12.4",
- "rand 0.8.5",
+ "prost 0.12.6",
+ "prost-build 0.12.6",
+ "rand",
  "sc-client-api",
  "sc-network-common",
  "sc-network-types",
@@ -7660,7 +7919,7 @@ dependencies = [
  "thiserror",
  "tokio",
  "tokio-stream",
- "unsigned-varint",
+ "unsigned-varint 0.7.2",
  "void",
  "wasm-timer",
  "zeroize",
@@ -7669,14 +7928,14 @@ dependencies = [
 [[package]]
 name = "sc-network-common"
 version = "0.33.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-v2-compact-proofs#55b3aeacca9236f382b2a6cf22df878f131c72ad"
+source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-v2-compact-proofs#7e6b6b20abac1cd24a7d7b8a837e8add10efa4c9"
 dependencies = [
  "async-trait",
  "bitflags 1.3.2",
  "futures",
  "libp2p-identity",
  "parity-scale-codec",
- "prost-build 0.12.4",
+ "prost-build 0.12.6",
  "sc-consensus",
  "sc-network-types",
  "sp-consensus",
@@ -7687,15 +7946,16 @@ dependencies = [
 [[package]]
 name = "sc-network-types"
 version = "0.10.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-v2-compact-proofs#55b3aeacca9236f382b2a6cf22df878f131c72ad"
+source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-v2-compact-proofs#7e6b6b20abac1cd24a7d7b8a837e8add10efa4c9"
 dependencies = [
  "bs58 0.5.1",
- "ed25519-dalek 2.1.1",
+ "ed25519-dalek",
  "libp2p-identity",
  "litep2p",
- "multiaddr",
- "multihash 0.17.0",
- "rand 0.8.5",
+ "log",
+ "multiaddr 0.18.1",
+ "multihash 0.19.1",
+ "rand",
  "thiserror",
  "zeroize",
 ]
@@ -7703,9 +7963,9 @@ dependencies = [
 [[package]]
 name = "sc-rpc-api"
 version = "0.33.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-v2-compact-proofs#55b3aeacca9236f382b2a6cf22df878f131c72ad"
+source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-v2-compact-proofs#7e6b6b20abac1cd24a7d7b8a837e8add10efa4c9"
 dependencies = [
- "jsonrpsee",
+ "jsonrpsee 0.23.2",
  "parity-scale-codec",
  "sc-chain-spec",
  "sc-mixnet",
@@ -7723,15 +7983,15 @@ dependencies = [
 [[package]]
 name = "sc-telemetry"
 version = "15.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-v2-compact-proofs#55b3aeacca9236f382b2a6cf22df878f131c72ad"
+source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-v2-compact-proofs#7e6b6b20abac1cd24a7d7b8a837e8add10efa4c9"
 dependencies = [
  "chrono",
  "futures",
  "libp2p",
  "log",
- "parking_lot 0.12.1",
+ "parking_lot 0.12.3",
  "pin-project",
- "rand 0.8.5",
+ "rand",
  "sc-network",
  "sc-utils",
  "serde",
@@ -7743,7 +8003,7 @@ dependencies = [
 [[package]]
 name = "sc-transaction-pool-api"
 version = "28.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-v2-compact-proofs#55b3aeacca9236f382b2a6cf22df878f131c72ad"
+source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-v2-compact-proofs#7e6b6b20abac1cd24a7d7b8a837e8add10efa4c9"
 dependencies = [
  "async-trait",
  "futures",
@@ -7759,14 +8019,14 @@ dependencies = [
 [[package]]
 name = "sc-utils"
 version = "14.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-v2-compact-proofs#55b3aeacca9236f382b2a6cf22df878f131c72ad"
+source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-v2-compact-proofs#7e6b6b20abac1cd24a7d7b8a837e8add10efa4c9"
 dependencies = [
  "async-channel 1.9.0",
  "futures",
  "futures-timer",
  "lazy_static",
  "log",
- "parking_lot 0.12.1",
+ "parking_lot 0.12.3",
  "prometheus",
  "sp-arithmetic",
 ]
@@ -7937,10 +8197,10 @@ dependencies = [
  "aead",
  "arrayref",
  "arrayvec 0.7.4",
- "curve25519-dalek 4.1.2",
+ "curve25519-dalek",
  "getrandom_or_panic",
  "merlin",
- "rand_core 0.6.4",
+ "rand_core",
  "serde_bytes",
  "sha2 0.10.8",
  "subtle 2.5.0",
@@ -7973,7 +8233,7 @@ dependencies = [
  "crc",
  "fxhash",
  "log",
- "rand 0.8.5",
+ "rand",
  "slab",
  "thiserror",
 ]
@@ -8030,6 +8290,7 @@ dependencies = [
  "core-foundation",
  "core-foundation-sys",
  "libc",
+ "num-bigint",
  "security-framework-sys",
 ]
 
@@ -8048,6 +8309,12 @@ name = "semver"
 version = "1.0.22"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "92d43fe69e652f3df9bdc2b85b2854a0825b86e4fb76bc44d945137d053639ca"
+
+[[package]]
+name = "send_wrapper"
+version = "0.6.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "cd0b0ec5f1c1ca621c432a25813d8d60c88abe6d3e08a3eb9cf37d97a0fe3d73"
 
 [[package]]
 name = "serde"
@@ -8230,18 +8497,12 @@ dependencies = [
 
 [[package]]
 name = "signature"
-version = "1.6.4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "74233d3b3b2f6d4b006dc19dee745e73e2a6bfb6f93607cd3b02bd5b00797d7c"
-
-[[package]]
-name = "signature"
 version = "2.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "77549399552de45a898a580c1b41d445bf730df867cc44e6c0233bbc4b8329de"
 dependencies = [
  "digest 0.10.7",
- "rand_core 0.6.4",
+ "rand_core",
 ]
 
 [[package]]
@@ -8364,8 +8625,8 @@ dependencies = [
  "pbkdf2",
  "pin-project",
  "poly1305",
- "rand 0.8.5",
- "rand_chacha 0.3.1",
+ "rand",
+ "rand_chacha",
  "ruzstd",
  "schnorrkel",
  "serde",
@@ -8375,10 +8636,10 @@ dependencies = [
  "siphasher",
  "slab",
  "smallvec",
- "soketto",
+ "soketto 0.7.1",
  "twox-hash",
  "wasmi",
- "x25519-dalek 2.0.1",
+ "x25519-dalek",
  "zeroize",
 ]
 
@@ -8405,10 +8666,10 @@ dependencies = [
  "log",
  "lru 0.12.3",
  "no-std-net",
- "parking_lot 0.12.1",
+ "parking_lot 0.12.3",
  "pin-project",
- "rand 0.8.5",
- "rand_chacha 0.3.1",
+ "rand",
+ "rand_chacha",
  "serde",
  "serde_json",
  "siphasher",
@@ -8427,8 +8688,8 @@ dependencies = [
  "aes-gcm",
  "blake2 0.10.6",
  "chacha20poly1305",
- "curve25519-dalek 4.1.2",
- "rand_core 0.6.4",
+ "curve25519-dalek",
+ "rand_core",
  "ring 0.17.8",
  "rustc_version",
  "sha2 0.10.8",
@@ -8447,9 +8708,9 @@ dependencies = [
 
 [[package]]
 name = "socket2"
-version = "0.5.6"
+version = "0.5.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "05ffd9c0a93b7543e062e759284fcf5f5e3b098501104bfbdde4d404db792871"
+checksum = "ce305eb0b4296696835b71df73eb912e0f1ffd2556a501fcede6e0c50349191c"
 dependencies = [
  "libc",
  "windows-sys 0.52.0",
@@ -8463,18 +8724,32 @@ checksum = "41d1c5305e39e09653383c2c7244f2f78b3bcae37cf50c64cb4789c9f5096ec2"
 dependencies = [
  "base64 0.13.1",
  "bytes",
- "flate2",
  "futures",
  "httparse",
  "log",
- "rand 0.8.5",
+ "rand",
  "sha-1 0.9.8",
+]
+
+[[package]]
+name = "soketto"
+version = "0.8.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "37468c595637c10857701c990f93a40ce0e357cedb0953d1c26c8d8027f9bb53"
+dependencies = [
+ "base64 0.22.0",
+ "bytes",
+ "futures",
+ "httparse",
+ "log",
+ "rand",
+ "sha1",
 ]
 
 [[package]]
 name = "sp-api"
 version = "26.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-v2-compact-proofs#55b3aeacca9236f382b2a6cf22df878f131c72ad"
+source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-v2-compact-proofs#7e6b6b20abac1cd24a7d7b8a837e8add10efa4c9"
 dependencies = [
  "docify",
  "hash-db",
@@ -8497,7 +8772,7 @@ dependencies = [
 [[package]]
 name = "sp-api-proc-macro"
 version = "15.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-v2-compact-proofs#55b3aeacca9236f382b2a6cf22df878f131c72ad"
+source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-v2-compact-proofs#7e6b6b20abac1cd24a7d7b8a837e8add10efa4c9"
 dependencies = [
  "Inflector",
  "blake2 0.10.6",
@@ -8511,7 +8786,7 @@ dependencies = [
 [[package]]
 name = "sp-application-crypto"
 version = "30.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-v2-compact-proofs#55b3aeacca9236f382b2a6cf22df878f131c72ad"
+source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-v2-compact-proofs#7e6b6b20abac1cd24a7d7b8a837e8add10efa4c9"
 dependencies = [
  "parity-scale-codec",
  "scale-info",
@@ -8524,7 +8799,7 @@ dependencies = [
 [[package]]
 name = "sp-arithmetic"
 version = "23.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-v2-compact-proofs#55b3aeacca9236f382b2a6cf22df878f131c72ad"
+source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-v2-compact-proofs#7e6b6b20abac1cd24a7d7b8a837e8add10efa4c9"
 dependencies = [
  "docify",
  "integer-sqrt",
@@ -8557,7 +8832,7 @@ dependencies = [
 [[package]]
 name = "sp-authority-discovery"
 version = "26.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-v2-compact-proofs#55b3aeacca9236f382b2a6cf22df878f131c72ad"
+source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-v2-compact-proofs#7e6b6b20abac1cd24a7d7b8a837e8add10efa4c9"
 dependencies = [
  "parity-scale-codec",
  "scale-info",
@@ -8569,12 +8844,12 @@ dependencies = [
 [[package]]
 name = "sp-blockchain"
 version = "28.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-v2-compact-proofs#55b3aeacca9236f382b2a6cf22df878f131c72ad"
+source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-v2-compact-proofs#7e6b6b20abac1cd24a7d7b8a837e8add10efa4c9"
 dependencies = [
  "futures",
  "log",
  "parity-scale-codec",
- "parking_lot 0.12.1",
+ "parking_lot 0.12.3",
  "schnellru",
  "sp-api",
  "sp-consensus",
@@ -8587,7 +8862,7 @@ dependencies = [
 [[package]]
 name = "sp-consensus"
 version = "0.32.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-v2-compact-proofs#55b3aeacca9236f382b2a6cf22df878f131c72ad"
+source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-v2-compact-proofs#7e6b6b20abac1cd24a7d7b8a837e8add10efa4c9"
 dependencies = [
  "async-trait",
  "futures",
@@ -8602,7 +8877,7 @@ dependencies = [
 [[package]]
 name = "sp-consensus-grandpa"
 version = "13.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-v2-compact-proofs#55b3aeacca9236f382b2a6cf22df878f131c72ad"
+source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-v2-compact-proofs#7e6b6b20abac1cd24a7d7b8a837e8add10efa4c9"
 dependencies = [
  "finality-grandpa",
  "log",
@@ -8619,7 +8894,7 @@ dependencies = [
 [[package]]
 name = "sp-consensus-slots"
 version = "0.32.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-v2-compact-proofs#55b3aeacca9236f382b2a6cf22df878f131c72ad"
+source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-v2-compact-proofs#7e6b6b20abac1cd24a7d7b8a837e8add10efa4c9"
 dependencies = [
  "parity-scale-codec",
  "scale-info",
@@ -8630,7 +8905,7 @@ dependencies = [
 [[package]]
 name = "sp-core"
 version = "28.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-v2-compact-proofs#55b3aeacca9236f382b2a6cf22df878f131c72ad"
+source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-v2-compact-proofs#7e6b6b20abac1cd24a7d7b8a837e8add10efa4c9"
 dependencies = [
  "array-bytes",
  "bandersnatch_vrfs",
@@ -8651,10 +8926,10 @@ dependencies = [
  "merlin",
  "parity-bip39",
  "parity-scale-codec",
- "parking_lot 0.12.1",
+ "parking_lot 0.12.3",
  "paste",
  "primitive-types",
- "rand 0.8.5",
+ "rand",
  "scale-info",
  "schnorrkel",
  "secp256k1",
@@ -8711,7 +8986,7 @@ dependencies = [
 [[package]]
 name = "sp-crypto-hashing"
 version = "0.1.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-v2-compact-proofs#55b3aeacca9236f382b2a6cf22df878f131c72ad"
+source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-v2-compact-proofs#7e6b6b20abac1cd24a7d7b8a837e8add10efa4c9"
 dependencies = [
  "blake2b_simd",
  "byteorder",
@@ -8724,7 +8999,7 @@ dependencies = [
 [[package]]
 name = "sp-crypto-hashing-proc-macro"
 version = "0.1.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-v2-compact-proofs#55b3aeacca9236f382b2a6cf22df878f131c72ad"
+source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-v2-compact-proofs#7e6b6b20abac1cd24a7d7b8a837e8add10efa4c9"
 dependencies = [
  "quote 1.0.36",
  "sp-crypto-hashing 0.1.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-v2-compact-proofs)",
@@ -8734,16 +9009,16 @@ dependencies = [
 [[package]]
 name = "sp-database"
 version = "10.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-v2-compact-proofs#55b3aeacca9236f382b2a6cf22df878f131c72ad"
+source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-v2-compact-proofs#7e6b6b20abac1cd24a7d7b8a837e8add10efa4c9"
 dependencies = [
  "kvdb",
- "parking_lot 0.12.1",
+ "parking_lot 0.12.3",
 ]
 
 [[package]]
 name = "sp-debug-derive"
 version = "14.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-v2-compact-proofs#55b3aeacca9236f382b2a6cf22df878f131c72ad"
+source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-v2-compact-proofs#7e6b6b20abac1cd24a7d7b8a837e8add10efa4c9"
 dependencies = [
  "proc-macro2 1.0.85",
  "quote 1.0.36",
@@ -8763,7 +9038,7 @@ dependencies = [
 [[package]]
 name = "sp-externalities"
 version = "0.25.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-v2-compact-proofs#55b3aeacca9236f382b2a6cf22df878f131c72ad"
+source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-v2-compact-proofs#7e6b6b20abac1cd24a7d7b8a837e8add10efa4c9"
 dependencies = [
  "environmental",
  "parity-scale-codec",
@@ -8783,7 +9058,7 @@ dependencies = [
 [[package]]
 name = "sp-genesis-builder"
 version = "0.8.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-v2-compact-proofs#55b3aeacca9236f382b2a6cf22df878f131c72ad"
+source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-v2-compact-proofs#7e6b6b20abac1cd24a7d7b8a837e8add10efa4c9"
 dependencies = [
  "parity-scale-codec",
  "scale-info",
@@ -8795,7 +9070,7 @@ dependencies = [
 [[package]]
 name = "sp-inherents"
 version = "26.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-v2-compact-proofs#55b3aeacca9236f382b2a6cf22df878f131c72ad"
+source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-v2-compact-proofs#7e6b6b20abac1cd24a7d7b8a837e8add10efa4c9"
 dependencies = [
  "async-trait",
  "impl-trait-for-tuples",
@@ -8808,11 +9083,11 @@ dependencies = [
 [[package]]
 name = "sp-io"
 version = "30.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-v2-compact-proofs#55b3aeacca9236f382b2a6cf22df878f131c72ad"
+source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-v2-compact-proofs#7e6b6b20abac1cd24a7d7b8a837e8add10efa4c9"
 dependencies = [
  "bytes",
  "docify",
- "ed25519-dalek 2.1.1",
+ "ed25519-dalek",
  "libsecp256k1",
  "log",
  "parity-scale-codec",
@@ -8835,7 +9110,7 @@ dependencies = [
 [[package]]
 name = "sp-keyring"
 version = "31.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-v2-compact-proofs#55b3aeacca9236f382b2a6cf22df878f131c72ad"
+source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-v2-compact-proofs#7e6b6b20abac1cd24a7d7b8a837e8add10efa4c9"
 dependencies = [
  "sp-core",
  "sp-runtime",
@@ -8845,10 +9120,10 @@ dependencies = [
 [[package]]
 name = "sp-keystore"
 version = "0.34.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-v2-compact-proofs#55b3aeacca9236f382b2a6cf22df878f131c72ad"
+source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-v2-compact-proofs#7e6b6b20abac1cd24a7d7b8a837e8add10efa4c9"
 dependencies = [
  "parity-scale-codec",
- "parking_lot 0.12.1",
+ "parking_lot 0.12.3",
  "sp-core",
  "sp-externalities 0.25.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-v2-compact-proofs)",
 ]
@@ -8856,7 +9131,7 @@ dependencies = [
 [[package]]
 name = "sp-maybe-compressed-blob"
 version = "11.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-v2-compact-proofs#55b3aeacca9236f382b2a6cf22df878f131c72ad"
+source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-v2-compact-proofs#7e6b6b20abac1cd24a7d7b8a837e8add10efa4c9"
 dependencies = [
  "thiserror",
  "zstd 0.12.4",
@@ -8865,7 +9140,7 @@ dependencies = [
 [[package]]
 name = "sp-metadata-ir"
 version = "0.6.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-v2-compact-proofs#55b3aeacca9236f382b2a6cf22df878f131c72ad"
+source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-v2-compact-proofs#7e6b6b20abac1cd24a7d7b8a837e8add10efa4c9"
 dependencies = [
  "frame-metadata 16.0.0",
  "parity-scale-codec",
@@ -8875,7 +9150,7 @@ dependencies = [
 [[package]]
 name = "sp-mixnet"
 version = "0.4.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-v2-compact-proofs#55b3aeacca9236f382b2a6cf22df878f131c72ad"
+source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-v2-compact-proofs#7e6b6b20abac1cd24a7d7b8a837e8add10efa4c9"
 dependencies = [
  "parity-scale-codec",
  "scale-info",
@@ -8886,7 +9161,7 @@ dependencies = [
 [[package]]
 name = "sp-panic-handler"
 version = "13.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-v2-compact-proofs#55b3aeacca9236f382b2a6cf22df878f131c72ad"
+source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-v2-compact-proofs#7e6b6b20abac1cd24a7d7b8a837e8add10efa4c9"
 dependencies = [
  "backtrace",
  "lazy_static",
@@ -8896,7 +9171,7 @@ dependencies = [
 [[package]]
 name = "sp-rpc"
 version = "26.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-v2-compact-proofs#55b3aeacca9236f382b2a6cf22df878f131c72ad"
+source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-v2-compact-proofs#7e6b6b20abac1cd24a7d7b8a837e8add10efa4c9"
 dependencies = [
  "rustc-hash",
  "serde",
@@ -8906,7 +9181,7 @@ dependencies = [
 [[package]]
 name = "sp-runtime"
 version = "31.0.1"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-v2-compact-proofs#55b3aeacca9236f382b2a6cf22df878f131c72ad"
+source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-v2-compact-proofs#7e6b6b20abac1cd24a7d7b8a837e8add10efa4c9"
 dependencies = [
  "docify",
  "either",
@@ -8916,7 +9191,7 @@ dependencies = [
  "num-traits",
  "parity-scale-codec",
  "paste",
- "rand 0.8.5",
+ "rand",
  "scale-info",
  "serde",
  "simple-mermaid",
@@ -8931,7 +9206,7 @@ dependencies = [
 [[package]]
 name = "sp-runtime-interface"
 version = "24.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-v2-compact-proofs#55b3aeacca9236f382b2a6cf22df878f131c72ad"
+source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-v2-compact-proofs#7e6b6b20abac1cd24a7d7b8a837e8add10efa4c9"
 dependencies = [
  "bytes",
  "impl-trait-for-tuples",
@@ -8969,7 +9244,7 @@ dependencies = [
 [[package]]
 name = "sp-runtime-interface-proc-macro"
 version = "17.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-v2-compact-proofs#55b3aeacca9236f382b2a6cf22df878f131c72ad"
+source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-v2-compact-proofs#7e6b6b20abac1cd24a7d7b8a837e8add10efa4c9"
 dependencies = [
  "Inflector",
  "expander",
@@ -8995,7 +9270,7 @@ dependencies = [
 [[package]]
 name = "sp-session"
 version = "27.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-v2-compact-proofs#55b3aeacca9236f382b2a6cf22df878f131c72ad"
+source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-v2-compact-proofs#7e6b6b20abac1cd24a7d7b8a837e8add10efa4c9"
 dependencies = [
  "parity-scale-codec",
  "scale-info",
@@ -9009,7 +9284,7 @@ dependencies = [
 [[package]]
 name = "sp-staking"
 version = "26.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-v2-compact-proofs#55b3aeacca9236f382b2a6cf22df878f131c72ad"
+source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-v2-compact-proofs#7e6b6b20abac1cd24a7d7b8a837e8add10efa4c9"
 dependencies = [
  "impl-trait-for-tuples",
  "parity-scale-codec",
@@ -9022,13 +9297,13 @@ dependencies = [
 [[package]]
 name = "sp-state-machine"
 version = "0.35.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-v2-compact-proofs#55b3aeacca9236f382b2a6cf22df878f131c72ad"
+source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-v2-compact-proofs#7e6b6b20abac1cd24a7d7b8a837e8add10efa4c9"
 dependencies = [
  "hash-db",
  "log",
  "parity-scale-codec",
- "parking_lot 0.12.1",
- "rand 0.8.5",
+ "parking_lot 0.12.3",
+ "rand",
  "smallvec",
  "sp-core",
  "sp-externalities 0.25.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-v2-compact-proofs)",
@@ -9042,14 +9317,14 @@ dependencies = [
 [[package]]
 name = "sp-statement-store"
 version = "10.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-v2-compact-proofs#55b3aeacca9236f382b2a6cf22df878f131c72ad"
+source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-v2-compact-proofs#7e6b6b20abac1cd24a7d7b8a837e8add10efa4c9"
 dependencies = [
  "aes-gcm",
- "curve25519-dalek 4.1.2",
- "ed25519-dalek 2.1.1",
+ "curve25519-dalek",
+ "ed25519-dalek",
  "hkdf",
  "parity-scale-codec",
- "rand 0.8.5",
+ "rand",
  "scale-info",
  "sha2 0.10.8",
  "sp-api",
@@ -9060,13 +9335,13 @@ dependencies = [
  "sp-runtime",
  "sp-runtime-interface 24.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-v2-compact-proofs)",
  "thiserror",
- "x25519-dalek 2.0.1",
+ "x25519-dalek",
 ]
 
 [[package]]
 name = "sp-std"
 version = "14.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-v2-compact-proofs#55b3aeacca9236f382b2a6cf22df878f131c72ad"
+source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-v2-compact-proofs#7e6b6b20abac1cd24a7d7b8a837e8add10efa4c9"
 
 [[package]]
 name = "sp-std"
@@ -9076,7 +9351,7 @@ source = "git+https://github.com/paritytech/polkadot-sdk#48d4f654612a67787426de4
 [[package]]
 name = "sp-storage"
 version = "19.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-v2-compact-proofs#55b3aeacca9236f382b2a6cf22df878f131c72ad"
+source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-v2-compact-proofs#7e6b6b20abac1cd24a7d7b8a837e8add10efa4c9"
 dependencies = [
  "impl-serde",
  "parity-scale-codec",
@@ -9100,7 +9375,7 @@ dependencies = [
 [[package]]
 name = "sp-timestamp"
 version = "26.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-v2-compact-proofs#55b3aeacca9236f382b2a6cf22df878f131c72ad"
+source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-v2-compact-proofs#7e6b6b20abac1cd24a7d7b8a837e8add10efa4c9"
 dependencies = [
  "async-trait",
  "parity-scale-codec",
@@ -9112,7 +9387,7 @@ dependencies = [
 [[package]]
 name = "sp-tracing"
 version = "16.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-v2-compact-proofs#55b3aeacca9236f382b2a6cf22df878f131c72ad"
+source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-v2-compact-proofs#7e6b6b20abac1cd24a7d7b8a837e8add10efa4c9"
 dependencies = [
  "parity-scale-codec",
  "tracing",
@@ -9134,7 +9409,7 @@ dependencies = [
 [[package]]
 name = "sp-trie"
 version = "29.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-v2-compact-proofs#55b3aeacca9236f382b2a6cf22df878f131c72ad"
+source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-v2-compact-proofs#7e6b6b20abac1cd24a7d7b8a837e8add10efa4c9"
 dependencies = [
  "ahash 0.8.11",
  "hash-db",
@@ -9142,8 +9417,8 @@ dependencies = [
  "memory-db",
  "nohash-hasher",
  "parity-scale-codec",
- "parking_lot 0.12.1",
- "rand 0.8.5",
+ "parking_lot 0.12.3",
+ "rand",
  "scale-info",
  "schnellru",
  "sp-core",
@@ -9157,7 +9432,7 @@ dependencies = [
 [[package]]
 name = "sp-version"
 version = "29.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-v2-compact-proofs#55b3aeacca9236f382b2a6cf22df878f131c72ad"
+source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-v2-compact-proofs#7e6b6b20abac1cd24a7d7b8a837e8add10efa4c9"
 dependencies = [
  "impl-serde",
  "parity-scale-codec",
@@ -9174,7 +9449,7 @@ dependencies = [
 [[package]]
 name = "sp-version-proc-macro"
 version = "13.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-v2-compact-proofs#55b3aeacca9236f382b2a6cf22df878f131c72ad"
+source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-v2-compact-proofs#7e6b6b20abac1cd24a7d7b8a837e8add10efa4c9"
 dependencies = [
  "parity-scale-codec",
  "proc-macro2 1.0.85",
@@ -9185,7 +9460,7 @@ dependencies = [
 [[package]]
 name = "sp-wasm-interface"
 version = "20.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-v2-compact-proofs#55b3aeacca9236f382b2a6cf22df878f131c72ad"
+source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-v2-compact-proofs#7e6b6b20abac1cd24a7d7b8a837e8add10efa4c9"
 dependencies = [
  "anyhow",
  "impl-trait-for-tuples",
@@ -9207,7 +9482,7 @@ dependencies = [
 [[package]]
 name = "sp-weights"
 version = "27.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-v2-compact-proofs#55b3aeacca9236f382b2a6cf22df878f131c72ad"
+source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-v2-compact-proofs#7e6b6b20abac1cd24a7d7b8a837e8add10efa4c9"
 dependencies = [
  "bounded-collections",
  "parity-scale-codec",
@@ -9264,7 +9539,7 @@ checksum = "a8f112729512f8e442d81f95a8a7ddf2b7c6b8a1a6f509a95864142b30cab2d3"
 [[package]]
 name = "staging-xcm"
 version = "7.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-v2-compact-proofs#55b3aeacca9236f382b2a6cf22df878f131c72ad"
+source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-v2-compact-proofs#7e6b6b20abac1cd24a7d7b8a837e8add10efa4c9"
 dependencies = [
  "array-bytes",
  "bounded-collections",
@@ -9282,7 +9557,7 @@ dependencies = [
 [[package]]
 name = "staging-xcm-builder"
 version = "7.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-v2-compact-proofs#55b3aeacca9236f382b2a6cf22df878f131c72ad"
+source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-v2-compact-proofs#7e6b6b20abac1cd24a7d7b8a837e8add10efa4c9"
 dependencies = [
  "frame-support",
  "frame-system",
@@ -9304,7 +9579,7 @@ dependencies = [
 [[package]]
 name = "staging-xcm-executor"
 version = "7.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-v2-compact-proofs#55b3aeacca9236f382b2a6cf22df878f131c72ad"
+source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-v2-compact-proofs#7e6b6b20abac1cd24a7d7b8a837e8add10efa4c9"
 dependencies = [
  "environmental",
  "frame-benchmarking",
@@ -9409,7 +9684,7 @@ dependencies = [
 [[package]]
 name = "substrate-bip39"
 version = "0.4.7"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-v2-compact-proofs#55b3aeacca9236f382b2a6cf22df878f131c72ad"
+source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-v2-compact-proofs#7e6b6b20abac1cd24a7d7b8a837e8add10efa4c9"
 dependencies = [
  "hmac 0.12.1",
  "pbkdf2",
@@ -9421,7 +9696,7 @@ dependencies = [
 [[package]]
 name = "substrate-prometheus-endpoint"
 version = "0.17.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-v2-compact-proofs#55b3aeacca9236f382b2a6cf22df878f131c72ad"
+source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-v2-compact-proofs#7e6b6b20abac1cd24a7d7b8a837e8add10efa4c9"
 dependencies = [
  "hyper",
  "log",
@@ -9467,6 +9742,7 @@ dependencies = [
  "relay-bridge-hub-rococo-client",
  "relay-bridge-hub-westend-client",
  "relay-kusama-client",
+ "relay-legacy-client",
  "relay-polkadot-bulletin-client",
  "relay-polkadot-client",
  "relay-rococo-client",
@@ -9487,7 +9763,7 @@ dependencies = [
 [[package]]
 name = "substrate-relay-helper"
 version = "0.1.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-v2-compact-proofs#55b3aeacca9236f382b2a6cf22df878f131c72ad"
+source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-v2-compact-proofs#7e6b6b20abac1cd24a7d7b8a837e8add10efa4c9"
 dependencies = [
  "anyhow",
  "async-std",
@@ -9498,9 +9774,7 @@ dependencies = [
  "bp-polkadot-core",
  "bp-relayers",
  "bp-runtime",
- "bridge-runtime-common",
  "equivocation-detector",
- "finality-grandpa",
  "finality-relay",
  "frame-support",
  "frame-system",
@@ -9553,7 +9827,7 @@ dependencies = [
  "hex",
  "impl-serde",
  "instant",
- "jsonrpsee",
+ "jsonrpsee 0.22.5",
  "parity-scale-codec",
  "primitive-types",
  "reconnecting-jsonrpsee-ws-client",
@@ -9584,7 +9858,7 @@ dependencies = [
  "frame-metadata 16.0.0",
  "heck 0.5.0",
  "hex",
- "jsonrpsee",
+ "jsonrpsee 0.22.5",
  "parity-scale-codec",
  "proc-macro2 1.0.85",
  "quote 1.0.36",
@@ -9711,6 +9985,17 @@ dependencies = [
  "quote 1.0.36",
  "syn 1.0.109",
  "unicode-xid 0.2.4",
+]
+
+[[package]]
+name = "synstructure"
+version = "0.13.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c8af7666ab7b6390ab78131fb5b0fce11d6b7a6951602017c35fa82800708971"
+dependencies = [
+ "proc-macro2 1.0.85",
+ "quote 1.0.36",
+ "syn 2.0.60",
 ]
 
 [[package]]
@@ -9895,9 +10180,9 @@ dependencies = [
  "libc",
  "mio",
  "num_cpus",
- "parking_lot 0.12.1",
+ "parking_lot 0.12.3",
  "pin-project-lite 0.2.14",
- "socket2 0.5.6",
+ "socket2 0.5.7",
  "tokio-macros",
  "windows-sys 0.48.0",
 ]
@@ -9930,6 +10215,17 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "775e0c0f0adb3a2f22a00c4745d728b479985fc15ee7ca6a2608388c5569860f"
 dependencies = [
  "rustls 0.22.3",
+ "rustls-pki-types",
+ "tokio",
+]
+
+[[package]]
+name = "tokio-rustls"
+version = "0.26.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0c7bc40d0e5a97695bb96e27995cd3a08538541b0a846f65bba7a359f36700d4"
+dependencies = [
+ "rustls 0.23.7",
  "rustls-pki-types",
  "tokio",
 ]
@@ -10164,7 +10460,7 @@ dependencies = [
  "idna 0.2.3",
  "ipnet",
  "lazy_static",
- "rand 0.8.5",
+ "rand",
  "smallvec",
  "socket2 0.4.10",
  "thiserror",
@@ -10190,33 +10486,13 @@ dependencies = [
  "idna 0.4.0",
  "ipnet",
  "once_cell",
- "rand 0.8.5",
+ "rand",
  "smallvec",
  "thiserror",
  "tinyvec",
  "tokio",
  "tracing",
  "url",
-]
-
-[[package]]
-name = "trust-dns-resolver"
-version = "0.22.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "aff21aa4dcefb0a1afbfac26deb0adc93888c7d295fb63ab273ef276ba2b7cfe"
-dependencies = [
- "cfg-if",
- "futures-util",
- "ipconfig",
- "lazy_static",
- "lru-cache",
- "parking_lot 0.12.1",
- "resolv-conf",
- "smallvec",
- "thiserror",
- "tokio",
- "tracing",
- "trust-dns-proto 0.22.0",
 ]
 
 [[package]]
@@ -10230,8 +10506,8 @@ dependencies = [
  "ipconfig",
  "lru-cache",
  "once_cell",
- "parking_lot 0.12.1",
- "rand 0.8.5",
+ "parking_lot 0.12.3",
+ "rand",
  "resolv-conf",
  "smallvec",
  "thiserror",
@@ -10261,10 +10537,10 @@ dependencies = [
  "byteorder",
  "bytes",
  "data-encoding",
- "http",
+ "http 0.2.12",
  "httparse",
  "log",
- "rand 0.8.5",
+ "rand",
  "rustls 0.21.10",
  "sha1",
  "thiserror",
@@ -10286,7 +10562,7 @@ checksum = "97fee6b57c6a41524a810daee9286c02d7752c4253064d0b05472833a438f675"
 dependencies = [
  "cfg-if",
  "digest 0.10.7",
- "rand 0.8.5",
+ "rand",
  "static_assertions",
 ]
 
@@ -10373,6 +10649,15 @@ dependencies = [
  "bytes",
  "futures-io",
  "futures-util",
+]
+
+[[package]]
+name = "unsigned-varint"
+version = "0.8.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "eb066959b24b5196ae73cb057f45598450d2c5f71460e98c49b738086eff9c06"
+dependencies = [
+ "bytes",
  "tokio-util",
 ]
 
@@ -10462,9 +10747,9 @@ dependencies = [
  "arrayref",
  "constcat",
  "digest 0.10.7",
- "rand 0.8.5",
- "rand_chacha 0.3.1",
- "rand_core 0.6.4",
+ "rand",
+ "rand_chacha",
+ "rand_core",
  "sha2 0.10.8",
  "sha3",
  "thiserror",
@@ -10495,12 +10780,6 @@ checksum = "bfa7760aed19e106de2c7c0b581b509f2f25d3dacaf737cb82ac61bc6d760b0e"
 dependencies = [
  "try-lock",
 ]
-
-[[package]]
-name = "wasi"
-version = "0.9.0+wasi-snapshot-preview1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "cccddf32554fecc6acb585f82a32a72e28b48f8c4c1883ddfeeeaa96f7d8e519"
 
 [[package]]
 name = "wasi"
@@ -10823,7 +11102,7 @@ dependencies = [
  "memfd",
  "memoffset",
  "paste",
- "rand 0.8.5",
+ "rand",
  "rustix 0.36.17",
  "wasmtime-asm-macros",
  "wasmtime-environ",
@@ -10865,11 +11144,17 @@ dependencies = [
 
 [[package]]
 name = "webpki-roots"
-version = "0.22.6"
+version = "0.25.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b6c71e40d7d2c34a5106301fb632274ca37242cd0c9d3e64dbece371a40a2d87"
+checksum = "5f20c57d8d7db6d3b86154206ae5d8fba62dd39573114de97c2cb0578251f8e1"
+
+[[package]]
+name = "webpki-roots"
+version = "0.26.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "bd7c23921eeb1713a4e851530e9b9756e4fb0e89978582942612524cf09f01cd"
 dependencies = [
- "webpki",
+ "rustls-pki-types",
 ]
 
 [[package]]
@@ -11228,43 +11513,14 @@ dependencies = [
 
 [[package]]
 name = "x25519-dalek"
-version = "1.1.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5a0c105152107e3b96f6a00a65e86ce82d9b125230e1c4302940eca58ff71f4f"
-dependencies = [
- "curve25519-dalek 3.2.0",
- "rand_core 0.5.1",
- "zeroize",
-]
-
-[[package]]
-name = "x25519-dalek"
 version = "2.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c7e468321c81fb07fa7f4c636c3972b9100f0346e5b6a9f2bd0603a52f7ed277"
 dependencies = [
- "curve25519-dalek 4.1.2",
- "rand_core 0.6.4",
+ "curve25519-dalek",
+ "rand_core",
  "serde",
  "zeroize",
-]
-
-[[package]]
-name = "x509-parser"
-version = "0.14.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e0ecbeb7b67ce215e40e3cc7f2ff902f94a223acf44995934763467e7b1febc8"
-dependencies = [
- "asn1-rs",
- "base64 0.13.1",
- "data-encoding",
- "der-parser",
- "lazy_static",
- "nom",
- "oid-registry",
- "rusticata-macros",
- "thiserror",
- "time",
 ]
 
 [[package]]
@@ -11273,12 +11529,29 @@ version = "0.15.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7069fba5b66b9193bd2c5d3d4ff12b839118f6bcbef5328efafafb5395cf63da"
 dependencies = [
- "asn1-rs",
+ "asn1-rs 0.5.2",
  "data-encoding",
- "der-parser",
+ "der-parser 8.2.0",
  "lazy_static",
  "nom",
- "oid-registry",
+ "oid-registry 0.6.1",
+ "rusticata-macros",
+ "thiserror",
+ "time",
+]
+
+[[package]]
+name = "x509-parser"
+version = "0.16.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "fcbc162f30700d6f3f82a24bf7cc62ffe7caea42c0b2cba8bf7f3ae50cf51f69"
+dependencies = [
+ "asn1-rs 0.6.1",
+ "data-encoding",
+ "der-parser 9.0.0",
+ "lazy_static",
+ "nom",
+ "oid-registry 0.7.0",
  "rusticata-macros",
  "thiserror",
  "time",
@@ -11287,7 +11560,7 @@ dependencies = [
 [[package]]
 name = "xcm-procedural"
 version = "7.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-v2-compact-proofs#55b3aeacca9236f382b2a6cf22df878f131c72ad"
+source = "git+https://github.com/paritytech/polkadot-sdk?branch=bko-bridges-v2-compact-proofs#7e6b6b20abac1cd24a7d7b8a837e8add10efa4c9"
 dependencies = [
  "Inflector",
  "proc-macro2 1.0.85",
@@ -11296,16 +11569,32 @@ dependencies = [
 ]
 
 [[package]]
-name = "yamux"
-version = "0.10.2"
+name = "xml-rs"
+version = "0.8.20"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e5d9ba232399af1783a58d8eb26f6b5006fbefe2dc9ef36bd283324792d03ea5"
+checksum = "791978798f0597cfc70478424c2b4fdc2b7a8024aaff78497ef00f24ef674193"
+
+[[package]]
+name = "xmltree"
+version = "0.10.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d7d8a75eaf6557bb84a65ace8609883db44a29951042ada9b393151532e41fcb"
+dependencies = [
+ "xml-rs",
+]
+
+[[package]]
+name = "yamux"
+version = "0.12.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9ed0164ae619f2dc144909a9f082187ebb5893693d8c0196e8085283ccd4b776"
 dependencies = [
  "futures",
  "log",
  "nohash-hasher",
- "parking_lot 0.12.1",
- "rand 0.8.5",
+ "parking_lot 0.12.3",
+ "pin-project",
+ "rand",
  "static_assertions",
 ]
 
@@ -11346,9 +11635,9 @@ dependencies = [
 
 [[package]]
 name = "zeroize"
-version = "1.7.0"
+version = "1.8.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "525b4ec142c6b68a2d10f01f7bbf6755599ca3f81ea53b8431b7dd348f5fdb2d"
+checksum = "ced3678a2879b30306d323f4542626697a464a97c0a07c9aebf7ebca65cd4dde"
 dependencies = [
  "zeroize_derive",
 ]
