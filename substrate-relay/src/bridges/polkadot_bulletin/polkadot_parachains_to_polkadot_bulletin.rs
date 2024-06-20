@@ -24,7 +24,7 @@ use bp_polkadot_core::parachains::{ParaHash, ParaHeadsProof, ParaId};
 use bp_runtime::Chain;
 use relay_substrate_client::{CallOf, HeaderIdOf};
 use substrate_relay_helper::{
-	messages_lane::MessagesRelayLimits,
+	messages::MessagesRelayLimits,
 	parachains::{SubmitParachainHeadsCallBuilder, SubstrateParachainsPipeline},
 };
 
