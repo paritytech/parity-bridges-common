@@ -14,6 +14,9 @@ codec = { package = "parity-scale-codec", version = "3.6.1", features = ["derive
 scale-info = { version = "2.11.3", default-features = false, features = ["derive"] }
 subxt = { version = "0.37.0", default-features = false, features = ["native"] }
 
+# Local dependencies
+relay-legacy-client = { path = "../client-legacy" }
+
 # Bridge dependencies
 bp-bridge-hub-kusama = { git = "https://github.com/paritytech/polkadot-sdk", branch = "bko-bridges-v2-compact-proofs" }
 bp-header-chain = { git = "https://github.com/paritytech/polkadot-sdk", branch = "bko-bridges-v2-compact-proofs" }

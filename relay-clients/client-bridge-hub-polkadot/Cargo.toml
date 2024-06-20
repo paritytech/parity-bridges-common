@@ -14,8 +14,10 @@ codec = { package = "parity-scale-codec", version = "3.6.1", features = ["derive
 scale-info = { version = "2.11.3", default-features = false, features = ["derive"] }
 subxt = { version = "0.37.0", default-features = false, features = ["native"] }
 
-# Bridge dependencies
+# Local dependencies
+relay-legacy-client = { path = "../client-legacy" }
 
+# Bridge dependencies
 bp-bridge-hub-polkadot = { git = "https://github.com/paritytech/polkadot-sdk", branch = "bko-bridges-v2-compact-proofs" }
 bp-header-chain = { git = "https://github.com/paritytech/polkadot-sdk", branch = "bko-bridges-v2-compact-proofs" }
 bp-messages = { git = "https://github.com/paritytech/polkadot-sdk", branch = "bko-bridges-v2-compact-proofs" }
@@ -28,7 +30,6 @@ bridge-runtime-common = { git = "https://github.com/paritytech/polkadot-sdk", br
 relay-substrate-client = { git = "https://github.com/paritytech/polkadot-sdk", branch = "bko-bridges-v2-compact-proofs" }
 
 # Substrate Dependencies
-
 sp-core = { git = "https://github.com/paritytech/polkadot-sdk", branch = "bko-bridges-v2-compact-proofs" }
 sp-runtime = { git = "https://github.com/paritytech/polkadot-sdk", branch = "bko-bridges-v2-compact-proofs" }
 sp-weights = { git = "https://github.com/paritytech/polkadot-sdk", branch = "bko-bridges-v2-compact-proofs" }

@@ -1636,16 +1636,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "client-legacy"
-version = "0.1.0"
-dependencies = [
- "bp-messages",
- "parity-scale-codec",
- "scale-info",
- "sp-runtime",
-]
-
-[[package]]
 name = "colorchoice"
 version = "1.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -6847,6 +6837,7 @@ dependencies = [
  "bp-runtime",
  "bridge-runtime-common",
  "parity-scale-codec",
+ "relay-legacy-client",
  "relay-substrate-client",
  "scale-info",
  "sp-core",
@@ -6869,6 +6860,7 @@ dependencies = [
  "bp-runtime",
  "bridge-runtime-common",
  "parity-scale-codec",
+ "relay-legacy-client",
  "relay-substrate-client",
  "scale-info",
  "sp-core",
@@ -6889,6 +6881,7 @@ dependencies = [
  "bp-runtime",
  "bridge-runtime-common",
  "parity-scale-codec",
+ "relay-legacy-client",
  "relay-substrate-client",
  "scale-info",
  "sp-core",
@@ -6910,6 +6903,7 @@ dependencies = [
  "bp-runtime",
  "bridge-runtime-common",
  "parity-scale-codec",
+ "relay-legacy-client",
  "relay-substrate-client",
  "scale-info",
  "sp-consensus-grandpa",
@@ -6939,6 +6933,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "relay-legacy-client"
+version = "0.1.0"
+dependencies = [
+ "bp-messages",
+ "parity-scale-codec",
+ "scale-info",
+ "sp-runtime",
+]
+
+[[package]]
 name = "relay-polkadot-bulletin-client"
 version = "0.1.0"
 dependencies = [
@@ -6949,6 +6953,7 @@ dependencies = [
  "bp-runtime",
  "bridge-runtime-common",
  "parity-scale-codec",
+ "relay-legacy-client",
  "relay-substrate-client",
  "relay-utils",
  "scale-info",
