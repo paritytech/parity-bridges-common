@@ -1636,6 +1636,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "client-legacy"
+version = "0.1.0"
+dependencies = [
+ "bp-messages",
+ "parity-scale-codec",
+ "scale-info",
+ "sp-runtime",
+]
+
+[[package]]
 name = "colorchoice"
 version = "1.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"

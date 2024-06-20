@@ -148,6 +148,14 @@ fn main() -> color_eyre::Result<()> {
 		TypeSubstitute::simple("bp_header_chain::InitializationData"),
 		TypeSubstitute::simple("bp_polkadot_core::parachains::ParaId"),
 		TypeSubstitute::simple("bp_polkadot_core::parachains::ParaHeadsProof"),
+		TypeSubstitute::custom(
+			"bridge_runtime_common::messages::target::FromBridgedChainMessagesProof",
+			"::relay_legacy_client::non_compact_proofs::bridge_runtime_common::messages::target::FromBridgedChainMessagesProof",
+		),
+		TypeSubstitute::custom(
+			"bridge_runtime_common::messages::source::FromBridgedChainMessagesDeliveryProof",
+			"::relay_legacy_client::non_compact_proofs::bridge_runtime_common::messages::source::FromBridgedChainMessagesDeliveryProof",
+		),
 		TypeSubstitute::simple(
 			"bp_messages::target_chain::FromBridgedChainMessagesProof",
 		),
