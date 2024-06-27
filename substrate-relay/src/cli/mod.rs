@@ -130,7 +130,7 @@ impl Command {
 			Ok(signals) => signals,
 			Err(e) => {
 				log::error!(target: LOG_TARGET, "Could not register exit signals: {}", e);
-				return
+				return;
 			},
 		};
 		let run = self.do_run().fuse();

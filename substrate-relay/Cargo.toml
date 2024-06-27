@@ -45,6 +45,7 @@ relay-bridge-hub-polkadot-client = { path = "../relay-clients/client-bridge-hub-
 relay-bridge-hub-rococo-client = { path = "../relay-clients/client-bridge-hub-rococo" }
 relay-bridge-hub-westend-client = { path = "../relay-clients/client-bridge-hub-westend" }
 relay-kusama-client = { path = "../relay-clients/client-kusama" }
+relay-legacy-client = { path = "../relay-clients/client-legacy" }
 relay-polkadot-client = { path = "../relay-clients/client-polkadot" }
 relay-polkadot-bulletin-client = { path = "../relay-clients/client-polkadot-bulletin" }
 relay-rococo-client = { path = "../relay-clients/client-rococo" }
@@ -54,7 +55,6 @@ relay-westend-client = { path = "../relay-clients/client-westend" }
 substrate-relay-helper = { git = "https://github.com/paritytech/polkadot-sdk", branch = "bko-bridges-v2-compact-proofs" }
 
 # Substrate Dependencies
-
 frame-support = { git = "https://github.com/paritytech/polkadot-sdk", branch = "bko-bridges-v2-compact-proofs" }
 sp-core = { git = "https://github.com/paritytech/polkadot-sdk", branch = "bko-bridges-v2-compact-proofs" }
 sp-runtime = { git = "https://github.com/paritytech/polkadot-sdk", branch = "bko-bridges-v2-compact-proofs" }

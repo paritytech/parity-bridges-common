@@ -35,7 +35,9 @@ impl MessagesCliBridge for BridgeHubRococoToBridgeHubWestendMessagesCliBridge {
 	type MessagesLane = BridgeHubRococoMessagesToBridgeHubWestendMessageLane;
 }
 
-substrate_relay_helper::generate_receive_message_proof_call_builder!(
+// TODO: uncomment when BridgeHubWestend supports the compact proofs
+// substrate_relay_helper::generate_receive_message_proof_call_builder!(
+relay_legacy_client::generate_receive_message_proof_call_builder!(
 	BridgeHubRococoMessagesToBridgeHubWestendMessageLane,
 	BridgeHubRococoMessagesToBridgeHubWestendMessageLaneReceiveMessagesProofCallBuilder,
 	relay_bridge_hub_westend_client::RuntimeCall::BridgeRococoMessages,
