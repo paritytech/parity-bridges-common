@@ -36,14 +36,18 @@ impl MessagesCliBridge for BridgeHubPolkadotToPolkadotBulletinMessagesCliBridge 
 	type MessagesLane = BridgeHubPolkadotMessagesToPolkadotBulletinMessageLane;
 }
 
-substrate_relay_helper::generate_receive_message_proof_call_builder!(
+// TODO: uncomment when PolkadotBulletin supports the compact proofs
+// substrate_relay_helper::generate_receive_message_proof_call_builder!(
+relay_legacy_client::generate_receive_message_proof_call_builder!(
 	BridgeHubPolkadotMessagesToPolkadotBulletinMessageLane,
 	BridgeHubPolkadotMessagesToPolkadotBulletinMessageLaneReceiveMessagesProofCallBuilder,
 	relay_polkadot_bulletin_client::RuntimeCall::BridgePolkadotMessages,
 	relay_polkadot_bulletin_client::BridgePolkadotMessagesCall::receive_messages_proof
 );
 
-substrate_relay_helper::generate_receive_message_delivery_proof_call_builder!(
+// TODO: uncomment when BridgeHubPolkadot supports the compact proofs
+// substrate_relay_helper::generate_receive_message_delivery_proof_call_builder!(
+relay_legacy_client::generate_receive_message_delivery_proof_call_builder!(
 	BridgeHubPolkadotMessagesToPolkadotBulletinMessageLane,
 	BridgeHubPolkadotMessagesToPolkadotBulletinMessageLaneReceiveMessagesDeliveryProofCallBuilder,
 	// TODO: https://github.com/paritytech/parity-bridges-common/issues/2547 - use BridgePolkadotBulletinMessages

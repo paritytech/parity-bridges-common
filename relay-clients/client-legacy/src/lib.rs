@@ -48,6 +48,28 @@ pub mod non_compact_proofs {
 					/// Lane id of which messages were delivered and the proof is for.
 					pub lane: LaneId,
 				}
+
+				impl<BridgedHeaderHash>
+					From<
+						bp_messages::source_chain::FromBridgedChainMessagesDeliveryProof<
+							BridgedHeaderHash,
+						>,
+					> for FromBridgedChainMessagesDeliveryProof<BridgedHeaderHash>
+				{
+					fn from(
+						value: bp_messages::source_chain::FromBridgedChainMessagesDeliveryProof<
+							BridgedHeaderHash,
+						>,
+					) -> Self {
+						FromBridgedChainMessagesDeliveryProof {
+							bridged_header_hash: value.bridged_header_hash,
+							// this is legacy change, we need to get `RawStorageProof` from
+							// `UnverifiedStorageProof.proof`
+							storage_proof: value.storage_proof.proof().clone(),
+							lane: value.lane,
+						}
+					}
+				}
 			}
 			pub mod target {
 				use super::*;
@@ -71,7 +93,102 @@ pub mod non_compact_proofs {
 					/// Nonce of the last message being delivered.
 					pub nonces_end: MessageNonce,
 				}
+
+				impl<BridgedHeaderHash>
+					From<
+						bp_messages::target_chain::FromBridgedChainMessagesProof<BridgedHeaderHash>,
+					> for FromBridgedChainMessagesProof<BridgedHeaderHash>
+				{
+					fn from(
+						value: bp_messages::target_chain::FromBridgedChainMessagesProof<
+							BridgedHeaderHash,
+						>,
+					) -> Self {
+						FromBridgedChainMessagesProof {
+							bridged_header_hash: value.bridged_header_hash,
+							// this is legacy change, we need to get `RawStorageProof` from
+							// `UnverifiedStorageProof.proof`
+							storage_proof: value.storage.proof().clone(),
+							lane: value.lane,
+							nonces_start: value.nonces_start,
+							nonces_end: value.nonces_end,
+						}
+					}
+				}
 			}
 		}
 	}
+
+	/// Macro that generates `ReceiveMessagesProofCallBuilder` implementation for the case when
+	/// you only have an access to the mocked version of target chain runtime. In this case you
+	/// should provide "name" of the call variant for the bridge messages calls and the "name" of
+	/// the variant for the `receive_messages_proof` call within that first option.
+	#[rustfmt::skip]
+	#[macro_export]
+	macro_rules! generate_receive_message_proof_call_builder {
+		($pipeline:ident, $mocked_builder:ident, $bridge_messages:path, $receive_messages_proof:path) => {
+			pub struct $mocked_builder;
+
+			impl substrate_relay_helper::messages::ReceiveMessagesProofCallBuilder<$pipeline>
+				for $mocked_builder
+			{
+				fn build_receive_messages_proof_call(
+					relayer_id_at_source: relay_substrate_client::AccountIdOf<
+						<$pipeline as substrate_relay_helper::messages::SubstrateMessageLane>::SourceChain
+					>,
+					proof: substrate_relay_helper::messages::source::SubstrateMessagesProof<
+						<$pipeline as substrate_relay_helper::messages::SubstrateMessageLane>::SourceChain
+					>,
+					messages_count: u32,
+					dispatch_weight: bp_messages::Weight,
+					_trace_call: bool,
+				) -> relay_substrate_client::CallOf<
+					<$pipeline as substrate_relay_helper::messages::SubstrateMessageLane>::TargetChain
+				> {
+					bp_runtime::paste::item! {
+						$bridge_messages($receive_messages_proof {
+							relayer_id_at_bridged_chain: relayer_id_at_source,
+							// a legacy change - convert between `bp_messages::target_chain::FromBridgedChainMessagesDeliveryProof` and `FromBridgedChainMessagesDeliveryProof` - see `From` impl above
+							proof: proof.1.into(),
+							messages_count: messages_count,
+							dispatch_weight: dispatch_weight,
+						})
+					}
+				}
+			}
+		};
+	}
+
+	/// Macro that generates `ReceiveMessagesDeliveryProofCallBuilder` implementation for the case when
+	/// you only have an access to the mocked version of source chain runtime. In this case you
+	/// should provide "name" of the call variant for the bridge messages calls and the "name" of
+	/// the variant for the `receive_messages_delivery_proof` call within that first option.
+	#[rustfmt::skip]
+	#[macro_export]
+	macro_rules! generate_receive_message_delivery_proof_call_builder {
+	($pipeline:ident, $mocked_builder:ident, $bridge_messages:path, $receive_messages_delivery_proof:path) => {
+		pub struct $mocked_builder;
+
+		impl substrate_relay_helper::messages::ReceiveMessagesDeliveryProofCallBuilder<$pipeline>
+			for $mocked_builder
+		{
+			fn build_receive_messages_delivery_proof_call(
+				proof: substrate_relay_helper::messages::target::SubstrateMessagesDeliveryProof<
+					<$pipeline as substrate_relay_helper::messages::SubstrateMessageLane>::TargetChain
+				>,
+				_trace_call: bool,
+			) -> relay_substrate_client::CallOf<
+				<$pipeline as substrate_relay_helper::messages::SubstrateMessageLane>::SourceChain
+			> {
+				bp_runtime::paste::item! {
+					$bridge_messages($receive_messages_delivery_proof {
+						// a legacy change - convert between `bp_messages::source_chain::FromBridgedChainMessagesProof` and `FromBridgedChainMessagesProof` - see `From` impl above
+						proof: proof.1.into(),
+						relayers_state: proof.0
+					})
+				}
+			}
+		}
+	};
+}
 }

@@ -36,14 +36,18 @@ impl MessagesCliBridge for BridgeHubKusamaToBridgeHubPolkadotMessagesCliBridge {
 	type MessagesLane = BridgeHubKusamaMessagesToBridgeHubPolkadotMessageLane;
 }
 
-substrate_relay_helper::generate_receive_message_proof_call_builder!(
+// TODO: uncomment when BridgeHubPolkadot supports the compact proofs
+// substrate_relay_helper::generate_receive_message_proof_call_builder!(
+relay_legacy_client::generate_receive_message_proof_call_builder!(
 	BridgeHubKusamaMessagesToBridgeHubPolkadotMessageLane,
 	BridgeHubKusamaMessagesToBridgeHubPolkadotMessageLaneReceiveMessagesProofCallBuilder,
 	relay_bridge_hub_polkadot_client::RuntimeCall::BridgeKusamaMessages,
 	relay_bridge_hub_polkadot_client::BridgeKusamaMessagesCall::receive_messages_proof
 );
 
-substrate_relay_helper::generate_receive_message_delivery_proof_call_builder!(
+// TODO: uncomment when BridgeHubKusama supports the compact proofs
+// substrate_relay_helper::generate_receive_message_delivery_proof_call_builder!(
+relay_legacy_client::generate_receive_message_delivery_proof_call_builder!(
 	BridgeHubKusamaMessagesToBridgeHubPolkadotMessageLane,
 	BridgeHubKusamaMessagesToBridgeHubPolkadotMessageLaneReceiveMessagesDeliveryProofCallBuilder,
 	relay_bridge_hub_kusama_client::RuntimeCall::BridgePolkadotMessages,
