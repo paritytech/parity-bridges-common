@@ -15,6 +15,7 @@ scale-info = { version = "2.11.3", default-features = false, features = ["derive
 
 # Bridge dependencies
 bp-messages = { git = "https://github.com/paritytech/polkadot-sdk", branch = "bko-bridges-v2-compact-proofs" }
+bp-polkadot-core = { git = "https://github.com/paritytech/polkadot-sdk", branch = "bko-bridges-v2-compact-proofs" }
 
 # Substrate Dependencies
 sp-runtime = { git = "https://github.com/paritytech/polkadot-sdk", branch = "bko-bridges-v2-compact-proofs" }

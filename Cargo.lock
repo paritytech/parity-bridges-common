@@ -7158,6 +7158,7 @@ name = "relay-legacy-client"
 version = "0.1.0"
 dependencies = [
  "bp-messages",
+ "bp-polkadot-core",
  "parity-scale-codec",
  "scale-info",
  "sp-runtime",

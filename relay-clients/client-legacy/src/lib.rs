@@ -21,15 +21,17 @@
 
 /// Types compatible with versions before the "compact proofs" feature.
 pub mod non_compact_proofs {
+	use codec::{Decode, Encode};
+	use scale_info::TypeInfo;
+	use sp_runtime::RuntimeDebug;
+
+	/// Raw storage proof type (just raw trie nodes).
+	pub type RawStorageProof = Vec<Vec<u8>>;
+
 	pub mod bridge_runtime_common {
 		pub mod messages {
+			use super::super::*;
 			use bp_messages::{LaneId, MessageNonce};
-			use codec::{Decode, Encode};
-			use scale_info::TypeInfo;
-			use sp_runtime::RuntimeDebug;
-
-			/// Raw storage proof type (just raw trie nodes).
-			pub type RawStorageProof = Vec<Vec<u8>>;
 
 			pub mod source {
 				use super::*;
@@ -113,6 +115,30 @@ pub mod non_compact_proofs {
 							nonces_start: value.nonces_start,
 							nonces_end: value.nonces_end,
 						}
+					}
+				}
+			}
+		}
+	}
+
+	pub mod bp_polkadot_core {
+		use super::*;
+		pub mod parachains {
+			use super::*;
+
+			// Raw storage proof of parachain heads, stored in polkadot-like chain runtime.
+			#[derive(Clone, Decode, Encode, Eq, PartialEq, RuntimeDebug, TypeInfo)]
+			pub struct ParaHeadsProof {
+				/// Unverified storage proof of finalized parachain heads.
+				pub storage_proof: RawStorageProof,
+			}
+
+			impl From<::bp_polkadot_core::parachains::ParaHeadsProof> for ParaHeadsProof {
+				fn from(value: ::bp_polkadot_core::parachains::ParaHeadsProof) -> Self {
+					ParaHeadsProof {
+						// this is legacy change, we need to get `RawStorageProof` from
+						// `UnverifiedStorageProof.proof`
+						storage_proof: value.storage_proof.proof().clone(),
 					}
 				}
 			}
