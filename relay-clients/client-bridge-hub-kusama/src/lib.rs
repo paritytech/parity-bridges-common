@@ -19,8 +19,7 @@
 pub mod codegen_runtime;
 
 use bp_bridge_hub_kusama::AVERAGE_BLOCK_INTERVAL;
-use bp_polkadot::SuffixedCommonSignedExtensionExt;
-use bp_polkadot_core::SuffixedCommonSignedExtension;
+use bp_polkadot_core::{SuffixedCommonSignedExtension, SuffixedCommonSignedExtensionExt};
 use codec::Encode;
 use relay_substrate_client::{
 	calls::UtilityCall as MockUtilityCall, Chain, ChainWithBalances, ChainWithMessages,

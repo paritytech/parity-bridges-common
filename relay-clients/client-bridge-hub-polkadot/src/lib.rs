@@ -18,8 +18,8 @@
 
 pub mod codegen_runtime;
 
-use bp_bridge_hub_polkadot::{SignedExtension, AVERAGE_BLOCK_INTERVAL};
-use bp_polkadot_core::SuffixedCommonSignedExtensionExt;
+use bp_bridge_hub_polkadot::AVERAGE_BLOCK_INTERVAL;
+use bp_polkadot_core::{SuffixedCommonSignedExtension, SuffixedCommonSignedExtensionExt};
 use codec::Encode;
 use relay_substrate_client::{
 	calls::UtilityCall as MockUtilityCall, Chain, ChainWithBalances, ChainWithMessages,
@@ -32,6 +32,20 @@ use sp_runtime::{generic::SignedPayload, traits::IdentifyAccount};
 use std::time::Duration;
 
 pub use codegen_runtime::api::runtime_types;
+use runtime_types::frame_metadata_hash_extension::Mode;
+
+use bp_runtime::extensions::{
+	BridgeRejectObsoleteHeadersAndMessages, GenericSignedExtensionSchema,
+	RefundBridgedParachainMessagesSchema,
+};
+
+pub type CheckMetadataHash = GenericSignedExtensionSchema<Mode, Option<[u8; 32]>>;
+
+pub type SignedExtension = SuffixedCommonSignedExtension<(
+	BridgeRejectObsoleteHeadersAndMessages,
+	RefundBridgedParachainMessagesSchema,
+	CheckMetadataHash,
+)>;
 
 pub type RuntimeCall = runtime_types::bridge_hub_polkadot_runtime::RuntimeCall;
 // TODO: https://github.com/paritytech/parity-bridges-common/issues/2547 - regenerate when ready
@@ -100,7 +114,7 @@ impl ChainWithTransactions for BridgeHubPolkadot {
 				param.genesis_hash,
 				unsigned.nonce,
 				unsigned.tip,
-				(((), ()), ((), ())),
+				(((), (), Mode::Disabled), ((), (), None)),
 			),
 		)?;
 
@@ -129,5 +143,5 @@ impl ChainWithMessages for BridgeHubPolkadot {
 
 impl ChainWithRuntimeVersion for BridgeHubPolkadot {
 	const RUNTIME_VERSION: Option<SimpleRuntimeVersion> =
-		Some(SimpleRuntimeVersion { spec_version: 1_002_004, transaction_version: 3 });
+		Some(SimpleRuntimeVersion { spec_version: 1_002_005, transaction_version: 4 });
 }
