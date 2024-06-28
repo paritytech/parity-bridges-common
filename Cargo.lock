@@ -6831,7 +6831,6 @@ dependencies = [
  "bp-header-chain",
  "bp-messages",
  "bp-parachains",
- "bp-polkadot",
  "bp-polkadot-core",
  "bp-runtime",
  "bridge-runtime-common",

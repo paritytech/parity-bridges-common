@@ -20,7 +20,6 @@ bp-bridge-hub-kusama = { git = "https://github.com/paritytech/polkadot-sdk", bra
 bp-header-chain = { git = "https://github.com/paritytech/polkadot-sdk", branch = "master" }
 bp-messages = { git = "https://github.com/paritytech/polkadot-sdk", branch = "master" }
 bp-parachains = { git = "https://github.com/paritytech/polkadot-sdk", branch = "master" }
-bp-polkadot = { git = "https://github.com/paritytech/polkadot-sdk", branch = "master" }
 bp-polkadot-core = { git = "https://github.com/paritytech/polkadot-sdk", branch = "master" }
 bp-runtime = { git = "https://github.com/paritytech/polkadot-sdk", branch = "master" }
 bridge-runtime-common = { git = "https://github.com/paritytech/polkadot-sdk", branch = "master" }
