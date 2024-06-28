@@ -715,14 +715,7 @@ pub mod api {
 				pub mode: runtime_types::frame_metadata_hash_extension::Mode,
 			}
 			#[derive(
-				::codec::Decode,
-				::codec::Encode,
-				Clone,
-				Debug,
-				Eq,
-				PartialEq,
-				scale_info::TypeInfo,
-				Copy,
+				::codec::Decode, ::codec::Encode, Clone, Debug, Eq, PartialEq, scale_info::TypeInfo,
 			)]
 			pub enum Mode {
 				#[codec(index = 0)]
