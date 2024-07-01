@@ -20,7 +20,7 @@ use relay_bridge_hub_kusama_client::BridgeHubKusama;
 use relay_bridge_hub_polkadot_client::BridgeHubPolkadot;
 use substrate_relay_helper::{
 	cli::bridge::{CliBridgeBase, MessagesCliBridge},
-	messages_lane::SubstrateMessageLane,
+	messages::SubstrateMessageLane,
 	UtilityPalletBatchCallBuilder,
 };
 
@@ -36,14 +36,18 @@ impl MessagesCliBridge for BridgeHubPolkadotToBridgeHubKusamaMessagesCliBridge {
 	type MessagesLane = BridgeHubPolkadotMessagesToBridgeHubKusamaMessageLane;
 }
 
-substrate_relay_helper::generate_receive_message_proof_call_builder!(
+// TODO: uncomment when BridgeHubKusama supports the compact proofs
+// substrate_relay_helper::generate_receive_message_proof_call_builder!(
+relay_legacy_client::generate_receive_message_proof_call_builder!(
 	BridgeHubPolkadotMessagesToBridgeHubKusamaMessageLane,
 	BridgeHubPolkadotMessagesToBridgeHubKusamaMessageLaneReceiveMessagesProofCallBuilder,
 	relay_bridge_hub_kusama_client::RuntimeCall::BridgePolkadotMessages,
 	relay_bridge_hub_kusama_client::BridgeMessagesCall::receive_messages_proof
 );
 
-substrate_relay_helper::generate_receive_message_delivery_proof_call_builder!(
+// TODO: uncomment when BridgeHubPolkadot supports the compact proofs
+// substrate_relay_helper::generate_receive_message_delivery_proof_call_builder!(
+relay_legacy_client::generate_receive_message_delivery_proof_call_builder!(
 	BridgeHubPolkadotMessagesToBridgeHubKusamaMessageLane,
 	BridgeHubPolkadotMessagesToBridgeHubKusamaMessageLaneReceiveMessagesDeliveryProofCallBuilder,
 	relay_bridge_hub_polkadot_client::RuntimeCall::BridgeKusamaMessages,

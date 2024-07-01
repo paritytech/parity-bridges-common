@@ -20,7 +20,7 @@ use relay_bridge_hub_polkadot_client::BridgeHubPolkadot;
 use relay_polkadot_bulletin_client::PolkadotBulletin;
 use substrate_relay_helper::{
 	cli::bridge::{CliBridgeBase, MessagesCliBridge},
-	messages_lane::SubstrateMessageLane,
+	messages::SubstrateMessageLane,
 	UtilityPalletBatchCallBuilder,
 };
 
@@ -36,7 +36,9 @@ impl MessagesCliBridge for PolkadotBulletinToBridgeHubPolkadotMessagesCliBridge 
 	type MessagesLane = PolkadotBulletinMessagesToBridgeHubPolkadotMessageLane;
 }
 
-substrate_relay_helper::generate_receive_message_proof_call_builder!(
+// TODO: uncomment when BridgeHubPolkadot supports the compact proofs
+// substrate_relay_helper::generate_receive_message_proof_call_builder!(
+relay_legacy_client::generate_receive_message_proof_call_builder!(
 	PolkadotBulletinMessagesToBridgeHubPolkadotMessageLane,
 	PolkadotBulletinMessagesToBridgeHubPolkadotMessageLaneReceiveMessagesProofCallBuilder,
 	// TODO: https://github.com/paritytech/parity-bridges-common/issues/2547 - use BridgePolkadotBulletinMessages
@@ -44,7 +46,9 @@ substrate_relay_helper::generate_receive_message_proof_call_builder!(
 	relay_bridge_hub_polkadot_client::BridgePolkadotBulletinMessagesCall::receive_messages_proof
 );
 
-substrate_relay_helper::generate_receive_message_delivery_proof_call_builder!(
+// TODO: uncomment when PolkadotBulletin supports the compact proofs
+// substrate_relay_helper::generate_receive_message_delivery_proof_call_builder!(
+relay_legacy_client::generate_receive_message_delivery_proof_call_builder!(
 	PolkadotBulletinMessagesToBridgeHubPolkadotMessageLane,
 	PolkadotBulletinMessagesToBridgeHubPolkadotMessageLaneReceiveMessagesDeliveryProofCallBuilder,
 	relay_polkadot_bulletin_client::RuntimeCall::BridgePolkadotMessages,

@@ -31,6 +31,8 @@ struct Command {
 	node_url: Option<Url>,
 	#[clap(name = "from-wasm-file", long, value_parser)]
 	wasm_file: Option<String>,
+	#[clap(name = "type-substitute-overrides", short, long, value_parser)]
+	type_substitute_overrides: Vec<String>,
 }
 
 enum RuntimeMetadataSource {
@@ -53,6 +55,23 @@ impl RuntimeMetadataSource {
 	}
 }
 
+impl From<&Command> for Vec<TypeSubstitute> {
+	fn from(value: &Command) -> Self {
+		value.type_substitute_overrides
+			.iter()
+			.map(|ts| {
+				if ts.contains("=") {
+					let mut ts = ts.split("=");
+					TypeSubstitute::custom(ts.next().unwrap(), ts.next().unwrap())
+				} else {
+					TypeSubstitute::simple(ts)
+				}
+			})
+			.collect()
+	}
+}
+
+#[derive(Debug)]
 struct TypeSubstitute {
 	subxt_type: syn::Path,
 	substitute: syn::Path,
@@ -108,6 +127,11 @@ fn print_runtime(runtime_api: proc_macro2::TokenStream) {
 
 fn main() -> color_eyre::Result<()> {
 	let args: Command = Command::parse();
+
+	let type_substitute_overrides = Vec::<TypeSubstitute>::from(&args);
+	if !type_substitute_overrides.is_empty() {
+		eprintln!("Using type_substitute_overrides: {:?}", type_substitute_overrides);
+	}
 	let metadata_source = RuntimeMetadataSource::from_command(args)?;
 
 	let mut codegen_builder = CodegenBuilder::new();
@@ -148,11 +172,19 @@ fn main() -> color_eyre::Result<()> {
 		TypeSubstitute::simple("bp_header_chain::InitializationData"),
 		TypeSubstitute::simple("bp_polkadot_core::parachains::ParaId"),
 		TypeSubstitute::simple("bp_polkadot_core::parachains::ParaHeadsProof"),
-		TypeSubstitute::simple(
+		TypeSubstitute::custom(
 			"bridge_runtime_common::messages::target::FromBridgedChainMessagesProof",
+			"::relay_legacy_client::non_compact_proofs::bridge_runtime_common::messages::target::FromBridgedChainMessagesProof",
+		),
+		TypeSubstitute::custom(
+			"bridge_runtime_common::messages::source::FromBridgedChainMessagesDeliveryProof",
+			"::relay_legacy_client::non_compact_proofs::bridge_runtime_common::messages::source::FromBridgedChainMessagesDeliveryProof",
 		),
 		TypeSubstitute::simple(
-			"bridge_runtime_common::messages::source::FromBridgedChainMessagesDeliveryProof",
+			"bp_messages::target_chain::FromBridgedChainMessagesProof",
+		),
+		TypeSubstitute::simple(
+			"bp_messages::source_chain::FromBridgedChainMessagesDeliveryProof",
 		),
 		TypeSubstitute::simple("bp_messages::UnrewardedRelayersState"),
 		TypeSubstitute::custom(
@@ -162,6 +194,9 @@ fn main() -> color_eyre::Result<()> {
 	];
 	for type_substitute in type_substitutes {
 		codegen_builder.set_type_substitute(type_substitute.subxt_type, type_substitute.substitute);
+	}
+	for type_substitute_overrides in type_substitute_overrides {
+		codegen_builder.set_type_substitute(type_substitute_overrides.subxt_type, type_substitute_overrides.substitute);
 	}
 
 	// Generate the Runtime API.

@@ -23,7 +23,7 @@ use bp_runtime::Chain;
 use relay_substrate_client::{CallOf, HeaderIdOf};
 use substrate_relay_helper::{
 	cli::bridge::{CliBridgeBase, MessagesCliBridge, ParachainToRelayHeadersCliBridge},
-	messages_lane::MessagesRelayLimits,
+	messages::MessagesRelayLimits,
 	parachains::{SubmitParachainHeadsCallBuilder, SubstrateParachainsPipeline},
 };
 
