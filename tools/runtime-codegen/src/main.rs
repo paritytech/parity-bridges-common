@@ -154,6 +154,14 @@ fn main() -> color_eyre::Result<()> {
 		TypeSubstitute::simple(
 			"bp_messages::source_chain::FromBridgedChainMessagesDeliveryProof",
 		),
+		TypeSubstitute::custom(
+			"bridge_runtime_common::messages::target::FromBridgedChainMessagesProof",
+			"::bp_messages::target_chain::FromBridgedChainMessagesProof",
+		),
+		TypeSubstitute::custom(
+			"bridge_runtime_common::messages::source::FromBridgedChainMessagesDeliveryProof",
+			"::bp_messages::source_chain::FromBridgedChainMessagesDeliveryProof",
+		),
 		TypeSubstitute::simple("bp_messages::UnrewardedRelayersState"),
 		TypeSubstitute::custom(
 			"sp_runtime::generic::digest::Digest",

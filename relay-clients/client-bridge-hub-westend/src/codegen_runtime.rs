@@ -1369,7 +1369,7 @@ pub mod api {
                     #[codec(index = 2)]
                     receive_messages_proof {
                         relayer_id_at_bridged_chain: ::sp_core::crypto::AccountId32,
-                        proof: ::bridge_runtime_common::messages::target::FromBridgedChainMessagesProof<
+                        proof: ::bp_messages::target_chain::FromBridgedChainMessagesProof<
                             ::subxt::ext::subxt_core::utils::H256,
                         >,
                         messages_count: ::core::primitive::u32,
@@ -1377,7 +1377,7 @@ pub mod api {
                     },
                     #[codec(index = 3)]
                     receive_messages_delivery_proof {
-                        proof: ::bridge_runtime_common::messages::source::FromBridgedChainMessagesDeliveryProof<
+                        proof: ::bp_messages::source_chain::FromBridgedChainMessagesDeliveryProof<
                             ::subxt::ext::subxt_core::utils::H256,
                         >,
                         relayers_state: ::bp_messages::UnrewardedRelayersState,
