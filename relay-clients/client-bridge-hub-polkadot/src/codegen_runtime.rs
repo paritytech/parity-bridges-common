@@ -1346,30 +1346,28 @@ pub mod api {
 				#[derive(::codec::Decode, ::codec::Encode, Clone, Debug, PartialEq)]
 				pub enum Call {
 					#[codec(index = 0)]
-                    set_owner {
-                        new_owner: ::core::option::Option<::sp_core::crypto::AccountId32>,
-                    },
-                    #[codec(index = 1)]
-                    set_operating_mode {
-                        operating_mode: runtime_types::bp_messages::MessagesOperatingMode,
-                    },
-                    #[codec(index = 2)]
-                    receive_messages_proof {
-                        relayer_id_at_bridged_chain: ::sp_core::crypto::AccountId32,
-                        proof: ::bridge_runtime_common::messages::target::FromBridgedChainMessagesProof<
-                            ::subxt::ext::subxt_core::utils::H256,
-                        >,
-                        messages_count: ::core::primitive::u32,
-                        dispatch_weight: ::sp_weights::Weight,
-                    },
-                    #[codec(index = 3)]
-                    receive_messages_delivery_proof {
-                        proof: ::bridge_runtime_common::messages::source::FromBridgedChainMessagesDeliveryProof<
-                            ::subxt::ext::subxt_core::utils::H256,
-                        >,
-                        relayers_state: ::bp_messages::UnrewardedRelayersState,
-                    },
-                }
+					set_owner { new_owner: ::core::option::Option<::sp_core::crypto::AccountId32> },
+					#[codec(index = 1)]
+					set_operating_mode {
+						operating_mode: runtime_types::bp_messages::MessagesOperatingMode,
+					},
+					#[codec(index = 2)]
+					receive_messages_proof {
+						relayer_id_at_bridged_chain: ::sp_core::crypto::AccountId32,
+						proof: ::bp_messages::target_chain::FromBridgedChainMessagesProof<
+							::subxt::ext::subxt_core::utils::H256,
+						>,
+						messages_count: ::core::primitive::u32,
+						dispatch_weight: ::sp_weights::Weight,
+					},
+					#[codec(index = 3)]
+					receive_messages_delivery_proof {
+						proof: ::bp_messages::source_chain::FromBridgedChainMessagesDeliveryProof<
+							::subxt::ext::subxt_core::utils::H256,
+						>,
+						relayers_state: ::bp_messages::UnrewardedRelayersState,
+					},
+				}
 				#[derive(::codec::Decode, ::codec::Encode, Clone, Debug, PartialEq)]
 				pub enum Error {
 					#[codec(index = 0)]

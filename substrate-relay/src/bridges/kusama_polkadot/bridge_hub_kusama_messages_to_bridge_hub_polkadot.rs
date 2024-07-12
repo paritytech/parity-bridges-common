@@ -20,7 +20,7 @@ use relay_bridge_hub_kusama_client::BridgeHubKusama;
 use relay_bridge_hub_polkadot_client::BridgeHubPolkadot;
 use substrate_relay_helper::{
 	cli::bridge::{CliBridgeBase, MessagesCliBridge},
-	messages_lane::SubstrateMessageLane,
+	messages::SubstrateMessageLane,
 	UtilityPalletBatchCallBuilder,
 };
 

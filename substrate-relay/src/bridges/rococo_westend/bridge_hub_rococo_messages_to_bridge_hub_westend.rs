@@ -20,7 +20,7 @@ use relay_bridge_hub_rococo_client::BridgeHubRococo;
 use relay_bridge_hub_westend_client::BridgeHubWestend;
 use substrate_relay_helper::{
 	cli::bridge::{CliBridgeBase, MessagesCliBridge},
-	messages_lane::SubstrateMessageLane,
+	messages::SubstrateMessageLane,
 	UtilityPalletBatchCallBuilder,
 };
 

@@ -20,7 +20,7 @@ use super::BridgeHubRococoAsBridgeHubPolkadot;
 use relay_polkadot_bulletin_client::PolkadotBulletin as RococoBulletin;
 use substrate_relay_helper::{
 	cli::bridge::{CliBridgeBase, MessagesCliBridge},
-	messages_lane::SubstrateMessageLane,
+	messages::SubstrateMessageLane,
 	UtilityPalletBatchCallBuilder,
 };
 

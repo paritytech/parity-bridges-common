@@ -21,7 +21,7 @@ use bp_runtime::{
 	AccountIdOf, BalanceOf, BlockNumberOf, ChainId, HashOf, HasherOf, HeaderOf, NonceOf,
 	SignatureOf,
 };
-use frame_support::pallet_prelude::Weight;
+use frame_support::{pallet_prelude::Weight, sp_runtime::StateVersion};
 use relay_substrate_client::{
 	ChainWithRuntimeVersion, Error as SubstrateError, SignParam, SimpleRuntimeVersion,
 	UnsignedTransaction,
@@ -50,6 +50,8 @@ impl bp_runtime::Chain for RococoBaseAsPolkadot {
 	type Balance = BalanceOf<bp_rococo::Rococo>;
 	type Nonce = NonceOf<bp_rococo::Rococo>;
 	type Signature = SignatureOf<bp_rococo::Rococo>;
+
+	const STATE_VERSION: StateVersion = StateVersion::V1;
 
 	fn max_extrinsic_size() -> u32 {
 		bp_rococo::Rococo::max_extrinsic_size()
@@ -149,6 +151,8 @@ impl bp_runtime::Chain for BaseBridgeHubRococoAsBridgeHubPolkadot {
 	type Balance = BalanceOf<bp_bridge_hub_rococo::BridgeHubRococo>;
 	type Nonce = NonceOf<bp_bridge_hub_rococo::BridgeHubRococo>;
 	type Signature = SignatureOf<bp_bridge_hub_rococo::BridgeHubRococo>;
+
+	const STATE_VERSION: StateVersion = StateVersion::V1;
 
 	fn max_extrinsic_size() -> u32 {
 		bp_bridge_hub_rococo::BridgeHubRococo::max_extrinsic_size()
