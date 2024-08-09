@@ -18,8 +18,8 @@
 
 pub mod codegen_runtime;
 
-use bp_bridge_hub_rococo::{SignedExtension, AVERAGE_BLOCK_INTERVAL};
-use bp_polkadot_core::SuffixedCommonSignedExtensionExt;
+use bp_bridge_hub_rococo::AVERAGE_BLOCK_INTERVAL;
+use bp_polkadot_core::{SuffixedCommonSignedExtension, SuffixedCommonSignedExtensionExt};
 use codec::Encode;
 use relay_substrate_client::{
 	calls::UtilityCall as MockUtilityCall, Chain, ChainWithBalances, ChainWithMessages,
@@ -32,6 +32,20 @@ use sp_runtime::{generic::SignedPayload, traits::IdentifyAccount};
 use std::time::Duration;
 
 pub use codegen_runtime::api::runtime_types;
+use runtime_types::frame_metadata_hash_extension::Mode;
+
+use bp_runtime::extensions::{
+	BridgeRejectObsoleteHeadersAndMessages, GenericSignedExtensionSchema,
+	RefundBridgedParachainMessagesSchema,
+};
+
+pub type CheckMetadataHash = GenericSignedExtensionSchema<Mode, Option<[u8; 32]>>;
+
+pub type SignedExtension = SuffixedCommonSignedExtension<(
+	BridgeRejectObsoleteHeadersAndMessages,
+	RefundBridgedParachainMessagesSchema,
+	CheckMetadataHash,
+)>;
 
 pub type RuntimeCall = runtime_types::bridge_hub_rococo_runtime::RuntimeCall;
 pub type BridgeMessagesCall = runtime_types::pallet_bridge_messages::pallet::Call;
@@ -101,7 +115,7 @@ impl ChainWithTransactions for BridgeHubRococo {
 				param.genesis_hash,
 				unsigned.nonce,
 				unsigned.tip,
-				(((), ()), ((), ())),
+				(((), (), Mode::Disabled), ((), (), None)),
 			),
 		)?;
 
@@ -130,5 +144,5 @@ impl ChainWithMessages for BridgeHubRococo {
 
 impl ChainWithRuntimeVersion for BridgeHubRococo {
 	const RUNTIME_VERSION: Option<SimpleRuntimeVersion> =
-		Some(SimpleRuntimeVersion { spec_version: 1_010_000, transaction_version: 4 });
+		Some(SimpleRuntimeVersion { spec_version: 1_016_000, transaction_version: 4 });
 }
