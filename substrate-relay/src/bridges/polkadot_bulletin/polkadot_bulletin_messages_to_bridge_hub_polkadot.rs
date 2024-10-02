@@ -34,6 +34,7 @@ impl CliBridgeBase for PolkadotBulletinToBridgeHubPolkadotMessagesCliBridge {
 
 impl MessagesCliBridge for PolkadotBulletinToBridgeHubPolkadotMessagesCliBridge {
 	type MessagesLane = PolkadotBulletinMessagesToBridgeHubPolkadotMessageLane;
+	type LaneId = bp_messages::LegacyLaneId;
 }
 
 substrate_relay_helper::generate_receive_message_proof_call_builder!(
@@ -58,6 +59,8 @@ pub struct PolkadotBulletinMessagesToBridgeHubPolkadotMessageLane;
 impl SubstrateMessageLane for PolkadotBulletinMessagesToBridgeHubPolkadotMessageLane {
 	type SourceChain = PolkadotBulletin;
 	type TargetChain = BridgeHubPolkadot;
+
+	type LaneId = bp_messages::LegacyLaneId;
 
 	type ReceiveMessagesProofCallBuilder =
 		PolkadotBulletinMessagesToBridgeHubPolkadotMessageLaneReceiveMessagesProofCallBuilder;

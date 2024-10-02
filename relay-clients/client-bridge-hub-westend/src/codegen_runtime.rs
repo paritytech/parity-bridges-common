@@ -1425,6 +1425,7 @@ pub mod api {
 						proof: ::subxt::ext::subxt_core::alloc::boxed::Box<
 							::bp_messages::target_chain::FromBridgedChainMessagesProof<
 								::subxt::ext::subxt_core::utils::H256,
+								::bp_messages::LegacyLaneId,
 							>,
 						>,
 						messages_count: ::core::primitive::u32,
@@ -1434,6 +1435,7 @@ pub mod api {
 					receive_messages_delivery_proof {
 						proof: ::bp_messages::source_chain::FromBridgedChainMessagesDeliveryProof<
 							::subxt::ext::subxt_core::utils::H256,
+							::bp_messages::LegacyLaneId,
 						>,
 						relayers_state: ::bp_messages::UnrewardedRelayersState,
 					},

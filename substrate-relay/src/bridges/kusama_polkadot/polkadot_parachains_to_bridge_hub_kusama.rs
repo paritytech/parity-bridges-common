@@ -73,4 +73,5 @@ impl CliBridgeBase for BridgeHubPolkadotToBridgeHubKusamaCliBridge {
 impl MessagesCliBridge for BridgeHubPolkadotToBridgeHubKusamaCliBridge {
 	type MessagesLane =
 	crate::bridges::kusama_polkadot::bridge_hub_polkadot_messages_to_bridge_hub_kusama::BridgeHubPolkadotMessagesToBridgeHubKusamaMessageLane;
+	type LaneId = bp_messages::LegacyLaneId;
 }

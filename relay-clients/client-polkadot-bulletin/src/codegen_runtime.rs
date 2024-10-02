@@ -628,6 +628,7 @@ pub mod api {
 						relayer_id_at_bridged_chain: ::sp_core::crypto::AccountId32,
 						proof: ::bp_messages::target_chain::FromBridgedChainMessagesProof<
 							::subxt::utils::H256,
+							::bp_messages::LegacyLaneId,
 						>,
 						messages_count: ::core::primitive::u32,
 						dispatch_weight: ::sp_weights::Weight,
@@ -636,6 +637,7 @@ pub mod api {
 					receive_messages_delivery_proof {
 						proof: ::bp_messages::source_chain::FromBridgedChainMessagesDeliveryProof<
 							::subxt::utils::H256,
+							::bp_messages::LegacyLaneId,
 						>,
 						relayers_state: ::bp_messages::UnrewardedRelayersState,
 					},

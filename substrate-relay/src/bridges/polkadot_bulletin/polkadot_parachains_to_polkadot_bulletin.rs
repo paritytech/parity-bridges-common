@@ -78,6 +78,7 @@ impl CliBridgeBase for PolkadotToPolkadotBulletinCliBridge {
 impl MessagesCliBridge for PolkadotToPolkadotBulletinCliBridge {
 	type MessagesLane =
 		crate::bridges::polkadot_bulletin::bridge_hub_polkadot_messages_to_polkadot_bulletin::BridgeHubPolkadotMessagesToPolkadotBulletinMessageLane;
+	type LaneId = bp_messages::LegacyLaneId;
 
 	fn maybe_messages_limits() -> Option<MessagesRelayLimits> {
 		// Polkadot Bulletin chain is missing the `TransactionPayment` runtime API (as well as the

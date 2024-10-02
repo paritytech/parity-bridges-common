@@ -33,6 +33,7 @@ impl CliBridgeBase for BridgeHubRococoToBridgeHubWestendMessagesCliBridge {
 
 impl MessagesCliBridge for BridgeHubRococoToBridgeHubWestendMessagesCliBridge {
 	type MessagesLane = BridgeHubRococoMessagesToBridgeHubWestendMessageLane;
+	type LaneId = bp_messages::LegacyLaneId;
 }
 
 substrate_relay_helper::generate_receive_message_proof_call_builder!(
@@ -56,6 +57,8 @@ pub struct BridgeHubRococoMessagesToBridgeHubWestendMessageLane;
 impl SubstrateMessageLane for BridgeHubRococoMessagesToBridgeHubWestendMessageLane {
 	type SourceChain = BridgeHubRococo;
 	type TargetChain = BridgeHubWestend;
+
+	type LaneId = bp_messages::LegacyLaneId;
 
 	type ReceiveMessagesProofCallBuilder =
 		BridgeHubRococoMessagesToBridgeHubWestendMessageLaneReceiveMessagesProofCallBuilder;

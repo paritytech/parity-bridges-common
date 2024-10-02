@@ -74,4 +74,5 @@ impl CliBridgeBase for BridgeHubRococoToBridgeHubWestendCliBridge {
 impl MessagesCliBridge for BridgeHubRococoToBridgeHubWestendCliBridge {
 	type MessagesLane =
 	crate::bridges::rococo_westend::bridge_hub_rococo_messages_to_bridge_hub_westend::BridgeHubRococoMessagesToBridgeHubWestendMessageLane;
+	type LaneId = bp_messages::LegacyLaneId;
 }

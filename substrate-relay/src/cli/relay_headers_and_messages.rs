@@ -131,6 +131,7 @@ impl Full2WayBridge for BridgeHubRococoBridgeHubWestendFull2WayBridge {
 	type Right = relay_bridge_hub_westend_client::BridgeHubWestend;
 	type L2R = BridgeHubRococoToBridgeHubWestendCliBridge;
 	type R2L = BridgeHubWestendToBridgeHubRococoCliBridge;
+	type LaneId = bp_messages::LegacyLaneId;
 
 	fn new(base: Self::Base) -> anyhow::Result<Self> {
 		Ok(Self { base })
@@ -157,6 +158,7 @@ impl Full2WayBridge for BridgeHubKusamaBridgeHubPolkadotFull2WayBridge {
 	type Right = relay_bridge_hub_polkadot_client::BridgeHubPolkadot;
 	type L2R = BridgeHubKusamaToBridgeHubPolkadotCliBridge;
 	type R2L = BridgeHubPolkadotToBridgeHubKusamaCliBridge;
+	type LaneId = bp_messages::LegacyLaneId;
 
 	fn new(base: Self::Base) -> anyhow::Result<Self> {
 		Ok(Self { base })
@@ -183,6 +185,7 @@ impl Full2WayBridge for PolkadotBulletinBridgeHubPolkadotFull2WayBridge {
 	type Right = relay_bridge_hub_polkadot_client::BridgeHubPolkadot;
 	type L2R = PolkadotBulletinToBridgeHubPolkadotCliBridge;
 	type R2L = PolkadotToPolkadotBulletinCliBridge;
+	type LaneId = bp_messages::LegacyLaneId;
 
 	fn new(base: Self::Base) -> anyhow::Result<Self> {
 		Ok(Self { base })
@@ -209,6 +212,7 @@ impl Full2WayBridge for RococoBulletinBridgeHubRococoFull2WayBridge {
 	type Right = BridgeHubRococoAsBridgeHubPolkadot;
 	type L2R = RococoBulletinToBridgeHubRococoCliBridge;
 	type R2L = RococoToRococoBulletinCliBridge;
+	type LaneId = bp_messages::LegacyLaneId;
 
 	fn new(base: Self::Base) -> anyhow::Result<Self> {
 		Ok(Self { base })
