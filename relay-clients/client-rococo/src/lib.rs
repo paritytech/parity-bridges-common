@@ -122,5 +122,5 @@ impl ChainWithTransactions for Rococo {
 
 impl ChainWithRuntimeVersion for Rococo {
 	const RUNTIME_VERSION: Option<SimpleRuntimeVersion> =
-		Some(SimpleRuntimeVersion { spec_version: 1_010_000, transaction_version: 24 });
+		Some(SimpleRuntimeVersion { spec_version: 1_016_001, transaction_version: 26 });
 }
