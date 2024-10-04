@@ -10,7 +10,7 @@ variables:
   GIT_DEPTH:                       100
   CARGO_INCREMENTAL:               0
   ARCH:                            "x86_64"
-  CI_IMAGE:                        "paritytech/ci-unified:bullseye-1.77.0-2024-04-10-v20240408"
+  CI_IMAGE:                        "paritytech/ci-unified:bullseye-1.81.0-2024-09-11-v202409111034"
   RUST_BACKTRACE:                  full
   BUILDAH_IMAGE:                   "quay.io/buildah/stable:v1.29"
   BUILDAH_COMMAND:                 "buildah --storage-driver overlay2"
