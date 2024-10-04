@@ -75,7 +75,6 @@ impl CliBridgeBase for RococoToRococoBulletinCliBridge {
 impl MessagesCliBridge for RococoToRococoBulletinCliBridge {
 	type MessagesLane =
 		crate::bridges::rococo_bulletin::bridge_hub_rococo_messages_to_rococo_bulletin::BridgeHubRococoMessagesToRococoBulletinMessageLane;
-	type LaneId = bp_messages::LegacyLaneId;
 
 	fn maybe_messages_limits() -> Option<MessagesRelayLimits> {
 		// Rococo Bulletin chain is missing the `TransactionPayment` runtime API (as well as the

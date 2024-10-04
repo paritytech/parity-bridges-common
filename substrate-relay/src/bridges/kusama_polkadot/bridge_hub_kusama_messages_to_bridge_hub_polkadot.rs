@@ -34,7 +34,6 @@ impl CliBridgeBase for BridgeHubKusamaToBridgeHubPolkadotMessagesCliBridge {
 
 impl MessagesCliBridge for BridgeHubKusamaToBridgeHubPolkadotMessagesCliBridge {
 	type MessagesLane = BridgeHubKusamaMessagesToBridgeHubPolkadotMessageLane;
-	type LaneId = bp_messages::LegacyLaneId;
 }
 
 substrate_relay_helper::generate_receive_message_proof_call_builder!(

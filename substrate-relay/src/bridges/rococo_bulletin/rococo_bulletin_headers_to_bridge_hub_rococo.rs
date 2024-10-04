@@ -84,5 +84,4 @@ impl RelayToRelayEquivocationDetectionCliBridge for RococoBulletinToBridgeHubRoc
 
 impl MessagesCliBridge for RococoBulletinToBridgeHubRococoCliBridge {
 	type MessagesLane = crate::bridges::rococo_bulletin::rococo_bulletin_messages_to_bridge_hub_rococo::RococoBulletinMessagesToBridgeHubRococoMessageLane;
-	type LaneId = bp_messages::LegacyLaneId;
 }

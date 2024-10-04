@@ -83,5 +83,4 @@ impl RelayToRelayEquivocationDetectionCliBridge for PolkadotBulletinToBridgeHubP
 
 impl MessagesCliBridge for PolkadotBulletinToBridgeHubPolkadotCliBridge {
 	type MessagesLane = crate::bridges::polkadot_bulletin::polkadot_bulletin_messages_to_bridge_hub_polkadot::PolkadotBulletinMessagesToBridgeHubPolkadotMessageLane;
-	type LaneId = bp_messages::LegacyLaneId;
 }
