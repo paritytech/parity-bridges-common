@@ -263,6 +263,7 @@ impl RelayHeadersAndMessages {
 #[cfg(test)]
 mod tests {
 	use super::*;
+	use std::str::FromStr;
 	use substrate_relay_helper::cli::{HexLaneId, PrometheusParams};
 
 	#[test]
@@ -307,7 +308,7 @@ mod tests {
 			RelayHeadersAndMessages::BridgeHubKusamaBridgeHubPolkadot(
 				BridgeHubKusamaBridgeHubPolkadotHeadersAndMessages {
 					shared: HeadersAndMessagesSharedParams {
-						lane: vec![HexLaneId([0x00, 0x00, 0x00, 0x00])],
+						lane: vec![HexLaneId::from_str("00000000").expect("valid laneId")],
 						only_mandatory_headers: false,
 						only_free_headers: false,
 						prometheus_params: PrometheusParams {
