@@ -10,7 +10,7 @@ variables:
   GIT_DEPTH:                       100
   CARGO_INCREMENTAL:               0
   ARCH:                            "x86_64"
-  CI_IMAGE:                        "paritytech/ci-unified:bullseye-1.77.0-2024-04-10-v20240408"
+  CI_IMAGE:                        "paritytech/ci-unified:bullseye-1.81.0-2024-09-11-v202409111034"
   RUST_BACKTRACE:                  full
   BUILDAH_IMAGE:                   "quay.io/buildah/stable:v1.29"
   BUILDAH_COMMAND:                 "buildah --storage-driver overlay2"
@@ -100,7 +100,7 @@ clippy-nightly:
   variables:
     RUSTFLAGS:                     "-D warnings"
   script:
-    - SKIP_WASM_BUILD=1 cargo +nightly clippy --all-targets
+    - SKIP_WASM_BUILD=1 cargo clippy --all-targets --locked --workspace
 
 fmt:
   stage:                           test
@@ -188,7 +188,7 @@ check-rustdoc:
     SKIP_WASM_BUILD:               1
     RUSTDOCFLAGS:                  "-Dwarnings"
   script:
-    - time cargo +nightly doc --workspace --verbose --no-deps --all-features
+    - time cargo doc --workspace --verbose --no-deps --all-features
 
 partial-repo-pallets-build-test:
   stage:                           test

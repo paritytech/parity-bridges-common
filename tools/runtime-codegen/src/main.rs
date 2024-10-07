@@ -163,6 +163,7 @@ fn main() -> color_eyre::Result<()> {
 			"sp_runtime::generic::digest::Digest",
 			"::sp_runtime::generic::Digest",
 		),
+		TypeSubstitute::custom("bp_messages::lane::LegacyLaneId", "::bp_messages::LegacyLaneId"),
 	];
 	for type_substitute in type_substitutes {
 		codegen_builder.set_type_substitute(type_substitute.subxt_type, type_substitute.substitute);
