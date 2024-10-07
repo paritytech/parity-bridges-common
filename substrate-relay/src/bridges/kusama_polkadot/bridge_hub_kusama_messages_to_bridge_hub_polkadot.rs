@@ -58,6 +58,8 @@ impl SubstrateMessageLane for BridgeHubKusamaMessagesToBridgeHubPolkadotMessageL
 	type SourceChain = BridgeHubKusama;
 	type TargetChain = BridgeHubPolkadot;
 
+	type LaneId = bp_messages::LegacyLaneId;
+
 	type ReceiveMessagesProofCallBuilder =
 		BridgeHubKusamaMessagesToBridgeHubPolkadotMessageLaneReceiveMessagesProofCallBuilder;
 	type ReceiveMessagesDeliveryProofCallBuilder =

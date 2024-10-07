@@ -68,6 +68,22 @@ pub mod api {
 				pub target_number: _1,
 			}
 		}
+		pub mod frame_metadata_hash_extension {
+			use super::runtime_types;
+			#[derive(::codec::Decode, ::codec::Encode, Clone, Debug, PartialEq)]
+			pub struct CheckMetadataHash {
+				pub mode: runtime_types::frame_metadata_hash_extension::Mode,
+			}
+			#[derive(
+				::codec::Decode, ::codec::Encode, Clone, Debug, Eq, PartialEq, scale_info::TypeInfo,
+			)]
+			pub enum Mode {
+				#[codec(index = 0)]
+				Disabled,
+				#[codec(index = 1)]
+				Enabled,
+			}
+		}
 		pub mod frame_support {
 			use super::runtime_types;
 			pub mod dispatch {
@@ -131,6 +147,8 @@ pub mod api {
 						Overweight(::sp_weights::Weight),
 						#[codec(index = 4)]
 						Yield,
+						#[codec(index = 5)]
+						StackLimitReached,
 					}
 				}
 				pub mod preimages {
@@ -187,6 +205,11 @@ pub mod api {
 							Free,
 							#[codec(index = 1)]
 							Reserved,
+						}
+						#[derive(::codec::Decode, ::codec::Encode, Clone, Debug, PartialEq)]
+						pub struct IdAmount<_0, _1> {
+							pub id: _0,
+							pub amount: _1,
 						}
 					}
 				}
@@ -657,6 +680,12 @@ pub mod api {
 						#[codec(compact)]
 						delta: ::core::primitive::u128,
 					},
+					#[codec(index = 10)]
+					burn {
+						#[codec(compact)]
+						value: ::core::primitive::u128,
+						keep_alive: ::core::primitive::bool,
+					},
 				}
 				#[derive(::codec::Decode, ::codec::Encode, Clone, Debug, PartialEq)]
 				pub enum Error {
@@ -805,11 +834,6 @@ pub mod api {
 				)]
 				pub struct ExtraFlags(pub ::core::primitive::u128);
 				#[derive(::codec::Decode, ::codec::Encode, Clone, Debug, PartialEq)]
-				pub struct IdAmount<_0, _1> {
-					pub id: _0,
-					pub amount: _1,
-				}
-				#[derive(::codec::Decode, ::codec::Encode, Clone, Debug, PartialEq)]
 				pub enum Reasons {
 					#[codec(index = 0)]
 					Fee,
@@ -832,9 +856,9 @@ pub mod api {
 				#[derive(::codec::Decode, ::codec::Encode, Clone, Debug, PartialEq)]
 				pub enum Call {
 					#[codec(index = 0)]
-					report_equivocation {
+					report_double_voting {
 						equivocation_proof: ::subxt::ext::subxt_core::alloc::boxed::Box<
-							runtime_types::sp_consensus_beefy::EquivocationProof<
+							runtime_types::sp_consensus_beefy::DoubleVotingProof<
 								::core::primitive::u32,
 								runtime_types::sp_consensus_beefy::ecdsa_crypto::Public,
 								runtime_types::sp_consensus_beefy::ecdsa_crypto::Signature,
@@ -843,9 +867,9 @@ pub mod api {
 						key_owner_proof: ::sp_session::MembershipProof,
 					},
 					#[codec(index = 1)]
-					report_equivocation_unsigned {
+					report_double_voting_unsigned {
 						equivocation_proof: ::subxt::ext::subxt_core::alloc::boxed::Box<
-							runtime_types::sp_consensus_beefy::EquivocationProof<
+							runtime_types::sp_consensus_beefy::DoubleVotingProof<
 								::core::primitive::u32,
 								runtime_types::sp_consensus_beefy::ecdsa_crypto::Public,
 								runtime_types::sp_consensus_beefy::ecdsa_crypto::Signature,
@@ -855,16 +879,74 @@ pub mod api {
 					},
 					#[codec(index = 2)]
 					set_new_genesis { delay_in_blocks: ::core::primitive::u32 },
+					#[codec(index = 3)]
+					report_fork_voting {
+						equivocation_proof: ::subxt::ext::subxt_core::alloc::boxed::Box<
+							runtime_types::sp_consensus_beefy::ForkVotingProof<
+								::sp_runtime::generic::Header<
+									::core::primitive::u32,
+									::sp_runtime::traits::BlakeTwo256,
+								>,
+								runtime_types::sp_consensus_beefy::ecdsa_crypto::Public,
+								runtime_types::sp_mmr_primitives::AncestryProof<
+									::subxt::ext::subxt_core::utils::H256,
+								>,
+							>,
+						>,
+						key_owner_proof: ::sp_session::MembershipProof,
+					},
+					#[codec(index = 4)]
+					report_fork_voting_unsigned {
+						equivocation_proof: ::subxt::ext::subxt_core::alloc::boxed::Box<
+							runtime_types::sp_consensus_beefy::ForkVotingProof<
+								::sp_runtime::generic::Header<
+									::core::primitive::u32,
+									::sp_runtime::traits::BlakeTwo256,
+								>,
+								runtime_types::sp_consensus_beefy::ecdsa_crypto::Public,
+								runtime_types::sp_mmr_primitives::AncestryProof<
+									::subxt::ext::subxt_core::utils::H256,
+								>,
+							>,
+						>,
+						key_owner_proof: ::sp_session::MembershipProof,
+					},
+					#[codec(index = 5)]
+					report_future_block_voting {
+						equivocation_proof: ::subxt::ext::subxt_core::alloc::boxed::Box<
+							runtime_types::sp_consensus_beefy::FutureBlockVotingProof<
+								::core::primitive::u32,
+								runtime_types::sp_consensus_beefy::ecdsa_crypto::Public,
+							>,
+						>,
+						key_owner_proof: ::sp_session::MembershipProof,
+					},
+					#[codec(index = 6)]
+					report_future_block_voting_unsigned {
+						equivocation_proof: ::subxt::ext::subxt_core::alloc::boxed::Box<
+							runtime_types::sp_consensus_beefy::FutureBlockVotingProof<
+								::core::primitive::u32,
+								runtime_types::sp_consensus_beefy::ecdsa_crypto::Public,
+							>,
+						>,
+						key_owner_proof: ::sp_session::MembershipProof,
+					},
 				}
 				#[derive(::codec::Decode, ::codec::Encode, Clone, Debug, PartialEq)]
 				pub enum Error {
 					#[codec(index = 0)]
 					InvalidKeyOwnershipProof,
 					#[codec(index = 1)]
-					InvalidEquivocationProof,
+					InvalidDoubleVotingProof,
 					#[codec(index = 2)]
-					DuplicateOffenceReport,
+					InvalidForkVotingProof,
 					#[codec(index = 3)]
+					InvalidFutureBlockVotingProof,
+					#[codec(index = 4)]
+					InvalidEquivocationProofSession,
+					#[codec(index = 5)]
+					DuplicateOffenceReport,
+					#[codec(index = 6)]
 					InvalidConfiguration,
 				}
 			}
@@ -986,6 +1068,20 @@ pub mod api {
 					Delegated(::sp_core::crypto::AccountId32, ::sp_core::crypto::AccountId32),
 					#[codec(index = 1)]
 					Undelegated(::sp_core::crypto::AccountId32),
+					#[codec(index = 2)]
+					Voted {
+						who: ::sp_core::crypto::AccountId32,
+						vote: runtime_types::pallet_conviction_voting::vote::AccountVote<
+							::core::primitive::u128,
+						>,
+					},
+					#[codec(index = 3)]
+					VoteRemoved {
+						who: ::sp_core::crypto::AccountId32,
+						vote: runtime_types::pallet_conviction_voting::vote::AccountVote<
+							::core::primitive::u128,
+						>,
+					},
 				}
 			}
 			pub mod types {
@@ -1057,6 +1153,89 @@ pub mod api {
 						runtime_types::pallet_conviction_voting::vote::Delegating<_0, _1, _2>,
 					),
 					__Ignore(::core::marker::PhantomData<_3>),
+				}
+			}
+		}
+		pub mod pallet_delegated_staking {
+			use super::runtime_types;
+			pub mod pallet {
+				use super::runtime_types;
+				#[derive(::codec::Decode, ::codec::Encode, Clone, Debug, PartialEq)]
+				pub enum Error {
+					#[codec(index = 0)]
+					NotAllowed,
+					#[codec(index = 1)]
+					AlreadyStaking,
+					#[codec(index = 2)]
+					InvalidRewardDestination,
+					#[codec(index = 3)]
+					InvalidDelegation,
+					#[codec(index = 4)]
+					NotEnoughFunds,
+					#[codec(index = 5)]
+					NotAgent,
+					#[codec(index = 6)]
+					NotDelegator,
+					#[codec(index = 7)]
+					BadState,
+					#[codec(index = 8)]
+					UnappliedSlash,
+					#[codec(index = 9)]
+					NothingToSlash,
+					#[codec(index = 10)]
+					WithdrawFailed,
+					#[codec(index = 11)]
+					NotSupported,
+				}
+				#[derive(::codec::Decode, ::codec::Encode, Clone, Debug, PartialEq)]
+				pub enum Event {
+					#[codec(index = 0)]
+					Delegated {
+						agent: ::sp_core::crypto::AccountId32,
+						delegator: ::sp_core::crypto::AccountId32,
+						amount: ::core::primitive::u128,
+					},
+					#[codec(index = 1)]
+					Released {
+						agent: ::sp_core::crypto::AccountId32,
+						delegator: ::sp_core::crypto::AccountId32,
+						amount: ::core::primitive::u128,
+					},
+					#[codec(index = 2)]
+					Slashed {
+						agent: ::sp_core::crypto::AccountId32,
+						delegator: ::sp_core::crypto::AccountId32,
+						amount: ::core::primitive::u128,
+					},
+					#[codec(index = 3)]
+					MigratedDelegation {
+						agent: ::sp_core::crypto::AccountId32,
+						delegator: ::sp_core::crypto::AccountId32,
+						amount: ::core::primitive::u128,
+					},
+				}
+				#[derive(::codec::Decode, ::codec::Encode, Clone, Debug, PartialEq)]
+				pub enum HoldReason {
+					#[codec(index = 0)]
+					StakingDelegation,
+				}
+			}
+			pub mod types {
+				use super::runtime_types;
+				#[derive(::codec::Decode, ::codec::Encode, Clone, Debug, PartialEq)]
+				pub struct AgentLedger {
+					pub payee: ::sp_core::crypto::AccountId32,
+					#[codec(compact)]
+					pub total_delegated: ::core::primitive::u128,
+					#[codec(compact)]
+					pub unclaimed_withdrawals: ::core::primitive::u128,
+					#[codec(compact)]
+					pub pending_slash: ::core::primitive::u128,
+				}
+				#[derive(::codec::Decode, ::codec::Encode, Clone, Debug, PartialEq)]
+				pub struct Delegation {
+					pub agent: ::sp_core::crypto::AccountId32,
+					pub amount: ::core::primitive::u128,
 				}
 			}
 		}
@@ -2294,6 +2473,22 @@ pub mod api {
 							>,
 						>,
 					},
+					#[codec(index = 23)]
+					apply_slash {
+						member_account: ::subxt::ext::subxt_core::utils::MultiAddress<
+							::sp_core::crypto::AccountId32,
+							(),
+						>,
+					},
+					#[codec(index = 24)]
+					migrate_delegation {
+						member_account: ::subxt::ext::subxt_core::utils::MultiAddress<
+							::sp_core::crypto::AccountId32,
+							(),
+						>,
+					},
+					#[codec(index = 25)]
+					migrate_pool_to_delegate_stake { pool_id: ::core::primitive::u32 },
 				}
 				#[derive(::codec::Decode, ::codec::Encode, Clone, Debug, PartialEq)]
 				pub enum DefensiveError {
@@ -2307,6 +2502,10 @@ pub mod api {
 					SubPoolsNotFound,
 					#[codec(index = 4)]
 					BondedStashKilledPrematurely,
+					#[codec(index = 5)]
+					DelegationUnsupported,
+					#[codec(index = 6)]
+					SlashNotApplied,
 				}
 				#[derive(::codec::Decode, ::codec::Encode, Clone, Debug, PartialEq)]
 				pub enum Error {
@@ -2374,6 +2573,14 @@ pub mod api {
 					BondExtraRestricted,
 					#[codec(index = 31)]
 					NothingToAdjust,
+					#[codec(index = 32)]
+					NothingToSlash,
+					#[codec(index = 33)]
+					AlreadyMigrated,
+					#[codec(index = 34)]
+					NotMigrated,
+					#[codec(index = 35)]
+					NotSupported,
 				}
 				#[derive(::codec::Decode, ::codec::Encode, Clone, Debug, PartialEq)]
 				pub enum Event {
@@ -2421,6 +2628,7 @@ pub mod api {
 					MemberRemoved {
 						pool_id: ::core::primitive::u32,
 						member: ::sp_core::crypto::AccountId32,
+						released_balance: ::core::primitive::u128,
 					},
 					#[codec(index = 8)]
 					RolesUpdated {
@@ -2620,6 +2828,30 @@ pub mod api {
 					Offence {
 						kind: [::core::primitive::u8; 16usize],
 						timeslot: ::subxt::ext::subxt_core::alloc::vec::Vec<::core::primitive::u8>,
+					},
+				}
+			}
+		}
+		pub mod pallet_parameters {
+			use super::runtime_types;
+			pub mod pallet {
+				use super::runtime_types;
+				#[derive(::codec::Decode, ::codec::Encode, Clone, Debug, PartialEq)]
+				pub enum Call {
+					#[codec(index = 0)]
+					set_parameter { key_value: runtime_types::westend_runtime::RuntimeParameters },
+				}
+				#[derive(::codec::Decode, ::codec::Encode, Clone, Debug, PartialEq)]
+				pub enum Event {
+					#[codec(index = 0)]
+					Updated {
+						key: runtime_types::westend_runtime::RuntimeParametersKey,
+						old_value: ::core::option::Option<
+							runtime_types::westend_runtime::RuntimeParametersValue,
+						>,
+						new_value: ::core::option::Option<
+							runtime_types::westend_runtime::RuntimeParametersValue,
+						>,
 					},
 				}
 			}
@@ -3776,6 +4008,8 @@ pub mod api {
 						RewardDestinationRestricted,
 						#[codec(index = 29)]
 						NotEnoughFunds,
+						#[codec(index = 30)]
+						VirtualStakerNotAllowed,
 					}
 					#[derive(::codec::Decode, ::codec::Encode, Clone, Debug, PartialEq)]
 					pub enum Event {
@@ -4080,25 +4314,6 @@ pub mod api {
 				use super::runtime_types;
 				#[derive(::codec::Decode, ::codec::Encode, Clone, Debug, PartialEq)]
 				pub enum Call {
-					#[codec(index = 0)]
-					propose_spend {
-						#[codec(compact)]
-						value: ::core::primitive::u128,
-						beneficiary: ::subxt::ext::subxt_core::utils::MultiAddress<
-							::sp_core::crypto::AccountId32,
-							(),
-						>,
-					},
-					#[codec(index = 1)]
-					reject_proposal {
-						#[codec(compact)]
-						proposal_id: ::core::primitive::u32,
-					},
-					#[codec(index = 2)]
-					approve_proposal {
-						#[codec(compact)]
-						proposal_id: ::core::primitive::u32,
-					},
 					#[codec(index = 3)]
 					spend_local {
 						#[codec(compact)]
@@ -4135,65 +4350,56 @@ pub mod api {
 				#[derive(::codec::Decode, ::codec::Encode, Clone, Debug, PartialEq)]
 				pub enum Error {
 					#[codec(index = 0)]
-					InsufficientProposersBalance,
-					#[codec(index = 1)]
 					InvalidIndex,
-					#[codec(index = 2)]
+					#[codec(index = 1)]
 					TooManyApprovals,
-					#[codec(index = 3)]
+					#[codec(index = 2)]
 					InsufficientPermission,
-					#[codec(index = 4)]
+					#[codec(index = 3)]
 					ProposalNotApproved,
-					#[codec(index = 5)]
+					#[codec(index = 4)]
 					FailedToConvertBalance,
-					#[codec(index = 6)]
+					#[codec(index = 5)]
 					SpendExpired,
-					#[codec(index = 7)]
+					#[codec(index = 6)]
 					EarlyPayout,
-					#[codec(index = 8)]
+					#[codec(index = 7)]
 					AlreadyAttempted,
-					#[codec(index = 9)]
+					#[codec(index = 8)]
 					PayoutError,
-					#[codec(index = 10)]
+					#[codec(index = 9)]
 					NotAttempted,
-					#[codec(index = 11)]
+					#[codec(index = 10)]
 					Inconclusive,
 				}
 				#[derive(::codec::Decode, ::codec::Encode, Clone, Debug, PartialEq)]
 				pub enum Event {
 					#[codec(index = 0)]
-					Proposed { proposal_index: ::core::primitive::u32 },
-					#[codec(index = 1)]
 					Spending { budget_remaining: ::core::primitive::u128 },
-					#[codec(index = 2)]
+					#[codec(index = 1)]
 					Awarded {
 						proposal_index: ::core::primitive::u32,
 						award: ::core::primitive::u128,
 						account: ::sp_core::crypto::AccountId32,
 					},
-					#[codec(index = 3)]
-					Rejected {
-						proposal_index: ::core::primitive::u32,
-						slashed: ::core::primitive::u128,
-					},
-					#[codec(index = 4)]
+					#[codec(index = 2)]
 					Burnt { burnt_funds: ::core::primitive::u128 },
-					#[codec(index = 5)]
+					#[codec(index = 3)]
 					Rollover { rollover_balance: ::core::primitive::u128 },
-					#[codec(index = 6)]
+					#[codec(index = 4)]
 					Deposit { value: ::core::primitive::u128 },
-					#[codec(index = 7)]
+					#[codec(index = 5)]
 					SpendApproved {
 						proposal_index: ::core::primitive::u32,
 						amount: ::core::primitive::u128,
 						beneficiary: ::sp_core::crypto::AccountId32,
 					},
-					#[codec(index = 8)]
+					#[codec(index = 6)]
 					UpdatedInactive {
 						reactivated: ::core::primitive::u128,
 						deactivated: ::core::primitive::u128,
 					},
-					#[codec(index = 9)]
+					#[codec(index = 7)]
 					AssetSpendApproved {
 						index: ::core::primitive::u32,
 						asset_kind:
@@ -4203,16 +4409,16 @@ pub mod api {
 						valid_from: ::core::primitive::u32,
 						expire_at: ::core::primitive::u32,
 					},
-					#[codec(index = 10)]
+					#[codec(index = 8)]
 					AssetSpendVoided { index: ::core::primitive::u32 },
-					#[codec(index = 11)]
+					#[codec(index = 9)]
 					Paid { index: ::core::primitive::u32, payment_id: ::core::primitive::u64 },
-					#[codec(index = 12)]
+					#[codec(index = 10)]
 					PaymentFailed {
 						index: ::core::primitive::u32,
 						payment_id: ::core::primitive::u64,
 					},
-					#[codec(index = 13)]
+					#[codec(index = 11)]
 					SpendProcessed { index: ::core::primitive::u32 },
 				}
 			}
@@ -4909,7 +5115,7 @@ pub mod api {
 		}
 		pub mod polkadot_primitives {
 			use super::runtime_types;
-			pub mod v7 {
+			pub mod v8 {
 				use super::runtime_types;
 				pub mod assignment_app {
 					use super::runtime_types;
@@ -4925,11 +5131,11 @@ pub mod api {
 					}
 					#[derive(::codec::Decode, ::codec::Encode, Clone, Debug, PartialEq)]
 					pub struct BackingState<_0, _1> {
-                        pub constraints: runtime_types::polkadot_primitives::v7::async_backing::Constraints<
+                        pub constraints: runtime_types::polkadot_primitives::v8::async_backing::Constraints<
                             _1,
                         >,
                         pub pending_availability: ::subxt::ext::subxt_core::alloc::vec::Vec<
-                            runtime_types::polkadot_primitives::v7::async_backing::CandidatePendingAvailability<
+                            runtime_types::polkadot_primitives::v8::async_backing::CandidatePendingAvailability<
                                 _0,
                                 _1,
                             >,
@@ -4939,9 +5145,9 @@ pub mod api {
 					pub struct CandidatePendingAvailability<_0, _1> {
 						pub candidate_hash: runtime_types::polkadot_core_primitives::CandidateHash,
 						pub descriptor:
-							runtime_types::polkadot_primitives::v7::CandidateDescriptor<_0>,
+							runtime_types::polkadot_primitives::v8::CandidateDescriptor<_0>,
 						pub commitments:
-							runtime_types::polkadot_primitives::v7::CandidateCommitments<_1>,
+							runtime_types::polkadot_primitives::v8::CandidateCommitments<_1>,
 						pub relay_parent_number: _1,
 						pub max_pov_size: ::core::primitive::u32,
 					}
@@ -4956,20 +5162,20 @@ pub mod api {
                         pub dmp_remaining_messages: ::subxt::ext::subxt_core::alloc::vec::Vec<
                             _0,
                         >,
-                        pub hrmp_inbound: runtime_types::polkadot_primitives::v7::async_backing::InboundHrmpLimitations<
+                        pub hrmp_inbound: runtime_types::polkadot_primitives::v8::async_backing::InboundHrmpLimitations<
                             _0,
                         >,
                         pub hrmp_channels_out: ::subxt::ext::subxt_core::alloc::vec::Vec<
                             (
                                 runtime_types::polkadot_parachain_primitives::primitives::Id,
-                                runtime_types::polkadot_primitives::v7::async_backing::OutboundHrmpChannelLimitations,
+                                runtime_types::polkadot_primitives::v8::async_backing::OutboundHrmpChannelLimitations,
                             ),
                         >,
                         pub max_hrmp_num_per_candidate: ::core::primitive::u32,
                         pub required_parent: runtime_types::polkadot_parachain_primitives::primitives::HeadData,
                         pub validation_code_hash: runtime_types::polkadot_parachain_primitives::primitives::ValidationCodeHash,
                         pub upgrade_restriction: ::core::option::Option<
-                            runtime_types::polkadot_primitives::v7::UpgradeRestriction,
+                            runtime_types::polkadot_primitives::v8::UpgradeRestriction,
                         >,
                         pub future_validation_code: ::core::option::Option<
                             (
@@ -5009,12 +5215,12 @@ pub mod api {
 						PrecheckingMaxMemory(::core::primitive::u64),
 						#[codec(index = 5)]
 						PvfPrepTimeout(
-							runtime_types::polkadot_primitives::v7::PvfPrepKind,
+							runtime_types::polkadot_primitives::v8::PvfPrepKind,
 							::core::primitive::u64,
 						),
 						#[codec(index = 6)]
 						PvfExecTimeout(
-							runtime_types::polkadot_primitives::v7::PvfExecKind,
+							runtime_types::polkadot_primitives::v8::PvfExecKind,
 							::core::primitive::u64,
 						),
 						#[codec(index = 7)]
@@ -5023,7 +5229,7 @@ pub mod api {
 					#[derive(::codec::Decode, ::codec::Encode, Clone, Debug, PartialEq)]
 					pub struct ExecutorParams(
 						pub  ::subxt::ext::subxt_core::alloc::vec::Vec<
-							runtime_types::polkadot_primitives::v7::executor_params::ExecutorParam,
+							runtime_types::polkadot_primitives::v8::executor_params::ExecutorParam,
 						>,
 					);
 				}
@@ -5032,9 +5238,9 @@ pub mod api {
 					#[derive(::codec::Decode, ::codec::Encode, Clone, Debug, PartialEq)]
 					pub struct UncheckedSigned<_0, _1> {
 						pub payload: _0,
-						pub validator_index: runtime_types::polkadot_primitives::v7::ValidatorIndex,
+						pub validator_index: runtime_types::polkadot_primitives::v8::ValidatorIndex,
 						pub signature:
-							runtime_types::polkadot_primitives::v7::validator_app::Signature,
+							runtime_types::polkadot_primitives::v8::validator_app::Signature,
 						#[codec(skip)]
 						pub __ignore: ::core::marker::PhantomData<_1>,
 					}
@@ -5044,12 +5250,12 @@ pub mod api {
 					#[derive(::codec::Decode, ::codec::Encode, Clone, Debug, PartialEq)]
 					pub struct DisputeProof {
 						pub time_slot:
-							runtime_types::polkadot_primitives::v7::slashing::DisputesTimeSlot,
+							runtime_types::polkadot_primitives::v8::slashing::DisputesTimeSlot,
 						pub kind:
-							runtime_types::polkadot_primitives::v7::slashing::SlashingOffenceKind,
-						pub validator_index: runtime_types::polkadot_primitives::v7::ValidatorIndex,
+							runtime_types::polkadot_primitives::v8::slashing::SlashingOffenceKind,
+						pub validator_index: runtime_types::polkadot_primitives::v8::ValidatorIndex,
 						pub validator_id:
-							runtime_types::polkadot_primitives::v7::validator_app::Public,
+							runtime_types::polkadot_primitives::v8::validator_app::Public,
 					}
 					#[derive(::codec::Decode, ::codec::Encode, Clone, Debug, PartialEq)]
 					pub struct DisputesTimeSlot {
@@ -5063,11 +5269,11 @@ pub mod api {
 					#[derive(::codec::Decode, ::codec::Encode, Clone, Debug, PartialEq)]
 					pub struct PendingSlashes {
 						pub keys: ::subxt::ext::subxt_core::utils::KeyedVec<
-							runtime_types::polkadot_primitives::v7::ValidatorIndex,
-							runtime_types::polkadot_primitives::v7::validator_app::Public,
+							runtime_types::polkadot_primitives::v8::ValidatorIndex,
+							runtime_types::polkadot_primitives::v8::validator_app::Public,
 						>,
 						pub kind:
-							runtime_types::polkadot_primitives::v7::slashing::SlashingOffenceKind,
+							runtime_types::polkadot_primitives::v8::slashing::SlashingOffenceKind,
 					}
 					#[derive(::codec::Decode, ::codec::Encode, Clone, Debug, PartialEq)]
 					pub enum SlashingOffenceKind {
@@ -5105,9 +5311,9 @@ pub mod api {
 				#[derive(::codec::Decode, ::codec::Encode, Clone, Debug, PartialEq)]
 				pub struct BackedCandidate<_0> {
 					pub candidate:
-						runtime_types::polkadot_primitives::v7::CommittedCandidateReceipt<_0>,
+						runtime_types::polkadot_primitives::v8::CommittedCandidateReceipt<_0>,
 					pub validity_votes: ::subxt::ext::subxt_core::alloc::vec::Vec<
-						runtime_types::polkadot_primitives::v7::ValidityAttestation,
+						runtime_types::polkadot_primitives::v8::ValidityAttestation,
 					>,
 					pub validator_indices: ::subxt::ext::subxt_core::utils::bits::DecodedBits<
 						::core::primitive::u8,
@@ -5138,11 +5344,11 @@ pub mod api {
 				pub struct CandidateDescriptor<_0> {
                     pub para_id: runtime_types::polkadot_parachain_primitives::primitives::Id,
                     pub relay_parent: _0,
-                    pub collator: runtime_types::polkadot_primitives::v7::collator_app::Public,
+                    pub collator: runtime_types::polkadot_primitives::v8::collator_app::Public,
                     pub persisted_validation_data_hash: ::subxt::ext::subxt_core::utils::H256,
                     pub pov_hash: ::subxt::ext::subxt_core::utils::H256,
                     pub erasure_root: ::subxt::ext::subxt_core::utils::H256,
-                    pub signature: runtime_types::polkadot_primitives::v7::collator_app::Signature,
+                    pub signature: runtime_types::polkadot_primitives::v8::collator_app::Signature,
                     pub para_head: ::subxt::ext::subxt_core::utils::H256,
                     pub validation_code_hash: runtime_types::polkadot_parachain_primitives::primitives::ValidationCodeHash,
                 }
@@ -5150,34 +5356,34 @@ pub mod api {
 				pub enum CandidateEvent<_0> {
 					#[codec(index = 0)]
 					CandidateBacked(
-						runtime_types::polkadot_primitives::v7::CandidateReceipt<_0>,
+						runtime_types::polkadot_primitives::v8::CandidateReceipt<_0>,
 						runtime_types::polkadot_parachain_primitives::primitives::HeadData,
-						runtime_types::polkadot_primitives::v7::CoreIndex,
-						runtime_types::polkadot_primitives::v7::GroupIndex,
+						runtime_types::polkadot_primitives::v8::CoreIndex,
+						runtime_types::polkadot_primitives::v8::GroupIndex,
 					),
 					#[codec(index = 1)]
 					CandidateIncluded(
-						runtime_types::polkadot_primitives::v7::CandidateReceipt<_0>,
+						runtime_types::polkadot_primitives::v8::CandidateReceipt<_0>,
 						runtime_types::polkadot_parachain_primitives::primitives::HeadData,
-						runtime_types::polkadot_primitives::v7::CoreIndex,
-						runtime_types::polkadot_primitives::v7::GroupIndex,
+						runtime_types::polkadot_primitives::v8::CoreIndex,
+						runtime_types::polkadot_primitives::v8::GroupIndex,
 					),
 					#[codec(index = 2)]
 					CandidateTimedOut(
-						runtime_types::polkadot_primitives::v7::CandidateReceipt<_0>,
+						runtime_types::polkadot_primitives::v8::CandidateReceipt<_0>,
 						runtime_types::polkadot_parachain_primitives::primitives::HeadData,
-						runtime_types::polkadot_primitives::v7::CoreIndex,
+						runtime_types::polkadot_primitives::v8::CoreIndex,
 					),
 				}
 				#[derive(::codec::Decode, ::codec::Encode, Clone, Debug, PartialEq)]
 				pub struct CandidateReceipt<_0> {
-					pub descriptor: runtime_types::polkadot_primitives::v7::CandidateDescriptor<_0>,
+					pub descriptor: runtime_types::polkadot_primitives::v8::CandidateDescriptor<_0>,
 					pub commitments_hash: ::subxt::ext::subxt_core::utils::H256,
 				}
 				#[derive(::codec::Decode, ::codec::Encode, Clone, Debug, PartialEq)]
 				pub struct CommittedCandidateReceipt<_0> {
-					pub descriptor: runtime_types::polkadot_primitives::v7::CandidateDescriptor<_0>,
-					pub commitments: runtime_types::polkadot_primitives::v7::CandidateCommitments<
+					pub descriptor: runtime_types::polkadot_primitives::v8::CandidateDescriptor<_0>,
+					pub commitments: runtime_types::polkadot_primitives::v8::CandidateCommitments<
 						::core::primitive::u32,
 					>,
 				}
@@ -5193,9 +5399,9 @@ pub mod api {
 				#[derive(::codec::Decode, ::codec::Encode, Clone, Debug, PartialEq)]
 				pub enum CoreState<_0, _1> {
 					#[codec(index = 0)]
-					Occupied(runtime_types::polkadot_primitives::v7::OccupiedCore<_0, _1>),
+					Occupied(runtime_types::polkadot_primitives::v8::OccupiedCore<_0, _1>),
 					#[codec(index = 1)]
-					Scheduled(runtime_types::polkadot_primitives::v7::ScheduledCore),
+					Scheduled(runtime_types::polkadot_primitives::v8::ScheduledCore),
 					#[codec(index = 2)]
 					Free,
 				}
@@ -5215,18 +5421,18 @@ pub mod api {
 				#[derive(::codec::Decode, ::codec::Encode, Clone, Debug, PartialEq)]
 				pub enum DisputeStatement {
 					#[codec(index = 0)]
-					Valid(runtime_types::polkadot_primitives::v7::ValidDisputeStatementKind),
+					Valid(runtime_types::polkadot_primitives::v8::ValidDisputeStatementKind),
 					#[codec(index = 1)]
-					Invalid(runtime_types::polkadot_primitives::v7::InvalidDisputeStatementKind),
+					Invalid(runtime_types::polkadot_primitives::v8::InvalidDisputeStatementKind),
 				}
 				#[derive(::codec::Decode, ::codec::Encode, Clone, Debug, PartialEq)]
 				pub struct DisputeStatementSet {
 					pub candidate_hash: runtime_types::polkadot_core_primitives::CandidateHash,
 					pub session: ::core::primitive::u32,
 					pub statements: ::subxt::ext::subxt_core::alloc::vec::Vec<(
-						runtime_types::polkadot_primitives::v7::DisputeStatement,
-						runtime_types::polkadot_primitives::v7::ValidatorIndex,
-						runtime_types::polkadot_primitives::v7::validator_app::Signature,
+						runtime_types::polkadot_primitives::v8::DisputeStatement,
+						runtime_types::polkadot_primitives::v8::ValidatorIndex,
+						runtime_types::polkadot_primitives::v8::validator_app::Signature,
 					)>,
 				}
 				#[derive(
@@ -5252,18 +5458,18 @@ pub mod api {
 				#[derive(::codec::Decode, ::codec::Encode, Clone, Debug, PartialEq)]
 				pub struct InherentData<_0> {
 					pub bitfields: ::subxt::ext::subxt_core::alloc::vec::Vec<
-						runtime_types::polkadot_primitives::v7::signed::UncheckedSigned<
-							runtime_types::polkadot_primitives::v7::AvailabilityBitfield,
-							runtime_types::polkadot_primitives::v7::AvailabilityBitfield,
+						runtime_types::polkadot_primitives::v8::signed::UncheckedSigned<
+							runtime_types::polkadot_primitives::v8::AvailabilityBitfield,
+							runtime_types::polkadot_primitives::v8::AvailabilityBitfield,
 						>,
 					>,
 					pub backed_candidates: ::subxt::ext::subxt_core::alloc::vec::Vec<
-						runtime_types::polkadot_primitives::v7::BackedCandidate<
+						runtime_types::polkadot_primitives::v8::BackedCandidate<
 							::subxt::ext::subxt_core::utils::H256,
 						>,
 					>,
 					pub disputes: ::subxt::ext::subxt_core::alloc::vec::Vec<
-						runtime_types::polkadot_primitives::v7::DisputeStatementSet,
+						runtime_types::polkadot_primitives::v8::DisputeStatementSet,
 					>,
 					pub parent_header: _0,
 				}
@@ -5275,21 +5481,21 @@ pub mod api {
 				#[derive(::codec::Decode, ::codec::Encode, Clone, Debug, PartialEq)]
 				pub struct OccupiedCore<_0, _1> {
 					pub next_up_on_available: ::core::option::Option<
-						runtime_types::polkadot_primitives::v7::ScheduledCore,
+						runtime_types::polkadot_primitives::v8::ScheduledCore,
 					>,
 					pub occupied_since: _1,
 					pub time_out_at: _1,
 					pub next_up_on_time_out: ::core::option::Option<
-						runtime_types::polkadot_primitives::v7::ScheduledCore,
+						runtime_types::polkadot_primitives::v8::ScheduledCore,
 					>,
 					pub availability: ::subxt::ext::subxt_core::utils::bits::DecodedBits<
 						::core::primitive::u8,
 						::subxt::ext::subxt_core::utils::bits::Lsb0,
 					>,
-					pub group_responsible: runtime_types::polkadot_primitives::v7::GroupIndex,
+					pub group_responsible: runtime_types::polkadot_primitives::v8::GroupIndex,
 					pub candidate_hash: runtime_types::polkadot_core_primitives::CandidateHash,
 					pub candidate_descriptor:
-						runtime_types::polkadot_primitives::v7::CandidateDescriptor<_0>,
+						runtime_types::polkadot_primitives::v8::CandidateDescriptor<_0>,
 				}
 				#[derive(::codec::Decode, ::codec::Encode, Clone, Debug, PartialEq)]
 				pub enum OccupiedCoreAssumption {
@@ -5313,7 +5519,7 @@ pub mod api {
                     pub accept: ::core::primitive::bool,
                     pub subject: runtime_types::polkadot_parachain_primitives::primitives::ValidationCodeHash,
                     pub session_index: ::core::primitive::u32,
-                    pub validator_index: runtime_types::polkadot_primitives::v7::ValidatorIndex,
+                    pub validator_index: runtime_types::polkadot_primitives::v8::ValidatorIndex,
                 }
 				#[derive(::codec::Decode, ::codec::Encode, Clone, Debug, PartialEq)]
 				pub enum PvfExecKind {
@@ -5333,45 +5539,61 @@ pub mod api {
 				pub struct ScheduledCore {
 					pub para_id: runtime_types::polkadot_parachain_primitives::primitives::Id,
 					pub collator: ::core::option::Option<
-						runtime_types::polkadot_primitives::v7::collator_app::Public,
+						runtime_types::polkadot_primitives::v8::collator_app::Public,
 					>,
+				}
+				#[derive(::codec::Decode, ::codec::Encode, Clone, Debug, PartialEq)]
+				pub struct SchedulerParams<_0> {
+					pub group_rotation_frequency: _0,
+					pub paras_availability_period: _0,
+					pub max_validators_per_core: ::core::option::Option<_0>,
+					pub lookahead: ::core::primitive::u32,
+					pub num_cores: ::core::primitive::u32,
+					pub max_availability_timeouts: ::core::primitive::u32,
+					pub on_demand_queue_max_size: ::core::primitive::u32,
+					pub on_demand_target_queue_utilization:
+						runtime_types::sp_arithmetic::per_things::Perbill,
+					pub on_demand_fee_variability:
+						runtime_types::sp_arithmetic::per_things::Perbill,
+					pub on_demand_base_fee: ::core::primitive::u128,
+					pub ttl: _0,
 				}
 				#[derive(::codec::Decode, ::codec::Encode, Clone, Debug, PartialEq)]
 				pub struct ScrapedOnChainVotes<_0> {
 					pub session: ::core::primitive::u32,
 					pub backing_validators_per_candidate:
 						::subxt::ext::subxt_core::alloc::vec::Vec<(
-							runtime_types::polkadot_primitives::v7::CandidateReceipt<_0>,
+							runtime_types::polkadot_primitives::v8::CandidateReceipt<_0>,
 							::subxt::ext::subxt_core::alloc::vec::Vec<(
-								runtime_types::polkadot_primitives::v7::ValidatorIndex,
-								runtime_types::polkadot_primitives::v7::ValidityAttestation,
+								runtime_types::polkadot_primitives::v8::ValidatorIndex,
+								runtime_types::polkadot_primitives::v8::ValidityAttestation,
 							)>,
 						)>,
 					pub disputes: ::subxt::ext::subxt_core::alloc::vec::Vec<
-						runtime_types::polkadot_primitives::v7::DisputeStatementSet,
+						runtime_types::polkadot_primitives::v8::DisputeStatementSet,
 					>,
 				}
 				#[derive(::codec::Decode, ::codec::Encode, Clone, Debug, PartialEq)]
 				pub struct SessionInfo {
 					pub active_validator_indices: ::subxt::ext::subxt_core::alloc::vec::Vec<
-						runtime_types::polkadot_primitives::v7::ValidatorIndex,
+						runtime_types::polkadot_primitives::v8::ValidatorIndex,
 					>,
 					pub random_seed: [::core::primitive::u8; 32usize],
 					pub dispute_period: ::core::primitive::u32,
-					pub validators: runtime_types::polkadot_primitives::v7::IndexedVec<
-						runtime_types::polkadot_primitives::v7::ValidatorIndex,
-						runtime_types::polkadot_primitives::v7::validator_app::Public,
+					pub validators: runtime_types::polkadot_primitives::v8::IndexedVec<
+						runtime_types::polkadot_primitives::v8::ValidatorIndex,
+						runtime_types::polkadot_primitives::v8::validator_app::Public,
 					>,
 					pub discovery_keys: ::subxt::ext::subxt_core::alloc::vec::Vec<
 						runtime_types::sp_authority_discovery::app::Public,
 					>,
 					pub assignment_keys: ::subxt::ext::subxt_core::alloc::vec::Vec<
-						runtime_types::polkadot_primitives::v7::assignment_app::Public,
+						runtime_types::polkadot_primitives::v8::assignment_app::Public,
 					>,
-					pub validator_groups: runtime_types::polkadot_primitives::v7::IndexedVec<
-						runtime_types::polkadot_primitives::v7::GroupIndex,
+					pub validator_groups: runtime_types::polkadot_primitives::v8::IndexedVec<
+						runtime_types::polkadot_primitives::v8::GroupIndex,
 						::subxt::ext::subxt_core::alloc::vec::Vec<
-							runtime_types::polkadot_primitives::v7::ValidatorIndex,
+							runtime_types::polkadot_primitives::v8::ValidatorIndex,
 						>,
 					>,
 					pub n_cores: ::core::primitive::u32,
@@ -5422,28 +5644,9 @@ pub mod api {
 				#[derive(::codec::Decode, ::codec::Encode, Clone, Debug, PartialEq)]
 				pub enum ValidityAttestation {
 					#[codec(index = 1)]
-					Implicit(runtime_types::polkadot_primitives::v7::validator_app::Signature),
+					Implicit(runtime_types::polkadot_primitives::v8::validator_app::Signature),
 					#[codec(index = 2)]
-					Explicit(runtime_types::polkadot_primitives::v7::validator_app::Signature),
-				}
-			}
-			pub mod vstaging {
-				use super::runtime_types;
-				#[derive(::codec::Decode, ::codec::Encode, Clone, Debug, PartialEq)]
-				pub struct SchedulerParams<_0> {
-					pub group_rotation_frequency: _0,
-					pub paras_availability_period: _0,
-					pub max_validators_per_core: ::core::option::Option<_0>,
-					pub lookahead: ::core::primitive::u32,
-					pub num_cores: ::core::primitive::u32,
-					pub max_availability_timeouts: ::core::primitive::u32,
-					pub on_demand_queue_max_size: ::core::primitive::u32,
-					pub on_demand_target_queue_utilization:
-						runtime_types::sp_arithmetic::per_things::Perbill,
-					pub on_demand_fee_variability:
-						runtime_types::sp_arithmetic::per_things::Perbill,
-					pub on_demand_base_fee: ::core::primitive::u128,
-					pub ttl: _0,
+					Explicit(runtime_types::polkadot_primitives::v8::validator_app::Signature),
 				}
 			}
 		}
@@ -6158,82 +6361,6 @@ pub mod api {
                     pub step: runtime_types::polkadot_runtime_parachains::assigner_coretime::PartsOf57600,
                 }
 			}
-			pub mod assigner_on_demand {
-				use super::runtime_types;
-				pub mod pallet {
-					use super::runtime_types;
-					#[derive(::codec::Decode, ::codec::Encode, Clone, Debug, PartialEq)]
-					pub enum Call {
-						#[codec(index = 0)]
-						place_order_allow_death {
-							max_amount: ::core::primitive::u128,
-							para_id: runtime_types::polkadot_parachain_primitives::primitives::Id,
-						},
-						#[codec(index = 1)]
-						place_order_keep_alive {
-							max_amount: ::core::primitive::u128,
-							para_id: runtime_types::polkadot_parachain_primitives::primitives::Id,
-						},
-					}
-					#[derive(::codec::Decode, ::codec::Encode, Clone, Debug, PartialEq)]
-					pub enum Error {
-						#[codec(index = 0)]
-						QueueFull,
-						#[codec(index = 1)]
-						SpotPriceHigherThanMaxAmount,
-					}
-					#[derive(::codec::Decode, ::codec::Encode, Clone, Debug, PartialEq)]
-					pub enum Event {
-						#[codec(index = 0)]
-						OnDemandOrderPlaced {
-							para_id: runtime_types::polkadot_parachain_primitives::primitives::Id,
-							spot_price: ::core::primitive::u128,
-						},
-						#[codec(index = 1)]
-						SpotTrafficSet {
-							traffic: runtime_types::sp_arithmetic::fixed_point::FixedU128,
-						},
-					}
-				}
-				#[derive(::codec::Decode, ::codec::Encode, Clone, Debug, PartialEq)]
-				pub struct CoreAffinityCount {
-					pub core_index: runtime_types::polkadot_primitives::v7::CoreIndex,
-					pub count: ::core::primitive::u32,
-				}
-				#[derive(::codec::Decode, ::codec::Encode, Clone, Debug, PartialEq)]
-				pub struct EnqueuedOrder {
-					pub para_id: runtime_types::polkadot_parachain_primitives::primitives::Id,
-					pub idx:
-						runtime_types::polkadot_runtime_parachains::assigner_on_demand::QueueIndex,
-				}
-				#[derive(
-					::codec::Decode,
-					::codec::Encode,
-					::subxt::ext::subxt_core::ext::codec::CompactAs,
-					Clone,
-					Debug,
-					PartialEq,
-				)]
-				pub struct QueueIndex(pub ::core::primitive::u32);
-				#[derive(::codec::Decode, ::codec::Encode, Clone, Debug, PartialEq)]
-				pub struct QueueStatusType {
-                    pub traffic: runtime_types::sp_arithmetic::fixed_point::FixedU128,
-                    pub next_index: runtime_types::polkadot_runtime_parachains::assigner_on_demand::QueueIndex,
-                    pub smallest_index: runtime_types::polkadot_runtime_parachains::assigner_on_demand::QueueIndex,
-                    pub freed_indices: ::subxt::ext::subxt_core::alloc::vec::Vec<
-                        runtime_types::polkadot_runtime_parachains::assigner_on_demand::ReverseQueueIndex,
-                    >,
-                }
-				#[derive(
-					::codec::Decode,
-					::codec::Encode,
-					::subxt::ext::subxt_core::ext::codec::CompactAs,
-					Clone,
-					Debug,
-					PartialEq,
-				)]
-				pub struct ReverseQueueIndex(pub ::core::primitive::u32);
-			}
 			pub mod configuration {
 				use super::runtime_types;
 				pub mod pallet {
@@ -6334,11 +6461,11 @@ pub mod api {
                         set_bypass_consistency_check { new: ::core::primitive::bool },
                         #[codec(index = 45)]
                         set_async_backing_params {
-                            new: runtime_types::polkadot_primitives::v7::async_backing::AsyncBackingParams,
+                            new: runtime_types::polkadot_primitives::v8::async_backing::AsyncBackingParams,
                         },
                         #[codec(index = 46)]
                         set_executor_params {
-                            new: runtime_types::polkadot_primitives::v7::executor_params::ExecutorParams,
+                            new: runtime_types::polkadot_primitives::v8::executor_params::ExecutorParams,
                         },
                         #[codec(index = 47)]
                         set_on_demand_base_fee { new: ::core::primitive::u128 },
@@ -6363,11 +6490,11 @@ pub mod api {
                         },
                         #[codec(index = 54)]
                         set_approval_voting_params {
-                            new: runtime_types::polkadot_primitives::v7::ApprovalVotingParams,
+                            new: runtime_types::polkadot_primitives::v8::ApprovalVotingParams,
                         },
                         #[codec(index = 55)]
                         set_scheduler_params {
-                            new: runtime_types::polkadot_primitives::vstaging::SchedulerParams<
+                            new: runtime_types::polkadot_primitives::v8::SchedulerParams<
                                 ::core::primitive::u32,
                             >,
                         },
@@ -6390,7 +6517,7 @@ pub mod api {
 					pub validation_upgrade_cooldown: _0,
 					pub validation_upgrade_delay: _0,
 					pub async_backing_params:
-						runtime_types::polkadot_primitives::v7::async_backing::AsyncBackingParams,
+						runtime_types::polkadot_primitives::v8::async_backing::AsyncBackingParams,
 					pub max_pov_size: ::core::primitive::u32,
 					pub max_downward_message_size: ::core::primitive::u32,
 					pub hrmp_max_parachain_outbound_channels: ::core::primitive::u32,
@@ -6401,7 +6528,7 @@ pub mod api {
 					pub hrmp_max_parachain_inbound_channels: ::core::primitive::u32,
 					pub hrmp_channel_max_message_size: ::core::primitive::u32,
 					pub executor_params:
-						runtime_types::polkadot_primitives::v7::executor_params::ExecutorParams,
+						runtime_types::polkadot_primitives::v8::executor_params::ExecutorParams,
 					pub code_retention_period: _0,
 					pub max_validators: ::core::option::Option<_0>,
 					pub dispute_period: ::core::primitive::u32,
@@ -6419,9 +6546,9 @@ pub mod api {
 						::subxt::ext::subxt_core::utils::bits::Lsb0,
 					>,
 					pub approval_voting_params:
-						runtime_types::polkadot_primitives::v7::ApprovalVotingParams,
+						runtime_types::polkadot_primitives::v8::ApprovalVotingParams,
 					pub scheduler_params:
-						runtime_types::polkadot_primitives::vstaging::SchedulerParams<_0>,
+						runtime_types::polkadot_primitives::v8::SchedulerParams<_0>,
 				}
 			}
 			pub mod coretime {
@@ -6432,6 +6559,8 @@ pub mod api {
 					pub enum Call {
 						#[codec(index = 1)]
                         request_core_count { count: ::core::primitive::u16 },
+                        #[codec(index = 2)]
+                        request_revenue_at { when: ::core::primitive::u32 },
                         #[codec(index = 4)]
                         assign_core {
                             core: ::core::primitive::u16,
@@ -6449,13 +6578,17 @@ pub mod api {
 					pub enum Error {
 						#[codec(index = 0)]
 						NotBroker,
+						#[codec(index = 1)]
+						RequestedFutureRevenue,
+						#[codec(index = 2)]
+						AssetTransferFailed,
 					}
 					#[derive(::codec::Decode, ::codec::Encode, Clone, Debug, PartialEq)]
 					pub enum Event {
 						#[codec(index = 0)]
 						RevenueInfoRequested { when: ::core::primitive::u32 },
 						#[codec(index = 1)]
-						CoreAssigned { core: runtime_types::polkadot_primitives::v7::CoreIndex },
+						CoreAssigned { core: runtime_types::polkadot_primitives::v8::CoreIndex },
 					}
 				}
 			}
@@ -6514,7 +6647,7 @@ pub mod api {
 							#[codec(index = 0)]
 							report_dispute_lost_unsigned {
 								dispute_proof: ::subxt::ext::subxt_core::alloc::boxed::Box<
-									runtime_types::polkadot_primitives::v7::slashing::DisputeProof,
+									runtime_types::polkadot_primitives::v8::slashing::DisputeProof,
 								>,
 								key_owner_proof: ::sp_session::MembershipProof,
 							},
@@ -6746,49 +6879,47 @@ pub mod api {
 						#[codec(index = 9)]
 						InvalidBacking,
 						#[codec(index = 10)]
-						NotCollatorSigned,
-						#[codec(index = 11)]
 						ValidationDataHashMismatch,
-						#[codec(index = 12)]
+						#[codec(index = 11)]
 						IncorrectDownwardMessageHandling,
-						#[codec(index = 13)]
+						#[codec(index = 12)]
 						InvalidUpwardMessages,
-						#[codec(index = 14)]
+						#[codec(index = 13)]
 						HrmpWatermarkMishandling,
-						#[codec(index = 15)]
+						#[codec(index = 14)]
 						InvalidOutboundHrmp,
-						#[codec(index = 16)]
+						#[codec(index = 15)]
 						InvalidValidationCodeHash,
-						#[codec(index = 17)]
+						#[codec(index = 16)]
 						ParaHeadMismatch,
 					}
 					#[derive(::codec::Decode, ::codec::Encode, Clone, Debug, PartialEq)]
 					pub enum Event {
 						#[codec(index = 0)]
 						CandidateBacked(
-							runtime_types::polkadot_primitives::v7::CandidateReceipt<
+							runtime_types::polkadot_primitives::v8::CandidateReceipt<
 								::subxt::ext::subxt_core::utils::H256,
 							>,
 							runtime_types::polkadot_parachain_primitives::primitives::HeadData,
-							runtime_types::polkadot_primitives::v7::CoreIndex,
-							runtime_types::polkadot_primitives::v7::GroupIndex,
+							runtime_types::polkadot_primitives::v8::CoreIndex,
+							runtime_types::polkadot_primitives::v8::GroupIndex,
 						),
 						#[codec(index = 1)]
 						CandidateIncluded(
-							runtime_types::polkadot_primitives::v7::CandidateReceipt<
+							runtime_types::polkadot_primitives::v8::CandidateReceipt<
 								::subxt::ext::subxt_core::utils::H256,
 							>,
 							runtime_types::polkadot_parachain_primitives::primitives::HeadData,
-							runtime_types::polkadot_primitives::v7::CoreIndex,
-							runtime_types::polkadot_primitives::v7::GroupIndex,
+							runtime_types::polkadot_primitives::v8::CoreIndex,
+							runtime_types::polkadot_primitives::v8::GroupIndex,
 						),
 						#[codec(index = 2)]
 						CandidateTimedOut(
-							runtime_types::polkadot_primitives::v7::CandidateReceipt<
+							runtime_types::polkadot_primitives::v8::CandidateReceipt<
 								::subxt::ext::subxt_core::utils::H256,
 							>,
 							runtime_types::polkadot_parachain_primitives::primitives::HeadData,
-							runtime_types::polkadot_primitives::v7::CoreIndex,
+							runtime_types::polkadot_primitives::v8::CoreIndex,
 						),
 						#[codec(index = 3)]
 						UpwardMessagesReceived {
@@ -6804,11 +6935,11 @@ pub mod api {
 				}
 				#[derive(::codec::Decode, ::codec::Encode, Clone, Debug, PartialEq)]
 				pub struct CandidatePendingAvailability<_0, _1> {
-					pub core: runtime_types::polkadot_primitives::v7::CoreIndex,
+					pub core: runtime_types::polkadot_primitives::v8::CoreIndex,
 					pub hash: runtime_types::polkadot_core_primitives::CandidateHash,
-					pub descriptor: runtime_types::polkadot_primitives::v7::CandidateDescriptor<_0>,
+					pub descriptor: runtime_types::polkadot_primitives::v8::CandidateDescriptor<_0>,
 					pub commitments:
-						runtime_types::polkadot_primitives::v7::CandidateCommitments<_1>,
+						runtime_types::polkadot_primitives::v8::CandidateCommitments<_1>,
 					pub availability_votes: ::subxt::ext::subxt_core::utils::bits::DecodedBits<
 						::core::primitive::u8,
 						::subxt::ext::subxt_core::utils::bits::Lsb0,
@@ -6819,7 +6950,7 @@ pub mod api {
 					>,
 					pub relay_parent_number: _1,
 					pub backed_in_number: _1,
-					pub backing_group: runtime_types::polkadot_primitives::v7::GroupIndex,
+					pub backing_group: runtime_types::polkadot_primitives::v8::GroupIndex,
 				}
 				#[derive(::codec::Decode, ::codec::Encode, Clone, Debug, PartialEq)]
 				pub enum UmpQueueId {
@@ -6840,12 +6971,89 @@ pub mod api {
 				#[derive(::codec::Decode, ::codec::Encode, Clone, Debug, PartialEq)]
 				pub struct BufferedSessionChange {
 					pub validators: ::subxt::ext::subxt_core::alloc::vec::Vec<
-						runtime_types::polkadot_primitives::v7::validator_app::Public,
+						runtime_types::polkadot_primitives::v8::validator_app::Public,
 					>,
 					pub queued: ::subxt::ext::subxt_core::alloc::vec::Vec<
-						runtime_types::polkadot_primitives::v7::validator_app::Public,
+						runtime_types::polkadot_primitives::v8::validator_app::Public,
 					>,
 					pub session_index: ::core::primitive::u32,
+				}
+			}
+			pub mod on_demand {
+				use super::runtime_types;
+				pub mod pallet {
+					use super::runtime_types;
+					#[derive(::codec::Decode, ::codec::Encode, Clone, Debug, PartialEq)]
+					pub enum Call {
+						#[codec(index = 0)]
+						place_order_allow_death {
+							max_amount: ::core::primitive::u128,
+							para_id: runtime_types::polkadot_parachain_primitives::primitives::Id,
+						},
+						#[codec(index = 1)]
+						place_order_keep_alive {
+							max_amount: ::core::primitive::u128,
+							para_id: runtime_types::polkadot_parachain_primitives::primitives::Id,
+						},
+					}
+					#[derive(::codec::Decode, ::codec::Encode, Clone, Debug, PartialEq)]
+					pub enum Error {
+						#[codec(index = 0)]
+						QueueFull,
+						#[codec(index = 1)]
+						SpotPriceHigherThanMaxAmount,
+					}
+					#[derive(::codec::Decode, ::codec::Encode, Clone, Debug, PartialEq)]
+					pub enum Event {
+						#[codec(index = 0)]
+						OnDemandOrderPlaced {
+							para_id: runtime_types::polkadot_parachain_primitives::primitives::Id,
+							spot_price: ::core::primitive::u128,
+							ordered_by: ::sp_core::crypto::AccountId32,
+						},
+						#[codec(index = 1)]
+						SpotPriceSet { spot_price: ::core::primitive::u128 },
+					}
+				}
+				pub mod types {
+					use super::runtime_types;
+					#[derive(::codec::Decode, ::codec::Encode, Clone, Debug, PartialEq)]
+					pub struct CoreAffinityCount {
+						pub core_index: runtime_types::polkadot_primitives::v8::CoreIndex,
+						pub count: ::core::primitive::u32,
+					}
+					#[derive(::codec::Decode, ::codec::Encode, Clone, Debug, PartialEq)]
+					pub struct EnqueuedOrder {
+                        pub para_id: runtime_types::polkadot_parachain_primitives::primitives::Id,
+                        pub idx: runtime_types::polkadot_runtime_parachains::on_demand::types::QueueIndex,
+                    }
+					#[derive(
+						::codec::Decode,
+						::codec::Encode,
+						::subxt::ext::subxt_core::ext::codec::CompactAs,
+						Clone,
+						Debug,
+						PartialEq,
+					)]
+					pub struct QueueIndex(pub ::core::primitive::u32);
+					#[derive(::codec::Decode, ::codec::Encode, Clone, Debug, PartialEq)]
+					pub struct QueueStatusType {
+                        pub traffic: runtime_types::sp_arithmetic::fixed_point::FixedU128,
+                        pub next_index: runtime_types::polkadot_runtime_parachains::on_demand::types::QueueIndex,
+                        pub smallest_index: runtime_types::polkadot_runtime_parachains::on_demand::types::QueueIndex,
+                        pub freed_indices: ::subxt::ext::subxt_core::alloc::vec::Vec<
+                            runtime_types::polkadot_runtime_parachains::on_demand::types::ReverseQueueIndex,
+                        >,
+                    }
+					#[derive(
+						::codec::Decode,
+						::codec::Encode,
+						::subxt::ext::subxt_core::ext::codec::CompactAs,
+						Clone,
+						Debug,
+						PartialEq,
+					)]
+					pub struct ReverseQueueIndex(pub ::core::primitive::u32);
 				}
 			}
 			pub mod origin {
@@ -6900,8 +7108,8 @@ pub mod api {
                         },
                         #[codec(index = 7)]
                         include_pvf_check_statement {
-                            stmt: runtime_types::polkadot_primitives::v7::PvfCheckStatement,
-                            signature: runtime_types::polkadot_primitives::v7::validator_app::Signature,
+                            stmt: runtime_types::polkadot_primitives::v8::PvfCheckStatement,
+                            signature: runtime_types::polkadot_primitives::v8::validator_app::Signature,
                         },
                         #[codec(index = 8)]
                         force_set_most_recent_context {
@@ -7059,7 +7267,7 @@ pub mod api {
 					pub enum Call {
 						#[codec(index = 0)]
 						enter {
-							data: runtime_types::polkadot_primitives::v7::InherentData<
+							data: runtime_types::polkadot_primitives::v8::InherentData<
 								::sp_runtime::generic::Header<
 									::core::primitive::u32,
 									::sp_runtime::traits::BlakeTwo256,
@@ -7091,7 +7299,7 @@ pub mod api {
 						#[codec(index = 0)]
 						Pool {
 							para_id: runtime_types::polkadot_parachain_primitives::primitives::Id,
-							core_index: runtime_types::polkadot_primitives::v7::CoreIndex,
+							core_index: runtime_types::polkadot_primitives::v8::CoreIndex,
 						},
 						#[codec(index = 1)]
 						Bulk(runtime_types::polkadot_parachain_primitives::primitives::Id),
@@ -7186,6 +7394,15 @@ pub mod api {
 					PartialEq,
 				)]
 				pub struct Permill(pub ::core::primitive::u32);
+				#[derive(
+					::codec::Decode,
+					::codec::Encode,
+					::subxt::ext::subxt_core::ext::codec::CompactAs,
+					Clone,
+					Debug,
+					PartialEq,
+				)]
+				pub struct Perquintill(pub ::core::primitive::u64);
 			}
 			#[derive(::codec::Decode, ::codec::Encode, Clone, Debug, PartialEq)]
 			pub enum ArithmeticError {
@@ -7332,14 +7549,28 @@ pub mod api {
 				);
 			}
 			#[derive(::codec::Decode, ::codec::Encode, Clone, Debug, PartialEq)]
-			pub struct EquivocationProof<_0, _1, _2> {
+			pub struct DoubleVotingProof<_0, _1, _2> {
 				pub first: runtime_types::sp_consensus_beefy::VoteMessage<_0, _1, _2>,
 				pub second: runtime_types::sp_consensus_beefy::VoteMessage<_0, _1, _2>,
 			}
 			#[derive(::codec::Decode, ::codec::Encode, Clone, Debug, PartialEq)]
-			pub struct OpaqueKeyOwnershipProof(
-				pub ::subxt::ext::subxt_core::alloc::vec::Vec<::core::primitive::u8>,
-			);
+			pub struct ForkVotingProof<_0, _1, _2> {
+				pub vote: runtime_types::sp_consensus_beefy::VoteMessage<
+					::core::primitive::u32,
+					_1,
+					runtime_types::sp_consensus_beefy::ecdsa_crypto::Signature,
+				>,
+				pub ancestry_proof: _2,
+				pub header: _0,
+			}
+			#[derive(::codec::Decode, ::codec::Encode, Clone, Debug, PartialEq)]
+			pub struct FutureBlockVotingProof<_0, _1> {
+				pub vote: runtime_types::sp_consensus_beefy::VoteMessage<
+					_0,
+					_1,
+					runtime_types::sp_consensus_beefy::ecdsa_crypto::Signature,
+				>,
+			}
 			#[derive(::codec::Decode, ::codec::Encode, Clone, Debug, PartialEq)]
 			pub struct ValidatorSet<_0> {
 				pub validators: ::subxt::ext::subxt_core::alloc::vec::Vec<_0>,
@@ -7380,10 +7611,6 @@ pub mod api {
 					>,
 				),
 			}
-			#[derive(::codec::Decode, ::codec::Encode, Clone, Debug, PartialEq)]
-			pub struct OpaqueKeyOwnershipProof(
-				pub ::subxt::ext::subxt_core::alloc::vec::Vec<::core::primitive::u8>,
-			);
 		}
 		pub mod sp_consensus_slots {
 			use super::runtime_types;
@@ -7448,6 +7675,13 @@ pub mod api {
 		pub mod sp_mmr_primitives {
 			use super::runtime_types;
 			#[derive(::codec::Decode, ::codec::Encode, Clone, Debug, PartialEq)]
+			pub struct AncestryProof<_0> {
+				pub prev_peaks: ::subxt::ext::subxt_core::alloc::vec::Vec<_0>,
+				pub prev_leaf_count: ::core::primitive::u64,
+				pub leaf_count: ::core::primitive::u64,
+				pub items: ::subxt::ext::subxt_core::alloc::vec::Vec<(::core::primitive::u64, _0)>,
+			}
+			#[derive(::codec::Decode, ::codec::Encode, Clone, Debug, PartialEq)]
 			pub struct EncodableOpaqueLeaf(
 				pub ::subxt::ext::subxt_core::alloc::vec::Vec<::core::primitive::u8>,
 			);
@@ -7475,7 +7709,7 @@ pub mod api {
 				InvalidBestKnownBlock,
 			}
 			#[derive(::codec::Decode, ::codec::Encode, Clone, Debug, PartialEq)]
-			pub struct Proof<_0> {
+			pub struct LeafProof<_0> {
 				pub leaf_indices: ::subxt::ext::subxt_core::alloc::vec::Vec<::core::primitive::u64>,
 				pub leaf_count: ::core::primitive::u64,
 				pub items: ::subxt::ext::subxt_core::alloc::vec::Vec<_0>,
@@ -7665,6 +7899,10 @@ pub mod api {
 				#[codec(index = 2)]
 				Ecdsa([::core::primitive::u8; 33usize]),
 			}
+			#[derive(::codec::Decode, ::codec::Encode, Clone, Debug, PartialEq)]
+			pub struct OpaqueValue(
+				pub ::subxt::ext::subxt_core::alloc::vec::Vec<::core::primitive::u8>,
+			);
 			#[derive(::codec::Decode, ::codec::Encode, Clone, Debug, PartialEq)]
 			pub enum TokenError {
 				#[codec(index = 0)]
@@ -8008,7 +8246,7 @@ pub mod api {
 					},
 					#[codec(index = 6)]
 					Transact {
-						origin_kind: runtime_types::xcm::v2::OriginKind,
+						origin_kind: runtime_types::xcm::v3::OriginKind,
 						require_weight_at_most: ::sp_weights::Weight,
 						call: runtime_types::xcm::double_encoded::DoubleEncoded,
 					},
@@ -8264,6 +8502,94 @@ pub mod api {
 		}
 		pub mod westend_runtime {
 			use super::runtime_types;
+			pub mod dynamic_params {
+				use super::runtime_types;
+				pub mod inflation {
+					use super::runtime_types;
+					#[derive(::codec::Decode, ::codec::Encode, Clone, Debug, PartialEq)]
+					pub struct Falloff;
+					#[derive(::codec::Decode, ::codec::Encode, Clone, Debug, PartialEq)]
+					pub struct IdealStake;
+					#[derive(::codec::Decode, ::codec::Encode, Clone, Debug, PartialEq)]
+					pub struct MaxInflation;
+					#[derive(::codec::Decode, ::codec::Encode, Clone, Debug, PartialEq)]
+					pub struct MinInflation;
+					#[derive(::codec::Decode, ::codec::Encode, Clone, Debug, PartialEq)]
+					pub enum Parameters {
+						#[codec(index = 0)]
+                        MinInflation(
+                            runtime_types::westend_runtime::dynamic_params::inflation::MinInflation,
+                            ::core::option::Option<
+                                runtime_types::sp_arithmetic::per_things::Perquintill,
+                            >,
+                        ),
+                        #[codec(index = 1)]
+                        MaxInflation(
+                            runtime_types::westend_runtime::dynamic_params::inflation::MaxInflation,
+                            ::core::option::Option<
+                                runtime_types::sp_arithmetic::per_things::Perquintill,
+                            >,
+                        ),
+                        #[codec(index = 2)]
+                        IdealStake(
+                            runtime_types::westend_runtime::dynamic_params::inflation::IdealStake,
+                            ::core::option::Option<
+                                runtime_types::sp_arithmetic::per_things::Perquintill,
+                            >,
+                        ),
+                        #[codec(index = 3)]
+                        Falloff(
+                            runtime_types::westend_runtime::dynamic_params::inflation::Falloff,
+                            ::core::option::Option<
+                                runtime_types::sp_arithmetic::per_things::Perquintill,
+                            >,
+                        ),
+                        #[codec(index = 4)]
+                        UseAuctionSlots(
+                            runtime_types::westend_runtime::dynamic_params::inflation::UseAuctionSlots,
+                            ::core::option::Option<::core::primitive::bool>,
+                        ),
+                    }
+					#[derive(::codec::Decode, ::codec::Encode, Clone, Debug, PartialEq)]
+					pub enum ParametersKey {
+						#[codec(index = 0)]
+                        MinInflation(
+                            runtime_types::westend_runtime::dynamic_params::inflation::MinInflation,
+                        ),
+                        #[codec(index = 1)]
+                        MaxInflation(
+                            runtime_types::westend_runtime::dynamic_params::inflation::MaxInflation,
+                        ),
+                        #[codec(index = 2)]
+                        IdealStake(
+                            runtime_types::westend_runtime::dynamic_params::inflation::IdealStake,
+                        ),
+                        #[codec(index = 3)]
+                        Falloff(
+                            runtime_types::westend_runtime::dynamic_params::inflation::Falloff,
+                        ),
+                        #[codec(index = 4)]
+                        UseAuctionSlots(
+                            runtime_types::westend_runtime::dynamic_params::inflation::UseAuctionSlots,
+                        ),
+                    }
+					#[derive(::codec::Decode, ::codec::Encode, Clone, Debug, PartialEq)]
+					pub enum ParametersValue {
+						#[codec(index = 0)]
+						MinInflation(runtime_types::sp_arithmetic::per_things::Perquintill),
+						#[codec(index = 1)]
+						MaxInflation(runtime_types::sp_arithmetic::per_things::Perquintill),
+						#[codec(index = 2)]
+						IdealStake(runtime_types::sp_arithmetic::per_things::Perquintill),
+						#[codec(index = 3)]
+						Falloff(runtime_types::sp_arithmetic::per_things::Perquintill),
+						#[codec(index = 4)]
+						UseAuctionSlots(::core::primitive::bool),
+					}
+					#[derive(::codec::Decode, ::codec::Encode, Clone, Debug, PartialEq)]
+					pub struct UseAuctionSlots;
+				}
+			}
 			pub mod governance {
 				use super::runtime_types;
 				pub mod origins {
@@ -8545,6 +8871,8 @@ pub mod api {
 				Balances(runtime_types::pallet_balances::pallet::Call),
 				#[codec(index = 6)]
 				Staking(runtime_types::pallet_staking::pallet::pallet::Call),
+				#[codec(index = 70)]
+				Parameters(runtime_types::pallet_parameters::pallet::Call),
 				#[codec(index = 8)]
 				Session(runtime_types::pallet_session::pallet::Call),
 				#[codec(index = 10)]
@@ -8611,7 +8939,7 @@ pub mod api {
 				),
 				#[codec(index = 56)]
 				OnDemandAssignmentProvider(
-					runtime_types::polkadot_runtime_parachains::assigner_on_demand::pallet::Call,
+					runtime_types::polkadot_runtime_parachains::on_demand::pallet::Call,
 				),
 				#[codec(index = 60)]
 				Registrar(runtime_types::polkadot_runtime_common::paras_registrar::pallet::Call),
@@ -8696,6 +9024,8 @@ pub mod api {
 				Whitelist(runtime_types::pallet_whitelist::pallet::Error),
 				#[codec(index = 37)]
 				Treasury(runtime_types::pallet_treasury::pallet::Error),
+				#[codec(index = 38)]
+				DelegatedStaking(runtime_types::pallet_delegated_staking::pallet::Error),
 				#[codec(index = 42)]
 				Configuration(
 					runtime_types::polkadot_runtime_parachains::configuration::pallet::Error,
@@ -8718,7 +9048,7 @@ pub mod api {
 				),
 				#[codec(index = 56)]
 				OnDemandAssignmentProvider(
-					runtime_types::polkadot_runtime_parachains::assigner_on_demand::pallet::Error,
+					runtime_types::polkadot_runtime_parachains::on_demand::pallet::Error,
 				),
 				#[codec(index = 57)]
 				CoretimeAssignmentProvider(
@@ -8765,6 +9095,8 @@ pub mod api {
 				Staking(runtime_types::pallet_staking::pallet::pallet::Event),
 				#[codec(index = 7)]
 				Offences(runtime_types::pallet_offences::pallet::Event),
+				#[codec(index = 70)]
+				Parameters(runtime_types::pallet_parameters::pallet::Event),
 				#[codec(index = 8)]
 				Session(runtime_types::pallet_session::pallet::Event),
 				#[codec(index = 10)]
@@ -8805,6 +9137,8 @@ pub mod api {
 				Whitelist(runtime_types::pallet_whitelist::pallet::Event),
 				#[codec(index = 37)]
 				Treasury(runtime_types::pallet_treasury::pallet::Event),
+				#[codec(index = 38)]
+				DelegatedStaking(runtime_types::pallet_delegated_staking::pallet::Event),
 				#[codec(index = 44)]
 				ParaInclusion(runtime_types::polkadot_runtime_parachains::inclusion::pallet::Event),
 				#[codec(index = 47)]
@@ -8815,7 +9149,7 @@ pub mod api {
 				ParasDisputes(runtime_types::polkadot_runtime_parachains::disputes::pallet::Event),
 				#[codec(index = 56)]
 				OnDemandAssignmentProvider(
-					runtime_types::polkadot_runtime_parachains::assigner_on_demand::pallet::Event,
+					runtime_types::polkadot_runtime_parachains::on_demand::pallet::Event,
 				),
 				#[codec(index = 60)]
 				Registrar(runtime_types::polkadot_runtime_common::paras_registrar::pallet::Event),
@@ -8853,13 +9187,32 @@ pub mod api {
 			pub enum RuntimeHoldReason {
 				#[codec(index = 28)]
 				Preimage(runtime_types::pallet_preimage::pallet::HoldReason),
+				#[codec(index = 38)]
+				DelegatedStaking(runtime_types::pallet_delegated_staking::pallet::HoldReason),
+			}
+			#[derive(::codec::Decode, ::codec::Encode, Clone, Debug, PartialEq)]
+			pub enum RuntimeParameters {
+				#[codec(index = 0)]
+				Inflation(runtime_types::westend_runtime::dynamic_params::inflation::Parameters),
+			}
+			#[derive(::codec::Decode, ::codec::Encode, Clone, Debug, PartialEq)]
+			pub enum RuntimeParametersKey {
+				#[codec(index = 0)]
+				Inflation(runtime_types::westend_runtime::dynamic_params::inflation::ParametersKey),
+			}
+			#[derive(::codec::Decode, ::codec::Encode, Clone, Debug, PartialEq)]
+			pub enum RuntimeParametersValue {
+				#[codec(index = 0)]
+				Inflation(
+					runtime_types::westend_runtime::dynamic_params::inflation::ParametersValue,
+				),
 			}
 			#[derive(::codec::Decode, ::codec::Encode, Clone, Debug, PartialEq)]
 			pub struct SessionKeys {
 				pub grandpa: runtime_types::sp_consensus_grandpa::app::Public,
 				pub babe: runtime_types::sp_consensus_babe::app::Public,
-				pub para_validator: runtime_types::polkadot_primitives::v7::validator_app::Public,
-				pub para_assignment: runtime_types::polkadot_primitives::v7::assignment_app::Public,
+				pub para_validator: runtime_types::polkadot_primitives::v8::validator_app::Public,
+				pub para_assignment: runtime_types::polkadot_primitives::v8::assignment_app::Public,
 				pub authority_discovery: runtime_types::sp_authority_discovery::app::Public,
 				pub beefy: runtime_types::sp_consensus_beefy::ecdsa_crypto::Public,
 			}
@@ -9759,7 +10112,7 @@ pub mod api {
 					},
 					#[codec(index = 6)]
 					Transact {
-						origin_kind: runtime_types::xcm::v2::OriginKind,
+						origin_kind: runtime_types::xcm::v3::OriginKind,
 						require_weight_at_most: ::sp_weights::Weight,
 						call: runtime_types::xcm::double_encoded::DoubleEncoded,
 					},
@@ -9957,6 +10310,17 @@ pub mod api {
 					),
 				}
 				#[derive(::codec::Decode, ::codec::Encode, Clone, Debug, PartialEq)]
+				pub enum OriginKind {
+					#[codec(index = 0)]
+					Native,
+					#[codec(index = 1)]
+					SovereignAccount,
+					#[codec(index = 2)]
+					Superuser,
+					#[codec(index = 3)]
+					Xcm,
+				}
+				#[derive(::codec::Decode, ::codec::Encode, Clone, Debug, PartialEq)]
 				pub struct PalletInfo {
 					#[codec(compact)]
 					pub index: ::core::primitive::u32,
@@ -10062,22 +10426,69 @@ pub mod api {
 				V4(runtime_types::staging_xcm::v4::Xcm),
 			}
 		}
-		pub mod xcm_fee_payment_runtime_api {
+		pub mod xcm_runtime_apis {
 			use super::runtime_types;
-			#[derive(::codec::Decode, ::codec::Encode, Clone, Debug, PartialEq)]
-			pub enum Error {
-				#[codec(index = 0)]
-				Unimplemented,
-				#[codec(index = 1)]
-				VersionedConversionFailed,
-				#[codec(index = 2)]
-				WeightNotComputable,
-				#[codec(index = 3)]
-				UnhandledXcmVersion,
-				#[codec(index = 4)]
-				AssetNotFound,
-				#[codec(index = 5)]
-				Unroutable,
+			pub mod conversions {
+				use super::runtime_types;
+				#[derive(::codec::Decode, ::codec::Encode, Clone, Debug, PartialEq)]
+				pub enum Error {
+					#[codec(index = 0)]
+					Unsupported,
+					#[codec(index = 1)]
+					VersionedConversionFailed,
+				}
+			}
+			pub mod dry_run {
+				use super::runtime_types;
+				#[derive(::codec::Decode, ::codec::Encode, Clone, Debug, PartialEq)]
+				pub struct CallDryRunEffects<_0> {
+					pub execution_result: ::core::result::Result<
+						runtime_types::frame_support::dispatch::PostDispatchInfo,
+						runtime_types::sp_runtime::DispatchErrorWithPostInfo<
+							runtime_types::frame_support::dispatch::PostDispatchInfo,
+						>,
+					>,
+					pub emitted_events: ::subxt::ext::subxt_core::alloc::vec::Vec<_0>,
+					pub local_xcm: ::core::option::Option<runtime_types::xcm::VersionedXcm>,
+					pub forwarded_xcms: ::subxt::ext::subxt_core::alloc::vec::Vec<(
+						runtime_types::xcm::VersionedLocation,
+						::subxt::ext::subxt_core::alloc::vec::Vec<runtime_types::xcm::VersionedXcm>,
+					)>,
+				}
+				#[derive(::codec::Decode, ::codec::Encode, Clone, Debug, PartialEq)]
+				pub enum Error {
+					#[codec(index = 0)]
+					Unimplemented,
+					#[codec(index = 1)]
+					VersionedConversionFailed,
+				}
+				#[derive(::codec::Decode, ::codec::Encode, Clone, Debug, PartialEq)]
+				pub struct XcmDryRunEffects<_0> {
+					pub execution_result: runtime_types::staging_xcm::v4::traits::Outcome,
+					pub emitted_events: ::subxt::ext::subxt_core::alloc::vec::Vec<_0>,
+					pub forwarded_xcms: ::subxt::ext::subxt_core::alloc::vec::Vec<(
+						runtime_types::xcm::VersionedLocation,
+						::subxt::ext::subxt_core::alloc::vec::Vec<runtime_types::xcm::VersionedXcm>,
+					)>,
+				}
+			}
+			pub mod fees {
+				use super::runtime_types;
+				#[derive(::codec::Decode, ::codec::Encode, Clone, Debug, PartialEq)]
+				pub enum Error {
+					#[codec(index = 0)]
+					Unimplemented,
+					#[codec(index = 1)]
+					VersionedConversionFailed,
+					#[codec(index = 2)]
+					WeightNotComputable,
+					#[codec(index = 3)]
+					UnhandledXcmVersion,
+					#[codec(index = 4)]
+					AssetNotFound,
+					#[codec(index = 5)]
+					Unroutable,
+				}
 			}
 		}
 	}

@@ -57,6 +57,8 @@ impl SubstrateMessageLane for BridgeHubWestendMessagesToBridgeHubRococoMessageLa
 	type SourceChain = BridgeHubWestend;
 	type TargetChain = BridgeHubRococo;
 
+	type LaneId = bp_messages::LegacyLaneId;
+
 	type ReceiveMessagesProofCallBuilder =
 		BridgeHubWestendMessagesToBridgeHubRococoMessageLaneReceiveMessagesProofCallBuilder;
 	type ReceiveMessagesDeliveryProofCallBuilder =

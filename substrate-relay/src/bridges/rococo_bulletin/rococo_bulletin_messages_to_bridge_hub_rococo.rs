@@ -58,6 +58,8 @@ impl SubstrateMessageLane for RococoBulletinMessagesToBridgeHubRococoMessageLane
 	type SourceChain = RococoBulletin;
 	type TargetChain = BridgeHubRococoAsBridgeHubPolkadot;
 
+	type LaneId = bp_messages::LegacyLaneId;
+
 	type ReceiveMessagesProofCallBuilder =
 		RococoBulletinMessagesToBridgeHubRococoMessageLaneReceiveMessagesProofCallBuilder;
 	type ReceiveMessagesDeliveryProofCallBuilder =

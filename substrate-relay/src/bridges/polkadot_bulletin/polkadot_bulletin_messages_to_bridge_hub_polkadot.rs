@@ -59,6 +59,8 @@ impl SubstrateMessageLane for PolkadotBulletinMessagesToBridgeHubPolkadotMessage
 	type SourceChain = PolkadotBulletin;
 	type TargetChain = BridgeHubPolkadot;
 
+	type LaneId = bp_messages::LegacyLaneId;
+
 	type ReceiveMessagesProofCallBuilder =
 		PolkadotBulletinMessagesToBridgeHubPolkadotMessageLaneReceiveMessagesProofCallBuilder;
 	type ReceiveMessagesDeliveryProofCallBuilder =
