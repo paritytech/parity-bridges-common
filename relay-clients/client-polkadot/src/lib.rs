@@ -122,5 +122,5 @@ impl ChainWithTransactions for Polkadot {
 
 impl ChainWithRuntimeVersion for Polkadot {
 	const RUNTIME_VERSION: Option<SimpleRuntimeVersion> =
-		Some(SimpleRuntimeVersion { spec_version: 1_002_000, transaction_version: 25 });
+		Some(SimpleRuntimeVersion { spec_version: 1_003_003, transaction_version: 26 });
 }
