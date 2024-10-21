@@ -19,7 +19,7 @@
 pub mod codegen_runtime;
 
 use bp_bridge_hub_rococo::AVERAGE_BLOCK_INTERVAL;
-use bp_polkadot_core::{SuffixedCommonSignedExtension, SuffixedCommonSignedExtensionExt};
+use bp_polkadot_core::{SuffixedCommonTransactionExtension, SuffixedCommonTransactionExtensionExt};
 use codec::Encode;
 use relay_substrate_client::{
 	calls::UtilityCall as MockUtilityCall, Chain, ChainWithBalances, ChainWithMessages,
@@ -28,20 +28,20 @@ use relay_substrate_client::{
 	UnderlyingChainProvider, UnsignedTransaction,
 };
 use sp_core::{storage::StorageKey, Pair};
-use sp_runtime::{generic::SignedPayload, traits::IdentifyAccount};
+use sp_runtime::{generic::SignedPayload, traits::{FakeDispatchable, IdentifyAccount}};
 use std::time::Duration;
 
 pub use codegen_runtime::api::runtime_types;
 use runtime_types::frame_metadata_hash_extension::Mode;
 
 use bp_runtime::extensions::{
-	BridgeRejectObsoleteHeadersAndMessages, GenericSignedExtensionSchema,
+	BridgeRejectObsoleteHeadersAndMessages, GenericTransactionExtensionSchema,
 	RefundBridgedParachainMessagesSchema,
 };
 
-pub type CheckMetadataHash = GenericSignedExtensionSchema<Mode, Option<[u8; 32]>>;
+pub type CheckMetadataHash = GenericTransactionExtensionSchema<Mode, Option<[u8; 32]>>;
 
-pub type SignedExtension = SuffixedCommonSignedExtension<(
+pub type TransactionExtension = SuffixedCommonTransactionExtension<(
 	BridgeRejectObsoleteHeadersAndMessages,
 	RefundBridgedParachainMessagesSchema,
 	CheckMetadataHash,
@@ -56,7 +56,7 @@ pub type BridgeGrandpaCall = runtime_types::pallet_bridge_grandpa::pallet::Call;
 // TODO: https://github.com/paritytech/parity-bridges-common/issues/2547 - regenerate when ready - shuold be Call2
 pub type BridgeBulletinGrandpaCall = runtime_types::pallet_bridge_grandpa::pallet::Call;
 pub type BridgeParachainCall = runtime_types::pallet_bridge_parachains::pallet::Call;
-type UncheckedExtrinsic = bp_bridge_hub_rococo::UncheckedExtrinsic<RuntimeCall, SignedExtension>;
+type UncheckedExtrinsic = bp_bridge_hub_rococo::UncheckedExtrinsic<RuntimeCall, TransactionExtension>;
 type UtilityCall = runtime_types::pallet_utility::pallet::Call;
 
 /// Rococo chain definition
@@ -107,8 +107,8 @@ impl ChainWithTransactions for BridgeHubRococo {
 		unsigned: UnsignedTransaction<Self>,
 	) -> Result<Self::SignedTransaction, SubstrateError> {
 		let raw_payload = SignedPayload::new(
-			unsigned.call,
-			SignedExtension::from_params(
+			FakeDispatchable::from(unsigned.call),
+			TransactionExtension::from_params(
 				param.spec_version,
 				param.transaction_version,
 				unsigned.era,
@@ -123,8 +123,8 @@ impl ChainWithTransactions for BridgeHubRococo {
 		let signer: sp_runtime::MultiSigner = param.signer.public().into();
 		let (call, extra, _) = raw_payload.deconstruct();
 
-		Ok(UncheckedExtrinsic::new_signed(
-			call,
+		Ok(UncheckedExtrinsic::new_signed_legacy(
+			call.deconstruct(),
 			signer.into_account().into(),
 			signature.into(),
 			extra,

@@ -18,7 +18,7 @@
 
 pub mod codegen_runtime;
 
-use bp_polkadot_core::SuffixedCommonSignedExtensionExt;
+use bp_polkadot_core::SuffixedCommonTransactionExtensionExt;
 use bp_rococo::ROCOCO_SYNCED_HEADERS_GRANDPA_INFO_METHOD;
 use codec::Encode;
 use relay_substrate_client::{
@@ -27,7 +27,7 @@ use relay_substrate_client::{
 	UnsignedTransaction,
 };
 use sp_core::{storage::StorageKey, Pair};
-use sp_runtime::{generic::SignedPayload, traits::IdentifyAccount, MultiAddress};
+use sp_runtime::{generic::SignedPayload, traits::{FakeDispatchable, IdentifyAccount}, MultiAddress};
 use sp_session::MembershipProof;
 use std::time::Duration;
 
@@ -88,15 +88,15 @@ impl RelayChain for Rococo {
 impl ChainWithTransactions for Rococo {
 	type AccountKeyPair = sp_core::sr25519::Pair;
 	type SignedTransaction =
-		bp_polkadot_core::UncheckedExtrinsic<Self::Call, bp_rococo::SignedExtension>;
+		bp_polkadot_core::UncheckedExtrinsic<Self::Call, bp_rococo::TransactionExtension>;
 
 	fn sign_transaction(
 		param: SignParam<Self>,
 		unsigned: UnsignedTransaction<Self>,
 	) -> Result<Self::SignedTransaction, SubstrateError> {
 		let raw_payload = SignedPayload::new(
-			unsigned.call,
-			bp_rococo::SignedExtension::from_params(
+			FakeDispatchable::from(unsigned.call),
+			bp_rococo::TransactionExtension::from_params(
 				param.spec_version,
 				param.transaction_version,
 				unsigned.era,
@@ -111,8 +111,8 @@ impl ChainWithTransactions for Rococo {
 		let signer: sp_runtime::MultiSigner = param.signer.public().into();
 		let (call, extra, _) = raw_payload.deconstruct();
 
-		Ok(Self::SignedTransaction::new_signed(
-			call,
+		Ok(Self::SignedTransaction::new_signed_legacy(
+			call.deconstruct(),
 			signer.into_account().into(),
 			signature.into(),
 			extra,

@@ -19,7 +19,7 @@
 pub mod codegen_runtime;
 
 use bp_kusama::{AccountInfoStorageMapKeyProvider, KUSAMA_SYNCED_HEADERS_GRANDPA_INFO_METHOD};
-use bp_polkadot_core::SuffixedCommonSignedExtensionExt;
+use bp_polkadot_core::SuffixedCommonTransactionExtensionExt;
 use codec::Encode;
 use relay_substrate_client::{
 	Chain, ChainWithBalances, ChainWithGrandpa, ChainWithRuntimeVersion, ChainWithTransactions,
@@ -27,7 +27,7 @@ use relay_substrate_client::{
 	UnsignedTransaction,
 };
 use sp_core::{storage::StorageKey, Pair};
-use sp_runtime::{generic::SignedPayload, traits::IdentifyAccount, MultiAddress};
+use sp_runtime::{generic::SignedPayload, traits::{FakeDispatchable, IdentifyAccount}, MultiAddress};
 use sp_session::MembershipProof;
 use std::time::Duration;
 
@@ -88,15 +88,15 @@ impl RelayChain for Kusama {
 impl ChainWithTransactions for Kusama {
 	type AccountKeyPair = sp_core::sr25519::Pair;
 	type SignedTransaction =
-		bp_polkadot_core::UncheckedExtrinsic<Self::Call, bp_kusama::SignedExtension>;
+		bp_polkadot_core::UncheckedExtrinsic<Self::Call, bp_kusama::TransactionExtension>;
 
 	fn sign_transaction(
 		param: SignParam<Self>,
 		unsigned: UnsignedTransaction<Self>,
 	) -> Result<Self::SignedTransaction, SubstrateError> {
 		let raw_payload = SignedPayload::new(
-			unsigned.call,
-			bp_kusama::SignedExtension::from_params(
+			FakeDispatchable::from(unsigned.call),
+			bp_kusama::TransactionExtension::from_params(
 				param.spec_version,
 				param.transaction_version,
 				unsigned.era,
@@ -111,8 +111,8 @@ impl ChainWithTransactions for Kusama {
 		let signer: sp_runtime::MultiSigner = param.signer.public().into();
 		let (call, extra, _) = raw_payload.deconstruct();
 
-		Ok(Self::SignedTransaction::new_signed(
-			call,
+		Ok(Self::SignedTransaction::new_signed_legacy(
+			call.deconstruct(),
 			signer.into_account().into(),
 			signature.into(),
 			extra,
