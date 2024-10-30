@@ -14,6 +14,11 @@ concurrency:
 env:
   CI_IMAGE: "paritytech/ci-unified:bullseye-1.81.0-2024-09-11-v202409111034"
 
+#to use reusable workflow
+permissions:
+  id-token: write
+  contents: read
+
 jobs:
   set-variables:
     # This workaround sets the container image for each job using 'set-variables' job output.
