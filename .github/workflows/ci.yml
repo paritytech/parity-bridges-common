@@ -229,7 +229,7 @@ jobs:
         uses: actions/download-artifact@v3 #fa0a91b85d4f404e444e00e005971372dc801d16 # v4.1.8
         with:
           name: build
-
+      - run: ls -la
       - name: Build Docker image
         uses: docker/build-push-action@v5
         with:
