@@ -29,7 +29,7 @@ ARG PROJECT=substrate-relay
 COPY --chown=user:user ./${PROJECT} ./
 COPY --chown=user:user ./bridge-entrypoint.sh ./
 
-RUN echo ${PROJECT}}
+RUN echo ${PROJECT}
 
 # check if executable works in this container
 RUN ./${PROJECT} --version
