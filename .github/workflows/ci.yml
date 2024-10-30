@@ -70,6 +70,13 @@ jobs:
       - name: Checkout sources
         uses: actions/checkout@v4
 
+      # disabled until the jobs is fixed
+      # - name: Rust Cache
+      #   uses: Swatinem/rust-cache@82a92a6e8fbeee089604da2575dc567ae9ddeaab # v2.7.5
+      #   with:
+      #     cache-on-failure: true
+      #     cache-all-crates: true
+
       - name: Clippy
         run: SKIP_WASM_BUILD=1 cargo clippy --all-targets --locked --workspace
 
@@ -97,11 +104,12 @@ jobs:
       - name: Checkout sources
         uses: actions/checkout@v4
 
-      - name: Rust Cache
-        uses: Swatinem/rust-cache@82a92a6e8fbeee089604da2575dc567ae9ddeaab # v2.7.5
-        with:
-          cache-on-failure: true
-          cache-all-crates: true
+      # disabled until the jobs is fixed
+      # - name: Rust Cache
+      #   uses: Swatinem/rust-cache@82a92a6e8fbeee089604da2575dc567ae9ddeaab # v2.7.5
+      #   with:
+      #     cache-on-failure: true
+      #     cache-all-crates: true
 
       - name: Check
         run: SKIP_WASM_BUILD=1 time cargo check --locked  --workspace
@@ -208,7 +216,7 @@ jobs:
         with:
           name: build
           path: ./artifacts
-          retention-days: 1
+          retention-days: 2
 
   build_docker:
     name: Build docker image
