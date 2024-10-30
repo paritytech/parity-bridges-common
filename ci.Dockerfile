@@ -8,16 +8,16 @@ ENV RUST_BACKTRACE 1
 ENV DEBIAN_FRONTEND=noninteractive
 
 RUN set -eux; \
-	apt-get update && \
-	apt-get install -y --no-install-recommends \
-        curl ca-certificates libssl-dev && \
+    apt-get update && \
+    apt-get install -y --no-install-recommends \
+    curl ca-certificates libssl-dev && \
     update-ca-certificates && \
-	groupadd -g 1000 user && \
-	useradd -u 1000 -g user -s /bin/sh -m user && \
-	# apt clean up
-	apt-get autoremove -y && \
-	apt-get clean && \
-	rm -rf /var/lib/apt/lists/*
+    groupadd -g 1000 user && \
+    useradd -u 1000 -g user -s /bin/sh -m user && \
+    # apt clean up
+    apt-get autoremove -y && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
 
 # switch to non-root user
 USER user
@@ -28,6 +28,8 @@ ARG PROJECT=substrate-relay
 
 COPY --chown=user:user ./${PROJECT} ./
 COPY --chown=user:user ./bridge-entrypoint.sh ./
+
+RUN echo ${PROJECT}}
 
 # check if executable works in this container
 RUN ./${PROJECT} --version
