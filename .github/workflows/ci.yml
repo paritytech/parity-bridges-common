@@ -204,9 +204,9 @@ jobs:
           mv -v ./ci.Dockerfile ./artifacts/
 
       - name: upload artifacts
-        uses: actions/upload-artifact@b4b15b8c7c6ac21ea08fcf65892d2ee8f75cf882 # v4.4.3
+        uses: actions/upload-artifact@v4.3.6 #b4b15b8c7c6ac21ea08fcf65892d2ee8f75cf882 # v4.4.3
         with:
-          name: build-${{ github.sha }}
+          name: build
           path: ./artifacts
           retention-days: 1
 
@@ -223,7 +223,7 @@ jobs:
       - name: Download artifacts
         uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16 # v4.1.8
         with:
-          name: build-${{ github.sha }}
+          name: build
 
       - name: Build Docker image
         uses: docker/build-push-action@v5
