@@ -213,7 +213,7 @@ jobs:
   build_docker:
     name: Build docker image
     runs-on: ubuntu-latest
-    needs: [set-variables]
+    needs: [set-variables, build]
     env:
       VERSION: ${{ needs.set-variables.outputs.VERSION }}
     steps:
