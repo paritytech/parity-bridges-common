@@ -4,8 +4,6 @@ on:
   push:
     branches:
       - master
-    tags:
-      - v*
   pull_request:
     types: [opened, synchronize, reopened, ready_for_review]
 
@@ -39,8 +37,10 @@ jobs:
           export REF_SLUG=${REF_NAME//\//_}
           if [[ ${REF_SLUG} == "master" ]]
           then
+            VERSION=${REF_SLUG}-${COMMIT_SHA_SHORT}
             echo "VERSION=${REF_SLUG}-${COMMIT_SHA_SHORT}" >> $GITHUB_OUTPUT
           else
+            VERSION=${REF_SLUG}
             echo "VERSION=${REF_SLUG}" >> $GITHUB_OUTPUT
           fi
           echo "set VERSION=${VERSION}"
@@ -212,7 +212,7 @@ jobs:
           mv -v ./ci.Dockerfile ./artifacts/
 
       - name: upload artifacts
-        uses: actions/upload-artifact@v3 #b4b15b8c7c6ac21ea08fcf65892d2ee8f75cf882 # v4.4.3
+        uses: actions/upload-artifact@v3
         with:
           name: build
           path: ./artifacts
@@ -226,7 +226,7 @@ jobs:
       VERSION: ${{ needs.set-variables.outputs.VERSION }}
     steps:
       - name: Download artifacts
-        uses: actions/download-artifact@v3 #fa0a91b85d4f404e444e00e005971372dc801d16 # v4.1.8
+        uses: actions/download-artifact@v3
         with:
           name: build
       - name: Make scripts executable
@@ -239,13 +239,6 @@ jobs:
           context: .
           file: ./ci.Dockerfile
           push: false
-          # build-args:
           tags: |
             docker.io/paritytech/substrate-relay:${{ env.VERSION }}
             docker.io/paritytech/bridges-common-relay:${{ env.VERSION }}
-
-  #build image substrate-relay
-  #build image bridges-common-relay
-  #build and push image substrate-relay
-  #build and push image bridges-common-relay
-  #deploy argocd
