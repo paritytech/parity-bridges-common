@@ -91,7 +91,7 @@ jobs:
           cache-all-crates: true
 
       - name: Check
-        run: SKIP_WASM_BUILD=1 time cargo check --locked --verbose --workspace
+        run: SKIP_WASM_BUILD=1 time cargo check --locked  --workspace
 
   check-nightly:
     name: Check
@@ -112,7 +112,7 @@ jobs:
       - name: Check
         run: |
           rustup default nightly
-          SKIP_WASM_BUILD=1 time cargo check --locked --verbose --workspace
+          SKIP_WASM_BUILD=1 time cargo check --locked  --workspace
 
   test:
     name: Test
@@ -133,7 +133,7 @@ jobs:
       - name: Test
         run: |
           cargo fetch
-          CARGO_NET_OFFLINE=true SKIP_WASM_BUILD=1 time cargo test --verbose --workspace
+          CARGO_NET_OFFLINE=true SKIP_WASM_BUILD=1 time cargo test  --workspace
 
   test-nightly:
     name: Test
@@ -155,7 +155,7 @@ jobs:
         run: |
           rustup default nightly
           cargo fetch
-          CARGO_NET_OFFLINE=true SKIP_WASM_BUILD=1 time cargo test --verbose --workspace
+          CARGO_NET_OFFLINE=true SKIP_WASM_BUILD=1 time cargo test  --workspace
 
   # do we really need this check?
   deny:
@@ -241,7 +241,7 @@ jobs:
       - name: Build
         run: |
           cargo fetch
-          CARGO_NET_OFFLINE=true time cargo build --release --verbose --workspace
+          CARGO_NET_OFFLINE=true time cargo build --release  --workspace
 
     #todo: collect artifacts
   #build image substrate-relay
