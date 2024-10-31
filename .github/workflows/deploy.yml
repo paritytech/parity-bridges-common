@@ -114,7 +114,7 @@ jobs:
     needs: [set-variables, build_push_docker]
     env:
       VERSION: ${{ needs.set-variables.outputs.VERSION }}
-      ARGOCD_SERVER: "westend-argocd.teleport.parity.io"
+      ARGOCD_SERVER: "argocd-chains.teleport.parity.io"
     steps:
       - name: Deploy to ArgoCD
         uses: paritytech/argocd-deployment-action@main
@@ -125,5 +125,5 @@ jobs:
           app_packages: "headers-a,headers-b,parachains-a,parachains-b,messages-a,messages-b"
           argocd_server: ${{ env.ARGOCD_SERVER }}
           teleport_token: ${{ env.APP }}
-          teleport_app_name: "argocd-testnet"
+          teleport_app_name: "argocd-chains"
           argocd_auth_token: ${{ secrets.ARGOCD_AUTH_TOKEN }}
