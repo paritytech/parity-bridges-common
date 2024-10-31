@@ -78,6 +78,7 @@ jobs:
   build_push_docker:
     name: Build docker image
     runs-on: ubuntu-latest
+    environment: tags
     needs: [set-variables, build]
     env:
       VERSION: ${{ needs.set-variables.outputs.VERSION }}
