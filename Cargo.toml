@@ -55,4 +55,4 @@ log = { version = "0.4.22", default-features = false }
 quote = { version = "1.0.37" }
 serde = { version = "1.0.215", default-features = false }
 serde_json = { version = "1.0.133", default-features = false }
-thiserror = { version = "1.0.67" }
+thiserror = { version = "1.0.69" }
