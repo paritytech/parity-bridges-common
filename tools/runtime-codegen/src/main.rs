@@ -18,8 +18,8 @@ use clap::Parser as ClapParser;
 use codec::{Decode, Encode};
 use color_eyre::eyre;
 use std::{env, path::PathBuf};
+use subxt_utils_fetchmetadata::{from_url_blocking, MetadataVersion, Url};
 use subxt_codegen::{
-	fetch_metadata::{fetch_metadata_from_url_blocking, MetadataVersion, Url},
 	syn, CodegenBuilder, Metadata,
 };
 use wasm_testbed::WasmTestBed;
@@ -172,7 +172,7 @@ fn main() -> color_eyre::Result<()> {
 	// Generate the Runtime API.
 	let raw_metadata = match metadata_source {
 		RuntimeMetadataSource::NodeUrl(node_url) =>
-			fetch_metadata_from_url_blocking(node_url, MetadataVersion::Latest)
+			from_url_blocking(node_url, MetadataVersion::Latest)
 				.map_err(|e| eyre::eyre!("Error fetching metadata from node url: {:?}", e))?,
 		RuntimeMetadataSource::WasmFile(source) => {
 			let testbed = WasmTestBed::new(&source)
