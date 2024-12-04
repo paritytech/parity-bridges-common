@@ -16,7 +16,7 @@
 
 //! BridgeHubRococo-to-RococoBulletin messages sync entrypoint.
 
-use super::BridgeHubRococoAsBridgeHubPolkadot;
+use relay_bridge_hub_rococo_client::BridgeHubRococo;
 use relay_polkadot_bulletin_client::PolkadotBulletin as RococoBulletin;
 use substrate_relay_helper::{
 	cli::bridge::{CliBridgeBase, MessagesCliBridge},
@@ -28,7 +28,7 @@ use substrate_relay_helper::{
 pub struct BridgeHubRococoToRococoBulletinMessagesCliBridge {}
 
 impl CliBridgeBase for BridgeHubRococoToRococoBulletinMessagesCliBridge {
-	type Source = BridgeHubRococoAsBridgeHubPolkadot;
+	type Source = BridgeHubRococo;
 	type Target = RococoBulletin;
 }
 
@@ -55,7 +55,7 @@ substrate_relay_helper::generate_receive_message_delivery_proof_call_builder!(
 pub struct BridgeHubRococoMessagesToRococoBulletinMessageLane;
 
 impl SubstrateMessageLane for BridgeHubRococoMessagesToRococoBulletinMessageLane {
-	type SourceChain = BridgeHubRococoAsBridgeHubPolkadot;
+	type SourceChain = BridgeHubRococo;
 	type TargetChain = RococoBulletin;
 
 	type LaneId = bp_messages::LegacyLaneId;
@@ -65,6 +65,6 @@ impl SubstrateMessageLane for BridgeHubRococoMessagesToRococoBulletinMessageLane
 	type ReceiveMessagesDeliveryProofCallBuilder =
 		BridgeHubRococoMessagesToRococoBulletinMessageLaneReceiveMessagesDeliveryProofCallBuilder;
 
-	type SourceBatchCallBuilder = UtilityPalletBatchCallBuilder<BridgeHubRococoAsBridgeHubPolkadot>;
+	type SourceBatchCallBuilder = UtilityPalletBatchCallBuilder<BridgeHubRococo>;
 	type TargetBatchCallBuilder = ();
 }
