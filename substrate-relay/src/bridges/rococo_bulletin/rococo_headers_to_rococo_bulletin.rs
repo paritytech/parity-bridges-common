@@ -16,7 +16,7 @@
 
 //! Rococo-to-RococoBulletin headers sync entrypoint.
 
-use super::RococoAsPolkadot;
+use relay_rococo_client::Rococo;
 
 use async_trait::async_trait;
 use substrate_relay_helper::{
@@ -49,7 +49,7 @@ substrate_relay_helper::generate_report_equivocation_call_builder!(
 
 #[async_trait]
 impl SubstrateFinalityPipeline for RococoFinalityToRococoBulletin {
-	type SourceChain = RococoAsPolkadot;
+	type SourceChain = Rococo;
 	type TargetChain = relay_polkadot_bulletin_client::PolkadotBulletin;
 
 	type FinalityEngine = GrandpaFinalityEngine<Self::SourceChain>;
@@ -69,7 +69,7 @@ impl SubstrateEquivocationDetectionPipeline for RococoFinalityToRococoBulletin {
 pub struct RococoToRococoBulletinCliBridge {}
 
 impl CliBridgeBase for RococoToRococoBulletinCliBridge {
-	type Source = RococoAsPolkadot;
+	type Source = Rococo;
 	type Target = relay_polkadot_bulletin_client::PolkadotBulletin;
 }
 

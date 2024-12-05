@@ -16,7 +16,7 @@
 
 //! RococoBulletin-to-BridgeHubRococo headers sync entrypoint.
 
-use super::BridgeHubRococoAsBridgeHubPolkadot;
+use relay_bridge_hub_rococo_client::BridgeHubRococo;
 
 use async_trait::async_trait;
 use substrate_relay_helper::{
@@ -51,7 +51,7 @@ substrate_relay_helper::generate_report_equivocation_call_builder!(
 #[async_trait]
 impl SubstrateFinalityPipeline for RococoBulletinFinalityToBridgeHubRococo {
 	type SourceChain = relay_polkadot_bulletin_client::PolkadotBulletin;
-	type TargetChain = BridgeHubRococoAsBridgeHubPolkadot;
+	type TargetChain = BridgeHubRococo;
 
 	type FinalityEngine = GrandpaFinalityEngine<Self::SourceChain>;
 }
@@ -71,7 +71,7 @@ pub struct RococoBulletinToBridgeHubRococoCliBridge {}
 
 impl CliBridgeBase for RococoBulletinToBridgeHubRococoCliBridge {
 	type Source = relay_polkadot_bulletin_client::PolkadotBulletin;
-	type Target = BridgeHubRococoAsBridgeHubPolkadot;
+	type Target = BridgeHubRococo;
 }
 
 impl RelayToRelayHeadersCliBridge for RococoBulletinToBridgeHubRococoCliBridge {

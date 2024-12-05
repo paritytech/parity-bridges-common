@@ -38,13 +38,13 @@ use crate::bridges::{
 	rococo_bulletin::{
 		rococo_bulletin_headers_to_bridge_hub_rococo::RococoBulletinToBridgeHubRococoCliBridge,
 		rococo_parachains_to_rococo_bulletin::RococoToRococoBulletinCliBridge,
-		BridgeHubRococoAsBridgeHubPolkadot,
 	},
 	rococo_westend::{
 		rococo_parachains_to_bridge_hub_westend::BridgeHubRococoToBridgeHubWestendCliBridge,
 		westend_parachains_to_bridge_hub_rococo::BridgeHubWestendToBridgeHubRococoCliBridge,
 	},
 };
+use relay_bridge_hub_rococo_client::BridgeHubRococo;
 use relay_substrate_client::{
 	AccountKeyPairOf, ChainRuntimeVersion, ChainWithRuntimeVersion, ChainWithTransactions,
 	Parachain, SimpleRuntimeVersion,
@@ -206,7 +206,7 @@ pub struct RococoBulletinBridgeHubRococoFull2WayBridge {
 impl Full2WayBridge for RococoBulletinBridgeHubRococoFull2WayBridge {
 	type Base = RelayToParachainBridge<Self::L2R, Self::R2L>;
 	type Left = relay_polkadot_bulletin_client::PolkadotBulletin;
-	type Right = BridgeHubRococoAsBridgeHubPolkadot;
+	type Right = BridgeHubRococo;
 	type L2R = RococoBulletinToBridgeHubRococoCliBridge;
 	type R2L = RococoToRococoBulletinCliBridge;
 
