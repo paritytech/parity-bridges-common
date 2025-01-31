@@ -73,7 +73,7 @@ mod tests {
 			Ok(bob.public()),
 		);
 
-		// when password are is overriden by cli option
+		// when password are is overridden by cli option
 		assert_eq!(
 			TargetSigningParams {
 				target_signer: None,
@@ -90,7 +90,7 @@ mod tests {
 			Ok(bob_with_alice_password.public()),
 		);
 
-		// when both seed and password are overriden by cli options
+		// when both seed and password are overridden by cli options
 		assert_eq!(
 			TargetSigningParams {
 				target_signer: Some(ALICE.into()),
