@@ -125,7 +125,7 @@ fn main() -> color_eyre::Result<()> {
 	]);
 
 	// Add `TypeInfo` just for `frame_metadata_hash_extension::Meta` to be usable for
-	// `SignedExtension`.
+	// `TransactionExtension`.
 	codegen_builder.add_derives_for_type(
 		syn::parse_str("frame_metadata_hash_extension::Mode").expect("valid type"),
 		vec![syn::parse_quote!(Eq), syn::parse_quote!(scale_info::TypeInfo)],

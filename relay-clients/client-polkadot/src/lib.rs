@@ -19,7 +19,7 @@
 mod codegen_runtime;
 
 use bp_polkadot::{AccountInfoStorageMapKeyProvider, POLKADOT_SYNCED_HEADERS_GRANDPA_INFO_METHOD};
-use bp_polkadot_core::SuffixedCommonSignedExtensionExt;
+use bp_polkadot_core::SuffixedCommonTransactionExtensionExt;
 use codec::Encode;
 use relay_substrate_client::{
 	Chain, ChainWithBalances, ChainWithGrandpa, ChainWithRuntimeVersion, ChainWithTransactions,
@@ -27,7 +27,7 @@ use relay_substrate_client::{
 	UnsignedTransaction,
 };
 use sp_core::{storage::StorageKey, Pair};
-use sp_runtime::{generic::SignedPayload, traits::IdentifyAccount, MultiAddress};
+use sp_runtime::{generic::SignedPayload, traits::{FakeDispatchable, IdentifyAccount}, MultiAddress};
 use sp_session::MembershipProof;
 use std::time::Duration;
 
@@ -88,15 +88,15 @@ impl RelayChain for Polkadot {
 impl ChainWithTransactions for Polkadot {
 	type AccountKeyPair = sp_core::sr25519::Pair;
 	type SignedTransaction =
-		bp_polkadot_core::UncheckedExtrinsic<Self::Call, bp_polkadot::SignedExtension>;
+		bp_polkadot_core::UncheckedExtrinsic<Self::Call, bp_polkadot::TransactionExtension>;
 
 	fn sign_transaction(
 		param: SignParam<Self>,
 		unsigned: UnsignedTransaction<Self>,
 	) -> Result<Self::SignedTransaction, SubstrateError> {
 		let raw_payload = SignedPayload::new(
-			unsigned.call,
-			bp_polkadot::SignedExtension::from_params(
+			FakeDispatchable::from(unsigned.call),
+			bp_polkadot::TransactionExtension::from_params(
 				param.spec_version,
 				param.transaction_version,
 				unsigned.era,
@@ -112,7 +112,7 @@ impl ChainWithTransactions for Polkadot {
 		let (call, extra, _) = raw_payload.deconstruct();
 
 		Ok(Self::SignedTransaction::new_signed(
-			call,
+			call.deconstruct(),
 			signer.into_account().into(),
 			signature.into(),
 			extra,
