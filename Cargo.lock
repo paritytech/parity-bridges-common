@@ -4392,6 +4392,7 @@ dependencies = [
  "futures",
  "futures-timer",
  "getrandom 0.2.15",
+ "instant",
  "libp2p-allow-block-list",
  "libp2p-connection-limits",
  "libp2p-core",
