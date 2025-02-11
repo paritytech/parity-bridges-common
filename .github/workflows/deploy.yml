@@ -29,6 +29,7 @@ jobs:
     steps:
       - name: Check if Docker image exists on Docker Hub
         run: |
+          [[ "${{ env.VERSION }}" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]] && echo "Valid tag" || echo "Invalid tag"
           IMAGE=paritytech/substrate-relay:${{ env.VERSION }}
           echo "Checking existence of Docker image ${IMAGE}..."
           # Query Docker Hub API for the tag; exit nonzero if not found
