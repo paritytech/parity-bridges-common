@@ -28,7 +28,10 @@ use relay_substrate_client::{
 	UnderlyingChainProvider, UnsignedTransaction,
 };
 use sp_core::{storage::StorageKey, Pair};
-use sp_runtime::{generic::SignedPayload, traits::{FakeDispatchable, IdentifyAccount}};
+use sp_runtime::{
+	generic::SignedPayload,
+	traits::{FakeDispatchable, IdentifyAccount},
+};
 use std::time::Duration;
 
 pub use codegen_runtime::api::runtime_types;
@@ -55,7 +58,8 @@ pub type BridgeKusamaMessagesCall = runtime_types::pallet_bridge_messages::palle
 pub type BridgePolkadotBulletinGrandpaCall = runtime_types::pallet_bridge_grandpa::pallet::Call;
 pub type BridgeKusamaGrandpaCall = runtime_types::pallet_bridge_grandpa::pallet::Call;
 pub type BridgeParachainCall = runtime_types::pallet_bridge_parachains::pallet::Call;
-type UncheckedExtrinsic = bp_bridge_hub_polkadot::UncheckedExtrinsic<RuntimeCall, TransactionExtension>;
+type UncheckedExtrinsic =
+	bp_bridge_hub_polkadot::UncheckedExtrinsic<RuntimeCall, TransactionExtension>;
 type UtilityCall = runtime_types::pallet_utility::pallet::Call;
 
 /// Polkadot chain definition

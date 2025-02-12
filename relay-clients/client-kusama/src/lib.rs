@@ -27,7 +27,11 @@ use relay_substrate_client::{
 	UnsignedTransaction,
 };
 use sp_core::{storage::StorageKey, Pair};
-use sp_runtime::{generic::SignedPayload, traits::{FakeDispatchable, IdentifyAccount}, MultiAddress};
+use sp_runtime::{
+	generic::SignedPayload,
+	traits::{FakeDispatchable, IdentifyAccount},
+	MultiAddress,
+};
 use sp_session::MembershipProof;
 use std::time::Duration;
 

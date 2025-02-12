@@ -28,7 +28,10 @@ use relay_substrate_client::{
 	UnderlyingChainProvider, UnsignedTransaction,
 };
 use sp_core::{storage::StorageKey, Pair};
-use sp_runtime::{generic::SignedPayload, traits::{FakeDispatchable, IdentifyAccount}};
+use sp_runtime::{
+	generic::SignedPayload,
+	traits::{FakeDispatchable, IdentifyAccount},
+};
 use std::time::Duration;
 
 pub use codegen_runtime::api::runtime_types;
@@ -51,7 +54,8 @@ pub type RuntimeCall = runtime_types::bridge_hub_westend_runtime::RuntimeCall;
 pub type BridgeMessagesCall = runtime_types::pallet_bridge_messages::pallet::Call;
 pub type BridgeGrandpaCall = runtime_types::pallet_bridge_grandpa::pallet::Call;
 pub type BridgeParachainCall = runtime_types::pallet_bridge_parachains::pallet::Call;
-type UncheckedExtrinsic = bp_bridge_hub_westend::UncheckedExtrinsic<RuntimeCall, TransactionExtension>;
+type UncheckedExtrinsic =
+	bp_bridge_hub_westend::UncheckedExtrinsic<RuntimeCall, TransactionExtension>;
 type UtilityCall = runtime_types::pallet_utility::pallet::Call;
 
 /// Westend chain definition

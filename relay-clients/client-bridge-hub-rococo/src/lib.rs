@@ -28,7 +28,10 @@ use relay_substrate_client::{
 	UnderlyingChainProvider, UnsignedTransaction,
 };
 use sp_core::{storage::StorageKey, Pair};
-use sp_runtime::{generic::SignedPayload, traits::{FakeDispatchable, IdentifyAccount}};
+use sp_runtime::{
+	generic::SignedPayload,
+	traits::{FakeDispatchable, IdentifyAccount},
+};
 use std::time::Duration;
 
 pub use codegen_runtime::api::runtime_types;
@@ -56,7 +59,8 @@ pub type BridgeGrandpaCall = runtime_types::pallet_bridge_grandpa::pallet::Call;
 // TODO: https://github.com/paritytech/parity-bridges-common/issues/2547 - regenerate when ready - shuold be Call2
 pub type BridgeBulletinGrandpaCall = runtime_types::pallet_bridge_grandpa::pallet::Call;
 pub type BridgeParachainCall = runtime_types::pallet_bridge_parachains::pallet::Call;
-type UncheckedExtrinsic = bp_bridge_hub_rococo::UncheckedExtrinsic<RuntimeCall, TransactionExtension>;
+type UncheckedExtrinsic =
+	bp_bridge_hub_rococo::UncheckedExtrinsic<RuntimeCall, TransactionExtension>;
 type UtilityCall = runtime_types::pallet_utility::pallet::Call;
 
 /// Rococo chain definition

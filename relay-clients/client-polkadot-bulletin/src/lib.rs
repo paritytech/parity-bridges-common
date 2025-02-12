@@ -26,7 +26,11 @@ use relay_substrate_client::{
 	UnderlyingChainProvider, UnsignedTransaction,
 };
 use sp_core::{storage::StorageKey, Pair};
-use sp_runtime::{generic::SignedPayload, traits::{FakeDispatchable, IdentifyAccount}, MultiAddress};
+use sp_runtime::{
+	generic::SignedPayload,
+	traits::{FakeDispatchable, IdentifyAccount},
+	MultiAddress,
+};
 use sp_session::MembershipProof;
 use std::time::Duration;
 
@@ -102,8 +106,10 @@ impl ChainWithBalances for PolkadotBulletin {
 
 impl ChainWithTransactions for PolkadotBulletin {
 	type AccountKeyPair = sp_core::sr25519::Pair;
-	type SignedTransaction =
-		bp_polkadot_bulletin::UncheckedExtrinsic<Self::Call, bp_polkadot_bulletin::TransactionExtension>;
+	type SignedTransaction = bp_polkadot_bulletin::UncheckedExtrinsic<
+		Self::Call,
+		bp_polkadot_bulletin::TransactionExtension,
+	>;
 
 	fn sign_transaction(
 		param: SignParam<Self>,
