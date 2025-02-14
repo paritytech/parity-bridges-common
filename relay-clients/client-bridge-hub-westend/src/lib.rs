@@ -19,7 +19,7 @@
 pub mod codegen_runtime;
 
 use bp_bridge_hub_westend::AVERAGE_BLOCK_INTERVAL;
-use bp_polkadot_core::{SuffixedCommonSignedExtension, SuffixedCommonSignedExtensionExt};
+use bp_polkadot_core::{SuffixedCommonTransactionExtension, SuffixedCommonTransactionExtensionExt};
 use codec::Encode;
 use relay_substrate_client::{
 	calls::UtilityCall as MockUtilityCall, Chain, ChainWithBalances, ChainWithMessages,
@@ -28,20 +28,23 @@ use relay_substrate_client::{
 	UnderlyingChainProvider, UnsignedTransaction,
 };
 use sp_core::{storage::StorageKey, Pair};
-use sp_runtime::{generic::SignedPayload, traits::IdentifyAccount};
+use sp_runtime::{
+	generic::SignedPayload,
+	traits::{FakeDispatchable, IdentifyAccount},
+};
 use std::time::Duration;
 
 pub use codegen_runtime::api::runtime_types;
 use runtime_types::frame_metadata_hash_extension::Mode;
 
 use bp_runtime::extensions::{
-	BridgeRejectObsoleteHeadersAndMessages, GenericSignedExtensionSchema,
+	BridgeRejectObsoleteHeadersAndMessages, GenericTransactionExtensionSchema,
 	RefundBridgedParachainMessagesSchema,
 };
 
-pub type CheckMetadataHash = GenericSignedExtensionSchema<Mode, Option<[u8; 32]>>;
+pub type CheckMetadataHash = GenericTransactionExtensionSchema<Mode, Option<[u8; 32]>>;
 
-pub type SignedExtension = SuffixedCommonSignedExtension<(
+pub type TransactionExtension = SuffixedCommonTransactionExtension<(
 	BridgeRejectObsoleteHeadersAndMessages,
 	RefundBridgedParachainMessagesSchema,
 	CheckMetadataHash,
@@ -51,7 +54,8 @@ pub type RuntimeCall = runtime_types::bridge_hub_westend_runtime::RuntimeCall;
 pub type BridgeMessagesCall = runtime_types::pallet_bridge_messages::pallet::Call;
 pub type BridgeGrandpaCall = runtime_types::pallet_bridge_grandpa::pallet::Call;
 pub type BridgeParachainCall = runtime_types::pallet_bridge_parachains::pallet::Call;
-type UncheckedExtrinsic = bp_bridge_hub_westend::UncheckedExtrinsic<RuntimeCall, SignedExtension>;
+type UncheckedExtrinsic =
+	bp_bridge_hub_westend::UncheckedExtrinsic<RuntimeCall, TransactionExtension>;
 type UtilityCall = runtime_types::pallet_utility::pallet::Call;
 
 /// Westend chain definition
@@ -102,8 +106,8 @@ impl ChainWithTransactions for BridgeHubWestend {
 		unsigned: UnsignedTransaction<Self>,
 	) -> Result<Self::SignedTransaction, SubstrateError> {
 		let raw_payload = SignedPayload::new(
-			unsigned.call,
-			SignedExtension::from_params(
+			FakeDispatchable::from(unsigned.call),
+			TransactionExtension::from_params(
 				param.spec_version,
 				param.transaction_version,
 				unsigned.era,
@@ -119,7 +123,7 @@ impl ChainWithTransactions for BridgeHubWestend {
 		let (call, extra, _) = raw_payload.deconstruct();
 
 		Ok(UncheckedExtrinsic::new_signed(
-			call,
+			call.deconstruct(),
 			signer.into_account().into(),
 			signature.into(),
 			extra,
