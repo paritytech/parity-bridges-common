@@ -1,121 +1,46 @@
-name: Deploy
+name: Manual Deploy
 
 on:
-  push:
-    tags:
-      - v*
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Tag to deploy (e.g. v1.2.3)'
+        required: true
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
-# common variable is defined in the workflow
-# repo env variable doesn't work for PR from forks
-env:
-  CI_IMAGE: "paritytech/ci-unified:bullseye-1.81.0-2024-09-11-v202409111034"
-
-#to use reusable workflow
 permissions:
   id-token: write
   contents: read
 
 jobs:
-  set-variables:
-    # This workaround sets the container image for each job using 'set-variables' job output.
-    # env variables don't work for PR from forks, so we need to use outputs.
-    runs-on: ubuntu-latest
-    outputs:
-      CI_IMAGE: ${{ steps.set_image.outputs.CI_IMAGE }}
-      VERSION: ${{ steps.version.outputs.VERSION }}
-    steps:
-      - name: Set image
-        id: set_image
-        run: echo "CI_IMAGE=${{ env.CI_IMAGE }}" >> $GITHUB_OUTPUT
-      - name: Define version
-        id: version
-        run: |
-          export COMMIT_SHA=${{ github.sha }}
-          export COMMIT_SHA_SHORT=${COMMIT_SHA:0:8}
-          export REF_NAME=${{ github.ref_name }}
-          export REF_SLUG=${REF_NAME//\//_}
-          if [[ ${REF_SLUG} == "master" ]]
-          then
-            VERSION=${REF_SLUG}-${COMMIT_SHA_SHORT}
-            echo "VERSION=${REF_SLUG}-${COMMIT_SHA_SHORT}" >> $GITHUB_OUTPUT
-          else
-            VERSION=${REF_SLUG}
-            echo "VERSION=${REF_SLUG}" >> $GITHUB_OUTPUT
-          fi
-          echo "set VERSION=${VERSION}"
-
-  build:
-    name: Build
-    runs-on: parity-large
-    needs: [set-variables]
-    container:
-      image: ${{ needs.set-variables.outputs.CI_IMAGE }}
-    steps:
-      - name: Checkout sources
-        uses: actions/checkout@v4
-
-      - name: Build and pack artifact
-        run: |
-          cargo fetch
-          CARGO_NET_OFFLINE=true time cargo build --release  --workspace
-          mkdir -p ./artifacts
-          strip ./target/release/substrate-relay
-          mv -v ./target/release/substrate-relay ./artifacts/
-          mv -v ./deployments/local-scripts/bridge-entrypoint.sh ./artifacts/
-          mv -v ./ci.Dockerfile ./artifacts/
-
-      - name: upload artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: build
-          path: ./artifacts/
-          retention-days: 2
-
-  build_push_docker:
-    name: Build docker image
-    runs-on: ubuntu-latest
-    environment: tags
-    needs: [set-variables, build]
-    env:
-      VERSION: ${{ needs.set-variables.outputs.VERSION }}
-    steps:
-      - name: Log in to Docker Hub
-        uses: docker/login-action@v3
-        with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_PASSWORD }}
-
-      - name: Download artifacts
-        uses: actions/download-artifact@v4
-        with:
-          name: build
-      - name: Make scripts executable
-        run: |
-          chmod +x bridge-entrypoint.sh
-          chmod +x substrate-relay
-      - name: Build Docker image
-        uses: docker/build-push-action@v5
-        with:
-          context: .
-          file: ./ci.Dockerfile
-          push: true
-          tags: |
-            docker.io/paritytech/substrate-relay:${{ env.VERSION }}
-            docker.io/paritytech/bridges-common-relay:${{ env.VERSION }}
-
   deploy-chains:
     name: Deploy Kusama/Polkadot Relay
     runs-on: ubuntu-latest
-    environment: parity-chains
-    needs: [set-variables, build_push_docker]
+    # Use an environment that is protected by required reviewers/teams (e.g. Bridges Core, DevOps, CI, Core Devs)
+    environment:
+      name: parity-chains
     env:
-      VERSION: ${{ needs.set-variables.outputs.VERSION }}
+      VERSION: ${{ github.event.inputs.tag }}
       ARGOCD_SERVER: "argocd-chains.teleport.parity.io"
+      # Use the provided tag input as the version
     steps:
+      - name: Check if Docker image exists on Docker Hub
+        run: |
+          [[ "${{ env.VERSION }}" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]] && echo "Valid tag" || echo "Invalid tag"
+          IMAGE=paritytech/substrate-relay:${{ env.VERSION }}
+          echo "Checking existence of Docker image ${IMAGE}..."
+          # Query Docker Hub API for the tag; exit nonzero if not found
+          URL="https://hub.docker.com/v2/repositories/paritytech/substrate-relay/tags/${{ env.VERSION }}"
+          if curl --fail --silent "$URL" > /dev/null; then
+            echo "Image ${IMAGE} exists."
+          else
+            echo "Error: Image ${IMAGE} does not exist. Aborting deployment."
+            exit 1
+          fi
+
       - name: Deploy to ArgoCD
         uses: paritytech/argocd-deployment-action@main
         with:
