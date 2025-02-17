@@ -64,4 +64,4 @@ bp-test-utils = { git = "https://github.com/paritytech/polkadot-sdk", branch = "
 hex-literal = "0.4"
 sp-keyring = { git = "https://github.com/paritytech/polkadot-sdk", branch = "master" }
 tempfile = "3.16"
-finality-grandpa = { version = "0.16.2" }
+finality-grandpa = { version = "0.16.3" }
