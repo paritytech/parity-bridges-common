@@ -41,7 +41,7 @@ git push origin v1.5.0
 ```
 
 7. Pushing that tag triggers a new pipeline at
-  [GitLab](https://gitlab.parity.io/parity/mirrors/parity-bridges-common/-/pipelines).
+  [github](https://github.com/paritytech/parity-bridges-common/actions/workflows/build-tag.yml).
   Wait until until that pipeline succeeds. Make sure relayer docker image is published
   to the [docker hub](https://hub.docker.com/r/paritytech/substrate-relay/tags);
 

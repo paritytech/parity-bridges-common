@@ -13,7 +13,7 @@ repository = "https://github.com/paritytech/parity-bridges-common.git"
 
 [dependencies]
 clap = { version = "4.5.3", features = ["derive", "cargo"] }
-codec = { package = "parity-scale-codec", version = "3.6.1", features = ["derive"] }
+codec = { package = "parity-scale-codec", version = "3.7.4", features = ["derive"] }
 color-eyre = "0.6.1"
 indoc = "2.0.5"
 prettyplease = "0.2.20"
