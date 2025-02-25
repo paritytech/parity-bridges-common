@@ -126,5 +126,5 @@ impl ChainWithTransactions for Kusama {
 
 impl ChainWithRuntimeVersion for Kusama {
 	const RUNTIME_VERSION: Option<SimpleRuntimeVersion> =
-		Some(SimpleRuntimeVersion { spec_version: 1_002_004, transaction_version: 25 });
+		Some(SimpleRuntimeVersion { spec_version: 1_004_000, transaction_version: 26 });
 }
