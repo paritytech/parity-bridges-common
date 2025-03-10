@@ -52,7 +52,7 @@ complexity = { level = "deny", priority = 1 }
 
 [workspace.dependencies]
 log = { version = "0.4.26", default-features = false }
-quote = { version = "1.0.38" }
+quote = { version = "1.0.39" }
 serde = { version = "1.0.218", default-features = false }
 serde_json = { version = "1.0.138", default-features = false }
 thiserror = { version = "1.0.69" }
