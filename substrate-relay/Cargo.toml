@@ -63,5 +63,5 @@ sp-runtime = { git = "https://github.com/paritytech/polkadot-sdk", branch = "mas
 bp-test-utils = { git = "https://github.com/paritytech/polkadot-sdk", branch = "master" }
 hex-literal = "0.4"
 sp-keyring = { git = "https://github.com/paritytech/polkadot-sdk", branch = "master" }
-tempfile = "3.18"
+tempfile = "3.19"
 finality-grandpa = { version = "0.16.2" }
