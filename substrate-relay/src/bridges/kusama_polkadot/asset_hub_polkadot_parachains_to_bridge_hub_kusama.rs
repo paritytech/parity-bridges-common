@@ -23,21 +23,21 @@ use substrate_relay_helper::{
 	parachains::{SubmitParachainHeadsCallBuilder, SubstrateParachainsPipeline},
 };
 
-/// Polkadot-to-BridgeHubKusama parachain sync description.
+/// AssetHubPolkadot-to-BridgeHubKusama parachain sync description.
 #[derive(Clone, Debug)]
-pub struct BridgeHubPolkadotToBridgeHubKusama;
+pub struct AssetHubPolkadotToBridgeHubKusama;
 
-impl SubstrateParachainsPipeline for BridgeHubPolkadotToBridgeHubKusama {
+impl SubstrateParachainsPipeline for AssetHubPolkadotToBridgeHubKusama {
 	type SourceParachain = relay_bridge_hub_polkadot_client::BridgeHubPolkadot;
 	type SourceRelayChain = relay_polkadot_client::Polkadot;
 	type TargetChain = relay_bridge_hub_kusama_client::BridgeHubKusama;
 
-	type SubmitParachainHeadsCallBuilder = BridgeHubPolkadotToBridgeHubKusamaCallBuilder;
+	type SubmitParachainHeadsCallBuilder = AssetHubPolkadotToBridgeHubKusamaCallBuilder;
 }
 
-pub struct BridgeHubPolkadotToBridgeHubKusamaCallBuilder;
-impl SubmitParachainHeadsCallBuilder<BridgeHubPolkadotToBridgeHubKusama>
-	for BridgeHubPolkadotToBridgeHubKusamaCallBuilder
+pub struct AssetHubPolkadotToBridgeHubKusamaCallBuilder;
+impl SubmitParachainHeadsCallBuilder<AssetHubPolkadotToBridgeHubKusama>
+	for AssetHubPolkadotToBridgeHubKusamaCallBuilder
 {
 	fn build_submit_parachain_heads_call(
 		at_relay_block: HeaderIdOf<relay_polkadot_client::Polkadot>,
@@ -55,22 +55,22 @@ impl SubmitParachainHeadsCallBuilder<BridgeHubPolkadotToBridgeHubKusama>
 	}
 }
 
-/// Polkadot-to-BridgeHubKusama parachain sync description for the CLI.
-pub struct BridgeHubPolkadotToBridgeHubKusamaCliBridge {}
+/// AssetHubPolkadot-to-BridgeHubKusama parachain sync description for the CLI.
+pub struct AssetHubPolkadotToBridgeHubKusamaCliBridge {}
 
-impl ParachainToRelayHeadersCliBridge for BridgeHubPolkadotToBridgeHubKusamaCliBridge {
+impl ParachainToRelayHeadersCliBridge for AssetHubPolkadotToBridgeHubKusamaCliBridge {
 	type SourceRelay = relay_polkadot_client::Polkadot;
-	type ParachainFinality = BridgeHubPolkadotToBridgeHubKusama;
+	type ParachainFinality = AssetHubPolkadotToBridgeHubKusama;
 	type RelayFinality =
 		crate::bridges::kusama_polkadot::polkadot_headers_to_bridge_hub_kusama::PolkadotFinalityToBridgeHubKusama;
 }
 
-impl CliBridgeBase for BridgeHubPolkadotToBridgeHubKusamaCliBridge {
+impl CliBridgeBase for AssetHubPolkadotToBridgeHubKusamaCliBridge {
 	type Source = relay_bridge_hub_polkadot_client::BridgeHubPolkadot;
 	type Target = relay_bridge_hub_kusama_client::BridgeHubKusama;
 }
 
-impl MessagesCliBridge for BridgeHubPolkadotToBridgeHubKusamaCliBridge {
+impl MessagesCliBridge for AssetHubPolkadotToBridgeHubKusamaCliBridge {
 	type MessagesLane =
 	crate::bridges::kusama_polkadot::bridge_hub_polkadot_messages_to_bridge_hub_kusama::BridgeHubPolkadotMessagesToBridgeHubKusamaMessageLane;
 }

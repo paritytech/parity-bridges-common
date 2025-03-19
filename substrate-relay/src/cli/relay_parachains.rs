@@ -16,14 +16,18 @@
 
 use crate::bridges::{
 	kusama_polkadot::{
-		kusama_parachains_to_bridge_hub_polkadot::BridgeHubKusamaToBridgeHubPolkadotCliBridge,
-		polkadot_parachains_to_bridge_hub_kusama::BridgeHubPolkadotToBridgeHubKusamaCliBridge,
+		asset_hub_kusama_parachains_to_bridge_hub_polkadot::AssetHubKusamaToBridgeHubPolkadotCliBridge,
+		asset_hub_polkadot_parachains_to_bridge_hub_kusama::AssetHubPolkadotToBridgeHubKusamaCliBridge,
+		bridge_hub_kusama_parachains_to_bridge_hub_polkadot::BridgeHubKusamaToBridgeHubPolkadotCliBridge,
+		bridge_hub_polkadot_parachains_to_bridge_hub_kusama::BridgeHubPolkadotToBridgeHubKusamaCliBridge,
 	},
 	polkadot_bulletin::polkadot_parachains_to_polkadot_bulletin::PolkadotToPolkadotBulletinCliBridge,
 	rococo_bulletin::rococo_parachains_to_rococo_bulletin::RococoToRococoBulletinCliBridge,
 	rococo_westend::{
-		rococo_parachains_to_bridge_hub_westend::BridgeHubRococoToBridgeHubWestendCliBridge,
-		westend_parachains_to_bridge_hub_rococo::BridgeHubWestendToBridgeHubRococoCliBridge,
+		asset_hub_rococo_parachains_to_bridge_hub_westend::AssetHubRococoToBridgeHubWestendCliBridge,
+		asset_hub_westend_parachains_to_bridge_hub_rococo::AssetHubWestendToBridgeHubRococoCliBridge,
+		bridge_hub_rococo_parachains_to_bridge_hub_westend::BridgeHubRococoToBridgeHubWestendCliBridge,
+		bridge_hub_westend_parachains_to_bridge_hub_rococo::BridgeHubWestendToBridgeHubRococoCliBridge,
 	},
 };
 use structopt::StructOpt;
@@ -56,18 +60,26 @@ pub struct RelayParachainHead {
 #[derive(Debug, EnumString, VariantNames)]
 #[strum(serialize_all = "kebab_case")]
 pub enum RelayParachainsBridge {
-	KusamaToBridgeHubPolkadot,
-	PolkadotToBridgeHubKusama,
+	BridgeHubKusamaToBridgeHubPolkadot,
+	BridgeHubPolkadotToBridgeHubKusama,
+	AssetHubKusamaToBridgeHubPolkadot,
+	AssetHubPolkadotToBridgeHubKusama,
 	PolkadotToPolkadotBulletin,
 	RococoToRococoBulletin,
-	RococoToBridgeHubWestend,
-	WestendToBridgeHubRococo,
+	BridgeHubRococoToBridgeHubWestend,
+	BridgeHubWestendToBridgeHubRococo,
+	AssetHubRococoToBridgeHubWestend,
+	AssetHubWestendToBridgeHubRococo,
 }
 
 impl ParachainsRelayer for BridgeHubRococoToBridgeHubWestendCliBridge {}
 impl ParachainsRelayer for BridgeHubWestendToBridgeHubRococoCliBridge {}
+impl ParachainsRelayer for AssetHubRococoToBridgeHubWestendCliBridge {}
+impl ParachainsRelayer for AssetHubWestendToBridgeHubRococoCliBridge {}
 impl ParachainsRelayer for BridgeHubKusamaToBridgeHubPolkadotCliBridge {}
 impl ParachainsRelayer for BridgeHubPolkadotToBridgeHubKusamaCliBridge {}
+impl ParachainsRelayer for AssetHubKusamaToBridgeHubPolkadotCliBridge {}
+impl ParachainsRelayer for AssetHubPolkadotToBridgeHubKusamaCliBridge {}
 impl ParachainsRelayer for PolkadotToPolkadotBulletinCliBridge {}
 impl ParachainsRelayer for RococoToRococoBulletinCliBridge {}
 
@@ -75,14 +87,22 @@ impl RelayParachains {
 	/// Run the command.
 	pub async fn run(self) -> anyhow::Result<()> {
 		match self.bridge {
-			RelayParachainsBridge::RococoToBridgeHubWestend =>
+			RelayParachainsBridge::BridgeHubRococoToBridgeHubWestend =>
 				BridgeHubRococoToBridgeHubWestendCliBridge::relay_parachains(self.params),
-			RelayParachainsBridge::WestendToBridgeHubRococo =>
+			RelayParachainsBridge::BridgeHubWestendToBridgeHubRococo =>
 				BridgeHubWestendToBridgeHubRococoCliBridge::relay_parachains(self.params),
-			RelayParachainsBridge::KusamaToBridgeHubPolkadot =>
+			RelayParachainsBridge::AssetHubRococoToBridgeHubWestend =>
+				AssetHubRococoToBridgeHubWestendCliBridge::relay_parachains(self.params),
+			RelayParachainsBridge::AssetHubWestendToBridgeHubRococo =>
+				AssetHubWestendToBridgeHubRococoCliBridge::relay_parachains(self.params),
+			RelayParachainsBridge::BridgeHubKusamaToBridgeHubPolkadot =>
 				BridgeHubKusamaToBridgeHubPolkadotCliBridge::relay_parachains(self.params),
-			RelayParachainsBridge::PolkadotToBridgeHubKusama =>
+			RelayParachainsBridge::BridgeHubPolkadotToBridgeHubKusama =>
 				BridgeHubPolkadotToBridgeHubKusamaCliBridge::relay_parachains(self.params),
+			RelayParachainsBridge::AssetHubKusamaToBridgeHubPolkadot =>
+				AssetHubKusamaToBridgeHubPolkadotCliBridge::relay_parachains(self.params),
+			RelayParachainsBridge::AssetHubPolkadotToBridgeHubKusama =>
+				AssetHubPolkadotToBridgeHubKusamaCliBridge::relay_parachains(self.params),
 			RelayParachainsBridge::PolkadotToPolkadotBulletin =>
 				PolkadotToPolkadotBulletinCliBridge::relay_parachains(self.params),
 			RelayParachainsBridge::RococoToRococoBulletin =>
@@ -96,14 +116,22 @@ impl RelayParachainHead {
 	/// Run the command.
 	pub async fn run(self) -> anyhow::Result<()> {
 		match self.bridge {
-			RelayParachainsBridge::RococoToBridgeHubWestend =>
+			RelayParachainsBridge::BridgeHubRococoToBridgeHubWestend =>
 				BridgeHubRococoToBridgeHubWestendCliBridge::relay_parachain_head(self.params),
-			RelayParachainsBridge::WestendToBridgeHubRococo =>
+			RelayParachainsBridge::BridgeHubWestendToBridgeHubRococo =>
 				BridgeHubWestendToBridgeHubRococoCliBridge::relay_parachain_head(self.params),
-			RelayParachainsBridge::KusamaToBridgeHubPolkadot =>
+			RelayParachainsBridge::AssetHubRococoToBridgeHubWestend =>
+				AssetHubRococoToBridgeHubWestendCliBridge::relay_parachain_head(self.params),
+			RelayParachainsBridge::AssetHubWestendToBridgeHubRococo =>
+				AssetHubWestendToBridgeHubRococoCliBridge::relay_parachain_head(self.params),
+			RelayParachainsBridge::BridgeHubKusamaToBridgeHubPolkadot =>
 				BridgeHubKusamaToBridgeHubPolkadotCliBridge::relay_parachain_head(self.params),
-			RelayParachainsBridge::PolkadotToBridgeHubKusama =>
+			RelayParachainsBridge::BridgeHubPolkadotToBridgeHubKusama =>
 				BridgeHubPolkadotToBridgeHubKusamaCliBridge::relay_parachain_head(self.params),
+			RelayParachainsBridge::AssetHubKusamaToBridgeHubPolkadot =>
+				AssetHubKusamaToBridgeHubPolkadotCliBridge::relay_parachain_head(self.params),
+			RelayParachainsBridge::AssetHubPolkadotToBridgeHubKusama =>
+				AssetHubPolkadotToBridgeHubKusamaCliBridge::relay_parachain_head(self.params),
 			RelayParachainsBridge::PolkadotToPolkadotBulletin =>
 				PolkadotToPolkadotBulletinCliBridge::relay_parachain_head(self.params),
 			RelayParachainsBridge::RococoToRococoBulletin =>
