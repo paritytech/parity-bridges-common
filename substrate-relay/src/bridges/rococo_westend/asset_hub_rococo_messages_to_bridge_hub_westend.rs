@@ -24,11 +24,11 @@ use substrate_relay_helper::{
 	UtilityPalletBatchCallBuilder,
 };
 
-pub struct AssetHubRococoToBridgeHubWestendMessagesCliBridge {}
+pub struct AssetHubRococoToAssetHubWestendMessagesCliBridge {}
 
-impl CliBridgeBase for AssetHubRococoToBridgeHubWestendMessagesCliBridge {
+impl CliBridgeBase for AssetHubRococoToAssetHubWestendMessagesCliBridge {
 	type Source = AssetHubRococo;
-	type Target = BridgeHubWestend;
+	type Target = AssetHubWestend;
 }
 
 impl MessagesCliBridge for AssetHubRococoToBridgeHubWestendMessagesCliBridge {
