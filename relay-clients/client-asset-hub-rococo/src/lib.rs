@@ -55,7 +55,6 @@ pub type BridgeMessagesCall = runtime_types::pallet_bridge_messages::pallet::Cal
 
 type UncheckedExtrinsic =
 	bp_asset_hub_rococo::UncheckedExtrinsic<RuntimeCall, TransactionExtension>;
-type UtilityCall = runtime_types::pallet_utility::pallet::Call;
 
 /// Rococo chain definition
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
