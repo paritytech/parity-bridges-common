@@ -16,7 +16,9 @@
 
 //! Declaration of all bridges between Rococo Bridge Hub and Westend Bridge Hub.
 
+pub mod asset_hub_rococo_messages_to_bridge_hub_westend;
 pub mod asset_hub_rococo_parachains_to_bridge_hub_westend;
+pub mod asset_hub_westend_messages_to_bridge_hub_rococo;
 pub mod asset_hub_westend_parachains_to_bridge_hub_rococo;
 pub mod bridge_hub_rococo_messages_to_bridge_hub_westend;
 pub mod bridge_hub_rococo_parachains_to_bridge_hub_westend;

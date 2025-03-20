@@ -28,7 +28,7 @@ use substrate_relay_helper::{
 pub struct AssetHubWestendToBridgeHubRococo;
 
 impl SubstrateParachainsPipeline for AssetHubWestendToBridgeHubRococo {
-	type SourceParachain = relay_bridge_hub_westend_client::BridgeHubWestend;
+	type SourceParachain = relay_asset_hub_westend_client::AssetHubWestend;
 	type SourceRelayChain = relay_westend_client::Westend;
 	type TargetChain = relay_bridge_hub_rococo_client::BridgeHubRococo;
 
@@ -67,11 +67,11 @@ impl ParachainToRelayHeadersCliBridge for AssetHubWestendToBridgeHubRococoCliBri
 }
 
 impl CliBridgeBase for AssetHubWestendToBridgeHubRococoCliBridge {
-	type Source = relay_bridge_hub_westend_client::BridgeHubWestend;
+	type Source = relay_asset_hub_westend_client::AssetHubWestend;
 	type Target = relay_bridge_hub_rococo_client::BridgeHubRococo;
 }
 
 impl MessagesCliBridge for AssetHubWestendToBridgeHubRococoCliBridge {
 	type MessagesLane =
-	crate::bridges::rococo_westend::bridge_hub_westend_messages_to_bridge_hub_rococo::BridgeHubWestendMessagesToBridgeHubRococoMessageLane;
+	crate::bridges::rococo_westend::asset_hub_westend_messages_to_bridge_hub_rococo::AssetHubWestendMessagesToBridgeHubRococoMessageLane;
 }
