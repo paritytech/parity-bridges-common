@@ -53,8 +53,6 @@ pub type TransactionExtension = SuffixedCommonTransactionExtension<(
 pub type RuntimeCall = runtime_types::asset_hub_rococo_runtime::RuntimeCall;
 pub type BridgeMessagesCall = runtime_types::pallet_bridge_messages::pallet::Call;
 
-// TODO: https://github.com/paritytech/parity-bridges-common/issues/2547 - regenerate when ready - shuold be Call2
-pub type BridgeBulletinMessagesCall = runtime_types::pallet_bridge_messages::pallet::Call;
 type UncheckedExtrinsic =
 	bp_asset_hub_rococo::UncheckedExtrinsic<RuntimeCall, TransactionExtension>;
 type UtilityCall = runtime_types::pallet_utility::pallet::Call;
