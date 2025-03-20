@@ -66,7 +66,7 @@ impl ParachainToRelayHeadersCliBridge for AssetHubKusamaToBridgeHubPolkadotCliBr
 }
 
 impl CliBridgeBase for AssetHubKusamaToBridgeHubPolkadotCliBridge {
-	type Source = relay_bridge_hub_kusama_client::BridgeHubKusama;
+	type Source = relay_asset_hub_kusama_client::AssetHubKusama;
 	type Target = relay_bridge_hub_polkadot_client::BridgeHubPolkadot;
 }
 
