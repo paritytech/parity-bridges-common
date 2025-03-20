@@ -28,7 +28,7 @@ use substrate_relay_helper::{
 pub struct AssetHubKusamaToBridgeHubPolkadot;
 
 impl SubstrateParachainsPipeline for AssetHubKusamaToBridgeHubPolkadot {
-	type SourceParachain = relay_bridge_hub_kusama_client::BridgeHubKusama;
+	type SourceParachain = relay_asset_hub_kusama_client::AssetHubKusama;
 	type SourceRelayChain = relay_kusama_client::Kusama;
 	type TargetChain = relay_bridge_hub_polkadot_client::BridgeHubPolkadot;
 
