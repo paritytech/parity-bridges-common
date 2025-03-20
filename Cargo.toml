@@ -7,6 +7,8 @@ license = "GPL-3.0-only"
 [workspace]
 resolver = "2"
 members = [
+	"relay-clients/client-asset-hub-rococo",
+	"relay-clients/client-asset-hub-westend",
 	"relay-clients/client-bridge-hub-kusama",
 	"relay-clients/client-bridge-hub-polkadot",
 	"relay-clients/client-bridge-hub-rococo",
