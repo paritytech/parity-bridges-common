@@ -70,7 +70,3 @@ impl CliBridgeBase for AssetHubPolkadotToBridgeHubKusamaCliBridge {
 	type Target = relay_bridge_hub_kusama_client::BridgeHubKusama;
 }
 
-impl MessagesCliBridge for AssetHubPolkadotToBridgeHubKusamaCliBridge {
-	type MessagesLane =
-	crate::bridges::kusama_polkadot::bridge_hub_polkadot_messages_to_bridge_hub_kusama::BridgeHubPolkadotMessagesToBridgeHubKusamaMessageLane;
-}
