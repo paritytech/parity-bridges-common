@@ -57,16 +57,16 @@ impl SubmitParachainHeadsCallBuilder<AssetHubWestendToBridgeHubRococo>
 }
 
 /// `AssetHubParachain` to `BridgeHubParachain` bridge definition.
-pub struct AssetHubWestendToBridgeHubRococoCliBridge {}
+pub struct AssetHubWestendToBridgeHubRococoParachainsCliBridge {}
 
-impl ParachainToRelayHeadersCliBridge for AssetHubWestendToBridgeHubRococoCliBridge {
+impl ParachainToRelayHeadersCliBridge for AssetHubWestendToBridgeHubRococoParachainsCliBridge {
 	type SourceRelay = relay_westend_client::Westend;
 	type ParachainFinality = AssetHubWestendToBridgeHubRococo;
 	type RelayFinality =
 		crate::bridges::rococo_westend::westend_headers_to_bridge_hub_rococo::WestendFinalityToBridgeHubRococo;
 }
 
-impl CliBridgeBase for AssetHubWestendToBridgeHubRococoCliBridge {
+impl CliBridgeBase for AssetHubWestendToBridgeHubRococoParachainsCliBridge {
 	type Source = relay_asset_hub_westend_client::AssetHubWestend;
 	type Target = relay_bridge_hub_rococo_client::BridgeHubRococo;
 }

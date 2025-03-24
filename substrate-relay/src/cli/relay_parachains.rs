@@ -22,8 +22,8 @@ use crate::bridges::{
 	polkadot_bulletin::polkadot_parachains_to_polkadot_bulletin::PolkadotToPolkadotBulletinCliBridge,
 	rococo_bulletin::rococo_parachains_to_rococo_bulletin::RococoToRococoBulletinCliBridge,
 	rococo_westend::{
-		asset_hub_rococo_parachains_to_bridge_hub_westend::AssetHubRococoToBridgeHubWestendCliBridge,
-		asset_hub_westend_parachains_to_bridge_hub_rococo::AssetHubWestendToBridgeHubRococoCliBridge,
+		asset_hub_rococo_parachains_to_bridge_hub_westend::AssetHubRococoToBridgeHubWestendParachainsCliBridge,
+		asset_hub_westend_parachains_to_bridge_hub_rococo::AssetHubWestendToBridgeHubRococoParachainsCliBridge,
 		bridge_hub_rococo_parachains_to_bridge_hub_westend::BridgeHubRococoToBridgeHubWestendCliBridge,
 		bridge_hub_westend_parachains_to_bridge_hub_rococo::BridgeHubWestendToBridgeHubRococoCliBridge,
 	},
@@ -70,8 +70,8 @@ pub enum RelayParachainsBridge {
 
 impl ParachainsRelayer for BridgeHubRococoToBridgeHubWestendCliBridge {}
 impl ParachainsRelayer for BridgeHubWestendToBridgeHubRococoCliBridge {}
-impl ParachainsRelayer for AssetHubRococoToBridgeHubWestendCliBridge {}
-impl ParachainsRelayer for AssetHubWestendToBridgeHubRococoCliBridge {}
+impl ParachainsRelayer for AssetHubRococoToBridgeHubWestendParachainsCliBridge {}
+impl ParachainsRelayer for AssetHubWestendToBridgeHubRococoParachainsCliBridge {}
 impl ParachainsRelayer for BridgeHubKusamaToBridgeHubPolkadotCliBridge {}
 impl ParachainsRelayer for BridgeHubPolkadotToBridgeHubKusamaCliBridge {}
 impl ParachainsRelayer for PolkadotToPolkadotBulletinCliBridge {}
@@ -86,9 +86,9 @@ impl RelayParachains {
 			RelayParachainsBridge::BridgeHubWestendToBridgeHubRococo =>
 				BridgeHubWestendToBridgeHubRococoCliBridge::relay_parachains(self.params),
 			RelayParachainsBridge::AssetHubRococoToBridgeHubWestend =>
-				AssetHubRococoToBridgeHubWestendCliBridge::relay_parachains(self.params),
+				AssetHubRococoToBridgeHubWestendParachainsCliBridge::relay_parachains(self.params),
 			RelayParachainsBridge::AssetHubWestendToBridgeHubRococo =>
-				AssetHubWestendToBridgeHubRococoCliBridge::relay_parachains(self.params),
+				AssetHubWestendToBridgeHubRococoParachainsCliBridge::relay_parachains(self.params),
 			RelayParachainsBridge::BridgeHubKusamaToBridgeHubPolkadot =>
 				BridgeHubKusamaToBridgeHubPolkadotCliBridge::relay_parachains(self.params),
 			RelayParachainsBridge::BridgeHubPolkadotToBridgeHubKusama =>
@@ -111,9 +111,9 @@ impl RelayParachainHead {
 			RelayParachainsBridge::BridgeHubWestendToBridgeHubRococo =>
 				BridgeHubWestendToBridgeHubRococoCliBridge::relay_parachain_head(self.params),
 			RelayParachainsBridge::AssetHubRococoToBridgeHubWestend =>
-				AssetHubRococoToBridgeHubWestendCliBridge::relay_parachain_head(self.params),
+				AssetHubRococoToBridgeHubWestendParachainsCliBridge::relay_parachain_head(self.params),
 			RelayParachainsBridge::AssetHubWestendToBridgeHubRococo =>
-				AssetHubWestendToBridgeHubRococoCliBridge::relay_parachain_head(self.params),
+				AssetHubWestendToBridgeHubRococoParachainsCliBridge::relay_parachain_head(self.params),
 			RelayParachainsBridge::BridgeHubKusamaToBridgeHubPolkadot =>
 				BridgeHubKusamaToBridgeHubPolkadotCliBridge::relay_parachain_head(self.params),
 			RelayParachainsBridge::BridgeHubPolkadotToBridgeHubKusama =>
