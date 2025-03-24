@@ -16,8 +16,6 @@
 
 //! Declaration of all bridges between Kusama Bridge Hub and Polkadot Bridge Hub.
 
-pub mod asset_hub_kusama_parachains_to_bridge_hub_polkadot;
-pub mod asset_hub_polkadot_parachains_to_bridge_hub_kusama;
 pub mod bridge_hub_kusama_messages_to_bridge_hub_polkadot;
 pub mod bridge_hub_kusama_parachains_to_bridge_hub_polkadot;
 pub mod bridge_hub_polkadot_messages_to_bridge_hub_kusama;

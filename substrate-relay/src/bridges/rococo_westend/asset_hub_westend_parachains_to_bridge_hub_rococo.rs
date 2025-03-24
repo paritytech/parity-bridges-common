@@ -19,7 +19,7 @@
 use bp_polkadot_core::parachains::{ParaHash, ParaHeadsProof, ParaId};
 use relay_substrate_client::{CallOf, HeaderIdOf};
 use substrate_relay_helper::{
-	cli::bridge::{CliBridgeBase, MessagesCliBridge, ParachainToRelayHeadersCliBridge},
+	cli::bridge::{CliBridgeBase, ParachainToRelayHeadersCliBridge},
 	parachains::{SubmitParachainHeadsCallBuilder, SubstrateParachainsPipeline},
 };
 
@@ -69,9 +69,4 @@ impl ParachainToRelayHeadersCliBridge for AssetHubWestendToBridgeHubRococoCliBri
 impl CliBridgeBase for AssetHubWestendToBridgeHubRococoCliBridge {
 	type Source = relay_asset_hub_westend_client::AssetHubWestend;
 	type Target = relay_bridge_hub_rococo_client::BridgeHubRococo;
-}
-
-impl MessagesCliBridge for AssetHubWestendToBridgeHubRococoCliBridge {
-	type MessagesLane =
-	crate::bridges::rococo_westend::asset_hub_westend_messages_to_bridge_hub_rococo::AssetHubWestendMessagesToBridgeHubRococoMessageLane;
 }

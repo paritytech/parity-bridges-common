@@ -14,21 +14,20 @@
 // You should have received a copy of the GNU General Public License
 // along with Parity Bridges Common.  If not, see <http://www.gnu.org/licenses/>.
 
-//! AssetHubWestend-to-BridgeHubRococo messages sync entrypoint.
+//! AssetHubWestend-to-AssetHubRococo messages sync entrypoint.
 
-use relay_bridge_hub_rococo_client::BridgeHubRococo;
+use relay_asset_hub_rococo_client::AssetHubRococo;
 use relay_asset_hub_westend_client::AssetHubWestend;
 use substrate_relay_helper::{
 	cli::bridge::{CliBridgeBase, MessagesCliBridge},
 	messages::SubstrateMessageLane,
-	UtilityPalletBatchCallBuilder,
 };
 
 pub struct AssetHubWestendToBridgeHubRococoMessagesCliBridge {}
 
 impl CliBridgeBase for AssetHubWestendToBridgeHubRococoMessagesCliBridge {
 	type Source = AssetHubWestend;
-	type Target = BridgeHubRococo;
+	type Target = AssetHubRococo;
 }
 
 impl MessagesCliBridge for AssetHubWestendToBridgeHubRococoMessagesCliBridge {
@@ -38,15 +37,15 @@ impl MessagesCliBridge for AssetHubWestendToBridgeHubRococoMessagesCliBridge {
 substrate_relay_helper::generate_receive_message_proof_call_builder!(
 	AssetHubWestendMessagesToBridgeHubRococoMessageLane,
 	AssetHubWestendMessagesToBridgeHubRococoMessageLaneReceiveMessagesProofCallBuilder,
-	relay_bridge_hub_rococo_client::RuntimeCall::BridgeWestendMessages,
-	relay_bridge_hub_rococo_client::BridgeMessagesCall::receive_messages_proof
+	relay_asset_hub_rococo_client::RuntimeCall::BridgeWestendMessages,
+	relay_asset_hub_rococo_client::BridgeMessagesCall::receive_messages_proof
 );
 
 substrate_relay_helper::generate_receive_message_delivery_proof_call_builder!(
 	AssetHubWestendMessagesToBridgeHubRococoMessageLane,
 	AssetHubWestendMessagesToBridgeHubRococoMessageLaneReceiveMessagesDeliveryProofCallBuilder,
 	relay_asset_hub_westend_client::RuntimeCall::BridgeRococoMessages,
-	relay_bridge_hub_westend_client::BridgeMessagesCall::receive_messages_delivery_proof
+	relay_asset_hub_westend_client::BridgeMessagesCall::receive_messages_delivery_proof
 );
 
 /// Description of AssetHubWestend -> BridgeHubRococo messages bridge.
@@ -55,7 +54,7 @@ pub struct AssetHubWestendMessagesToBridgeHubRococoMessageLane;
 
 impl SubstrateMessageLane for AssetHubWestendMessagesToBridgeHubRococoMessageLane {
 	type SourceChain = AssetHubWestend;
-	type TargetChain = BridgeHubRococo;
+	type TargetChain = AssetHubRococo;
 
 	type LaneId = bp_messages::LegacyLaneId;
 
@@ -64,6 +63,6 @@ impl SubstrateMessageLane for AssetHubWestendMessagesToBridgeHubRococoMessageLan
 	type ReceiveMessagesDeliveryProofCallBuilder =
 		AssetHubWestendMessagesToBridgeHubRococoMessageLaneReceiveMessagesDeliveryProofCallBuilder;
 
-	type SourceBatchCallBuilder = UtilityPalletBatchCallBuilder<AssetHubWestend>;
-	type TargetBatchCallBuilder = UtilityPalletBatchCallBuilder<BridgeHubRococo>;
+	type SourceBatchCallBuilder = ();
+	type TargetBatchCallBuilder = ();
 }

@@ -73,5 +73,5 @@ impl CliBridgeBase for AssetHubRococoToBridgeHubWestendCliBridge {
 
 impl MessagesCliBridge for AssetHubRococoToBridgeHubWestendCliBridge {
 	type MessagesLane =
-	crate::bridges::rococo_westend::asset_hub_rococo_messages_to_bridge_hub_westend::AssetHubRococoMessagesToBridgeHubWestendMessageLane;
+	crate::bridges::rococo_westend::asset_hub_rococo_messages_to_asset_hub_westend::AssetHubRococoMessagesToAssetHubWestendMessageLane;
 }

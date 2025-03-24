@@ -19,7 +19,7 @@
 use bp_polkadot_core::parachains::{ParaHash, ParaHeadsProof, ParaId};
 use relay_substrate_client::{CallOf, HeaderIdOf};
 use substrate_relay_helper::{
-	cli::bridge::{CliBridgeBase, MessagesCliBridge, ParachainToRelayHeadersCliBridge},
+	cli::bridge::{CliBridgeBase, ParachainToRelayHeadersCliBridge},
 	parachains::{SubmitParachainHeadsCallBuilder, SubstrateParachainsPipeline},
 };
 

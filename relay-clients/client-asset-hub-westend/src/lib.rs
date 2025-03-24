@@ -22,10 +22,9 @@ use bp_asset_hub_westend::AVERAGE_BLOCK_INTERVAL;
 use bp_polkadot_core::{SuffixedCommonTransactionExtension, SuffixedCommonTransactionExtensionExt};
 use codec::Encode;
 use relay_substrate_client::{
-	calls::UtilityCall as MockUtilityCall, Chain, ChainWithBalances, ChainWithMessages,
-	ChainWithRuntimeVersion, ChainWithTransactions, ChainWithUtilityPallet,
-	Error as SubstrateError, MockedRuntimeUtilityPallet, SignParam, SimpleRuntimeVersion,
-	UnderlyingChainProvider, UnsignedTransaction,
+	Chain, ChainWithBalances, ChainWithMessages, ChainWithRuntimeVersion, ChainWithTransactions,
+	Error as SubstrateError, SignParam, SimpleRuntimeVersion, UnderlyingChainProvider,
+	UnsignedTransaction,
 };
 use sp_core::{storage::StorageKey, Pair};
 use sp_runtime::{
@@ -54,7 +53,6 @@ pub type RuntimeCall = runtime_types::asset_hub_westend_runtime::RuntimeCall;
 pub type BridgeMessagesCall = runtime_types::pallet_bridge_messages::pallet::Call;
 type UncheckedExtrinsic =
 	bp_asset_hub_westend::UncheckedExtrinsic<RuntimeCall, TransactionExtension>;
-type UtilityCall = runtime_types::pallet_utility::pallet::Call;
 
 /// Westend chain definition
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -80,19 +78,6 @@ impl ChainWithBalances for AssetHubWestend {
 	fn account_info_storage_key(account_id: &Self::AccountId) -> StorageKey {
 		bp_asset_hub_westend::AccountInfoStorageMapKeyProvider::final_key(account_id)
 	}
-}
-
-impl From<MockUtilityCall<RuntimeCall>> for RuntimeCall {
-	fn from(value: MockUtilityCall<RuntimeCall>) -> RuntimeCall {
-		match value {
-			MockUtilityCall::batch_all(calls) =>
-				RuntimeCall::Utility(UtilityCall::batch_all { calls }),
-		}
-	}
-}
-
-impl ChainWithUtilityPallet for AssetHubWestend {
-	type UtilityPallet = MockedRuntimeUtilityPallet<RuntimeCall>;
 }
 
 impl ChainWithTransactions for AssetHubWestend {

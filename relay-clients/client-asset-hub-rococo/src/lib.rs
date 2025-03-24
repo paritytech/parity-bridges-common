@@ -22,10 +22,9 @@ use bp_asset_hub_rococo::AVERAGE_BLOCK_INTERVAL;
 use bp_polkadot_core::{SuffixedCommonTransactionExtension, SuffixedCommonTransactionExtensionExt};
 use codec::Encode;
 use relay_substrate_client::{
-	calls::UtilityCall as MockUtilityCall, Chain, ChainWithBalances, ChainWithMessages,
-	ChainWithRuntimeVersion, ChainWithTransactions, ChainWithUtilityPallet,
-	Error as SubstrateError, MockedRuntimeUtilityPallet, SignParam, SimpleRuntimeVersion,
-	UnderlyingChainProvider, UnsignedTransaction,
+	Chain, ChainWithBalances, ChainWithMessages, ChainWithRuntimeVersion, ChainWithTransactions,
+	Error as SubstrateError, SignParam, SimpleRuntimeVersion, UnderlyingChainProvider,
+	UnsignedTransaction,
 };
 use sp_core::{storage::StorageKey, Pair};
 use sp_runtime::{
@@ -80,19 +79,6 @@ impl ChainWithBalances for AssetHubRococo {
 	fn account_info_storage_key(account_id: &Self::AccountId) -> StorageKey {
 		bp_asset_hub_rococo::AccountInfoStorageMapKeyProvider::final_key(account_id)
 	}
-}
-
-impl From<MockUtilityCall<RuntimeCall>> for RuntimeCall {
-	fn from(value: MockUtilityCall<RuntimeCall>) -> RuntimeCall {
-		match value {
-			MockUtilityCall::batch_all(calls) =>
-				RuntimeCall::Utility(UtilityCall::batch_all { calls }),
-		}
-	}
-}
-
-impl ChainWithUtilityPallet for AssetHubRococo {
-	type UtilityPallet = MockedRuntimeUtilityPallet<RuntimeCall>;
 }
 
 impl ChainWithTransactions for AssetHubRococo {
