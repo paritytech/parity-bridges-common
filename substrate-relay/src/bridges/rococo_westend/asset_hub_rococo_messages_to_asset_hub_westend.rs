@@ -56,7 +56,7 @@ impl SubstrateMessageLane for AssetHubRococoMessagesToAssetHubWestendMessageLane
 	type SourceChain = AssetHubRococo;
 	type TargetChain = AssetHubWestend;
 
-	type LaneId = bp_messages::LegacyLaneId;
+	type LaneId = bp_messages::HashedLaneId;
 
 	type ReceiveMessagesProofCallBuilder =
 		AssetHubRococoMessagesToAssetHubWestendMessageLaneReceiveMessagesProofCallBuilder;

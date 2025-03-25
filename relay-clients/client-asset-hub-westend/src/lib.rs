@@ -44,9 +44,9 @@ use bp_runtime::extensions::{
 pub type CheckMetadataHash = GenericTransactionExtensionSchema<Mode, Option<[u8; 32]>>;
 
 pub type TransactionExtension = SuffixedCommonTransactionExtension<(
+	CheckMetadataHash,
 	BridgeRejectObsoleteHeadersAndMessages,
 	RefundBridgedParachainMessagesSchema,
-	CheckMetadataHash,
 )>;
 
 pub type RuntimeCall = runtime_types::asset_hub_westend_runtime::RuntimeCall;
