@@ -111,9 +111,13 @@ impl RelayParachainHead {
 			RelayParachainsBridge::BridgeHubWestendToBridgeHubRococo =>
 				BridgeHubWestendToBridgeHubRococoCliBridge::relay_parachain_head(self.params),
 			RelayParachainsBridge::AssetHubRococoToBridgeHubWestend =>
-				AssetHubRococoToBridgeHubWestendParachainsCliBridge::relay_parachain_head(self.params),
+				AssetHubRococoToBridgeHubWestendParachainsCliBridge::relay_parachain_head(
+					self.params,
+				),
 			RelayParachainsBridge::AssetHubWestendToBridgeHubRococo =>
-				AssetHubWestendToBridgeHubRococoParachainsCliBridge::relay_parachain_head(self.params),
+				AssetHubWestendToBridgeHubRococoParachainsCliBridge::relay_parachain_head(
+					self.params,
+				),
 			RelayParachainsBridge::BridgeHubKusamaToBridgeHubPolkadot =>
 				BridgeHubKusamaToBridgeHubPolkadotCliBridge::relay_parachain_head(self.params),
 			RelayParachainsBridge::BridgeHubPolkadotToBridgeHubKusama =>

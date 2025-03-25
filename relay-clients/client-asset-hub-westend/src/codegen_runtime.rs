@@ -331,8 +331,6 @@ pub mod api {
 			pub mod lane {
 				use super::runtime_types;
 				#[derive(::codec::Decode, ::codec::Encode, Clone, Debug, PartialEq)]
-				pub struct HashedLaneId(pub ::subxt::ext::subxt_core::utils::H256);
-				#[derive(::codec::Decode, ::codec::Encode, Clone, Debug, PartialEq)]
 				pub enum LaneState {
 					#[codec(index = 0)]
 					Opened,
@@ -514,7 +512,7 @@ pub mod api {
 						::core::primitive::u128,
 					>,
 				>,
-				pub lane_id: runtime_types::bp_messages::lane::HashedLaneId,
+				pub lane_id: ::bp_messages::HashedLaneId,
 				pub maybe_notify: ::core::option::Option<runtime_types::bp_xcm_bridge::Receiver>,
 			}
 			#[derive(::codec::Decode, ::codec::Encode, Clone, Debug, PartialEq)]
@@ -3129,7 +3127,7 @@ pub mod api {
 						proof: ::subxt::ext::subxt_core::alloc::boxed::Box<
 							::bp_messages::target_chain::FromBridgedChainMessagesProof<
 								::subxt::ext::subxt_core::utils::H256,
-								runtime_types::bp_messages::lane::HashedLaneId,
+								::bp_messages::HashedLaneId,
 							>,
 						>,
 						messages_count: ::core::primitive::u32,
@@ -3139,7 +3137,7 @@ pub mod api {
 					receive_messages_delivery_proof {
 						proof: ::bp_messages::source_chain::FromBridgedChainMessagesDeliveryProof<
 							::subxt::ext::subxt_core::utils::H256,
-							runtime_types::bp_messages::lane::HashedLaneId,
+							::bp_messages::HashedLaneId,
 						>,
 						relayers_state: ::bp_messages::UnrewardedRelayersState,
 					},
@@ -3177,19 +3175,19 @@ pub mod api {
 				pub enum Event {
 					#[codec(index = 0)]
                     MessageAccepted {
-                        lane_id: runtime_types::bp_messages::lane::HashedLaneId,
+                        lane_id: ::bp_messages::HashedLaneId,
                         nonce: ::core::primitive::u64,
                     },
                     #[codec(index = 1)]
                     MessagesReceived(
                         runtime_types::bp_messages::ReceivedMessages<
                             runtime_types::pallet_xcm_bridge::dispatcher::XcmBlobMessageDispatchResult,
-                            runtime_types::bp_messages::lane::HashedLaneId,
+                            ::bp_messages::HashedLaneId,
                         >,
                     ),
                     #[codec(index = 2)]
                     MessagesDelivered {
-                        lane_id: runtime_types::bp_messages::lane::HashedLaneId,
+                        lane_id: ::bp_messages::HashedLaneId,
                         messages: runtime_types::bp_messages::DeliveredMessages,
                     },
                 }
@@ -3209,7 +3207,7 @@ pub mod api {
 					#[codec(index = 0)]
 					claim_rewards {
 						rewards_account_params: runtime_types::bp_relayers::RewardsAccountParams<
-							runtime_types::bp_messages::lane::HashedLaneId,
+							::bp_messages::HashedLaneId,
 						>,
 					},
 					#[codec(index = 1)]
@@ -3242,7 +3240,7 @@ pub mod api {
 					RewardRegistered {
 						relayer: ::sp_core::crypto::AccountId32,
 						rewards_account_params: runtime_types::bp_relayers::RewardsAccountParams<
-							runtime_types::bp_messages::lane::HashedLaneId,
+							::bp_messages::HashedLaneId,
 						>,
 						reward: ::core::primitive::u128,
 					},
@@ -3250,7 +3248,7 @@ pub mod api {
 					RewardPaid {
 						relayer: ::sp_core::crypto::AccountId32,
 						rewards_account_params: runtime_types::bp_relayers::RewardsAccountParams<
-							runtime_types::bp_messages::lane::HashedLaneId,
+							::bp_messages::HashedLaneId,
 						>,
 						reward: ::core::primitive::u128,
 					},
@@ -6324,19 +6322,19 @@ pub mod api {
 						remote_endpoint: ::subxt::ext::subxt_core::alloc::boxed::Box<
 							runtime_types::staging_xcm::v5::junctions::Junctions,
 						>,
-						lane_id: runtime_types::bp_messages::lane::HashedLaneId,
+						lane_id: ::bp_messages::HashedLaneId,
 					},
 					#[codec(index = 1)]
 					ClosingBridge {
 						bridge_id: runtime_types::bp_xcm_bridge::BridgeId,
-						lane_id: runtime_types::bp_messages::lane::HashedLaneId,
+						lane_id: ::bp_messages::HashedLaneId,
 						pruned_messages: ::core::primitive::u64,
 						enqueued_messages: ::core::primitive::u64,
 					},
 					#[codec(index = 2)]
 					BridgePruned {
 						bridge_id: runtime_types::bp_xcm_bridge::BridgeId,
-						lane_id: runtime_types::bp_messages::lane::HashedLaneId,
+						lane_id: ::bp_messages::HashedLaneId,
 						bridge_deposit: ::core::option::Option<
 							runtime_types::bp_xcm_bridge::Deposit<
 								::sp_core::crypto::AccountId32,

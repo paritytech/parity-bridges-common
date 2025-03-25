@@ -97,7 +97,7 @@ impl ChainWithTransactions for AssetHubWestend {
 				param.genesis_hash,
 				unsigned.nonce,
 				unsigned.tip,
-				(((), (), Mode::Disabled), ((), (), None)),
+				((Mode::Disabled, (), ()), (None, (), ())),
 			),
 		)?;
 

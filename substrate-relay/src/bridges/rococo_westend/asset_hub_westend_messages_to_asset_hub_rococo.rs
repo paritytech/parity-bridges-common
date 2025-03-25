@@ -23,14 +23,14 @@ use substrate_relay_helper::{
 	messages::SubstrateMessageLane,
 };
 
-pub struct AssetHubWestendToBridgeHubRococoMessagesCliBridge {}
+pub struct AssetHubWestendToAssetHubRococoMessagesCliBridge {}
 
-impl CliBridgeBase for AssetHubWestendToBridgeHubRococoMessagesCliBridge {
+impl CliBridgeBase for AssetHubWestendToAssetHubRococoMessagesCliBridge {
 	type Source = AssetHubWestend;
 	type Target = AssetHubRococo;
 }
 
-impl MessagesCliBridge for AssetHubWestendToBridgeHubRococoMessagesCliBridge {
+impl MessagesCliBridge for AssetHubWestendToAssetHubRococoMessagesCliBridge {
 	type MessagesLane = AssetHubWestendMessagesToBridgeHubRococoMessageLane;
 }
 

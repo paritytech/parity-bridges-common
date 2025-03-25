@@ -98,7 +98,7 @@ impl ChainWithTransactions for AssetHubRococo {
 				param.genesis_hash,
 				unsigned.nonce,
 				unsigned.tip,
-				(((), (), Mode::Disabled), ((), (), None)),
+				((Mode::Disabled, (), ()), (None, (), ())),
 			),
 		)?;
 
