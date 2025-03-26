@@ -16,7 +16,7 @@ subxt = { version = "0.40.0", default-features = false, features = ["native"] }
 
 # Bridge dependencies
 
-bp-kusama = { git = "https://github.com/paritytech/polkadot-sdk", branch = "master" }
+bp-kusama = { path = "../../chains/chain-kusama" }
 bp-polkadot-core = { git = "https://github.com/paritytech/polkadot-sdk", branch = "master" }
 bp-runtime = { git = "https://github.com/paritytech/polkadot-sdk", branch = "master" }
 

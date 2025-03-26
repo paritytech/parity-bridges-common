@@ -27,13 +27,13 @@ signal-hook-async-std = "0.2.2"
 strum = { version = "0.27.1", features = ["derive"] }
 
 # Bridge dependencies
-bp-bridge-hub-polkadot = { git = "https://github.com/paritytech/polkadot-sdk", branch = "master" }
+bp-bridge-hub-polkadot = { path = "../chains/chain-bridge-hub-polkadot" }
 bp-bridge-hub-rococo = { git = "https://github.com/paritytech/polkadot-sdk", branch = "master" }
 bp-header-chain = { git = "https://github.com/paritytech/polkadot-sdk", branch = "master" }
 bp-messages = { git = "https://github.com/paritytech/polkadot-sdk", branch = "master" }
 bp-parachains = { git = "https://github.com/paritytech/polkadot-sdk", branch = "master" }
 bp-polkadot-bulletin = { git = "https://github.com/paritytech/polkadot-sdk", branch = "master" }
-bp-polkadot = { git = "https://github.com/paritytech/polkadot-sdk", branch = "master" }
+bp-polkadot = { path = "../chains/chain-polkadot" }
 bp-polkadot-core = { git = "https://github.com/paritytech/polkadot-sdk", branch = "master" }
 bp-rococo = { git = "https://github.com/paritytech/polkadot-sdk", branch = "master" }
 bp-runtime = { git = "https://github.com/paritytech/polkadot-sdk", branch = "master" }
