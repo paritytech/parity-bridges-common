@@ -16,6 +16,10 @@ members = [
 	"relay-clients/client-polkadot-bulletin",
 	"relay-clients/client-rococo",
 	"relay-clients/client-westend",
+	"chains/chain-bridge-hub-polkadot",
+	"chains/chain-bridge-hub-kusama",
+	"chains/chain-polkadot",
+	"chains/chain-kusama",
 	"substrate-relay",
 ]
 

@@ -16,13 +16,13 @@ subxt = { version = "0.40.0", default-features = false, features = ["native"] }
 
 # Bridge dependencies
 
-bp-bridge-hub-polkadot = { git = "https://github.com/paritytech/polkadot-sdk", branch = "master" }
+bp-bridge-hub-polkadot = { path = "../../chains/chain-bridge-hub-polkadot" }
 bp-header-chain = { git = "https://github.com/paritytech/polkadot-sdk", branch = "master" }
 bp-messages = { git = "https://github.com/paritytech/polkadot-sdk", branch = "master" }
 bp-parachains = { git = "https://github.com/paritytech/polkadot-sdk", branch = "master" }
-bp-polkadot = { git = "https://github.com/paritytech/polkadot-sdk", branch = "master" }
+bp-polkadot = { path = "../../chains/chain-polkadot" }
 bp-polkadot-core = { git = "https://github.com/paritytech/polkadot-sdk", branch = "master" }
-bp-kusama = { git = "https://github.com/paritytech/polkadot-sdk", branch = "master" }
+bp-kusama = { path = "../../chains/chain-kusama" }
 bp-runtime = { git = "https://github.com/paritytech/polkadot-sdk", branch = "master" }
 bridge-runtime-common = { git = "https://github.com/paritytech/polkadot-sdk", branch = "master" }
 relay-substrate-client = { git = "https://github.com/paritytech/polkadot-sdk", branch = "master" }
