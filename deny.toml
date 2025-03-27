@@ -41,17 +41,19 @@ yanked = "warn"
 # A list of advisory IDs to ignore. Note that ignored advisories will still
 # output a note when they are encountered.
 ignore = [
-	{id = "RUSTSEC-2021-0139", reason = "Command line parser of runtime-codegen unlikely to be an attack route."},
-	{id = "RUSTSEC-2024-0375", reason = "Command line parser of runtime-codegen unlikely to be an attack route."},
-	{id = "RUSTSEC-2021-0145", reason = "Command line parser of runtime-codegen unlikely to be an attack route."},
-	{id = "RUSTSEC-2025-0012", reason = "Very simple and rarely updated backoff crate, and too difficult to replace."},
-	{id = "RUSTSEC-2024-0384", reason = "Required by multiple other dependencies, rarely updated"},
-	{id = "RUSTSEC-2020-0168", reason = "Required by wasmtime."},
-	{id = "RUSTSEC-2024-0436", reason = "Required by wasmtime."},
-	{id = "RUSTSEC-2024-0370", reason = "Required by multiple other dependencies"},
-	{id = "RUSTSEC-2025-0010", reason = "Required by multiple other dependencies"},
-	{id = "RUSTSEC-2025-0009", reason = "Required by multiple other dependencies"},
-	{id = "RUSTSEC-2024-0336", reason = "Required by many other dependencies"}
+	{id = "RUSTSEC-2021-0139", reason = "ansi-term: Command line parser of runtime-codegen unlikely to be an attack route."},
+	{id = "RUSTSEC-2024-0375", reason = "atty: Command line parser of runtime-codegen unlikely to be an attack route."},
+	{id = "RUSTSEC-2021-0145", reason = "atty: Command line parser of runtime-codegen unlikely to be an attack route."},
+	{id = "RUSTSEC-2025-0012", reason = "backoff: Very simple and rarely updated backoff crate, and too difficult to replace."},
+	{id = "RUSTSEC-2024-0384", reason = "instant: Required by multiple other dependencies, rarely updated"},
+	{id = "RUSTSEC-2020-0168", reason = "mach: Required by wasmtime."},
+	{id = "RUSTSEC-2024-0436", reason = "paste: Required by wasmtime."},
+	{id = "RUSTSEC-2024-0370", reason = "proc-macro-error: Required by multiple other dependencies"},
+	{id = "RUSTSEC-2025-0010", reason = "ring: Required by multiple other dependencies"},
+	{id = "RUSTSEC-2025-0009", reason = "ring: Required by multiple other dependencies"},
+	{id = "RUSTSEC-2024-0336", reason = "rustls: Required by many other dependencies"},
+	{id = "RUSTSEC-2024-0421", reason = "idna: Required by multiple other dependencies"},
+    {id = "RUSTSEC-2022-0061", reason = "parity-wasm: Still used by parts of polkadot-sdk despite deprecation."}
 ]
 # Threshold for security vulnerabilities, any vulnerability with a CVSS score
 # lower than the range specified will be ignored. Note that ignored advisories
