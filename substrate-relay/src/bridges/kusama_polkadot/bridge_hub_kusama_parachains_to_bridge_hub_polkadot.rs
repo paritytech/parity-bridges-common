@@ -23,7 +23,7 @@ use substrate_relay_helper::{
 	parachains::{SubmitParachainHeadsCallBuilder, SubstrateParachainsPipeline},
 };
 
-/// Kusama-to-BridgeHubPolkadot parachain sync description.
+/// BridgeHubKusama-to-BridgeHubPolkadot parachain sync description.
 #[derive(Clone, Debug)]
 pub struct BridgeHubKusamaToBridgeHubPolkadot;
 
@@ -55,7 +55,7 @@ impl SubmitParachainHeadsCallBuilder<BridgeHubKusamaToBridgeHubPolkadot>
 	}
 }
 
-/// Kusama-to-BridgeHubPolkadot parachain sync description for the CLI.
+/// BridgeHubKusama-to-BridgeHubPolkadot parachain sync description for the CLI.
 pub struct BridgeHubKusamaToBridgeHubPolkadotCliBridge {}
 
 impl ParachainToRelayHeadersCliBridge for BridgeHubKusamaToBridgeHubPolkadotCliBridge {

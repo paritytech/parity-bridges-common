@@ -14,7 +14,7 @@
 // You should have received a copy of the GNU General Public License
 // along with Parity Bridges Common.  If not, see <http://www.gnu.org/licenses/>.
 
-//! Polkadot-to-BridgeHubKusama parachains sync entrypoint.
+//! BridgeHubPolkadot-to-BridgeHubKusama parachains sync entrypoint.
 
 use bp_polkadot_core::parachains::{ParaHash, ParaHeadsProof, ParaId};
 use relay_substrate_client::{CallOf, HeaderIdOf};
@@ -23,7 +23,7 @@ use substrate_relay_helper::{
 	parachains::{SubmitParachainHeadsCallBuilder, SubstrateParachainsPipeline},
 };
 
-/// Polkadot-to-BridgeHubKusama parachain sync description.
+/// BridgeHubPolkadot-to-BridgeHubKusama parachain sync description.
 #[derive(Clone, Debug)]
 pub struct BridgeHubPolkadotToBridgeHubKusama;
 
@@ -55,7 +55,7 @@ impl SubmitParachainHeadsCallBuilder<BridgeHubPolkadotToBridgeHubKusama>
 	}
 }
 
-/// Polkadot-to-BridgeHubKusama parachain sync description for the CLI.
+/// BridgeHubPolkadot-to-BridgeHubKusama parachain sync description for the CLI.
 pub struct BridgeHubPolkadotToBridgeHubKusamaCliBridge {}
 
 impl ParachainToRelayHeadersCliBridge for BridgeHubPolkadotToBridgeHubKusamaCliBridge {

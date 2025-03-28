@@ -18,10 +18,8 @@ use clap::Parser as ClapParser;
 use codec::{Decode, Encode};
 use color_eyre::eyre;
 use std::{env, path::PathBuf};
+use subxt_codegen::{syn, CodegenBuilder, Metadata};
 use subxt_utils_fetchmetadata::{from_url_blocking, MetadataVersion, Url};
-use subxt_codegen::{
-	syn, CodegenBuilder, Metadata,
-};
 use wasm_testbed::WasmTestBed;
 
 /// Command for generating indirect runtimes code.
@@ -164,6 +162,7 @@ fn main() -> color_eyre::Result<()> {
 			"::sp_runtime::generic::Digest",
 		),
 		TypeSubstitute::custom("bp_messages::lane::LegacyLaneId", "::bp_messages::LegacyLaneId"),
+		TypeSubstitute::custom("bp_messages::lane::HashedLaneId", "::bp_messages::HashedLaneId"),
 	];
 	for type_substitute in type_substitutes {
 		codegen_builder.set_type_substitute(type_substitute.subxt_type, type_substitute.substitute);
