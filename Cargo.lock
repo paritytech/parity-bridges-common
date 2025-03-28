@@ -1286,19 +1286,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "bp-polkadot"
-version = "0.5.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=master#5f6c8e8fd20f19de0b592ef2413e934e97c9bc68"
-dependencies = [
- "bp-header-chain",
- "bp-polkadot-core",
- "bp-runtime",
- "frame-support",
- "sp-api",
- "sp-std 14.0.0",
-]
-
-[[package]]
 name = "bp-polkadot-bulletin"
 version = "0.4.0"
 source = "git+https://github.com/paritytech/polkadot-sdk?branch=master#5f6c8e8fd20f19de0b592ef2413e934e97c9bc68"
@@ -7028,7 +7015,7 @@ dependencies = [
  "bp-kusama",
  "bp-messages",
  "bp-parachains",
- "bp-polkadot 0.5.0",
+ "bp-polkadot",
  "bp-polkadot-core",
  "bp-runtime",
  "bridge-runtime-common",
@@ -7128,7 +7115,7 @@ dependencies = [
 name = "relay-polkadot-client"
 version = "0.1.0"
 dependencies = [
- "bp-polkadot 0.5.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
+ "bp-polkadot",
  "bp-polkadot-core",
  "bp-runtime",
  "parity-scale-codec",
@@ -9523,7 +9510,7 @@ dependencies = [
 
 [[package]]
 name = "substrate-relay"
-version = "1.8.1"
+version = "1.8.2"
 dependencies = [
  "anyhow",
  "async-std",
@@ -9533,7 +9520,7 @@ dependencies = [
  "bp-header-chain",
  "bp-messages",
  "bp-parachains",
- "bp-polkadot 0.5.0",
+ "bp-polkadot",
  "bp-polkadot-bulletin",
  "bp-polkadot-core",
  "bp-rococo",

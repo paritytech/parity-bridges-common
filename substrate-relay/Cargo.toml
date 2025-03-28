@@ -1,6 +1,6 @@
 [package]
 name = "substrate-relay"
-version = "1.8.1"
+version = "1.8.2"
 authors.workspace = true
 edition.workspace = true
 license = "GPL-3.0-or-later WITH Classpath-exception-2.0"
@@ -10,58 +10,58 @@ repository.workspace = true
 workspace = true
 
 [dependencies]
-anyhow = "1.0"
-async-std = "1.13.1"
-async-trait = "0.1.88"
-codec = { package = "parity-scale-codec", version = "3.7.4" }
-env_logger = "0.11"
-futures = "0.3.31"
-hex = "0.4"
+anyhow = { workspace = true }
+async-std = { workspace = true }
+async-trait = { workspace = true }
+codec = { workspace = true }
+env_logger = { workspace = true }
+futures = { workspace = true }
+hex = { workspace = true }
 log = { workspace = true }
-num-format = "0.4"
-num-traits = "0.2"
-rbtag = "0.3"
-structopt = "0.3"
-signal-hook = "0.3.15"
-signal-hook-async-std = "0.2.2"
-strum = { version = "0.27.1", features = ["derive"] }
+num-format = { workspace = true }
+num-traits = { workspace = true }
+rbtag = { workspace = true }
+structopt = { workspace = true }
+signal-hook = { workspace = true }
+signal-hook-async-std = { workspace = true }
+strum = { workspace = true }
 
 # Bridge dependencies
-bp-bridge-hub-polkadot = { path = "../chains/chain-bridge-hub-polkadot" }
-bp-bridge-hub-rococo = { git = "https://github.com/paritytech/polkadot-sdk", branch = "master" }
-bp-header-chain = { git = "https://github.com/paritytech/polkadot-sdk", branch = "master" }
-bp-messages = { git = "https://github.com/paritytech/polkadot-sdk", branch = "master" }
-bp-parachains = { git = "https://github.com/paritytech/polkadot-sdk", branch = "master" }
-bp-polkadot-bulletin = { git = "https://github.com/paritytech/polkadot-sdk", branch = "master" }
-bp-polkadot = { path = "../chains/chain-polkadot" }
-bp-polkadot-core = { git = "https://github.com/paritytech/polkadot-sdk", branch = "master" }
-bp-rococo = { git = "https://github.com/paritytech/polkadot-sdk", branch = "master" }
-bp-runtime = { git = "https://github.com/paritytech/polkadot-sdk", branch = "master" }
-bridge-runtime-common = { git = "https://github.com/paritytech/polkadot-sdk", branch = "master" }
-pallet-bridge-parachains = { git = "https://github.com/paritytech/polkadot-sdk", branch = "master" }
-parachains-relay = { git = "https://github.com/paritytech/polkadot-sdk", branch = "master" }
-relay-bridge-hub-kusama-client = { path = "../relay-clients/client-bridge-hub-kusama" }
-relay-bridge-hub-polkadot-client = { path = "../relay-clients/client-bridge-hub-polkadot" }
-relay-bridge-hub-rococo-client = { path = "../relay-clients/client-bridge-hub-rococo" }
-relay-bridge-hub-westend-client = { path = "../relay-clients/client-bridge-hub-westend" }
-relay-kusama-client = { path = "../relay-clients/client-kusama" }
-relay-polkadot-client = { path = "../relay-clients/client-polkadot" }
-relay-polkadot-bulletin-client = { path = "../relay-clients/client-polkadot-bulletin" }
-relay-rococo-client = { path = "../relay-clients/client-rococo" }
-relay-substrate-client = { git = "https://github.com/paritytech/polkadot-sdk", branch = "master" }
-relay-utils = { git = "https://github.com/paritytech/polkadot-sdk", branch = "master" }
-relay-westend-client = { path = "../relay-clients/client-westend" }
-substrate-relay-helper = { git = "https://github.com/paritytech/polkadot-sdk", branch = "master" }
+bp-bridge-hub-polkadot = { workspace = true }
+bp-bridge-hub-rococo = { workspace = true }
+bp-header-chain = { workspace = true }
+bp-messages = { workspace = true }
+bp-parachains = { workspace = true }
+bp-polkadot-bulletin = { workspace = true }
+bp-polkadot = { workspace = true }
+bp-polkadot-core = { workspace = true }
+bp-rococo = { workspace = true }
+bp-runtime = { workspace = true }
+bridge-runtime-common = { workspace = true }
+pallet-bridge-parachains = { workspace = true }
+parachains-relay = { workspace = true }
+relay-bridge-hub-kusama-client = { workspace = true }
+relay-bridge-hub-polkadot-client = { workspace = true }
+relay-bridge-hub-rococo-client = { workspace = true }
+relay-bridge-hub-westend-client = { workspace = true }
+relay-kusama-client = { workspace = true }
+relay-polkadot-client = { workspace = true }
+relay-polkadot-bulletin-client = { workspace = true }
+relay-rococo-client = { workspace = true }
+relay-substrate-client = { workspace = true }
+relay-utils = { workspace = true }
+relay-westend-client = { workspace = true }
+substrate-relay-helper = { workspace = true }
 
 # Substrate Dependencies
 
-frame-support = { git = "https://github.com/paritytech/polkadot-sdk", branch = "master" }
-sp-core = { git = "https://github.com/paritytech/polkadot-sdk", branch = "master" }
-sp-runtime = { git = "https://github.com/paritytech/polkadot-sdk", branch = "master" }
+frame-support = { workspace = true }
+sp-core = { workspace = true }
+sp-runtime = { workspace = true }
 
 [dev-dependencies]
-bp-test-utils = { git = "https://github.com/paritytech/polkadot-sdk", branch = "master" }
-hex-literal = "0.4"
-sp-keyring = { git = "https://github.com/paritytech/polkadot-sdk", branch = "master" }
-tempfile = "3.19"
-finality-grandpa = { version = "0.16.2" }
+bp-test-utils = { workspace = true }
+hex-literal = { workspace = true }
+sp-keyring = { workspace = true }
+tempfile = { workspace = true }
+finality-grandpa = { workspace = true }

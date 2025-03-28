@@ -10,24 +10,24 @@ repository.workspace = true
 workspace = true
 
 [dependencies]
-codec = { package = "parity-scale-codec", version = "3.7.4", features = ["derive"] }
-scale-info = { version = "2.11.6", default-features = false, features = ["derive"] }
-subxt = { version = "0.40.0", default-features = false, features = ["native"] }
+codec = { workspace = true }
+scale-info = { workspace = true }
+subxt = { workspace = true }
 
 # Bridge dependencies
 
-bp-bridge-hub-rococo = { git = "https://github.com/paritytech/polkadot-sdk", branch = "master" }
-bp-header-chain = { git = "https://github.com/paritytech/polkadot-sdk", branch = "master" }
-bp-messages = { git = "https://github.com/paritytech/polkadot-sdk", branch = "master" }
-bp-parachains = { git = "https://github.com/paritytech/polkadot-sdk", branch = "master" }
-bp-polkadot-core = { git = "https://github.com/paritytech/polkadot-sdk", branch = "master" }
-bp-runtime = { git = "https://github.com/paritytech/polkadot-sdk", branch = "master" }
+bp-bridge-hub-rococo = { workspace = true }
+bp-header-chain = { workspace = true }
+bp-messages = { workspace = true }
+bp-parachains = { workspace = true }
+bp-polkadot-core = { workspace = true }
+bp-runtime = { workspace = true }
 
-bridge-runtime-common = { git = "https://github.com/paritytech/polkadot-sdk", branch = "master" }
-relay-substrate-client = { git = "https://github.com/paritytech/polkadot-sdk", branch = "master" }
+bridge-runtime-common = { workspace = true }
+relay-substrate-client = { workspace = true }
 
 # Substrate Dependencies
 
-sp-core = { git = "https://github.com/paritytech/polkadot-sdk", branch = "master" }
-sp-runtime = { git = "https://github.com/paritytech/polkadot-sdk", branch = "master" }
-sp-weights = { git = "https://github.com/paritytech/polkadot-sdk", branch = "master" }
+sp-core = { workspace = true }
+sp-runtime = { workspace = true }
+sp-weights = { workspace = true }

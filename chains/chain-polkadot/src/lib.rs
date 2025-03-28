@@ -43,7 +43,7 @@ impl Chain for Polkadot {
 	type Nonce = Nonce;
 	type Signature = Signature;
 
-	const STATE_VERSION: StateVersion = StateVersion::V0;
+	const STATE_VERSION: StateVersion = StateVersion::V1;
 
 	fn max_extrinsic_size() -> u32 {
 		max_extrinsic_size()
