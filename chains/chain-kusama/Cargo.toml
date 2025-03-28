@@ -15,15 +15,15 @@ workspace = true
 
 # Bridge Dependencies
 
-bp-header-chain = { git = "https://github.com/paritytech/polkadot-sdk.git", branch="master"}
-bp-polkadot-core = { git = "https://github.com/paritytech/polkadot-sdk.git", branch="master"}
-bp-runtime = { git = "https://github.com/paritytech/polkadot-sdk.git", branch="master"}
+bp-header-chain = { workspace = true }
+bp-polkadot-core = { workspace = true }
+bp-runtime = { workspace = true }
 
 # Substrate Based Dependencies
 
-frame-support = { git = "https://github.com/paritytech/polkadot-sdk.git", branch="master"}
-sp-api = { git = "https://github.com/paritytech/polkadot-sdk.git", branch="master"}
-sp-std = { git = "https://github.com/paritytech/polkadot-sdk.git", branch="master"}
+frame-support = { workspace = true }
+sp-api = { workspace = true }
+sp-std = { workspace = true }
 
 [features]
 default = ["std"]
