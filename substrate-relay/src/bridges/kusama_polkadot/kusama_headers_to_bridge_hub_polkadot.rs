@@ -31,11 +31,11 @@ use substrate_relay_helper::{
 #[derive(Clone, Debug)]
 pub struct KusamaFinalityToBridgeHubPolkadot;
 
-substrate_relay_helper::generate_submit_finality_proof_call_builder!(
+substrate_relay_helper::generate_submit_finality_proof_ex_call_builder!(
 	KusamaFinalityToBridgeHubPolkadot,
 	SubmitFinalityProofCallBuilder,
 	relay_bridge_hub_polkadot_client::RuntimeCall::BridgeKusamaGrandpa,
-	relay_bridge_hub_polkadot_client::BridgeKusamaGrandpaCall::submit_finality_proof
+	relay_bridge_hub_polkadot_client::BridgeKusamaGrandpaCall::submit_finality_proof_ex
 );
 
 substrate_relay_helper::generate_report_equivocation_call_builder!(
