@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 set -xeu
 
 # This will allow us to run whichever binary the user wanted

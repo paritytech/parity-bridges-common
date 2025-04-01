@@ -1142,6 +1142,19 @@ dependencies = [
 [[package]]
 name = "bp-bridge-hub-kusama"
 version = "0.6.0"
+dependencies = [
+ "bp-bridge-hub-cumulus",
+ "bp-messages",
+ "bp-runtime",
+ "frame-support",
+ "sp-api",
+ "sp-runtime",
+ "sp-std 14.0.0",
+]
+
+[[package]]
+name = "bp-bridge-hub-kusama"
+version = "0.6.0"
 source = "git+https://github.com/paritytech/polkadot-sdk?branch=master#5f6c8e8fd20f19de0b592ef2413e934e97c9bc68"
 dependencies = [
  "bp-bridge-hub-cumulus",
@@ -1156,7 +1169,6 @@ dependencies = [
 [[package]]
 name = "bp-bridge-hub-polkadot"
 version = "0.6.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=master#5f6c8e8fd20f19de0b592ef2413e934e97c9bc68"
 dependencies = [
  "bp-bridge-hub-cumulus",
  "bp-messages",
@@ -1219,7 +1231,6 @@ dependencies = [
 [[package]]
 name = "bp-kusama"
 version = "0.5.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=master#5f6c8e8fd20f19de0b592ef2413e934e97c9bc68"
 dependencies = [
  "bp-header-chain",
  "bp-polkadot-core",
@@ -1265,7 +1276,6 @@ dependencies = [
 [[package]]
 name = "bp-polkadot"
 version = "0.5.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=master#5f6c8e8fd20f19de0b592ef2413e934e97c9bc68"
 dependencies = [
  "bp-header-chain",
  "bp-polkadot-core",
@@ -4914,9 +4924,9 @@ dependencies = [
 
 [[package]]
 name = "log"
-version = "0.4.26"
+version = "0.4.27"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "30bde2b3dc3671ae49d8e2e9f044c7c005836e7a023ee57cffa25ab82764bb9e"
+checksum = "13dc2df351e3202783a1fe0d44375f7295ffb4049267b0f3018346dc122a1d94"
 dependencies = [
  "value-bag",
 ]
@@ -6980,7 +6990,7 @@ checksum = "2b15c43186be67a4fd63bee50d0303afffcef381492ebe2c5d87f324e1b8815c"
 name = "relay-bridge-hub-kusama-client"
 version = "0.1.0"
 dependencies = [
- "bp-bridge-hub-kusama",
+ "bp-bridge-hub-kusama 0.6.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
  "bp-header-chain",
  "bp-messages",
  "bp-parachains",
@@ -9500,7 +9510,7 @@ dependencies = [
 
 [[package]]
 name = "substrate-relay"
-version = "1.8.1"
+version = "1.8.2"
 dependencies = [
  "anyhow",
  "async-std",
@@ -9854,9 +9864,9 @@ checksum = "9d0e916b1148c8e263850e1ebcbd046f333e0683c724876bb0da63ea4373dc8a"
 
 [[package]]
 name = "tempfile"
-version = "3.19.0"
+version = "3.19.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "488960f40a3fd53d72c2a29a58722561dee8afdd175bd88e3db4677d7b2ba600"
+checksum = "7437ac7763b9b123ccf33c338a5cc1bac6f69b45a136c19bdd8a65e3916435bf"
 dependencies = [
  "fastrand 2.3.0",
  "getrandom 0.3.1",
