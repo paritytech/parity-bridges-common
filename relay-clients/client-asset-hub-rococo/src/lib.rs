@@ -116,9 +116,6 @@ impl ChainWithTransactions for AssetHubRococo {
 }
 
 impl ChainWithMessages for AssetHubRococo {
-	const WITH_CHAIN_RELAYERS_PALLET_NAME: Option<&'static str> =
-		Some(bp_asset_hub_rococo::WITH_ASSET_HUB_ROCOCO_RELAYERS_PALLET_NAME);
-
 	const TO_CHAIN_MESSAGE_DETAILS_METHOD: &'static str =
 		bp_asset_hub_rococo::TO_ASSET_HUB_ROCOCO_MESSAGE_DETAILS_METHOD;
 	const FROM_CHAIN_MESSAGE_DETAILS_METHOD: &'static str =

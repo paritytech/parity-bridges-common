@@ -136,9 +136,6 @@ impl ChainWithTransactions for BridgeHubPolkadot {
 }
 
 impl ChainWithMessages for BridgeHubPolkadot {
-	const WITH_CHAIN_RELAYERS_PALLET_NAME: Option<&'static str> =
-		Some(bp_bridge_hub_polkadot::WITH_BRIDGE_HUB_POLKADOT_RELAYERS_PALLET_NAME);
-
 	const TO_CHAIN_MESSAGE_DETAILS_METHOD: &'static str =
 		bp_bridge_hub_polkadot::TO_BRIDGE_HUB_POLKADOT_MESSAGE_DETAILS_METHOD;
 	const FROM_CHAIN_MESSAGE_DETAILS_METHOD: &'static str =

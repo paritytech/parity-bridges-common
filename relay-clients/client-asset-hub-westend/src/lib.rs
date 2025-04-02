@@ -115,9 +115,6 @@ impl ChainWithTransactions for AssetHubWestend {
 }
 
 impl ChainWithMessages for AssetHubWestend {
-	const WITH_CHAIN_RELAYERS_PALLET_NAME: Option<&'static str> =
-		Some(bp_asset_hub_westend::WITH_ASSET_HUB_WESTEND_RELAYERS_PALLET_NAME);
-
 	const TO_CHAIN_MESSAGE_DETAILS_METHOD: &'static str =
 		bp_asset_hub_westend::TO_ASSET_HUB_WESTEND_MESSAGE_DETAILS_METHOD;
 	const FROM_CHAIN_MESSAGE_DETAILS_METHOD: &'static str =

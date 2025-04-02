@@ -92,7 +92,9 @@ relay-utils = { git = "https://github.com/paritytech/polkadot-sdk", branch = "ma
 sp-consensus-grandpa = { git = "https://github.com/paritytech/polkadot-sdk", branch = "master" }
 sp-session = { git = "https://github.com/paritytech/polkadot-sdk", branch = "master" }
 bp-polkadot-bulletin = { git = "https://github.com/paritytech/polkadot-sdk", branch = "master" }
-bp-bridge-hub-kusama = { git = "https://github.com/paritytech/polkadot-sdk", branch = "master" }
+bp-bridge-hub-kusama = { path = "./chains/chain-bridge-hub-kusama" }
+bp-asset-hub-rococo = { git = "https://github.com/paritytech/polkadot-sdk", branch = "master" }
+bp-asset-hub-westend = { git = "https://github.com/paritytech/polkadot-sdk", branch = "master" }
 bp-bridge-hub-rococo = { git = "https://github.com/paritytech/polkadot-sdk", branch = "master" }
 bp-rococo = { git = "https://github.com/paritytech/polkadot-sdk", branch = "master" }
 bp-bridge-hub-westend = { git = "https://github.com/paritytech/polkadot-sdk", branch = "master" }
