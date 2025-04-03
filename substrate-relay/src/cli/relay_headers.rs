@@ -14,7 +14,7 @@
 // You should have received a copy of the GNU General Public License
 // along with Parity Bridges Common.  If not, see <http://www.gnu.org/licenses/>.
 
-use structopt::StructOpt;
+use clap::{Parser, ValueEnum};
 use strum::{EnumString, VariantNames};
 
 use crate::bridges::{
@@ -41,26 +41,26 @@ use substrate_relay_helper::cli::relay_headers::{
 };
 
 /// Start headers relayer process.
-#[derive(StructOpt)]
+#[derive(Parser)]
 pub struct RelayHeaders {
 	/// A bridge instance to relay headers for.
-	#[structopt(possible_values = RelayHeadersBridge::VARIANTS, case_insensitive = true)]
+	#[clap(value_parser, ignore_case = true)]
 	bridge: RelayHeadersBridge,
-	#[structopt(flatten)]
+	#[clap(flatten)]
 	params: RelayHeadersParams,
 }
 
 /// Relay single header.
-#[derive(StructOpt)]
+#[derive(Parser)]
 pub struct RelayHeader {
 	/// A bridge instance to relay headers for.
-	#[structopt(possible_values = RelayHeadersBridge::VARIANTS, case_insensitive = true)]
+	#[clap(value_parser, ignore_case = true)]
 	bridge: RelayHeadersBridge,
-	#[structopt(flatten)]
+	#[clap(flatten)]
 	params: RelayHeaderParams,
 }
 
-#[derive(Debug, EnumString, VariantNames)]
+#[derive(Clone, Debug, EnumString, VariantNames, ValueEnum)]
 #[strum(serialize_all = "kebab_case")]
 /// Headers relay bridge.
 pub enum RelayHeadersBridge {

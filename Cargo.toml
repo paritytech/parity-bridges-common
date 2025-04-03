@@ -98,10 +98,10 @@ bp-asset-hub-westend = { git = "https://github.com/paritytech/polkadot-sdk", bra
 bp-bridge-hub-rococo = { git = "https://github.com/paritytech/polkadot-sdk", branch = "master" }
 bp-rococo = { git = "https://github.com/paritytech/polkadot-sdk", branch = "master" }
 bp-bridge-hub-westend = { git = "https://github.com/paritytech/polkadot-sdk", branch = "master" }
-frame-support = { git = "https://github.com/paritytech/polkadot-sdk.git", branch="master"}
-sp-api = { git = "https://github.com/paritytech/polkadot-sdk.git", branch="master"}
-sp-std = { git = "https://github.com/paritytech/polkadot-sdk.git", branch="master"}
-bp-bridge-hub-cumulus = { git = "https://github.com/paritytech/polkadot-sdk.git", branch="master"}
+frame-support = { git = "https://github.com/paritytech/polkadot-sdk", branch = "master"}
+sp-api = { git = "https://github.com/paritytech/polkadot-sdk", branch = "master"}
+sp-std = { git = "https://github.com/paritytech/polkadot-sdk", branch = "master"}
+bp-bridge-hub-cumulus = { git = "https://github.com/paritytech/polkadot-sdk", branch = "master"}
 anyhow = "1.0"
 async-std = "1.13.1"
 async-trait = "0.1.88"
@@ -117,6 +117,8 @@ signal-hook-async-std = "0.2.2"
 strum = { version = "0.27.1", features = ["derive"] }
 pallet-bridge-parachains = { git = "https://github.com/paritytech/polkadot-sdk", branch = "master" }
 parachains-relay = { git = "https://github.com/paritytech/polkadot-sdk", branch = "master" }
+relay-asset-hub-rococo-client = { path = "./relay-clients/client-asset-hub-rococo" }
+relay-asset-hub-westend-client = { path = "./relay-clients/client-asset-hub-westend" }
 relay-bridge-hub-kusama-client = { path = "./relay-clients/client-bridge-hub-kusama" }
 relay-bridge-hub-polkadot-client = { path = "./relay-clients/client-bridge-hub-polkadot" }
 relay-bridge-hub-rococo-client = { path = "./relay-clients/client-bridge-hub-rococo" }

@@ -14,7 +14,7 @@
 // You should have received a copy of the GNU General Public License
 // along with Parity Bridges Common.  If not, see <http://www.gnu.org/licenses/>.
 
-use structopt::StructOpt;
+use clap::Parser;
 use strum::{EnumString, VariantNames};
 
 use crate::bridges::{
@@ -42,7 +42,7 @@ use substrate_relay_helper::cli::relay_messages::{
 	RelayMessagesRangeParams,
 };
 
-#[derive(Debug, PartialEq, Eq, EnumString, VariantNames)]
+#[derive(Clone, Debug, PartialEq, Eq, EnumString, VariantNames)]
 #[strum(serialize_all = "kebab_case")]
 /// Supported full bridges (headers + messages).
 pub enum FullBridge {
@@ -59,32 +59,32 @@ pub enum FullBridge {
 }
 
 /// Start messages relayer process.
-#[derive(StructOpt)]
+#[derive(Parser)]
 pub struct RelayMessages {
 	/// A bridge instance to relay messages for.
-	#[structopt(possible_values = FullBridge::VARIANTS, case_insensitive = true)]
+	#[clap(value_parser, ignore_case = true)]
 	bridge: FullBridge,
-	#[structopt(flatten)]
+	#[clap(flatten)]
 	params: RelayMessagesParams,
 }
 
 /// Relay range of messages.
-#[derive(StructOpt)]
+#[derive(Parser)]
 pub struct RelayMessagesRange {
 	/// A bridge instance to relay messages for.
-	#[structopt(possible_values = FullBridge::VARIANTS, case_insensitive = true)]
+	#[clap(value_parser, ignore_case = true)]
 	bridge: FullBridge,
-	#[structopt(flatten)]
+	#[clap(flatten)]
 	params: RelayMessagesRangeParams,
 }
 
 /// Relay messages delivery confirmation.
-#[derive(StructOpt)]
+#[derive(Parser)]
 pub struct RelayMessagesDeliveryConfirmation {
 	/// A bridge instance to relay messages for.
-	#[structopt(possible_values = FullBridge::VARIANTS, case_insensitive = true)]
+	#[clap(value_parser, ignore_case = true)]
 	bridge: FullBridge,
-	#[structopt(flatten)]
+	#[clap(flatten)]
 	params: RelayMessagesDeliveryConfirmationParams,
 }
 

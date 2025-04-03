@@ -24,7 +24,7 @@
 //! 3) declare a new struct for the added bridge and implement the `Full2WayBridge` trait for it.
 
 use async_trait::async_trait;
-use structopt::StructOpt;
+use clap::{Parser, Subcommand};
 
 use crate::bridges::{
 	kusama_polkadot::{
@@ -224,7 +224,7 @@ impl Full2WayBridge for RococoBulletinBridgeHubRococoFull2WayBridge {
 }
 
 /// Complex headers+messages relay.
-#[derive(Debug, PartialEq, StructOpt)]
+#[derive(Debug, PartialEq, Subcommand)]
 pub enum RelayHeadersAndMessages {
 	/// BridgeHubKusama <> BridgeHubPolkadot relay.
 	BridgeHubKusamaBridgeHubPolkadot(BridgeHubKusamaBridgeHubPolkadotHeadersAndMessages),

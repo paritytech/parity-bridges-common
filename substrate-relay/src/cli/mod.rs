@@ -17,10 +17,10 @@
 //! Deal with CLI args of substrate-to-substrate relay.
 
 use async_std::prelude::*;
+use clap::Parser;
 use futures::{select, FutureExt};
 use signal_hook::consts::*;
 use signal_hook_async_std::Signals;
-use structopt::StructOpt;
 
 mod chain_schema;
 mod detect_equivocations;
@@ -35,12 +35,12 @@ pub const LOG_TARGET: &str = "bridge";
 
 /// Parse relay CLI args.
 pub fn parse_args() -> Command {
-	Command::from_args()
+	Command::parse()
 }
 
 /// Substrate-to-Substrate bridge utilities.
-#[derive(StructOpt)]
-#[structopt(about = "Substrate-to-Substrate relay")]
+#[derive(Parser)]
+#[clap(about = "Substrate-to-Substrate relay")]
 pub enum Command {
 	/// Initialize on-chain bridge pallet with current header data.
 	///
@@ -72,6 +72,7 @@ pub enum Command {
 	/// and two `RelayMessages` relays. Headers are only relayed when they are required by
 	/// the message relays - i.e. when there are messages or confirmations that needs to be
 	/// relayed between chains.
+	#[clap(subcommand)]
 	RelayHeadersAndMessages(Box<relay_headers_and_messages::RelayHeadersAndMessages>),
 	/// Detect and report equivocations.
 	///
