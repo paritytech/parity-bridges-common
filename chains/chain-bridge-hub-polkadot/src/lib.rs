@@ -25,7 +25,7 @@ use bp_messages::*;
 use bp_runtime::{
 	decl_bridge_finality_runtime_apis, decl_bridge_messages_runtime_apis, Chain, ChainId, Parachain,
 };
-use frame_support::{dispatch::DispatchClass, weights::Weight};
+use frame_support::dispatch::DispatchClass;
 use sp_runtime::{RuntimeDebug, StateVersion};
 
 /// BridgeHubPolkadot parachain.

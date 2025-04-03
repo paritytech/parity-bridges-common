@@ -28,7 +28,6 @@ use bp_runtime::{
 use frame_support::{
 	dispatch::DispatchClass,
 	sp_runtime::{MultiAddress, MultiSigner},
-	weights::Weight,
 };
 use sp_runtime::{RuntimeDebug, StateVersion};
 
