@@ -14,18 +14,17 @@
 // You should have received a copy of the GNU General Public License
 // along with Parity Bridges Common.  If not, see <http://www.gnu.org/licenses/>.
 
-//! Types used to connect to the BridgeHub-Kusama-Substrate parachain.
+//! Types used to connect to the AssetHub-Westend-Substrate parachain.
 
 pub mod codegen_runtime;
 
-use bp_bridge_hub_kusama::AVERAGE_BLOCK_INTERVAL;
+use bp_asset_hub_westend::AVERAGE_BLOCK_INTERVAL;
 use bp_polkadot_core::{SuffixedCommonTransactionExtension, SuffixedCommonTransactionExtensionExt};
 use codec::Encode;
 use relay_substrate_client::{
-	calls::UtilityCall as MockUtilityCall, Chain, ChainWithBalances, ChainWithMessages,
-	ChainWithRuntimeVersion, ChainWithTransactions, ChainWithUtilityPallet,
-	Error as SubstrateError, MockedRuntimeUtilityPallet, SignParam, SimpleRuntimeVersion,
-	UnderlyingChainProvider, UnsignedTransaction,
+	Chain, ChainWithBalances, ChainWithMessages, ChainWithRuntimeVersion, ChainWithTransactions,
+	Error as SubstrateError, SignParam, SimpleRuntimeVersion, UnderlyingChainProvider,
+	UnsignedTransaction,
 };
 use sp_core::{storage::StorageKey, Pair};
 use sp_runtime::{
@@ -45,59 +44,43 @@ use bp_runtime::extensions::{
 pub type CheckMetadataHash = GenericTransactionExtensionSchema<Mode, Option<[u8; 32]>>;
 
 pub type TransactionExtension = SuffixedCommonTransactionExtension<(
+	CheckMetadataHash,
 	BridgeRejectObsoleteHeadersAndMessages,
 	RefundBridgedParachainMessagesSchema,
-	CheckMetadataHash,
 )>;
 
-pub type RuntimeCall = runtime_types::bridge_hub_kusama_runtime::RuntimeCall;
+pub type RuntimeCall = runtime_types::asset_hub_westend_runtime::RuntimeCall;
 pub type BridgeMessagesCall = runtime_types::pallet_bridge_messages::pallet::Call;
-pub type BridgeGrandpaCall = runtime_types::pallet_bridge_grandpa::pallet::Call;
-pub type BridgeParachainCall = runtime_types::pallet_bridge_parachains::pallet::Call;
 type UncheckedExtrinsic =
-	bp_bridge_hub_kusama::UncheckedExtrinsic<RuntimeCall, TransactionExtension>;
-type UtilityCall = runtime_types::pallet_utility::pallet::Call;
+	bp_asset_hub_westend::UncheckedExtrinsic<RuntimeCall, TransactionExtension>;
 
-/// Kusama chain definition
+/// AssetHubWestend chain definition
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct BridgeHubKusama;
+pub struct AssetHubWestend;
 
-impl UnderlyingChainProvider for BridgeHubKusama {
-	type Chain = bp_bridge_hub_kusama::BridgeHubKusama;
+impl UnderlyingChainProvider for AssetHubWestend {
+	type Chain = bp_asset_hub_westend::AssetHubWestend;
 }
 
-impl Chain for BridgeHubKusama {
-	const NAME: &'static str = "BridgeHubKusama";
+impl Chain for AssetHubWestend {
+	const NAME: &'static str = "AssetHubWestend";
 	const BEST_FINALIZED_HEADER_ID_METHOD: &'static str =
-		bp_bridge_hub_kusama::BEST_FINALIZED_BRIDGE_HUB_KUSAMA_HEADER_METHOD;
+		bp_asset_hub_westend::BEST_FINALIZED_ASSET_HUB_WESTEND_HEADER_METHOD;
 	const FREE_HEADERS_INTERVAL_METHOD: &'static str =
-		bp_bridge_hub_kusama::FREE_HEADERS_INTERVAL_FOR_BRIDGE_HUB_KUSAMA_METHOD;
+		bp_asset_hub_westend::FREE_HEADERS_INTERVAL_FOR_ASSET_HUB_WESTEND_METHOD;
 	const AVERAGE_BLOCK_INTERVAL: Duration = AVERAGE_BLOCK_INTERVAL;
 
-	type SignedBlock = bp_bridge_hub_kusama::SignedBlock;
+	type SignedBlock = bp_asset_hub_westend::SignedBlock;
 	type Call = RuntimeCall;
 }
 
-impl ChainWithBalances for BridgeHubKusama {
+impl ChainWithBalances for AssetHubWestend {
 	fn account_info_storage_key(account_id: &Self::AccountId) -> StorageKey {
-		bp_bridge_hub_kusama::AccountInfoStorageMapKeyProvider::final_key(account_id)
+		bp_asset_hub_westend::AccountInfoStorageMapKeyProvider::final_key(account_id)
 	}
 }
 
-impl From<MockUtilityCall<RuntimeCall>> for RuntimeCall {
-	fn from(value: MockUtilityCall<RuntimeCall>) -> RuntimeCall {
-		match value {
-			MockUtilityCall::batch_all(calls) =>
-				RuntimeCall::Utility(UtilityCall::batch_all { calls }),
-		}
-	}
-}
-
-impl ChainWithUtilityPallet for BridgeHubKusama {
-	type UtilityPallet = MockedRuntimeUtilityPallet<RuntimeCall>;
-}
-
-impl ChainWithTransactions for BridgeHubKusama {
+impl ChainWithTransactions for AssetHubWestend {
 	type AccountKeyPair = sp_core::sr25519::Pair;
 	type SignedTransaction = UncheckedExtrinsic;
 
@@ -114,7 +97,7 @@ impl ChainWithTransactions for BridgeHubKusama {
 				param.genesis_hash,
 				unsigned.nonce,
 				unsigned.tip,
-				(((), (), Mode::Disabled), ((), (), None)),
+				((Mode::Disabled, (), ()), (None, (), ())),
 			),
 		)?;
 
@@ -131,14 +114,14 @@ impl ChainWithTransactions for BridgeHubKusama {
 	}
 }
 
-impl ChainWithMessages for BridgeHubKusama {
+impl ChainWithMessages for AssetHubWestend {
 	const TO_CHAIN_MESSAGE_DETAILS_METHOD: &'static str =
-		bp_bridge_hub_kusama::TO_BRIDGE_HUB_KUSAMA_MESSAGE_DETAILS_METHOD;
+		bp_asset_hub_westend::TO_ASSET_HUB_WESTEND_MESSAGE_DETAILS_METHOD;
 	const FROM_CHAIN_MESSAGE_DETAILS_METHOD: &'static str =
-		bp_bridge_hub_kusama::FROM_BRIDGE_HUB_KUSAMA_MESSAGE_DETAILS_METHOD;
+		bp_asset_hub_westend::FROM_ASSET_HUB_WESTEND_MESSAGE_DETAILS_METHOD;
 }
 
-impl ChainWithRuntimeVersion for BridgeHubKusama {
+impl ChainWithRuntimeVersion for AssetHubWestend {
 	const RUNTIME_VERSION: Option<SimpleRuntimeVersion> =
-		Some(SimpleRuntimeVersion { spec_version: 1_004_000, transaction_version: 5 });
+		Some(SimpleRuntimeVersion { spec_version: 1_017_007, transaction_version: 16 });
 }

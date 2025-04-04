@@ -25,7 +25,7 @@ use crate::bridges::{
 	},
 };
 
-use structopt::StructOpt;
+use clap::{Parser, ValueEnum};
 use strum::{EnumString, VariantNames};
 
 use substrate_relay_helper::cli::detect_equivocations::{
@@ -33,15 +33,15 @@ use substrate_relay_helper::cli::detect_equivocations::{
 };
 
 /// Start equivocation detection loop.
-#[derive(StructOpt)]
+#[derive(Parser)]
 pub struct DetectEquivocations {
-	#[structopt(possible_values = DetectEquivocationsBridge::VARIANTS, case_insensitive = true)]
+	#[arg(value_enum, ignore_case = true)]
 	bridge: DetectEquivocationsBridge,
-	#[structopt(flatten)]
+	#[command(flatten)]
 	params: DetectEquivocationsParams,
 }
 
-#[derive(Debug, EnumString, VariantNames)]
+#[derive(Clone, Copy, Debug, EnumString, VariantNames, ValueEnum)]
 #[strum(serialize_all = "kebab_case")]
 /// Equivocations detection bridge.
 pub enum DetectEquivocationsBridge {

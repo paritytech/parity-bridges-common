@@ -32,8 +32,8 @@ use crate::bridges::{
 		westend_headers_to_bridge_hub_rococo::WestendToBridgeHubRococoCliBridge,
 	},
 };
+use clap::{Parser, ValueEnum};
 use relay_substrate_client::Chain;
-use structopt::StructOpt;
 use strum::{EnumString, VariantNames};
 use substrate_relay_helper::{
 	cli::init_bridge::{BridgeInitializer, InitBridgeParams},
@@ -150,16 +150,16 @@ impl BridgeInitializer for RococoBulletinToBridgeHubRococoCliBridge {
 }
 
 /// Initialize bridge pallet.
-#[derive(StructOpt)]
+#[derive(Parser)]
 pub struct InitBridge {
 	/// A bridge instance to initialize.
-	#[structopt(possible_values = InitBridgeName::VARIANTS, case_insensitive = true)]
+	#[arg(value_enum, ignore_case = true)]
 	bridge: InitBridgeName,
-	#[structopt(flatten)]
+	#[command(flatten)]
 	params: InitBridgeParams,
 }
 
-#[derive(Debug, EnumString, VariantNames)]
+#[derive(Clone, Copy, Debug, EnumString, VariantNames, ValueEnum)]
 #[strum(serialize_all = "kebab_case")]
 /// Bridge to initialize.
 pub enum InitBridgeName {

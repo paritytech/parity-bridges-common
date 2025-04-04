@@ -132,9 +132,6 @@ impl ChainWithTransactions for BridgeHubWestend {
 }
 
 impl ChainWithMessages for BridgeHubWestend {
-	const WITH_CHAIN_RELAYERS_PALLET_NAME: Option<&'static str> =
-		Some(bp_bridge_hub_westend::WITH_BRIDGE_HUB_WESTEND_RELAYERS_PALLET_NAME);
-
 	const TO_CHAIN_MESSAGE_DETAILS_METHOD: &'static str =
 		bp_bridge_hub_westend::TO_BRIDGE_HUB_WESTEND_MESSAGE_DETAILS_METHOD;
 	const FROM_CHAIN_MESSAGE_DETAILS_METHOD: &'static str =

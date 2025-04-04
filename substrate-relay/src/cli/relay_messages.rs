@@ -14,7 +14,7 @@
 // You should have received a copy of the GNU General Public License
 // along with Parity Bridges Common.  If not, see <http://www.gnu.org/licenses/>.
 
-use structopt::StructOpt;
+use clap::{Parser, ValueEnum};
 use strum::{EnumString, VariantNames};
 
 use crate::bridges::{
@@ -31,6 +31,8 @@ use crate::bridges::{
 		rococo_bulletin_messages_to_bridge_hub_rococo::RococoBulletinToBridgeHubRococoMessagesCliBridge,
 	},
 	rococo_westend::{
+		asset_hub_rococo_messages_to_asset_hub_westend::AssetHubRococoToAssetHubWestendMessagesCliBridge,
+		asset_hub_westend_messages_to_asset_hub_rococo::AssetHubWestendToAssetHubRococoMessagesCliBridge,
 		bridge_hub_rococo_messages_to_bridge_hub_westend::BridgeHubRococoToBridgeHubWestendMessagesCliBridge,
 		bridge_hub_westend_messages_to_bridge_hub_rococo::BridgeHubWestendToBridgeHubRococoMessagesCliBridge,
 	},
@@ -40,7 +42,7 @@ use substrate_relay_helper::cli::relay_messages::{
 	RelayMessagesRangeParams,
 };
 
-#[derive(Debug, PartialEq, Eq, EnumString, VariantNames)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, EnumString, VariantNames, ValueEnum)]
 #[strum(serialize_all = "kebab_case")]
 /// Supported full bridges (headers + messages).
 pub enum FullBridge {
@@ -52,35 +54,37 @@ pub enum FullBridge {
 	BridgeHubPolkadotToPolkadotBulletin,
 	RococoBulletinToBridgeHubRococo,
 	BridgeHubRococoToRococoBulletin,
+	AssetHubRococoToBridgeHubWestend,
+	AssetHubWestendToBridgeHubRococo,
 }
 
 /// Start messages relayer process.
-#[derive(StructOpt)]
+#[derive(Parser)]
 pub struct RelayMessages {
 	/// A bridge instance to relay messages for.
-	#[structopt(possible_values = FullBridge::VARIANTS, case_insensitive = true)]
+	#[arg(value_enum, ignore_case = true)]
 	bridge: FullBridge,
-	#[structopt(flatten)]
+	#[command(flatten)]
 	params: RelayMessagesParams,
 }
 
 /// Relay range of messages.
-#[derive(StructOpt)]
+#[derive(Parser)]
 pub struct RelayMessagesRange {
 	/// A bridge instance to relay messages for.
-	#[structopt(possible_values = FullBridge::VARIANTS, case_insensitive = true)]
+	#[arg(value_enum, ignore_case = true)]
 	bridge: FullBridge,
-	#[structopt(flatten)]
+	#[command(flatten)]
 	params: RelayMessagesRangeParams,
 }
 
 /// Relay messages delivery confirmation.
-#[derive(StructOpt)]
+#[derive(Parser)]
 pub struct RelayMessagesDeliveryConfirmation {
 	/// A bridge instance to relay messages for.
-	#[structopt(possible_values = FullBridge::VARIANTS, case_insensitive = true)]
+	#[arg(value_enum, ignore_case = true)]
 	bridge: FullBridge,
-	#[structopt(flatten)]
+	#[command(flatten)]
 	params: RelayMessagesDeliveryConfirmationParams,
 }
 
@@ -92,6 +96,8 @@ impl MessagesRelayer for PolkadotBulletinToBridgeHubPolkadotMessagesCliBridge {}
 impl MessagesRelayer for BridgeHubPolkadotToPolkadotBulletinMessagesCliBridge {}
 impl MessagesRelayer for RococoBulletinToBridgeHubRococoMessagesCliBridge {}
 impl MessagesRelayer for BridgeHubRococoToRococoBulletinMessagesCliBridge {}
+impl MessagesRelayer for AssetHubRococoToAssetHubWestendMessagesCliBridge {}
+impl MessagesRelayer for AssetHubWestendToAssetHubRococoMessagesCliBridge {}
 
 impl RelayMessages {
 	/// Run the command.
@@ -113,6 +119,10 @@ impl RelayMessages {
 				RococoBulletinToBridgeHubRococoMessagesCliBridge::relay_messages(self.params),
 			FullBridge::BridgeHubRococoToRococoBulletin =>
 				BridgeHubRococoToRococoBulletinMessagesCliBridge::relay_messages(self.params),
+			FullBridge::AssetHubRococoToBridgeHubWestend =>
+				AssetHubRococoToAssetHubWestendMessagesCliBridge::relay_messages(self.params),
+			FullBridge::AssetHubWestendToBridgeHubRococo =>
+				AssetHubWestendToAssetHubRococoMessagesCliBridge::relay_messages(self.params),
 		}
 		.await
 	}
@@ -150,6 +160,10 @@ impl RelayMessagesRange {
 				RococoBulletinToBridgeHubRococoMessagesCliBridge::relay_messages_range(self.params),
 			FullBridge::BridgeHubRococoToRococoBulletin =>
 				BridgeHubRococoToRococoBulletinMessagesCliBridge::relay_messages_range(self.params),
+			FullBridge::AssetHubRococoToBridgeHubWestend =>
+				AssetHubRococoToAssetHubWestendMessagesCliBridge::relay_messages_range(self.params),
+			FullBridge::AssetHubWestendToBridgeHubRococo =>
+				AssetHubWestendToAssetHubRococoMessagesCliBridge::relay_messages_range(self.params),
 		}
 		.await
 	}
@@ -187,6 +201,10 @@ impl RelayMessagesDeliveryConfirmation {
 				RococoBulletinToBridgeHubRococoMessagesCliBridge::relay_messages_delivery_confirmation(self.params),
 			FullBridge::BridgeHubRococoToRococoBulletin =>
 				BridgeHubRococoToRococoBulletinMessagesCliBridge::relay_messages_delivery_confirmation(self.params),
+			FullBridge::AssetHubRococoToBridgeHubWestend =>
+				AssetHubRococoToAssetHubWestendMessagesCliBridge::relay_messages_delivery_confirmation(self.params),
+			FullBridge::AssetHubWestendToBridgeHubRococo =>
+				AssetHubWestendToAssetHubRococoMessagesCliBridge::relay_messages_delivery_confirmation(self.params),
 		}
 		.await
 	}

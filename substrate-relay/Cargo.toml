@@ -13,6 +13,7 @@ workspace = true
 anyhow = { workspace = true }
 async-std = { workspace = true }
 async-trait = { workspace = true }
+clap = { workspace = true }
 codec = { workspace = true }
 env_logger = { workspace = true }
 futures = { workspace = true }
@@ -21,7 +22,6 @@ log = { workspace = true }
 num-format = { workspace = true }
 num-traits = { workspace = true }
 rbtag = { workspace = true }
-structopt = { workspace = true }
 signal-hook = { workspace = true }
 signal-hook-async-std = { workspace = true }
 strum = { workspace = true }
@@ -40,6 +40,8 @@ bp-runtime = { workspace = true }
 bridge-runtime-common = { workspace = true }
 pallet-bridge-parachains = { workspace = true }
 parachains-relay = { workspace = true }
+relay-asset-hub-rococo-client = { workspace = true }
+relay-asset-hub-westend-client = { workspace = true }
 relay-bridge-hub-kusama-client = { workspace = true }
 relay-bridge-hub-polkadot-client = { workspace = true }
 relay-bridge-hub-rococo-client = { workspace = true }
