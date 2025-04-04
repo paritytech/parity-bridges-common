@@ -35,13 +35,13 @@ use substrate_relay_helper::cli::detect_equivocations::{
 /// Start equivocation detection loop.
 #[derive(Parser)]
 pub struct DetectEquivocations {
-	#[clap(value_parser, ignore_case = true)]
+	#[arg(value_enum, ignore_case = true)]
 	bridge: DetectEquivocationsBridge,
-	#[clap(flatten)]
+	#[command(flatten)]
 	params: DetectEquivocationsParams,
 }
 
-#[derive(Debug, Clone, Copy, EnumString, VariantNames, ValueEnum)]
+#[derive(Clone, Copy, Debug, EnumString, VariantNames, ValueEnum)]
 #[strum(serialize_all = "kebab_case")]
 /// Equivocations detection bridge.
 pub enum DetectEquivocationsBridge {

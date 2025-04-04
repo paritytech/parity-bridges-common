@@ -28,7 +28,7 @@ use crate::bridges::{
 		bridge_hub_westend_parachains_to_bridge_hub_rococo::BridgeHubWestendToBridgeHubRococoCliBridge,
 	},
 };
-use clap::Parser;
+use clap::{Parser, ValueEnum};
 use strum::{EnumString, VariantNames};
 use substrate_relay_helper::cli::relay_parachains::{
 	ParachainsRelayer, RelayParachainHeadParams, RelayParachainsParams,
@@ -38,9 +38,9 @@ use substrate_relay_helper::cli::relay_parachains::{
 #[derive(Parser)]
 pub struct RelayParachains {
 	/// A bridge instance to relay parachains heads for.
-	#[clap(value_parser, ignore_case = true)]
+	#[arg(value_enum, ignore_case = true)]
 	bridge: RelayParachainsBridge,
-	#[clap(flatten)]
+	#[command(flatten)]
 	params: RelayParachainsParams,
 }
 
@@ -48,14 +48,14 @@ pub struct RelayParachains {
 #[derive(Parser)]
 pub struct RelayParachainHead {
 	/// A bridge instance to relay parachains heads for.
-	#[clap(value_parser, ignore_case = true)]
+	#[arg(value_enum, ignore_case = true)]
 	bridge: RelayParachainsBridge,
-	#[clap(flatten)]
+	#[command(flatten)]
 	params: RelayParachainHeadParams,
 }
 
 /// Parachain heads relay bridge.
-#[derive(Clone, Debug, EnumString, VariantNames)]
+#[derive(Clone, Copy, Debug, EnumString, VariantNames, ValueEnum)]
 #[strum(serialize_all = "kebab_case")]
 pub enum RelayParachainsBridge {
 	BridgeHubKusamaToBridgeHubPolkadot,

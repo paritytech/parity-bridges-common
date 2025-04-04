@@ -40,7 +40,7 @@ pub fn parse_args() -> Command {
 
 /// Substrate-to-Substrate bridge utilities.
 #[derive(Parser)]
-#[clap(about = "Substrate-to-Substrate relay")]
+#[command(about = "Substrate-to-Substrate relay", version)]
 pub enum Command {
 	/// Initialize on-chain bridge pallet with current header data.
 	///
@@ -72,7 +72,7 @@ pub enum Command {
 	/// and two `RelayMessages` relays. Headers are only relayed when they are required by
 	/// the message relays - i.e. when there are messages or confirmations that needs to be
 	/// relayed between chains.
-	#[clap(subcommand)]
+	#[command(subcommand)]
 	RelayHeadersAndMessages(Box<relay_headers_and_messages::RelayHeadersAndMessages>),
 	/// Detect and report equivocations.
 	///

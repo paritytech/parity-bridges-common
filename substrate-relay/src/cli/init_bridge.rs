@@ -153,13 +153,13 @@ impl BridgeInitializer for RococoBulletinToBridgeHubRococoCliBridge {
 #[derive(Parser)]
 pub struct InitBridge {
 	/// A bridge instance to initialize.
-	#[clap(value_parser, ignore_case = true)]
+	#[arg(value_enum, ignore_case = true)]
 	bridge: InitBridgeName,
-	#[clap(flatten)]
+	#[command(flatten)]
 	params: InitBridgeParams,
 }
 
-#[derive(Debug, Clone, Copy, EnumString, VariantNames, ValueEnum)]
+#[derive(Clone, Copy, Debug, EnumString, VariantNames, ValueEnum)]
 #[strum(serialize_all = "kebab_case")]
 /// Bridge to initialize.
 pub enum InitBridgeName {

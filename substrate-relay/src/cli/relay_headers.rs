@@ -44,9 +44,9 @@ use substrate_relay_helper::cli::relay_headers::{
 #[derive(Parser)]
 pub struct RelayHeaders {
 	/// A bridge instance to relay headers for.
-	#[clap(value_parser, ignore_case = true)]
+	#[arg(value_enum, ignore_case = true)]
 	bridge: RelayHeadersBridge,
-	#[clap(flatten)]
+	#[command(flatten)]
 	params: RelayHeadersParams,
 }
 
@@ -54,13 +54,13 @@ pub struct RelayHeaders {
 #[derive(Parser)]
 pub struct RelayHeader {
 	/// A bridge instance to relay headers for.
-	#[clap(value_parser, ignore_case = true)]
+	#[arg(value_enum, ignore_case = true)]
 	bridge: RelayHeadersBridge,
-	#[clap(flatten)]
+	#[command(flatten)]
 	params: RelayHeaderParams,
 }
 
-#[derive(Clone, Debug, EnumString, VariantNames, ValueEnum)]
+#[derive(Clone, Copy, Debug, EnumString, VariantNames, ValueEnum)]
 #[strum(serialize_all = "kebab_case")]
 /// Headers relay bridge.
 pub enum RelayHeadersBridge {
