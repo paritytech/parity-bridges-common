@@ -10,9 +10,9 @@ repository.workspace = true
 workspace = true
 
 [dependencies]
-codec = { package = "parity-scale-codec", version = "3.7.4", features = ["derive"] }
-scale-info = { version = "2.11.6", default-features = false, features = ["derive"] }
-subxt = { version = "0.40.0", default-features = false, features = ["native"] }
+codec = { workspace = true }
+scale-info = { workspace = true }
+subxt = { workspace = true }
 
 # Bridge dependencies
 

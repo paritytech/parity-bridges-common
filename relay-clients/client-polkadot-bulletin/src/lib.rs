@@ -87,8 +87,6 @@ impl ChainWithGrandpa for PolkadotBulletin {
 }
 
 impl ChainWithMessages for PolkadotBulletin {
-	// this is not critical (some metrics will be missing from the storage), but probably it needs
-	// to be changed when we'll polish the bridge configuration
 
 	const TO_CHAIN_MESSAGE_DETAILS_METHOD: &'static str =
 		bp_polkadot_bulletin::TO_POLKADOT_BULLETIN_MESSAGE_DETAILS_METHOD;

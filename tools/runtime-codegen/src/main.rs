@@ -126,7 +126,11 @@ fn main() -> color_eyre::Result<()> {
 	// `TransactionExtension`.
 	codegen_builder.add_derives_for_type(
 		syn::parse_str("frame_metadata_hash_extension::Mode").expect("valid type"),
-		vec![syn::parse_quote!(Eq), syn::parse_quote!(scale_info::TypeInfo), syn::parse_quote!(::codec::DecodeWithMemTracking)],
+		vec![
+			syn::parse_quote!(Eq),
+			syn::parse_quote!(scale_info::TypeInfo),
+			syn::parse_quote!(::codec::DecodeWithMemTracking),
+		],
 		false,
 	);
 
