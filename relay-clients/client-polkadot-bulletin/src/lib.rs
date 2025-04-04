@@ -87,7 +87,6 @@ impl ChainWithGrandpa for PolkadotBulletin {
 }
 
 impl ChainWithMessages for PolkadotBulletin {
-
 	const TO_CHAIN_MESSAGE_DETAILS_METHOD: &'static str =
 		bp_polkadot_bulletin::TO_POLKADOT_BULLETIN_MESSAGE_DETAILS_METHOD;
 	const FROM_CHAIN_MESSAGE_DETAILS_METHOD: &'static str =
