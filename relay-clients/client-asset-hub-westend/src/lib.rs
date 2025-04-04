@@ -54,7 +54,7 @@ pub type BridgeMessagesCall = runtime_types::pallet_bridge_messages::pallet::Cal
 type UncheckedExtrinsic =
 	bp_asset_hub_westend::UncheckedExtrinsic<RuntimeCall, TransactionExtension>;
 
-/// Westend chain definition
+/// AssetHubWestend chain definition
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct AssetHubWestend;
 
