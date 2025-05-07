@@ -23,7 +23,7 @@ use crate::bridges::{
 		polkadot_headers_to_bridge_hub_kusama::PolkadotToBridgeHubKusamaCliBridge,
 	},
 	polkadot_bulletin::{
-		polkadot_bulletin_headers_to_bridge_hub_polkadot::PolkadotBulletinToBridgeHubPolkadotCliBridge,
+		polkadot_bulletin_headers_to_people_hub_polkadot::PolkadotBulletinToPeopleHubPolkadotCliBridge,
 		polkadot_headers_to_polkadot_bulletin::PolkadotToPolkadotBulletinCliBridge,
 	},
 	rococo_bulletin::{
@@ -69,7 +69,7 @@ pub enum RelayHeadersBridge {
 	KusamaToBridgeHubPolkadot,
 	PolkadotToBridgeHubKusama,
 	PolkadotToPolkadotBulletin,
-	PolkadotBulletinToBridgeHubPolkadot,
+	PolkadotBulletinToPeopleHubPolkadot,
 	RococoToRococoBulletin,
 	RococoBulletinToBridgeHubRococo,
 }
@@ -79,7 +79,7 @@ impl HeadersRelayer for WestendToBridgeHubRococoCliBridge {}
 impl HeadersRelayer for KusamaToBridgeHubPolkadotCliBridge {}
 impl HeadersRelayer for PolkadotToBridgeHubKusamaCliBridge {}
 impl HeadersRelayer for PolkadotToPolkadotBulletinCliBridge {}
-impl HeadersRelayer for PolkadotBulletinToBridgeHubPolkadotCliBridge {}
+impl HeadersRelayer for PolkadotBulletinToPeopleHubPolkadotCliBridge {}
 impl HeadersRelayer for RococoToRococoBulletinCliBridge {}
 impl HeadersRelayer for RococoBulletinToBridgeHubRococoCliBridge {}
 
@@ -97,8 +97,8 @@ impl RelayHeaders {
 				PolkadotToBridgeHubKusamaCliBridge::relay_headers(self.params),
 			RelayHeadersBridge::PolkadotToPolkadotBulletin =>
 				PolkadotToPolkadotBulletinCliBridge::relay_headers(self.params),
-			RelayHeadersBridge::PolkadotBulletinToBridgeHubPolkadot =>
-				PolkadotBulletinToBridgeHubPolkadotCliBridge::relay_headers(self.params),
+			RelayHeadersBridge::PolkadotBulletinToPeopleHubPolkadot =>
+				PolkadotBulletinToPeopleHubPolkadotCliBridge::relay_headers(self.params),
 			RelayHeadersBridge::RococoToRococoBulletin =>
 				RococoToRococoBulletinCliBridge::relay_headers(self.params),
 			RelayHeadersBridge::RococoBulletinToBridgeHubRococo =>
@@ -122,8 +122,8 @@ impl RelayHeader {
 				PolkadotToBridgeHubKusamaCliBridge::relay_header(self.params),
 			RelayHeadersBridge::PolkadotToPolkadotBulletin =>
 				PolkadotToPolkadotBulletinCliBridge::relay_header(self.params),
-			RelayHeadersBridge::PolkadotBulletinToBridgeHubPolkadot =>
-				PolkadotBulletinToBridgeHubPolkadotCliBridge::relay_header(self.params),
+			RelayHeadersBridge::PolkadotBulletinToPeopleHubPolkadot =>
+				PolkadotBulletinToPeopleHubPolkadotCliBridge::relay_header(self.params),
 			RelayHeadersBridge::RococoToRococoBulletin =>
 				RococoToRococoBulletinCliBridge::relay_header(self.params),
 			RelayHeadersBridge::RococoBulletinToBridgeHubRococo =>
