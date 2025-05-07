@@ -32,7 +32,7 @@ use crate::bridges::{
 		bridge_hub_polkadot_parachains_to_bridge_hub_kusama::BridgeHubPolkadotToBridgeHubKusamaCliBridge,
 	},
 	polkadot_bulletin::{
-		polkadot_bulletin_headers_to_bridge_hub_polkadot::PolkadotBulletinToBridgeHubPolkadotCliBridge,
+		polkadot_bulletin_headers_to_people_hub_polkadot::PolkadotBulletinToPeopleHubPolkadotCliBridge,
 		polkadot_parachains_to_polkadot_bulletin::PolkadotToPolkadotBulletinCliBridge,
 	},
 	rococo_bulletin::{
@@ -180,8 +180,8 @@ pub struct PolkadotBulletinBridgeHubPolkadotFull2WayBridge {
 impl Full2WayBridge for PolkadotBulletinBridgeHubPolkadotFull2WayBridge {
 	type Base = RelayToParachainBridge<Self::L2R, Self::R2L>;
 	type Left = relay_polkadot_bulletin_client::PolkadotBulletin;
-	type Right = relay_bridge_hub_polkadot_client::BridgeHubPolkadot;
-	type L2R = PolkadotBulletinToBridgeHubPolkadotCliBridge;
+	type Right = relay_people_hub_polkadot_client::PeopleHubPolkadot;
+	type L2R = PolkadotBulletinToPeopleHubPolkadotCliBridge;
 	type R2L = PolkadotToPolkadotBulletinCliBridge;
 
 	fn new(base: Self::Base) -> anyhow::Result<Self> {

@@ -14,9 +14,9 @@
 // You should have received a copy of the GNU General Public License
 // along with Parity Bridges Common.  If not, see <http://www.gnu.org/licenses/>.
 
-//! BridgeHubPolkadot-to-PolkadotBulletin messages sync entrypoint.
+//! PeopleHubPolkadot-to-PolkadotBulletin messages sync entrypoint.
 
-use relay_bridge_hub_polkadot_client::BridgeHubPolkadot;
+use relay_people_hub_polkadot_client::PeopleHubPolkadot;
 use relay_polkadot_bulletin_client::PolkadotBulletin;
 use substrate_relay_helper::{
 	cli::bridge::{CliBridgeBase, MessagesCliBridge},
@@ -24,48 +24,48 @@ use substrate_relay_helper::{
 	UtilityPalletBatchCallBuilder,
 };
 
-/// BridgeHubPolkadot-to-PolkadotBulletin messages bridge.
-pub struct BridgeHubPolkadotToPolkadotBulletinMessagesCliBridge {}
+/// PeopleHubPolkadot-to-PolkadotBulletin messages bridge.
+pub struct PeopleHubPolkadotToPolkadotBulletinMessagesCliBridge {}
 
-impl CliBridgeBase for BridgeHubPolkadotToPolkadotBulletinMessagesCliBridge {
-	type Source = BridgeHubPolkadot;
+impl CliBridgeBase for PeopleHubPolkadotToPolkadotBulletinMessagesCliBridge {
+	type Source = PeopleHubPolkadot;
 	type Target = PolkadotBulletin;
 }
 
-impl MessagesCliBridge for BridgeHubPolkadotToPolkadotBulletinMessagesCliBridge {
-	type MessagesLane = BridgeHubPolkadotMessagesToPolkadotBulletinMessageLane;
+impl MessagesCliBridge for PeopleHubPolkadotToPolkadotBulletinMessagesCliBridge {
+	type MessagesLane = PeopleHubPolkadotMessagesToPolkadotBulletinMessageLane;
 }
 
 substrate_relay_helper::generate_receive_message_proof_call_builder!(
-	BridgeHubPolkadotMessagesToPolkadotBulletinMessageLane,
-	BridgeHubPolkadotMessagesToPolkadotBulletinMessageLaneReceiveMessagesProofCallBuilder,
+	PeopleHubPolkadotMessagesToPolkadotBulletinMessageLane,
+	PeopleHubPolkadotMessagesToPolkadotBulletinMessageLaneReceiveMessagesProofCallBuilder,
 	relay_polkadot_bulletin_client::RuntimeCall::BridgePolkadotMessages,
 	relay_polkadot_bulletin_client::BridgePolkadotMessagesCall::receive_messages_proof
 );
 
 substrate_relay_helper::generate_receive_message_delivery_proof_call_builder!(
-	BridgeHubPolkadotMessagesToPolkadotBulletinMessageLane,
-	BridgeHubPolkadotMessagesToPolkadotBulletinMessageLaneReceiveMessagesDeliveryProofCallBuilder,
+	PeopleHubPolkadotMessagesToPolkadotBulletinMessageLane,
+	PeopleHubPolkadotMessagesToPolkadotBulletinMessageLaneReceiveMessagesDeliveryProofCallBuilder,
 	// TODO: https://github.com/paritytech/parity-bridges-common/issues/2547 - use BridgePolkadotBulletinMessages
-	relay_bridge_hub_polkadot_client::RuntimeCall::BridgeKusamaMessages,
-	relay_bridge_hub_polkadot_client::BridgePolkadotBulletinMessagesCall::receive_messages_delivery_proof
+	relay_people_hub_polkadot_client::RuntimeCall::BridgePolkadotBulletinMessages,
+	relay_people_hub_polkadot_client::BridgePolkadotBulletinMessagesCall::receive_messages_delivery_proof
 );
 
-/// BridgeHubPolkadot-to-PolkadotBulletin messages lane.
+/// PeopleHubPolkadot-to-PolkadotBulletin messages lane.
 #[derive(Clone, Debug)]
-pub struct BridgeHubPolkadotMessagesToPolkadotBulletinMessageLane;
+pub struct PeopleHubPolkadotMessagesToPolkadotBulletinMessageLane;
 
-impl SubstrateMessageLane for BridgeHubPolkadotMessagesToPolkadotBulletinMessageLane {
-	type SourceChain = BridgeHubPolkadot;
+impl SubstrateMessageLane for PeopleHubPolkadotMessagesToPolkadotBulletinMessageLane {
+	type SourceChain = PeopleHubPolkadot;
 	type TargetChain = PolkadotBulletin;
 
 	type LaneId = bp_messages::LegacyLaneId;
 
 	type ReceiveMessagesProofCallBuilder =
-		BridgeHubPolkadotMessagesToPolkadotBulletinMessageLaneReceiveMessagesProofCallBuilder;
+		PeopleHubPolkadotMessagesToPolkadotBulletinMessageLaneReceiveMessagesProofCallBuilder;
 	type ReceiveMessagesDeliveryProofCallBuilder =
-		BridgeHubPolkadotMessagesToPolkadotBulletinMessageLaneReceiveMessagesDeliveryProofCallBuilder;
+		PeopleHubPolkadotMessagesToPolkadotBulletinMessageLaneReceiveMessagesDeliveryProofCallBuilder;
 
-	type SourceBatchCallBuilder = UtilityPalletBatchCallBuilder<BridgeHubPolkadot>;
+	type SourceBatchCallBuilder = UtilityPalletBatchCallBuilder<PeopleHubPolkadot>;
 	type TargetBatchCallBuilder = ();
 }

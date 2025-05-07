@@ -14,7 +14,7 @@
 // You should have received a copy of the GNU General Public License
 // along with Parity Bridges Common.  If not, see <http://www.gnu.org/licenses/>.
 
-//! PolkadotBulletin-to-BridgeHubPolkadot headers sync entrypoint.
+//! PolkadotBulletin-to-PeopleHubPolkadot headers sync entrypoint.
 
 use async_trait::async_trait;
 use substrate_relay_helper::{
@@ -28,59 +28,59 @@ use substrate_relay_helper::cli::bridge::{
 	RelayToRelayHeadersCliBridge,
 };
 
-/// Description of `PolkadotBulletin` -> `PolkadotBridgeHub` finalized headers bridge.
+/// Description of `PolkadotBulletin` -> `PolkadotPeopleHub` finalized headers bridge.
 #[derive(Clone, Debug)]
-pub struct PolkadotBulletinFinalityToBridgeHubPolkadot;
+pub struct PolkadotBulletinFinalityToPeopleHubPolkadot;
 
 substrate_relay_helper::generate_submit_finality_proof_call_builder!(
-	PolkadotBulletinFinalityToBridgeHubPolkadot,
+	PolkadotBulletinFinalityToPeopleHubPolkadot,
 	SubmitFinalityProofCallBuilder,
 	// TODO: https://github.com/paritytech/parity-bridges-common/issues/2547 - use BridgePolkadotBulletinGrandpa
-	relay_bridge_hub_polkadot_client::RuntimeCall::BridgeKusamaGrandpa,
-	relay_bridge_hub_polkadot_client::BridgePolkadotBulletinGrandpaCall::submit_finality_proof
+	relay_people_hub_polkadot_client::RuntimeCall::BridgePolkadotBulletinGrandpa,
+	relay_people_hub_polkadot_client::BridgePolkadotBulletinGrandpaCall::submit_finality_proof
 );
 
 substrate_relay_helper::generate_report_equivocation_call_builder!(
-	PolkadotBulletinFinalityToBridgeHubPolkadot,
+	PolkadotBulletinFinalityToPeopleHubPolkadot,
 	ReportEquivocationCallBuilder,
 	relay_polkadot_bulletin_client::RuntimeCall::Grandpa,
 	relay_polkadot_bulletin_client::GrandpaCall::report_equivocation
 );
 
 #[async_trait]
-impl SubstrateFinalityPipeline for PolkadotBulletinFinalityToBridgeHubPolkadot {
+impl SubstrateFinalityPipeline for PolkadotBulletinFinalityToPeopleHubPolkadot {
 	type SourceChain = relay_polkadot_bulletin_client::PolkadotBulletin;
-	type TargetChain = relay_bridge_hub_polkadot_client::BridgeHubPolkadot;
+	type TargetChain = relay_people_hub_polkadot_client::PeopleHubPolkadot;
 
 	type FinalityEngine = GrandpaFinalityEngine<Self::SourceChain>;
 }
 
 #[async_trait]
-impl SubstrateFinalitySyncPipeline for PolkadotBulletinFinalityToBridgeHubPolkadot {
+impl SubstrateFinalitySyncPipeline for PolkadotBulletinFinalityToPeopleHubPolkadot {
 	type SubmitFinalityProofCallBuilder = SubmitFinalityProofCallBuilder;
 }
 
 #[async_trait]
-impl SubstrateEquivocationDetectionPipeline for PolkadotBulletinFinalityToBridgeHubPolkadot {
+impl SubstrateEquivocationDetectionPipeline for PolkadotBulletinFinalityToPeopleHubPolkadot {
 	type ReportEquivocationCallBuilder = ReportEquivocationCallBuilder;
 }
 
-/// `PolkadotBulletin` to BridgeHub `Polkadot` bridge definition.
-pub struct PolkadotBulletinToBridgeHubPolkadotCliBridge {}
+/// `PolkadotBulletin` to PeopleHub `Polkadot` bridge definition.
+pub struct PolkadotBulletinToPeopleHubPolkadotCliBridge {}
 
-impl CliBridgeBase for PolkadotBulletinToBridgeHubPolkadotCliBridge {
+impl CliBridgeBase for PolkadotBulletinToPeopleHubPolkadotCliBridge {
 	type Source = relay_polkadot_bulletin_client::PolkadotBulletin;
-	type Target = relay_bridge_hub_polkadot_client::BridgeHubPolkadot;
+	type Target = relay_people_hub_polkadot_client::PeopleHubPolkadot;
 }
 
-impl RelayToRelayHeadersCliBridge for PolkadotBulletinToBridgeHubPolkadotCliBridge {
-	type Finality = PolkadotBulletinFinalityToBridgeHubPolkadot;
+impl RelayToRelayHeadersCliBridge for PolkadotBulletinToPeopleHubPolkadotCliBridge {
+	type Finality = PolkadotBulletinFinalityToPeopleHubPolkadot;
 }
 
-impl RelayToRelayEquivocationDetectionCliBridge for PolkadotBulletinToBridgeHubPolkadotCliBridge {
-	type Equivocation = PolkadotBulletinFinalityToBridgeHubPolkadot;
+impl RelayToRelayEquivocationDetectionCliBridge for PolkadotBulletinToPeopleHubPolkadotCliBridge {
+	type Equivocation = PolkadotBulletinFinalityToPeopleHubPolkadot;
 }
 
-impl MessagesCliBridge for PolkadotBulletinToBridgeHubPolkadotCliBridge {
-	type MessagesLane = crate::bridges::polkadot_bulletin::polkadot_bulletin_messages_to_bridge_hub_polkadot::PolkadotBulletinMessagesToBridgeHubPolkadotMessageLane;
+impl MessagesCliBridge for PolkadotBulletinToPeopleHubPolkadotCliBridge {
+	type MessagesLane = crate::bridges::polkadot_bulletin::polkadot_bulletin_messages_to_people_hub_polkadot::PolkadotBulletinMessagesToPeopleHubPolkadotMessageLane;
 }

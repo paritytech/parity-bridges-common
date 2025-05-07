@@ -16,8 +16,8 @@
 
 //! Declaration of all bridges between Polkadot Bulletin Chain and Polkadot Bridge Hub.
 
-pub mod bridge_hub_polkadot_messages_to_polkadot_bulletin;
-pub mod polkadot_bulletin_headers_to_bridge_hub_polkadot;
-pub mod polkadot_bulletin_messages_to_bridge_hub_polkadot;
+pub mod people_hub_polkadot_messages_to_polkadot_bulletin;
+pub mod polkadot_bulletin_headers_to_people_hub_polkadot;
+pub mod polkadot_bulletin_messages_to_people_hub_polkadot;
 pub mod polkadot_headers_to_polkadot_bulletin;
 pub mod polkadot_parachains_to_polkadot_bulletin;
