@@ -75,6 +75,7 @@ wasm-testbed = { git = "https://github.com/chevdor/subwasm", branch = "master" }
 scale-info = { version = "2.11.6", default-features = false, features = ["derive"] }
 subxt = { version = "0.40.1", default-features = false, features = ["native"] }
 bp-bridge-hub-polkadot = { path = "./chains/chain-bridge-hub-polkadot" }
+bp-people-hub-polkadot = { path = "./chains/chain-people-hub-polkadot" }
 bp-header-chain = { git = "https://github.com/paritytech/polkadot-sdk", branch = "master" }
 bp-messages = { git = "https://github.com/paritytech/polkadot-sdk", branch = "master" }
 bp-parachains = { git = "https://github.com/paritytech/polkadot-sdk", branch = "master" }
