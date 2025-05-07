@@ -1,0 +1,34 @@
+[package]
+name = "relay-people-hub-polkadot-client"
+version = "0.1.0"
+authors.workspace = true
+edition.workspace = true
+license = "GPL-3.0-or-later WITH Classpath-exception-2.0"
+repository.workspace = true
+
+[lints]
+workspace = true
+
+[dependencies]
+codec = { workspace = true }
+scale-info = { workspace = true }
+subxt = { workspace = true }
+
+# Bridge dependencies
+
+bp-people-hub-polkadot = { workspace = true }
+bp-header-chain = { workspace = true }
+bp-messages = { workspace = true }
+bp-parachains = { workspace = true }
+bp-polkadot = { workspace = true }
+bp-polkadot-core = { workspace = true }
+bp-kusama = { workspace = true }
+bp-runtime = { workspace = true }
+bridge-runtime-common = { workspace = true }
+relay-substrate-client = { workspace = true }
+
+# Substrate Dependencies
+
+sp-core = { workspace = true }
+sp-runtime = { workspace = true }
+sp-weights = { workspace = true }

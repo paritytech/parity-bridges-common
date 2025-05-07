@@ -127,6 +127,7 @@ relay-bridge-hub-westend-client = { path = "./relay-clients/client-bridge-hub-we
 relay-kusama-client = { path = "./relay-clients/client-kusama" }
 relay-polkadot-client = { path = "./relay-clients/client-polkadot" }
 relay-polkadot-bulletin-client = { path = "./relay-clients/client-polkadot-bulletin" }
+relay-people-hub-polkadot-client = { path = "./relay-clients/client-people-hub-polkadot" }
 relay-rococo-client = { path = "./relay-clients/client-rococo" }
 relay-westend-client = { path = "./relay-clients/client-westend" }
 substrate-relay-helper = { git = "https://github.com/paritytech/polkadot-sdk", branch = "master" }
