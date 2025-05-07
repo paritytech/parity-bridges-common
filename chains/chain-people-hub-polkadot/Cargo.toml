@@ -1,0 +1,43 @@
+[package]
+name = "bp-people-hub-polkadot"
+description = "Primitives of PeopleHubPolkadot parachain runtime."
+version = "0.1.0"
+repository.workspace = true
+authors.workspace = true
+edition.workspace = true
+license = "GPL-3.0-or-later WITH Classpath-exception-2.0"
+
+[dependencies]
+
+# Local
+
+# Bridge Dependencies
+bp-bridge-hub-cumulus = { workspace = true }
+bp-header-chain = { workspace = true }
+bp-polkadot-core = { workspace = true }
+bp-runtime = { workspace = true }
+bp-messages = { workspace = true }
+
+# Substrate Based Dependencies
+frame-support = { workspace = true }
+sp-api = { workspace = true }
+sp-runtime = { workspace = true }
+sp-std = { workspace = true }
+
+[features]
+default = ["std"]
+std = [
+	"bp-bridge-hub-cumulus/std",
+	"bp-header-chain/std",
+	"bp-messages/std",
+	"bp-polkadot-core/std",
+	"bp-runtime/std",
+	"frame-support/std",
+	"sp-api/std",
+	"sp-runtime/std",
+	"sp-std/std",
+]
+runtime-benchmarks = [
+	"frame-support/runtime-benchmarks",
+	"sp-runtime/runtime-benchmarks",
+]
