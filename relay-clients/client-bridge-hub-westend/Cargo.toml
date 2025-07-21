@@ -19,12 +19,9 @@ subxt = { workspace = true }
 bp-bridge-hub-westend = { workspace = true }
 bp-header-chain = { workspace = true }
 bp-messages = { workspace = true }
-bp-parachains = { workspace = true }
 bp-polkadot-core = { workspace = true }
 bp-runtime = { workspace = true }
-bp-rococo = { workspace = true }
 
-bridge-runtime-common = { workspace = true }
 relay-substrate-client = { workspace = true }
 
 # Substrate Dependencies
