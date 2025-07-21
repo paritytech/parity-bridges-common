@@ -15,7 +15,6 @@ async-std = { workspace = true }
 async-trait = { workspace = true }
 clap = { workspace = true }
 codec = { workspace = true }
-env_logger = { workspace = true }
 futures = { workspace = true }
 hex = { workspace = true }
 log = { workspace = true }
@@ -62,8 +61,6 @@ sp-core = { workspace = true }
 sp-runtime = { workspace = true }
 
 [dev-dependencies]
-bp-test-utils = { workspace = true }
 hex-literal = { workspace = true }
-sp-keyring = { workspace = true }
 tempfile = { workspace = true }
 finality-grandpa = { workspace = true }

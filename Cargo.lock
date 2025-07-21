@@ -2615,16 +2615,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "env_filter"
-version = "0.1.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a009aa4810eb158359dda09d0c87378e4bbb89b5a801f016885a4707ba24f7ea"
-dependencies = [
- "log",
- "regex",
-]
-
-[[package]]
 name = "env_logger"
 version = "0.10.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2635,19 +2625,6 @@ dependencies = [
  "log",
  "regex",
  "termcolor",
-]
-
-[[package]]
-name = "env_logger"
-version = "0.11.8"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "13c863f0904021b108aa8b2f55046443e6b1ebde8fd4a15c399893aae4fa069f"
-dependencies = [
- "anstream",
- "anstyle",
- "env_filter",
- "jiff",
- "log",
 ]
 
 [[package]]
@@ -2782,7 +2759,7 @@ version = "0.1.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "84f2e425d9790201ba4af4630191feac6dcc98765b118d4d18e91d23c2353866"
 dependencies = [
- "env_logger 0.10.1",
+ "env_logger",
  "log",
 ]
 
@@ -4174,30 +4151,6 @@ name = "itoa"
 version = "1.0.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "af150ab688ff2122fcef229be89cb50dd66af9e01a4ff320cc137eecc9bacc38"
-
-[[package]]
-name = "jiff"
-version = "0.2.4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d699bc6dfc879fb1bf9bdff0d4c56f0884fc6f0d0eb0fba397a6d00cd9a6b85e"
-dependencies = [
- "jiff-static",
- "log",
- "portable-atomic",
- "portable-atomic-util",
- "serde",
-]
-
-[[package]]
-name = "jiff-static"
-version = "0.2.4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8d16e75759ee0aa64c57a56acbf43916987b20c77373cb7e808979e02b93c9f9"
-dependencies = [
- "proc-macro2 1.0.95",
- "quote 1.0.40",
- "syn 2.0.98",
-]
 
 [[package]]
 name = "jni"
@@ -6824,21 +6777,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "portable-atomic"
-version = "1.11.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "350e9b48cbc6b0e028b0473b114454c6316e57336ee184ceab6e53f72c178b3e"
-
-[[package]]
-name = "portable-atomic-util"
-version = "0.2.4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d8a2f0d8d040d7848a709caf78912debcc3f33ee4b3cac47d73d1e1069e83507"
-dependencies = [
- "portable-atomic",
-]
-
-[[package]]
 name = "powerfmt"
 version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -7487,10 +7425,8 @@ dependencies = [
  "bp-asset-hub-rococo",
  "bp-header-chain",
  "bp-messages",
- "bp-parachains",
  "bp-polkadot-core",
  "bp-runtime",
- "bridge-runtime-common",
  "parity-scale-codec",
  "relay-substrate-client",
  "scale-info",
@@ -7507,11 +7443,8 @@ dependencies = [
  "bp-asset-hub-westend",
  "bp-header-chain",
  "bp-messages",
- "bp-parachains",
  "bp-polkadot-core",
- "bp-rococo",
  "bp-runtime",
- "bridge-runtime-common",
  "parity-scale-codec",
  "relay-substrate-client",
  "scale-info",
@@ -7529,10 +7462,8 @@ dependencies = [
  "bp-bridge-hub-kusama",
  "bp-header-chain",
  "bp-messages",
- "bp-parachains",
  "bp-polkadot-core",
  "bp-runtime",
- "bridge-runtime-common",
  "parity-scale-codec",
  "relay-substrate-client",
  "scale-info",
@@ -7548,13 +7479,9 @@ version = "0.1.0"
 dependencies = [
  "bp-bridge-hub-polkadot",
  "bp-header-chain",
- "bp-kusama",
  "bp-messages",
- "bp-parachains",
- "bp-polkadot",
  "bp-polkadot-core",
  "bp-runtime",
- "bridge-runtime-common",
  "parity-scale-codec",
  "relay-substrate-client",
  "scale-info",
@@ -7571,10 +7498,8 @@ dependencies = [
  "bp-bridge-hub-rococo",
  "bp-header-chain",
  "bp-messages",
- "bp-parachains",
  "bp-polkadot-core",
  "bp-runtime",
- "bridge-runtime-common",
  "parity-scale-codec",
  "relay-substrate-client",
  "scale-info",
@@ -7591,11 +7516,8 @@ dependencies = [
  "bp-bridge-hub-westend",
  "bp-header-chain",
  "bp-messages",
- "bp-parachains",
  "bp-polkadot-core",
- "bp-rococo",
  "bp-runtime",
- "bridge-runtime-common",
  "parity-scale-codec",
  "relay-substrate-client",
  "scale-info",
@@ -10004,10 +9926,8 @@ dependencies = [
  "bp-polkadot-core",
  "bp-rococo",
  "bp-runtime",
- "bp-test-utils",
  "bridge-runtime-common",
  "clap",
- "env_logger 0.11.8",
  "finality-grandpa",
  "frame-support",
  "futures",
@@ -10036,7 +9956,6 @@ dependencies = [
  "signal-hook",
  "signal-hook-async-std",
  "sp-core",
- "sp-keyring",
  "sp-runtime",
  "strum 0.27.2",
  "substrate-relay-helper",
