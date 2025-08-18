@@ -104,7 +104,7 @@ sp-std = { git = "https://github.com/paritytech/polkadot-sdk", branch = "master"
 bp-bridge-hub-cumulus = { git = "https://github.com/paritytech/polkadot-sdk", branch = "master"}
 anyhow = "1.0"
 async-std = "1.13.1"
-async-trait = "0.1.88"
+async-trait = "0.1.89"
 env_logger = "0.11"
 futures = "0.3.31"
 hex = "0.4"
