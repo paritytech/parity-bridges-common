@@ -20,7 +20,7 @@ use crate::bridges::{
 		polkadot_headers_to_bridge_hub_kusama::PolkadotToBridgeHubKusamaCliBridge,
 	},
 	polkadot_bulletin::{
-		polkadot_bulletin_headers_to_people_hub_polkadot::PolkadotBulletinToPeopleHubPolkadotCliBridge,
+		polkadot_bulletin_headers_to_people_polkadot::PolkadotBulletinToPeoplePolkadotCliBridge,
 		polkadot_headers_to_polkadot_bulletin::PolkadotToPolkadotBulletinCliBridge,
 	},
 	rococo_bulletin::{
@@ -105,15 +105,15 @@ impl BridgeInitializer for PolkadotToPolkadotBulletinCliBridge {
 	}
 }
 
-impl BridgeInitializer for PolkadotBulletinToPeopleHubPolkadotCliBridge {
+impl BridgeInitializer for PolkadotBulletinToPeoplePolkadotCliBridge {
 	type Engine = GrandpaFinalityEngine<Self::Source>;
 
 	fn encode_init_bridge(
 		init_data: <Self::Engine as Engine<Self::Source>>::InitializationData,
 	) -> <Self::Target as Chain>::Call {
 		// TODO: https://github.com/paritytech/parity-bridges-common/issues/2547 - use BridgePolkadotBulletinGrandpa
-		relay_people_hub_polkadot_client::RuntimeCall::BridgePolkadotBulletinGrandpa(
-			relay_people_hub_polkadot_client::BridgePolkadotBulletinGrandpaCall::initialize {
+		relay_people_polkadot_client::RuntimeCall::BridgePolkadotBulletinGrandpa(
+			relay_people_polkadot_client::BridgePolkadotBulletinGrandpaCall::initialize {
 				init_data,
 			},
 		)
@@ -166,7 +166,7 @@ pub enum InitBridgeName {
 	KusamaToBridgeHubPolkadot,
 	PolkadotToBridgeHubKusama,
 	PolkadotToPolkadotBulletin,
-	PolkadotBulletinToPeopleHubPolkadot,
+	PolkadotBulletinToPeoplePolkadot,
 	RococoToRococoBulletin,
 	RococoBulletinToBridgeHubRococo,
 	RococoToBridgeHubWestend,
@@ -183,8 +183,8 @@ impl InitBridge {
 				PolkadotToBridgeHubKusamaCliBridge::init_bridge(self.params),
 			InitBridgeName::PolkadotToPolkadotBulletin =>
 				PolkadotToPolkadotBulletinCliBridge::init_bridge(self.params),
-			InitBridgeName::PolkadotBulletinToPeopleHubPolkadot =>
-				PolkadotBulletinToPeopleHubPolkadotCliBridge::init_bridge(self.params),
+			InitBridgeName::PolkadotBulletinToPeoplePolkadot =>
+				PolkadotBulletinToPeoplePolkadotCliBridge::init_bridge(self.params),
 			InitBridgeName::RococoToRococoBulletin =>
 				RococoToRococoBulletinCliBridge::init_bridge(self.params),
 			InitBridgeName::RococoBulletinToBridgeHubRococo =>

@@ -1,5 +1,5 @@
 [package]
-name = "relay-people-hub-polkadot-client"
+name = "relay-people-polkadot-client"
 version = "0.1.0"
 authors.workspace = true
 edition.workspace = true
@@ -16,7 +16,7 @@ subxt = { workspace = true }
 
 # Bridge dependencies
 
-bp-people-hub-polkadot = { workspace = true }
+bp-people-polkadot = { workspace = true }
 bp-header-chain = { workspace = true }
 bp-messages = { workspace = true }
 bp-parachains = { workspace = true }

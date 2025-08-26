@@ -33,7 +33,7 @@ use substrate_relay_helper::{
 pub struct PolkadotToPolkadotBulletin;
 
 impl SubstrateParachainsPipeline for PolkadotToPolkadotBulletin {
-	type SourceParachain = relay_people_hub_polkadot_client::PeopleHubPolkadot;
+	type SourceParachain = relay_people_polkadot_client::PeoplePolkadot;
 	type SourceRelayChain = relay_polkadot_client::Polkadot;
 	type TargetChain = relay_polkadot_bulletin_client::PolkadotBulletin;
 
@@ -71,13 +71,13 @@ impl ParachainToRelayHeadersCliBridge for PolkadotToPolkadotBulletinCliBridge {
 }
 
 impl CliBridgeBase for PolkadotToPolkadotBulletinCliBridge {
-	type Source = relay_people_hub_polkadot_client::PeopleHubPolkadot;
+	type Source = relay_people_polkadot_client::PeoplePolkadot;
 	type Target = relay_polkadot_bulletin_client::PolkadotBulletin;
 }
 
 impl MessagesCliBridge for PolkadotToPolkadotBulletinCliBridge {
 	type MessagesLane =
-		crate::bridges::polkadot_bulletin::people_hub_polkadot_messages_to_polkadot_bulletin::PeopleHubPolkadotMessagesToPolkadotBulletinMessageLane;
+		crate::bridges::polkadot_bulletin::people_polkadot_messages_to_polkadot_bulletin::PeoplePolkadotMessagesToPolkadotBulletinMessageLane;
 
 	fn maybe_messages_limits() -> Option<MessagesRelayLimits> {
 		// Polkadot Bulletin chain is missing the `TransactionPayment` runtime API (as well as the

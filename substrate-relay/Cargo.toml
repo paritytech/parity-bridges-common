@@ -45,7 +45,7 @@ relay-bridge-hub-kusama-client = { workspace = true }
 relay-bridge-hub-polkadot-client = { workspace = true }
 relay-bridge-hub-rococo-client = { workspace = true }
 relay-bridge-hub-westend-client = { workspace = true }
-relay-people-hub-polkadot-client = { workspace = true }
+relay-people-polkadot-client = { workspace = true }
 relay-kusama-client = { workspace = true }
 relay-polkadot-client = { workspace = true }
 relay-polkadot-bulletin-client = { workspace = true }

@@ -14,11 +14,11 @@
 // You should have received a copy of the GNU General Public License
 // along with Parity Bridges Common.  If not, see <http://www.gnu.org/licenses/>.
 
-//! Types used to connect to the PeopleHub-Polkadot-Substrate parachain.
+//! Types used to connect to the People-Polkadot-Substrate parachain.
 
 pub mod codegen_runtime;
 
-use bp_people_hub_polkadot::AVERAGE_BLOCK_INTERVAL;
+use bp_people_polkadot::AVERAGE_BLOCK_INTERVAL;
 use bp_polkadot_core::{SuffixedCommonTransactionExtension, SuffixedCommonTransactionExtensionExt};
 use codec::Encode;
 use relay_substrate_client::{
@@ -56,32 +56,32 @@ pub type BridgePolkadotBulletinMessagesCall = runtime_types::pallet_bridge_messa
 // TODO: https://github.com/paritytech/parity-bridges-common/issues/2547 - regenerate when ready
 pub type BridgePolkadotBulletinGrandpaCall = runtime_types::pallet_bridge_grandpa::pallet::Call;
 type UncheckedExtrinsic =
-	bp_people_hub_polkadot::UncheckedExtrinsic<RuntimeCall, TransactionExtension>;
+	bp_people_polkadot::UncheckedExtrinsic<RuntimeCall, TransactionExtension>;
 type UtilityCall = runtime_types::pallet_utility::pallet::Call;
 
 /// Polkadot chain definition
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct PeopleHubPolkadot;
+pub struct PeoplePolkadot;
 
-impl UnderlyingChainProvider for PeopleHubPolkadot {
-	type Chain = bp_people_hub_polkadot::PeopleHubPolkadot;
+impl UnderlyingChainProvider for PeoplePolkadot {
+	type Chain = bp_people_polkadot::PeoplePolkadot;
 }
 
-impl Chain for PeopleHubPolkadot {
-	const NAME: &'static str = "PeopleHubPolkadot";
+impl Chain for PeoplePolkadot {
+	const NAME: &'static str = "PeoplePolkadot";
 	const BEST_FINALIZED_HEADER_ID_METHOD: &'static str =
-		bp_people_hub_polkadot::BEST_FINALIZED_PEOPLE_HUB_POLKADOT_HEADER_METHOD;
+		bp_people_polkadot::BEST_FINALIZED_PEOPLE_POLKADOT_HEADER_METHOD;
 	const FREE_HEADERS_INTERVAL_METHOD: &'static str =
-		bp_people_hub_polkadot::FREE_HEADERS_INTERVAL_FOR_PEOPLE_HUB_POLKADOT_METHOD;
+		bp_people_polkadot::FREE_HEADERS_INTERVAL_FOR_PEOPLE_POLKADOT_METHOD;
 	const AVERAGE_BLOCK_INTERVAL: Duration = AVERAGE_BLOCK_INTERVAL;
 
-	type SignedBlock = bp_people_hub_polkadot::SignedBlock;
+	type SignedBlock = bp_people_polkadot::SignedBlock;
 	type Call = RuntimeCall;
 }
 
-impl ChainWithBalances for PeopleHubPolkadot {
+impl ChainWithBalances for PeoplePolkadot {
 	fn account_info_storage_key(account_id: &Self::AccountId) -> StorageKey {
-		bp_people_hub_polkadot::AccountInfoStorageMapKeyProvider::final_key(account_id)
+		bp_people_polkadot::AccountInfoStorageMapKeyProvider::final_key(account_id)
 	}
 }
 
@@ -94,11 +94,11 @@ impl From<MockUtilityCall<RuntimeCall>> for RuntimeCall {
 	}
 }
 
-impl ChainWithUtilityPallet for PeopleHubPolkadot {
+impl ChainWithUtilityPallet for PeoplePolkadot {
 	type UtilityPallet = MockedRuntimeUtilityPallet<RuntimeCall>;
 }
 
-impl ChainWithTransactions for PeopleHubPolkadot {
+impl ChainWithTransactions for PeoplePolkadot {
 	type AccountKeyPair = sp_core::sr25519::Pair;
 	type SignedTransaction = UncheckedExtrinsic;
 
@@ -132,14 +132,14 @@ impl ChainWithTransactions for PeopleHubPolkadot {
 	}
 }
 
-impl ChainWithMessages for PeopleHubPolkadot {
+impl ChainWithMessages for PeoplePolkadot {
 	const TO_CHAIN_MESSAGE_DETAILS_METHOD: &'static str =
-		bp_people_hub_polkadot::TO_PEOPLE_HUB_POLKADOT_MESSAGE_DETAILS_METHOD;
+		bp_people_polkadot::TO_PEOPLE_POLKADOT_MESSAGE_DETAILS_METHOD;
 	const FROM_CHAIN_MESSAGE_DETAILS_METHOD: &'static str =
-		bp_people_hub_polkadot::FROM_PEOPLE_HUB_POLKADOT_MESSAGE_DETAILS_METHOD;
+		bp_people_polkadot::FROM_PEOPLE_POLKADOT_MESSAGE_DETAILS_METHOD;
 }
 
-impl ChainWithRuntimeVersion for PeopleHubPolkadot {
+impl ChainWithRuntimeVersion for PeoplePolkadot {
 	const RUNTIME_VERSION: Option<SimpleRuntimeVersion> =
 		Some(SimpleRuntimeVersion { spec_version: 1_004_003, transaction_version: 4 });
 }

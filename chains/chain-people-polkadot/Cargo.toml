@@ -1,6 +1,6 @@
 [package]
-name = "bp-people-hub-polkadot"
-description = "Primitives of PeopleHubPolkadot parachain runtime."
+name = "bp-people-polkadot"
+description = "Primitives of PeoplePolkadot parachain runtime."
 version = "0.1.0"
 repository.workspace = true
 authors.workspace = true

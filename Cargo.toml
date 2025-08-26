@@ -75,7 +75,7 @@ wasm-testbed = { git = "https://github.com/chevdor/subwasm", branch = "master" }
 scale-info = { version = "2.11.6", default-features = false, features = ["derive"] }
 subxt = { version = "0.40.1", default-features = false, features = ["native"] }
 bp-bridge-hub-polkadot = { path = "./chains/chain-bridge-hub-polkadot" }
-bp-people-hub-polkadot = { path = "./chains/chain-people-hub-polkadot" }
+bp-people-polkadot = { path = "./chains/chain-people-polkadot" }
 bp-header-chain = { git = "https://github.com/paritytech/polkadot-sdk", branch = "master" }
 bp-messages = { git = "https://github.com/paritytech/polkadot-sdk", branch = "master" }
 bp-parachains = { git = "https://github.com/paritytech/polkadot-sdk", branch = "master" }
@@ -127,7 +127,7 @@ relay-bridge-hub-westend-client = { path = "./relay-clients/client-bridge-hub-we
 relay-kusama-client = { path = "./relay-clients/client-kusama" }
 relay-polkadot-client = { path = "./relay-clients/client-polkadot" }
 relay-polkadot-bulletin-client = { path = "./relay-clients/client-polkadot-bulletin" }
-relay-people-hub-polkadot-client = { path = "./relay-clients/client-people-hub-polkadot" }
+relay-people-polkadot-client = { path = "./relay-clients/client-people-polkadot" }
 relay-rococo-client = { path = "./relay-clients/client-rococo" }
 relay-westend-client = { path = "./relay-clients/client-westend" }
 substrate-relay-helper = { git = "https://github.com/paritytech/polkadot-sdk", branch = "master" }

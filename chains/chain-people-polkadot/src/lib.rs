@@ -14,7 +14,7 @@
 // You should have received a copy of the GNU General Public License
 // along with Polkadot.  If not, see <http://www.gnu.org/licenses/>.
 
-//! Module with configuration which reflects PeopleHubPolkadot runtime setup
+//! Module with configuration which reflects PeoplePolkadot runtime setup
 //! (AccountId, Headers, Hashes...)
 
 #![cfg_attr(not(feature = "std"), no_std)]
@@ -29,11 +29,11 @@ use bp_runtime::{
 use frame_support::dispatch::DispatchClass;
 use sp_runtime::{RuntimeDebug, StateVersion};
 
-/// PeopleHubPolkadot parachain.
+/// PeoplePolkadot parachain.
 #[derive(RuntimeDebug)]
-pub struct PeopleHubPolkadot;
+pub struct PeoplePolkadot;
 
-impl Chain for PeopleHubPolkadot {
+impl Chain for PeoplePolkadot {
 	const ID: ChainId = *b"phpd";
 	const STATE_VERSION: StateVersion = StateVersion::V1;
 
@@ -59,14 +59,14 @@ impl Chain for PeopleHubPolkadot {
 	}
 }
 
-impl Parachain for PeopleHubPolkadot {
-	const PARACHAIN_ID: u32 = PEOPLE_HUB_POLKADOT_PARACHAIN_ID;
+impl Parachain for PeoplePolkadot {
+	const PARACHAIN_ID: u32 = PEOPLE_POLKADOT_PARACHAIN_ID;
 	const MAX_HEADER_SIZE: u32 = MAX_BRIDGE_HUB_HEADER_SIZE;
 }
 
-impl ChainWithMessages for PeopleHubPolkadot {
+impl ChainWithMessages for PeoplePolkadot {
 	const WITH_CHAIN_MESSAGES_PALLET_NAME: &'static str =
-		WITH_PEOPLE_HUB_POLKADOT_MESSAGES_PALLET_NAME;
+		WITH_PEOPLE_POLKADOT_MESSAGES_PALLET_NAME;
 	const MAX_UNREWARDED_RELAYERS_IN_CONFIRMATION_TX: MessageNonce =
 		MAX_UNREWARDED_RELAYERS_IN_CONFIRMATION_TX;
 	/// This constant limits the maximum number of messages in `receive_messages_proof`.
@@ -76,18 +76,18 @@ impl ChainWithMessages for PeopleHubPolkadot {
 	const MAX_UNCONFIRMED_MESSAGES_IN_CONFIRMATION_TX: MessageNonce = 2024;
 }
 
-/// Identifier of PeopleHubPolkadot in the Polkadot relay chain.
-pub const PEOPLE_HUB_POLKADOT_PARACHAIN_ID: u32 = 1004;
+/// Identifier of PeoplePolkadot in the Polkadot relay chain.
+pub const PEOPLE_POLKADOT_PARACHAIN_ID: u32 = 1004;
 
-/// Name of the With-PeopleHubPolkadot messages pallet instance that is deployed at bridged chains.
-pub const WITH_PEOPLE_HUB_POLKADOT_MESSAGES_PALLET_NAME: &str = "PeoplePolkadotMessages";
+/// Name of the With-PeoplePolkadot messages pallet instance that is deployed at bridged chains.
+pub const WITH_PEOPLE_POLKADOT_MESSAGES_PALLET_NAME: &str = "PeoplePolkadotMessages";
 
-/// Name of the With-PeopleHubPolkadot bridge-relayers pallet instance that is deployed at bridged
+/// Name of the With-PeoplePolkadot bridge-relayers pallet instance that is deployed at bridged
 /// chains.
-pub const WITH_PEOPLE_HUB_POLKADOT_RELAYERS_PALLET_NAME: &str = "PeopleRelayers";
+pub const WITH_PEOPLE_POLKADOT_RELAYERS_PALLET_NAME: &str = "PeopleRelayers";
 
 /// Pallet index of `BridgePolkadotBulletinMessages: pallet_bridge_messages::<Instance1>`.
 pub const WITH_PEOPLE_POLKADOT_TO_BULLETIN_MESSAGES_PALLET_INDEX: u8 = 61;
 
-decl_bridge_finality_runtime_apis!(people_hub_polkadot);
-decl_bridge_messages_runtime_apis!(people_hub_polkadot, LegacyLaneId);
+decl_bridge_finality_runtime_apis!(people_polkadot);
+decl_bridge_messages_runtime_apis!(people_polkadot, LegacyLaneId);
