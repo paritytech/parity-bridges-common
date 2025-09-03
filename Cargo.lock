@@ -1281,6 +1281,21 @@ dependencies = [
 ]
 
 [[package]]
+name = "bp-people-polkadot"
+version = "0.1.0"
+dependencies = [
+ "bp-bridge-hub-cumulus",
+ "bp-header-chain",
+ "bp-messages",
+ "bp-polkadot-core",
+ "bp-runtime",
+ "frame-support",
+ "sp-api",
+ "sp-runtime",
+ "sp-std",
+]
+
+[[package]]
 name = "bp-polkadot"
 version = "0.5.0"
 dependencies = [
@@ -7548,6 +7563,28 @@ dependencies = [
 ]
 
 [[package]]
+name = "relay-people-polkadot-client"
+version = "0.1.0"
+dependencies = [
+ "bp-header-chain",
+ "bp-kusama",
+ "bp-messages",
+ "bp-parachains",
+ "bp-people-polkadot",
+ "bp-polkadot",
+ "bp-polkadot-core",
+ "bp-runtime",
+ "bridge-runtime-common",
+ "parity-scale-codec",
+ "relay-substrate-client",
+ "scale-info",
+ "sp-core",
+ "sp-runtime",
+ "sp-weights",
+ "subxt",
+]
+
+[[package]]
 name = "relay-polkadot-bulletin-client"
 version = "0.1.0"
 dependencies = [
@@ -9947,6 +9984,7 @@ dependencies = [
  "relay-bridge-hub-rococo-client",
  "relay-bridge-hub-westend-client",
  "relay-kusama-client",
+ "relay-people-polkadot-client",
  "relay-polkadot-bulletin-client",
  "relay-polkadot-client",
  "relay-rococo-client",
