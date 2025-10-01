@@ -63,7 +63,7 @@ serde = { version = "1.0.226", default-features = false }
 serde_json = { version = "1.0.138", default-features = false }
 thiserror = { version = "1.0.69" }
 clap = { version = "4.5.3", features = ["derive", "cargo"] }
-codec = { package = "parity-scale-codec", version = "3.7.4", features = ["derive"] }
+codec = { package = "parity-scale-codec", version = "3.7.5", features = ["derive"] }
 color-eyre = "0.6.1"
 indoc = "2.0.5"
 prettyplease = "0.2.20"
