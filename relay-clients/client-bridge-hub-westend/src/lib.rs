@@ -140,5 +140,5 @@ impl ChainWithMessages for BridgeHubWestend {
 
 impl ChainWithRuntimeVersion for BridgeHubWestend {
 	const RUNTIME_VERSION: Option<SimpleRuntimeVersion> =
-		Some(SimpleRuntimeVersion { spec_version: 1_019_002, transaction_version: 6 });
+		Some(SimpleRuntimeVersion { spec_version: 1_020_002, transaction_version: 6 });
 }

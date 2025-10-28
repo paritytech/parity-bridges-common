@@ -616,7 +616,7 @@ pub mod api {
 				#[derive(::codec::Decode, ::codec::Encode, Clone, Debug, PartialEq)]
 				pub struct BasicParachainInherentData {
 					pub validation_data:
-						runtime_types::polkadot_primitives::v8::PersistedValidationData<
+						runtime_types::polkadot_primitives::v9::PersistedValidationData<
 							::subxt::ext::subxt_core::utils::H256,
 							::core::primitive::u32,
 						>,
@@ -664,13 +664,13 @@ pub mod api {
                     pub ingress_channels: ::subxt::ext::subxt_core::alloc::vec::Vec<
                         (
                             runtime_types::polkadot_parachain_primitives::primitives::Id,
-                            runtime_types::polkadot_primitives::v8::AbridgedHrmpChannel,
+                            runtime_types::polkadot_primitives::v9::AbridgedHrmpChannel,
                         ),
                     >,
                     pub egress_channels: ::subxt::ext::subxt_core::alloc::vec::Vec<
                         (
                             runtime_types::polkadot_parachain_primitives::primitives::Id,
-                            runtime_types::polkadot_primitives::v8::AbridgedHrmpChannel,
+                            runtime_types::polkadot_primitives::v9::AbridgedHrmpChannel,
                         ),
                     >,
                 }
@@ -687,7 +687,7 @@ pub mod api {
                     pub used_bandwidth: runtime_types::cumulus_pallet_parachain_system::unincluded_segment::UsedBandwidth,
                     pub para_head_hash: ::core::option::Option<_0>,
                     pub consumed_go_ahead_signal: ::core::option::Option<
-                        runtime_types::polkadot_primitives::v8::UpgradeGoAhead,
+                        runtime_types::polkadot_primitives::v9::UpgradeGoAhead,
                     >,
                 }
 				#[derive(::codec::Decode, ::codec::Encode, Clone, Debug, PartialEq)]
@@ -700,7 +700,7 @@ pub mod api {
                     pub used_bandwidth: runtime_types::cumulus_pallet_parachain_system::unincluded_segment::UsedBandwidth,
                     pub hrmp_watermark: ::core::option::Option<::core::primitive::u32>,
                     pub consumed_go_ahead_signal: ::core::option::Option<
-                        runtime_types::polkadot_primitives::v8::UpgradeGoAhead,
+                        runtime_types::polkadot_primitives::v9::UpgradeGoAhead,
                     >,
                     #[codec(skip)]
                     pub __ignore: ::core::marker::PhantomData<_0>,
@@ -919,10 +919,22 @@ pub mod api {
 						StackLimitReached,
 					}
 				}
+				pub mod storage {
+					use super::runtime_types;
+					#[derive(::codec::Decode, ::codec::Encode, Clone, Debug, PartialEq)]
+					pub struct NoDrop<_0>(pub _0);
+				}
 				pub mod tokens {
 					use super::runtime_types;
 					pub mod fungible {
 						use super::runtime_types;
+						pub mod imbalance {
+							use super::runtime_types;
+							#[derive(::codec::Decode, ::codec::Encode, Clone, Debug, PartialEq)]
+							pub struct Imbalance<_0> {
+								pub amount: _0,
+							}
+						}
 						#[derive(
 							::codec::Decode,
 							::codec::Encode,
@@ -3085,7 +3097,7 @@ pub mod api {
 		}
 		pub mod polkadot_primitives {
 			use super::runtime_types;
-			pub mod v8 {
+			pub mod v9 {
 				use super::runtime_types;
 				pub mod async_backing {
 					use super::runtime_types;
@@ -3107,7 +3119,7 @@ pub mod api {
 					pub validation_upgrade_cooldown: ::core::primitive::u32,
 					pub validation_upgrade_delay: ::core::primitive::u32,
 					pub async_backing_params:
-						runtime_types::polkadot_primitives::v8::async_backing::AsyncBackingParams,
+						runtime_types::polkadot_primitives::v9::async_backing::AsyncBackingParams,
 				}
 				#[derive(::codec::Decode, ::codec::Encode, Clone, Debug, PartialEq)]
 				pub struct AbridgedHrmpChannel {
@@ -3283,6 +3295,7 @@ pub mod api {
 					pub capella: runtime_types::snowbridge_beacon_primitives::types::Fork,
 					pub deneb: runtime_types::snowbridge_beacon_primitives::types::Fork,
 					pub electra: runtime_types::snowbridge_beacon_primitives::types::Fork,
+					pub fulu: runtime_types::snowbridge_beacon_primitives::types::Fork,
 				}
 				#[derive(::codec::Decode, ::codec::Encode, Clone, Debug, PartialEq)]
 				pub struct PublicKey(pub [::core::primitive::u8; 48usize]);
@@ -4047,6 +4060,8 @@ pub mod api {
 				Sr25519([::core::primitive::u8; 64usize]),
 				#[codec(index = 2)]
 				Ecdsa([::core::primitive::u8; 65usize]),
+				#[codec(index = 3)]
+				Eth([::core::primitive::u8; 65usize]),
 			}
 			#[derive(::codec::Decode, ::codec::Encode, Clone, Debug, PartialEq)]
 			pub enum TokenError {
