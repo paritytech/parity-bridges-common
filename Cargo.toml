@@ -57,7 +57,7 @@ complexity = { level = "deny", priority = 1 }
 #default_constructed_unit_structs = { level = "allow", priority = 2 } # stylistic
 
 [workspace.dependencies]
-log = { version = "0.4.28", default-features = false }
+log = { version = "0.4.29", default-features = false }
 quote = { version = "1.0.42" }
 serde = { version = "1.0.228", default-features = false }
 serde_json = { version = "1.0.138", default-features = false }
