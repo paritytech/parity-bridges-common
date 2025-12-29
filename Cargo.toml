@@ -130,7 +130,7 @@ relay-rococo-client = { path = "./relay-clients/client-rococo" }
 relay-westend-client = { path = "./relay-clients/client-westend" }
 substrate-relay-helper = { git = "https://github.com/paritytech/polkadot-sdk", branch = "master" }
 bp-test-utils = { git = "https://github.com/paritytech/polkadot-sdk", branch = "master" }
-hex-literal = "0.4"
+hex-literal = "1.1"
 sp-keyring = { git = "https://github.com/paritytech/polkadot-sdk", branch = "master" }
 tempfile = "3.23"
 finality-grandpa = { version = "0.16.2" }
