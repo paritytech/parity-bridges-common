@@ -8737,6 +8737,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "signal-hook"
+version = "0.4.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2a37d01603c37b5466f808de79f845c7116049b0579adb70a6b7d47c1fa3a952"
+dependencies = [
+ "libc",
+ "signal-hook-registry",
+]
+
+[[package]]
 name = "signal-hook-async-std"
 version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -8745,7 +8755,7 @@ dependencies = [
  "async-io",
  "futures-lite 2.3.0",
  "libc",
- "signal-hook",
+ "signal-hook 0.3.18",
 ]
 
 [[package]]
@@ -9924,7 +9934,7 @@ dependencies = [
  "relay-substrate-client",
  "relay-utils",
  "relay-westend-client",
- "signal-hook",
+ "signal-hook 0.4.1",
  "signal-hook-async-std",
  "sp-core",
  "sp-runtime",
