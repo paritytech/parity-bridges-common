@@ -112,7 +112,7 @@ num-format = "0.4"
 num-traits = "0.2"
 rbtag = "0.3"
 structopt = "0.3"
-signal-hook = "0.3.18"
+signal-hook = "0.4.1"
 signal-hook-async-std = "0.3.0"
 strum = { version = "0.27.2", features = ["derive"] }
 pallet-bridge-parachains = { git = "https://github.com/paritytech/polkadot-sdk", branch = "master" }
@@ -132,5 +132,5 @@ substrate-relay-helper = { git = "https://github.com/paritytech/polkadot-sdk", b
 bp-test-utils = { git = "https://github.com/paritytech/polkadot-sdk", branch = "master" }
 hex-literal = "0.4"
 sp-keyring = { git = "https://github.com/paritytech/polkadot-sdk", branch = "master" }
-tempfile = "3.23"
+tempfile = "3.24"
 finality-grandpa = { version = "0.16.2" }
