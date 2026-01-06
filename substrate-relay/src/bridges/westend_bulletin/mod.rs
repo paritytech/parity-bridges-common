@@ -14,10 +14,10 @@
 // You should have received a copy of the GNU General Public License
 // along with Parity Bridges Common.  If not, see <http://www.gnu.org/licenses/>.
 
-//! Declaration of all bridges that the relay is able to serve.
+//! Declaration of all bridges between Westend Bulletin Chain and Westend Bridge Hub.
 
-pub mod kusama_polkadot;
-pub mod polkadot_bulletin;
-pub mod rococo_bulletin;
-pub mod rococo_westend;
-pub mod westend_bulletin;
+pub mod bridge_hub_westend_messages_to_westend_bulletin;
+pub mod westend_bulletin_headers_to_bridge_hub_westend;
+pub mod westend_bulletin_messages_to_bridge_hub_westend;
+pub mod westend_headers_to_westend_bulletin;
+pub mod westend_parachains_to_westend_bulletin;
