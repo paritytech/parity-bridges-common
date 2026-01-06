@@ -34,6 +34,10 @@ use crate::bridges::{
 		rococo_headers_to_bridge_hub_westend::RococoToBridgeHubWestendCliBridge,
 		westend_headers_to_bridge_hub_rococo::WestendToBridgeHubRococoCliBridge,
 	},
+	westend_bulletin::{
+		westend_bulletin_headers_to_bridge_hub_westend::WestendBulletinToBridgeHubWestendCliBridge,
+		westend_headers_to_westend_bulletin::WestendToWestendBulletinCliBridge,
+	},
 };
 
 use substrate_relay_helper::cli::relay_headers::{
@@ -72,6 +76,8 @@ pub enum RelayHeadersBridge {
 	PolkadotBulletinToBridgeHubPolkadot,
 	RococoToRococoBulletin,
 	RococoBulletinToBridgeHubRococo,
+	WestendToWestendBulletin,
+	WestendBulletinToBridgeHubWestend,
 }
 
 impl HeadersRelayer for RococoToBridgeHubWestendCliBridge {}
@@ -82,6 +88,8 @@ impl HeadersRelayer for PolkadotToPolkadotBulletinCliBridge {}
 impl HeadersRelayer for PolkadotBulletinToBridgeHubPolkadotCliBridge {}
 impl HeadersRelayer for RococoToRococoBulletinCliBridge {}
 impl HeadersRelayer for RococoBulletinToBridgeHubRococoCliBridge {}
+impl HeadersRelayer for WestendToWestendBulletinCliBridge {}
+impl HeadersRelayer for WestendBulletinToBridgeHubWestendCliBridge {}
 
 impl RelayHeaders {
 	/// Run the command.
@@ -103,6 +111,10 @@ impl RelayHeaders {
 				RococoToRococoBulletinCliBridge::relay_headers(self.params),
 			RelayHeadersBridge::RococoBulletinToBridgeHubRococo =>
 				RococoBulletinToBridgeHubRococoCliBridge::relay_headers(self.params),
+			RelayHeadersBridge::WestendToWestendBulletin =>
+				WestendToWestendBulletinCliBridge::relay_headers(self.params),
+			RelayHeadersBridge::WestendBulletinToBridgeHubWestend =>
+				WestendBulletinToBridgeHubWestendCliBridge::relay_headers(self.params),
 		}
 		.await
 	}
@@ -128,6 +140,10 @@ impl RelayHeader {
 				RococoToRococoBulletinCliBridge::relay_header(self.params),
 			RelayHeadersBridge::RococoBulletinToBridgeHubRococo =>
 				RococoBulletinToBridgeHubRococoCliBridge::relay_header(self.params),
+			RelayHeadersBridge::WestendToWestendBulletin =>
+				WestendToWestendBulletinCliBridge::relay_header(self.params),
+			RelayHeadersBridge::WestendBulletinToBridgeHubWestend =>
+				WestendBulletinToBridgeHubWestendCliBridge::relay_header(self.params),
 		}
 		.await
 	}

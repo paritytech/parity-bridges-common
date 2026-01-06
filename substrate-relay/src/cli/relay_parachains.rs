@@ -21,6 +21,7 @@ use crate::bridges::{
 	},
 	polkadot_bulletin::polkadot_parachains_to_polkadot_bulletin::PolkadotToPolkadotBulletinCliBridge,
 	rococo_bulletin::rococo_parachains_to_rococo_bulletin::RococoToRococoBulletinCliBridge,
+	westend_bulletin::westend_parachains_to_westend_bulletin::WestendToWestendBulletinCliBridge,
 	rococo_westend::{
 		asset_hub_rococo_parachains_to_bridge_hub_westend::AssetHubRococoToBridgeHubWestendParachainsCliBridge,
 		asset_hub_westend_parachains_to_bridge_hub_rococo::AssetHubWestendToBridgeHubRococoParachainsCliBridge,
@@ -62,6 +63,7 @@ pub enum RelayParachainsBridge {
 	BridgeHubPolkadotToBridgeHubKusama,
 	PolkadotToPolkadotBulletin,
 	RococoToRococoBulletin,
+	WestendToWestendBulletin,
 	BridgeHubRococoToBridgeHubWestend,
 	BridgeHubWestendToBridgeHubRococo,
 	AssetHubRococoToBridgeHubWestend,
@@ -76,6 +78,7 @@ impl ParachainsRelayer for BridgeHubKusamaToBridgeHubPolkadotCliBridge {}
 impl ParachainsRelayer for BridgeHubPolkadotToBridgeHubKusamaCliBridge {}
 impl ParachainsRelayer for PolkadotToPolkadotBulletinCliBridge {}
 impl ParachainsRelayer for RococoToRococoBulletinCliBridge {}
+impl ParachainsRelayer for WestendToWestendBulletinCliBridge {}
 
 impl RelayParachains {
 	/// Run the command.
@@ -97,6 +100,8 @@ impl RelayParachains {
 				PolkadotToPolkadotBulletinCliBridge::relay_parachains(self.params),
 			RelayParachainsBridge::RococoToRococoBulletin =>
 				RococoToRococoBulletinCliBridge::relay_parachains(self.params),
+			RelayParachainsBridge::WestendToWestendBulletin =>
+				WestendToWestendBulletinCliBridge::relay_parachains(self.params),
 		}
 		.await
 	}
@@ -126,6 +131,8 @@ impl RelayParachainHead {
 				PolkadotToPolkadotBulletinCliBridge::relay_parachain_head(self.params),
 			RelayParachainsBridge::RococoToRococoBulletin =>
 				RococoToRococoBulletinCliBridge::relay_parachain_head(self.params),
+			RelayParachainsBridge::WestendToWestendBulletin =>
+				WestendToWestendBulletinCliBridge::relay_parachain_head(self.params),
 		}
 		.await
 	}

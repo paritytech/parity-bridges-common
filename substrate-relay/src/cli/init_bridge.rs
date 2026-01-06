@@ -31,6 +31,10 @@ use crate::bridges::{
 		rococo_headers_to_bridge_hub_westend::RococoToBridgeHubWestendCliBridge,
 		westend_headers_to_bridge_hub_rococo::WestendToBridgeHubRococoCliBridge,
 	},
+	westend_bulletin::{
+		westend_bulletin_headers_to_bridge_hub_westend::WestendBulletinToBridgeHubWestendCliBridge,
+		westend_headers_to_westend_bulletin::WestendToWestendBulletinCliBridge,
+	},
 };
 use clap::{Parser, ValueEnum};
 use relay_substrate_client::Chain;
@@ -149,6 +153,35 @@ impl BridgeInitializer for RococoBulletinToBridgeHubRococoCliBridge {
 	}
 }
 
+impl BridgeInitializer for WestendToWestendBulletinCliBridge {
+	type Engine = GrandpaFinalityEngine<Self::Source>;
+
+	fn encode_init_bridge(
+		init_data: <Self::Engine as Engine<Self::Source>>::InitializationData,
+	) -> <Self::Target as Chain>::Call {
+		type RuntimeCall = relay_polkadot_bulletin_client::RuntimeCall;
+		type BridgePolkadotGrandpaCall = relay_polkadot_bulletin_client::BridgePolkadotGrandpaCall;
+		type SudoCall = relay_polkadot_bulletin_client::SudoCall;
+
+		let initialize_call =
+			RuntimeCall::BridgePolkadotGrandpa(BridgePolkadotGrandpaCall::initialize { init_data });
+
+		RuntimeCall::Sudo(SudoCall::sudo { call: Box::new(initialize_call) })
+	}
+}
+
+impl BridgeInitializer for WestendBulletinToBridgeHubWestendCliBridge {
+	type Engine = GrandpaFinalityEngine<Self::Source>;
+
+	fn encode_init_bridge(
+		init_data: <Self::Engine as Engine<Self::Source>>::InitializationData,
+	) -> <Self::Target as Chain>::Call {
+		relay_bridge_hub_westend_client::RuntimeCall::BridgePolkadotBulletinGrandpa(
+			relay_bridge_hub_westend_client::BridgeBulletinGrandpaCall::initialize { init_data },
+		)
+	}
+}
+
 /// Initialize bridge pallet.
 #[derive(Parser)]
 pub struct InitBridge {
@@ -171,6 +204,8 @@ pub enum InitBridgeName {
 	RococoBulletinToBridgeHubRococo,
 	RococoToBridgeHubWestend,
 	WestendToBridgeHubRococo,
+	WestendToWestendBulletin,
+	WestendBulletinToBridgeHubWestend,
 }
 
 impl InitBridge {
@@ -193,6 +228,10 @@ impl InitBridge {
 				RococoToBridgeHubWestendCliBridge::init_bridge(self.params),
 			InitBridgeName::WestendToBridgeHubRococo =>
 				WestendToBridgeHubRococoCliBridge::init_bridge(self.params),
+			InitBridgeName::WestendToWestendBulletin =>
+				WestendToWestendBulletinCliBridge::init_bridge(self.params),
+			InitBridgeName::WestendBulletinToBridgeHubWestend =>
+				WestendBulletinToBridgeHubWestendCliBridge::init_bridge(self.params),
 		}
 		.await
 	}

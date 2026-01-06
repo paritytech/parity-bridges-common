@@ -36,6 +36,10 @@ use crate::bridges::{
 		bridge_hub_rococo_messages_to_bridge_hub_westend::BridgeHubRococoToBridgeHubWestendMessagesCliBridge,
 		bridge_hub_westend_messages_to_bridge_hub_rococo::BridgeHubWestendToBridgeHubRococoMessagesCliBridge,
 	},
+	westend_bulletin::{
+		bridge_hub_westend_messages_to_westend_bulletin::BridgeHubWestendToWestendBulletinMessagesCliBridge,
+		westend_bulletin_messages_to_bridge_hub_westend::WestendBulletinToBridgeHubWestendMessagesCliBridge,
+	},
 };
 use substrate_relay_helper::cli::relay_messages::{
 	MessagesRelayer, RelayMessagesDeliveryConfirmationParams, RelayMessagesParams,
@@ -56,6 +60,8 @@ pub enum FullBridge {
 	BridgeHubRococoToRococoBulletin,
 	AssetHubRococoToBridgeHubWestend,
 	AssetHubWestendToBridgeHubRococo,
+	WestendBulletinToBridgeHubWestend,
+	BridgeHubWestendToWestendBulletin,
 }
 
 /// Start messages relayer process.
@@ -98,6 +104,8 @@ impl MessagesRelayer for RococoBulletinToBridgeHubRococoMessagesCliBridge {}
 impl MessagesRelayer for BridgeHubRococoToRococoBulletinMessagesCliBridge {}
 impl MessagesRelayer for AssetHubRococoToAssetHubWestendMessagesCliBridge {}
 impl MessagesRelayer for AssetHubWestendToAssetHubRococoMessagesCliBridge {}
+impl MessagesRelayer for WestendBulletinToBridgeHubWestendMessagesCliBridge {}
+impl MessagesRelayer for BridgeHubWestendToWestendBulletinMessagesCliBridge {}
 
 impl RelayMessages {
 	/// Run the command.
@@ -123,6 +131,10 @@ impl RelayMessages {
 				AssetHubRococoToAssetHubWestendMessagesCliBridge::relay_messages(self.params),
 			FullBridge::AssetHubWestendToBridgeHubRococo =>
 				AssetHubWestendToAssetHubRococoMessagesCliBridge::relay_messages(self.params),
+			FullBridge::WestendBulletinToBridgeHubWestend =>
+				WestendBulletinToBridgeHubWestendMessagesCliBridge::relay_messages(self.params),
+			FullBridge::BridgeHubWestendToWestendBulletin =>
+				BridgeHubWestendToWestendBulletinMessagesCliBridge::relay_messages(self.params),
 		}
 		.await
 	}
@@ -164,6 +176,10 @@ impl RelayMessagesRange {
 				AssetHubRococoToAssetHubWestendMessagesCliBridge::relay_messages_range(self.params),
 			FullBridge::AssetHubWestendToBridgeHubRococo =>
 				AssetHubWestendToAssetHubRococoMessagesCliBridge::relay_messages_range(self.params),
+			FullBridge::WestendBulletinToBridgeHubWestend =>
+				WestendBulletinToBridgeHubWestendMessagesCliBridge::relay_messages_range(self.params),
+			FullBridge::BridgeHubWestendToWestendBulletin =>
+				BridgeHubWestendToWestendBulletinMessagesCliBridge::relay_messages_range(self.params),
 		}
 		.await
 	}
@@ -205,6 +221,10 @@ impl RelayMessagesDeliveryConfirmation {
 				AssetHubRococoToAssetHubWestendMessagesCliBridge::relay_messages_delivery_confirmation(self.params),
 			FullBridge::AssetHubWestendToBridgeHubRococo =>
 				AssetHubWestendToAssetHubRococoMessagesCliBridge::relay_messages_delivery_confirmation(self.params),
+			FullBridge::WestendBulletinToBridgeHubWestend =>
+				WestendBulletinToBridgeHubWestendMessagesCliBridge::relay_messages_delivery_confirmation(self.params),
+			FullBridge::BridgeHubWestendToWestendBulletin =>
+				BridgeHubWestendToWestendBulletinMessagesCliBridge::relay_messages_delivery_confirmation(self.params),
 		}
 		.await
 	}
