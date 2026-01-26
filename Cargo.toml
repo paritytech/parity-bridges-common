@@ -112,7 +112,7 @@ num-format = "0.4"
 num-traits = "0.2"
 rbtag = "0.3"
 structopt = "0.3"
-signal-hook = "0.4.1"
+signal-hook = "0.4.3"
 signal-hook-async-std = "0.4.0"
 strum = { version = "0.27.2", features = ["derive"] }
 pallet-bridge-parachains = { git = "https://github.com/paritytech/polkadot-sdk", branch = "master" }
