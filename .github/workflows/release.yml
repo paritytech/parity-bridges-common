@@ -1,0 +1,241 @@
+name: Update Spec & Build
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Runtime version number (e.g. v1.1.6)'
+        required: true
+        type: string
+      spec_version:
+        description: 'Spec version number (e.g. v1001006)'
+        required: true
+        type: string
+      runtime:
+        description: 'Select runtime to download'
+        required: true
+        type: choice
+        options:
+          - 'BridgeHub Polkadot'
+          - 'BridgeHub Kusama'
+          - 'AssetHub Polkadot'
+          - 'AssetHub Kusama'
+        default: 'BridgeHub Kusama'
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Create wbuild directory
+        run: mkdir -p ./tools/wbuild
+
+      - name: Download runtime files
+        run: |
+          version="${{ github.event.inputs.version }}"
+          
+          # Download runtime
+          if [[ "${{ github.event.inputs.runtime }}" == *"BridgeHub Polkadot"* ]]; then
+            echo "Downloading Polkadot BridgeHub runtime..."
+            runtime_file="./tools/wbuild/bridge-hub-polkadot_runtime-${version#v}.compact.compressed.wasm"
+            wget -O "$runtime_file" \
+              "https://github.com/polkadot-fellows/runtimes/releases/download/${version}/bridge-hub-polkadot_runtime-${version#v}.compact.compressed.wasm"
+          else if [[ "${{ github.event.inputs.runtime }}" == *"BridgeHub Kusama"* ]]; then
+            echo "Downloading Kusama BridgeHub runtime..."
+            runtime_file="./tools/wbuild/bridge-hub-kusama_runtime-${version#v}.compact.compressed.wasm"
+            wget -O "$runtime_file" \
+              "https://github.com/polkadot-fellows/runtimes/releases/download/${version}/bridge-hub-kusama_runtime-${version#v}.compact.compressed.wasm"
+          else if [[ "${{ github.event.inputs.runtime }}" == *"AssetHub Polkadot"* ]]; then
+            echo "Downloading Polkadot AssetHub runtime..."
+            runtime_file="./tools/wbuild/asset-hub-polkadot_runtime-${version#v}.compact.compressed.wasm"
+            wget -O "$runtime_file" \
+              "https://github.com/polkadot-fellows/runtimes/releases/download/${version}/asset-hub-polkadot_runtime-${version#v}.compact.compressed.wasm"
+          else if [[ "${{ github.event.inputs.runtime }}" == *"AssetHub Kusama"* ]]; then
+            echo "Downloading Kusama AssetHub runtime..."
+            runtime_file="./tools/wbuild/asset-hub-kusama_runtime-${version#v}.compact.compressed.wasm"
+            wget -O "$runtime_file" \
+              "https://github.com/polkadot-fellows/runtimes/releases/download/${version}/asset-hub-kusama_runtime-${version#v}.compact.compressed.wasm"
+          else
+            echo "Invalid runtime selected. Aborting download."
+            exit 1
+          fi
+          
+          # Check if file was downloaded successfully
+          if [[ ! -f "$runtime_file" ]]; then
+            echo "Error: Failed to download runtime file: $runtime_file"
+            echo "Aborting workflow."
+            exit 1
+          fi
+          
+          echo "Successfully downloaded: $runtime_file"
+          ls -lh "$runtime_file"
+          
+          # Set environment variables for next steps
+          echo "RUNTIME_FILE=$runtime_file" >> $GITHUB_ENV
+          echo "RUNTIME_NAME=${{ github.event.inputs.runtime }}" >> $GITHUB_ENV
+          echo "SPEC_VERSION=${{ github.event.inputs.spec_version }}" >> $GITHUB_ENV
+
+      - name: Update spec version in client files
+        run: |
+          # Convert spec version format (e.g., v1001006 -> 1_001_006)
+          spec_num="${SPEC_VERSION#v}"
+          formatted_spec=$(echo "$spec_num" | sed 's/\([0-9]\)\([0-9]\{3\}\)\([0-9]\{3\}\)/\1_\2_\3/')
+          
+          echo "Updating spec version to: $formatted_spec"
+          
+          # Update spec version based on runtime selection
+          case "$RUNTIME_NAME" in
+            "BridgeHub Polkadot")
+              sed -i "s/spec_version: [0-9_]*/spec_version: $formatted_spec/" relay-clients/client-bridge-hub-polkadot/src/lib.rs
+              ;;
+            "BridgeHub Kusama")
+              sed -i "s/spec_version: [0-9_]*/spec_version: $formatted_spec/" relay-clients/client-bridge-hub-kusama/src/lib.rs
+              ;;
+            "AssetHub Polkadot")
+              sed -i "s/spec_version: [0-9_]*/spec_version: $formatted_spec/" relay-clients/client-asset-hub-polkadot/src/lib.rs
+              ;;
+            "AssetHub Kusama")
+              sed -i "s/spec_version: [0-9_]*/spec_version: $formatted_spec/" relay-clients/client-asset-hub-kusama/src/lib.rs
+              ;;
+          esac
+
+      - name: Bump minor version in Cargo.toml
+        run: |
+          # Get current version and bump minor version
+          current_version=$(grep '^version = ' substrate-relay/Cargo.toml | cut -d'"' -f2)
+          major=$(echo "$current_version" | cut -d. -f1)
+          minor=$(echo "$current_version" | cut -d. -f2)
+          patch=$(echo "$current_version" | cut -d. -f3)
+          
+          # Increment minor version and reset patch
+          new_minor=$((minor + 1))
+          new_patch=0
+          new_version="$major.$new_minor.$new_patch"
+          
+          echo "Bumping version from $current_version to $new_version"
+          sed -i "s/version = \"$current_version\"/version = \"$new_version\"/" substrate-relay/Cargo.toml
+
+      - name: Run runtime codegen
+        run: |
+          # Extract runtime filename from RUNTIME_FILE
+          runtime_filename=$(basename "$RUNTIME_FILE")
+          
+          # Determine target client directory based on runtime
+          case "$RUNTIME_NAME" in
+            "BridgeHub Polkadot")
+              target_dir="relay-clients/client-bridge-hub-polkadot/src"
+              ;;
+            "BridgeHub Kusama")
+              target_dir="relay-clients/client-bridge-hub-kusama/src"
+              ;;
+            "AssetHub Polkadot")
+              target_dir="relay-clients/client-asset-hub-polkadot/src"
+              ;;
+            "AssetHub Kusama")
+              target_dir="relay-clients/client-asset-hub-kusama/src"
+              ;;
+          esac
+          
+          echo "Running runtime codegen for $runtime_filename"
+          cargo run --bin runtime-codegen --release -- --from-wasm-file "wbuild/$runtime_filename" | tee "$target_dir/codegen_runtime.rs"
+
+      - name: Fix Header generic types & Format code
+        run: |
+          cargo +nightly fmt --all
+          find . -name codegen_runtime.rs -exec \
+            sed -i 's/::sp_runtime::generic::Header<::core::primitive::u32>/::sp_runtime::generic::Header<::core::primitive::u32, ::sp_runtime::traits::BlakeTwo256>/g' {} +
+          cargo +nightly fmt --all
+
+          echo "Cargo check"
+          SKIP_WASM_BUILD=1 cargo check --workspace --target-dir=target/rust-analyzer
+
+          echo "Cargo clippy"
+          SKIP_WASM_BUILD=1 cargo clippy --workspace --all-targets --all-features --target-dir=target/rust-analyzer
+
+      - name: Create Pull Request
+        uses: peter-evans/create-pull-request@v8
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          commit-message: |
+            Update runtime: ${{ github.event.inputs.runtime }} ${{ github.event.inputs.version }}
+            
+            - Update spec version to ${{ github.event.inputs.spec_version }}
+            - Bump substrate-relay version
+            - Regenerate runtime code
+          title: "Update runtime: ${{ github.event.inputs.runtime }} ${{ github.event.inputs.version }}"
+          body: |
+            Automated runtime update:
+            
+            - Runtime: ${{ github.event.inputs.runtime }}
+            - Version: ${{ github.event.inputs.version }}
+            - Spec Version: ${{ github.event.inputs.spec_version }}
+            
+            Changes:
+            - Updated spec version in client files
+            - Bumped substrate-relay minor version
+            - Regenerated runtime code
+            - Applied formatting fixes
+          branch: runtime-update-${{ github.event.inputs.runtime }}-${{ github.event.inputs.version }}
+          delete-branch: true
+
+  create-tag:
+    runs-on: ubuntu-latest
+    needs: release
+    if: github.event_name == 'pull_request' && github.event.action == 'closed' && github.event.pull_request.merged == true
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Get version from merged PR
+        id: get-version
+        run: |
+          # Extract version from PR title or branch name
+          if [[ "${{ github.event.pull_request.title }}" =~ Update\ runtime:\ .+\ (.+) ]]; then
+            version="${BASH_REMATCH[1]}"
+          else
+            # Fallback to branch name
+            version=$(echo "${{ github.event.pull_request.head.ref }}" | sed 's/runtime-update-.*-//')
+          fi
+          echo "version=$version" >> $GITHUB_OUTPUT
+          echo "Detected version: $version"
+
+      - name: Get new substrate-relay version
+        id: get-cargo-version
+        run: |
+          # Read the current version from Cargo.toml
+          version=$(grep '^version = ' substrate-relay/Cargo.toml | cut -d'"' -f2)
+          echo "cargo_version=$version" >> $GITHUB_OUTPUT
+          echo "Cargo version: $version"
+
+      - name: Create and push tag
+        run: |
+          version="${{ steps.get-version.outputs.version }}"
+          cargo_version="${{ steps.get-cargo-version.outputs.cargo_version }}"
+          tag_name="v$cargo_version"
+          
+          echo "Creating tag: $tag_name"
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git tag -a "$tag_name" -m "Release $tag_name - Runtime: $version - Substrate-relay: $cargo_version"
+          
+          git push origin "$tag_name"
+
+      - name: Create Release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: v${{ steps.get-cargo-version.outputs.cargo_version }}
+          release_name: Release v${{ steps.get-cargo-version.outputs.cargo_version }}
+          body: |
+            Automated release v${{ steps.get-cargo-version.outputs.cargo_version }}
+            
+            This release includes runtime updates from the merged PR:
+            - Runtime: ${{ github.event.pull_request.title }}
+            - Substrate-relay version: ${{ steps.get-cargo-version.outputs.cargo_version }}
+          draft: false
+          prerelease: false
