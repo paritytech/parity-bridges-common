@@ -14,8 +14,6 @@ on:
         options:
           - 'BridgeHubPolkadot'
           - 'BridgeHubKusama'
-          - 'AssetHubPolkadot'
-          - 'AssetHubKusama'
         default: 'BridgeHubKusama'
 
 jobs:
