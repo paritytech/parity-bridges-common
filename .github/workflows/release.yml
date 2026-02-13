@@ -1,12 +1,8 @@
-name: Update Spec & Build
+name: Release Relayer
 
 on:
   workflow_dispatch:
     inputs:
-      version:
-        description: 'Runtime version number (e.g. v1.1.6)'
-        required: true
-        type: string
       spec_version:
         description: 'Spec version number (e.g. v1001006)'
         required: true
@@ -16,11 +12,11 @@ on:
         required: true
         type: choice
         options:
-          - 'BridgeHub Polkadot'
-          - 'BridgeHub Kusama'
-          - 'AssetHub Polkadot'
-          - 'AssetHub Kusama'
-        default: 'BridgeHub Kusama'
+          - 'BridgeHubPolkadot'
+          - 'BridgeHubKusama'
+          - 'AssetHubPolkadot'
+          - 'AssetHubKusama'
+        default: 'BridgeHubKusama'
 
 jobs:
   release:
@@ -34,29 +30,46 @@ jobs:
 
       - name: Download runtime files
         run: |
-          version="${{ github.event.inputs.version }}"
+          spec_version="${{ github.event.inputs.spec_version }}"
+          
+          # Convert spec version to runtime version (e.g., v1001006 -> v1.1.6)
+          spec_num="${spec_version#v}"
+          # Extract major, minor, patch from 7-digit number
+          major="${spec_num:0:1}"
+          minor="${spec_num:1:3}"
+          patch="${spec_num:4:3}"
+          # Remove leading zeros
+          minor=$((10#$minor))
+          patch=$((10#$patch))
+          runtime_version="v$major.$minor.$patch"
+          
+          echo "Spec version: $spec_version"
+          echo "Runtime version: $runtime_version"
+          
+          # Save runtime version for use in subsequent steps
+          echo "RUNTIME_VERSION=$runtime_version" >> $GITHUB_ENV
           
           # Download runtime
           if [[ "${{ github.event.inputs.runtime }}" == *"BridgeHub Polkadot"* ]]; then
             echo "Downloading Polkadot BridgeHub runtime..."
-            runtime_file="./tools/wbuild/bridge-hub-polkadot_runtime-${version#v}.compact.compressed.wasm"
+            runtime_file="./tools/wbuild/bridge-hub-polkadot_runtime-${runtime_version#v}.compact.compressed.wasm"
             wget -O "$runtime_file" \
-              "https://github.com/polkadot-fellows/runtimes/releases/download/${version}/bridge-hub-polkadot_runtime-${version#v}.compact.compressed.wasm"
+              "https://github.com/polkadot-fellows/runtimes/releases/download/${runtime_version}/bridge-hub-polkadot_runtime-${runtime_version#v}.compact.compressed.wasm"
           else if [[ "${{ github.event.inputs.runtime }}" == *"BridgeHub Kusama"* ]]; then
             echo "Downloading Kusama BridgeHub runtime..."
-            runtime_file="./tools/wbuild/bridge-hub-kusama_runtime-${version#v}.compact.compressed.wasm"
+            runtime_file="./tools/wbuild/bridge-hub-kusama_runtime-${runtime_version#v}.compact.compressed.wasm"
             wget -O "$runtime_file" \
-              "https://github.com/polkadot-fellows/runtimes/releases/download/${version}/bridge-hub-kusama_runtime-${version#v}.compact.compressed.wasm"
+              "https://github.com/polkadot-fellows/runtimes/releases/download/${runtime_version}/bridge-hub-kusama_runtime-${runtime_version#v}.compact.compressed.wasm"
           else if [[ "${{ github.event.inputs.runtime }}" == *"AssetHub Polkadot"* ]]; then
             echo "Downloading Polkadot AssetHub runtime..."
-            runtime_file="./tools/wbuild/asset-hub-polkadot_runtime-${version#v}.compact.compressed.wasm"
+            runtime_file="./tools/wbuild/asset-hub-polkadot_runtime-${runtime_version#v}.compact.compressed.wasm"
             wget -O "$runtime_file" \
-              "https://github.com/polkadot-fellows/runtimes/releases/download/${version}/asset-hub-polkadot_runtime-${version#v}.compact.compressed.wasm"
+              "https://github.com/polkadot-fellows/runtimes/releases/download/${runtime_version}/asset-hub-polkadot_runtime-${runtime_version#v}.compact.compressed.wasm"
           else if [[ "${{ github.event.inputs.runtime }}" == *"AssetHub Kusama"* ]]; then
             echo "Downloading Kusama AssetHub runtime..."
-            runtime_file="./tools/wbuild/asset-hub-kusama_runtime-${version#v}.compact.compressed.wasm"
+            runtime_file="./tools/wbuild/asset-hub-kusama_runtime-${runtime_version#v}.compact.compressed.wasm"
             wget -O "$runtime_file" \
-              "https://github.com/polkadot-fellows/runtimes/releases/download/${version}/asset-hub-kusama_runtime-${version#v}.compact.compressed.wasm"
+              "https://github.com/polkadot-fellows/runtimes/releases/download/${runtime_version}/asset-hub-kusama_runtime-${runtime_version#v}.compact.compressed.wasm"
           else
             echo "Invalid runtime selected. Aborting download."
             exit 1
@@ -83,20 +96,20 @@ jobs:
           spec_num="${SPEC_VERSION#v}"
           formatted_spec=$(echo "$spec_num" | sed 's/\([0-9]\)\([0-9]\{3\}\)\([0-9]\{3\}\)/\1_\2_\3/')
           
-          echo "Updating spec version to: $formatted_spec"
+          echo "Updating spec version $SPEC_VERSION to: $formatted_spec"
           
           # Update spec version based on runtime selection
           case "$RUNTIME_NAME" in
-            "BridgeHub Polkadot")
+            "BridgeHubPolkadot")
               sed -i "s/spec_version: [0-9_]*/spec_version: $formatted_spec/" relay-clients/client-bridge-hub-polkadot/src/lib.rs
               ;;
-            "BridgeHub Kusama")
+            "BridgeHubKusama")
               sed -i "s/spec_version: [0-9_]*/spec_version: $formatted_spec/" relay-clients/client-bridge-hub-kusama/src/lib.rs
               ;;
-            "AssetHub Polkadot")
+            "AssetHubPolkadot")
               sed -i "s/spec_version: [0-9_]*/spec_version: $formatted_spec/" relay-clients/client-asset-hub-polkadot/src/lib.rs
               ;;
-            "AssetHub Kusama")
+            "AssetHubKusama")
               sed -i "s/spec_version: [0-9_]*/spec_version: $formatted_spec/" relay-clients/client-asset-hub-kusama/src/lib.rs
               ;;
           esac
@@ -109,12 +122,11 @@ jobs:
           minor=$(echo "$current_version" | cut -d. -f2)
           patch=$(echo "$current_version" | cut -d. -f3)
           
-          # Increment minor version and reset patch
-          new_minor=$((minor + 1))
-          new_patch=0
-          new_version="$major.$new_minor.$new_patch"
+          # Increment patch version
+          new_patch=$((patch + 1))
+          new_version="$major.$minor.$new_patch"
           
-          echo "Bumping version from $current_version to $new_version"
+          echo "Bumping relayer version from $current_version to $new_version"
           sed -i "s/version = \"$current_version\"/version = \"$new_version\"/" substrate-relay/Cargo.toml
 
       - name: Run runtime codegen
@@ -124,16 +136,16 @@ jobs:
           
           # Determine target client directory based on runtime
           case "$RUNTIME_NAME" in
-            "BridgeHub Polkadot")
+            "BridgeHubPolkadot")
               target_dir="relay-clients/client-bridge-hub-polkadot/src"
               ;;
-            "BridgeHub Kusama")
+            "BridgeHubKusama")
               target_dir="relay-clients/client-bridge-hub-kusama/src"
               ;;
-            "AssetHub Polkadot")
+            "AssetHubPolkadot")
               target_dir="relay-clients/client-asset-hub-polkadot/src"
               ;;
-            "AssetHub Kusama")
+            "AssetHubKusama")
               target_dir="relay-clients/client-asset-hub-kusama/src"
               ;;
           esac
@@ -159,17 +171,16 @@ jobs:
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           commit-message: |
-            Update runtime: ${{ github.event.inputs.runtime }} ${{ github.event.inputs.version }}
+            Update runtime: ${{ github.event.inputs.runtime }} ${{ env.RUNTIME_VERSION }}
             
             - Update spec version to ${{ github.event.inputs.spec_version }}
-            - Bump substrate-relay version
+            - Bump substrate-relay version to ${{ env.RUNTIME_VERSION }}
             - Regenerate runtime code
-          title: "Update runtime: ${{ github.event.inputs.runtime }} ${{ github.event.inputs.version }}"
+          title: "Update runtime: ${{ github.event.inputs.runtime }} ${{ env.RUNTIME_VERSION }}"
           body: |
             Automated runtime update:
             
             - Runtime: ${{ github.event.inputs.runtime }}
-            - Version: ${{ github.event.inputs.version }}
             - Spec Version: ${{ github.event.inputs.spec_version }}
             
             Changes:
@@ -177,7 +188,7 @@ jobs:
             - Bumped substrate-relay minor version
             - Regenerated runtime code
             - Applied formatting fixes
-          branch: runtime-update-${{ github.event.inputs.runtime }}-${{ github.event.inputs.version }}
+          branch: runtime-update-${{ github.event.inputs.runtime }}-${{ env.RUNTIME_VERSION }}
           delete-branch: true
 
   create-tag:
