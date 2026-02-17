@@ -125,6 +125,4 @@ Report completion:
 - Docker image: `paritytech/substrate-relay:v<VERSION>`
 - GitHub Release URL
 
-Suggest next steps:
-1. Deploy via ArgoCD: go to [deploy.yml](https://github.com/paritytech/parity-bridges-common/actions/workflows/deploy.yml) and run workflow with the new version tag
-2. After deployment: run `/check-health all` to verify relay health
+Suggest next step: run `/deploy v<VERSION>` to deploy to production via ArgoCD.

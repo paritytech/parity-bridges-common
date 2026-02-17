@@ -70,13 +70,9 @@ After merge, `/release-finalize` handles:
 - Waiting for Docker build to complete
 - Creating GitHub Release with bundled chain versions
 
-### Step 6: Deploy via ArgoCD
+### Step 6: Deploy
 
-After `/release-finalize` completes:
-
-1. Go to [deploy.yml](https://github.com/paritytech/parity-bridges-common/actions/workflows/deploy.yml)
-2. Run workflow with the new version tag
-3. This deploys to ArgoCD app `bridges-common-relay` with packages: `headers-a`, `headers-b`, `parachains-a`, `parachains-b`, `messages-a`, `messages-b`
+After `/release-finalize` completes, run `/deploy v<VERSION>` to deploy to production via ArgoCD.
 
 ### Step 7: Post-Deploy Verification
 
