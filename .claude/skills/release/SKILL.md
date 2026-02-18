@@ -1,8 +1,7 @@
 ---
 name: release
 description: Guide the substrate-relay release lifecycle
-metadata:
-  argument-hint: "[BridgeHubKusama|BridgeHubPolkadot] [runtime-version]"
+argument-hint: "[BridgeHubKusama|BridgeHubPolkadot] [runtime-version]"
 ---
 
 # substrate-relay Release

@@ -1,8 +1,7 @@
 ---
 name: release-prepare
 description: Prepare a BridgeHub runtime upgrade for substrate-relay
-metadata:
-  argument-hint: "<BridgeHubKusama|BridgeHubPolkadot> <runtime-version>"
+argument-hint: "<BridgeHubKusama|BridgeHubPolkadot> <runtime-version>"
 ---
 
 # Release Prepare
