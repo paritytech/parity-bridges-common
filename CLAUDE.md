@@ -8,28 +8,30 @@ Production bridges: Kusama-Polkadot, Polkadot-Bulletin. Testnet bridges: Rococo-
 
 ```bash
 # Check (fast, use during development)
-SKIP_WASM_BUILD=1 cargo check --locked --workspace
+SKIP_WASM_BUILD=1 CFLAGS="-g0" cargo check --locked --workspace
 
 # Test
-SKIP_WASM_BUILD=1 cargo test --workspace
+SKIP_WASM_BUILD=1 CFLAGS="-g0" cargo test --workspace
 
 # Single crate test
-SKIP_WASM_BUILD=1 cargo test -p substrate-relay
+SKIP_WASM_BUILD=1 CFLAGS="-g0" cargo test -p substrate-relay
 
 # Format (requires nightly)
 cargo +nightly fmt --all -- --check
 
 # Clippy
-SKIP_WASM_BUILD=1 cargo clippy --all-targets --locked --workspace
+SKIP_WASM_BUILD=1 CFLAGS="-g0" cargo clippy --all-targets --locked --workspace
 
 # Build release binary
-cargo build --release -p substrate-relay
+CFLAGS="-g0" cargo build --release -p substrate-relay
 
 # Generate docs
-cargo doc --no-deps --all --workspace --document-private-items
+CFLAGS="-g0" cargo doc --no-deps --all --workspace --document-private-items
 ```
 
 IMPORTANT: Always set `SKIP_WASM_BUILD=1` for check/test/clippy. Without it, the build attempts to compile WASM targets requiring a nightly toolchain with `wasm32-unknown-unknown`.
+
+NOTE: `CFLAGS="-g0"` is needed on macOS to work around a `dsymutil` failure when `libz-sys` compiles its bundled zlib with debug symbols. Without it, all debug-profile builds fail.
 
 ## Project structure
 
