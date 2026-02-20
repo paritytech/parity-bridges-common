@@ -53,7 +53,7 @@ tools/runtime-codegen/     # Utility to regenerate codegen_runtime.rs from live 
 
 ## Architecture
 
-- **Cargo workspace** with 16 member crates. Workspace-level dependency versions in root `Cargo.toml`.
+- **Cargo workspace** with member crates. Workspace-level dependency versions in root `Cargo.toml`.
 - Heavy dependency on `polkadot-sdk` (git, master branch) for bridge primitives (`bp-*`), relay helpers (`relay-substrate-client`, `substrate-relay-helper`), and Substrate types (`sp-*`).
 - Each relay client wraps `subxt` for RPC and uses `codegen_runtime.rs` generated from on-chain metadata. When a chain runtime upgrades, regenerate with the `runtime-codegen` tool.
 - Bridge implementations in `substrate-relay/src/bridges/` wire together header, parachain, message, and confirmation relays for each bridge pair.
