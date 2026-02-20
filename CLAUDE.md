@@ -66,3 +66,44 @@ tools/runtime-codegen/     # Utility to regenerate codegen_runtime.rs from live 
 - CI runs in `paritytech/ci-unified` container image. The `test` and `build` jobs require large runners (`parity-large`).
 - All releases come from `master`. Version is in `substrate-relay/Cargo.toml`. See `RELEASE.md` for the release process.
 - Security issues go to https://security-submission.parity.io/ — never to public GitHub issues.
+
+## Recommended skills
+
+Skills from `.claude/skills/` that are useful for this repo (activate by context or name):
+
+### Core development
+- `rust-engineer` `rust-pro` — Rust idioms, ownership patterns, error handling
+- `rust-async-patterns` — async-std concurrency used throughout the relay
+- `systems-programming-rust-project` — low-level systems design patterns
+- `cargo-fuzz` — fuzz testing for message parsing and codec logic
+
+### Blockchain & security
+- `substrate-vulnerability-scanner` — Substrate-specific vulnerability patterns
+- `audit-context-building` — systematic security audit of bridge logic
+- `differential-review` — review changes for security regressions
+- `codeql` `semgrep-rule-creator` — static analysis for the codebase
+- `secrets-management` — handling relay keys and RPC credentials
+
+### Operations & monitoring
+- `grafana-dashboards` — bridge monitoring dashboards in `deployments/bridges/`
+- `prometheus-configuration` — metrics for relay health and performance
+- `incident-responder` — bridge incident response procedures
+- `sre-engineer` — reliability patterns for the relay service
+- `docker-expert` — Dockerfile optimization and container workflows
+
+### CI/CD & workflow
+- `github-actions-templates` — CI workflow in `.github/workflows/ci.yml`
+- `dependency-management-deps-audit` — cargo-deny license and advisory checks
+- `changelog-automation` — release notes from `RELEASE.md` process
+
+### Code quality
+- `systematic-debugging` — tracing relay failures across chains
+- `code-review-excellence` `requesting-code-review` — PR review workflows
+- `test-driven-development` — adding test coverage for relay logic
+- `property-based-testing` — testing codec round-trips and message invariants
+- `error-handling-patterns` — consistent anyhow/thiserror usage
+
+### Architecture & docs
+- `architecture-designer` — bridge pair relay architecture decisions
+- `architecture-decision-records` — documenting relay design choices
+- `code-documentation-code-explain` — explaining complex relay logic
