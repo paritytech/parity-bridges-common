@@ -20,7 +20,7 @@ SKIP_WASM_BUILD=1 CFLAGS="-g0" cargo test -p substrate-relay
 cargo +nightly fmt --all -- --check
 
 # Clippy
-SKIP_WASM_BUILD=1 CFLAGS="-g0" cargo clippy --all-targets --locked --workspace
+SKIP_WASM_BUILD=1 CFLAGS="-g0" cargo clippy --all-targets --all-features --locked --workspace
 
 # Build release binary
 CFLAGS="-g0" cargo build --release -p substrate-relay
