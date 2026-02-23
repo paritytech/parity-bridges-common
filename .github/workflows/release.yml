@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       runtime_version:
-        description: 'Runtime version number (e.g. v1.1.6)'
+        description: 'Runtime version number (e.g. v2.0.7)'
         required: true
         type: string
       runtime:
@@ -30,7 +30,7 @@ jobs:
 
       - name: Parse versions
         run: |
-          runtime_version="${{ github.event.inputs.runtime_version }}"
+          runtime_version="${{ github.event.inputs.runtime_version || 'v2.0.7' }}"
           
           runtime_num="${runtime_version#v}"
           IFS='.' read -ra VERSION_PARTS <<< "$runtime_num"
@@ -41,10 +41,10 @@ jobs:
           minor=$(printf "%03d" "$minor")
           patch=$(printf "%03d" "$patch")
           
-          # Convert runtime version to release version (e.g., v1.1.6 -> v1001006)
+          # Convert runtime version to release version (e.g., v2.0.7 -> v2000007)
           release_version="v$major$minor$patch"
           
-          # Convert runtime version to spec version (e.g., v1.1.6 -> 1_001_006)
+          # Convert runtime version to spec version (e.g., v2.0.7 -> 2_000_007)
           spec_version="$major_$minor_$patch"
           
           echo "Runtime version: $runtime_version"
@@ -62,7 +62,7 @@ jobs:
           release_version: ${{ env.RELEASE_VERSION }}
         run: |
           # Load runtime matrix and set environment variables based on selection
-          runtime_input="${{ github.event.inputs.runtime }}"
+          runtime_input="${{ github.event.inputs.runtime || 'BridgeHubKusama' }}"
 
           # Extract runtime configuration from matrix
           runtime_config=$(jq ".[] | select(.name == \"$runtime_input\")" .github/runtime-matrix.json)
