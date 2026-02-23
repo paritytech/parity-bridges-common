@@ -15,8 +15,6 @@ on:
           - 'BridgeHubPolkadot'
           - 'BridgeHubKusama'
         default: 'BridgeHubKusama'
-  push:          # Temporary: add this block
-    branches: ["rs-manual-release-ci-workflow"]
 
 jobs:
   release:
@@ -35,12 +33,7 @@ jobs:
 
       - name: Parse versions
         run: |
-          if [[ "${{ github.event_name }}" == "push" ]]; then
-            runtime_version="v2.0.7"
-          else
-            runtime_version="${{ github.event.inputs.runtime_version }}"
-          fi
-          
+          runtime_version="${{ github.event.inputs.runtime_version }}"
           runtime_num="${runtime_version#v}"
           IFS='.' read -ra VERSION_PARTS <<< "$runtime_num"
           major="${VERSION_PARTS[0]}"
@@ -71,11 +64,7 @@ jobs:
           release_version: ${{ env.RELEASE_VERSION }}
         run: |
           # Load runtime matrix and set environment variables based on selection
-          if [[ "${{ github.event_name }}" == "push" ]]; then
-            runtime_input="BridgeHubKusama"
-          else
-            runtime_input="${{ github.event.inputs.runtime }}"
-          fi
+          runtime_input="${{ github.event.inputs.runtime }}"
 
           # Extract runtime configuration from matrix
           runtime_config=$(jq ".[] | select(.name == \"$runtime_input\")" .github/runtime-matrix.json)
@@ -111,11 +100,7 @@ jobs:
           ls -lh "./tools/runtime-codegen/$runtime_file"
           
           # Set environment variables for next steps
-          if [[ "${{ github.event_name }}" == "push" ]]; then
-            runtime_name="BridgeHubKusama"
-          else
-            runtime_name="${{ github.event.inputs.runtime }}"
-          fi
+          runtime_name="${{ github.event.inputs.runtime }}"
           echo "RUNTIME_NAME=$runtime_name" >> $GITHUB_ENV
 
       - name: Update spec version in client files
@@ -219,6 +204,8 @@ jobs:
         uses: actions/checkout@v6
         with:
           fetch-depth: 0
+          ref: master
+          base-owner: paritytech
 
       - name: Get version from merged PR
         id: get-version
