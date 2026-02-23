@@ -28,6 +28,11 @@ jobs:
       - name: Create wbuild directory
         run: mkdir -p ./tools/runtime-codegen/wbuild
 
+      - name: Install prerequisites
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y protobuf-compiler
+
       - name: Parse versions
         run: |
           if [[ "${{ github.event_name }}" == "push" ]]; then
