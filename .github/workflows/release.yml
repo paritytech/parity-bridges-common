@@ -76,8 +76,8 @@ jobs:
           runtime_config=$(jq ".[] | select(.name == \"$runtime_input\")" .github/runtime-matrix.json)
           
           # Set environment variables with interpolated values
-          runtime_uri=$(echo "$runtime_config" | jq -r '.runtime_uri' | sed "s/\${runtime_version}/$runtime_version/g" | sed "s/\${release_version#v}/$release_version/g")
-          runtime_file=$(echo "$runtime_config" | jq -r '.runtime_file' | sed "s/\${runtime_version}/$runtime_version/g" | sed "s/\${release_version#v}/$release_version/g")
+          runtime_uri=$(echo "$runtime_config" | jq -r '.runtime_uri' | sed "s/\${runtime_version}/$runtime_version/g" | sed "s/\${release_version}/$release_version/g")
+          runtime_file=$(echo "$runtime_config" | jq -r '.runtime_file' | sed "s/\${runtime_version}/$runtime_version/g" | sed "s/\${release_version}/$release_version/g")
           target_dir=$(echo "$runtime_config" | jq -r '.target_dir')
           target_librs="$target_dir/lib.rs"
           
