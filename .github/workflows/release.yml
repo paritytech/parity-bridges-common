@@ -26,7 +26,7 @@ jobs:
         uses: actions/checkout@v6
 
       - name: Create wbuild directory
-        run: mkdir -p ./tools/wbuild
+        run: mkdir -p ./tools/runtime-codegen/wbuild
 
       - name: Parse versions
         run: |
@@ -93,7 +93,7 @@ jobs:
           echo "Target Lib RS: $target_librs"
           
           # Download runtime
-          wget -O "$runtime_file" "$runtime_uri"
+          wget -O "./tools/runtime-codegen/$runtime_file" "$runtime_uri"
           
           # Check if file was downloaded successfully
           if [[ ! -f "$runtime_file" ]]; then
@@ -129,10 +129,11 @@ jobs:
           runtime_filename=$(basename "$runtime_file")
           
           echo "Running runtime codegen for $runtime_filename"
-          cd ./tools && cargo run --bin runtime-codegen --release -- --from-wasm-file "../$runtime_file" | tee "../$target_dir/codegen_runtime.rs"
+          cd ./tools/runtime-codegen && cargo run --bin runtime-codegen --release -- --from-wasm-file "$runtime_file" | tee "../../$target_dir/codegen_runtime.rs"
 
       - name: Fix Header generic types & Format code
         run: |
+          rustup component add --toolchain nightly-x86_64-unknown-linux-gnu rustfmt
           cargo +nightly fmt --all
           find . -name codegen_runtime.rs -exec \
             sed -i 's/::sp_runtime::generic::Header<::core::primitive::u32>/::sp_runtime::generic::Header<::core::primitive::u32, ::sp_runtime::traits::BlakeTwo256>/g' {} +
