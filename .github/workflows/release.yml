@@ -96,14 +96,14 @@ jobs:
           wget -O "./tools/runtime-codegen/$runtime_file" "$runtime_uri"
           
           # Check if file was downloaded successfully
-          if [[ ! -f "$runtime_file" ]]; then
+          if [[ ! -f "./tools/runtime-codegen/$runtime_file" ]]; then
             echo "Error: Failed to download runtime file: $runtime_file"
             echo "Aborting workflow."
             exit 1
           fi
           
           echo "Successfully downloaded: $runtime_file"
-          ls -lh "$runtime_file"
+          ls -lh "./tools/runtime-codegen/$runtime_file"
           
           # Set environment variables for next steps
           if [[ "${{ github.event_name }}" == "push" ]]; then
