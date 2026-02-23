@@ -148,6 +148,11 @@ jobs:
       - name: Checkout sources
         uses: actions/checkout@v4
 
+      - name: Install cargo-deny
+        run: |
+          curl -sSL https://github.com/EmbarkStudios/cargo-deny/releases/download/0.16.2/cargo-deny-0.16.2-x86_64-unknown-linux-musl.tar.gz \
+            | tar xzf - --strip-components=1 -C /usr/local/cargo/bin cargo-deny-0.16.2-x86_64-unknown-linux-musl/cargo-deny
+
       - name: Deny
         run: |
           cargo deny check advisories --hide-inclusion-graph
@@ -162,6 +167,11 @@ jobs:
     steps:
       - name: Checkout sources
         uses: actions/checkout@v4
+
+      - name: Install cargo-deny
+        run: |
+          curl -sSL https://github.com/EmbarkStudios/cargo-deny/releases/download/0.16.2/cargo-deny-0.16.2-x86_64-unknown-linux-musl.tar.gz \
+            | tar xzf - --strip-components=1 -C /usr/local/cargo/bin cargo-deny-0.16.2-x86_64-unknown-linux-musl/cargo-deny
 
       - name: Deny License
         run: cargo deny check licenses --hide-inclusion-graph
