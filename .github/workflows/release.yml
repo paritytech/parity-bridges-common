@@ -129,7 +129,7 @@ jobs:
           runtime_filename=$(basename "$runtime_file")
           
           echo "Running runtime codegen for $runtime_filename"
-          cd ./tools && cargo run --bin runtime-codegen --release -- --from-wasm-file "wbuild/$runtime_filename" | tee "$target_dir/codegen_runtime.rs"
+          cd ./tools && cargo run --bin runtime-codegen --release -- --from-wasm-file "../$runtime_file" | tee "../$target_dir/codegen_runtime.rs"
 
       - name: Fix Header generic types & Format code
         run: |
