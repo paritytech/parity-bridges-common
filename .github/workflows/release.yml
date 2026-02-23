@@ -16,7 +16,7 @@ on:
           - 'BridgeHubKusama'
         default: 'BridgeHubKusama'
   push:          # Temporary: add this block
-    branches: ["rosarp:rs-manual-release-ci-workflow"]
+    branches: ["rs-manual-release-ci-workflow"]
 
 jobs:
   release:
