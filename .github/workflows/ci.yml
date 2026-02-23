@@ -135,30 +135,11 @@ jobs:
           cargo fetch
           CARGO_NET_OFFLINE=true SKIP_WASM_BUILD=1 time cargo test  --workspace
 
-  install-deny:
-    name: Install cargo-deny
-    runs-on: ubuntu-latest
-    needs: [set-variables]
-    container:
-      image: ${{ needs.set-variables.outputs.CI_IMAGE }}
-    steps:
-      - name: Install cargo-deny
-        run: |
-          curl -sSL https://github.com/EmbarkStudios/cargo-deny/releases/download/0.16.2/cargo-deny-0.16.2-x86_64-unknown-linux-musl.tar.gz \
-            | tar xzf - --strip-components=1 -C /usr/local/cargo/bin cargo-deny-0.16.2-x86_64-unknown-linux-musl/cargo-deny
-
-      - name: Upload cargo-deny
-        uses: actions/upload-artifact@v4
-        with:
-          name: cargo-deny
-          path: /usr/local/cargo/bin/cargo-deny
-          retention-days: 1
-
   # do we really need this check?
   deny:
     name: Deny
     runs-on: ubuntu-latest
-    needs: [set-variables, install-deny]
+    needs: [set-variables]
     container:
       image: ${{ needs.set-variables.outputs.CI_IMAGE }}
     # this job is allowed to fail, only licenses check is important
@@ -166,15 +147,6 @@ jobs:
     steps:
       - name: Checkout sources
         uses: actions/checkout@v4
-
-      - name: Download cargo-deny
-        uses: actions/download-artifact@v4
-        with:
-          name: cargo-deny
-          path: /usr/local/cargo/bin
-
-      - name: Make cargo-deny executable
-        run: chmod +x /usr/local/cargo/bin/cargo-deny
 
       - name: Deny
         run: |
@@ -184,21 +156,12 @@ jobs:
   deny-licenses:
     name: Deny License
     runs-on: ubuntu-latest
-    needs: [set-variables, install-deny]
+    needs: [set-variables]
     container:
       image: ${{ needs.set-variables.outputs.CI_IMAGE }}
     steps:
       - name: Checkout sources
         uses: actions/checkout@v4
-
-      - name: Download cargo-deny
-        uses: actions/download-artifact@v4
-        with:
-          name: cargo-deny
-          path: /usr/local/cargo/bin
-
-      - name: Make cargo-deny executable
-        run: chmod +x /usr/local/cargo/bin/cargo-deny
 
       - name: Deny License
         run: cargo deny check licenses --hide-inclusion-graph
