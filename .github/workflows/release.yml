@@ -30,7 +30,11 @@ jobs:
 
       - name: Parse versions
         run: |
-          runtime_version="${{ github.event.inputs.runtime_version || 'v2.0.7' }}"
+          if [[ "${{ github.event_name }}" == "push" ]]; then
+            runtime_version="v2.0.7"
+          else
+            runtime_version="${{ github.event.inputs.runtime_version }}"
+          fi
           
           runtime_num="${runtime_version#v}"
           IFS='.' read -ra VERSION_PARTS <<< "$runtime_num"
@@ -62,7 +66,11 @@ jobs:
           release_version: ${{ env.RELEASE_VERSION }}
         run: |
           # Load runtime matrix and set environment variables based on selection
-          runtime_input="${{ github.event.inputs.runtime || 'BridgeHubKusama' }}"
+          if [[ "${{ github.event_name }}" == "push" ]]; then
+            runtime_input="BridgeHubKusama"
+          else
+            runtime_input="${{ github.event.inputs.runtime }}"
+          fi
 
           # Extract runtime configuration from matrix
           runtime_config=$(jq ".[] | select(.name == \"$runtime_input\")" .github/runtime-matrix.json)
