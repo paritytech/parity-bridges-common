@@ -106,7 +106,12 @@ jobs:
           ls -lh "$runtime_file"
           
           # Set environment variables for next steps
-          echo "RUNTIME_NAME=${{ github.event.inputs.runtime }}" >> $GITHUB_ENV
+          if [[ "${{ github.event_name }}" == "push" ]]; then
+            runtime_name="BridgeHubKusama"
+          else
+            runtime_name="${{ github.event.inputs.runtime }}"
+          fi
+          echo "RUNTIME_NAME=$runtime_name" >> $GITHUB_ENV
 
       - name: Update spec version in client files
         env:
