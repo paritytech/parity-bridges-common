@@ -106,7 +106,7 @@ anyhow = "1.0"
 async-std = "1.13.2"
 async-trait = "0.1.89"
 env_logger = "0.11"
-futures = "0.3.31"
+futures = "0.3.32"
 hex = "0.4"
 num-format = "0.4"
 num-traits = "0.2"
@@ -132,5 +132,5 @@ substrate-relay-helper = { git = "https://github.com/paritytech/polkadot-sdk", b
 bp-test-utils = { git = "https://github.com/paritytech/polkadot-sdk", branch = "master" }
 hex-literal = "0.4"
 sp-keyring = { git = "https://github.com/paritytech/polkadot-sdk", branch = "master" }
-tempfile = "3.24"
+tempfile = "3.25"
 finality-grandpa = { version = "0.16.2" }
