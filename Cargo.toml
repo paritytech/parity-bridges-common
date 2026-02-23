@@ -114,7 +114,7 @@ rbtag = "0.3"
 structopt = "0.3"
 signal-hook = "0.4.3"
 signal-hook-async-std = "0.4.0"
-strum = { version = "0.27.2", features = ["derive"] }
+strum = { version = "0.28.0", features = ["derive"] }
 pallet-bridge-parachains = { git = "https://github.com/paritytech/polkadot-sdk", branch = "master" }
 parachains-relay = { git = "https://github.com/paritytech/polkadot-sdk", branch = "master" }
 relay-asset-hub-rococo-client = { path = "./relay-clients/client-asset-hub-rococo" }
@@ -132,5 +132,5 @@ substrate-relay-helper = { git = "https://github.com/paritytech/polkadot-sdk", b
 bp-test-utils = { git = "https://github.com/paritytech/polkadot-sdk", branch = "master" }
 hex-literal = "0.4"
 sp-keyring = { git = "https://github.com/paritytech/polkadot-sdk", branch = "master" }
-tempfile = "3.24"
+tempfile = "3.25"
 finality-grandpa = { version = "0.16.2" }
