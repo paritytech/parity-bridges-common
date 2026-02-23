@@ -58,8 +58,8 @@ jobs:
 
       - name: Download runtime files
         env:
-          runtime_version: $RUNTIME_VERSION
-          release_version: $RELEASE_VERSION
+          runtime_version: ${{ env.RUNTIME_VERSION }}
+          release_version: ${{ env.RELEASE_VERSION }}
         run: |
           # Load runtime matrix and set environment variables based on selection
           runtime_input="${{ github.event.inputs.runtime }}"
@@ -102,15 +102,15 @@ jobs:
 
       - name: Update spec version in client files
         env:
-          spec_version: $SPEC_VERSION
-          target_librs: $TARGET_LIBRS
+          spec_version: ${{ env.SPEC_VERSION }}
+          target_librs: ${{ env.TARGET_LIBRS }}
         run: |
           sed -i "s/spec_version: [0-9_]*/spec_version: $spec_version/" "$target_librs"
 
       - name: Run runtime codegen
         env:
-          runtime_file: $RUNTIME_FILE
-          target_dir: $TARGET_DIR
+          runtime_file: ${{ env.RUNTIME_FILE }}
+          target_dir: ${{ env.TARGET_DIR }}
         run: |
           # Extract runtime filename from RUNTIME_FILE
           runtime_filename=$(basename "$runtime_file")
@@ -148,9 +148,9 @@ jobs:
 
       - name: Create Pull Request
         env:
-          spec_version: $SPEC_VERSION
-          runtime_name: $RUNTIME_NAME
-          runtime_version: $RUNTIME_VERSION
+          spec_version: ${{ env.SPEC_VERSION }}
+          runtime_name: ${{ env.RUNTIME_NAME }}
+          runtime_version: ${{ env.RUNTIME_VERSION }}
         uses: peter-evans/create-pull-request@v8
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
