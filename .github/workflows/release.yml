@@ -15,9 +15,9 @@ on:
           - 'BridgeHubPolkadot'
           - 'BridgeHubKusama'
         default: 'BridgeHubKusama'
-
-push:          # Temporary: add this block
+  push:          # Temporary: add this block
     branches: ["rosarp:rs-manual-release-ci-workflow"]
+
 jobs:
   release:
     runs-on: ubuntu-latest
