@@ -170,6 +170,10 @@ jobs:
           
           echo "Bumping relayer version from $current_version to $new_version"
           sed -i "s/version = \"$current_version\"/version = \"$new_version\"/" substrate-relay/Cargo.toml
+          
+          # Update Cargo.lock
+          echo "Updating Cargo.lock..."
+          cargo update --workspace --precise "$new_version" || cargo check
 
       - name: Create Pull Request
         env:
@@ -179,26 +183,32 @@ jobs:
         uses: peter-evans/create-pull-request@v8
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
+          base: master
           commit-message: |
-            Update runtime: $runtime_name $runtime_version
+            Update runtime: ${{ env.RUNTIME_NAME }} ${{ env.RUNTIME_VERSION }}
             
-            - Update spec version to $spec_version
-            - Bump substrate-relay version to $runtime_version
+            - Update spec version to ${{ env.SPEC_VERSION }}
+            - Bump substrate-relay version to ${{ env.RUNTIME_VERSION }}
             - Regenerate runtime code
-          title: "Update runtime: $runtime_name $runtime_version"
+          title: "Update runtime: ${{ env.RUNTIME_NAME }} ${{ env.RUNTIME_VERSION }}"
           body: |
             Automated runtime update:
             
-            - Runtime: $runtime_name
-            - Spec Version: $spec_version
+            - Runtime: ${{ env.RUNTIME_NAME }}
+            - Spec Version: ${{ env.SPEC_VERSION }}
             
             Changes:
             - Updated spec version in client files
             - Bumped substrate-relay minor version
             - Regenerated runtime code
             - Applied formatting fixes
-          branch: runtime-update-$runtime_name-$runtime_version
+          branch: runtime-update-${{ env.RUNTIME_NAME }}-${{ env.RUNTIME_VERSION }}
           delete-branch: true
+          add-paths: |
+            relay-clients/**/codegen_runtime.rs
+            relay-clients/**/lib.rs
+            substrate-relay/Cargo.toml
+            Cargo.lock
 
   create-tag:
     runs-on: ubuntu-latest
