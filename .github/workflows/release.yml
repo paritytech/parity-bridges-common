@@ -54,7 +54,7 @@ jobs:
           release_version="v$major$minor$patch"
           
           # Convert runtime version to spec version (e.g., v2.0.7 -> 2_000_007)
-          spec_version="$major_$minor_$patch"
+          spec_version="${major}_${minor}_${patch}"
           
           echo "Runtime version: $runtime_version"
           echo "Release version: $release_version"
@@ -123,7 +123,13 @@ jobs:
           spec_version: ${{ env.SPEC_VERSION }}
           target_librs: ${{ env.TARGET_LIBRS }}
         run: |
+          echo "Spec version: $spec_version"
+          echo "Target librs: $target_librs"
+          echo "Current content:"
+          grep "spec_version:" "$target_librs" || echo "No spec_version found"
           sed -i "s/spec_version: [0-9_]*/spec_version: $spec_version/" "$target_librs"
+          echo "Updated content:"
+          grep "spec_version:" "$target_librs"
 
       - name: Run runtime codegen
         env:
