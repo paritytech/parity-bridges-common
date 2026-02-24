@@ -44,7 +44,7 @@ jobs:
       - name: Parse versions
         id: parse-versions
         env:
-          RUNTIME_VERSION: ${{ github.event.inputs.runtime_version || 'v2.0.7' }}
+          RUNTIME_VERSION: ${{ github.event.inputs.runtime_version || 'v2.0.6' }}
         run: |
           runtime_num="${RUNTIME_VERSION#v}"
           IFS='.' read -ra VERSION_PARTS <<< "$runtime_num"
@@ -167,34 +167,29 @@ jobs:
           SKIP_WASM_BUILD=1 cargo clippy --workspace --all-targets --all-features
 
       - name: Create Pull Request
-        env:
-          RUNTIME_NAME: ${{ env.RUNTIME_NAME }}
-          RUNTIME_VERSION: ${{ env.RUNTIME_VERSION }}
-          RELAYER_VERSION: ${{ env.RELAYER_VERSION }}
-          SPEC_VERSION: ${{ env.SPEC_VERSION }}
         uses: peter-evans/create-pull-request@v8
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           base: master
           commit-message: |
-            Update runtime: $RUNTIME_NAME $RUNTIME_VERSION
+            Update runtime: ${{ env.RUNTIME_NAME }} ${{ env.RUNTIME_VERSION }}
             
-            - Update spec version to $SPEC_VERSION
-            - Bump substrate-relay version to v$RELAYER_VERSION
+            - Update spec version to ${{ env.SPEC_VERSION }}
+            - Bump substrate-relay version to v${{ env.RELAYER_VERSION }}
             - Regenerate runtime code
-          title: "Update runtime: $RUNTIME_NAME $RUNTIME_VERSION"
+          title: "Update runtime: ${{ env.RUNTIME_NAME }} ${{ env.RUNTIME_VERSION }}"
           body: |
             Automated runtime update:
             
-            - Runtime: $RUNTIME_NAME
-            - Spec Version: $SPEC_VERSION
+            - Runtime: ${{ env.RUNTIME_NAME }}
+            - Spec Version: ${{ env.SPEC_VERSION }}
             
             Changes:
             - Updated spec version in client files
             - Bumped substrate-relay minor version
             - Regenerated runtime code
             - Applied formatting fixes
-          branch: "runtime-update-$RUNTIME_NAME-$RUNTIME_VERSION"
+        branch: "runtime-update-${{ env.RUNTIME_NAME }}-${{ env.RUNTIME_VERSION }}"
           delete-branch: true
           add-paths: |
             relay-clients/**/codegen_runtime.rs
@@ -218,11 +213,11 @@ jobs:
           RUNTIME_VERSION: ${{ needs.release.outputs.RUNTIME_VERSION }}
           RELAYER_VERSION: ${{ needs.release.outputs.RELAYER_VERSION }}
         run: |
-          tag_name="v$RELAYER_VERSION"
+          tag_name="v${{ env.RELAYER_VERSION }}"
           
           echo "Creating tag: $tag_name"
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action"
-          git tag -a "$tag_name" -m "Release $tag_name - Runtime: $RUNTIME_VERSION"
+          git tag -a "$tag_name" -m "Release $tag_name - Runtime: ${{ env.RUNTIME_VERSION }}"
           
           git push origin "$tag_name"
