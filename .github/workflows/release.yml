@@ -44,9 +44,14 @@ jobs:
       - name: Parse versions
         id: parse-versions
         env:
-          RUNTIME_VERSION: ${{ github.event.inputs.runtime_version || 'v2.0.7' }}
-          RUNTIME_NAME: ${{ github.event.inputs.runtime || 'BridgeHubKusama' }}
+          RUNTIME_VERSION: ${{ github.event.inputs.runtime_version }}
         run: |
+          
+          if [[ "${{ github.event_name }}" == "push" ]]; then
+            RUNTIME_VERSION="v2.0.7"
+          else
+            RUNTIME_VERSION="${{ github.event.inputs.runtime_version }}"
+          fi
           runtime_num="${RUNTIME_VERSION#v}"
           IFS='.' read -ra VERSION_PARTS <<< "$runtime_num"
           major="${VERSION_PARTS[0]}"
@@ -76,7 +81,7 @@ jobs:
         env:
           RUNTIME_VERSION: ${{ env.RUNTIME_VERSION }}
           RELEASE_VERSION: ${{ env.RELEASE_VERSION }}
-          RUNTIME_NAME: ${{ env.RUNTIME_NAME }}
+          RUNTIME_NAME: ${{ github.event.inputs.runtime || 'BridgeHubKusama' }}
         run: |
           echo "RUNTIME_NAME=$RUNTIME_NAME" >> $GITHUB_ENV
 
