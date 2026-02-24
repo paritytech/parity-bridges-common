@@ -161,10 +161,10 @@ jobs:
           cargo +nightly fmt --all
 
           echo "Cargo check"
-          SKIP_WASM_BUILD=1 cargo check --locked --workspace
+          SKIP_WASM_BUILD=1 cargo check --workspace
 
           echo "Cargo clippy"
-          SKIP_WASM_BUILD=1 cargo clippy --locked --workspace --all-targets --all-features
+          SKIP_WASM_BUILD=1 cargo clippy --workspace --all-targets --all-features
 
       - name: Create Pull Request
         env:
