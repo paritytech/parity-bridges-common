@@ -15,10 +15,19 @@ on:
           - 'BridgeHubPolkadot'
           - 'BridgeHubKusama'
         default: 'BridgeHubKusama'
+  push:
+    branches: ["rs-manual-release-ci-workflow"]
+
+permissions:
+  contents: write
+  pull-requests: write
 
 jobs:
   release:
     runs-on: ubuntu-latest
+    outputs:
+      RUNTIME_VERSION: ${{ steps.parse-versions.outputs.RUNTIME_VERSION }}
+      RELAYER_VERSION: ${{ steps.bump-version.outputs.RELAYER_VERSION }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v6
@@ -30,11 +39,14 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y protobuf-compiler
+          rustup component add --toolchain nightly-x86_64-unknown-linux-gnu rustfmt
 
       - name: Parse versions
+        id: parse-versions
+        env:
+          RUNTIME_VERSION: ${{ github.event.inputs.runtime_version }}
         run: |
-          runtime_version="${{ github.event.inputs.runtime_version }}"
-          runtime_num="${runtime_version#v}"
+          runtime_num="${RUNTIME_VERSION#v}"
           IFS='.' read -ra VERSION_PARTS <<< "$runtime_num"
           major="${VERSION_PARTS[0]}"
           minor="${VERSION_PARTS[1]}" 
@@ -49,7 +61,7 @@ jobs:
           # Convert runtime version to spec version (e.g., v2.0.7 -> 2_000_007)
           spec_version="${major}_${minor}_${patch}"
           
-          echo "Runtime version: $runtime_version"
+          echo "Runtime version: $RUNTIME_VERSION"
           echo "Release version: $release_version"
           echo "Spec version: $spec_version"
 
@@ -57,21 +69,22 @@ jobs:
           echo "RUNTIME_VERSION=$runtime_version" >> $GITHUB_ENV
           echo "RELEASE_VERSION=$release_version" >> $GITHUB_ENV
           echo "SPEC_VERSION=$spec_version" >> $GITHUB_ENV
+          echo "RUNTIME_VERSION=$runtime_version" >> $GITHUB_OUTPUT
 
       - name: Download runtime files
         env:
-          runtime_version: ${{ env.RUNTIME_VERSION }}
-          release_version: ${{ env.RELEASE_VERSION }}
+          RUNTIME_VERSION: ${{ env.RUNTIME_VERSION }}
+          RELEASE_VERSION: ${{ env.RELEASE_VERSION }}
+          RUNTIME_NAME: ${{ github.event.inputs.runtime }}
         run: |
           # Load runtime matrix and set environment variables based on selection
-          runtime_input="${{ github.event.inputs.runtime }}"
 
           # Extract runtime configuration from matrix
-          runtime_config=$(jq ".[] | select(.name == \"$runtime_input\")" .github/runtime-matrix.json)
+          runtime_config=$(jq ".[] | select(.name == \"$RUNTIME_NAME\")" .github/runtime-matrix.json)
           
           # Set environment variables with interpolated values
-          runtime_uri=$(echo "$runtime_config" | jq -r '.runtime_uri' | sed "s/\${runtime_version}/$runtime_version/g" | sed "s/\${release_version}/$release_version/g")
-          runtime_file=$(echo "$runtime_config" | jq -r '.runtime_file' | sed "s/\${runtime_version}/$runtime_version/g" | sed "s/\${release_version}/$release_version/g")
+          runtime_uri=$(echo "$runtime_config" | jq -r '.runtime_uri' | sed "s/\${runtime_version}/$RUNTIME_VERSION/g" | sed "s/\${release_version}/$RELEASE_VERSION/g")
+          runtime_file=$(echo "$runtime_config" | jq -r '.runtime_file' | sed "s/\${runtime_version}/$RUNTIME_VERSION/g" | sed "s/\${release_version}/$RELEASE_VERSION/g")
           target_dir=$(echo "$runtime_config" | jq -r '.target_dir')
           target_librs="$target_dir/lib.rs"
           
@@ -80,7 +93,7 @@ jobs:
           echo "TARGET_DIR=$target_dir" >> $GITHUB_ENV
           echo "TARGET_LIBRS=$target_librs" >> $GITHUB_ENV
           
-          echo "Downloading runtime for $runtime_input..."
+          echo "Downloading runtime for $RUNTIME_NAME..."
           echo "Runtime URI: $runtime_uri"
           echo "Runtime File: $runtime_file"
           echo "Target Directory: $target_dir"
@@ -98,50 +111,33 @@ jobs:
           
           echo "Successfully downloaded: $runtime_file"
           ls -lh "./tools/runtime-codegen/$runtime_file"
-          
-          # Set environment variables for next steps
-          runtime_name="${{ github.event.inputs.runtime }}"
-          echo "RUNTIME_NAME=$runtime_name" >> $GITHUB_ENV
 
       - name: Update spec version in client files
         env:
-          spec_version: ${{ env.SPEC_VERSION }}
-          target_librs: ${{ env.TARGET_LIBRS }}
+          SPEC_VERSION: ${{ env.SPEC_VERSION }}
+          TARGET_LIBRS: ${{ env.TARGET_LIBRS }}
         run: |
-          echo "Spec version: $spec_version"
-          echo "Target librs: $target_librs"
+          echo "Spec version: $SPEC_VERSION"
+          echo "Target librs: $TARGET_LIBRS"
           echo "Current content:"
-          grep "spec_version:" "$target_librs" || echo "No spec_version found"
-          sed -i "s/spec_version: [0-9_]*/spec_version: $spec_version/" "$target_librs"
+          grep "spec_version:" "$TARGET_LIBRS" || echo "No spec_version found"
+          sed -i "s/spec_version: [0-9_]*/spec_version: $SPEC_VERSION/" "$TARGET_LIBRS"
           echo "Updated content:"
-          grep "spec_version:" "$target_librs"
+          grep "spec_version:" "$TARGET_LIBRS"
 
       - name: Run runtime codegen
         env:
-          runtime_file: ${{ env.RUNTIME_FILE }}
-          target_dir: ${{ env.TARGET_DIR }}
+          RUNTIME_FILE: ${{ env.RUNTIME_FILE }}
+          TARGET_DIR: ${{ env.TARGET_DIR }}
         run: |
           # Extract runtime filename from RUNTIME_FILE
-          runtime_filename=$(basename "$runtime_file")
+          runtime_filename=$(basename "$RUNTIME_FILE")
           
           echo "Running runtime codegen for $runtime_filename"
-          cd ./tools/runtime-codegen && cargo run --bin runtime-codegen --release -- --from-wasm-file "$runtime_file" | tee "../../$target_dir/codegen_runtime.rs"
-
-      - name: Fix Header generic types & Format code
-        run: |
-          rustup component add --toolchain nightly-x86_64-unknown-linux-gnu rustfmt
-          cargo +nightly fmt --all
-          find . -name codegen_runtime.rs -exec \
-            sed -i 's/::sp_runtime::generic::Header<::core::primitive::u32>/::sp_runtime::generic::Header<::core::primitive::u32, ::sp_runtime::traits::BlakeTwo256>/g' {} +
-          cargo +nightly fmt --all
-
-          echo "Cargo check"
-          SKIP_WASM_BUILD=1 cargo check --workspace --target-dir=target/rust-analyzer
-
-          echo "Cargo clippy"
-          SKIP_WASM_BUILD=1 cargo clippy --workspace --all-targets --all-features --target-dir=target/rust-analyzer
+          cd ./tools/runtime-codegen && cargo run --bin runtime-codegen --release -- --from-wasm-file "$RUNTIME_FILE" | tee "../../$TARGET_DIR/codegen_runtime.rs"
 
       - name: Bump minor version in Cargo.toml
+        id: bump-version
         run: |
           # Get current version and bump minor version
           current_version=$(grep '^version = ' substrate-relay/Cargo.toml | cut -d'"' -f2)
@@ -152,42 +148,53 @@ jobs:
           # Increment patch version
           new_patch=$((patch + 1))
           new_version="$major.$minor.$new_patch"
+          echo "RELAYER_VERSION=$new_version" >> $GITHUB_OUTPUT
           
           echo "Bumping relayer version from $current_version to $new_version"
           sed -i "s/version = \"$current_version\"/version = \"$new_version\"/" substrate-relay/Cargo.toml
-          
-          # Update Cargo.lock
-          echo "Updating Cargo.lock..."
-          cargo update --workspace --precise "$new_version" || cargo check
+
+      - name: Fix Header generic types & Format code
+        run: |
+          cargo +nightly fmt --all
+          find . -name codegen_runtime.rs -exec \
+            sed -i 's/::sp_runtime::generic::Header<::core::primitive::u32>/::sp_runtime::generic::Header<::core::primitive::u32, ::sp_runtime::traits::BlakeTwo256>/g' {} +
+          cargo +nightly fmt --all
+
+          echo "Cargo check"
+          SKIP_WASM_BUILD=1 cargo check --locked --workspace
+
+          echo "Cargo clippy"
+          SKIP_WASM_BUILD=1 cargo clippy --locked --workspace --all-targets --all-features
 
       - name: Create Pull Request
         env:
-          spec_version: ${{ env.SPEC_VERSION }}
-          runtime_name: ${{ env.RUNTIME_NAME }}
-          runtime_version: ${{ env.RUNTIME_VERSION }}
+          RUNTIME_NAME: ${{ github.event.inputs.runtime }}
+          RUNTIME_VERSION: ${{ env.RUNTIME_VERSION }}
+          RELAYER_VERSION: ${{ env.RELAYER_VERSION }}
+          SPEC_VERSION: ${{ env.SPEC_VERSION }}
         uses: peter-evans/create-pull-request@v8
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           base: master
           commit-message: |
-            Update runtime: ${{ env.RUNTIME_NAME }} ${{ env.RUNTIME_VERSION }}
+            Update runtime: $RUNTIME_NAME $RUNTIME_VERSION
             
-            - Update spec version to ${{ env.SPEC_VERSION }}
-            - Bump substrate-relay version to ${{ env.RUNTIME_VERSION }}
+            - Update spec version to $SPEC_VERSION
+            - Bump substrate-relay version to $RELAYER_VERSION
             - Regenerate runtime code
-          title: "Update runtime: ${{ env.RUNTIME_NAME }} ${{ env.RUNTIME_VERSION }}"
+          title: "Update runtime: $RUNTIME_NAME $RUNTIME_VERSION"
           body: |
             Automated runtime update:
             
-            - Runtime: ${{ env.RUNTIME_NAME }}
-            - Spec Version: ${{ env.SPEC_VERSION }}
+            - Runtime: $RUNTIME_NAME
+            - Spec Version: $SPEC_VERSION
             
             Changes:
             - Updated spec version in client files
             - Bumped substrate-relay minor version
             - Regenerated runtime code
             - Applied formatting fixes
-          branch: runtime-update-${{ env.RUNTIME_NAME }}-${{ env.RUNTIME_VERSION }}
+          branch: "runtime-update-$RUNTIME_NAME-$RUNTIME_VERSION"
           delete-branch: true
           add-paths: |
             relay-clients/**/codegen_runtime.rs
@@ -207,36 +214,16 @@ jobs:
           ref: master
           base-owner: paritytech
 
-      - name: Get version from merged PR
-        id: get-version
-        run: |
-          # Extract version from PR title or branch name
-          if [[ "${{ github.event.pull_request.title }}" =~ Update\ runtime:\ .+\ (.+) ]]; then
-            version="${BASH_REMATCH[1]}"
-          else
-            # Fallback to branch name
-            version=$(echo "${{ github.event.pull_request.head.ref }}" | sed 's/runtime-update-.*-//')
-          fi
-          echo "version=$version" >> $GITHUB_OUTPUT
-          echo "Detected version: $version"
-
-      - name: Get new substrate-relay version
-        id: get-cargo-version
-        run: |
-          # Read the current version from Cargo.toml
-          version=$(grep '^version = ' substrate-relay/Cargo.toml | cut -d'"' -f2)
-          echo "cargo_version=$version" >> $GITHUB_OUTPUT
-          echo "Cargo version: $version"
-
       - name: Create and push tag
+        env:
+          RUNTIME_VERSION: ${{ needs.release.outputs.RUNTIME_VERSION }}
+          RELAYER_VERSION: ${{ needs.release.outputs.RELAYER_VERSION }}
         run: |
-          version="${{ steps.get-version.outputs.version }}"
-          cargo_version="${{ steps.get-cargo-version.outputs.cargo_version }}"
-          tag_name="v$cargo_version"
+          tag_name="v$RELAYER_VERSION"
           
           echo "Creating tag: $tag_name"
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action"
-          git tag -a "$tag_name" -m "Release $tag_name - Runtime: $version - Substrate-relay: $cargo_version"
+          git tag -a "$tag_name" -m "Release $tag_name - Runtime: $RUNTIME_VERSION - Substrate-relay: $RELAYER_VERSION"
           
           git push origin "$tag_name"
