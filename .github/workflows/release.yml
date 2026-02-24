@@ -46,6 +46,9 @@ jobs:
         env:
           RUNTIME_VERSION: ${{ github.event.inputs.runtime_version }}
         run: |
+          if [ "${{ github.event_name }}" = "push" ]; then
+            RUNTIME_VERSION="V2.0.7"
+          fi
           runtime_num="${RUNTIME_VERSION#v}"
           IFS='.' read -ra VERSION_PARTS <<< "$runtime_num"
           major="${VERSION_PARTS[0]}"
@@ -77,7 +80,10 @@ jobs:
           RELEASE_VERSION: ${{ env.RELEASE_VERSION }}
           RUNTIME_NAME: ${{ github.event.inputs.runtime }}
         run: |
-          # Load runtime matrix and set environment variables based on selection
+          if [ "${{ github.event_name }}" = "push" ]; then
+            RUNTIME_NAME="BridgeHubKusama"
+          fi
+          echo "RUNTIME_NAME=$RUNTIME_NAME" >> $GITHUB_ENV
 
           # Extract runtime configuration from matrix
           runtime_config=$(jq ".[] | select(.name == \"$RUNTIME_NAME\")" .github/runtime-matrix.json)
@@ -168,7 +174,7 @@ jobs:
 
       - name: Create Pull Request
         env:
-          RUNTIME_NAME: ${{ github.event.inputs.runtime }}
+          RUNTIME_NAME: ${{ env.RUNTIME_NAME }}
           RUNTIME_VERSION: ${{ env.RUNTIME_VERSION }}
           RELAYER_VERSION: ${{ env.RELAYER_VERSION }}
           SPEC_VERSION: ${{ env.SPEC_VERSION }}
@@ -180,7 +186,7 @@ jobs:
             Update runtime: $RUNTIME_NAME $RUNTIME_VERSION
             
             - Update spec version to $SPEC_VERSION
-            - Bump substrate-relay version to $RELAYER_VERSION
+            - Bump substrate-relay version to v$RELAYER_VERSION
             - Regenerate runtime code
           title: "Update runtime: $RUNTIME_NAME $RUNTIME_VERSION"
           body: |
@@ -211,8 +217,7 @@ jobs:
         uses: actions/checkout@v6
         with:
           fetch-depth: 0
-          ref: master
-          base-owner: paritytech
+          ref: ${{ github.event.pull_request.merge_commit_sha }}
 
       - name: Create and push tag
         env:
@@ -224,6 +229,6 @@ jobs:
           echo "Creating tag: $tag_name"
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action"
-          git tag -a "$tag_name" -m "Release $tag_name - Runtime: $RUNTIME_VERSION - Substrate-relay: $RELAYER_VERSION"
+          git tag -a "$tag_name" -m "Release $tag_name - Runtime: $RUNTIME_VERSION"
           
           git push origin "$tag_name"
