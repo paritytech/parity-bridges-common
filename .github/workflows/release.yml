@@ -44,14 +44,8 @@ jobs:
       - name: Parse versions
         id: parse-versions
         env:
-          RUNTIME_VERSION: ${{ github.event.inputs.runtime_version }}
+          RUNTIME_VERSION: ${{ github.event.inputs.runtime_version || 'v2.0.7' }}
         run: |
-          
-          if [[ "${{ github.event_name }}" == "push" ]]; then
-            RUNTIME_VERSION="v2.0.7"
-          else
-            RUNTIME_VERSION="${{ github.event.inputs.runtime_version }}"
-          fi
           runtime_num="${RUNTIME_VERSION#v}"
           IFS='.' read -ra VERSION_PARTS <<< "$runtime_num"
           major="${VERSION_PARTS[0]}"
@@ -72,10 +66,10 @@ jobs:
           echo "Spec version: $spec_version"
 
           # Save runtime version for use in subsequent steps
-          echo "RUNTIME_VERSION=$runtime_version" >> $GITHUB_ENV
+          echo "RUNTIME_VERSION=$RUNTIME_VERSION" >> $GITHUB_ENV
           echo "RELEASE_VERSION=$release_version" >> $GITHUB_ENV
           echo "SPEC_VERSION=$spec_version" >> $GITHUB_ENV
-          echo "RUNTIME_VERSION=$runtime_version" >> $GITHUB_OUTPUT
+          echo "RUNTIME_VERSION=$RUNTIME_VERSION" >> $GITHUB_OUTPUT
 
       - name: Download runtime files
         env:
