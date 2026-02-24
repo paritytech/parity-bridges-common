@@ -31,6 +31,8 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v6
+        with:
+          ref: master
 
       - name: Create wbuild directory
         run: mkdir -p ./tools/runtime-codegen/wbuild
@@ -86,18 +88,15 @@ jobs:
           runtime_uri=$(echo "$runtime_config" | jq -r '.runtime_uri' | sed "s/\${runtime_version}/$RUNTIME_VERSION/g" | sed "s/\${release_version}/$RELEASE_VERSION/g")
           runtime_file=$(echo "$runtime_config" | jq -r '.runtime_file' | sed "s/\${runtime_version}/$RUNTIME_VERSION/g" | sed "s/\${release_version}/$RELEASE_VERSION/g")
           target_dir=$(echo "$runtime_config" | jq -r '.target_dir')
-          target_librs="$target_dir/lib.rs"
           
           # Export environment variables
           echo "RUNTIME_FILE=$runtime_file" >> $GITHUB_ENV
           echo "TARGET_DIR=$target_dir" >> $GITHUB_ENV
-          echo "TARGET_LIBRS=$target_librs" >> $GITHUB_ENV
           
           echo "Downloading runtime for $RUNTIME_NAME..."
           echo "Runtime URI: $runtime_uri"
           echo "Runtime File: $runtime_file"
           echo "Target Directory: $target_dir"
-          echo "Target Lib RS: $target_librs"
           
           # Download runtime
           wget -O "./tools/runtime-codegen/$runtime_file" "$runtime_uri"
@@ -115,15 +114,16 @@ jobs:
       - name: Update spec version in client files
         env:
           SPEC_VERSION: ${{ env.SPEC_VERSION }}
-          TARGET_LIBRS: ${{ env.TARGET_LIBRS }}
+          TARGET_DIR: ${{ env.TARGET_DIR }}
         run: |
           echo "Spec version: $SPEC_VERSION"
-          echo "Target librs: $TARGET_LIBRS"
+          target_librs="$TARGET_DIR/lib.rs"
+          echo "Target librs: $target_librs"
           echo "Current content:"
-          grep "spec_version:" "$TARGET_LIBRS" || echo "No spec_version found"
-          sed -i "s/spec_version: [0-9_]*/spec_version: $SPEC_VERSION/" "$TARGET_LIBRS"
+          grep "spec_version:" "$target_librs" || echo "No spec_version found"
+          sed -i "s/spec_version: [0-9_]*/spec_version: $SPEC_VERSION/" "$target_librs"
           echo "Updated content:"
-          grep "spec_version:" "$TARGET_LIBRS"
+          grep "spec_version:" "$target_librs"
 
       - name: Run runtime codegen
         env:
