@@ -132,5 +132,5 @@ substrate-relay-helper = { git = "https://github.com/paritytech/polkadot-sdk", b
 bp-test-utils = { git = "https://github.com/paritytech/polkadot-sdk", branch = "master" }
 hex-literal = "0.4"
 sp-keyring = { git = "https://github.com/paritytech/polkadot-sdk", branch = "master" }
-tempfile = "3.25"
+tempfile = "3.26"
 finality-grandpa = { version = "0.16.2" }
