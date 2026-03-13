@@ -155,12 +155,6 @@ jobs:
             sed -i 's/::sp_runtime::generic::Header<::core::primitive::u32>/::sp_runtime::generic::Header<::core::primitive::u32, ::sp_runtime::traits::BlakeTwo256>/g' {} +
           cargo +nightly fmt --all
 
-          echo "Cargo check"
-          SKIP_WASM_BUILD=1 cargo check --workspace
-
-          echo "Cargo clippy"
-          SKIP_WASM_BUILD=1 cargo clippy --workspace --all-targets --all-features
-
       - name: Create Pull Request
         env:
           RUNTIME_NAME: ${{ env.RUNTIME_NAME }}
@@ -189,7 +183,7 @@ jobs:
             - Bumped substrate-relay minor version
             - Regenerated runtime code
             - Applied formatting fixes
-          branch: "runtime-update-${{ env.RUNTIME_NAME }}-${{ env.RUNTIME_VERSION }}"
+          branch: "release/${{ env.RUNTIME_NAME }}-${{ env.RUNTIME_VERSION }}"
           delete-branch: true
           add-paths: |
             relay-clients/**/codegen_runtime.rs

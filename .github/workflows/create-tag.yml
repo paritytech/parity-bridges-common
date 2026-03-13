@@ -11,7 +11,7 @@ permissions:
 jobs:
   create-tag:
     runs-on: ubuntu-latest
-    if: github.event.pull_request.merged == true && startsWith(github.event.pull_request.head.ref, 'runtime-update-')
+    if: github.event.pull_request.merged == true && startsWith(github.event.pull_request.head.ref, 'release/')
     outputs:
       tag_name: ${{ steps.create-tag.outputs.tag_name }}
     steps:
@@ -30,7 +30,7 @@ jobs:
 
           # Extract runtime version from PR branch name (runtime-update-{name}-{version})
           branch="${{ github.event.pull_request.head.ref }}"
-          runtime_version=$(echo "$branch" | sed 's/runtime-update-[^-]*-//')
+          runtime_version=$(echo "$branch" | sed 's|release/[^-]*-||')
 
           echo "Relayer version: $relayer_version"
           echo "Runtime version: $runtime_version"
