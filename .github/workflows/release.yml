@@ -15,8 +15,6 @@ on:
           - 'BridgeHubPolkadot'
           - 'BridgeHubKusama'
         default: 'BridgeHubKusama'
-  push:
-    branches: ["rs-manual-release-ci-workflow"]
 
 permissions:
   contents: write
@@ -25,9 +23,6 @@ permissions:
 jobs:
   release:
     runs-on: ubuntu-latest
-    outputs:
-      RUNTIME_VERSION: ${{ steps.parse-versions.outputs.RUNTIME_VERSION }}
-      RELAYER_VERSION: ${{ steps.bump-version.outputs.RELAYER_VERSION }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v6
@@ -46,23 +41,23 @@ jobs:
       - name: Parse versions
         id: parse-versions
         env:
-          RUNTIME_VERSION: ${{ github.event.inputs.runtime_version || 'v2.0.6' }}
+          RUNTIME_VERSION: ${{ github.event.inputs.runtime_version }}
         run: |
           runtime_num="${RUNTIME_VERSION#v}"
           IFS='.' read -ra VERSION_PARTS <<< "$runtime_num"
           major="${VERSION_PARTS[0]}"
-          minor="${VERSION_PARTS[1]}" 
+          minor="${VERSION_PARTS[1]}"
           patch="${VERSION_PARTS[2]}"
           # Add leading zeros
           minor=$(printf "%03d" "$minor")
           patch=$(printf "%03d" "$patch")
-          
+
           # Convert runtime version to release version (e.g., v2.0.7 -> v2000007)
           release_version="v$major$minor$patch"
-          
+
           # Convert runtime version to spec version (e.g., v2.0.7 -> 2_000_007)
           spec_version="${major}_${minor}_${patch}"
-          
+
           echo "Runtime version: $RUNTIME_VERSION"
           echo "Release version: $release_version"
           echo "Spec version: $spec_version"
@@ -77,37 +72,37 @@ jobs:
         env:
           RUNTIME_VERSION: ${{ env.RUNTIME_VERSION }}
           RELEASE_VERSION: ${{ env.RELEASE_VERSION }}
-          RUNTIME_NAME: ${{ github.event.inputs.runtime || 'BridgeHubKusama' }}
+          RUNTIME_NAME: ${{ github.event.inputs.runtime }}
         run: |
           echo "RUNTIME_NAME=$RUNTIME_NAME" >> $GITHUB_ENV
 
           # Extract runtime configuration from matrix
           runtime_config=$(jq ".[] | select(.name == \"$RUNTIME_NAME\")" .github/runtime-matrix.json)
-          
+
           # Set environment variables with interpolated values
           runtime_uri=$(echo "$runtime_config" | jq -r '.runtime_uri' | sed "s/\${runtime_version}/$RUNTIME_VERSION/g" | sed "s/\${release_version}/$RELEASE_VERSION/g")
           runtime_file=$(echo "$runtime_config" | jq -r '.runtime_file' | sed "s/\${runtime_version}/$RUNTIME_VERSION/g" | sed "s/\${release_version}/$RELEASE_VERSION/g")
           target_dir=$(echo "$runtime_config" | jq -r '.target_dir')
-          
+
           # Export environment variables
           echo "RUNTIME_FILE=$runtime_file" >> $GITHUB_ENV
           echo "TARGET_DIR=$target_dir" >> $GITHUB_ENV
-          
+
           echo "Downloading runtime for $RUNTIME_NAME..."
           echo "Runtime URI: $runtime_uri"
           echo "Runtime File: $runtime_file"
           echo "Target Directory: $target_dir"
-          
+
           # Download runtime
           wget -O "./tools/runtime-codegen/$runtime_file" "$runtime_uri"
-          
+
           # Check if file was downloaded successfully
           if [[ ! -f "./tools/runtime-codegen/$runtime_file" ]]; then
             echo "Error: Failed to download runtime file: $runtime_file"
             echo "Aborting workflow."
             exit 1
           fi
-          
+
           echo "Successfully downloaded: $runtime_file"
           ls -lh "./tools/runtime-codegen/$runtime_file"
 
@@ -132,7 +127,7 @@ jobs:
         run: |
           # Extract runtime filename from RUNTIME_FILE
           runtime_filename=$(basename "$RUNTIME_FILE")
-          
+
           echo "Running runtime codegen for $runtime_filename"
           cd ./tools/runtime-codegen && cargo run --bin runtime-codegen --release -- --from-wasm-file "$RUNTIME_FILE" | tee "../../$TARGET_DIR/codegen_runtime.rs"
 
@@ -144,12 +139,12 @@ jobs:
           major=$(echo "$current_version" | cut -d. -f1)
           minor=$(echo "$current_version" | cut -d. -f2)
           patch=$(echo "$current_version" | cut -d. -f3)
-          
+
           # Increment patch version
           new_patch=$((patch + 1))
           new_version="$major.$minor.$new_patch"
           echo "RELAYER_VERSION=$new_version" >> $GITHUB_OUTPUT
-          
+
           echo "Bumping relayer version from $current_version to $new_version"
           sed -i "s/version = \"$current_version\"/version = \"$new_version\"/" substrate-relay/Cargo.toml
 
@@ -178,17 +173,17 @@ jobs:
           base: master
           commit-message: |
             Update runtime: ${{ env.RUNTIME_NAME }} ${{ env.RUNTIME_VERSION }}
-            
+
             - Update spec version to ${{ env.SPEC_VERSION }}
             - Bump substrate-relay version to v${{ env.RELAYER_VERSION }}
             - Regenerate runtime code
           title: "Update runtime: ${{ env.RUNTIME_NAME }} ${{ env.RUNTIME_VERSION }}"
           body: |
             Automated runtime update:
-            
+
             - Runtime: ${{ env.RUNTIME_NAME }}
             - Spec Version: ${{ env.SPEC_VERSION }}
-            
+
             Changes:
             - Updated spec version in client files
             - Bumped substrate-relay minor version
@@ -201,28 +196,3 @@ jobs:
             relay-clients/**/lib.rs
             substrate-relay/Cargo.toml
             Cargo.lock
-
-  create-tag:
-    runs-on: ubuntu-latest
-    needs: release
-    if: github.event_name == 'pull_request' && github.event.action == 'closed' && github.event.pull_request.merged == true
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v6
-        with:
-          fetch-depth: 0
-          ref: ${{ github.event.pull_request.merge_commit_sha }}
-
-      - name: Create and push tag
-        env:
-          RUNTIME_VERSION: ${{ needs.release.outputs.RUNTIME_VERSION }}
-          RELAYER_VERSION: ${{ needs.release.outputs.RELAYER_VERSION }}
-        run: |
-          tag_name="v${{ env.RELAYER_VERSION }}"
-          
-          echo "Creating tag: $tag_name"
-          git config --local user.email "action@github.com"
-          git config --local user.name "GitHub Action"
-          git tag -a "$tag_name" -m "Release $tag_name - Runtime: ${{ env.RUNTIME_VERSION }}"
-          
-          git push origin "$tag_name"
