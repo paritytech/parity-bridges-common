@@ -29,18 +29,19 @@ jobs:
         id: pr-info
         env:
           GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ inputs.pr_number }}
         run: |
-          pr_json=$(gh pr view ${{ inputs.pr_number }} --repo ${{ github.repository }} --json mergeCommit,headRefName,state)
+          pr_json=$(gh pr view "$PR_NUMBER" --repo ${{ github.repository }} --json mergeCommit,headRefName,state)
           state=$(echo "$pr_json" | jq -r '.state')
           merge_commit=$(echo "$pr_json" | jq -r '.mergeCommit.oid')
           if [[ "$state" != "MERGED" || -z "$merge_commit" || "$merge_commit" == "null" ]]; then
-            echo "Error: PR #${{ inputs.pr_number }} is not merged."
+            echo "Error: PR #$PR_NUMBER is not merged."
             exit 1
           fi
 
           head_ref=$(echo "$pr_json" | jq -r '.headRefName')
           if [[ ! "$head_ref" == release/* ]]; then
-            echo "Error: PR #${{ inputs.pr_number }} branch '$head_ref' does not match 'release/' pattern."
+            echo "Error: PR #$PR_NUMBER branch '$head_ref' does not match 'release/' pattern."
             exit 1
           fi
 
