@@ -4,22 +4,54 @@ on:
   pull_request:
     types: [closed]
     branches: [master]
+  workflow_dispatch:
+    inputs:
+      pr_number:
+        description: 'Merged PR number to create tag from (e.g. 3257)'
+        required: true
+        type: string
 
 permissions:
   contents: write
+  id-token: write
 
 jobs:
   create-tag:
     runs-on: ubuntu-latest
-    if: github.event.pull_request.merged == true && startsWith(github.event.pull_request.head.ref, 'release/')
+    if: |
+      (github.event_name == 'workflow_dispatch') ||
+      (github.event.pull_request.merged == true && startsWith(github.event.pull_request.head.ref, 'release/'))
     outputs:
       tag_name: ${{ steps.create-tag.outputs.tag_name }}
     steps:
+      - name: Fetch PR details (manual trigger)
+        if: github.event_name == 'workflow_dispatch'
+        id: pr-info
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          pr_json=$(gh pr view ${{ inputs.pr_number }} --repo ${{ github.repository }} --json mergeCommit,headRefName,state,merged)
+          merged=$(echo "$pr_json" | jq -r '.merged')
+          if [[ "$merged" != "true" ]]; then
+            echo "Error: PR #${{ inputs.pr_number }} is not merged."
+            exit 1
+          fi
+
+          head_ref=$(echo "$pr_json" | jq -r '.headRefName')
+          if [[ ! "$head_ref" == release/* ]]; then
+            echo "Error: PR #${{ inputs.pr_number }} branch '$head_ref' does not match 'release/' pattern."
+            exit 1
+          fi
+
+          merge_sha=$(echo "$pr_json" | jq -r '.mergeCommit.oid')
+          echo "merge_sha=$merge_sha" >> $GITHUB_OUTPUT
+          echo "head_ref=$head_ref" >> $GITHUB_OUTPUT
+
       - name: Checkout repository
         uses: actions/checkout@v6
         with:
           fetch-depth: 0
-          ref: ${{ github.event.pull_request.merge_commit_sha }}
+          ref: ${{ github.event_name == 'workflow_dispatch' && steps.pr-info.outputs.merge_sha || github.event.pull_request.merge_commit_sha }}
 
       - name: Extract version and create tag
         id: create-tag
@@ -28,8 +60,12 @@ jobs:
           relayer_version=$(grep '^version = ' substrate-relay/Cargo.toml | cut -d'"' -f2)
           tag_name="v${relayer_version}"
 
-          # Extract runtime version from PR branch name (runtime-update-{name}-{version})
-          branch="${{ github.event.pull_request.head.ref }}"
+          # Extract runtime version from PR branch name
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            branch="${{ steps.pr-info.outputs.head_ref }}"
+          else
+            branch="${{ github.event.pull_request.head.ref }}"
+          fi
           runtime_version=$(echo "$branch" | sed 's|release/[^-]*-||')
 
           echo "Relayer version: $relayer_version"
