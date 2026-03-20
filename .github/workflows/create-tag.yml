@@ -30,9 +30,10 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          pr_json=$(gh pr view ${{ inputs.pr_number }} --repo ${{ github.repository }} --json mergeCommit,headRefName,state,merged)
-          merged=$(echo "$pr_json" | jq -r '.merged')
-          if [[ "$merged" != "true" ]]; then
+          pr_json=$(gh pr view ${{ inputs.pr_number }} --repo ${{ github.repository }} --json mergeCommit,headRefName,state)
+          state=$(echo "$pr_json" | jq -r '.state')
+          merge_commit=$(echo "$pr_json" | jq -r '.mergeCommit.oid')
+          if [[ "$state" != "MERGED" || -z "$merge_commit" || "$merge_commit" == "null" ]]; then
             echo "Error: PR #${{ inputs.pr_number }} is not merged."
             exit 1
           fi
@@ -43,8 +44,7 @@ jobs:
             exit 1
           fi
 
-          merge_sha=$(echo "$pr_json" | jq -r '.mergeCommit.oid')
-          echo "merge_sha=$merge_sha" >> $GITHUB_OUTPUT
+          echo "merge_sha=$merge_commit" >> $GITHUB_OUTPUT
           echo "head_ref=$head_ref" >> $GITHUB_OUTPUT
 
       - name: Checkout repository
