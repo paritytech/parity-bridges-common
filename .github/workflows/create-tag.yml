@@ -14,7 +14,6 @@ on:
 permissions:
   contents: write
   id-token: write
-  workflows: write
   pull-requests: read
 
 jobs:
@@ -50,11 +49,19 @@ jobs:
           echo "merge_sha=$merge_commit" >> $GITHUB_OUTPUT
           echo "head_ref=$head_ref" >> $GITHUB_OUTPUT
 
+      - name: Generate GitHub App token
+        id: app-token
+        uses: actions/create-github-app-token@v3
+        with:
+          app-id: ${{ secrets.GH_APP_ID }}
+          private-key: ${{ secrets.GH_APP_KEY }}
+
       - name: Checkout repository
         uses: actions/checkout@v6
         with:
           fetch-depth: 0
           ref: ${{ github.event_name == 'workflow_dispatch' && steps.pr-info.outputs.merge_sha || github.event.pull_request.merge_commit_sha }}
+          token: ${{ steps.app-token.outputs.token }}
 
       - name: Extract version and create tag
         id: create-tag
