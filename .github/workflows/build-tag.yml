@@ -4,6 +4,12 @@ on:
   push:
     tags:
       - v*
+  workflow_call:
+    inputs:
+      tag:
+        description: 'Tag to build'
+        required: true
+        type: string
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
@@ -34,18 +40,22 @@ jobs:
       - name: Define version
         id: version
         run: |
-          export COMMIT_SHA=${{ github.sha }}
-          export COMMIT_SHA_SHORT=${COMMIT_SHA:0:8}
-          export REF_NAME=${{ github.ref_name }}
-          export REF_SLUG=${REF_NAME//\//_}
-          if [[ ${REF_SLUG} == "master" ]]
-          then
-            VERSION=${REF_SLUG}-${COMMIT_SHA_SHORT}
-            echo "VERSION=${REF_SLUG}-${COMMIT_SHA_SHORT}" >> $GITHUB_OUTPUT
+          # Use input tag for workflow_call, otherwise use ref_name (tag push)
+          if [[ -n "${{ inputs.tag }}" ]]; then
+            VERSION="${{ inputs.tag }}"
           else
-            VERSION=${REF_SLUG}
-            echo "VERSION=${REF_SLUG}" >> $GITHUB_OUTPUT
+            export COMMIT_SHA=${{ github.sha }}
+            export COMMIT_SHA_SHORT=${COMMIT_SHA:0:8}
+            export REF_NAME=${{ github.ref_name }}
+            export REF_SLUG=${REF_NAME//\//_}
+            if [[ ${REF_SLUG} == "master" ]]
+            then
+              VERSION=${REF_SLUG}-${COMMIT_SHA_SHORT}
+            else
+              VERSION=${REF_SLUG}
+            fi
           fi
+          echo "VERSION=${VERSION}" >> $GITHUB_OUTPUT
           echo "set VERSION=${VERSION}"
 
   build:
@@ -56,7 +66,9 @@ jobs:
       image: ${{ needs.set-variables.outputs.CI_IMAGE }}
     steps:
       - name: Checkout sources
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ inputs.tag || github.ref }}
 
       - name: Build and pack artifact
         run: |
@@ -69,7 +81,7 @@ jobs:
           mv -v ./ci.Dockerfile ./artifacts/
 
       - name: upload artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: build
           path: ./artifacts/
@@ -84,13 +96,13 @@ jobs:
       VERSION: ${{ needs.set-variables.outputs.VERSION }}
     steps:
       - name: Log in to Docker Hub
-        uses: docker/login-action@v3
+        uses: docker/login-action@v4
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_PASSWORD }}
 
       - name: Download artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: build
       - name: Make scripts executable
@@ -98,7 +110,7 @@ jobs:
           chmod +x bridge-entrypoint.sh
           chmod +x substrate-relay
       - name: Build Docker image
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v7
         with:
           context: .
           file: ./ci.Dockerfile
