@@ -544,25 +544,6 @@ pub mod api {
 		}
 		pub mod cumulus_pallet_parachain_system {
 			use super::runtime_types;
-			pub mod block_weight {
-				use super::runtime_types;
-				#[derive(::codec::Decode, ::codec::Encode, Clone, Debug, PartialEq)]
-				pub enum BlockWeightMode {
-					#[codec(index = 0)]
-					FullCore { context: ::core::primitive::u32 },
-					#[codec(index = 1)]
-					PotentialFullCore {
-						context: ::core::primitive::u32,
-						first_transaction_index: ::core::option::Option<::core::primitive::u32>,
-						target_weight: ::sp_weights::Weight,
-					},
-					#[codec(index = 2)]
-					FractionOfCore {
-						context: ::core::primitive::u32,
-						first_transaction_index: ::core::option::Option<::core::primitive::u32>,
-					},
-				}
-			}
 			pub mod pallet {
 				use super::runtime_types;
 				#[derive(::codec::Decode, ::codec::Encode, Clone, Debug, PartialEq)]
@@ -734,14 +715,6 @@ pub mod api {
                     >,
                 }
 			}
-			#[derive(::codec::Decode, ::codec::Encode, Clone, Debug, PartialEq)]
-			pub struct PoVMessages {
-				pub relay_storage_root_or_hash: ::subxt::ext::subxt_core::utils::H256,
-				pub core_selector: ::core::primitive::u8,
-				pub bundle_index: ::core::primitive::u8,
-				pub ump_msg_count: ::core::primitive::u32,
-				pub hrmp_outbound_count: ::core::primitive::u32,
-			}
 		}
 		pub mod cumulus_pallet_weight_reclaim {
 			use super::runtime_types;
@@ -818,18 +791,6 @@ pub mod api {
 				pub signals_exist: ::core::primitive::bool,
 				pub first_index: ::core::primitive::u16,
 				pub last_index: ::core::primitive::u16,
-				pub flags: runtime_types::cumulus_pallet_xcmp_queue::OutboundChannelFlags,
-			}
-			#[derive(
-				::codec::Decode,
-				::codec::Encode,
-				::subxt::ext::subxt_core::ext::codec::CompactAs,
-				Clone,
-				Debug,
-				PartialEq,
-			)]
-			pub struct OutboundChannelFlags {
-				pub bits: ::core::primitive::u32,
 			}
 			#[derive(::codec::Decode, ::codec::Encode, Clone, Debug, PartialEq)]
 			pub enum OutboundState {
@@ -1056,7 +1017,6 @@ pub mod api {
 					pub max: runtime_types::frame_support::dispatch::PerDispatchClass<
 						::core::primitive::u32,
 					>,
-					pub max_header_size: ::core::option::Option<::core::primitive::u32>,
 				}
 				#[derive(::codec::Decode, ::codec::Encode, Clone, Debug, PartialEq)]
 				pub struct BlockWeights {
@@ -3335,7 +3295,6 @@ pub mod api {
 					pub capella: runtime_types::snowbridge_beacon_primitives::types::Fork,
 					pub deneb: runtime_types::snowbridge_beacon_primitives::types::Fork,
 					pub electra: runtime_types::snowbridge_beacon_primitives::types::Fork,
-					pub fulu: runtime_types::snowbridge_beacon_primitives::types::Fork,
 				}
 				#[derive(::codec::Decode, ::codec::Encode, Clone, Debug, PartialEq)]
 				pub struct PublicKey(pub [::core::primitive::u8; 48usize]);
@@ -3885,13 +3844,17 @@ pub mod api {
 					::subxt::ext::subxt_core::utils::H256,
 				>,
 				pub data: ::subxt::ext::subxt_core::alloc::vec::Vec<::core::primitive::u8>,
-				pub tx_index: ::core::primitive::u64,
 			}
 			#[derive(::codec::Decode, ::codec::Encode, Clone, Debug, PartialEq)]
 			pub struct Proof {
-				pub receipt_proof: ::subxt::ext::subxt_core::alloc::vec::Vec<
-					::subxt::ext::subxt_core::alloc::vec::Vec<::core::primitive::u8>,
-				>,
+				pub receipt_proof: (
+					::subxt::ext::subxt_core::alloc::vec::Vec<
+						::subxt::ext::subxt_core::alloc::vec::Vec<::core::primitive::u8>,
+					>,
+					::subxt::ext::subxt_core::alloc::vec::Vec<
+						::subxt::ext::subxt_core::alloc::vec::Vec<::core::primitive::u8>,
+					>,
+				),
 				pub execution_proof:
 					runtime_types::snowbridge_beacon_primitives::types::ExecutionProof,
 			}
