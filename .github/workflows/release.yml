@@ -148,6 +148,9 @@ jobs:
           echo "Bumping relayer version from $current_version to $new_version"
           sed -i "s/version = \"$current_version\"/version = \"$new_version\"/" substrate-relay/Cargo.toml
 
+          # Refresh Cargo.lock for the bumped workspace member only (no network, no recompile).
+          cargo update -p substrate-relay --offline
+
       - name: Fix Header generic types & Format code
         run: |
           cargo +nightly fmt --all
