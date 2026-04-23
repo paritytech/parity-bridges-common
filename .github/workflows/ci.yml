@@ -14,7 +14,7 @@ concurrency:
 # common variable is defined in the workflow
 # repo env variable doesn't work for PR from forks
 env:
-  CI_IMAGE: "paritytech/ci-unified:bullseye-1.84.1-2025-01-28-v202502131220"
+  CI_IMAGE: "paritytech/ci-unified:bullseye-1.88.0-2025-06-27-v202507112050"
 
 jobs:
   set-variables:
@@ -113,6 +113,19 @@ jobs:
 
       - name: Check
         run: SKIP_WASM_BUILD=1 time cargo check --locked  --workspace
+
+  check-runtime-codegen:
+    name: Check runtime-codegen
+    runs-on: ubuntu-latest
+    needs: [set-variables]
+    container:
+      image: ${{ needs.set-variables.outputs.CI_IMAGE }}
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v4
+
+      - name: Check
+        run: SKIP_WASM_BUILD=1 time cargo check --locked --manifest-path tools/runtime-codegen/Cargo.toml
 
   test:
     name: Test
