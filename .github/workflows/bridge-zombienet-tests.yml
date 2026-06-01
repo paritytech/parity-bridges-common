@@ -1,0 +1,302 @@
+# Manually-triggered bridge zombienet tests for a polkadot-sdk bump PR.
+# Run from Actions UI, picking the PR branch. Mirrors .claude/skills/bump-polkadot-sdk/SKILL.md (Steps 9-15).
+# Rococo<->Westend:  https://github.com/paritytech/polkadot-sdk/blob/master/bridges/testing/README.md
+# Polkadot<->Kusama: https://github.com/polkadot-fellows/runtimes/blob/main/integration-tests/bridges/README.md
+
+name: Bridge Zombienet Tests
+
+on:
+  workflow_dispatch:
+    inputs:
+      suite:
+        description: "Which bridge test suite(s) to run"
+        type: choice
+        default: both
+        options: [both, rococo-westend, polkadot-kusama]
+      sdk_ref:
+        description: "polkadot-sdk ref (blank = hash pinned in Cargo.lock)"
+        type: string
+        default: ""
+      fellows_ref:
+        description: "polkadot-fellows/runtimes ref (polkadot-kusama only)"
+        type: string
+        default: "main"
+      zombienet_version:
+        description: "zombienet release tag (blank = latest)"
+        type: string
+        default: ""
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  CI_IMAGE: "paritytech/ci-unified:bullseye-1.93.0-2026-01-27-v202603042356"
+
+jobs:
+  prepare:
+    name: Prepare
+    runs-on: ubuntu-latest
+    outputs:
+      CI_IMAGE: ${{ steps.vars.outputs.CI_IMAGE }}
+      sdk_ref: ${{ steps.vars.outputs.sdk_ref }}
+      run_rw: ${{ steps.vars.outputs.run_rw }}
+      run_pk: ${{ steps.vars.outputs.run_pk }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Resolve variables
+        id: vars
+        run: |
+          set -euo pipefail
+          echo "CI_IMAGE=${CI_IMAGE}" >> "$GITHUB_OUTPUT"
+          # sdk ref: input wins, else the hash pinned in Cargo.lock
+          SDK_REF="${{ inputs.sdk_ref }}"
+          [ -n "${SDK_REF}" ] || SDK_REF="$(grep -m1 -oP '(?<=polkadot-sdk\?branch=master#)[a-f0-9]+' Cargo.lock)"
+          [ -n "${SDK_REF}" ] || { echo "::error::no sdk ref (input empty, no Cargo.lock pin)"; exit 1; }
+          echo "sdk_ref=${SDK_REF}" >> "$GITHUB_OUTPUT"
+          case "${{ inputs.suite }}" in
+            both)            RW=true;  PK=true  ;;
+            rococo-westend)  RW=true;  PK=false ;;
+            polkadot-kusama) RW=false; PK=true  ;;
+          esac
+          echo "run_rw=${RW}" >> "$GITHUB_OUTPUT"
+          echo "run_pk=${PK}" >> "$GITHUB_OUTPUT"
+
+  # substrate-relay built from the PR; shared by both suites
+  build-relay:
+    name: Build substrate-relay
+    runs-on: parity-large
+    needs: [prepare]
+    container:
+      image: ${{ needs.prepare.outputs.CI_IMAGE }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: Swatinem/rust-cache@82a92a6e8fbeee089604da2575dc567ae9ddeaab # v2.7.5
+        with:
+          cache-on-failure: true
+          cache-all-crates: true
+      - name: Build
+        run: |
+          cargo fetch
+          CARGO_NET_OFFLINE=true cargo build --release -p substrate-relay
+          mkdir -p artifacts && cp target/release/substrate-relay artifacts/
+      - uses: actions/upload-artifact@v4
+        with:
+          name: substrate-relay
+          path: artifacts/substrate-relay
+          retention-days: 2
+
+  # parachain + workers shared; `polkadot` differs (RW=fast-runtime, PK=plain). Sequential builds (SKILL).
+  build-sdk:
+    name: Build polkadot-sdk binaries
+    runs-on: parity-large
+    needs: [prepare]
+    container:
+      image: ${{ needs.prepare.outputs.CI_IMAGE }}
+    env:
+      SDK_REF: ${{ needs.prepare.outputs.sdk_ref }}
+      RUN_RW: ${{ needs.prepare.outputs.run_rw }}
+      RUN_PK: ${{ needs.prepare.outputs.run_pk }}
+    steps:
+      # cache compiled binaries by sdk ref so reruns / the other suite skip the build
+      - id: bincache
+        uses: actions/cache@v4
+        with:
+          path: sdk-bins
+          key: sdk-bins-${{ needs.prepare.outputs.sdk_ref }}-${{ inputs.suite }}-v1
+      - if: steps.bincache.outputs.cache-hit != 'true'
+        uses: actions/checkout@v4
+        with:
+          repository: paritytech/polkadot-sdk
+          ref: ${{ env.SDK_REF }}
+          path: polkadot-sdk
+      - if: steps.bincache.outputs.cache-hit != 'true'
+        uses: Swatinem/rust-cache@82a92a6e8fbeee089604da2575dc567ae9ddeaab # v2.7.5
+        with:
+          workspaces: polkadot-sdk
+          cache-on-failure: true
+      - name: Build shared (parachain + workers)
+        if: steps.bincache.outputs.cache-hit != 'true'
+        working-directory: polkadot-sdk
+        run: |
+          set -euo pipefail
+          cargo build --release -p polkadot-parachain-bin
+          cargo build --release --bin polkadot-prepare-worker
+          cargo build --release --bin polkadot-execute-worker
+      - name: Build polkadot (fast-runtime, RW)
+        if: steps.bincache.outputs.cache-hit != 'true' && env.RUN_RW == 'true'
+        working-directory: polkadot-sdk
+        run: cargo build --release -p polkadot --features fast-runtime
+      - if: steps.bincache.outputs.cache-hit != 'true' && env.RUN_RW == 'true'
+        run: mkdir -p sdk-bins && cp polkadot-sdk/target/release/polkadot sdk-bins/polkadot-fast
+      - name: Build polkadot (plain, PK)
+        if: steps.bincache.outputs.cache-hit != 'true' && env.RUN_PK == 'true'
+        working-directory: polkadot-sdk
+        run: cargo build --release -p polkadot
+      - if: steps.bincache.outputs.cache-hit != 'true' && env.RUN_PK == 'true'
+        run: mkdir -p sdk-bins && cp polkadot-sdk/target/release/polkadot sdk-bins/polkadot-plain
+      - name: Stage shared binaries
+        if: steps.bincache.outputs.cache-hit != 'true'
+        run: |
+          mkdir -p sdk-bins
+          cp polkadot-sdk/target/release/polkadot-parachain      sdk-bins/
+          cp polkadot-sdk/target/release/polkadot-prepare-worker sdk-bins/
+          cp polkadot-sdk/target/release/polkadot-execute-worker sdk-bins/
+      - uses: actions/upload-artifact@v4
+        with:
+          name: sdk-bins
+          path: sdk-bins/
+          retention-days: 2
+
+  # polkadot-kusama only
+  build-chain-spec-generator:
+    name: Build chain-spec-generator (fellows)
+    runs-on: parity-large
+    needs: [prepare]
+    if: needs.prepare.outputs.run_pk == 'true'
+    container:
+      image: ${{ needs.prepare.outputs.CI_IMAGE }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: polkadot-fellows/runtimes
+          ref: ${{ inputs.fellows_ref }}
+          path: runtimes
+      - uses: Swatinem/rust-cache@82a92a6e8fbeee089604da2575dc567ae9ddeaab # v2.7.5
+        with:
+          workspaces: runtimes
+          cache-on-failure: true
+      - name: Patch + build
+        working-directory: runtimes
+        run: |
+          set -euo pipefail
+          git apply ./integration-tests/bridges/sudo-relay.patch
+          cargo build -p chain-spec-generator --release --no-default-features \
+            --features fast-runtime,polkadot,kusama,bridge-hub-kusama,bridge-hub-polkadot,asset-hub-kusama,asset-hub-polkadot
+          mkdir -p csg
+          cp target/release/chain-spec-generator csg/chain-spec-generator-polkadot
+          cp target/release/chain-spec-generator csg/chain-spec-generator-kusama
+      - uses: actions/upload-artifact@v4
+        with:
+          name: chain-spec-generator
+          path: runtimes/csg/
+          retention-days: 2
+
+  # https://github.com/paritytech/polkadot-sdk/blob/master/bridges/testing/README.md
+  test-rococo-westend:
+    name: Test Rococo <-> Westend
+    runs-on: parity-large
+    needs: [prepare, build-relay, build-sdk]
+    if: needs.prepare.outputs.run_rw == 'true'
+    env:
+      SDK_REF: ${{ needs.prepare.outputs.sdk_ref }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: paritytech/polkadot-sdk
+          ref: ${{ env.SDK_REF }}
+          path: polkadot-sdk
+      - uses: actions/download-artifact@v4
+        with: { name: substrate-relay, path: dl-relay }
+      - uses: actions/download-artifact@v4
+        with: { name: sdk-bins, path: dl-sdk }
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Setup tools
+        run: |
+          set -euo pipefail
+          sudo apt-get update && sudo apt-get install -y jq
+          npm install -g @polkadot/api-cli
+          mkdir -p ~/local_bridge_testing/bin
+          VER="${{ inputs.zombienet_version }}"
+          [ -n "${VER}" ] || VER="$(curl -s https://api.github.com/repos/paritytech/zombienet/releases/latest | jq -r .tag_name)"
+          curl -sL "https://github.com/paritytech/zombienet/releases/download/${VER}/zombienet-linux-x64" -o ~/local_bridge_testing/bin/zombienet
+          chmod +x ~/local_bridge_testing/bin/zombienet
+      - name: Place binaries
+        run: |
+          set -euo pipefail
+          # run-test.sh (local mode) reads polkadot/parachain from the sdk target dir
+          mkdir -p polkadot-sdk/target/release
+          cp dl-sdk/polkadot-fast      polkadot-sdk/target/release/polkadot
+          cp dl-sdk/polkadot-parachain polkadot-sdk/target/release/polkadot-parachain
+          cp dl-relay/substrate-relay  ~/local_bridge_testing/bin/substrate-relay
+          chmod +x polkadot-sdk/target/release/polkadot polkadot-sdk/target/release/polkadot-parachain ~/local_bridge_testing/bin/substrate-relay
+      - name: Run 0001-asset-transfer
+        working-directory: polkadot-sdk/bridges/testing
+        run: |
+          echo "::notice::ref https://github.com/paritytech/polkadot-sdk/blob/master/bridges/testing/README.md"
+          ./run-test.sh 0001-asset-transfer
+      - if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: logs-rococo-westend
+          path: /tmp/bridges-tests-run-*/**/*.log
+          if-no-files-found: ignore
+          retention-days: 5
+
+  # https://github.com/polkadot-fellows/runtimes/blob/main/integration-tests/bridges/README.md
+  test-polkadot-kusama:
+    name: Test Polkadot <-> Kusama
+    runs-on: parity-large
+    needs: [prepare, build-relay, build-sdk, build-chain-spec-generator]
+    if: needs.prepare.outputs.run_pk == 'true'
+    env:
+      SDK_REF: ${{ needs.prepare.outputs.sdk_ref }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: paritytech/polkadot-sdk
+          ref: ${{ env.SDK_REF }}
+          path: polkadot-sdk
+      - uses: actions/checkout@v4
+        with:
+          repository: polkadot-fellows/runtimes
+          ref: ${{ inputs.fellows_ref }}
+          path: runtimes
+      - uses: actions/download-artifact@v4
+        with: { name: substrate-relay, path: dl-relay }
+      - uses: actions/download-artifact@v4
+        with: { name: sdk-bins, path: dl-sdk }
+      - uses: actions/download-artifact@v4
+        with: { name: chain-spec-generator, path: dl-csg }
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Setup tools
+        run: |
+          set -euo pipefail
+          sudo apt-get update && sudo apt-get install -y jq
+          npm install -g @polkadot/api-cli
+          mkdir -p ~/local_bridge_testing/bin
+          VER="${{ inputs.zombienet_version }}"
+          [ -n "${VER}" ] || VER="$(curl -s https://api.github.com/repos/paritytech/zombienet/releases/latest | jq -r .tag_name)"
+          curl -sL "https://github.com/paritytech/zombienet/releases/download/${VER}/zombienet-linux-x64" -o ~/local_bridge_testing/bin/zombienet
+          chmod +x ~/local_bridge_testing/bin/zombienet
+      - name: Place binaries
+        run: |
+          set -euo pipefail
+          # PK test reads everything from ~/local_bridge_testing/bin
+          B=~/local_bridge_testing/bin
+          cp dl-sdk/polkadot-plain          "$B/polkadot"
+          cp dl-sdk/polkadot-parachain      "$B/polkadot-parachain"
+          cp dl-sdk/polkadot-prepare-worker "$B/polkadot-prepare-worker"
+          cp dl-sdk/polkadot-execute-worker "$B/polkadot-execute-worker"
+          cp dl-relay/substrate-relay       "$B/substrate-relay"
+          cp dl-csg/chain-spec-generator-polkadot "$B/chain-spec-generator-polkadot"
+          cp dl-csg/chain-spec-generator-kusama   "$B/chain-spec-generator-kusama"
+          chmod +x "$B"/*
+      - name: Run 0001-polkadot-kusama-asset-transfer
+        working-directory: runtimes/integration-tests/bridges
+        env:
+          FRAMEWORK_REPO_PATH: ${{ github.workspace }}/polkadot-sdk
+        run: |
+          echo "::notice::ref https://github.com/polkadot-fellows/runtimes/blob/main/integration-tests/bridges/README.md"
+          ./run-test.sh 0001-polkadot-kusama-asset-transfer
+      - if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: logs-polkadot-kusama
+          path: /tmp/bridges-tests-run-*/**/*.log
+          if-no-files-found: ignore
+          retention-days: 5
