@@ -134,6 +134,11 @@ jobs:
       - name: Bump minor version in Cargo.toml
         id: bump-version
         run: |
+          # Populate the cargo cache (incl. polkadot-sdk git deps) so the offline
+          # `cargo update` below can resolve. Runs before the version bump so the
+          # `--locked` check still sees a matching Cargo.lock. No recompile.
+          cargo fetch --locked
+
           # Get current version and bump minor version
           current_version=$(grep '^version = ' substrate-relay/Cargo.toml | cut -d'"' -f2)
           major=$(echo "$current_version" | cut -d. -f1)
