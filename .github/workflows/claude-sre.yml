@@ -1,0 +1,33 @@
+name: Claude SRE Agent
+
+on:
+  issues:
+    types: [opened, labeled]
+  issue_comment:
+    types: [created]
+
+jobs:
+  claude:
+    # Run when:
+    # - issue is opened/labeled with "claude"
+    # - someone comments @claude on an issue
+    if: |
+      (github.event_name == 'issues' && contains(github.event.issue.labels.*.name, 'claude')) ||
+      (github.event_name == 'issue_comment' && contains(github.event.comment.body, '@claude'))
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      issues: write
+      pull-requests: write
+    env:
+      # Grafana API access for live metric queries.
+      # Claude can use: curl -H "Authorization: Bearer $GRAFANA_TOKEN" "$GRAFANA_URL/api/..."
+      GRAFANA_URL: ${{ secrets.GRAFANA_URL }}
+      GRAFANA_TOKEN: ${{ secrets.GRAFANA_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: anthropics/claude-code-action@v1
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          label_trigger: "claude"
+          trigger_phrase: "@claude"
