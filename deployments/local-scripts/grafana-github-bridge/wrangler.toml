@@ -1,0 +1,7 @@
+name = "grafana-github-bridge"
+main = "src/index.js"
+compatibility_date = "2024-01-01"
+
+# Secrets (set via `wrangler secret put`):
+#   GITHUB_TOKEN   – GitHub PAT with issues:write scope
+#   WEBHOOK_SECRET – optional shared secret for Grafana Authorization header
