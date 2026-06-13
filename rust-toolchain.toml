@@ -1,0 +1,4 @@
+[toolchain]
+channel = "1.84.1"
+components = ["clippy", "rust-src", "rustfmt"]
+targets = [ "x86_64-unknown-linux-gnu", "wasm32v1-none" ]
