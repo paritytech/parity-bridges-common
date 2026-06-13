@@ -1,0 +1,14 @@
+[
+    {
+        "name": "BridgeHubPolkadot",
+        "runtime_uri": "https://github.com/polkadot-fellows/runtimes/releases/download/${RUNTIME_VERSION}/bridge-hub-polkadot_runtime-${RELEASE_VERSION}.compact.compressed.wasm",
+        "runtime_file": "bridge-hub-polkadot_runtime-${RELEASE_VERSION}.compact.compressed.wasm",
+        "target_dir": "relay-clients/client-bridge-hub-polkadot/src"
+    },
+    {
+        "name": "BridgeHubKusama",
+        "runtime_uri": "https://github.com/polkadot-fellows/runtimes/releases/download/${RUNTIME_VERSION}/bridge-hub-kusama_runtime-${RELEASE_VERSION}.compact.compressed.wasm",
+        "runtime_file": "bridge-hub-kusama_runtime-${RELEASE_VERSION}.compact.compressed.wasm",
+        "target_dir": "relay-clients/client-bridge-hub-kusama/src"
+    }
+]
