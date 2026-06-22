@@ -57,7 +57,7 @@ complexity = { level = "deny", priority = 1 }
 #default_constructed_unit_structs = { level = "allow", priority = 2 } # stylistic
 
 [workspace.dependencies]
-log = { version = "0.4.30", default-features = false }
+log = { version = "0.4.32", default-features = false }
 quote = { version = "1.0.45" }
 serde = { version = "1.0.228", default-features = false }
 serde_json = { version = "1.0.138", default-features = false }
@@ -112,7 +112,7 @@ num-format = "0.4"
 num-traits = "0.2"
 rbtag = "0.3"
 structopt = "0.3"
-signal-hook = "0.4.3"
+signal-hook = "0.4.4"
 signal-hook-async-std = "0.4.0"
 strum = { version = "0.28.0", features = ["derive"] }
 pallet-bridge-parachains = { git = "https://github.com/paritytech/polkadot-sdk", branch = "master" }
@@ -130,7 +130,7 @@ relay-rococo-client = { path = "./relay-clients/client-rococo" }
 relay-westend-client = { path = "./relay-clients/client-westend" }
 substrate-relay-helper = { git = "https://github.com/paritytech/polkadot-sdk", branch = "master" }
 bp-test-utils = { git = "https://github.com/paritytech/polkadot-sdk", branch = "master" }
-hex-literal = "0.4"
+hex-literal = "1.1"
 sp-keyring = { git = "https://github.com/paritytech/polkadot-sdk", branch = "master" }
 tempfile = "3.27"
 finality-grandpa = { version = "0.16.2" }
