@@ -1,0 +1,24 @@
+# Extraction crate for (re)generating the bridges zombienet-sdk `.scale` metadata files.
+#
+# This crate is NOT built from the parity-bridges-common workspace. `generate.sh` copies it into a
+# transient polkadot-sdk checkout (pinned to the same revision as this repo's Cargo.lock), adds it to
+# that checkout's workspace, and builds it there with `--features zombie-metadata` — so its
+# `build.rs` extracts metadata using that checkout's own substrate crates, at the exact matching
+# revision. The deps below therefore use `workspace = true`, which only resolves inside polkadot-sdk.
+[package]
+name = "bridges-zombienet-metadata-gen"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[lib]
+path = "src/lib.rs"
+
+[features]
+# Generates the subxt metadata `.scale` files from locally built runtime WASM blobs.
+zombie-metadata = []
+
+[build-dependencies]
+sc-executor = { workspace = true, default-features = true }
+sc-runtime-utilities = { workspace = true, default-features = true }
+sp-io = { workspace = true, default-features = true }

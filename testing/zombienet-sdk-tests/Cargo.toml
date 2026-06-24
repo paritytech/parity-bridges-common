@@ -1,0 +1,53 @@
+[package]
+name = "bridges-zombienet-sdk-tests"
+version = "0.1.0"
+description = "Bridges zombienet-sdk tests (Rococo <> Westend)."
+authors.workspace = true
+edition.workspace = true
+license.workspace = true
+publish = false
+# Only `tests/lib.rs` is an integration-test target; the other files in `tests/` are its modules.
+autotests = false
+
+[[test]]
+name = "bridges"
+path = "tests/lib.rs"
+
+[dependencies]
+anyhow = { workspace = true }
+codec = { workspace = true }
+env_logger = { workspace = true }
+log = { workspace = true }
+serde_json = { workspace = true, default-features = true }
+# `subxt`/`subxt-signer` are pinned here (not inherited from the workspace's 0.40.1) to match the
+# version that `zombienet-sdk` uses internally, so `node.wait_client()` hands back a client of the
+# same type these tests use — no second subxt version is introduced beyond zombienet's own.
+subxt = { version = "0.44", default-features = false, features = ["native"] }
+subxt-signer = { version = "0.44" }
+tokio = { version = "1", features = ["macros", "process", "rt-multi-thread", "time"] }
+# The whole `zombienet-*` family is pinned to exactly 0.4.14 (latest). The transitive sub-crates are
+# listed explicitly so the resolver cannot mix release lines: a `=0.4.14` on the umbrella alone only
+# requires `^0.4.14` of the sub-crates, which previously let `orchestrator`/`provider` drift to
+# incompatible patch lines (a `db_snapshot` signature mismatch). A uniform 0.4.14 set is consistent.
+#
+# NOTE: this crate must stay a workspace *member*, not `exclude`d. The 0.4.x graph pulls `core2 0.4.0`
+# (via litep2p → multihash), which is yanked from crates.io; Cargo only accepts a yanked version when
+# it is already present in a lockfile. The workspace's polkadot-sdk deps already lock `core2 0.4.0`,
+# so resolution succeeds here — an isolated lockfile could not select it.
+zombienet-sdk = "=0.4.14"
+zombienet-orchestrator = "=0.4.14"
+zombienet-provider = "=0.4.14"
+zombienet-configuration = "=0.4.14"
+zombienet-support = "=0.4.14"
+zombienet-prom-metrics-parser = "=0.4.14"
+
+[features]
+# Enables the tests for CI.
+zombie-ci = []
+
+# NOTE: there is intentionally no `build.rs` / metadata-generation feature here (unlike the upstream
+# polkadot-sdk crate). That build script regenerates the `metadata-files/*.scale` blobs from locally
+# built `*-runtime` WASM — but this repo has no runtime crates, so it could never run here. The
+# `.scale` files are generated upstream (in polkadot-sdk) and committed. Adding the substrate build
+# script deps (`sc-executor` etc.) from `polkadot-sdk` `master` would also force the whole shared
+# polkadot-sdk git source onto the latest master commit, breaking the rest of the workspace.

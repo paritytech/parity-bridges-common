@@ -23,6 +23,7 @@ members = [
 	"chains/chain-polkadot",
 	"chains/chain-kusama",
 	"substrate-relay",
+	"testing/zombienet-sdk-tests",
 ]
 
 # Setup clippy lints as `polkadot-sdk`,
