@@ -1,0 +1,102 @@
+name: Create Release Tag
+
+on:
+  pull_request:
+    types: [closed]
+    branches: [master]
+  workflow_dispatch:
+    inputs:
+      pr_number:
+        description: 'Merged PR number to create tag from (e.g. 3257)'
+        required: true
+        type: string
+
+permissions:
+  contents: write
+  id-token: write
+  pull-requests: read
+
+jobs:
+  create-tag:
+    runs-on: ubuntu-latest
+    if: |
+      (github.event_name == 'workflow_dispatch') ||
+      (github.event.pull_request.merged == true && startsWith(github.event.pull_request.head.ref, 'release/'))
+    outputs:
+      tag_name: ${{ steps.create-tag.outputs.tag_name }}
+    steps:
+      - name: Fetch PR details (manual trigger)
+        if: github.event_name == 'workflow_dispatch'
+        id: pr-info
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ inputs.pr_number }}
+        run: |
+          pr_json=$(gh pr view "$PR_NUMBER" --repo ${{ github.repository }} --json mergeCommit,headRefName,state)
+          state=$(echo "$pr_json" | jq -r '.state')
+          merge_commit=$(echo "$pr_json" | jq -r '.mergeCommit.oid')
+          if [[ "$state" != "MERGED" || -z "$merge_commit" || "$merge_commit" == "null" ]]; then
+            echo "Error: PR #$PR_NUMBER is not merged."
+            exit 1
+          fi
+
+          head_ref=$(echo "$pr_json" | jq -r '.headRefName')
+          if [[ ! "$head_ref" == release/* ]]; then
+            echo "Error: PR #$PR_NUMBER branch '$head_ref' does not match 'release/' pattern."
+            exit 1
+          fi
+
+          echo "merge_sha=$merge_commit" >> $GITHUB_OUTPUT
+          echo "head_ref=$head_ref" >> $GITHUB_OUTPUT
+
+      - name: Generate GitHub App token
+        id: app-token
+        uses: actions/create-github-app-token@v3
+        with:
+          app-id: ${{ secrets.GH_APP_ID }}
+          private-key: ${{ secrets.GH_APP_KEY }}
+
+      - name: Checkout repository
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          ref: ${{ github.event_name == 'workflow_dispatch' && steps.pr-info.outputs.merge_sha || github.event.pull_request.merge_commit_sha }}
+          token: ${{ steps.app-token.outputs.token }}
+
+      - name: Extract version and create tag
+        id: create-tag
+        run: |
+          # Read relayer version from Cargo.toml (already bumped in the merged PR)
+          relayer_version=$(grep '^version = ' substrate-relay/Cargo.toml | cut -d'"' -f2)
+          tag_name="v${relayer_version}"
+
+          # Extract runtime version from PR branch name
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            branch="${{ steps.pr-info.outputs.head_ref }}"
+          else
+            branch="${{ github.event.pull_request.head.ref }}"
+          fi
+          runtime_version=$(echo "$branch" | sed 's|release/[^-]*-||')
+
+          echo "Relayer version: $relayer_version"
+          echo "Runtime version: $runtime_version"
+          echo "Tag name: $tag_name"
+          echo "tag_name=$tag_name" >> $GITHUB_OUTPUT
+
+          # Check if tag already exists
+          if git rev-parse "$tag_name" >/dev/null 2>&1; then
+            echo "Tag $tag_name already exists, skipping."
+            exit 0
+          fi
+
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git tag -a "$tag_name" -m "Release $tag_name - Runtime: $runtime_version"
+          git push origin "$tag_name"
+
+  build:
+    needs: create-tag
+    uses: ./.github/workflows/build-tag.yml
+    with:
+      tag: ${{ needs.create-tag.outputs.tag_name }}
+    secrets: inherit
