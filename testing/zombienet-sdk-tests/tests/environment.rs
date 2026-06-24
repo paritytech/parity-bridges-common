@@ -496,6 +496,25 @@ pub async fn bridge_hub_westend_relayer_reward(
 // Generic subxt helpers (runtime-agnostic).
 // ---------------------------------------------------------------------------------------------
 
+/// Whether `e` is a transient failure caused by the reorgy asset/bridge hubs, safe to retry by
+/// rebuilding/resubmitting (or re-watching) the transaction: nothing durable was committed.
+///
+/// subxt surfaces these as distinct error strings, so we match on their `Display` text:
+///   * `discarded` / `unknown Block` — the best block read while building the tx (or the block a
+///     status referenced) was pruned;
+///   * `no longer be found` / `non-finalized fork` — subxt's `TransactionError::BlockNotFound`: the
+///     block that had just reported the tx in-block was reorged away;
+///   * `Invalid Transaction` — a just-submitted predecessor from the same signer is not yet
+///     reflected in the queried nonce.
+fn is_transient_reorg_error(e: &subxt::Error) -> bool {
+	let s = e.to_string();
+	s.contains("discarded") ||
+		s.contains("unknown Block") ||
+		s.contains("no longer be found") ||
+		s.contains("non-finalized fork") ||
+		s.contains("Invalid Transaction")
+}
+
 /// Signs `call` with `signer`, submits it and waits for finalized success.
 ///
 /// `wait_for_finalized_success` is reorg-tolerant: it watches the transaction through best-block
@@ -511,22 +530,16 @@ pub async fn sign_submit_wait<C: Payload>(
 	const ATTEMPTS: usize = 12;
 	for attempt in 1..=ATTEMPTS {
 		let params = DefaultExtrinsicParamsBuilder::new().immortal().build();
-		match client.tx().sign_and_submit_then_watch(call, signer, params).await {
-			Ok(progress) => {
-				progress.wait_for_finalized_success().await?;
-				return Ok(());
-			},
-			// Transient pre-submission failures, safe to retry (tx rejected before entering the
-			// pool): the best block read while building can be pruned (`unknown
-			// Block`/`discarded`), or a just-submitted predecessor from the same signer may not
-			// be reflected in the queried nonce yet (`Invalid Transaction`). A short wait lets
-			// the node catch up; a fresh nonce is queried.
-			Err(e)
-				if attempt < ATTEMPTS &&
-					(e.to_string().contains("discarded") ||
-						e.to_string().contains("unknown Block") ||
-						e.to_string().contains("Invalid Transaction")) =>
-			{
+		// Both the submit and the finalized-success wait can fail transiently on the reorgy hubs
+		// (pre-pool rejection while building, or the finalized-success block reorged away). Neither
+		// commits anything durable, so a transient error is retried with a fresh build.
+		let result = match client.tx().sign_and_submit_then_watch(call, signer, params).await {
+			Ok(progress) => progress.wait_for_finalized_success().await.map(|_| ()),
+			Err(e) => Err(e),
+		};
+		match result {
+			Ok(()) => return Ok(()),
+			Err(e) if attempt < ATTEMPTS && is_transient_reorg_error(&e) => {
 				sleep(Duration::from_secs(3)).await;
 				continue;
 			},
@@ -560,29 +573,31 @@ pub async fn sign_submit_wait_in_block<C: Payload>(
 			// predecessor from the same signer may not be reflected in the queried nonce yet
 			// (`Invalid Transaction`). A short wait lets the node catch up; a fresh nonce is
 			// queried on the next attempt.
-			Err(e)
-				if attempt < ATTEMPTS &&
-					(e.to_string().contains("discarded") ||
-						e.to_string().contains("unknown Block") ||
-						e.to_string().contains("Invalid Transaction")) =>
-			{
+			Err(e) if attempt < ATTEMPTS && is_transient_reorg_error(&e) => {
 				sleep(Duration::from_secs(3)).await;
 				continue 'attempts;
 			},
 			Err(e) => return Err(e.into()),
 		};
-		while let Some(status) = progress.next().await.transpose()? {
+		loop {
+			let status = match progress.next().await {
+				Some(Ok(status)) => status,
+				// The status subscription itself can fail transiently when the referenced block is
+				// reorged away (`BlockNotFound` etc.); nothing is committed, so rebuild + resubmit.
+				Some(Err(e)) if attempt < ATTEMPTS && is_transient_reorg_error(&e) => {
+					sleep(Duration::from_secs(3)).await;
+					continue 'attempts;
+				},
+				Some(Err(e)) => return Err(e.into()),
+				None => break,
+			};
 			match status {
 				TxStatus::InBestBlock(in_block) | TxStatus::InFinalizedBlock(in_block) => {
 					match in_block.wait_for_success().await {
 						Ok(_) => return Ok(()),
-						Err(e)
-							if e.to_string().contains("discarded") ||
-								e.to_string().contains("unknown Block") =>
-						{
-							// in-block report retracted by a reorg; keep watching the same tx.
-							continue
-						},
+						// in-block report retracted by a reorg (`discarded`/`unknown Block`/
+						// `BlockNotFound`); keep watching the same tx for re-inclusion.
+						Err(e) if is_transient_reorg_error(&e) => continue,
 						Err(e) => return Err(e.into()),
 					}
 				},
@@ -633,11 +648,7 @@ pub async fn sign_submit_wait_in_block_nonce<C: Payload>(
 				progress = Some(p);
 				break;
 			},
-			Err(e)
-				if attempt < ATTEMPTS &&
-					(e.to_string().contains("discarded") ||
-						e.to_string().contains("unknown Block")) =>
-			{
+			Err(e) if attempt < ATTEMPTS && is_transient_reorg_error(&e) => {
 				sleep(Duration::from_secs(3)).await;
 				continue;
 			},
@@ -650,10 +661,7 @@ pub async fn sign_submit_wait_in_block_nonce<C: Payload>(
 			TxStatus::InBestBlock(in_block) | TxStatus::InFinalizedBlock(in_block) =>
 				match in_block.wait_for_success().await {
 					Ok(_) => return Ok(()),
-					Err(e)
-						if e.to_string().contains("discarded") ||
-							e.to_string().contains("unknown Block") =>
-						continue,
+					Err(e) if is_transient_reorg_error(&e) => continue,
 					Err(e) => return Err(e.into()),
 				},
 			TxStatus::Error { message } |
