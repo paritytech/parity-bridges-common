@@ -14,40 +14,46 @@ name = "bridges"
 path = "tests/lib.rs"
 
 [dependencies]
-anyhow = { workspace = true }
-codec = { workspace = true }
-env_logger = { workspace = true }
-log = { workspace = true }
-serde_json = { workspace = true, default-features = true }
-# `subxt`/`subxt-signer` are pinned here (not inherited from the workspace's 0.40.1) to match the
-# version that `zombienet-sdk` uses internally, so `node.wait_client()` hands back a client of the
-# same type these tests use — no second subxt version is introduced beyond zombienet's own.
-subxt = { version = "0.44", default-features = false, features = ["native"] }
-subxt-signer = { version = "0.44" }
-tokio = { version = "1", features = ["macros", "process", "rt-multi-thread", "time"] }
-# The whole `zombienet-*` family is pinned to exactly 0.4.14 (latest). The transitive sub-crates are
-# listed explicitly so the resolver cannot mix release lines: a `=0.4.14` on the umbrella alone only
-# requires `^0.4.14` of the sub-crates, which previously let `orchestrator`/`provider` drift to
-# incompatible patch lines (a `db_snapshot` signature mismatch). A uniform 0.4.14 set is consistent.
-#
-# NOTE: this crate must stay a workspace *member*, not `exclude`d. The 0.4.x graph pulls `core2 0.4.0`
-# (via litep2p → multihash), which is yanked from crates.io; Cargo only accepts a yanked version when
-# it is already present in a lockfile. The workspace's polkadot-sdk deps already lock `core2 0.4.0`,
-# so resolution succeeds here — an isolated lockfile could not select it.
-zombienet-sdk = "=0.4.14"
-zombienet-orchestrator = "=0.4.14"
-zombienet-provider = "=0.4.14"
-zombienet-configuration = "=0.4.14"
-zombienet-support = "=0.4.14"
-zombienet-prom-metrics-parser = "=0.4.14"
+# All deps are used only by the `zombie-ci`-gated test code, so all are `optional` and pulled in by
+# that feature — a plain `cargo check`/`build` of the workspace builds none of them.
+anyhow = { workspace = true, optional = true }
+codec = { workspace = true, optional = true }
+env_logger = { workspace = true, optional = true }
+log = { workspace = true, optional = true }
+serde_json = { workspace = true, default-features = true, optional = true }
+subxt = { workspace = true, optional = true }
+subxt-signer = { workspace = true, optional = true }
+tokio = { workspace = true, optional = true }
+# `zombienet-{orchestrator,provider,configuration,support,prom-metrics-parser}` aren't referenced
+# directly; they pin the whole `zombienet-*` family to one `=0.4.14` line (an umbrella-only pin lets
+# the sub-crates drift). This crate must also stay a workspace member, not `exclude`d: the 0.4.x graph
+# needs `core2 0.4.0` (yanked), which Cargo only accepts because the workspace's polkadot-sdk deps
+# already lock it.
+zombienet-sdk = { workspace = true, optional = true }
+zombienet-orchestrator = { workspace = true, optional = true }
+zombienet-provider = { workspace = true, optional = true }
+zombienet-configuration = { workspace = true, optional = true }
+zombienet-support = { workspace = true, optional = true }
+zombienet-prom-metrics-parser = { workspace = true, optional = true }
 
 [features]
-# Enables the tests for CI.
-zombie-ci = []
+# Builds and runs the tests; activates the otherwise-optional deps above.
+zombie-ci = [
+	"dep:anyhow",
+	"dep:codec",
+	"dep:env_logger",
+	"dep:log",
+	"dep:serde_json",
+	"dep:subxt",
+	"dep:subxt-signer",
+	"dep:tokio",
+	"dep:zombienet-sdk",
+	"dep:zombienet-orchestrator",
+	"dep:zombienet-provider",
+	"dep:zombienet-configuration",
+	"dep:zombienet-support",
+	"dep:zombienet-prom-metrics-parser",
+]
 
-# NOTE: there is intentionally no `build.rs` / metadata-generation feature here (unlike the upstream
-# polkadot-sdk crate). That build script regenerates the `metadata-files/*.scale` blobs from locally
-# built `*-runtime` WASM — but this repo has no runtime crates, so it could never run here. The
-# `.scale` files are generated upstream (in polkadot-sdk) and committed. Adding the substrate build
-# script deps (`sc-executor` etc.) from `polkadot-sdk` `master` would also force the whole shared
-# polkadot-sdk git source onto the latest master commit, breaking the rest of the workspace.
+# There is intentionally no build-time metadata generation: the typed clients under `tests/codegen/`
+# are generated out-of-band by `testing/metadata-gen/generate.sh` and committed.

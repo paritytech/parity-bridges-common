@@ -1,12 +1,11 @@
 # Bridges Tests for Local Rococo <> Westend Bridge
 
-This crate contains [`zombienet-sdk`](https://github.com/paritytech/zombienet-sdk) based integration
-tests for both onchain and offchain bridges code, for the local Rococo <> Westend bridge (mirroring
-`polkadot/zombienet-sdk-tests`). They spawn both relay-chain networks together with their Bridge Hub
-and Asset Hub parachains, drive the `substrate-relay` binary as subprocesses and assert on-chain state
+[`zombienet-sdk`](https://github.com/paritytech/zombienet-sdk) based integration tests for the local
+Rococo <> Westend bridge. They spawn both relay-chain networks together with their Bridge Hub and
+Asset Hub parachains, drive the `substrate-relay` binary as subprocesses, and assert on-chain state
 via `subxt`.
 
-The available tests are:
+Tests:
 
 - `asset_transfer` — transfers assets across the bridge (both directions, native and wrapped) and
   checks they arrive while the free-header relayers' balances stay constant;
@@ -16,29 +15,26 @@ The available tests are:
 The shared environment (network spawning, bridge initialization, the `substrate-relay` driver and the
 `subxt` query/extrinsic helpers) lives in `tests/environment.rs`.
 
-## Prerequisites for running the tests locally
+## Prerequisites
 
-- build the `polkadot` and `polkadot-parachain` binaries by running the following commands in a
-  [`polkadot-sdk`](https://github.com/paritytech/polkadot-sdk) repository clone, and put them on your
-  `PATH`:
+- Build `polkadot` and `polkadot-parachain` from a [`polkadot-sdk`](https://github.com/paritytech/polkadot-sdk)
+  checkout **at the revision pinned in this repo's `Cargo.lock`**, and put them on your `PATH`:
 
   ```bash
-  # The `polkadot` package produces THREE binaries: `polkadot`, `polkadot-prepare-worker` and
-  # `polkadot-execute-worker`. A `polkadot` validator spawns the two PVF workers as child processes
-  # and refuses to start without them, so all three must stay together.
+  # The `polkadot` package produces three binaries: `polkadot`, `polkadot-prepare-worker` and
+  # `polkadot-execute-worker`. A validator spawns the two PVF workers as child processes and refuses
+  # to start without them, so all three must stay together.
   cargo build --release -p polkadot --features fast-runtime
   cargo build --release -p polkadot-parachain-bin
   export PATH="$PWD/target/release:$PATH"
   ```
 
-  > If you copy the binaries into a separate directory (e.g. `~/local_bridge_testing/bin`) instead of
-  > adding `target/release` to your `PATH`, copy **all four** — `polkadot`, `polkadot-prepare-worker`,
-  > `polkadot-execute-worker` and `polkadot-parachain`. Copying only `polkadot` makes the validator
-  > fail at startup (it can't find its workers), which surfaces as a zombienet
-  > `Timeout … waiting for metric process_start_time_seconds` error.
+  > If you instead copy the binaries into a directory (e.g. `~/local_bridge_testing/bin`), copy **all
+  > four** — `polkadot`, `polkadot-prepare-worker`, `polkadot-execute-worker` and `polkadot-parachain`.
+  > Copying only `polkadot` makes the validator fail at startup (it can't find its workers), surfacing
+  > as a zombienet `Timeout … waiting for metric process_start_time_seconds` error.
 
-- build the `substrate-relay` binary by running `cargo build --release -p substrate-relay` in this
-  repository, and point `SUBSTRATE_RELAY_BINARY` at it (it defaults to
+- Build `substrate-relay` and point `SUBSTRATE_RELAY_BINARY` at it (it defaults to
   `~/local_bridge_testing/bin/substrate-relay`):
 
   ```bash
@@ -48,66 +44,54 @@ The shared environment (network spawning, bridge initialization, the `substrate-
 
 ## Running
 
-The tests are gated behind the `zombie-ci` feature so that a plain `cargo check`/`cargo test` of the
-workspace stays cheap. The committed `metadata-files/*.scale` blobs are used by the `subxt` codegen,
-so the tests run without any extra setup.
+The tests are gated behind the `zombie-ci` feature, so a plain `cargo check`/`cargo build` of the
+workspace neither compiles them nor pulls in their (otherwise optional) `zombienet-*` / `subxt`
+dependencies.
 
-Select the **native** zombienet provider so the tests spawn the local `polkadot` / `polkadot-parachain`
-binaries on your `PATH` directly, instead of containers (Docker/Podman) or Kubernetes:
+Pick how nodes are spawned via `ZOMBIE_PROVIDER` (defaults to `docker`, which pulls `docker.io/parity/*`
+images); use `native` to run the local `polkadot` / `polkadot-parachain` binaries on your `PATH`:
 
 ```bash
 export ZOMBIE_PROVIDER=native
 ```
 
-> `ZOMBIE_PROVIDER` defaults to `docker` when unset, which spawns the nodes in containers (Podman/Docker)
-> and pulls `docker.io/parity/*` images. Set it to `native` to use your local binaries. (`k8s` is the
-> other option.)
-
-Then run a single test with:
+Run one test, or all of them:
 
 ```bash
 cargo test -p bridges-zombienet-sdk-tests --features zombie-ci asset_transfer -- --nocapture
-cargo test -p bridges-zombienet-sdk-tests --features zombie-ci free_headers -- --nocapture
+cargo test -p bridges-zombienet-sdk-tests --features zombie-ci free_headers   -- --nocapture
+cargo test -p bridges-zombienet-sdk-tests --features zombie-ci                -- --nocapture
 ```
 
-or all of them with:
+On success a test exits `0`; on failure it prints the node and relayer logs.
 
-```bash
-cargo test -p bridges-zombienet-sdk-tests --features zombie-ci -- --nocapture
-```
+## Runtime modules (`tests/codegen/`)
 
-On success the test exits `0`; on failure it prints the relay/parachain node and relayer logs, which
-can be used to track the state of all spawned nodes.
-
-## Metadata files
-
-`metadata-files/*.scale` are the SCALE-encoded `subxt` metadata for the six runtimes involved — Rococo,
+`tests/codegen/*.rs` are the typed `subxt` clients for the six runtimes the tests talk to — Rococo,
 Westend, and their Asset Hub (`asset-hub-*-local`) and Bridge Hub (`bridge-hub-*-local`) system
-parachains. The `#[subxt::subxt(...)]` codegen in `tests/lib.rs` reads them at compile time, and at
-runtime `subxt` validates the generated calls against each node's live runtime metadata. They must
-therefore **match the runtimes embedded in the `polkadot` / `polkadot-parachain` binaries you run** —
-otherwise the tests abort with `Metadata error: The generated code is not compatible with the node`.
+parachains. `tests/lib.rs` loads each with `#[path]` and re-exports its `api` module under the chain
+name, so call sites use `crate::<chain>::{tx, storage, runtime_types, ..}`.
 
-### How to (re)generate them
+At runtime `subxt` validates the generated calls against each node's metadata, so these modules must
+match the runtimes in the `polkadot` / `polkadot-parachain` binaries you run — i.e. the polkadot-sdk
+revision pinned in `Cargo.lock`. A mismatch aborts the test with
+`Metadata error: The generated code is not compatible with the node`.
 
-This repository builds no runtimes of its own, so the metadata is extracted from a `polkadot-sdk`
-checkout. The [`testing/metadata-gen`](../metadata-gen) helper makes this a single command — it reads
-the pinned polkadot-sdk revision from this repo's `Cargo.lock`, checks polkadot-sdk out at exactly
-that commit, builds the six `*-runtime` WASM blobs, extracts their metadata, copies the `.scale` files
-here, and cleans up. Run it from the repo root:
+## Maintenance
 
-```bash
-# clone polkadot-sdk @ the pinned revision and generate; the clone is kept for reuse (slow on first
-# run — it builds six runtime WASM blobs from scratch):
-testing/metadata-gen/generate.sh
+- **Regenerate the codegen when the pinned polkadot-sdk revision changes** (a new commit hash for
+  `git+https://github.com/paritytech/polkadot-sdk` in `Cargo.lock`). One command builds the six
+  runtimes from a matching polkadot-sdk checkout and rewrites `tests/codegen/*.rs`:
 
-# faster: reuse an existing polkadot-sdk checkout (nothing extra is built if its runtime WASM already
-# exists; injections are reverted and the checkout is not deleted):
-testing/metadata-gen/generate.sh --polkadot-sdk /path/to/polkadot-sdk
+  ```bash
+  testing/metadata-gen/generate.sh                       # clone @ pinned rev (kept for reuse) + generate
+  testing/metadata-gen/generate.sh --polkadot-sdk <path> # reuse an existing checkout
+  testing/metadata-gen/generate.sh --cleanup             # remove the cloned checkout when done
+  ```
 
-# also remove the cloned checkout when done (default keeps it):
-testing/metadata-gen/generate.sh --cleanup
-```
+  Commit the updated `tests/codegen/*.rs`. See [`testing/metadata-gen/README.md`](../metadata-gen/README.md)
+  for how it works.
 
-Regenerate (and commit the updated `.scale` files) whenever this repo's pinned polkadot-sdk revision
-changes. See [`testing/metadata-gen/README.md`](../metadata-gen/README.md) for how it works.
+- **`subxt`/`subxt-signer` are pinned to the version `zombienet-sdk` uses** (workspace `Cargo.toml`),
+  so `node.wait_client()` returns a client of the type the tests use. When bumping `zombienet-sdk`,
+  realign the `subxt` version to match.

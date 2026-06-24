@@ -74,7 +74,19 @@ subxt-utils-fetchmetadata = { version = "0.44.0", features = ["url"] }
 wasm-loader = { git = "https://github.com/chevdor/subwasm", branch = "master" }
 wasm-testbed = { git = "https://github.com/chevdor/subwasm", branch = "master" }
 scale-info = { version = "2.11.6", default-features = false, features = ["derive"] }
-subxt = { version = "0.40.1", default-features = false, features = ["native"] }
+subxt = { version = "0.44", default-features = false, features = ["native"] }
+subxt-signer = { version = "0.44" }
+tokio = { version = "1", features = ["macros", "process", "rt-multi-thread", "time"] }
+# Test-only deps, consumed solely by `testing/zombienet-sdk-tests`, where they are declared
+# `optional = true` and activated by that crate's `zombie-ci` feature — so they are built only when
+# the bridge tests are. (These `[workspace.dependencies]` lines are version *declarations* only:
+# `optional`/feature keys are not valid here, they live at the consumer.)
+zombienet-sdk = "=0.4.14"
+zombienet-orchestrator = "=0.4.14"
+zombienet-provider = "=0.4.14"
+zombienet-configuration = "=0.4.14"
+zombienet-support = "=0.4.14"
+zombienet-prom-metrics-parser = "=0.4.14"
 bp-bridge-hub-polkadot = { path = "./chains/chain-bridge-hub-polkadot" }
 bp-header-chain = { git = "https://github.com/paritytech/polkadot-sdk", branch = "master" }
 bp-messages = { git = "https://github.com/paritytech/polkadot-sdk", branch = "master" }

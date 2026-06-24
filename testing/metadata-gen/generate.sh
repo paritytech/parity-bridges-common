@@ -1,31 +1,30 @@
 #!/usr/bin/env bash
 #
-# (Re)generate the bridges zombienet-sdk subxt metadata (`.scale`) files so they match the
-# polkadot-sdk revision this repo pins in `Cargo.lock`.
+# (Re)generate the bridges zombienet-sdk subxt runtime modules
+# (`testing/zombienet-sdk-tests/tests/codegen/*.rs`) so they match the polkadot-sdk revision this
+# repo pins in `Cargo.lock`.
 #
 # Steps:
 #   1. derive the pinned polkadot-sdk commit from this repo's Cargo.lock,
 #   2. shallow-checkout polkadot-sdk at that exact commit (into ./polkadot-sdk, gitignored),
-#   3. inject the `runner/` crate into that checkout and build it with `--features zombie-metadata`,
-#      whose build.rs builds the six `*-runtime` WASM blobs (as needed) and extracts their metadata,
-#   4. copy the freshly generated `.scale` files into `testing/zombienet-sdk-tests/metadata-files/`,
-#   5. revert our injections (the checkout's Cargo.toml and the injected crate); the polkadot-sdk
-#      checkout itself is kept for reuse by default, and removed only when --cleanup is given.
+#   3. build the six `*-runtime` WASM blobs in that checkout,
+#   4. build this repo's `runtime-codegen` tool,
+#   5. run `runtime-codegen --full --from-wasm-file <wasm>` for each runtime and write the generated
+#      full subxt client into `testing/zombienet-sdk-tests/tests/codegen/<chain>.rs`.
 #
 # Usage:
 #   testing/metadata-gen/generate.sh                       # clone (kept for reuse) + build
 #   testing/metadata-gen/generate.sh --polkadot-sdk <path> # reuse an existing checkout
 #   testing/metadata-gen/generate.sh --cleanup             # also remove the cloned ./polkadot-sdk when done
 #
-# Requirements: git, python3, and the Rust toolchain pinned in RUST_TOOLCHAIN below.
-# Building runtimes needs that toolchain's wasm32-unknown-unknown target.
+# Requirements: git and the Rust toolchain pinned in RUST_TOOLCHAIN below, with its
+# wasm32-unknown-unknown target (needed to build the runtimes).
 
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
-RUNNER_SRC="${SCRIPT_DIR}/runner"
-META_OUT="${REPO_ROOT}/testing/zombienet-sdk-tests/metadata-files"
+CODEGEN_OUT="${REPO_ROOT}/testing/zombienet-sdk-tests/tests/codegen"
 DEFAULT_SDK="${SCRIPT_DIR}/polkadot-sdk"
 SDK_REMOTE="https://github.com/paritytech/polkadot-sdk"
 
@@ -52,6 +51,10 @@ done
 # ============================================================================
 RUST_TOOLCHAIN="1.84.1"
 
+# Chains to generate. Each maps to a `<chain>-runtime` cargo package and a
+# `<chain_with_underscores>.rs` module under CODEGEN_OUT (the names `tests/lib.rs` includes).
+CHAINS=(rococo westend asset-hub-rococo asset-hub-westend bridge-hub-rococo bridge-hub-westend)
+
 # 1. Pinned polkadot-sdk commit from Cargo.lock. All polkadot-sdk crates share one git source, so
 # `sort -u` collapses to a single revision (and avoids a `| head` that would SIGPIPE under pipefail).
 REV="$(grep -oE 'polkadot-sdk\?branch=master#[0-9a-f]+' "${REPO_ROOT}/Cargo.lock" | cut -d'#' -f2 | sort -u)"
@@ -76,26 +79,7 @@ if [ -z "${SDK_DIR}" ]; then
 fi
 echo ">> using polkadot-sdk checkout at: ${SDK_DIR}"
 
-# 3. Inject the runner crate + register it as a workspace member.
-RUNNER_DST="${SDK_DIR}/bridges/testing/zombienet-metadata-gen"
-rm -rf "${RUNNER_DST}"
-mkdir -p "${RUNNER_DST}/metadata-files"
-cp -r "${RUNNER_SRC}/." "${RUNNER_DST}/"
-
-python3 - "${SDK_DIR}/Cargo.toml" <<'PY'
-import sys
-path = sys.argv[1]
-member = '"bridges/testing/zombienet-metadata-gen",'
-src = open(path).read()
-if member not in src:
-    src = src.replace("members = [", "members = [\n\t" + member, 1)
-    open(path, "w").write(src)
-PY
-
 cleanup() {
-	# Always revert our injections so the checkout is left clean and reusable.
-	git -C "${SDK_DIR}" checkout -- Cargo.toml 2>/dev/null || true
-	rm -rf "${RUNNER_DST}"
 	# The cloned polkadot-sdk checkout is kept for reuse by default; remove it only on --cleanup.
 	if [ "${CLONED}" = "1" ] && [ "${CLEANUP}" = "1" ]; then
 		echo ">> removing cloned checkout ${SDK_DIR}"
@@ -104,24 +88,45 @@ cleanup() {
 }
 trap cleanup EXIT
 
-# 4. Build -> build.rs generates the .scale files (forces a fresh build by clearing stale outputs).
-# polkadot-sdk ships no rust-toolchain.toml, so pin a compatible toolchain explicitly; a too-new
-# rustc fails compiling the runtimes (e.g. `#[no_mangle] cannot be used on internal language items`).
+# Toolchain check. polkadot-sdk ships no rust-toolchain.toml, so pin a compatible toolchain
+# explicitly; a too-new rustc fails compiling the runtimes.
 echo ">> using rust toolchain: ${RUST_TOOLCHAIN}"
 rustup toolchain list | grep -q "^${RUST_TOOLCHAIN}" \
 	|| { echo "ERROR: rust toolchain '${RUST_TOOLCHAIN}' not installed (rustup toolchain install ${RUST_TOOLCHAIN})" >&2; exit 1; }
 # wasm-builder needs the wasm32 target for this toolchain to build the runtime blobs.
 rustup target add --toolchain "${RUST_TOOLCHAIN}" wasm32-unknown-unknown >/dev/null 2>&1 || true
 
-rm -f "${RUNNER_DST}/metadata-files/"*.scale
-echo ">> building runtimes + extracting metadata (this is slow on a fresh checkout)"
-( cd "${SDK_DIR}" && RUSTUP_TOOLCHAIN="${RUST_TOOLCHAIN}" \
-	ZOMBIE_METADATA_BUILD_DEBUG=1 CARGO_NET_GIT_FETCH_WITH_CLI=true \
-	cargo build -p bridges-zombienet-metadata-gen --features zombie-metadata )
+# 3. Build the six runtime WASM blobs (wasm-builder emits them under target/release/wbuild/).
+echo ">> building runtime wasm (this is slow on a fresh checkout)"
+PKGS=()
+for chain in "${CHAINS[@]}"; do PKGS+=(-p "${chain}-runtime"); done
+( cd "${SDK_DIR}" && RUSTUP_TOOLCHAIN="${RUST_TOOLCHAIN}" CARGO_NET_GIT_FETCH_WITH_CLI=true \
+	cargo build --release "${PKGS[@]}" )
 
-# 5. Copy the generated metadata into the repo.
-mkdir -p "${META_OUT}"
-cp "${RUNNER_DST}/metadata-files/"*.scale "${META_OUT}/"
-echo ">> copied .scale files into ${META_OUT}:"
-ls -la "${META_OUT}"/*.scale
-echo ">> done. Remember to re-run the tests against the regenerated metadata."
+# 4. Build this repo's runtime-codegen tool (uses subxt-codegen to emit the typed client).
+echo ">> building runtime-codegen"
+cargo build --release --manifest-path "${REPO_ROOT}/tools/runtime-codegen/Cargo.toml"
+TOOL="${REPO_ROOT}/tools/runtime-codegen/target/release/runtime-codegen"
+
+# 5. Generate one full subxt module per chain.
+mkdir -p "${CODEGEN_OUT}"
+for chain in "${CHAINS[@]}"; do
+	runtime="${chain}-runtime"
+	wasm_name="$(echo "${runtime}" | tr - _).wasm"
+	wasm="${SDK_DIR}/target/release/wbuild/${runtime}/${wasm_name}"
+	module="$(echo "${chain}" | tr - _)"
+	out="${CODEGEN_OUT}/${module}.rs"
+	[ -f "${wasm}" ] || { echo "ERROR: runtime wasm not found: ${wasm}" >&2; exit 1; }
+	echo ">> generating ${module}.rs from ${wasm_name}"
+	"${TOOL}" --full --from-wasm-file "${wasm}" > "${out}"
+done
+
+# 6. Format to the repo style (hard tabs). `runtime-codegen` emits prettyplease (4-space) output, and
+# `cargo fmt --all` skips these modules because `tests/lib.rs` gates them behind `#[cfg(zombie-ci)]`,
+# so run nightly rustfmt directly on the generated files (CI runs `cargo +nightly fmt --all --check`).
+echo ">> formatting generated modules (nightly rustfmt)"
+rustup run nightly rustfmt --edition 2021 --config-path "${REPO_ROOT}/rustfmt.toml" "${CODEGEN_OUT}"/*.rs
+
+echo ">> done. Generated modules in ${CODEGEN_OUT}:"
+ls -la "${CODEGEN_OUT}"/*.rs
+echo ">> Remember to re-run the tests (\`--features zombie-ci\`) against the regenerated modules."

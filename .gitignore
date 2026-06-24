@@ -5,6 +5,7 @@
 hfuzz_target
 hfuzz_workspace
 **/Cargo.lock
+testing/metadata-gen/polkadot-sdk
 testing/zombienet-sdk-tests/metadata-files/*.scale
 
 **/*.rs.bk
