@@ -1,8 +1,6 @@
 ---
 name: release-pr
 description: Create a release PR from prepared release changes
-metadata:
-  argument-hint: ""
 ---
 
 # Release PR

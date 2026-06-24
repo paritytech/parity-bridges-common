@@ -1,8 +1,6 @@
 ---
 name: release-finalize
 description: Tag, publish, and verify a merged substrate-relay release
-metadata:
-  argument-hint: ""
 ---
 
 # Release Finalize
