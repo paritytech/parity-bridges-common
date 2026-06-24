@@ -552,12 +552,14 @@ pub async fn sign_submit_wait_in_block<C: Payload>(
 	const ATTEMPTS: usize = 12;
 	'attempts: for attempt in 1..=ATTEMPTS {
 		let params = DefaultExtrinsicParamsBuilder::new().immortal().build();
-		let mut progress = match client.tx().sign_and_submit_then_watch(call, signer, params).await {
+		let mut progress = match client.tx().sign_and_submit_then_watch(call, signer, params).await
+		{
 			Ok(p) => p,
-			// Transient pre-pool failures (nothing submitted): the best block read while building the
-			// tx can be pruned (`unknown Block`/`discarded`), or a just-submitted predecessor from the
-			// same signer may not be reflected in the queried nonce yet (`Invalid Transaction`). A
-			// short wait lets the node catch up; a fresh nonce is queried on the next attempt.
+			// Transient pre-pool failures (nothing submitted): the best block read while building
+			// the tx can be pruned (`unknown Block`/`discarded`), or a just-submitted
+			// predecessor from the same signer may not be reflected in the queried nonce yet
+			// (`Invalid Transaction`). A short wait lets the node catch up; a fresh nonce is
+			// queried on the next attempt.
 			Err(e)
 				if attempt < ATTEMPTS &&
 					(e.to_string().contains("discarded") ||
@@ -584,10 +586,11 @@ pub async fn sign_submit_wait_in_block<C: Payload>(
 						Err(e) => return Err(e.into()),
 					}
 				},
-				// On the reorgy asset hubs the node re-validates pending txs against a new best chain
-				// and can report this tx `Invalid`/`Dropped`/`Error` (e.g. the fork it sat in was
-				// pruned). Such a tx is not on the canonical chain, so its nonce is unconsumed and it
-				// is safe to rebuild against fresh state and resubmit rather than failing the test.
+				// On the reorgy asset hubs the node re-validates pending txs against a new best
+				// chain and can report this tx `Invalid`/`Dropped`/`Error` (e.g. the fork it
+				// sat in was pruned). Such a tx is not on the canonical chain, so its nonce is
+				// unconsumed and it is safe to rebuild against fresh state and resubmit rather
+				// than failing the test.
 				TxStatus::Error { .. } | TxStatus::Invalid { .. } | TxStatus::Dropped { .. } => {
 					if attempt < ATTEMPTS {
 						sleep(Duration::from_secs(3)).await;
@@ -644,23 +647,19 @@ pub async fn sign_submit_wait_in_block_nonce<C: Payload>(
 	let mut progress = progress.ok_or_else(|| anyhow!("could not submit transaction"))?;
 	while let Some(status) = progress.next().await.transpose()? {
 		match status {
-			TxStatus::InBestBlock(in_block) | TxStatus::InFinalizedBlock(in_block) => {
+			TxStatus::InBestBlock(in_block) | TxStatus::InFinalizedBlock(in_block) =>
 				match in_block.wait_for_success().await {
 					Ok(_) => return Ok(()),
 					Err(e)
 						if e.to_string().contains("discarded") ||
 							e.to_string().contains("unknown Block") =>
-					{
-						continue
-					},
+						continue,
 					Err(e) => return Err(e.into()),
-				}
-			},
+				},
 			TxStatus::Error { message } |
 			TxStatus::Invalid { message } |
-			TxStatus::Dropped { message } => {
-				return Err(anyhow!("transaction failed before inclusion: {message}"))
-			},
+			TxStatus::Dropped { message } =>
+				return Err(anyhow!("transaction failed before inclusion: {message}")),
 			_ => continue,
 		}
 	}
@@ -1091,10 +1090,10 @@ fn westend_network_config() -> Result<NetworkConfig, anyhow::Error> {
 					BHW_LANE_THIS_CHAIN,
 					BHW_LANE_BRIDGED_CHAIN,
 				]))
-				// Single collator on the bridge hub (see `rococo_network_config`): a second collator
-				// fork-wars and retracts the block carrying the relayer's bridged-finality /
-				// parachain-head update before finalization. One collator builds linearly so those
-				// updates land and finalize.
+				// Single collator on the bridge hub (see `rococo_network_config`): a second
+				// collator fork-wars and retracts the block carrying the relayer's
+				// bridged-finality / parachain-head update before finalization. One collator
+				// builds linearly so those updates land and finalize.
 				.with_collator(|n| {
 					n.with_name("bridge-hub-westend-collator1").with_args(bh_args.clone())
 				})
@@ -1332,12 +1331,13 @@ impl BridgeTestEnv {
 		})
 		.await?;
 
-		// At this runtime revision the bridged foreign asset is not pre-registered at genesis, and the
-		// asset hub's reserve trust is static in its XCM config, so we simply create the (sufficient)
-		// asset via a governance (root) `ForeignAssets::force_create` and wait for it to exist before
-		// creating pools / transferring. Mirrors `force_create_foreign_asset` in the legacy framework.
-		// (Upstream later replaced this with a genesis-registered asset whose owner registers trusted
-		// reserves via `set_reserves`; that API does not exist at this revision.)
+		// At this runtime revision the bridged foreign asset is not pre-registered at genesis, and
+		// the asset hub's reserve trust is static in its XCM config, so we simply create the
+		// (sufficient) asset via a governance (root) `ForeignAssets::force_create` and wait for
+		// it to exist before creating pools / transferring. Mirrors `force_create_foreign_asset`
+		// in the legacy framework. (Upstream later replaced this with a genesis-registered asset
+		// whose owner registers trusted reserves via `set_reserves`; that API does not exist at
+		// this revision.)
 		log::info!("Creating bridged foreign assets on both Asset Hubs");
 		let owner_acc = dev_account(&alice);
 		let create_wwnd = asset_hub_rococo::force_create_foreign_asset_call(
@@ -1397,11 +1397,12 @@ impl BridgeTestEnv {
 		log::info!("Westend AH: bridged foreign asset created");
 
 		// No asset-conversion pool / liquidity setup here. The bridged foreign asset is created as
-		// `is_sufficient = true` (see `force_create_foreign_asset_call`), so at this runtime revision
-		// it can pay its own XCM execution fees directly — there is no need to seed a native<>bridged
-		// pool (and we couldn't anyway: nothing mints the bridged asset to a local account before the
-		// first bridge transfer). This matches the legacy `bridges_rococo_westend.sh`, which creates
-		// no pools. (Upstream added pools later alongside the `set_reserves` reserve model.)
+		// `is_sufficient = true` (see `force_create_foreign_asset_call`), so at this runtime
+		// revision it can pay its own XCM execution fees directly — there is no need to seed a
+		// native<>bridged pool (and we couldn't anyway: nothing mints the bridged asset to a
+		// local account before the first bridge transfer). This matches the legacy
+		// `bridges_rococo_westend.sh`, which creates no pools. (Upstream added pools later
+		// alongside the `set_reserves` reserve model.)
 
 		// The bridge sovereign / reward accounts are pre-funded at genesis (see
 		// `bridge_hub_balances_override`), so there is no post-spawn funding step here.
