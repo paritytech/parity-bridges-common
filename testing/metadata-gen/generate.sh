@@ -17,8 +17,8 @@
 #   testing/metadata-gen/generate.sh --polkadot-sdk <path> # reuse an existing checkout (no cleanup of it)
 #   testing/metadata-gen/generate.sh --keep                # keep the cloned ./polkadot-sdk for reuse
 #
-# Requirements: git, python3, and the Rust toolchain polkadot-sdk pins (rust-toolchain.toml in the
-# checkout drives rustup; building runtimes needs the wasm32 target, which wasm-builder installs).
+# Requirements: git, python3, and the Rust toolchain pinned in RUST_TOOLCHAIN below.
+# Building runtimes needs that toolchain's wasm32-unknown-unknown target.
 
 set -euo pipefail
 
@@ -35,10 +35,22 @@ while [ $# -gt 0 ]; do
 	case "$1" in
 		--polkadot-sdk) SDK_DIR="$2"; shift 2 ;;
 		--keep) KEEP=1; shift ;;
-		-h|--help) sed -n '2,30p' "${BASH_SOURCE[0]}"; exit 0 ;;
+		-h|--help) sed -n '2,23p' "${BASH_SOURCE[0]}"; exit 0 ;;
 		*) echo "unknown argument: $1" >&2; exit 1 ;;
 	esac
 done
+
+# ============================================================================
+# Rust toolchain used to build the polkadot-sdk runtimes.
+#
+# polkadot-sdk ships no rust-toolchain.toml, so we pin the build toolchain here. A too-new rustc
+# fails to compile the runtimes (e.g. `#[no_mangle] cannot be used on internal language items` in
+# sp-io).
+#
+# >>> UPDATE THIS whenever the pinned polkadot-sdk revision in Cargo.lock changes (see REV below),
+#     to a rustc version that revision builds with. <<<
+# ============================================================================
+RUST_TOOLCHAIN="1.84.1"
 
 # 1. Pinned polkadot-sdk commit from Cargo.lock. All polkadot-sdk crates share one git source, so
 # `sort -u` collapses to a single revision (and avoids a `| head` that would SIGPIPE under pipefail).
@@ -89,12 +101,21 @@ cleanup() {
 		rm -rf "${SDK_DIR}"
 	fi
 }
-trap cleanup EXIT
+# trap cleanup EXIT
 
 # 4. Build -> build.rs generates the .scale files (forces a fresh build by clearing stale outputs).
+# polkadot-sdk ships no rust-toolchain.toml, so pin a compatible toolchain explicitly; a too-new
+# rustc fails compiling the runtimes (e.g. `#[no_mangle] cannot be used on internal language items`).
+echo ">> using rust toolchain: ${RUST_TOOLCHAIN}"
+rustup toolchain list | grep -q "^${RUST_TOOLCHAIN}" \
+	|| { echo "ERROR: rust toolchain '${RUST_TOOLCHAIN}' not installed (rustup toolchain install ${RUST_TOOLCHAIN})" >&2; exit 1; }
+# wasm-builder needs the wasm32 target for this toolchain to build the runtime blobs.
+rustup target add --toolchain "${RUST_TOOLCHAIN}" wasm32-unknown-unknown >/dev/null 2>&1 || true
+
 rm -f "${RUNNER_DST}/metadata-files/"*.scale
 echo ">> building runtimes + extracting metadata (this is slow on a fresh checkout)"
-( cd "${SDK_DIR}" && ZOMBIE_METADATA_BUILD_DEBUG=1 CARGO_NET_GIT_FETCH_WITH_CLI=true \
+( cd "${SDK_DIR}" && RUSTUP_TOOLCHAIN="${RUST_TOOLCHAIN}" \
+	ZOMBIE_METADATA_BUILD_DEBUG=1 CARGO_NET_GIT_FETCH_WITH_CLI=true \
 	cargo build -p bridges-zombienet-metadata-gen --features zombie-metadata )
 
 # 5. Copy the generated metadata into the repo.
