@@ -16,14 +16,15 @@ polkadot-sdk at exactly that commit, builds the six runtimes, extracts their met
 From the repo root:
 
 ```bash
-# clone polkadot-sdk @ pinned-rev into testing/metadata-gen/polkadot-sdk, generate, then remove it:
+# clone polkadot-sdk @ pinned-rev into testing/metadata-gen/polkadot-sdk and generate; the clone is
+# kept for reuse (next run skips re-cloning):
 testing/metadata-gen/generate.sh
 
-# reuse an existing polkadot-sdk checkout (faster; not modified permanently, not deleted):
+# reuse an existing polkadot-sdk checkout (faster; injections are reverted, the checkout is not deleted):
 testing/metadata-gen/generate.sh --polkadot-sdk /path/to/polkadot-sdk
 
-# keep the cloned checkout for next time (skips re-clone, still rebuilds at the pinned rev):
-testing/metadata-gen/generate.sh --keep
+# also remove the cloned checkout when done (default keeps it for reuse):
+testing/metadata-gen/generate.sh --cleanup
 ```
 
 The first run is **slow** — it builds six runtime WASM blobs from a fresh checkout. `--polkadot-sdk`

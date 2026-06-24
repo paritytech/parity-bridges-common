@@ -1,7 +1,7 @@
 // Copyright (C) Parity Technologies (UK) Ltd.
 // SPDX-License-Identifier: Apache-2.0
 
-//! Port of the legacy `bridges/testing/tests/0002-free-headers-synced-while-idle` test.
+//! Free-header sync test for the local Rococo <> Westend bridge.
 //!
 //! The networks are spawned without any bridge initialization and the relayer is started only
 //! after a delay. While the relayer is otherwise idle (no messages to deliver) it should still
@@ -20,7 +20,7 @@ use subxt_signer::sr25519::dev;
 // We sleep for at least one session (60s for the test environment) before starting the relayer,
 // so that a backlog of free headers accumulates while it is offline.
 const RELAYER_START_DELAY: Duration = Duration::from_secs(90);
-// Window during which we observe header imports (matches the legacy `multiple-headers-synced.js`).
+// Window during which we observe header imports.
 const OBSERVE_WINDOW: Duration = Duration::from_secs(300);
 
 #[tokio::test(flavor = "multi_thread")]

@@ -3,10 +3,9 @@
 
 //! Zombienet-sdk based integration tests for the local Rococo <> Westend bridge.
 //!
-//! These are the Rust port of the legacy bash + `zndsl` tests that used to live under
-//! `bridges/testing/tests/`. They spawn two relay-chain networks (Rococo and Westend), each with
-//! a Bridge Hub and an Asset Hub parachain, drive the external `substrate-relay` binary as a set
-//! of subprocesses and assert on-chain state via `subxt`.
+//! They spawn two relay-chain networks (Rococo and Westend), each with a Bridge Hub and an Asset
+//! Hub parachain, drive the external `substrate-relay` binary as a set of subprocesses and assert
+//! on-chain state via `subxt`.
 //!
 //! The tests are gated behind the `zombie-ci` feature so that a plain `cargo check` of the
 //! workspace stays cheap and does not require the generated metadata files.

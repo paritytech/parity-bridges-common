@@ -1,7 +1,7 @@
 // Copyright (C) Parity Technologies (UK) Ltd.
 // SPDX-License-Identifier: Apache-2.0
 
-//! Port of the legacy `bridges/testing/tests/0001-asset-transfer` test.
+//! Asset transfer test for the local Rococo <> Westend bridge.
 //!
 //! A user transfers ROC from Rococo Asset Hub to Westend Asset Hub and back, and WND from Westend
 //! Asset Hub to Rococo Asset Hub and back. We assert that:
@@ -45,7 +45,7 @@ async fn asset_transfer_works() -> Result<(), anyhow::Error> {
 	// Relayer balances are constant (before the transfers).
 	assert_relayer_balances_unchanged(&bhr, &bhw, charlie, dave).await?;
 
-	// --- roc-reaches-westend: send 5 ROC from Rococo AH to Westend AH. ---
+	// --- Send 5 ROC from Rococo AH to Westend AH. ---
 	// ROC is native to Rococo AH, so Rococo AH is the reserve.
 	asset_hub_rococo::transfer_assets(
 		&ahr,
@@ -80,7 +80,7 @@ async fn asset_transfer_works() -> Result<(), anyhow::Error> {
 	})
 	.await?;
 
-	// --- wnd-reaches-rococo: send 5 WND from Westend AH to Rococo AH. ---
+	// --- Send 5 WND from Westend AH to Rococo AH. ---
 	// WND is native to Westend AH, so Westend AH is the reserve.
 	asset_hub_westend::transfer_assets(
 		&ahw,
@@ -114,7 +114,7 @@ async fn asset_transfer_works() -> Result<(), anyhow::Error> {
 	})
 	.await?;
 
-	// --- wroc-reaches-rococo: send 3 wrapped ROC back from Westend AH to Rococo AH. ---
+	// --- Send 3 wrapped ROC back from Westend AH to Rococo AH. ---
 	// Wrapped ROC's reserve is Rococo AH (the destination), so use a destination reserve.
 	let initial_roc = asset_hub_rococo::free_balance(&ahr, alice_pub).await?;
 	asset_hub_westend::transfer_assets(
@@ -129,7 +129,7 @@ async fn asset_transfer_works() -> Result<(), anyhow::Error> {
 	.await?;
 	wait_for_native_increase(&ahr, alice_pub, initial_roc, MIN_NATIVE_RECEIVED).await?;
 
-	// --- wwnd-reaches-westend: send 3 wrapped WND back from Rococo AH to Westend AH. ---
+	// --- Send 3 wrapped WND back from Rococo AH to Westend AH. ---
 	// Wrapped WND's reserve is Westend AH (the destination), so use a destination reserve.
 	let initial_wnd = asset_hub_westend::free_balance(&ahw, alice_pub).await?;
 	asset_hub_rococo::transfer_assets(
@@ -151,7 +151,7 @@ async fn asset_transfer_works() -> Result<(), anyhow::Error> {
 }
 
 /// Waits (up to 10 minutes) until the native free balance of `account` on `client` exceeds
-/// `initial + min_increase`. Mirrors `native-assets-balance-increased.js`.
+/// `initial + min_increase`.
 async fn wait_for_native_increase(
 	client: &OnlineClient<PolkadotConfig>,
 	account: [u8; 32],

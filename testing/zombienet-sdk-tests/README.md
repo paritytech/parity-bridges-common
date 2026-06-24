@@ -97,16 +97,16 @@ that commit, builds the six `*-runtime` WASM blobs, extracts their metadata, cop
 here, and cleans up. Run it from the repo root:
 
 ```bash
-# clone polkadot-sdk @ the pinned revision, generate, then remove the clone (slow on first run —
-# it builds six runtime WASM blobs from scratch):
+# clone polkadot-sdk @ the pinned revision and generate; the clone is kept for reuse (slow on first
+# run — it builds six runtime WASM blobs from scratch):
 testing/metadata-gen/generate.sh
 
 # faster: reuse an existing polkadot-sdk checkout (nothing extra is built if its runtime WASM already
-# exists; the checkout is left untouched and is not deleted):
+# exists; injections are reverted and the checkout is not deleted):
 testing/metadata-gen/generate.sh --polkadot-sdk /path/to/polkadot-sdk
 
-# keep the cloned checkout under testing/metadata-gen/polkadot-sdk for next time:
-testing/metadata-gen/generate.sh --keep
+# also remove the cloned checkout when done (default keeps it):
+testing/metadata-gen/generate.sh --cleanup
 ```
 
 Regenerate (and commit the updated `.scale` files) whenever this repo's pinned polkadot-sdk revision

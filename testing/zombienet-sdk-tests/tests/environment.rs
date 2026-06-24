@@ -3,13 +3,10 @@
 
 //! Shared environment for the Rococo <> Westend bridge zombienet-sdk tests.
 //!
-//! This is the Rust port of `bridges/testing/environments/rococo-westend/*` (the legacy
-//! `spawn.sh`, `bridges_rococo_westend.sh`, `start_relayer.sh` and the `framework/js-helpers`).
 //! It:
 //!   * spawns two relay-chain networks (Rococo and Westend), each with a Bridge Hub (para 1013 /
 //!     1002) and an Asset Hub (para 1000) collator,
-//!   * initializes the bridge (HRMP channels, remote XCM versions, asset-conversion pools and
-//!     funding of the sovereign/reward accounts),
+//!   * initializes the bridge (HRMP channels, remote XCM versions and bridged foreign assets),
 //!   * drives the external `substrate-relay` binary as a set of subprocesses, and
 //!   * exposes `subxt` query/extrinsic helpers used by the individual tests.
 
@@ -55,7 +52,7 @@ pub const ASSET_HUB_PARA_ID: u32 = 1000;
 pub const BRIDGE_HUB_ROCOCO_PARA_ID: u32 = 1013;
 pub const BRIDGE_HUB_WESTEND_PARA_ID: u32 = 1002;
 
-// Sovereign / reward accounts funded on the Bridge Hubs (see `bridges_rococo_westend.sh`).
+// Sovereign / reward accounts funded on the Bridge Hubs.
 const ASSET_HUB_SOVEREIGN_AT_BRIDGE_HUB: &str = "5Eg2fntNprdN3FgH4sfEaaZhYtddZQSQUqvYJ1f2mLtinVhV";
 const BHR_LANE_THIS_CHAIN: &str = "5EHnXaT5GApse1euZWj9hycMbgjKBCNQL9WEwScL8QDx6mhK";
 const BHR_LANE_BRIDGED_CHAIN: &str = "5EHnXaT5Tnt4A8aiP9CsuAFRhKPjKZJXRrj4a3mtihFvKpTi";
@@ -116,7 +113,7 @@ macro_rules! relay_ops {
 
 			/// `sudo(XcmPallet::send(..))` carrying an `UnpaidExecution` + `Transact{Superuser}`
 			/// message to the given parachain — the governance primitive used to configure the
-			/// system parachains, mirroring `send_governance_transact` from the bash framework.
+			/// system parachains.
 			pub async fn send_governance_transact(
 				client: &OnlineClient<PolkadotConfig>,
 				sudo: &Keypair,
@@ -317,8 +314,7 @@ macro_rules! asset_hub_ops {
 			/// min_balance)` call, wrapped in a relay-chain governance `Transact` (root). At this runtime
 			/// revision the bridged asset is not pre-registered at genesis, so it is created here before
 			/// the bridge can mint it; reserve trust is static in the runtime's XCM config, so no
-			/// per-asset reserve registration (`set_reserves`, added upstream later) is needed. Mirrors
-			/// `force_create_foreign_asset` from the legacy bash framework.
+			/// per-asset reserve registration is needed.
 			pub async fn force_create_foreign_asset_call(
 				client: &OnlineClient<PolkadotConfig>,
 				bridged_by_genesis: [u8; 32],
@@ -344,7 +340,7 @@ macro_rules! asset_hub_ops {
 			}
 
 			/// Balance of a bridged (foreign) asset held by `account`, or `None` if the account
-			/// has no entry for that asset yet. Mirrors `wrapped-assets-balance.js`.
+			/// has no entry for that asset yet.
 			pub async fn foreign_asset_balance(
 				client: &OnlineClient<PolkadotConfig>,
 				asset: Location,
@@ -368,8 +364,7 @@ macro_rules! asset_hub_ops {
 				}
 			}
 
-			/// Whether the HRMP egress channel towards `sibling` is open. Mirrors
-			/// `wait-hrmp-channel-opened.js`.
+			/// Whether the HRMP egress channel towards `sibling` is open.
 			pub async fn hrmp_egress_open(
 				client: &OnlineClient<PolkadotConfig>,
 				sibling: u32,
@@ -408,8 +403,8 @@ macro_rules! bridge_hub_ops {
 			}
 
 			/// `tx.balances.transferAllowDeath(target, amount)`.
-			// Bridge sovereign/reward accounts are now pre-funded at genesis, so this is currently
-			// unused, but kept as a helper for ad-hoc transfers.
+			// Bridge sovereign/reward accounts are pre-funded at genesis, so this is unused; kept
+			// as a helper for ad-hoc transfers.
 			#[allow(dead_code)]
 			pub async fn transfer_balance(
 				client: &OnlineClient<PolkadotConfig>,
@@ -684,7 +679,7 @@ pub async fn free_balance_at(
 }
 
 /// Calls the `<Chain>FinalityApi_best_finalized` runtime API and returns the best finalized
-/// bridged header number (mirrors `best-finalized-header-at-bridged-chain.js`).
+/// bridged header number.
 pub async fn best_finalized_bridged_header(
 	client: &OnlineClient<PolkadotConfig>,
 	finality_api: &str,
@@ -736,8 +731,7 @@ pub async fn wait_for_finalized_height(
 
 /// Subscribes to best blocks of `client` for `duration` and counts the GRANDPA
 /// (`UpdatedBestFinalizedHeader`) and parachain (`UpdatedParachainHead`) header-import events
-/// emitted by the given bridge pallets (mirrors `multiple-headers-synced.js`, which observes new
-/// best heads via `subscribeNewHeads`).
+/// emitted by the given bridge pallets.
 pub async fn count_synced_headers(
 	client: &OnlineClient<PolkadotConfig>,
 	grandpa_pallet: &str,
@@ -1025,7 +1019,7 @@ fn rococo_network_config() -> Result<NetworkConfig, anyhow::Error> {
 				.cumulus_based(true)
 				.with_default_command("polkadot-parachain")
 				.with_default_image(images.cumulus.as_str())
-				// Two asset-hub collators, matching the legacy zombienet setup.
+				// Two asset-hub collators.
 				.with_collator(|n| {
 					n.with_name("asset-hub-rococo-collator1").with_args(ah_args.clone())
 				})
@@ -1104,7 +1098,7 @@ fn westend_network_config() -> Result<NetworkConfig, anyhow::Error> {
 				.cumulus_based(true)
 				.with_default_command("polkadot-parachain")
 				.with_default_image(images.cumulus.as_str())
-				// Two slot-based collators, matching the legacy zombienet setup.
+				// Two slot-based collators.
 				.with_collator(|n| {
 					n.with_name("asset-hub-westend-collator1").with_args(ah_args.clone())
 				})
@@ -1137,7 +1131,7 @@ fn config_errs(errs: Vec<anyhow::Error>) -> anyhow::Error {
 
 impl BridgeTestEnv {
 	/// Spawns both networks and, depending on the flags, initializes the bridge and starts the
-	/// relayer. Mirrors `spawn.sh [--init] [--start-relayer]`.
+	/// relayer.
 	pub async fn spawn(init: bool, start_relayer: bool) -> Result<Self, anyhow::Error> {
 		let _ = env_logger::try_init_from_env(
 			env_logger::Env::default().filter_or(env_logger::DEFAULT_FILTER_ENV, "info"),
@@ -1199,8 +1193,7 @@ impl BridgeTestEnv {
 	}
 
 	/// Initializes both sides of the bridge: waits for block production, opens HRMP channels, sets
-	/// remote XCM versions, creates the asset-conversion pools and funds the sovereign / reward
-	/// accounts. Mirrors the `--init` path of `spawn.sh`.
+	/// remote XCM versions and creates the bridged foreign assets.
 	async fn init_bridge(&self) -> Result<(), anyhow::Error> {
 		let rococo_relay = self.rococo_relay_client().await?;
 		let westend_relay = self.westend_relay_client().await?;
@@ -1211,14 +1204,12 @@ impl BridgeTestEnv {
 
 		let alice = dev::alice();
 
-		// rococo-start / westend-start: parachains produce blocks reliably.
 		log::info!("Waiting for parachains to start producing blocks");
 		wait_for_block_height(&ahr, 10, Duration::from_secs(300)).await?;
 		wait_for_block_height(&bhr, 10, Duration::from_secs(300)).await?;
 		wait_for_block_height(&ahw, 10, Duration::from_secs(300)).await?;
 		wait_for_block_height(&bhw, 10, Duration::from_secs(300)).await?;
 
-		// init-rococo-local / init-westend-local: HRMP channels + remote XCM versions.
 		log::info!("Opening HRMP channels and setting remote XCM versions");
 		relay_rococo::open_hrmp_channel(
 			&rococo_relay,
@@ -1310,7 +1301,6 @@ impl BridgeTestEnv {
 		)
 		.await?;
 
-		// rococo-init / westend-init: HRMP channels are open.
 		log::info!("Waiting for HRMP channels to open");
 		retry_until(Duration::from_secs(600), || {
 			let ahr = ahr.clone();
@@ -1332,12 +1322,9 @@ impl BridgeTestEnv {
 		.await?;
 
 		// At this runtime revision the bridged foreign asset is not pre-registered at genesis, and
-		// the asset hub's reserve trust is static in its XCM config, so we simply create the
-		// (sufficient) asset via a governance (root) `ForeignAssets::force_create` and wait for
-		// it to exist before creating pools / transferring. Mirrors `force_create_foreign_asset`
-		// in the legacy framework. (Upstream later replaced this with a genesis-registered asset
-		// whose owner registers trusted reserves via `set_reserves`; that API does not exist at
-		// this revision.)
+		// the asset hub's reserve trust is static in its XCM config, so we create the (sufficient)
+		// asset via a governance (root) `ForeignAssets::force_create` and wait for it to exist
+		// before transferring.
 		log::info!("Creating bridged foreign assets on both Asset Hubs");
 		let owner_acc = dev_account(&alice);
 		let create_wwnd = asset_hub_rococo::force_create_foreign_asset_call(
@@ -1400,9 +1387,7 @@ impl BridgeTestEnv {
 		// `is_sufficient = true` (see `force_create_foreign_asset_call`), so at this runtime
 		// revision it can pay its own XCM execution fees directly — there is no need to seed a
 		// native<>bridged pool (and we couldn't anyway: nothing mints the bridged asset to a
-		// local account before the first bridge transfer). This matches the legacy
-		// `bridges_rococo_westend.sh`, which creates no pools. (Upstream added pools later
-		// alongside the `set_reserves` reserve model.)
+		// local account before the first bridge transfer).
 
 		// The bridge sovereign / reward accounts are pre-funded at genesis (see
 		// `bridge_hub_balances_override`), so there is no post-spawn funding step here.
@@ -1412,10 +1397,10 @@ impl BridgeTestEnv {
 	}
 
 	/// Initializes the GRANDPA bridge pallets and starts the finality, parachains and messages
-	/// relayers. Mirrors `start_relayer.sh` + the relayer commands in `bridges_rococo_westend.sh`.
+	/// relayers.
 	pub async fn start_relayer(&mut self) -> Result<(), anyhow::Error> {
-		// Resolve the actual node WS endpoints. Ports are assigned dynamically by zombienet (we no
-		// longer pin them), so we read each node's real URI and pass it to `substrate-relay`.
+		// Resolve the actual node WS endpoints. Ports are assigned dynamically by zombienet, so we
+		// read each node's real URI and pass it to `substrate-relay`.
 		let rococo_relay = self.rococo.get_node("alice-rococo-validator")?.ws_uri().to_string();
 		let westend_relay = self.westend.get_node("alice-westend-validator")?.ws_uri().to_string();
 		let bh_rococo = self.rococo.get_node("bridge-hub-rococo-collator1")?.ws_uri().to_string();
@@ -1594,7 +1579,6 @@ impl BridgeTestEnv {
 			"00000002",
 		])?);
 
-		// rococo-bridge / westend-bridge: wait until the GRANDPA pallets are initialized.
 		log::info!("Waiting for the GRANDPA bridge pallets to be initialized");
 		let bhr = self.bridge_hub_rococo_client().await?;
 		let bhw = self.bridge_hub_westend_client().await?;

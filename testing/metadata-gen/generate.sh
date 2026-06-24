@@ -9,13 +9,13 @@
 #   3. inject the `runner/` crate into that checkout and build it with `--features zombie-metadata`,
 #      whose build.rs builds the six `*-runtime` WASM blobs (as needed) and extracts their metadata,
 #   4. copy the freshly generated `.scale` files into `testing/zombienet-sdk-tests/metadata-files/`,
-#   5. clean up (revert the checkout's Cargo.toml, remove the injected crate, and remove the
-#      checkout unless it was supplied via --polkadot-sdk or --keep is given).
+#   5. revert our injections (the checkout's Cargo.toml and the injected crate); the polkadot-sdk
+#      checkout itself is kept for reuse by default, and removed only when --cleanup is given.
 #
 # Usage:
-#   testing/metadata-gen/generate.sh                       # clone + build + cleanup
-#   testing/metadata-gen/generate.sh --polkadot-sdk <path> # reuse an existing checkout (no cleanup of it)
-#   testing/metadata-gen/generate.sh --keep                # keep the cloned ./polkadot-sdk for reuse
+#   testing/metadata-gen/generate.sh                       # clone (kept for reuse) + build
+#   testing/metadata-gen/generate.sh --polkadot-sdk <path> # reuse an existing checkout
+#   testing/metadata-gen/generate.sh --cleanup             # also remove the cloned ./polkadot-sdk when done
 #
 # Requirements: git, python3, and the Rust toolchain pinned in RUST_TOOLCHAIN below.
 # Building runtimes needs that toolchain's wasm32-unknown-unknown target.
@@ -30,12 +30,12 @@ DEFAULT_SDK="${SCRIPT_DIR}/polkadot-sdk"
 SDK_REMOTE="https://github.com/paritytech/polkadot-sdk"
 
 SDK_DIR=""
-KEEP=0
+CLEANUP=0
 while [ $# -gt 0 ]; do
 	case "$1" in
 		--polkadot-sdk) SDK_DIR="$2"; shift 2 ;;
-		--keep) KEEP=1; shift ;;
-		-h|--help) sed -n '2,23p' "${BASH_SOURCE[0]}"; exit 0 ;;
+		--cleanup) CLEANUP=1; shift ;;
+		-h|--help) sed -n '2,21p' "${BASH_SOURCE[0]}"; exit 0 ;;
 		*) echo "unknown argument: $1" >&2; exit 1 ;;
 	esac
 done
@@ -93,15 +93,16 @@ if member not in src:
 PY
 
 cleanup() {
-	# revert the injected workspace member + remove the runner crate
+	# Always revert our injections so the checkout is left clean and reusable.
 	git -C "${SDK_DIR}" checkout -- Cargo.toml 2>/dev/null || true
 	rm -rf "${RUNNER_DST}"
-	if [ "${CLONED}" = "1" ] && [ "${KEEP}" = "0" ]; then
+	# The cloned polkadot-sdk checkout is kept for reuse by default; remove it only on --cleanup.
+	if [ "${CLONED}" = "1" ] && [ "${CLEANUP}" = "1" ]; then
 		echo ">> removing cloned checkout ${SDK_DIR}"
 		rm -rf "${SDK_DIR}"
 	fi
 }
-# trap cleanup EXIT
+trap cleanup EXIT
 
 # 4. Build -> build.rs generates the .scale files (forces a fresh build by clearing stale outputs).
 # polkadot-sdk ships no rust-toolchain.toml, so pin a compatible toolchain explicitly; a too-new

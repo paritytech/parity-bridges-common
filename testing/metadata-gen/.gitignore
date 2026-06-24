@@ -1,2 +1,2 @@
-# Transient polkadot-sdk checkout created by generate.sh (auto-removed unless --keep / --polkadot-sdk).
+# polkadot-sdk checkout created by generate.sh (kept for reuse by default; removed only with --cleanup).
 /polkadot-sdk/
