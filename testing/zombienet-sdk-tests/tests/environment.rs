@@ -1167,10 +1167,13 @@ impl BridgeTestEnv {
 		);
 
 		let spawn_fn = get_spawn_fn();
-		log::info!("Spawning Rococo network");
-		let rococo = spawn_fn(rococo_network_config()?).await?;
-		log::info!("Spawning Westend network");
-		let westend = spawn_fn(westend_network_config()?).await?;
+        // Rococo and Westend are independent networks; spawn them concurrently instead of serially
+        // (saves ~one full network spawn — ~35s in local runs).
+        log::info!("Spawning Rococo and Westend networks concurrently");
+        let (rococo, westend) = tokio::try_join!(
+                async { spawn_fn(rococo_network_config()?).await.map_err(|e| anyhow!("Rococo spawn failed: {e}")) },
+                async { spawn_fn(westend_network_config()?).await.map_err(|e| anyhow!("Westend spawn failed: {e}")) },
+        )?;
 
 		let mut env = BridgeTestEnv { rococo, westend, _relayers: Vec::new() };
 
