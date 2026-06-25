@@ -73,8 +73,9 @@ const SOVEREIGN_FUNDING: u128 = 100_000_000_000_000;
 macro_rules! relay_ops {
 	($name:ident, $relay:ident, $runtime:ident) => {
 		pub mod $name {
-			use super::sign_submit_wait;
+			use super::sign_submit_wait_in_block;
 			use crate::$relay::runtime_types::{
+				pallet_utility::pallet::Call as UtilityCall,
 				pallet_xcm::pallet::Call as XcmPalletCall,
 				polkadot_parachain_primitives::primitives::Id,
 				polkadot_runtime_parachains::hrmp::pallet::Call as HrmpCall,
@@ -92,36 +93,30 @@ macro_rules! relay_ops {
 			use subxt::{OnlineClient, PolkadotConfig};
 			use subxt_signer::sr25519::Keypair;
 
-			/// `sudo(Hrmp::force_open_hrmp_channel(..))`.
-			pub async fn open_hrmp_channel(
-				client: &OnlineClient<PolkadotConfig>,
-				sudo: &Keypair,
+			/// Builds (does not submit) a `Hrmp::force_open_hrmp_channel(..)` runtime call.
+			pub fn force_open_hrmp_channel_call(
 				sender: u32,
 				recipient: u32,
 				max_capacity: u32,
 				max_message_size: u32,
-			) -> Result<(), anyhow::Error> {
-				let call = RuntimeCall::Hrmp(HrmpCall::force_open_hrmp_channel {
+			) -> RuntimeCall {
+				RuntimeCall::Hrmp(HrmpCall::force_open_hrmp_channel {
 					sender: Id(sender),
 					recipient: Id(recipient),
 					max_capacity,
 					max_message_size,
-				});
-				let tx = crate::$relay::tx().sudo().sudo(call);
-				sign_submit_wait(client, &tx, sudo).await
+				})
 			}
 
-			/// `sudo(XcmPallet::send(..))` carrying an `UnpaidExecution` + `Transact{Superuser}`
-			/// message to the given parachain — the governance primitive used to configure the
-			/// system parachains.
-			pub async fn send_governance_transact(
-				client: &OnlineClient<PolkadotConfig>,
-				sudo: &Keypair,
+			/// Builds (does not submit) a `XcmPallet::send(..)` runtime call carrying an
+			/// `UnpaidExecution` + `Transact{Superuser}` message to the given parachain — the
+			/// governance primitive used to configure the system parachains.
+			pub fn governance_transact_call(
 				para_id: u32,
 				encoded_call: Vec<u8>,
 				require_weight_ref_time: u64,
 				require_weight_proof_size: u64,
-			) -> Result<(), anyhow::Error> {
+			) -> RuntimeCall {
 				let dest = VersionedLocation::V4(Location {
 					parents: 0,
 					interior: Junctions::X1([Junction::Parachain(para_id)]),
@@ -140,12 +135,24 @@ macro_rules! relay_ops {
 						call: DoubleEncoded { encoded: encoded_call },
 					},
 				]));
-				let call = RuntimeCall::XcmPallet(XcmPalletCall::send {
+				RuntimeCall::XcmPallet(XcmPalletCall::send {
 					dest: Box::new(dest),
 					message: Box::new(message),
-				});
-				let tx = crate::$relay::tx().sudo().sudo(call);
-				sign_submit_wait(client, &tx, sudo).await
+				})
+			}
+
+			/// Submits `sudo(Utility::batch_all(calls))` and waits for in-block success. Lets the whole
+			/// bridge-init governance for one relay land in a single extrinsic instead of one
+			/// finalized round-trip per call; the on-parachain effects are confirmed separately by the
+			/// `retry_until` checks in `init_bridge`.
+			pub async fn sudo_batch_all(
+				client: &OnlineClient<PolkadotConfig>,
+				sudo: &Keypair,
+				calls: Vec<RuntimeCall>,
+			) -> Result<(), anyhow::Error> {
+				let batch = RuntimeCall::Utility(UtilityCall::batch_all { calls });
+				let tx = crate::$relay::tx().sudo().sudo(batch);
+				sign_submit_wait_in_block(client, &tx, sudo).await
 			}
 		}
 	};
@@ -703,6 +710,9 @@ pub async fn best_finalized_bridged_header(
 ///
 /// Uses best (not finalized) blocks: confirms block production without depending on the finality
 /// chain.
+// Currently unused: `init_bridge` gates on the bridge hubs' first *finalized* block instead (a
+// stronger, faster signal). Kept as a helper for ad-hoc best-block waits.
+#[allow(dead_code)]
 pub async fn wait_for_block_height(
 	client: &OnlineClient<PolkadotConfig>,
 	height: u32,
@@ -865,12 +875,17 @@ async fn init_bridge_confirmed(
 	target_client: &OnlineClient<PolkadotConfig>,
 	grandpa_pallet: &str,
 ) -> Result<(), anyhow::Error> {
-	const ATTEMPTS: usize = 15;
-	const PER_ATTEMPT: Duration = Duration::from_secs(120);
-	// Pause between attempts so finality can advance and to avoid hammering the target node with
-	// rapid connect/disconnect cycles (a transient client/relay error must not spin the loop).
-	const BETWEEN_ATTEMPTS: Duration = Duration::from_secs(12);
-	for attempt in 1..=ATTEMPTS {
+	// Overall budget to get the bridge operational. Instead of pre-waiting for a fixed finalized
+	// height, we drive `init-bridge` and poll the real init signal (`operating_mode == Normal` at a
+	// finalized block) until it holds or this deadline elapses. Early attempts submitted while the
+	// bridge hub is still reorging may be orphaned, so we re-submit until one finalizes.
+	const OVERALL_TIMEOUT: Duration = Duration::from_secs(300);
+	// Max time to wait for a single `init-bridge` invocation to finalize before re-checking and
+	// re-submitting.
+	const PER_ATTEMPT: Duration = Duration::from_secs(90);
+	let deadline = Instant::now() + OVERALL_TIMEOUT;
+	let mut attempt = 0;
+	loop {
 		if bridge_operating_mode_normal_at_finalized(target_client, grandpa_pallet)
 			.await
 			.unwrap_or(false)
@@ -878,29 +893,34 @@ async fn init_bridge_confirmed(
 			log::info!("bridge {grandpa_pallet} confirmed operational (Normal) at finalized");
 			return Ok(());
 		}
-		log::info!("init-bridge attempt {attempt}/{ATTEMPTS}: substrate-relay {}", args.join(" "));
+		if Instant::now() >= deadline {
+			return Err(anyhow!(
+				"bridge {grandpa_pallet} did not become operational within {OVERALL_TIMEOUT:?}"
+			));
+		}
+		attempt += 1;
+		log::info!("init-bridge attempt {attempt}: substrate-relay {}", args.join(" "));
 		let mut child = Command::new(relayer_binary())
 			.args(args)
 			.env("RUST_LOG", RELAYER_RUST_LOG)
 			.kill_on_drop(true)
 			.spawn()?;
-		if tokio::time::timeout(PER_ATTEMPT, child.wait()).await.is_err() {
+		// Wait for this invocation to finalize, but never run past the overall deadline.
+		let attempt_budget = PER_ATTEMPT.min(deadline.saturating_duration_since(Instant::now()));
+		if tokio::time::timeout(attempt_budget, child.wait()).await.is_err() {
 			log::warn!(
 				"init-bridge attempt {attempt} for {grandpa_pallet} not finalized within \
-				 {PER_ATTEMPT:?}; re-checking finalized state and retrying"
+				 {attempt_budget:?}; re-checking finalized state and retrying"
 			);
 		}
 		let _ = child.start_kill();
 		let _ = child.wait().await;
-		sleep(BETWEEN_ATTEMPTS).await;
+		// Brief pause so finality can advance before the next poll/resubmit (without overrunning the
+		// overall deadline / hammering the node with rapid connect-disconnect cycles).
+		if Instant::now() < deadline {
+			sleep(Duration::from_secs(6)).await;
+		}
 	}
-	if bridge_operating_mode_normal_at_finalized(target_client, grandpa_pallet)
-		.await
-		.unwrap_or(false)
-	{
-		return Ok(());
-	}
-	Err(anyhow!("bridge {grandpa_pallet} did not become operational after {ATTEMPTS} attempts"))
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -1243,130 +1263,30 @@ impl BridgeTestEnv {
 		let bhw = self.bridge_hub_westend_client().await?;
 
 		let alice = dev::alice();
+		let owner_acc = dev_account(&alice);
 
-		log::info!("Waiting for parachains to start producing blocks");
-		wait_for_block_height(&ahr, 10, Duration::from_secs(300)).await?;
-		wait_for_block_height(&bhr, 10, Duration::from_secs(300)).await?;
-		wait_for_block_height(&ahw, 10, Duration::from_secs(300)).await?;
-		wait_for_block_height(&bhw, 10, Duration::from_secs(300)).await?;
+		// Wait until each bridge hub has finalized its first block: proof the full
+		// collation -> backing -> inclusion -> finality pipeline is live (a stronger and faster
+		// signal than N best blocks). The asset hubs only need their RPC up to build the calls below
+		// (already guaranteed by `wait_client`), and their on-chain effects are confirmed by the
+		// `retry_until` checks further down.
+		log::info!("Waiting for bridge hubs to finalize their first block");
+		tokio::try_join!(
+			wait_for_finalized_height(&bhr, 1, Duration::from_secs(300)),
+			wait_for_finalized_height(&bhw, 1, Duration::from_secs(300)),
+		)?;
 
-		log::info!("Opening HRMP channels and setting remote XCM versions");
-		relay_rococo::open_hrmp_channel(
-			&rococo_relay,
-			&alice,
-			ASSET_HUB_PARA_ID,
-			BRIDGE_HUB_ROCOCO_PARA_ID,
-			4,
-			524288,
-		)
-		.await?;
-		relay_rococo::open_hrmp_channel(
-			&rococo_relay,
-			&alice,
-			BRIDGE_HUB_ROCOCO_PARA_ID,
-			ASSET_HUB_PARA_ID,
-			4,
-			524288,
-		)
-		.await?;
-		relay_westend::open_hrmp_channel(
-			&westend_relay,
-			&alice,
-			ASSET_HUB_PARA_ID,
-			BRIDGE_HUB_WESTEND_PARA_ID,
-			4,
-			524288,
-		)
-		.await?;
-		relay_westend::open_hrmp_channel(
-			&westend_relay,
-			&alice,
-			BRIDGE_HUB_WESTEND_PARA_ID,
-			ASSET_HUB_PARA_ID,
-			4,
-			524288,
-		)
-		.await?;
-
-		// Remote XCM versions (Asset Hub <-> Asset Hub, Bridge Hub <-> Bridge Hub).
+		// Build the full bridge-init governance for each relay as a single `sudo(batch_all(..))`:
+		// HRMP channel opens + remote XCM versions + bridged foreign-asset creation. The two relays
+		// are independent chains, so both batches are submitted concurrently. (The on-parachain XCM
+		// effects are async and confirmed by the `retry_until` checks below.)
+		log::info!("Submitting batched bridge-init governance to both relays");
 		let ahw_on_ahr = asset_hub_rococo::remote_asset_hub(WESTEND_GENESIS_HASH);
 		let force_ahw =
 			asset_hub_rococo::force_xcm_version_call(&ahr, ahw_on_ahr, XCM_VERSION).await?;
-		relay_rococo::send_governance_transact(
-			&rococo_relay,
-			&alice,
-			ASSET_HUB_PARA_ID,
-			force_ahw,
-			200_000_000,
-			12_000,
-		)
-		.await?;
-
 		let bhw_on_bhr =
 			bridge_hub_rococo::remote_bridge_hub(WESTEND_GENESIS_HASH, BRIDGE_HUB_WESTEND_PARA_ID);
 		let force_bhw = bridge_hub_rococo::force_xcm_version_call(&bhr, bhw_on_bhr).await?;
-		relay_rococo::send_governance_transact(
-			&rococo_relay,
-			&alice,
-			BRIDGE_HUB_ROCOCO_PARA_ID,
-			force_bhw,
-			200_000_000,
-			12_000,
-		)
-		.await?;
-
-		let ahr_on_ahw = asset_hub_westend::remote_asset_hub(ROCOCO_GENESIS_HASH);
-		let force_ahr =
-			asset_hub_westend::force_xcm_version_call(&ahw, ahr_on_ahw, XCM_VERSION).await?;
-		relay_westend::send_governance_transact(
-			&westend_relay,
-			&alice,
-			ASSET_HUB_PARA_ID,
-			force_ahr,
-			200_000_000,
-			12_000,
-		)
-		.await?;
-
-		let bhr_on_bhw =
-			bridge_hub_westend::remote_bridge_hub(ROCOCO_GENESIS_HASH, BRIDGE_HUB_ROCOCO_PARA_ID);
-		let force_bhr = bridge_hub_westend::force_xcm_version_call(&bhw, bhr_on_bhw).await?;
-		relay_westend::send_governance_transact(
-			&westend_relay,
-			&alice,
-			BRIDGE_HUB_WESTEND_PARA_ID,
-			force_bhr,
-			200_000_000,
-			12_000,
-		)
-		.await?;
-
-		log::info!("Waiting for HRMP channels to open");
-		retry_until(Duration::from_secs(600), || {
-			let ahr = ahr.clone();
-			async move {
-				Ok(asset_hub_rococo::hrmp_egress_open(&ahr, BRIDGE_HUB_ROCOCO_PARA_ID)
-					.await?
-					.then_some(()))
-			}
-		})
-		.await?;
-		retry_until(Duration::from_secs(600), || {
-			let ahw = ahw.clone();
-			async move {
-				Ok(asset_hub_westend::hrmp_egress_open(&ahw, BRIDGE_HUB_WESTEND_PARA_ID)
-					.await?
-					.then_some(()))
-			}
-		})
-		.await?;
-
-		// At this runtime revision the bridged foreign asset is not pre-registered at genesis, and
-		// the asset hub's reserve trust is static in its XCM config, so we create the (sufficient)
-		// asset via a governance (root) `ForeignAssets::force_create` and wait for it to exist
-		// before transferring.
-		log::info!("Creating bridged foreign assets on both Asset Hubs");
-		let owner_acc = dev_account(&alice);
 		let create_wwnd = asset_hub_rococo::force_create_foreign_asset_call(
 			&ahr,
 			WESTEND_GENESIS_HASH,
@@ -1374,15 +1294,40 @@ impl BridgeTestEnv {
 			10_000_000_000,
 		)
 		.await?;
-		relay_rococo::send_governance_transact(
-			&rococo_relay,
-			&alice,
-			ASSET_HUB_PARA_ID,
-			create_wwnd,
-			5_000_000_000,
-			100_000,
-		)
-		.await?;
+		let rococo_calls = vec![
+			relay_rococo::force_open_hrmp_channel_call(
+				ASSET_HUB_PARA_ID,
+				BRIDGE_HUB_ROCOCO_PARA_ID,
+				4,
+				524288,
+			),
+			relay_rococo::force_open_hrmp_channel_call(
+				BRIDGE_HUB_ROCOCO_PARA_ID,
+				ASSET_HUB_PARA_ID,
+				4,
+				524288,
+			),
+			relay_rococo::governance_transact_call(ASSET_HUB_PARA_ID, force_ahw, 200_000_000, 12_000),
+			relay_rococo::governance_transact_call(
+				BRIDGE_HUB_ROCOCO_PARA_ID,
+				force_bhw,
+				200_000_000,
+				12_000,
+			),
+			relay_rococo::governance_transact_call(
+				ASSET_HUB_PARA_ID,
+				create_wwnd,
+				5_000_000_000,
+				100_000,
+			),
+		];
+
+		let ahr_on_ahw = asset_hub_westend::remote_asset_hub(ROCOCO_GENESIS_HASH);
+		let force_ahr =
+			asset_hub_westend::force_xcm_version_call(&ahw, ahr_on_ahw, XCM_VERSION).await?;
+		let bhr_on_bhw =
+			bridge_hub_westend::remote_bridge_hub(ROCOCO_GENESIS_HASH, BRIDGE_HUB_ROCOCO_PARA_ID);
+		let force_bhr = bridge_hub_westend::force_xcm_version_call(&bhw, bhr_on_bhw).await?;
 		let create_wroc = asset_hub_westend::force_create_foreign_asset_call(
 			&ahw,
 			ROCOCO_GENESIS_HASH,
@@ -1390,38 +1335,92 @@ impl BridgeTestEnv {
 			10_000_000_000,
 		)
 		.await?;
-		relay_westend::send_governance_transact(
-			&westend_relay,
-			&alice,
-			ASSET_HUB_PARA_ID,
-			create_wroc,
-			5_000_000_000,
-			100_000,
-		)
-		.await?;
-		log::info!("force_create governance transacts submitted; waiting for the assets to exist");
-		retry_until(Duration::from_secs(300), || {
-			let ahr = ahr.clone();
-			let owner_acc = owner_acc.clone();
-			async move {
-				Ok(asset_hub_rococo::bridged_asset_owner_is(&ahr, WESTEND_GENESIS_HASH, &owner_acc)
+		let westend_calls = vec![
+			relay_westend::force_open_hrmp_channel_call(
+				ASSET_HUB_PARA_ID,
+				BRIDGE_HUB_WESTEND_PARA_ID,
+				4,
+				524288,
+			),
+			relay_westend::force_open_hrmp_channel_call(
+				BRIDGE_HUB_WESTEND_PARA_ID,
+				ASSET_HUB_PARA_ID,
+				4,
+				524288,
+			),
+			relay_westend::governance_transact_call(
+				ASSET_HUB_PARA_ID,
+				force_ahr,
+				200_000_000,
+				12_000,
+			),
+			relay_westend::governance_transact_call(
+				BRIDGE_HUB_WESTEND_PARA_ID,
+				force_bhr,
+				200_000_000,
+				12_000,
+			),
+			relay_westend::governance_transact_call(
+				ASSET_HUB_PARA_ID,
+				create_wroc,
+				5_000_000_000,
+				100_000,
+			),
+		];
+
+		tokio::try_join!(
+			relay_rococo::sudo_batch_all(&rococo_relay, &alice, rococo_calls),
+			relay_westend::sudo_batch_all(&westend_relay, &alice, westend_calls),
+		)?;
+
+		// Confirm the on-parachain effects of the batches (both Asset Hubs concurrently): HRMP egress
+		// channels open, and the bridged foreign assets exist with the expected owner.
+		log::info!("Waiting for HRMP channels to open and bridged foreign assets to be created");
+		tokio::try_join!(
+			retry_until(Duration::from_secs(600), || {
+				let ahr = ahr.clone();
+				async move {
+					Ok(asset_hub_rococo::hrmp_egress_open(&ahr, BRIDGE_HUB_ROCOCO_PARA_ID)
+						.await?
+						.then_some(()))
+				}
+			}),
+			retry_until(Duration::from_secs(600), || {
+				let ahw = ahw.clone();
+				async move {
+					Ok(asset_hub_westend::hrmp_egress_open(&ahw, BRIDGE_HUB_WESTEND_PARA_ID)
+						.await?
+						.then_some(()))
+				}
+			}),
+			retry_until(Duration::from_secs(300), || {
+				let ahr = ahr.clone();
+				let owner_acc = owner_acc.clone();
+				async move {
+					Ok(asset_hub_rococo::bridged_asset_owner_is(
+						&ahr,
+						WESTEND_GENESIS_HASH,
+						&owner_acc,
+					)
 					.await?
 					.then_some(()))
-			}
-		})
-		.await?;
-		log::info!("Rococo AH: bridged foreign asset created");
-		retry_until(Duration::from_secs(300), || {
-			let ahw = ahw.clone();
-			let owner_acc = owner_acc.clone();
-			async move {
-				Ok(asset_hub_westend::bridged_asset_owner_is(&ahw, ROCOCO_GENESIS_HASH, &owner_acc)
+				}
+			}),
+			retry_until(Duration::from_secs(300), || {
+				let ahw = ahw.clone();
+				let owner_acc = owner_acc.clone();
+				async move {
+					Ok(asset_hub_westend::bridged_asset_owner_is(
+						&ahw,
+						ROCOCO_GENESIS_HASH,
+						&owner_acc,
+					)
 					.await?
 					.then_some(()))
-			}
-		})
-		.await?;
-		log::info!("Westend AH: bridged foreign asset created");
+				}
+			}),
+		)?;
+		log::info!("HRMP channels open and bridged foreign assets created on both Asset Hubs");
 
 		// No asset-conversion pool / liquidity setup here. The bridged foreign asset is created as
 		// `is_sufficient = true` (see `force_create_foreign_asset_call`), so at this runtime
@@ -1447,17 +1446,14 @@ impl BridgeTestEnv {
 		let bh_westend =
 			self.westend.get_node("bridge-hub-westend-collator1")?.ws_uri().to_string();
 
-		// A freshly launched bridge hub produces best blocks quickly but reorgs heavily for the
-		// first few dozen blocks (collators racing, finality lagging). The one-shot `init-bridge`
-		// tx submitted during that window can land on a branch that is later orphaned and never
-		// re-included/finalized, so the relayer waits out its long finality timeout and reports the
-		// tx as `Lost`. Wait until each bridge hub is steadily finalizing (past the early-fork
-		// window) before initializing the bridge.
+		// A freshly launched bridge hub reorgs heavily for the first few dozen blocks (collators
+		// racing, finality lagging), so a one-shot `init-bridge` tx submitted during that window can
+		// be orphaned. Rather than pre-waiting for a fixed finalized height before init, we drive
+		// `init-bridge` directly and wait (bounded, inside `init_bridge_confirmed`) for the real
+		// init signal — `operating_mode == Normal` at a finalized block — re-submitting until it
+		// holds. Early orphaned attempts are simply retried.
 		let bhr_client = Self::client_of(&self.rococo, "bridge-hub-rococo-collator1").await?;
 		let bhw_client = Self::client_of(&self.westend, "bridge-hub-westend-collator1").await?;
-		log::info!("Waiting for bridge hubs to finalize past the early-fork window before init");
-		wait_for_finalized_height(&bhr_client, 40, Duration::from_secs(600)).await?;
-		wait_for_finalized_height(&bhw_client, 40, Duration::from_secs(600)).await?;
 
 		// init-bridge (idempotent), driven from finalized state until the GRANDPA pallet is
 		// confirmed `Normal` at a finalized block (best-state can be a reorg victim).
