@@ -1455,46 +1455,42 @@ impl BridgeTestEnv {
 		let bhr_client = Self::client_of(&self.rococo, "bridge-hub-rococo-collator1").await?;
 		let bhw_client = Self::client_of(&self.westend, "bridge-hub-westend-collator1").await?;
 
-		// init-bridge (idempotent), driven from finalized state until the GRANDPA pallet is
-		// confirmed `Normal` at a finalized block (best-state can be a reorg victim).
-		init_bridge_confirmed(
-			&[
-				"init-bridge",
-				"westend-to-bridge-hub-rococo",
-				"--source-uri",
-				westend_relay.as_str(),
-				"--source-version-mode",
-				"Auto",
-				"--target-uri",
-				bh_rococo.as_str(),
-				"--target-version-mode",
-				"Auto",
-				"--target-signer",
-				"//Bob",
-			],
-			&bhr_client,
-			"BridgeWestendGrandpa",
-		)
-		.await?;
-		init_bridge_confirmed(
-			&[
-				"init-bridge",
-				"rococo-to-bridge-hub-westend",
-				"--source-uri",
-				rococo_relay.as_str(),
-				"--source-version-mode",
-				"Auto",
-				"--target-uri",
-				bh_westend.as_str(),
-				"--target-version-mode",
-				"Auto",
-				"--target-signer",
-				"//Bob",
-			],
-			&bhw_client,
-			"BridgeRococoGrandpa",
-		)
-		.await?;
+		// init-bridge (idempotent), driven from finalized state until the GRANDPA pallet is confirmed
+		// `Normal` at a finalized block (best-state can be a reorg victim). The two directions target
+		// different bridge hubs and are independent, so initialize them concurrently. (Args are bound
+		// to locals so they outlive the concurrently-awaited futures that borrow them.)
+		let init_bhr_args = [
+			"init-bridge",
+			"westend-to-bridge-hub-rococo",
+			"--source-uri",
+			westend_relay.as_str(),
+			"--source-version-mode",
+			"Auto",
+			"--target-uri",
+			bh_rococo.as_str(),
+			"--target-version-mode",
+			"Auto",
+			"--target-signer",
+			"//Bob",
+		];
+		let init_bhw_args = [
+			"init-bridge",
+			"rococo-to-bridge-hub-westend",
+			"--source-uri",
+			rococo_relay.as_str(),
+			"--source-version-mode",
+			"Auto",
+			"--target-uri",
+			bh_westend.as_str(),
+			"--target-version-mode",
+			"Auto",
+			"--target-signer",
+			"//Bob",
+		];
+		tokio::try_join!(
+			init_bridge_confirmed(&init_bhr_args, &bhr_client, "BridgeWestendGrandpa"),
+			init_bridge_confirmed(&init_bhw_args, &bhw_client, "BridgeRococoGrandpa"),
+		)?;
 
 		// Finality relayers (free relay-chain headers, signed by //Charlie).
 		self._relayers.push(spawn_relayer(&[
