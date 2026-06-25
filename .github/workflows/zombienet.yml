@@ -3,6 +3,11 @@ name: Zombienet Tests
 
 on:
   workflow_dispatch:
+  # Also run on pull requests, so the suite validates a branch pushed to THIS repo (e.g. a
+  # maintainer mirror of a fork PR) without the workflow needing to be on the default branch.
+  # NOTE: for PRs from a fork GitHub runs the base branch's workflows, so this only triggers for
+  # same-repo branches/PRs.
+  pull_request:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
