@@ -773,7 +773,7 @@ pub async fn count_synced_headers(
 	Ok((grandpa_headers, parachain_headers))
 }
 
-/// Polls `f` every 6s until it yields `Some`, or `timeout` elapses.
+/// Polls `f` every 4s until it yields `Some`, or `timeout` elapses.
 pub async fn retry_until<F, Fut, T>(timeout: Duration, mut f: F) -> Result<T, anyhow::Error>
 where
 	F: FnMut() -> Fut,
@@ -787,7 +787,7 @@ where
 		if Instant::now() >= deadline {
 			return Err(anyhow!("timeout in retry_until"));
 		}
-		sleep(Duration::from_secs(6)).await;
+		sleep(Duration::from_secs(4)).await;
 	}
 }
 
@@ -1068,12 +1068,10 @@ fn rococo_network_config() -> Result<NetworkConfig, anyhow::Error> {
 				.cumulus_based(true)
 				.with_default_command("polkadot-parachain")
 				.with_default_image(images.cumulus.as_str())
-				// Two asset-hub collators.
+				// Single asset-hub collator: the test only drives one collator endpoint, and one
+				// builder avoids fork competition (matching the bridge-hub choice).
 				.with_collator(|n| {
 					n.with_name("asset-hub-rococo-collator1").with_args(ah_args.clone())
-				})
-				.with_collator(|n| {
-					n.with_name("asset-hub-rococo-collator2").with_args(ah_args.clone())
 				})
 		})
 		.with_global_settings(global_settings)
@@ -1147,12 +1145,10 @@ fn westend_network_config() -> Result<NetworkConfig, anyhow::Error> {
 				.cumulus_based(true)
 				.with_default_command("polkadot-parachain")
 				.with_default_image(images.cumulus.as_str())
-				// Two slot-based collators.
+				// Single slot-based collator (see `rococo_network_config`): the test drives one
+				// endpoint and one builder avoids fork competition.
 				.with_collator(|n| {
 					n.with_name("asset-hub-westend-collator1").with_args(ah_args.clone())
-				})
-				.with_collator(|n| {
-					n.with_name("asset-hub-westend-collator2").with_args(ah_args.clone())
 				})
 		})
 		.with_global_settings(global_settings)
