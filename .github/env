@@ -1,3 +1,3 @@
 IMAGE=docker.io/paritytech/ci-unified:bullseye-1.88.0-2025-06-27-v202507112050
-IMAGE_REGISTRY=europe-docker.pkg.dev/parity-ci-2024/temp-images
+IMAGE_REGISTRY=docker.io/paritypr
 ZOMBIE_PROVIDER=docker

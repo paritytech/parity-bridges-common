@@ -960,8 +960,29 @@ fn relay_async_backing_override() -> serde_json::Value {
 	})
 }
 
+// Default node images for the `docker` provider, overridable via `POLKADOT_IMAGE` /
+// `CUMULUS_IMAGE`. Tagged with the polkadot-sdk revision pinned in `Cargo.lock` (see `build.rs`).
+const DEFAULT_POLKADOT_IMAGE: &str =
+	concat!("docker.io/paritypr/polkadot-debug:", env!("POLKADOT_SDK_SHORT_HASH"));
+const DEFAULT_CUMULUS_IMAGE: &str =
+	concat!("docker.io/paritypr/polkadot-parachain-debug:", env!("POLKADOT_SDK_SHORT_HASH"));
+
+struct NodeImages {
+	polkadot: String,
+	cumulus: String,
+}
+
+fn node_images() -> NodeImages {
+	NodeImages {
+		polkadot: std::env::var("POLKADOT_IMAGE")
+			.unwrap_or_else(|_| DEFAULT_POLKADOT_IMAGE.to_string()),
+		cumulus: std::env::var("CUMULUS_IMAGE")
+			.unwrap_or_else(|_| DEFAULT_CUMULUS_IMAGE.to_string()),
+	}
+}
+
 fn rococo_network_config() -> Result<NetworkConfig, anyhow::Error> {
-	let images = zombienet_sdk::environment::get_images_from_env();
+	let images = node_images();
 	// Bridge hubs use the default (fork-aware) transaction pool, which re-validates pending txs
 	// across reorgs so the relayer's proof transactions survive the bridge hubs' relay-parent
 	// reorgs.
@@ -1041,7 +1062,7 @@ fn rococo_network_config() -> Result<NetworkConfig, anyhow::Error> {
 }
 
 fn westend_network_config() -> Result<NetworkConfig, anyhow::Error> {
-	let images = zombienet_sdk::environment::get_images_from_env();
+	let images = node_images();
 	// See `rococo_network_config`: bridge hubs use the default fork-aware pool so the relayer's
 	// proof txs survive reorgs.
 	let bh_args: Vec<Arg> = vec![

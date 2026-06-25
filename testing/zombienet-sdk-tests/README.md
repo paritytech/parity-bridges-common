@@ -48,8 +48,10 @@ The tests are gated behind the `zombie-ci` feature, so a plain `cargo check`/`ca
 workspace neither compiles them nor pulls in their (otherwise optional) `zombienet-*` / `subxt`
 dependencies.
 
-Pick how nodes are spawned via `ZOMBIE_PROVIDER` (defaults to `docker`, which pulls `docker.io/parity/*`
-images); use `native` to run the local `polkadot` / `polkadot-parachain` binaries on your `PATH`:
+Pick how nodes are spawned via `ZOMBIE_PROVIDER` (defaults to `docker`, which pulls the
+`--features fast-runtime` `docker.io/paritypr/*-debug` images pinned in `tests/environment.rs` —
+override with the `POLKADOT_IMAGE` / `CUMULUS_IMAGE` env vars); use `native` to run the local
+`polkadot` / `polkadot-parachain` binaries on your `PATH`:
 
 ```bash
 export ZOMBIE_PROVIDER=native
