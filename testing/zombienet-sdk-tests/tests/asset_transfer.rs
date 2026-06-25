@@ -45,104 +45,125 @@ async fn asset_transfer_works() -> Result<(), anyhow::Error> {
 	// Relayer balances are constant (before the transfers).
 	assert_relayer_balances_unchanged(&bhr, &bhw, charlie, dave).await?;
 
-	// --- Send 5 ROC from Rococo AH to Westend AH. ---
-	// ROC is native to Rococo AH, so Rococo AH is the reserve.
-	asset_hub_rococo::transfer_assets(
-		&ahr,
-		&alice,
-		WESTEND_GENESIS_HASH,
-		alice_pub,
-		asset_hub_rococo::native_asset,
-		FIVE_UNITS,
-		asset_hub_rococo::TransferType::LocalReserve,
-	)
-	.await?;
-	// //Alice receives at least 4.8 wrapped ROC on Westend AH.
-	retry_until(Duration::from_secs(600), || {
-		let ahw = ahw.clone();
-		let acc = alice_acc.clone();
-		async move {
-			let asset = asset_hub_westend::bridged_asset(ROCOCO_GENESIS_HASH);
-			let balance = asset_hub_westend::foreign_asset_balance(&ahw, asset, acc).await?;
-			Ok(balance.filter(|b| *b > MIN_WRAPPED_RECEIVED).map(|_| ()))
-		}
-	})
-	.await?;
-	// //Eve is rewarded on Westend BH for delivering messages from Rococo BH.
 	let eve = dev_account(&dev::eve());
-	retry_until(Duration::from_secs(300), || {
-		let bhw = bhw.clone();
-		let eve = eve.clone();
-		async move {
-			let reward = bridge_hub_westend_relayer_reward(&bhw, eve).await?;
-			Ok(reward.filter(|r| *r > MIN_RELAYER_REWARD).map(|_| ()))
-		}
-	})
-	.await?;
-
-	// --- Send 5 WND from Westend AH to Rococo AH. ---
-	// WND is native to Westend AH, so Westend AH is the reserve.
-	asset_hub_westend::transfer_assets(
-		&ahw,
-		&alice,
-		ROCOCO_GENESIS_HASH,
-		alice_pub,
-		asset_hub_westend::native_asset,
-		FIVE_UNITS,
-		asset_hub_westend::TransferType::LocalReserve,
-	)
-	.await?;
-	retry_until(Duration::from_secs(600), || {
-		let ahr = ahr.clone();
-		let acc = alice_acc.clone();
-		async move {
-			let asset = asset_hub_rococo::bridged_asset(WESTEND_GENESIS_HASH);
-			let balance = asset_hub_rococo::foreign_asset_balance(&ahr, asset, acc).await?;
-			Ok(balance.filter(|b| *b > MIN_WRAPPED_RECEIVED).map(|_| ()))
-		}
-	})
-	.await?;
-	// //Ferdie is rewarded on Rococo BH for delivering messages from Westend BH.
 	let ferdie = dev_account(&dev::ferdie());
-	retry_until(Duration::from_secs(300), || {
-		let bhr = bhr.clone();
-		let ferdie = ferdie.clone();
-		async move {
-			let reward = bridge_hub_rococo_relayer_reward(&bhr, ferdie).await?;
-			Ok(reward.filter(|r| *r > MIN_RELAYER_REWARD).map(|_| ()))
-		}
-	})
-	.await?;
 
-	// --- Send 3 wrapped ROC back from Westend AH to Rococo AH. ---
-	// Wrapped ROC's reserve is Rococo AH (the destination), so use a destination reserve.
-	let initial_roc = asset_hub_rococo::free_balance(&ahr, alice_pub).await?;
-	asset_hub_westend::transfer_assets(
-		&ahw,
-		&alice,
-		ROCOCO_GENESIS_HASH,
-		alice_pub,
-		|| asset_hub_westend::bridged_asset(ROCOCO_GENESIS_HASH),
-		THREE_UNITS,
-		asset_hub_westend::TransferType::DestinationReserve,
-	)
-	.await?;
-	wait_for_native_increase(&ahr, alice_pub, initial_roc, MIN_NATIVE_RECEIVED).await?;
+	// === Phase 1: forward transfers, both directions concurrently. ===
+	// leg A (5 ROC: Rococo AH -> Westend AH) submits on Rococo AH; leg B (5 WND: Westend AH ->
+	// Rococo AH) submits on Westend AH. Different chains, so the shared `//Alice` signer has no
+	// nonce contention and both can run in parallel. Each leg also waits for its wrapped asset to
+	// arrive on the remote AH and for its message relayer to be rewarded.
+	tokio::try_join!(
+		async {
+			// ROC is native to Rococo AH, so Rococo AH is the reserve.
+			asset_hub_rococo::transfer_assets(
+				&ahr,
+				&alice,
+				WESTEND_GENESIS_HASH,
+				alice_pub,
+				asset_hub_rococo::native_asset,
+				FIVE_UNITS,
+				asset_hub_rococo::TransferType::LocalReserve,
+			)
+			.await?;
+			// //Alice receives at least 4.8 wrapped ROC on Westend AH.
+			retry_until(Duration::from_secs(600), || {
+				let ahw = ahw.clone();
+				let acc = alice_acc.clone();
+				async move {
+					let asset = asset_hub_westend::bridged_asset(ROCOCO_GENESIS_HASH);
+					let balance = asset_hub_westend::foreign_asset_balance(&ahw, asset, acc).await?;
+					Ok(balance.filter(|b| *b > MIN_WRAPPED_RECEIVED).map(|_| ()))
+				}
+			})
+			.await?;
+			// //Eve is rewarded on Westend BH for delivering messages from Rococo BH.
+			retry_until(Duration::from_secs(300), || {
+				let bhw = bhw.clone();
+				let eve = eve.clone();
+				async move {
+					let reward = bridge_hub_westend_relayer_reward(&bhw, eve).await?;
+					Ok(reward.filter(|r| *r > MIN_RELAYER_REWARD).map(|_| ()))
+				}
+			})
+			.await?;
+			Ok::<(), anyhow::Error>(())
+		},
+		async {
+			// WND is native to Westend AH, so Westend AH is the reserve.
+			asset_hub_westend::transfer_assets(
+				&ahw,
+				&alice,
+				ROCOCO_GENESIS_HASH,
+				alice_pub,
+				asset_hub_westend::native_asset,
+				FIVE_UNITS,
+				asset_hub_westend::TransferType::LocalReserve,
+			)
+			.await?;
+			retry_until(Duration::from_secs(600), || {
+				let ahr = ahr.clone();
+				let acc = alice_acc.clone();
+				async move {
+					let asset = asset_hub_rococo::bridged_asset(WESTEND_GENESIS_HASH);
+					let balance = asset_hub_rococo::foreign_asset_balance(&ahr, asset, acc).await?;
+					Ok(balance.filter(|b| *b > MIN_WRAPPED_RECEIVED).map(|_| ()))
+				}
+			})
+			.await?;
+			// //Ferdie is rewarded on Rococo BH for delivering messages from Westend BH.
+			retry_until(Duration::from_secs(300), || {
+				let bhr = bhr.clone();
+				let ferdie = ferdie.clone();
+				async move {
+					let reward = bridge_hub_rococo_relayer_reward(&bhr, ferdie).await?;
+					Ok(reward.filter(|r| *r > MIN_RELAYER_REWARD).map(|_| ()))
+				}
+			})
+			.await?;
+			Ok::<(), anyhow::Error>(())
+		},
+	)?;
 
-	// --- Send 3 wrapped WND back from Rococo AH to Westend AH. ---
-	// Wrapped WND's reserve is Westend AH (the destination), so use a destination reserve.
-	let initial_wnd = asset_hub_westend::free_balance(&ahw, alice_pub).await?;
-	asset_hub_rococo::transfer_assets(
-		&ahr,
-		&alice,
-		WESTEND_GENESIS_HASH,
-		alice_pub,
-		|| asset_hub_rococo::bridged_asset(WESTEND_GENESIS_HASH),
-		THREE_UNITS,
-		asset_hub_rococo::TransferType::DestinationReserve,
-	)
-	.await?;
-	wait_for_native_increase(&ahw, alice_pub, initial_wnd, MIN_NATIVE_RECEIVED).await?;
+	// === Phase 2: return (unwrap) transfers, both directions concurrently. ===
+	// leg C (3 wrapped ROC back: Westend AH -> Rococo AH) submits on Westend AH; leg D (3 wrapped
+	// WND back: Rococo AH -> Westend AH) submits on Rococo AH. Different chains again => parallel
+	// safe. Each needs its phase-1 forward leg to have delivered the wrapped asset (the phase
+	// barrier guarantees that, and also keeps Westend AH's leg B / leg C — and Rococo AH's leg A /
+	// leg D — off the same `//Alice` nonce). The wrapped asset's reserve is the destination AH, so
+	// both use a destination reserve.
+	tokio::try_join!(
+		async {
+			let initial_roc = asset_hub_rococo::free_balance(&ahr, alice_pub).await?;
+			asset_hub_westend::transfer_assets(
+				&ahw,
+				&alice,
+				ROCOCO_GENESIS_HASH,
+				alice_pub,
+				|| asset_hub_westend::bridged_asset(ROCOCO_GENESIS_HASH),
+				THREE_UNITS,
+				asset_hub_westend::TransferType::DestinationReserve,
+			)
+			.await?;
+			wait_for_native_increase(&ahr, alice_pub, initial_roc, MIN_NATIVE_RECEIVED).await?;
+			Ok::<(), anyhow::Error>(())
+		},
+		async {
+			let initial_wnd = asset_hub_westend::free_balance(&ahw, alice_pub).await?;
+			asset_hub_rococo::transfer_assets(
+				&ahr,
+				&alice,
+				WESTEND_GENESIS_HASH,
+				alice_pub,
+				|| asset_hub_rococo::bridged_asset(WESTEND_GENESIS_HASH),
+				THREE_UNITS,
+				asset_hub_rococo::TransferType::DestinationReserve,
+			)
+			.await?;
+			wait_for_native_increase(&ahw, alice_pub, initial_wnd, MIN_NATIVE_RECEIVED).await?;
+			Ok::<(), anyhow::Error>(())
+		},
+	)?;
 
 	// Relayer balances are still constant (after the transfers).
 	assert_relayer_balances_unchanged(&bhr, &bhw, charlie, dave).await?;
