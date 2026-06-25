@@ -1,0 +1,132 @@
+# Manually-triggered workflow that runs the zombienet-sdk bridge integration tests
+# (`testing/zombienet-sdk-tests`, gated behind the `zombie-ci` feature).
+#
+# These tests spawn full Rococo + Westend relay-chains with their Bridge Hub / Asset Hub parachains,
+# drive the `substrate-relay` binary.
+name: Zombienet Tests
+
+on:
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # Single place that loads the externalized config:
+  #   - `.github/env` (IMAGE, IMAGE_REGISTRY, ZOMBIE_PROVIDER) is cat'd into the job outputs.
+  #   - POLKADOT_SDK_HASH is derived from `Cargo.lock`; bump the pin there and this follows.
+  # Exposed as outputs because the `env` context isn't available in `container.image`.
+  set-variables:
+    runs-on: ubuntu-latest
+    outputs:
+      CI_IMAGE: ${{ steps.vars.outputs.IMAGE }}
+      IMAGE_REGISTRY: ${{ steps.vars.outputs.IMAGE_REGISTRY }}
+      ZOMBIE_PROVIDER: ${{ steps.vars.outputs.ZOMBIE_PROVIDER }}
+      POLKADOT_SDK_HASH: ${{ steps.vars.outputs.POLKADOT_SDK_HASH }}
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v4
+
+      - name: Set variables
+        id: vars
+        run: |
+          cat .github/env >> "$GITHUB_OUTPUT"
+          REV="$(grep -oE 'polkadot-sdk\?branch=master#[0-9a-f]+' Cargo.lock | cut -d'#' -f2 | sort -u | head -1)"
+          [ -n "$REV" ] || { echo "ERROR: could not find the polkadot-sdk revision in Cargo.lock" >&2; exit 1; }
+          echo "POLKADOT_SDK_HASH=$REV" >> "$GITHUB_OUTPUT"
+          echo "Using polkadot-sdk revision: $REV"
+
+  # Build the relay binary in the ci-unified container, where all of substrate-relay's build
+  # dependencies (protoc, clang, ...) are present, and hand it to the test job as an artifact.
+  build-relay:
+    name: Build substrate-relay
+    runs-on: parity-large
+    needs: [set-variables]
+    container:
+      image: ${{ needs.set-variables.outputs.CI_IMAGE }}
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v4
+
+      - name: Rust Cache
+        uses: Swatinem/rust-cache@82a92a6e8fbeee089604da2575dc567ae9ddeaab # v2.7.5
+        with:
+          cache-on-failure: true
+          cache-all-crates: true
+
+      - name: Build substrate-relay
+        run: |
+          cargo fetch
+          CARGO_NET_OFFLINE=true SKIP_WASM_BUILD=1 cargo build --release -p substrate-relay
+          mkdir -p ./artifacts
+          mv -v ./target/release/substrate-relay ./artifacts/
+
+      - name: Upload substrate-relay
+        uses: actions/upload-artifact@v4
+        with:
+          name: substrate-relay
+          path: ./artifacts/substrate-relay
+          retention-days: 2
+
+  # Compile and run the tests on a Docker-capable runner (not inside a container) so zombienet's
+  # docker provider can talk to the host Docker daemon and reach the spawned nodes on 127.0.0.1.
+  zombienet:
+    name: Run zombienet tests
+    runs-on: parity-large
+    needs: [set-variables, build-relay]
+    timeout-minutes: 90
+    env:
+      ZOMBIE_PROVIDER: ${{ needs.set-variables.outputs.ZOMBIE_PROVIDER }}
+      POLKADOT_IMAGE: ${{ needs.set-variables.outputs.IMAGE_REGISTRY }}/polkadot-debug:${{ needs.set-variables.outputs.POLKADOT_SDK_HASH }}
+      CUMULUS_IMAGE: ${{ needs.set-variables.outputs.IMAGE_REGISTRY }}/polkadot-parachain-debug:${{ needs.set-variables.outputs.POLKADOT_SDK_HASH }}
+      # `secrets` can't be referenced directly in step `if:`, so surface it as an env var.
+      GCP_ARTIFACT_REGISTRY_KEY: ${{ secrets.GCP_ARTIFACT_REGISTRY_KEY }}
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v4
+
+      # Toolchain must match the ci-unified image used elsewhere (Rust 1.88.0).
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: "1.88.0"
+
+      - name: Rust Cache
+        uses: Swatinem/rust-cache@82a92a6e8fbeee089604da2575dc567ae9ddeaab # v2.7.5
+        with:
+          cache-on-failure: true
+          cache-all-crates: true
+          workspaces: ". -> target"
+
+      - name: Download substrate-relay
+        uses: actions/download-artifact@v4
+        with:
+          name: substrate-relay
+          path: ./bin
+
+      - name: Point the tests at the relay binary
+        run: |
+          chmod +x "$GITHUB_WORKSPACE/bin/substrate-relay"
+          echo "SUBSTRATE_RELAY_BINARY=$GITHUB_WORKSPACE/bin/substrate-relay" >> "$GITHUB_ENV"
+
+      # Optional: authenticate to the GCP Artifact Registry where the node images live
+      # (europe-docker.pkg.dev). Skipped automatically when no service-account key is configured.
+      - name: Authenticate to image registry
+        if: ${{ env.GCP_ARTIFACT_REGISTRY_KEY != '' }}
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ env.GCP_ARTIFACT_REGISTRY_KEY }}
+      - name: Configure docker for the registry
+        if: ${{ env.GCP_ARTIFACT_REGISTRY_KEY != '' }}
+        run: gcloud auth configure-docker europe-docker.pkg.dev --quiet
+
+      - name: Pre-pull node images
+        run: |
+          echo "POLKADOT_IMAGE=$POLKADOT_IMAGE"
+          echo "CUMULUS_IMAGE=$CUMULUS_IMAGE"
+          docker pull "$POLKADOT_IMAGE"
+          docker pull "$CUMULUS_IMAGE"
+
+      - name: Run zombienet tests
+        run: cargo test -p bridges-zombienet-sdk-tests --features zombie-ci -- --nocapture
