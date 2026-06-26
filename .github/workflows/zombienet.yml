@@ -122,4 +122,4 @@ jobs:
           docker pull "$CUMULUS_IMAGE"
 
       - name: Run zombienet tests
-        run: cargo test -p bridges-zombienet-sdk-tests --features zombie-ci -- --nocapture
+        run: cargo test -p bridges-zombienet-sdk-tests --features zombie-ci -- --nocapture --test-threads=1
