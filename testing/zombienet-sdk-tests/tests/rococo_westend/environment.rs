@@ -256,6 +256,45 @@ fn config_errs(errs: Vec<anyhow::Error>) -> anyhow::Error {
 	)
 }
 
+/// Spawns one network, retrying the flaky zombienet chain-spec panic (`is_raw()` unwraps a
+/// truncated spec read and panics with `EOF while parsing ...`). Rebuilds the config each attempt
+/// for a fresh namespace; a genuine `Err` is retried too and surfaces after the last attempt.
+async fn spawn_with_retry(
+	config_fn: impl Fn() -> Result<NetworkConfig, anyhow::Error>,
+	name: &str,
+) -> Result<Network<LocalFileSystem>, anyhow::Error> {
+	const MAX_ATTEMPTS: usize = 3;
+	let spawn_fn = get_spawn_fn();
+	let mut last_err = String::new();
+	for attempt in 1..=MAX_ATTEMPTS {
+		let config = config_fn()?;
+		// Run in a task so a panic in zombienet is captured as a `JoinError`, not unwound.
+		match tokio::spawn(spawn_fn(config)).await {
+			Ok(Ok(network)) => return Ok(network),
+			Ok(Err(e)) => {
+				last_err = e.to_string();
+				log::warn!(
+					"{name} network spawn attempt {attempt}/{MAX_ATTEMPTS} failed: {last_err}"
+				);
+			},
+			Err(join_err) if join_err.is_panic() => {
+				let panic = join_err.into_panic();
+				last_err = panic
+					.downcast_ref::<&str>()
+					.map(|s| s.to_string())
+					.or_else(|| panic.downcast_ref::<String>().cloned())
+					.unwrap_or_else(|| "unknown panic".to_string());
+				log::warn!(
+					"{name} network spawn attempt {attempt}/{MAX_ATTEMPTS} panicked inside \
+					 zombienet (likely the chain-spec truncation flake); retrying: {last_err}"
+				);
+			},
+			Err(join_err) => return Err(anyhow!("{name} network spawn task cancelled: {join_err}")),
+		}
+	}
+	Err(anyhow!("{name} network spawn failed after {MAX_ATTEMPTS} attempts: {last_err}"))
+}
+
 impl BridgeTestEnv {
 	/// Spawns both networks and, depending on the flags, initializes the bridge and starts the
 	/// relayer.
@@ -264,21 +303,11 @@ impl BridgeTestEnv {
 			env_logger::Env::default().filter_or(env_logger::DEFAULT_FILTER_ENV, "info"),
 		);
 
-		let spawn_fn = get_spawn_fn();
-		// Rococo and Westend are independent networks; spawn them concurrently instead of serially
-		// (saves ~one full network spawn — ~35s in local runs).
+		// Independent networks: spawn concurrently (saves ~35s vs serial).
 		log::info!("Spawning Rococo and Westend networks concurrently");
 		let (rococo, westend) = tokio::try_join!(
-			async {
-				spawn_fn(rococo_network_config()?)
-					.await
-					.map_err(|e| anyhow!("Rococo spawn failed: {e}"))
-			},
-			async {
-				spawn_fn(westend_network_config()?)
-					.await
-					.map_err(|e| anyhow!("Westend spawn failed: {e}"))
-			},
+			spawn_with_retry(rococo_network_config, "Rococo"),
+			spawn_with_retry(westend_network_config, "Westend"),
 		)?;
 
 		let mut env = BridgeTestEnv { rococo, westend, _relayers: Vec::new() };
