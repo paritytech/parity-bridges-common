@@ -12,8 +12,16 @@ Tests:
 - `free_headers` — checks that free relay-chain and parachain headers are synced to the remote Bridge
   Hub while the relayer is otherwise idle.
 
-The shared environment (network spawning, bridge initialization, the `substrate-relay` driver and the
-`subxt` query/extrinsic helpers) lives in `tests/environment.rs`.
+The code is organized so a second bridge pair can be added as a sibling without touching the generic
+infrastructure:
+
+- `tests/common/` — reusable, bridge-pair-agnostic infrastructure: generic `subxt` helpers
+  (`utils.rs`), the `substrate-relay` subprocess driver (`relayer.rs`) and the default node images
+  (`images.rs`);
+- `tests/rococo_westend/` — everything specific to the Rococo <> Westend pair: shared constants and
+  bridge-relayer reward queries (`mod.rs`), the per-runtime typed operations (`ops.rs`), the network
+  spawning + bridge bootstrap environment (`environment.rs`) and the tests themselves
+  (`asset_transfer.rs`, `free_headers.rs`).
 
 ## Prerequisites
 
@@ -49,9 +57,12 @@ workspace neither compiles them nor pulls in their (otherwise optional) `zombien
 dependencies.
 
 Pick how nodes are spawned via `ZOMBIE_PROVIDER` (defaults to `docker`, which pulls the
-`--features fast-runtime` `docker.io/paritypr/*-debug` images pinned in `tests/environment.rs` —
-override with the `POLKADOT_IMAGE` / `CUMULUS_IMAGE` env vars); use `native` to run the local
-`polkadot` / `polkadot-parachain` binaries on your `PATH`:
+`--features fast-runtime` `docker.io/paritypr/*-debug` images tagged with the polkadot-sdk revision
+pinned in this repo's `Cargo.lock` — derived by `build.rs` and used as the defaults in
+`tests/common/images.rs`; override with the `POLKADOT_IMAGE` / `CUMULUS_IMAGE` env vars). CI builds
+the same tag from `Cargo.lock` (see [`.github/workflows/zombienet.yml`](../../.github/workflows/zombienet.yml)).
+Use `native` to run the local `polkadot` / `polkadot-parachain` binaries on your `PATH` instead (the
+image env vars are then ignored):
 
 ```bash
 export ZOMBIE_PROVIDER=native

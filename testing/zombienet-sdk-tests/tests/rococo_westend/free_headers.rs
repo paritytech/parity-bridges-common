@@ -9,7 +9,7 @@
 //! Bridge Hub, and the finality/parachain relayers (`//Charlie` / `//Dave`) should keep a constant
 //! balance because their transactions are free.
 
-use crate::environment::{
+use crate::rococo_westend::{
 	bridge_hub_rococo, bridge_hub_westend, count_synced_headers, dev_public, BridgeTestEnv,
 	ENDOWMENT,
 };

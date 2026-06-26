@@ -11,7 +11,7 @@
 //!   * the finality/parachain relayers (`//Charlie` / `//Dave`) keep a constant balance, because
 //!     their transactions are free.
 
-use crate::environment::{
+use crate::rococo_westend::{
 	asset_hub_rococo, asset_hub_westend, bridge_hub_rococo_relayer_reward,
 	bridge_hub_westend_relayer_reward, dev_account, dev_public, retry_until, BridgeTestEnv,
 	ENDOWMENT, ROCOCO_GENESIS_HASH, WESTEND_GENESIS_HASH,
@@ -72,7 +72,8 @@ async fn asset_transfer_works() -> Result<(), anyhow::Error> {
 				let acc = alice_acc.clone();
 				async move {
 					let asset = asset_hub_westend::bridged_asset(ROCOCO_GENESIS_HASH);
-					let balance = asset_hub_westend::foreign_asset_balance(&ahw, asset, acc).await?;
+					let balance =
+						asset_hub_westend::foreign_asset_balance(&ahw, asset, acc).await?;
 					Ok(balance.filter(|b| *b > MIN_WRAPPED_RECEIVED).map(|_| ()))
 				}
 			})
@@ -182,7 +183,7 @@ async fn wait_for_native_increase(
 	retry_until(Duration::from_secs(600), || {
 		let client = client.clone();
 		async move {
-			let balance = crate::environment::free_balance_at(&client, account).await?;
+			let balance = crate::rococo_westend::free_balance_at(&client, account).await?;
 			Ok((balance > initial + min_increase).then_some(()))
 		}
 	})
@@ -196,7 +197,7 @@ async fn assert_relayer_balances_unchanged(
 	charlie: [u8; 32],
 	dave: [u8; 32],
 ) -> Result<(), anyhow::Error> {
-	use crate::environment::{bridge_hub_rococo, bridge_hub_westend};
+	use crate::rococo_westend::{bridge_hub_rococo, bridge_hub_westend};
 	for (name, balance) in [
 		("Charlie@RococoBH", bridge_hub_rococo::free_balance(bhr, charlie).await?),
 		("Dave@RococoBH", bridge_hub_rococo::free_balance(bhr, dave).await?),

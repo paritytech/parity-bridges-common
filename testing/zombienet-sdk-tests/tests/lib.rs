@@ -36,10 +36,10 @@ pub use {
 	westend_codegen::api as westend,
 };
 
+// Reusable, bridge-pair-agnostic test infrastructure.
 #[cfg(feature = "zombie-ci")]
-mod environment;
+mod common;
 
+// The Rococo <> Westend bridge pair (constants, typed ops, environment and its tests).
 #[cfg(feature = "zombie-ci")]
-mod asset_transfer;
-#[cfg(feature = "zombie-ci")]
-mod free_headers;
+mod rococo_westend;
