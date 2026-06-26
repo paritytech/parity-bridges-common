@@ -240,7 +240,7 @@ fn westend_network_config() -> Result<NetworkConfig, anyhow::Error> {
 
 /// Shared global settings for both networks. We disable `tear_down_on_failure` so the background
 /// node-monitoring task (which declares a node "crashed" if its metrics endpoint does not respond
-/// within ~5s) does not tear the network down on a transient, load-induced timeout — the same
+/// within `~5s`) does not tear the network down on a transient, load-induced timeout — the same
 /// approach the polkadot zombienet-sdk tests use on busy CI runners.
 fn global_settings(
 	settings: zombienet_sdk::GlobalSettingsBuilder,

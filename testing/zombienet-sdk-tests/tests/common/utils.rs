@@ -286,7 +286,7 @@ pub async fn count_synced_headers(
 	Ok((grandpa_headers, parachain_headers))
 }
 
-/// Polls `f` every 4s until it yields `Some`, or `timeout` elapses.
+/// Polls `f` every `4s` until it yields `Some`, or `timeout` elapses.
 pub async fn retry_until<F, Fut, T>(timeout: Duration, mut f: F) -> Result<T, anyhow::Error>
 where
 	F: FnMut() -> Fut,

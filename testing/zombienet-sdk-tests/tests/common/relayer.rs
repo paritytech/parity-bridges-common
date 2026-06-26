@@ -81,7 +81,7 @@ async fn bridge_operating_mode_normal_at_finalized(
 /// Runs the idempotent `init-bridge` command until the bridge is confirmed operational.
 ///
 /// The relay's `init-bridge` decides it is done by reading `is_initialized` at the **best**
-/// (non-finalized) header. On a loaded host the bridge hub reorgs ~tens of blocks deep, so the
+/// (non-finalized) header. On a loaded host the bridge hub reorgs tens of blocks deep, so the
 /// init tx can land on a branch that is briefly best — fooling that check into reporting success —
 /// and is then retracted, leaving the canonical chain `Halted`. We therefore drive init from the
 /// **finalized** state: before each attempt we check `operating_mode == Normal` at a finalized
