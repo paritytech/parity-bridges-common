@@ -21,6 +21,9 @@ log = { workspace = true }
 num-format = { workspace = true }
 num-traits = { workspace = true }
 rbtag = { workspace = true }
+# Pulled transitively by `relay-utils` via libcurl; declared here only so the `static-ssl` feature
+# (below) can statically link OpenSSL into the binary.
+isahc = { version = "1.7.2", optional = true }
 signal-hook = { workspace = true }
 signal-hook-async-std = { workspace = true }
 strum = { workspace = true }
@@ -59,6 +62,13 @@ substrate-relay-helper = { workspace = true }
 frame-support = { workspace = true }
 sp-core = { workspace = true }
 sp-runtime = { workspace = true }
+
+[features]
+# Statically link OpenSSL into the binary (via isahc/libcurl) so it has no `libssl.so` runtime
+# dependency and runs on hosts without OpenSSL 1.1 (e.g. Ubuntu 22.04+, Debian 12+). Enabled by the
+# zombienet CI build, where the binary is built on bullseye (OpenSSL 1.1) but run on a bare runner
+# (OpenSSL 3). Not enabled for release builds.
+static-ssl = ["isahc/static-ssl"]
 
 [dev-dependencies]
 hex-literal = { workspace = true }
