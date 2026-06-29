@@ -71,7 +71,7 @@ jobs:
 
   # Runs on a Docker-capable runner (no container) so the docker provider can use the host Docker
   # daemon and reach the spawned nodes on 127.0.0.1.
-  zombienet:
+  run-tests:
     name: Run zombienet tests
     runs-on: parity-large
     needs: [set-variables, build-relay]
