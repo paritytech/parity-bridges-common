@@ -60,7 +60,8 @@ jobs:
           CARGO_NET_OFFLINE=true SKIP_WASM_BUILD=1 cargo build --release -p substrate-relay
           mkdir -p ./artifacts
           mv -v ./target/release/substrate-relay ./artifacts/
-          cp -v /usr/lib/x86_64-linux-gnu/libssl.so.1.1 /usr/lib/x86_64-linux-gnu/libcrypto.so.1.1 ./artifacts/
+          # TODO: investiagate
+          # cp -v /usr/lib/x86_64-linux-gnu/libssl.so.1.1 /usr/lib/x86_64-linux-gnu/libcrypto.so.1.1 ./artifacts/
 
       - name: Upload substrate-relay
         uses: actions/upload-artifact@v4
@@ -113,7 +114,8 @@ jobs:
         run: |
           chmod +x "$GITHUB_WORKSPACE/bin/substrate-relay"
           echo "SUBSTRATE_RELAY_BINARY=$GITHUB_WORKSPACE/bin/substrate-relay" >> "$GITHUB_ENV"
-          echo "LD_LIBRARY_PATH=$GITHUB_WORKSPACE/bin${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}" >> "$GITHUB_ENV"
+          # TODO: investiate
+          # echo "LD_LIBRARY_PATH=$GITHUB_WORKSPACE/bin${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}" >> "$GITHUB_ENV"
 
       # The paritypr `*-debug` images are public on Docker Hub, so no registry auth is needed.
       - name: Pre-pull node images
