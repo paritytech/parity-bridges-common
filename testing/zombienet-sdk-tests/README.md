@@ -93,17 +93,17 @@ revision pinned in `Cargo.lock`. A mismatch aborts the test with
 ## Maintenance
 
 - **Regenerate the codegen when the pinned polkadot-sdk revision changes** (a new commit hash for
-  `git+https://github.com/paritytech/polkadot-sdk` in `Cargo.lock`). One command builds the six
-  runtimes from a matching polkadot-sdk checkout and rewrites `tests/codegen/*.rs`:
+  `git+https://github.com/paritytech/polkadot-sdk` in `Cargo.lock`). `tests/codegen/generate.sh`
+  builds the six runtimes from a matching polkadot-sdk checkout and rewrites `tests/codegen/*.rs`
+  (see its header for how it works):
 
   ```bash
-  testing/metadata-gen/generate.sh                       # clone @ pinned rev (kept for reuse) + generate
-  testing/metadata-gen/generate.sh --polkadot-sdk <path> # reuse an existing checkout
-  testing/metadata-gen/generate.sh --cleanup             # remove the cloned checkout when done
+  tests/codegen/generate.sh                       # clone @ pinned rev (kept for reuse) + generate
+  tests/codegen/generate.sh --polkadot-sdk <path> # reuse an existing checkout
+  tests/codegen/generate.sh --cleanup             # remove the cloned checkout when done
   ```
 
-  Commit the updated `tests/codegen/*.rs`. See [`testing/metadata-gen/README.md`](../metadata-gen/README.md)
-  for how it works.
+  Commit the updated `tests/codegen/*.rs`.
 
 - **`subxt`/`subxt-signer` are pinned to the version `zombienet-sdk` uses** (workspace `Cargo.toml`),
   so `node.wait_client()` returns a client of the type the tests use. When bumping `zombienet-sdk`,

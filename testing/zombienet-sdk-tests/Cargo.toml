@@ -56,4 +56,4 @@ zombie-ci = [
 ]
 
 # There is intentionally no build-time metadata generation: the typed clients under `tests/codegen/`
-# are generated out-of-band by `testing/metadata-gen/generate.sh` and committed.
+# are generated out-of-band by `tests/codegen/generate.sh` and committed.

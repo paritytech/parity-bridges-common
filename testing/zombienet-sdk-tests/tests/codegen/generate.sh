@@ -1,21 +1,24 @@
 #!/usr/bin/env bash
 #
-# (Re)generate the bridges zombienet-sdk subxt runtime modules
-# (`testing/zombienet-sdk-tests/tests/codegen/*.rs`) so they match the polkadot-sdk revision this
-# repo pins in `Cargo.lock`.
+# (Re)generate the typed `subxt` runtime clients in this directory (`*.rs`) that the bridge
+# zombienet-sdk tests consume as `crate::<chain>::{tx, storage, runtime_types, ..}`.
 #
-# Steps:
-#   1. derive the pinned polkadot-sdk commit from this repo's Cargo.lock,
-#   2. shallow-checkout polkadot-sdk at that exact commit (into ./polkadot-sdk, gitignored),
-#   3. build the six `*-runtime` WASM blobs in that checkout,
-#   4. build this repo's `runtime-codegen` tool,
-#   5. run `runtime-codegen --full --from-wasm-file <wasm>` for each runtime and write the generated
-#      full subxt client into `testing/zombienet-sdk-tests/tests/codegen/<chain>.rs`.
+# subxt validates every generated call/storage access against the node's live metadata at test
+# runtime, so these modules MUST match the runtimes embedded in the `polkadot` / `polkadot-parachain`
+# binaries the tests run -- i.e. the polkadot-sdk revision this repo pins in `Cargo.lock`. A mismatch
+# aborts the test with `Metadata error: The generated code is not compatible with the node`. So:
+# regenerate whenever that pinned revision changes and commit the updated `*.rs`.
 #
-# Usage:
-#   testing/metadata-gen/generate.sh                       # clone (kept for reuse) + build
-#   testing/metadata-gen/generate.sh --polkadot-sdk <path> # reuse an existing checkout
-#   testing/metadata-gen/generate.sh --cleanup             # also remove the cloned ./polkadot-sdk when done
+# What it does: read the pinned commit from `Cargo.lock`, shallow-checkout polkadot-sdk at exactly
+# that commit, build the six `*-runtime` WASM blobs, build this repo's `runtime-codegen` tool, then
+# run `runtime-codegen --full --from-wasm-file <wasm>` per runtime. `--full` emits the complete subxt
+# client (`tx()`/`storage()`/`apis()`/`runtime_types`), unlike the relay-clients' `runtime_types`-only
+# codegen; generating straight from the runtime WASM needs no extra crate injected into the checkout.
+#
+# Usage (run from anywhere):
+#   generate.sh                       # clone @ pinned rev into ./.polkadot-sdk (kept for reuse) + generate
+#   generate.sh --polkadot-sdk <path> # reuse an existing checkout (fast if its runtime WASM is built)
+#   generate.sh --cleanup             # also remove the cloned ./.polkadot-sdk when done
 #
 # Requirements: git and the Rust toolchain pinned in RUST_TOOLCHAIN below, with its
 # wasm32-unknown-unknown target (needed to build the runtimes).
@@ -23,10 +26,12 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-REPO_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
-CODEGEN_OUT="${REPO_ROOT}/testing/zombienet-sdk-tests/tests/codegen"
-DEFAULT_SDK="${SCRIPT_DIR}/polkadot-sdk"
+REPO_ROOT="$(cd "${SCRIPT_DIR}/../../../.." && pwd)"
+CODEGEN_OUT="${SCRIPT_DIR}"
 SDK_REMOTE="https://github.com/paritytech/polkadot-sdk"
+DEFAULT_SDK="${SCRIPT_DIR}/.polkadot-sdk"
+
+usage() { sed -n '18,21p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'; }
 
 SDK_DIR=""
 CLEANUP=0
@@ -34,8 +39,8 @@ while [ $# -gt 0 ]; do
 	case "$1" in
 		--polkadot-sdk) SDK_DIR="$2"; shift 2 ;;
 		--cleanup) CLEANUP=1; shift ;;
-		-h|--help) sed -n '2,21p' "${BASH_SOURCE[0]}"; exit 0 ;;
-		*) echo "unknown argument: $1" >&2; exit 1 ;;
+		-h|--help) usage; exit 0 ;;
+		*) echo "unknown argument: $1" >&2; usage; exit 1 ;;
 	esac
 done
 
@@ -52,14 +57,11 @@ done
 RUST_TOOLCHAIN="1.84.1"
 
 # Chains to generate. Each maps to a `<chain>-runtime` cargo package and a
-# `<chain_with_underscores>.rs` module under CODEGEN_OUT (the names `tests/lib.rs` includes).
+# `<chain_with_underscores>.rs` module in this directory (the names `tests/lib.rs` includes).
 CHAINS=(rococo westend asset-hub-rococo asset-hub-westend bridge-hub-rococo bridge-hub-westend)
 
-# 1. Pinned polkadot-sdk commit from Cargo.lock. All polkadot-sdk crates share one git source, so
-# `sort -u` collapses to a single revision (and avoids a `| head` that would SIGPIPE under pipefail).
-REV="$(grep -oE 'polkadot-sdk\?branch=master#[0-9a-f]+' "${REPO_ROOT}/Cargo.lock" | cut -d'#' -f2 | sort -u)"
-REV="${REV%%$'\n'*}" # first line, in case multiple sources are ever pinned
-[ -n "${REV}" ] || { echo "ERROR: could not find the polkadot-sdk revision in ${REPO_ROOT}/Cargo.lock" >&2; exit 1; }
+# 1. Pinned polkadot-sdk commit from Cargo.lock (shared with the CI workflow, see script header).
+REV="$("${REPO_ROOT}/scripts/polkadot-sdk-rev.sh")"
 echo ">> polkadot-sdk revision (from Cargo.lock): ${REV}"
 
 # 2. Obtain a checkout at that exact commit.

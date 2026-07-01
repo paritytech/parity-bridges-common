@@ -31,8 +31,9 @@ jobs:
         id: vars
         run: |
           cat .github/env >> "$GITHUB_OUTPUT"
-          REV="$(grep -oE 'polkadot-sdk\?branch=master#[0-9a-f]+' Cargo.lock | cut -d'#' -f2 | sort -u | head -1)"
-          [ -n "$REV" ] || { echo "ERROR: could not find the polkadot-sdk revision in Cargo.lock" >&2; exit 1; }
+          # Shared with tests/codegen/generate.sh so the node images and the committed codegen track
+          # the same pinned polkadot-sdk revision.
+          REV="$(scripts/polkadot-sdk-rev.sh)"
           # The paritypr `*-debug` images are tagged with the short (8-char) commit.
           echo "POLKADOT_SDK_HASH=${REV:0:8}" >> "$GITHUB_OUTPUT"
           echo "Using polkadot-sdk revision: ${REV:0:8} (full: $REV)"
