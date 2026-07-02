@@ -40,8 +40,8 @@
 #   --wasm-file <path>                   use one explicit blob (single --chains entry); skip clone+build
 #   --cleanup                            remove the cloned checkout when done
 #
-# Requirements: git and the Rust toolchain pinned in RUST_TOOLCHAIN below with its
-# wasm32-unknown-unknown target (only when building WASM, i.e. without --wasm-dir / --wasm-file).
+# Requirements: git and the repo's installed cargo/rustc. Building WASM (i.e. without --wasm-dir /
+# --wasm-file) also needs the wasm32-unknown-unknown target; formatting needs nightly rustfmt.
 
 set -euo pipefail
 
@@ -52,17 +52,6 @@ DEFAULT_SDK="${REPO_ROOT}/target/polkadot-sdk-codegen"
 
 # The rococo/westend chain family both targets cover by default.
 ROCOCO_WESTEND_CHAINS="rococo westend asset-hub-rococo asset-hub-westend bridge-hub-rococo bridge-hub-westend"
-
-# ============================================================================
-# Rust toolchain used to build the polkadot-sdk runtimes.
-#
-# polkadot-sdk ships no rust-toolchain.toml, so we pin the build toolchain here. A too-new rustc
-# fails to compile the runtimes (e.g. `#[no_mangle] cannot be used on internal language items` in
-# sp-io).
-#
-# >>> UPDATE THIS whenever the pinned polkadot-sdk revision changes, to a rustc that builds it. <<<
-# ============================================================================
-RUST_TOOLCHAIN="1.84.1"
 
 usage() { sed -n '/^# Usage:/,/^# Requirements:/p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'; }
 
@@ -158,18 +147,15 @@ else
 	fi
 	echo ">> using polkadot-sdk checkout at: ${SDK_DIR}"
 
-	# Toolchain check (polkadot-sdk ships no rust-toolchain.toml, so pin one; too-new rustc fails).
-	echo ">> using rust toolchain: ${RUST_TOOLCHAIN}"
-	rustup toolchain list | grep -q "^${RUST_TOOLCHAIN}" \
-		|| { echo "ERROR: rust toolchain '${RUST_TOOLCHAIN}' not installed (rustup toolchain install ${RUST_TOOLCHAIN})" >&2; exit 1; }
-	rustup target add --toolchain "${RUST_TOOLCHAIN}" wasm32-unknown-unknown >/dev/null 2>&1 || true
+	# Ensure the wasm target for the installed toolchain (best-effort; wasm-builder needs it).
+	rustup target add wasm32-unknown-unknown >/dev/null 2>&1 || true
 
-	# Build the needed `<chain>-runtime` WASM blobs (wasm-builder emits them under target/release/wbuild/).
+	# Build the needed `<chain>-runtime` WASM blobs with the installed cargo (wasm-builder emits them
+	# under target/release/wbuild/).
 	echo ">> building runtime wasm (slow on a fresh checkout)"
 	PKGS=()
 	for chain in "${CHAINS[@]}"; do PKGS+=(-p "${chain}-runtime"); done
-	( cd "${SDK_DIR}" && RUSTUP_TOOLCHAIN="${RUST_TOOLCHAIN}" CARGO_NET_GIT_FETCH_WITH_CLI=true \
-		cargo build --release "${PKGS[@]}" )
+	( cd "${SDK_DIR}" && CARGO_NET_GIT_FETCH_WITH_CLI=true cargo build --release "${PKGS[@]}" )
 fi
 
 cleanup() {
