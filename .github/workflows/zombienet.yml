@@ -86,10 +86,19 @@ jobs:
   # Runs on a Docker-capable runner (no container) so the docker provider can use the host Docker
   # daemon and reach the spawned nodes on 127.0.0.1.
   run-tests:
-    name: Run zombienet tests
+    name: Run zombienet tests (${{ matrix.test }})
     runs-on: parity-large
     needs: [set-variables, build-relay]
     timeout-minutes: 90
+    strategy:
+      # Each test spawns its own full Rococo+Westend networks, so run the tests on separate runners
+      # in parallel (one per matrix entry) rather than serially on one. Add an entry per test.
+      # fail-fast: false so one failing test does not cancel the others.
+      fail-fast: false
+      matrix:
+        test:
+          - rococo_westend::asset_transfer
+          - rococo_westend::free_headers
     env:
       ZOMBIE_PROVIDER: ${{ needs.set-variables.outputs.ZOMBIE_PROVIDER }}
       POLKADOT_IMAGE: ${{ needs.set-variables.outputs.IMAGE_REGISTRY }}/polkadot-debug:${{ needs.set-variables.outputs.POLKADOT_SDK_HASH }}
@@ -137,4 +146,4 @@ jobs:
           docker pull "$CUMULUS_IMAGE"
 
       - name: Run zombienet tests
-        run: cargo test -p bridges-zombienet-sdk-tests --features zombie-ci -- --nocapture --test-threads=1
+        run: cargo test -p bridges-zombienet-sdk-tests --features zombie-ci ${{ matrix.test }} -- --nocapture --test-threads=1
