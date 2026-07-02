@@ -161,6 +161,13 @@ jobs:
       - name: Checkout sources
         uses: actions/checkout@v4
 
+      # the cargo-deny bundled in the CI image is too old to parse current
+      # advisory-db entries (e.g. CVSS 4.0 vectors), so install a recent one
+      - name: Install cargo-deny
+        uses: taiki-e/install-action@16b05812d776ae1dfaabc8277e421fb6d2506419 # v2.82.7
+        with:
+          tool: cargo-deny@0.19.9
+
       - name: Deny
         run: |
           cargo deny check advisories --hide-inclusion-graph
