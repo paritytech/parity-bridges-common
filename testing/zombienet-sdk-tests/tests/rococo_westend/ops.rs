@@ -300,18 +300,20 @@ macro_rules! asset_hub_ops {
 				Ok(maybe.map(|a| a.balance))
 			}
 
-						/// Whether the bridged foreign asset is owned by `account` on this Asset Hub.
-			pub async fn bridged_asset_owner_is(
-				client: &OnlineClient<PolkadotConfig>,
-				bridged_by_genesis: [u8; 32],
-				account: &subxt::utils::AccountId32,
-			) -> Result<bool, anyhow::Error> {
-				let addr = crate::$ah::storage().foreign_assets().asset(bridged_asset(bridged_by_genesis));
-				match client.storage().at_latest().await?.fetch(&addr).await? {
-					Some(details) => Ok(&details.owner == account),
-					None => Ok(false),
+				/// Whether the bridged foreign asset is owned by `account` on this Asset Hub.
+				pub async fn bridged_asset_owner_is(
+					client: &OnlineClient<PolkadotConfig>,
+					bridged_by_genesis: [u8; 32],
+					account: &subxt::utils::AccountId32,
+				) -> Result<bool, anyhow::Error> {
+					let addr = crate::$ah::storage()
+						.foreign_assets()
+						.asset(bridged_asset(bridged_by_genesis));
+					match client.storage().at_latest().await?.fetch(&addr).await? {
+						Some(details) => Ok(&details.owner == account),
+						None => Ok(false),
+					}
 				}
-			}
 
 			/// Whether the HRMP egress channel towards `sibling` is open.
 			pub async fn hrmp_egress_open(

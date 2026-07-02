@@ -83,26 +83,13 @@ jobs:
           path: ./artifacts
           retention-days: 2
 
-  # Runs on a Docker-capable runner (no container) so the docker provider can use the host Docker
-  # daemon and reach the spawned nodes on 127.0.0.1.
-  run-tests:
-    name: Run zombienet tests (${{ matrix.test }})
+  # Compiles the zombienet integration test binary once (without running it) and uploads it, so each
+  # matrix leg in `run-tests` only downloads and runs it instead of recompiling the crate per test.
+  # Built on the same bare `parity-large` runner the tests run on so the binary's dynamic libs match.
+  build-tests:
+    name: Build zombienet test binary
     runs-on: parity-large
-    needs: [set-variables, build-relay]
-    timeout-minutes: 90
-    strategy:
-      # Each test spawns its own full Rococo+Westend networks, so run the tests on separate runners
-      # in parallel (one per matrix entry) rather than serially on one. Add an entry per test.
-      # fail-fast: false so one failing test does not cancel the others.
-      fail-fast: false
-      matrix:
-        test:
-          - rococo_westend::asset_transfer
-          - rococo_westend::free_headers
-    env:
-      ZOMBIE_PROVIDER: ${{ needs.set-variables.outputs.ZOMBIE_PROVIDER }}
-      POLKADOT_IMAGE: ${{ needs.set-variables.outputs.IMAGE_REGISTRY }}/polkadot-debug:${{ needs.set-variables.outputs.POLKADOT_SDK_HASH }}
-      CUMULUS_IMAGE: ${{ needs.set-variables.outputs.IMAGE_REGISTRY }}/polkadot-parachain-debug:${{ needs.set-variables.outputs.POLKADOT_SDK_HASH }}
+    needs: [check-codegen-compat]
     steps:
       - name: Checkout sources
         uses: actions/checkout@v4
@@ -126,10 +113,55 @@ jobs:
           cache-all-crates: true
           workspaces: ". -> target"
 
+      - name: Build test binary
+        run: |
+          # Compile the `zombie-ci` test binary without running it, then stash the freshly built
+          # binary (cargo names the `bridges` test target target/debug/deps/bridges-<hash>; take the
+          # newest, excluding the .d depfile) for the matrix legs.
+          cargo test -p bridges-zombienet-sdk-tests --features zombie-ci --no-run
+          bin="$(ls -t target/debug/deps/bridges-* | grep -v '\.d$')"
+          mkdir -p ./artifacts
+          cp "${bin%%$'\n'*}" ./artifacts/bridges-zombienet-tests
+
+      - name: Upload test binary
+        uses: actions/upload-artifact@v4
+        with:
+          name: zombienet-test-binary
+          path: ./artifacts
+          retention-days: 2
+
+  # Runs on a Docker-capable runner (no container) so the docker provider can use the host Docker
+  # daemon and reach the spawned nodes on 127.0.0.1.
+  run-tests:
+    name: Run zombienet tests (${{ matrix.test }})
+    runs-on: parity-large
+    needs: [set-variables, build-relay, build-tests]
+    timeout-minutes: 90
+    strategy:
+      # Each test spawns its own full Rococo+Westend networks, so run the tests on separate runners
+      # in parallel (one per matrix entry) rather than serially on one. Add an entry per test.
+      # fail-fast: false so one failing test does not cancel the others. These legs download the
+      # prebuilt test binary from `build-tests` (no per-leg recompile) and just run it.
+      fail-fast: false
+      matrix:
+        test:
+          - rococo_westend::asset_transfer
+          - rococo_westend::free_headers
+    env:
+      ZOMBIE_PROVIDER: ${{ needs.set-variables.outputs.ZOMBIE_PROVIDER }}
+      POLKADOT_IMAGE: ${{ needs.set-variables.outputs.IMAGE_REGISTRY }}/polkadot-debug:${{ needs.set-variables.outputs.POLKADOT_SDK_HASH }}
+      CUMULUS_IMAGE: ${{ needs.set-variables.outputs.IMAGE_REGISTRY }}/polkadot-parachain-debug:${{ needs.set-variables.outputs.POLKADOT_SDK_HASH }}
+    steps:
       - name: Download substrate-relay
         uses: actions/download-artifact@v4
         with:
           name: substrate-relay
+          path: ./bin
+
+      - name: Download test binary
+        uses: actions/download-artifact@v4
+        with:
+          name: zombienet-test-binary
           path: ./bin
 
       - name: Point the tests at the relay binary
@@ -145,5 +177,9 @@ jobs:
           docker pull "$POLKADOT_IMAGE"
           docker pull "$CUMULUS_IMAGE"
 
-      - name: Run zombienet tests
-        run: cargo test -p bridges-zombienet-sdk-tests --features zombie-ci ${{ matrix.test }} -- --nocapture --test-threads=1
+      # Run the prebuilt libtest binary directly with the test-name filter (a libtest binary takes
+      # the same positional filter + `--nocapture`/`--test-threads` as `cargo test -- ...`).
+      - name: Run zombienet test
+        run: |
+          chmod +x "$GITHUB_WORKSPACE/bin/bridges-zombienet-tests"
+          "$GITHUB_WORKSPACE/bin/bridges-zombienet-tests" ${{ matrix.test }} --nocapture --test-threads=1
