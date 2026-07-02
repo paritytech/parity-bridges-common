@@ -29,6 +29,11 @@ struct Command {
 	node_url: Option<Url>,
 	#[clap(name = "from-wasm-file", long, value_parser)]
 	wasm_file: Option<String>,
+	/// Emit a full subxt client (the `tx()`/`storage()`/`apis()` accessors and subxt's default
+	/// derives) instead of the relay-client default of `runtime_types`-only. Used to generate the
+	/// typed modules the zombienet-sdk tests consume, equivalent to the `#[subxt::subxt(..)]` macro.
+	#[clap(long)]
+	full: bool,
 }
 
 enum RuntimeMetadataSource {
@@ -104,13 +109,45 @@ fn print_runtime(runtime_api: proc_macro2::TokenStream) {
 	);
 }
 
+fn fetch_metadata(source: RuntimeMetadataSource) -> color_eyre::Result<Vec<u8>> {
+	match source {
+		RuntimeMetadataSource::NodeUrl(node_url) =>
+			from_url_blocking(node_url, MetadataVersion::Latest)
+				.map_err(|e| eyre::eyre!("Error fetching metadata from node url: {:?}", e)),
+		RuntimeMetadataSource::WasmFile(source) => {
+			let testbed = WasmTestBed::new(&source)
+				.map_err(|e| eyre::eyre!("Error creating WasmTestBed: {:?}", e))?;
+			Ok(testbed.runtime_metadata_prefixed().encode())
+		},
+	}
+}
+
 fn main() -> color_eyre::Result<()> {
 	let args: Command = Command::parse();
+	let full = args.full;
 	let metadata_source = RuntimeMetadataSource::from_command(args)?;
 
 	let mut codegen_builder = CodegenBuilder::new();
-	codegen_builder.runtime_types_only();
 	codegen_builder.no_docs();
+
+	// `--full` emits a complete subxt client (with `tx()`/`storage()`/`apis()` accessors and subxt's
+	// default derives), equivalent to what `#[subxt::subxt(..)]` produces — this is what the
+	// zombienet-sdk tests consume. The relay-client default below is `runtime_types`-only with custom
+	// codec derives and `bp_*`/`sp_*` type substitutes, which the relay machinery relies on.
+	if full {
+		// Generate the Runtime API and exit early — none of the relay-client customizations below
+		// (types-only, custom derives, type substitutes) apply to the test client.
+		let raw_metadata = fetch_metadata(metadata_source)?;
+		let metadata = Metadata::decode(&mut &raw_metadata[..])
+			.map_err(|e| eyre::eyre!("Error decoding metadata: {:?}", e))?;
+		let runtime_api = codegen_builder
+			.generate(metadata)
+			.map_err(|e| eyre::eyre!("Error generating runtime api: {:?}", e))?;
+		print_runtime(runtime_api);
+		return Ok(());
+	}
+
+	codegen_builder.runtime_types_only();
 
 	// Default module derivatives.
 	codegen_builder.disable_default_derives();
@@ -173,16 +210,7 @@ fn main() -> color_eyre::Result<()> {
 	}
 
 	// Generate the Runtime API.
-	let raw_metadata = match metadata_source {
-		RuntimeMetadataSource::NodeUrl(node_url) =>
-			from_url_blocking(node_url, MetadataVersion::Latest)
-				.map_err(|e| eyre::eyre!("Error fetching metadata from node url: {:?}", e))?,
-		RuntimeMetadataSource::WasmFile(source) => {
-			let testbed = WasmTestBed::new(&source)
-				.map_err(|e| eyre::eyre!("Error creating WasmTestBed: {:?}", e))?;
-			testbed.runtime_metadata_prefixed().encode()
-		},
-	};
+	let raw_metadata = fetch_metadata(metadata_source)?;
 	let metadata = Metadata::decode(&mut &raw_metadata[..])
 		.map_err(|e| eyre::eyre!("Error decoding metadata: {:?}", e))?;
 

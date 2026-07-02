@@ -91,7 +91,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Spellcheck
-        run: cargo spellcheck check --cfg=.config/spellcheck.toml --checkers hunspell -m 1 $(find . -type f -name '*.rs' ! -path "./target/*" ! -name 'codegen_runtime.rs' ! -name 'weights.rs')
+        run: cargo spellcheck check --cfg=.config/spellcheck.toml --checkers hunspell -m 1 $(find . -type f -name '*.rs' ! -path "./target/*" ! -path "*/tests/codegen/*" ! -name 'codegen_runtime.rs' ! -name 'weights.rs')
 
   # todo: fixme
   check:
