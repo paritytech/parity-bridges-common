@@ -101,6 +101,29 @@ pub async fn bridge_hub_westend_relayer_reward(
 	Ok(client.storage().at_latest().await?.fetch(&addr).await?)
 }
 
+/// Asserts that `//Charlie` and `//Dave` keep exactly the genesis endowment on both Bridge Hubs
+/// (the finality/parachain relayers submit only free or mandatory headers, so their balance must
+/// not change across a test).
+pub async fn assert_relayer_balances_unchanged(
+	bhr: &OnlineClient<PolkadotConfig>,
+	bhw: &OnlineClient<PolkadotConfig>,
+	charlie: [u8; 32],
+	dave: [u8; 32],
+) -> Result<(), anyhow::Error> {
+	for (name, balance) in [
+		("Charlie@RococoBH", bridge_hub_rococo::free_balance(bhr, charlie).await?),
+		("Dave@RococoBH", bridge_hub_rococo::free_balance(bhr, dave).await?),
+		("Charlie@WestendBH", bridge_hub_westend::free_balance(bhw, charlie).await?),
+		("Dave@WestendBH", bridge_hub_westend::free_balance(bhw, dave).await?),
+	] {
+		anyhow::ensure!(
+			balance == ENDOWMENT,
+			"relayer {name} balance changed: {balance} != {ENDOWMENT}"
+		);
+	}
+	Ok(())
+}
+
 mod environment;
 pub use environment::BridgeTestEnv;
 

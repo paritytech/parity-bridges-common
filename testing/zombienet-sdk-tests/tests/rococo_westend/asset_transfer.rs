@@ -12,9 +12,9 @@
 //!     their transactions are free.
 
 use crate::rococo_westend::{
-	asset_hub_rococo, asset_hub_westend, bridge_hub_rococo_relayer_reward,
-	bridge_hub_westend_relayer_reward, dev_account, dev_public, retry_until, BridgeTestEnv,
-	ENDOWMENT, ROCOCO_GENESIS_HASH, WESTEND_GENESIS_HASH,
+	assert_relayer_balances_unchanged, asset_hub_rococo, asset_hub_westend,
+	bridge_hub_rococo_relayer_reward, bridge_hub_westend_relayer_reward, dev_account, dev_public,
+	retry_until, BridgeTestEnv, ROCOCO_GENESIS_HASH, WESTEND_GENESIS_HASH,
 };
 use std::time::Duration;
 use subxt::{OnlineClient, PolkadotConfig};
@@ -188,26 +188,4 @@ async fn wait_for_native_increase(
 		}
 	})
 	.await
-}
-
-/// Asserts that `//Charlie` and `//Dave` keep exactly the genesis endowment on both Bridge Hubs.
-async fn assert_relayer_balances_unchanged(
-	bhr: &OnlineClient<PolkadotConfig>,
-	bhw: &OnlineClient<PolkadotConfig>,
-	charlie: [u8; 32],
-	dave: [u8; 32],
-) -> Result<(), anyhow::Error> {
-	use crate::rococo_westend::{bridge_hub_rococo, bridge_hub_westend};
-	for (name, balance) in [
-		("Charlie@RococoBH", bridge_hub_rococo::free_balance(bhr, charlie).await?),
-		("Dave@RococoBH", bridge_hub_rococo::free_balance(bhr, dave).await?),
-		("Charlie@WestendBH", bridge_hub_westend::free_balance(bhw, charlie).await?),
-		("Dave@WestendBH", bridge_hub_westend::free_balance(bhw, dave).await?),
-	] {
-		anyhow::ensure!(
-			balance == ENDOWMENT,
-			"relayer {name} balance changed: {balance} != {ENDOWMENT}"
-		);
-	}
-	Ok(())
 }
