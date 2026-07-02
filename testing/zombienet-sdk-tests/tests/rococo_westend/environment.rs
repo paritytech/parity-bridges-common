@@ -58,44 +58,29 @@ fn bridge_hub_balances_override(sovereign_accounts: &[&str]) -> serde_json::Valu
 	serde_json::json!({ "balances": { "balances": balances } })
 }
 
-/// Relay-chain genesis override allowing a non-zero relay-parent ancestry. asset-hub-westend sets
-/// `RELAY_PARENT_OFFSET = 1` (authors on a relay parent one block behind best), so the relay must
-/// accept candidates whose relay parent is an ancestor of its best block; the local presets ship
-/// `allowed_ancestry_len: 0` (latest only), which would reject them.
+/// Relay-chain genesis override for the async-backing params both networks need.
+///
+/// `allowed_ancestry_len: 2` (presets ship `0`, latest-only): asset-hub-westend authors with
+/// `RELAY_PARENT_OFFSET = 1`, i.e. on a relay parent one block behind best, which the relay must
+/// accept. `max_candidate_depth: 1` keeps the bridge-hub unincluded segment shallow so a
+/// fast-runtime relay reorg strands at most ~1 already-authored parablock; empirically it lost the
+/// fewest relayer proof txs to reorgs (vs deeper or shallower depths).
 fn relay_async_backing_override() -> serde_json::Value {
 	serde_json::json!({
-		"configuration": {
-			"config": {
-				// `max_candidate_depth: 1` keeps the bridge-hub unincluded segment shallow so a
-				// fast-runtime relay reorg strands at most ~1 already-authored parablock rather than
-				// a deep pipelined segment. With depth 3 the collator reached #170 while the relay
-				// had only backed #164/included #163, then reorged #170->#163, discarding the
-				// relayer's in-flight finality/parachain-head/message proof txs (=> ProofSubmissionTxLost).
-				// Empirically depth 1 gave the fewest such losses (~8, vs ~20 at depth 3 and ~10 at
-				// depth 0) — the best-performing config found for these bridge zombienet-sdk tests
-				// under fast-runtime relay churn (both bridge directions deliver; the test still times
-				// out on confirmation/round-trip legs due to relay-chain reorg churn beyond parachain
-				// config's reach). `allowed_ancestry_len` stays 2 — asset-hub-westend authors with
-				// RELAY_PARENT_OFFSET=1 and needs >=1.
-				"async_backing_params": { "max_candidate_depth": 1, "allowed_ancestry_len": 2 }
-			}
-		}
+		"configuration": { "config": {
+			"async_backing_params": { "max_candidate_depth": 1, "allowed_ancestry_len": 2 }
+		} }
 	})
 }
 
 fn rococo_network_config() -> Result<NetworkConfig, anyhow::Error> {
 	let images = node_images();
-	// Bridge hubs use the default (fork-aware) transaction pool, which re-validates pending txs
-	// across reorgs so the relayer's proof transactions survive the bridge hubs' relay-parent
-	// reorgs.
+	// Bridge hubs keep the default fork-aware tx pool (re-validates pending txs across reorgs, so
+	// the relayer's proof txs survive relay-parent reorgs) and author slot-based, which paces
+	// block production to the relay's backing instead of over-producing an unincluded segment that
+	// a fast-runtime relay reorg would discard (losing in-flight proof txs).
 	let bh_args: Vec<Arg> = vec![
 		"-lparachain=info,runtime::bridge=trace,xcm=debug,txpool=debug".into(),
-		// Slot-based authoring paces bridge-hub block production to the relay chain's backing
-		// instead of over-producing an unincluded segment (we saw the collator reach #170 while
-		// the relay had only backed #164/included #163, forcing a ~7-block reorg back to #163
-		// whenever the fast-runtime relay chain reorged — which discards the relay's in-flight
-		// finality/parachain-head/message proof txs => ProofSubmissionTxLost, reverse leg stuck).
-		// Matches what asset-hub-westend already requires.
 		"--authoring".into(),
 		"slot-based".into(),
 	];
@@ -124,22 +109,17 @@ fn rococo_network_config() -> Result<NetworkConfig, anyhow::Error> {
 				.cumulus_based(true)
 				.with_default_command("polkadot-parachain")
 				.with_default_image(images.cumulus.as_str())
-				// Pre-fund the bridge sovereign/reward accounts at genesis instead of via
-				// post-spawn transactions: a freshly launched bridge hub reorgs at the tip, which
-				// invalidates submitted funding txs (and the bridge-hub tx path is fragile under
-				// the relayer reward/obsolete extensions). Genesis state is the idiomatic
-				// zombienet-sdk way and sidesteps that entirely.
+				// Pre-fund the bridge sovereign/reward accounts at genesis rather than via
+				// post-spawn txs: a freshly launched bridge hub reorgs at the tip and would
+				// invalidate them.
 				.with_genesis_overrides(bridge_hub_balances_override(&[
 					ASSET_HUB_SOVEREIGN_AT_BRIDGE_HUB,
 					BHR_LANE_THIS_CHAIN,
 					BHR_LANE_BRIDGED_CHAIN,
 				]))
-				// Single collator on the bridge hub. A second collator caused competing block
-				// production (fork war): the bridge hub's best block oscillated between forks and
-				// the block carrying the relayer's bridged-finality / parachain-head update kept
-				// getting retracted before finalization, so the relayer's proof tx was repeatedly
-				// invalidated and the bridged side never made durable progress. One collator builds
-				// linearly with no fork competition, so those updates land and finalize.
+				// A single bridge-hub collator: a second one fork-wars, retracting the block
+				// carrying the relayer's finality/parachain-head update before it finalizes.
+				// One builds linearly.
 				.with_collator(|n| {
 					n.with_name("bridge-hub-rococo-collator1").with_args(bh_args.clone())
 				})
@@ -163,21 +143,14 @@ fn rococo_network_config() -> Result<NetworkConfig, anyhow::Error> {
 
 fn westend_network_config() -> Result<NetworkConfig, anyhow::Error> {
 	let images = node_images();
-	// See `rococo_network_config`: bridge hubs use the default fork-aware pool so the relayer's
-	// proof txs survive reorgs.
+	// Fork-aware pool + slot-based authoring, see `rococo_network_config`.
 	let bh_args: Vec<Arg> = vec![
 		"-lparachain=info,runtime::bridge=trace,xcm=debug,txpool=debug".into(),
-		// Slot-based authoring paces bridge-hub block production to the relay chain's backing
-		// instead of over-producing an unincluded segment (we saw the collator reach #170 while
-		// the relay had only backed #164/included #163, forcing a ~7-block reorg back to #163
-		// whenever the fast-runtime relay chain reorged — which discards the relay's in-flight
-		// finality/parachain-head/message proof txs => ProofSubmissionTxLost, reverse leg stuck).
-		// Matches what asset-hub-westend already requires.
 		"--authoring".into(),
 		"slot-based".into(),
 	];
-	// The asset-hub-westend runtime authors via the slot-based collator (it panics under
-	// default/lookahead authoring — the block lacks the expected relay-parent descendants).
+	// The asset-hub-westend runtime must author slot-based (it panics under default/lookahead
+	// authoring — the block lacks the expected relay-parent descendants).
 	let ah_args: Vec<Arg> = vec![
 		"-lparachain=info,xcm=debug,runtime::bridge=trace,txpool=debug".into(),
 		"--authoring".into(),
@@ -213,10 +186,7 @@ fn westend_network_config() -> Result<NetworkConfig, anyhow::Error> {
 					BHW_LANE_THIS_CHAIN,
 					BHW_LANE_BRIDGED_CHAIN,
 				]))
-				// Single collator on the bridge hub (see `rococo_network_config`): a second
-				// collator fork-wars and retracts the block carrying the relayer's
-				// bridged-finality / parachain-head update before finalization. One collator
-				// builds linearly so those updates land and finalize.
+				// Single bridge-hub collator, see `rococo_network_config`.
 				.with_collator(|n| {
 					n.with_name("bridge-hub-westend-collator1").with_args(bh_args.clone())
 				})
@@ -227,8 +197,7 @@ fn westend_network_config() -> Result<NetworkConfig, anyhow::Error> {
 				.cumulus_based(true)
 				.with_default_command("polkadot-parachain")
 				.with_default_image(images.cumulus.as_str())
-				// Single slot-based collator (see `rococo_network_config`): the test drives one
-				// endpoint and one builder avoids fork competition.
+				// Single asset-hub collator, see `rococo_network_config`.
 				.with_collator(|n| {
 					n.with_name("asset-hub-westend-collator1").with_args(ah_args.clone())
 				})
@@ -372,21 +341,19 @@ impl BridgeTestEnv {
 		let alice = dev::alice();
 		let owner_acc = dev_account(&alice);
 
-		// Wait until each bridge hub has finalized its first block: proof the full
-		// collation -> backing -> inclusion -> finality pipeline is live (a stronger and faster
-		// signal than N best blocks). The asset hubs only need their RPC up to build the calls
-		// below (already guaranteed by `wait_client`), and their on-chain effects are confirmed
-		// by the `retry_until` checks further down.
+		// Wait until each bridge hub finalizes its first block: proof the full
+		// collation -> backing -> inclusion -> finality pipeline is live. The asset hubs only need
+		// their RPC up (via `wait_client`); their effects are confirmed by the `retry_until`s
+		// below.
 		log::info!("Waiting for bridge hubs to finalize their first block");
 		tokio::try_join!(
 			wait_for_finalized_height(&bhr, 1, Duration::from_secs(300)),
 			wait_for_finalized_height(&bhw, 1, Duration::from_secs(300)),
 		)?;
 
-		// Build the full bridge-init governance for each relay as a single `sudo(batch_all(..))`:
-		// HRMP channel opens + remote XCM versions + bridged foreign-asset creation. The two relays
-		// are independent chains, so both batches are submitted concurrently. (The on-parachain XCM
-		// effects are async and confirmed by the `retry_until` checks below.)
+		// Bridge-init governance per relay as one `sudo(batch_all(..))`: HRMP opens + remote XCM
+		// versions + bridged foreign-asset creation. Independent relays, so submit both
+		// concurrently.
 		log::info!("Submitting batched bridge-init governance to both relays");
 		let ahw_on_ahr = asset_hub_rococo::remote_asset_hub(WESTEND_GENESIS_HASH);
 		let force_ahw =
@@ -534,14 +501,9 @@ impl BridgeTestEnv {
 		)?;
 		log::info!("HRMP channels open and bridged foreign assets created on both Asset Hubs");
 
-		// No asset-conversion pool / liquidity setup here. The bridged foreign asset is created as
-		// `is_sufficient = true` (see `force_create_foreign_asset_call`), so at this runtime
-		// revision it can pay its own XCM execution fees directly — there is no need to seed a
-		// native<>bridged pool (and we couldn't anyway: nothing mints the bridged asset to a
-		// local account before the first bridge transfer).
-
-		// The bridge sovereign / reward accounts are pre-funded at genesis (see
-		// `bridge_hub_balances_override`), so there is no post-spawn funding step here.
+		// No asset-conversion pool needed: the bridged asset is `is_sufficient` (see
+		// `force_create_foreign_asset_call`) so it pays its own XCM fees. Sovereign/reward accounts
+		// are funded via genesis (see `bridge_hub_balances_override`), so nothing to fund here.
 
 		log::info!("Bridge initialization complete");
 		Ok(())
@@ -558,20 +520,12 @@ impl BridgeTestEnv {
 		let bh_westend =
 			self.westend.get_node("bridge-hub-westend-collator1")?.ws_uri().to_string();
 
-		// A freshly launched bridge hub reorgs heavily for the first few dozen blocks (collators
-		// racing, finality lagging), so a one-shot `init-bridge` tx submitted during that window
-		// can be orphaned. Rather than pre-waiting for a fixed finalized height before init, we
-		// drive `init-bridge` directly and wait (bounded, inside `init_bridge_confirmed`) for the
-		// real init signal — `operating_mode == Normal` at a finalized block — re-submitting
-		// until it holds. Early orphaned attempts are simply retried.
 		let bhr_client = Self::client_of(&self.rococo, "bridge-hub-rococo-collator1").await?;
 		let bhw_client = Self::client_of(&self.westend, "bridge-hub-westend-collator1").await?;
 
-		// init-bridge (idempotent), driven from finalized state until the GRANDPA pallet is
-		// confirmed `Normal` at a finalized block (best-state can be a reorg victim). The two
-		// directions target different bridge hubs and are independent, so initialize them
-		// concurrently. (Args are bound to locals so they outlive the concurrently-awaited
-		// futures that borrow them.)
+		// init-bridge each direction, retried until confirmed at a finalized block (see
+		// `init_bridge_confirmed`). Independent bridge hubs, so run both concurrently; args are
+		// bound to locals so they outlive the awaited futures that borrow them.
 		let init_bhr_args = [
 			"init-bridge",
 			"westend-to-bridge-hub-rococo",
@@ -642,7 +596,7 @@ impl BridgeTestEnv {
 		])?);
 
 		// Parachains relayers (free parachain headers, signed by //Dave). The `relay-parachains`
-		// subcommand identifies the bridge by its Bridge Hub pair (`substrate-relay` >= v1.8.10).
+		// subcommand identifies the bridge by its Bridge Hub pair.
 		self._relayers.push(spawn_relayer(&[
 			"relay-parachains",
 			"bridge-hub-rococo-to-bridge-hub-westend",

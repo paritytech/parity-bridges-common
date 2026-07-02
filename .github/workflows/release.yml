@@ -125,10 +125,8 @@ jobs:
           RUNTIME_FILE: ${{ env.RUNTIME_FILE }}
           TARGET_DIR: ${{ env.TARGET_DIR }}
         run: |
-          # Reuse the shared generator. Derive the dashed chain name from the target dir
-          # (relay-clients/client-<chain>/src), then generate the relay-client (`runtime_types`-only)
-          # codegen from the downloaded Fellows WASM. The script also applies the `Header` fixup and
-          # formats the output.
+          # Generate the relay-client codegen from the downloaded Fellows WASM via the shared script
+          # (chain derived from the target dir). The script also applies the Header fixup + fmt.
           client_dir="$(basename "$(dirname "$TARGET_DIR")")"   # e.g. client-bridge-hub-polkadot
           chain="${client_dir#client-}"                          # e.g. bridge-hub-polkadot
           echo "Generating relay-client codegen for '$chain' from $RUNTIME_FILE"

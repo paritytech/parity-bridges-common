@@ -48,11 +48,9 @@ async fn asset_transfer_works() -> Result<(), anyhow::Error> {
 	let eve = dev_account(&dev::eve());
 	let ferdie = dev_account(&dev::ferdie());
 
-	// === Phase 1: forward transfers, both directions concurrently. ===
-	// leg A (5 ROC: Rococo AH -> Westend AH) submits on Rococo AH; leg B (5 WND: Westend AH ->
-	// Rococo AH) submits on Westend AH. Different chains, so the shared `//Alice` signer has no
-	// nonce contention and both can run in parallel. Each leg also waits for its wrapped asset to
-	// arrive on the remote AH and for its message relayer to be rewarded.
+	// Phase 1: forward transfers, both directions concurrently (different chains => the shared
+	// `//Alice` signer has no nonce contention). Each leg sends 5 units, then waits for the wrapped
+	// asset to arrive on the remote AH and for its message relayer to be rewarded.
 	tokio::try_join!(
 		async {
 			// ROC is native to Rococo AH, so Rococo AH is the reserve.
@@ -126,13 +124,9 @@ async fn asset_transfer_works() -> Result<(), anyhow::Error> {
 		},
 	)?;
 
-	// === Phase 2: return (unwrap) transfers, both directions concurrently. ===
-	// leg C (3 wrapped ROC back: Westend AH -> Rococo AH) submits on Westend AH; leg D (3 wrapped
-	// WND back: Rococo AH -> Westend AH) submits on Rococo AH. Different chains again => parallel
-	// safe. Each needs its phase-1 forward leg to have delivered the wrapped asset (the phase
-	// barrier guarantees that, and also keeps Westend AH's leg B / leg C — and Rococo AH's leg A /
-	// leg D — off the same `//Alice` nonce). The wrapped asset's reserve is the destination AH, so
-	// both use a destination reserve.
+	// Phase 2: return (unwrap) 3 units each way, concurrently. The phase barrier ensures phase 1
+	// delivered the wrapped asset (and keeps both legs off the same `//Alice` nonce per chain). The
+	// wrapped asset's reserve is the destination AH, so both use `DestinationReserve`.
 	tokio::try_join!(
 		async {
 			let initial_roc = asset_hub_rococo::free_balance(&ahr, alice_pub).await?;

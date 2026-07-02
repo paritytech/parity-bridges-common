@@ -55,12 +55,9 @@ async fn run_relayer_to_completion(args: &[&str]) -> Result<(), anyhow::Error> {
 	Ok(())
 }
 
-/// Returns `true` if the bridge GRANDPA pallet `grandpa_pallet` on `client`'s chain reports
-/// `operating_mode == Normal` at the latest **finalized** block.
-///
-/// Read dynamically (from the node's runtime metadata) at a finalized block on purpose:
-/// `BasicOperatingMode` SCALE-encodes to a single byte (`0` = Normal, `1` = Halted), and reading
-/// at finalized (not best) means a reorg-victim block can't give a false answer.
+/// Returns `true` if bridge GRANDPA pallet `grandpa_pallet` reports `operating_mode == Normal` at
+/// the latest **finalized** block. Read at finalized (not best) so a reorg-victim block can't give
+/// a false answer; `BasicOperatingMode` encodes to one byte (`0` = Normal).
 async fn bridge_operating_mode_normal_at_finalized(
 	client: &OnlineClient<PolkadotConfig>,
 	grandpa_pallet: &str,
@@ -78,26 +75,17 @@ async fn bridge_operating_mode_normal_at_finalized(
 	}
 }
 
-/// Runs the idempotent `init-bridge` command until the bridge is confirmed operational.
-///
-/// The relay's `init-bridge` decides it is done by reading `is_initialized` at the **best**
-/// (non-finalized) header. On a loaded host the bridge hub reorgs tens of blocks deep, so the
-/// init tx can land on a branch that is briefly best — fooling that check into reporting success —
-/// and is then retracted, leaving the canonical chain `Halted`. We therefore drive init from the
-/// **finalized** state: before each attempt we check `operating_mode == Normal` at a finalized
-/// block, and only stop once that holds. Each attempt re-submits (the relay no-ops fast when it
-/// believes it is already initialized), so once a submission finalizes the bridge is operational.
+/// Runs the idempotent `init-bridge` until the bridge is confirmed operational at a **finalized**
+/// block. The relay's own "already initialized?" check reads the *best* header, which on a reorgy
+/// bridge hub can briefly show a since-retracted init tx as success; so we ignore it and re-submit
+/// until `operating_mode == Normal` holds at finalized (each re-submit no-ops fast once done).
 pub async fn init_bridge_confirmed(
 	args: &[&str],
 	target_client: &OnlineClient<PolkadotConfig>,
 	grandpa_pallet: &str,
 ) -> Result<(), anyhow::Error> {
-	// Overall budget to get the bridge operational. Instead of pre-waiting for a fixed finalized
-	// height, we drive `init-bridge` and poll the real init signal (`operating_mode == Normal` at a
-	// finalized block) until it holds or this deadline elapses. Early attempts submitted while the
-	// bridge hub is still reorging may be orphaned, so we re-submit until one finalizes.
 	const OVERALL_TIMEOUT: Duration = Duration::from_secs(300);
-	// Max time to wait for a single `init-bridge` invocation to finalize before re-checking and
+	// Time to wait for one `init-bridge` invocation to finalize before re-checking and
 	// re-submitting.
 	const PER_ATTEMPT: Duration = Duration::from_secs(90);
 	let deadline = Instant::now() + OVERALL_TIMEOUT;
@@ -132,8 +120,7 @@ pub async fn init_bridge_confirmed(
 		}
 		let _ = child.start_kill();
 		let _ = child.wait().await;
-		// Brief pause so finality can advance before the next poll/resubmit (without overrunning
-		// the overall deadline / hammering the node with rapid connect-disconnect cycles).
+		// Let finality advance before the next poll/resubmit.
 		if Instant::now() < deadline {
 			sleep(Duration::from_secs(6)).await;
 		}

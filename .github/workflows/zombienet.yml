@@ -38,10 +38,8 @@ jobs:
           echo "POLKADOT_SDK_HASH=${REV:0:8}" >> "$GITHUB_OUTPUT"
           echo "Using polkadot-sdk revision: ${REV:0:8} (full: $REV)"
 
-  # Static pre-flight: the committed zombienet codegens (`tests/codegen/*.rs`) must stay
-  # SCALE-compatible with the relay-clients codegens (`relay-clients/*/codegen_runtime.rs`) for the
-  # bridge types the relayer exchanges with the nodes. Runs first (Python-only, no build) so an
-  # incompatibility fails fast instead of after the ~30min build + test below.
+  # Pre-flight (Python-only, no build): fail fast if the zombienet and relay-clients codegens have
+  # drifted into SCALE-incompatible bridge types, before the ~30min build + test below.
   check-codegen-compat:
     name: Check codegen compatibility
     runs-on: ubuntu-latest
@@ -138,10 +136,9 @@ jobs:
     needs: [set-variables, build-relay, build-tests]
     timeout-minutes: 90
     strategy:
-      # Each test spawns its own full Rococo+Westend networks, so run the tests on separate runners
-      # in parallel (one per matrix entry) rather than serially on one. Add an entry per test.
-      # fail-fast: false so one failing test does not cancel the others. These legs download the
-      # prebuilt test binary from `build-tests` (no per-leg recompile) and just run it.
+      # One leg per test, each on its own runner: a test spawns full Rococo+Westend networks, too
+      # heavy to run several concurrently on one runner. Legs run the prebuilt binary from
+      # `build-tests`. fail-fast: false so one failure doesn't cancel the rest. Add an entry per test.
       fail-fast: false
       matrix:
         test:
@@ -177,8 +174,7 @@ jobs:
           docker pull "$POLKADOT_IMAGE"
           docker pull "$CUMULUS_IMAGE"
 
-      # Run the prebuilt libtest binary directly with the test-name filter (a libtest binary takes
-      # the same positional filter + `--nocapture`/`--test-threads` as `cargo test -- ...`).
+      # Run the prebuilt binary with the test-name filter (same args as `cargo test -- ...`).
       - name: Run zombienet test
         run: |
           chmod +x "$GITHUB_WORKSPACE/bin/bridges-zombienet-tests"

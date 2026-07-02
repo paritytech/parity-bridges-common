@@ -23,7 +23,7 @@ const OBSERVE_WINDOW: Duration = Duration::from_secs(300);
 
 #[tokio::test(flavor = "multi_thread")]
 async fn free_headers_synced_while_idle() -> Result<(), anyhow::Error> {
-	// Spawn without `--init` and without starting the relayer.
+	// Spawn without bridge initialization and without starting the relayer.
 	let mut env = BridgeTestEnv::spawn(false, false).await?;
 
 	// Give the chains time to produce a backlog of (free) headers, then start the relayer.

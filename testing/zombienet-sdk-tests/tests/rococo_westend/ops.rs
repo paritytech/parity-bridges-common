@@ -3,11 +3,10 @@
 
 //! Per-runtime typed operations for the Rococo <> Westend bridge.
 //!
-//! Rococo/Westend (relays) and the two Asset Hubs / Bridge Hubs share the same type layout for the
-//! calls and storage we touch, but `subxt` generates a distinct module per runtime, so the types
-//! are nominally different. The macros below generate the (identical) bodies once per runtime; they
-//! are invoked in the parent module (`super`), so `super::{ASSET_HUB_PARA_ID, XCM_VERSION}` resolve
-//! to its constants. The runtime-agnostic submission helpers come from `crate::common::utils`.
+//! `subxt` generates a distinct module per runtime, so even where the calls/storage we touch share
+//! a layout the types are nominally different. The macros below emit the identical bodies once per
+//! runtime; they are invoked in `super`, so `super::{ASSET_HUB_PARA_ID, XCM_VERSION}` resolve
+//! there.
 
 macro_rules! relay_ops {
 	($name:ident, $relay:ident, $runtime:ident) => {
@@ -190,15 +189,11 @@ macro_rules! asset_hub_ops {
 				sign_submit_wait_in_block_nonce(client, &tx, signer, nonce).await
 			}
 
-			/// `tx.polkadotXcm.transferAssetsUsingTypeAndThen(..)` from this Asset Hub to the
-			/// remote one, sending `amount` of `asset` to `beneficiary` (an `AccountId32`) and
-			/// paying the remote fees out of `asset` itself.
-			///
-			/// The reserve cannot be auto-detected across a consensus boundary — the auto-detecting
-			/// `limitedReserveTransferAssets` fails with `InvalidAssetUnknownReserve` — so the
-			/// caller passes `transfer_type` explicitly: `LocalReserve` when sending this Asset
-			/// Hub's native token out, `DestinationReserve` when sending a bridged token back to
-			/// its origin Asset Hub.
+			/// `transferAssetsUsingTypeAndThen` from this Asset Hub to the remote one: sends `amount`
+			/// of `asset` to `beneficiary`, paying remote fees out of `asset`. The reserve can't be
+			/// auto-detected across a consensus boundary, so the caller passes `transfer_type`
+			/// (`LocalReserve` to send this AH's native token out, `DestinationReserve` to send a
+			/// bridged token back to its origin).
 			pub async fn transfer_assets(
 				client: &OnlineClient<PolkadotConfig>,
 				signer: &Keypair,
@@ -213,8 +208,7 @@ macro_rules! asset_hub_ops {
 					id: AssetId(asset()),
 					fun: Fungibility::Fungible(amount),
 				}]));
-				// `asset` is rebuilt (the subxt-generated `Location` isn't `Clone`) to also name
-				// the asset used to pay the remote fees.
+				// Rebuilt (subxt's `Location` isn't `Clone`) to also pay the remote fees in `asset`.
 				let remote_fees_id = VersionedAssetId::V5(AssetId(asset()));
 				// On the destination: deposit everything that arrives into `beneficiary`.
 				let custom_xcm_on_dest = VersionedXcm::V5(Xcm(vec![Instruction::DepositAsset {
@@ -227,8 +221,7 @@ macro_rules! asset_hub_ops {
 						}]),
 					},
 				}]));
-				// Assets and fees use the same transfer type. The subxt-generated `TransferType`
-				// isn't `Clone`, so rebuild the second copy (we only use the data-less variants).
+				// Same transfer type for assets and fees, rebuilt (the type isn't `Clone`).
 				let fees_transfer_type = match &transfer_type {
 					TransferType::Teleport => TransferType::Teleport,
 					TransferType::LocalReserve => TransferType::LocalReserve,

@@ -11,16 +11,10 @@ use subxt::{config::DefaultExtrinsicParamsBuilder, tx::Payload, OnlineClient, Po
 use subxt_signer::sr25519::Keypair;
 use tokio::time::{sleep, timeout_at, Instant};
 
-/// Whether `e` is a transient failure caused by the reorgy asset/bridge hubs, safe to retry by
-/// rebuilding/resubmitting (or re-watching) the transaction: nothing durable was committed.
-///
-/// subxt surfaces these as distinct error strings, so we match on their `Display` text:
-///   * `discarded` / `unknown Block` — the best block read while building the tx (or the block a
-///     status referenced) was pruned;
-///   * `no longer be found` / `non-finalized fork` — subxt's `TransactionError::BlockNotFound`: the
-///     block that had just reported the tx in-block was reorged away;
-///   * `Invalid Transaction` — a just-submitted predecessor from the same signer is not yet
-///     reflected in the queried nonce.
+/// Whether `e` is a transient reorg failure on the reorgy asset/bridge hubs, safe to retry (nothing
+/// durable was committed). subxt only exposes these as `Display` text, so we match on it: a
+/// pruned/reorged block (`discarded`, `unknown Block`, `no longer be found`, `non-finalized fork`)
+/// or a nonce not yet reflecting a just-submitted predecessor (`Invalid Transaction`).
 fn is_transient_reorg_error(e: &subxt::Error) -> bool {
 	let s = e.to_string();
 	s.contains("discarded") ||
@@ -30,13 +24,9 @@ fn is_transient_reorg_error(e: &subxt::Error) -> bool {
 		s.contains("Invalid Transaction")
 }
 
-/// Signs `call` with `signer`, submits it and waits for finalized success.
-///
-/// `wait_for_finalized_success` is reorg-tolerant: it watches the transaction through best-block
-/// retractions until it lands in a finalized block. The only racy step is building the transaction
-/// (subxt reads the nonce/runtime at the best block, which the fast asset-hub collator can prune
-/// before the call returns — surfacing as `unknown Block`/`State already discarded`); since nothing
-/// is submitted when that happens, we simply retry building it against fresh state.
+/// Signs, submits and waits for finalized success. The finalized-success wait is reorg-tolerant;
+/// the only racy step is building the tx (subxt reads state at the best block, which the fast hubs
+/// can prune before it returns) — nothing is submitted then, so we just rebuild and retry.
 pub async fn sign_submit_wait<C: Payload>(
 	client: &OnlineClient<PolkadotConfig>,
 	call: &C,
@@ -64,13 +54,10 @@ pub async fn sign_submit_wait<C: Payload>(
 	unreachable!("loop returns or errors on the final attempt")
 }
 
-/// Signs `call` with `signer`, submits it and waits only for **in-block** success (not finality).
-///
-/// Used for the asset-hub asset transfers; the test verifies the cross-chain outcomes via
-/// [`retry_until`], so inclusion is sufficient. Tolerant of the asset hubs' reorgs: a pruned best
-/// block while building the tx (`unknown Block`) is retried (nothing was submitted), a retracted
-/// in-block report is handled by re-watching the same tx, and a tx that a reorg re-validates as
-/// `Invalid`/`Dropped` (so it never reached the canonical chain) is rebuilt and resubmitted.
+/// Signs, submits and waits only for **in-block** success (the test confirms cross-chain outcomes
+/// via [`retry_until`], so inclusion suffices). Reorg-tolerant: a pruned best block while building
+/// is retried, a retracted in-block report is re-watched, and a tx re-validated `Invalid`/`Dropped`
+/// by a reorg is rebuilt and resubmitted.
 pub async fn sign_submit_wait_in_block<C: Payload>(
 	client: &OnlineClient<PolkadotConfig>,
 	call: &C,
@@ -83,11 +70,8 @@ pub async fn sign_submit_wait_in_block<C: Payload>(
 		let mut progress = match client.tx().sign_and_submit_then_watch(call, signer, params).await
 		{
 			Ok(p) => p,
-			// Transient pre-pool failures (nothing submitted): the best block read while building
-			// the tx can be pruned (`unknown Block`/`discarded`), or a just-submitted
-			// predecessor from the same signer may not be reflected in the queried nonce yet
-			// (`Invalid Transaction`). A short wait lets the node catch up; a fresh nonce is
-			// queried on the next attempt.
+			// Pre-pool failure (nothing submitted): pruned best block, or a nonce not yet
+			// reflecting a just-submitted predecessor. Retry with a fresh build/nonce.
 			Err(e) if attempt < ATTEMPTS && is_transient_reorg_error(&e) => {
 				sleep(Duration::from_secs(3)).await;
 				continue 'attempts;
@@ -97,8 +81,8 @@ pub async fn sign_submit_wait_in_block<C: Payload>(
 		loop {
 			let status = match progress.next().await {
 				Some(Ok(status)) => status,
-				// The status subscription itself can fail transiently when the referenced block is
-				// reorged away (`BlockNotFound` etc.); nothing is committed, so rebuild + resubmit.
+				// Status subscription failed because its block was reorged away; rebuild +
+				// resubmit.
 				Some(Err(e)) if attempt < ATTEMPTS && is_transient_reorg_error(&e) => {
 					sleep(Duration::from_secs(3)).await;
 					continue 'attempts;
@@ -110,17 +94,13 @@ pub async fn sign_submit_wait_in_block<C: Payload>(
 				TxStatus::InBestBlock(in_block) | TxStatus::InFinalizedBlock(in_block) => {
 					match in_block.wait_for_success().await {
 						Ok(_) => return Ok(()),
-						// in-block report retracted by a reorg (`discarded`/`unknown Block`/
-						// `BlockNotFound`); keep watching the same tx for re-inclusion.
+						// In-block report retracted by a reorg; keep watching for re-inclusion.
 						Err(e) if is_transient_reorg_error(&e) => continue,
 						Err(e) => return Err(e.into()),
 					}
 				},
-				// On the reorgy asset hubs the node re-validates pending txs against a new best
-				// chain and can report this tx `Invalid`/`Dropped`/`Error` (e.g. the fork it
-				// sat in was pruned). Such a tx is not on the canonical chain, so its nonce is
-				// unconsumed and it is safe to rebuild against fresh state and resubmit rather
-				// than failing the test.
+				// A reorg re-validated the tx as Invalid/Dropped/Error, so it never reached the
+				// canonical chain and its nonce is unconsumed: rebuild and resubmit.
 				TxStatus::Error { .. } | TxStatus::Invalid { .. } | TxStatus::Dropped { .. } => {
 					if attempt < ATTEMPTS {
 						sleep(Duration::from_secs(3)).await;

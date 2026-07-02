@@ -56,17 +56,17 @@ The tests are gated behind the `zombie-ci` feature, so a plain `cargo check`/`ca
 workspace neither compiles them nor pulls in their (otherwise optional) `zombienet-*` / `subxt`
 dependencies.
 
-Pick how nodes are spawned via `ZOMBIE_PROVIDER` (defaults to `docker`, which pulls the
-`--features fast-runtime` `docker.io/paritypr/*-debug` images tagged with the polkadot-sdk revision
-pinned in this repo's `Cargo.lock` — derived by `build.rs` and used as the defaults in
-`tests/common/images.rs`; override with the `POLKADOT_IMAGE` / `CUMULUS_IMAGE` env vars). CI builds
-the same tag from `Cargo.lock` (see [`.github/workflows/zombienet.yml`](../../.github/workflows/zombienet.yml)).
-Use `native` to run the local `polkadot` / `polkadot-parachain` binaries on your `PATH` instead (the
-image env vars are then ignored):
+Pick how nodes are spawned via `ZOMBIE_PROVIDER`:
 
-```bash
-export ZOMBIE_PROVIDER=native
-```
+- `docker` (default): pulls the `paritypr/*-debug` images tagged with the polkadot-sdk revision
+  pinned in `Cargo.lock` (the defaults in `tests/common/images.rs`, set by `build.rs`; CI sets the
+  same tag — see [`.github/workflows/zombienet.yml`](../../.github/workflows/zombienet.yml)).
+  Override with `POLKADOT_IMAGE` / `CUMULUS_IMAGE`.
+- `native`: runs the `polkadot` / `polkadot-parachain` binaries from your `PATH` (image vars ignored):
+
+  ```bash
+  export ZOMBIE_PROVIDER=native
+  ```
 
 Run one test, or all of them:
 
