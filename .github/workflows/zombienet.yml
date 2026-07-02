@@ -1,0 +1,149 @@
+# Manually runs the zombienet-sdk bridge integration tests (gated behind the `zombie-ci` feature).
+name: Zombienet Tests
+
+on:
+  workflow_dispatch:
+  # Also run on pull requests, so the suite validates a branch pushed to THIS repo (e.g. a
+  # maintainer mirror of a fork PR) without the workflow needing to be on the default branch.
+  # NOTE: for PRs from a fork GitHub runs the base branch's workflows, so this only triggers for
+  # same-repo branches/PRs.
+  pull_request:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # Exposes config (`.github/env` + the polkadot-sdk revision from `Cargo.lock`) as outputs, since
+  # the `env` context isn't available in `container.image`.
+  set-variables:
+    runs-on: ubuntu-latest
+    outputs:
+      CI_IMAGE: ${{ steps.vars.outputs.IMAGE }}
+      IMAGE_REGISTRY: ${{ steps.vars.outputs.IMAGE_REGISTRY }}
+      ZOMBIE_PROVIDER: ${{ steps.vars.outputs.ZOMBIE_PROVIDER }}
+      POLKADOT_SDK_HASH: ${{ steps.vars.outputs.POLKADOT_SDK_HASH }}
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v4
+
+      - name: Set variables
+        id: vars
+        run: |
+          cat .github/env >> "$GITHUB_OUTPUT"
+          # Shared with scripts/generate-codegen.sh so the node images and the committed codegen track
+          # the same pinned polkadot-sdk revision.
+          REV="$(scripts/polkadot-sdk-rev.sh)"
+          # The paritypr `*-debug` images are tagged with the short (8-char) commit.
+          echo "POLKADOT_SDK_HASH=${REV:0:8}" >> "$GITHUB_OUTPUT"
+          echo "Using polkadot-sdk revision: ${REV:0:8} (full: $REV)"
+
+  # Static pre-flight: the committed zombienet codegens (`tests/codegen/*.rs`) must stay
+  # SCALE-compatible with the relay-clients codegens (`relay-clients/*/codegen_runtime.rs`) for the
+  # bridge types the relayer exchanges with the nodes. Runs first (Python-only, no build) so an
+  # incompatibility fails fast instead of after the ~30min build + test below.
+  check-codegen-compat:
+    name: Check codegen compatibility
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v4
+
+      - name: Check codegen compatibility
+        run: python3 scripts/check-codegen-compat.py --verbose
+
+  # Builds `substrate-relay` and uploads it as an artifact for the test job.
+  build-relay:
+    name: Build substrate-relay
+    runs-on: parity-large
+    needs: [set-variables, check-codegen-compat]
+    container:
+      image: ${{ needs.set-variables.outputs.CI_IMAGE }}
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v4
+
+      - name: Rust Cache
+        uses: Swatinem/rust-cache@82a92a6e8fbeee089604da2575dc567ae9ddeaab # v2.7.5
+        with:
+          cache-on-failure: true
+          cache-all-crates: true
+
+      - name: Build substrate-relay
+        run: |
+          cargo fetch
+          CARGO_NET_OFFLINE=true SKIP_WASM_BUILD=1 cargo build --release -p substrate-relay --features static-ssl
+          mkdir -p ./artifacts
+          mv -v ./target/release/substrate-relay ./artifacts/
+
+      - name: Upload substrate-relay
+        uses: actions/upload-artifact@v4
+        with:
+          name: substrate-relay
+          path: ./artifacts
+          retention-days: 2
+
+  # Runs on a Docker-capable runner (no container) so the docker provider can use the host Docker
+  # daemon and reach the spawned nodes on 127.0.0.1.
+  run-tests:
+    name: Run zombienet tests (${{ matrix.test }})
+    runs-on: parity-large
+    needs: [set-variables, build-relay]
+    timeout-minutes: 90
+    strategy:
+      # Each test spawns its own full Rococo+Westend networks, so run the tests on separate runners
+      # in parallel (one per matrix entry) rather than serially on one. Add an entry per test.
+      # fail-fast: false so one failing test does not cancel the others.
+      fail-fast: false
+      matrix:
+        test:
+          - rococo_westend::asset_transfer
+          - rococo_westend::free_headers
+    env:
+      ZOMBIE_PROVIDER: ${{ needs.set-variables.outputs.ZOMBIE_PROVIDER }}
+      POLKADOT_IMAGE: ${{ needs.set-variables.outputs.IMAGE_REGISTRY }}/polkadot-debug:${{ needs.set-variables.outputs.POLKADOT_SDK_HASH }}
+      CUMULUS_IMAGE: ${{ needs.set-variables.outputs.IMAGE_REGISTRY }}/polkadot-parachain-debug:${{ needs.set-variables.outputs.POLKADOT_SDK_HASH }}
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v4
+
+      - name: Install protoc
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y protobuf-compiler
+          protoc --version
+
+      # Toolchain must match the ci-unified image used elsewhere (Rust 1.88.0).
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: "1.88.0"
+
+      - name: Rust Cache
+        uses: Swatinem/rust-cache@82a92a6e8fbeee089604da2575dc567ae9ddeaab # v2.7.5
+        with:
+          cache-on-failure: true
+          cache-all-crates: true
+          workspaces: ". -> target"
+
+      - name: Download substrate-relay
+        uses: actions/download-artifact@v4
+        with:
+          name: substrate-relay
+          path: ./bin
+
+      - name: Point the tests at the relay binary
+        run: |
+          chmod +x "$GITHUB_WORKSPACE/bin/substrate-relay"
+          echo "SUBSTRATE_RELAY_BINARY=$GITHUB_WORKSPACE/bin/substrate-relay" >> "$GITHUB_ENV"
+
+      # The paritypr `*-debug` images are public on Docker Hub, so no registry auth is needed.
+      - name: Pre-pull node images
+        run: |
+          echo "POLKADOT_IMAGE=$POLKADOT_IMAGE"
+          echo "CUMULUS_IMAGE=$CUMULUS_IMAGE"
+          docker pull "$POLKADOT_IMAGE"
+          docker pull "$CUMULUS_IMAGE"
+
+      - name: Run zombienet tests
+        run: cargo test -p bridges-zombienet-sdk-tests --features zombie-ci ${{ matrix.test }} -- --nocapture --test-threads=1
