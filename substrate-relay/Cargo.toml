@@ -64,6 +64,7 @@ sp-core = { workspace = true }
 sp-runtime = { workspace = true }
 
 [features]
+# TODO: remove when PolkadotSDK bump contains: https://github.com/paritytech/polkadot-sdk/pull/12528
 # Statically link OpenSSL into the binary (via isahc/libcurl) so it has no `libssl.so` runtime
 # dependency and runs on hosts without OpenSSL 1.1 (e.g. Ubuntu 22.04+, Debian 12+). Enabled by the
 # zombienet CI build, where the binary is built on bullseye (OpenSSL 1.1) but run on a bare runner
