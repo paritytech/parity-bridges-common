@@ -192,8 +192,8 @@ macro_rules! asset_hub_ops {
 			/// `transferAssetsUsingTypeAndThen` from this Asset Hub to the remote one: sends `amount`
 			/// of `asset` to `beneficiary`, paying remote fees out of `asset`. The reserve can't be
 			/// auto-detected across a consensus boundary, so the caller passes `transfer_type`
-			/// (`LocalReserve` to send this AH's native token out, `DestinationReserve` to send a
-			/// bridged token back to its origin).
+			/// (`LocalReserve` to send this Asset Hub's native token out, `DestinationReserve` to send
+			/// a bridged token back to its origin).
 			pub async fn transfer_assets(
 				client: &OnlineClient<PolkadotConfig>,
 				signer: &Keypair,

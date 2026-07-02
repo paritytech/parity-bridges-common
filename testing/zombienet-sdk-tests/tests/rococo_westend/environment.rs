@@ -63,8 +63,8 @@ fn bridge_hub_balances_override(sovereign_accounts: &[&str]) -> serde_json::Valu
 /// `allowed_ancestry_len: 2` (presets ship `0`, latest-only): asset-hub-westend authors with
 /// `RELAY_PARENT_OFFSET = 1`, i.e. on a relay parent one block behind best, which the relay must
 /// accept. `max_candidate_depth: 1` keeps the bridge-hub unincluded segment shallow so a
-/// fast-runtime relay reorg strands at most ~1 already-authored parablock; empirically it lost the
-/// fewest relayer proof txs to reorgs (vs deeper or shallower depths).
+/// fast-runtime relay reorg strands few already-authored parablocks; empirically it lost the fewest
+/// relayer proof txs to reorgs (vs deeper or shallower depths).
 fn relay_async_backing_override() -> serde_json::Value {
 	serde_json::json!({
 		"configuration": { "config": {
