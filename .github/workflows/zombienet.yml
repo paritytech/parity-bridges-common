@@ -31,18 +31,32 @@ jobs:
         id: vars
         run: |
           cat .github/env >> "$GITHUB_OUTPUT"
-          # Shared with tests/codegen/generate.sh so the node images and the committed codegen track
+          # Shared with scripts/generate-codegen.sh so the node images and the committed codegen track
           # the same pinned polkadot-sdk revision.
           REV="$(scripts/polkadot-sdk-rev.sh)"
           # The paritypr `*-debug` images are tagged with the short (8-char) commit.
           echo "POLKADOT_SDK_HASH=${REV:0:8}" >> "$GITHUB_OUTPUT"
           echo "Using polkadot-sdk revision: ${REV:0:8} (full: $REV)"
 
+  # Static pre-flight: the committed zombienet codegens (`tests/codegen/*.rs`) must stay
+  # SCALE-compatible with the relay-clients codegens (`relay-clients/*/codegen_runtime.rs`) for the
+  # bridge types the relayer exchanges with the nodes. Runs first (Python-only, no build) so an
+  # incompatibility fails fast instead of after the ~30min build + test below.
+  check-codegen-compat:
+    name: Check codegen compatibility
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v4
+
+      - name: Check codegen compatibility
+        run: python3 scripts/check-codegen-compat.py --verbose
+
   # Builds `substrate-relay` and uploads it as an artifact for the test job.
   build-relay:
     name: Build substrate-relay
     runs-on: parity-large
-    needs: [set-variables]
+    needs: [set-variables, check-codegen-compat]
     container:
       image: ${{ needs.set-variables.outputs.CI_IMAGE }}
     steps:

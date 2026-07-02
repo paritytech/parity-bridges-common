@@ -3,7 +3,7 @@
 # Print the polkadot-sdk git revision this repo pins in `Cargo.lock` (the full 40-char commit).
 #
 # Single source of truth for the pinned revision, reused by:
-#   - testing/zombienet-sdk-tests/tests/codegen/generate.sh  (which SDK commit to build codegen from)
+#   - scripts/generate-codegen.sh                            (which SDK commit to build codegen from)
 #   - .github/workflows/zombienet.yml                        (tag for the polkadot/polkadot-parachain
 #                                                             node images; callers take the first 8 chars)
 #

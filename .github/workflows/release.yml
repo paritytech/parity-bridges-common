@@ -125,11 +125,15 @@ jobs:
           RUNTIME_FILE: ${{ env.RUNTIME_FILE }}
           TARGET_DIR: ${{ env.TARGET_DIR }}
         run: |
-          # Extract runtime filename from RUNTIME_FILE
-          runtime_filename=$(basename "$RUNTIME_FILE")
-
-          echo "Running runtime codegen for $runtime_filename"
-          cd ./tools/runtime-codegen && cargo run --bin runtime-codegen --release -- --from-wasm-file "$RUNTIME_FILE" | tee "../../$TARGET_DIR/codegen_runtime.rs"
+          # Reuse the shared generator. Derive the dashed chain name from the target dir
+          # (relay-clients/client-<chain>/src), then generate the relay-client (`runtime_types`-only)
+          # codegen from the downloaded Fellows WASM. The script also applies the `Header` fixup and
+          # formats the output.
+          client_dir="$(basename "$(dirname "$TARGET_DIR")")"   # e.g. client-bridge-hub-polkadot
+          chain="${client_dir#client-}"                          # e.g. bridge-hub-polkadot
+          echo "Generating relay-client codegen for '$chain' from $RUNTIME_FILE"
+          scripts/generate-codegen.sh --target relay-clients --chains "$chain" \
+            --wasm-file "./tools/runtime-codegen/$RUNTIME_FILE"
 
       - name: Bump minor version in Cargo.toml
         id: bump-version
@@ -156,12 +160,8 @@ jobs:
           # Refresh Cargo.lock for the bumped workspace member only (no network, no recompile).
           cargo update -p substrate-relay --offline
 
-      - name: Fix Header generic types & Format code
-        run: |
-          cargo +nightly fmt --all
-          find . -name codegen_runtime.rs -exec \
-            sed -i 's/::sp_runtime::generic::Header<::core::primitive::u32>/::sp_runtime::generic::Header<::core::primitive::u32, ::sp_runtime::traits::BlakeTwo256>/g' {} +
-          cargo +nightly fmt --all
+      - name: Format code
+        run: cargo +nightly fmt --all
 
       - name: Create Pull Request
         env:

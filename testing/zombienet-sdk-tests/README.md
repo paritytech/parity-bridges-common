@@ -93,14 +93,14 @@ revision pinned in `Cargo.lock`. A mismatch aborts the test with
 ## Maintenance
 
 - **Regenerate the codegen when the pinned polkadot-sdk revision changes** (a new commit hash for
-  `git+https://github.com/paritytech/polkadot-sdk` in `Cargo.lock`). `tests/codegen/generate.sh`
+  `git+https://github.com/paritytech/polkadot-sdk` in `Cargo.lock`). `scripts/generate-codegen.sh`
   builds the six runtimes from a matching polkadot-sdk checkout and rewrites `tests/codegen/*.rs`
-  (see its header for how it works):
+  (see its header for all options):
 
   ```bash
-  tests/codegen/generate.sh                       # clone @ pinned rev (kept for reuse) + generate
-  tests/codegen/generate.sh --polkadot-sdk <path> # reuse an existing checkout
-  tests/codegen/generate.sh --cleanup             # remove the cloned checkout when done
+  scripts/generate-codegen.sh --target zombienet                       # clone @ pinned rev + generate
+  scripts/generate-codegen.sh --target zombienet --polkadot-sdk <path> # reuse an existing checkout
+  scripts/generate-codegen.sh --target zombienet --polkadot-sdk-hash <sha> # build a specific commit
   ```
 
   Commit the updated `tests/codegen/*.rs`.
