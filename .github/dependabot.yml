@@ -1,12 +1,22 @@
 version: 2
 updates:
 - package-ecosystem: cargo
-  directory: "/"
+  directories:
+  - "/"
+  - "/tools/runtime-codegen"
   schedule:
     interval: weekly
     time: "03:00"
     timezone: Europe/Berlin
   open-pull-requests-limit: 20
+  groups:
+    # Batch routine minor/patch bumps into a single weekly PR.
+    # Major version bumps still get individual PRs.
+    cargo-minor-and-patch:
+      applies-to: version-updates
+      update-types:
+        - minor
+        - patch
   ignore:
   # Bridges polkadot-sdk dependencies
   - dependency-name: bp-*
