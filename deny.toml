@@ -38,8 +38,13 @@ db-path = "~/.cargo/advisory-db"
 db-urls = ["https://github.com/rustsec/advisory-db"]
 # The lint level for crates that have been yanked from their source registry
 yanked = "warn"
-# A list of advisory IDs to ignore. Note that ignored advisories will still
-# output a note when they are encountered.
+# Which unmaintained advisories to flag. Every unmaintained crate we hit
+# (adler, fxhash, async-std, bincode, libsecp256k1, core2, proc-macro-error2, ...)
+# is pulled in transitively via polkadot-sdk/subxt/wasmtime and cannot be
+# replaced here, so only flag unmaintained crates we depend on directly.
+unmaintained = "workspace"
+# A list of advisory IDs (or crate specs) to ignore. Note that ignored
+# advisories will still output a note when they are encountered.
 ignore = [
 	{id = "RUSTSEC-2025-0012", reason = "backoff: Very simple and rarely updated backoff crate, and too difficult to replace."},
 	{id = "RUSTSEC-2024-0384", reason = "instant: Required by multiple other dependencies, rarely updated"},
@@ -49,7 +54,34 @@ ignore = [
 	{id = "RUSTSEC-2025-0010", reason = "ring: Required by multiple other dependencies"},
 	{id = "RUSTSEC-2025-0009", reason = "ring: Required by multiple other dependencies"},
 	{id = "RUSTSEC-2024-0336", reason = "rustls: Required by many other dependencies"},
-    {id = "RUSTSEC-2022-0061", reason = "parity-wasm: Still used by parts of polkadot-sdk despite deprecation."}
+	{id = "RUSTSEC-2022-0061", reason = "parity-wasm: Still used by parts of polkadot-sdk despite deprecation."},
+	{id = "RUSTSEC-2025-0052", reason = "async-std: Deprecated but still a direct dependency of substrate-relay; migration off async-std is a separate task."},
+	# wasmtime 8.0.1: pinned transitively via polkadot-sdk (sc-executor-wasmtime/sp-wasm-interface),
+	# cannot be bumped here and is not the relay's runtime attack surface.
+	{id = "RUSTSEC-2023-0091", reason = "wasmtime: pinned via polkadot-sdk, cannot be bumped here."},
+	{id = "RUSTSEC-2024-0438", reason = "wasmtime: pinned via polkadot-sdk, cannot be bumped here."},
+	{id = "RUSTSEC-2025-0118", reason = "wasmtime: pinned via polkadot-sdk, cannot be bumped here."},
+	{id = "RUSTSEC-2026-0020", reason = "wasmtime: pinned via polkadot-sdk, cannot be bumped here."},
+	{id = "RUSTSEC-2026-0021", reason = "wasmtime: pinned via polkadot-sdk, cannot be bumped here."},
+	{id = "RUSTSEC-2026-0085", reason = "wasmtime: pinned via polkadot-sdk, cannot be bumped here."},
+	{id = "RUSTSEC-2026-0086", reason = "wasmtime: pinned via polkadot-sdk, cannot be bumped here."},
+	{id = "RUSTSEC-2026-0087", reason = "wasmtime: pinned via polkadot-sdk, cannot be bumped here."},
+	{id = "RUSTSEC-2026-0088", reason = "wasmtime: pinned via polkadot-sdk, cannot be bumped here."},
+	{id = "RUSTSEC-2026-0089", reason = "wasmtime: pinned via polkadot-sdk, cannot be bumped here."},
+	{id = "RUSTSEC-2026-0091", reason = "wasmtime: pinned via polkadot-sdk, cannot be bumped here."},
+	{id = "RUSTSEC-2026-0092", reason = "wasmtime: pinned via polkadot-sdk, cannot be bumped here."},
+	{id = "RUSTSEC-2026-0093", reason = "wasmtime: pinned via polkadot-sdk, cannot be bumped here."},
+	{id = "RUSTSEC-2026-0094", reason = "wasmtime: pinned via polkadot-sdk, cannot be bumped here."},
+	{id = "RUSTSEC-2026-0095", reason = "wasmtime: pinned via polkadot-sdk, cannot be bumped here."},
+	{id = "RUSTSEC-2026-0096", reason = "wasmtime: pinned via polkadot-sdk, cannot be bumped here."},
+	# rustls-webpki 0.102.8: pinned via polkadot-sdk (rustls/rustls-platform-verifier),
+	# no semver-compatible fixed release available.
+	{id = "RUSTSEC-2026-0049", reason = "rustls-webpki: pinned via polkadot-sdk, no semver-compatible fix available."},
+	{id = "RUSTSEC-2026-0098", reason = "rustls-webpki: pinned via polkadot-sdk, no semver-compatible fix available."},
+	{id = "RUSTSEC-2026-0099", reason = "rustls-webpki: pinned via polkadot-sdk, no semver-compatible fix available."},
+	{id = "RUSTSEC-2026-0104", reason = "rustls-webpki: pinned via polkadot-sdk, no semver-compatible fix available."},
+	# hickory-proto 0.24.4: pinned via polkadot-sdk (hickory-resolver/libp2p-mdns).
+	{id = "RUSTSEC-2026-0119", reason = "hickory-proto: pinned via polkadot-sdk, no semver-compatible fix available."},
 ]
 # Threshold for security vulnerabilities, any vulnerability with a CVSS score
 # lower than the range specified will be ignored. Note that ignored advisories
