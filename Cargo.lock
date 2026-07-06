@@ -15321,9 +15321,9 @@ dependencies = [
 
 [[package]]
 name = "zombienet-prom-metrics-parser"
-version = "0.4.14"
+version = "0.4.15"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "451c572553c231dabce257cc333f217a3165e3cdd7f8dbb49b1b47fe49efe2b3"
+checksum = "61be33cca03f80de61bd6d841e7f9c657f90876d9332c3b8bbc0eb3625cb6f7e"
 dependencies = [
  "pest",
  "pest_derive",
