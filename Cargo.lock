@@ -691,8 +691,8 @@ checksum = "30ca9a001c1e8ba5149f91a74362376cc6bc5b919d92d988668657bd570bdcec"
 dependencies = [
  "async-task",
  "concurrent-queue",
- "fastrand 2.3.0",
- "futures-lite 2.3.0",
+ "fastrand",
+ "futures-lite",
  "slab",
 ]
 
@@ -704,7 +704,7 @@ checksum = "ebcd09b382f40fcd159c2d695175b2ae620ffa5f3bd6f664131efff4e8b9e04a"
 dependencies = [
  "async-lock",
  "blocking",
- "futures-lite 2.3.0",
+ "futures-lite",
 ]
 
 [[package]]
@@ -718,7 +718,7 @@ dependencies = [
  "async-io",
  "async-lock",
  "blocking",
- "futures-lite 2.3.0",
+ "futures-lite",
  "once_cell",
 ]
 
@@ -732,9 +732,9 @@ dependencies = [
  "cfg-if",
  "concurrent-queue",
  "futures-io",
- "futures-lite 2.3.0",
+ "futures-lite",
  "parking",
- "polling 3.4.0",
+ "polling",
  "rustix 0.38.42",
  "slab",
  "tracing",
@@ -760,7 +760,7 @@ checksum = "b948000fad4873c1c9339d60f2623323a0cfd3816e5181033c6a5cb68b2accf7"
 dependencies = [
  "async-io",
  "blocking",
- "futures-lite 2.3.0",
+ "futures-lite",
 ]
 
 [[package]]
@@ -777,7 +777,7 @@ dependencies = [
  "blocking",
  "cfg-if",
  "event-listener 5.3.1",
- "futures-lite 2.3.0",
+ "futures-lite",
  "rustix 0.38.42",
  "tracing",
 ]
@@ -815,7 +815,7 @@ dependencies = [
  "futures-channel",
  "futures-core",
  "futures-io",
- "futures-lite 2.3.0",
+ "futures-lite",
  "gloo-timers",
  "kv-log-macro",
  "log",
@@ -1175,7 +1175,7 @@ dependencies = [
  "async-channel 2.3.0",
  "async-task",
  "futures-io",
- "futures-lite 2.3.0",
+ "futures-lite",
  "piper",
 ]
 
@@ -1649,9 +1649,12 @@ dependencies = [
 
 [[package]]
 name = "castaway"
-version = "0.1.2"
+version = "0.2.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a2698f953def977c68f935bb0dfa959375ad4638570e969e2f1e9f433cbf1af6"
+checksum = "dec551ab6e7578819132c713a93c022a05d60159dc86e7a7050223577484c55a"
+dependencies = [
+ "rustversion",
+]
 
 [[package]]
 name = "cc"
@@ -3227,15 +3230,6 @@ dependencies = [
 
 [[package]]
 name = "fastrand"
-version = "1.9.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e51093e27b0797c359783294ca4f0a911c270184cb10f85783b118614a1501be"
-dependencies = [
- "instant",
-]
-
-[[package]]
-name = "fastrand"
 version = "2.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "37909eebbb50d72f9059c3b6d82c0463f2ff062c9e95845c43a6c9c0355411be"
@@ -3717,26 +3711,11 @@ checksum = "cecba35d7ad927e23624b22ad55235f2239cfa44fd10428eecbeba6d6a717718"
 
 [[package]]
 name = "futures-lite"
-version = "1.13.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "49a9d51ce47660b1e808d3c990b4709f2f415d928835a17dfd16991515c46bce"
-dependencies = [
- "fastrand 1.9.0",
- "futures-core",
- "futures-io",
- "memchr",
- "parking",
- "pin-project-lite",
- "waker-fn",
-]
-
-[[package]]
-name = "futures-lite"
 version = "2.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "52527eb5074e35e9339c6b4e8d12600c7128b68fb25dcb9fa9dec18f7c25f3a5"
 dependencies = [
- "fastrand 2.3.0",
+ "fastrand",
  "futures-core",
  "futures-io",
  "parking",
@@ -4846,23 +4825,22 @@ checksum = "a6cb138bb79a146c1bd460005623e142ef0181e3d0219cb493e02f7d08a35695"
 
 [[package]]
 name = "isahc"
-version = "1.7.2"
+version = "1.8.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "334e04b4d781f436dc315cb1e7515bd96826426345d498149e4bde36b67f8ee9"
+checksum = "fbce0b6b4f5c50b8e014e227d51ddf721558308566b4f6ba608abcea4d272cce"
 dependencies = [
- "async-channel 1.9.0",
+ "async-channel 2.3.0",
  "castaway",
  "crossbeam-utils",
  "curl",
  "curl-sys",
  "encoding_rs",
- "event-listener 2.5.3",
- "futures-lite 1.13.0",
+ "event-listener 5.3.1",
+ "futures-lite",
  "http 0.2.9",
  "log",
  "mime",
- "once_cell",
- "polling 2.8.0",
+ "polling",
  "slab",
  "sluice",
  "tracing",
@@ -7696,7 +7674,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "96c8c490f422ef9a4efd2cb5b42b76c8613d7e7dfc1caf667b8a3350a5acc066"
 dependencies = [
  "atomic-waker",
- "fastrand 2.3.0",
+ "fastrand",
  "futures-io",
 ]
 
@@ -8062,22 +8040,6 @@ name = "polkavm-linux-raw"
 version = "0.33.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "42063d4a1c52e569f7794df27dab3e19c9fa8946184023257bdbb43eb4a94be5"
-
-[[package]]
-name = "polling"
-version = "2.8.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4b2d323e8ca7996b3e23126511a523f7e62924d93ecd5ae73b333815b0eb3dce"
-dependencies = [
- "autocfg",
- "bitflags 1.3.2",
- "cfg-if",
- "concurrent-queue",
- "libc",
- "log",
- "pin-project-lite",
- "windows-sys 0.48.0",
-]
 
 [[package]]
 name = "polling"
@@ -10704,7 +10666,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7664259344334ea4cc3efdf3ec03315f896fba5b921755dd4f28ebc75379df79"
 dependencies = [
  "async-io",
- "futures-lite 2.3.0",
+ "futures-lite",
  "libc",
  "signal-hook",
 ]
@@ -10805,11 +10767,11 @@ dependencies = [
 
 [[package]]
 name = "sluice"
-version = "0.5.5"
+version = "0.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6d7400c0eff44aa2fcb5e31a5f24ba9716ed90138769e4977a2ba6014ae63eb5"
+checksum = "160b744a45e8261307bcfe03c98e2f8274502207d534c9a64b675c4db1b6bd58"
 dependencies = [
- "async-channel 1.9.0",
+ "async-channel 2.3.0",
  "futures-core",
  "futures-io",
 ]
@@ -10837,7 +10799,7 @@ dependencies = [
  "async-net",
  "async-process",
  "blocking",
- "futures-lite 2.3.0",
+ "futures-lite",
 ]
 
 [[package]]
@@ -10860,7 +10822,7 @@ dependencies = [
  "either",
  "event-listener 5.3.1",
  "fnv",
- "futures-lite 2.3.0",
+ "futures-lite",
  "futures-util",
  "hashbrown 0.15.5",
  "hex",
@@ -10910,7 +10872,7 @@ dependencies = [
  "event-listener 5.3.1",
  "fnv",
  "futures-channel",
- "futures-lite 2.3.0",
+ "futures-lite",
  "futures-util",
  "hashbrown 0.15.5",
  "hex",
@@ -12867,7 +12829,7 @@ version = "3.27.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "32497e9a4c7b38532efcdebeef879707aa9f794296a4f0244f6f69e9bc8574bd"
 dependencies = [
- "fastrand 2.3.0",
+ "fastrand",
  "getrandom 0.3.1",
  "once_cell",
  "rustix 1.1.4",
