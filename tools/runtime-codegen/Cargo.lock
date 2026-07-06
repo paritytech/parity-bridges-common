@@ -1357,9 +1357,9 @@ dependencies = [
 
 [[package]]
 name = "frame-decode"
-version = "0.9.0"
+version = "0.17.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c470df86cf28818dd3cd2fc4667b80dbefe2236c722c3dc1d09e7c6c82d6dfcd"
+checksum = "88cda60c640572c970c544ba5879375a18ecfb2c47c617be8265830b63df193d"
 dependencies = [
  "frame-metadata 23.0.1",
  "parity-scale-codec",
@@ -3209,9 +3209,9 @@ dependencies = [
 
 [[package]]
 name = "scale-typegen"
-version = "0.11.1"
+version = "0.12.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "05c61b6b706a3eaad63b506ab50a1d2319f817ae01cf753adcc3f055f9f0fcd6"
+checksum = "642d2f13f3fc9a34ea2c1e36142984eba78cd2405a61632492f8b52993e98879"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -4228,9 +4228,9 @@ checksum = "13c2bddecc57b384dee18652358fb23172facb8a2c51ccc10d74c157bdea3292"
 
 [[package]]
 name = "subxt-codegen"
-version = "0.44.0"
+version = "0.50.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9c250ad8cd102d40ae47977b03295a2ff791375f30ddc7474d399fb56efb793b"
+checksum = "35e0a556b73141291c48fe73fea3cc6f3f89a65b290bf417337e5f9886fcc268"
 dependencies = [
  "heck",
  "parity-scale-codec",
@@ -4245,9 +4245,9 @@ dependencies = [
 
 [[package]]
 name = "subxt-metadata"
-version = "0.44.0"
+version = "0.50.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "01fb7c0bfafad78dda7084c6a2444444744af3bbf7b2502399198b9b4c20eddf"
+checksum = "3d05ecf00bb0a10307c195f8c924ff8e20ab4a274569ffc981beb802211b12af"
 dependencies = [
  "frame-decode",
  "frame-metadata 23.0.1",
