@@ -17,6 +17,11 @@ updates:
       update-types:
         - minor
         - patch
+    # Batch security-alert bumps as well, instead of one PR per dependency.
+    cargo-security:
+      applies-to: security-updates
+      patterns:
+        - "*"
   ignore:
   # Bridges polkadot-sdk dependencies
   - dependency-name: bp-*
