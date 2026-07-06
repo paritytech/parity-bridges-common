@@ -15313,9 +15313,9 @@ dependencies = [
 
 [[package]]
 name = "zombienet-provider"
-version = "0.4.14"
+version = "0.4.15"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ceb4cb0694e26c475f15168fd78ad5847e57df58046948eeca9a6eda8dc49f6e"
+checksum = "3d8086f3d3836aab202dfd8c7b1d17733cc126dce707465032bf16e81450275d"
 dependencies = [
  "anyhow",
  "async-trait",
