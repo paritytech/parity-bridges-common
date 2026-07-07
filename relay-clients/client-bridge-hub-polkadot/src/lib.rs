@@ -51,11 +51,7 @@ pub type TransactionExtension = SuffixedCommonTransactionExtension<(
 )>;
 
 pub type RuntimeCall = runtime_types::bridge_hub_polkadot_runtime::RuntimeCall;
-// TODO: https://github.com/paritytech/parity-bridges-common/issues/2547 - regenerate when ready
-pub type BridgePolkadotBulletinMessagesCall = runtime_types::pallet_bridge_messages::pallet::Call;
 pub type BridgeKusamaMessagesCall = runtime_types::pallet_bridge_messages::pallet::Call;
-// TODO: https://github.com/paritytech/parity-bridges-common/issues/2547 - regenerate when ready
-pub type BridgePolkadotBulletinGrandpaCall = runtime_types::pallet_bridge_grandpa::pallet::Call;
 pub type BridgeKusamaGrandpaCall = runtime_types::pallet_bridge_grandpa::pallet::Call;
 pub type BridgeParachainCall = runtime_types::pallet_bridge_parachains::pallet::Call;
 type UncheckedExtrinsic =

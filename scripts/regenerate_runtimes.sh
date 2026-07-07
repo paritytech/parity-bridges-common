@@ -29,12 +29,4 @@ find . -name codegen_runtime.rs -exec \
 
 cargo +nightly fmt --all
 
-
-# Polkadot Bulletin Chain:
-#
-# git clone https://github.com/zdave-parity/polkadot-bulletin-chain.git
-# cd polkadot-bulletin-chain
-# cargo run
-# cargo run --bin runtime-codegen -- --from-node-url "ws://127.0.0.1:9944" > ../../relay-clients/client-polkadot-bulletin/src/codegen_runtime.rs
-
 cargo check --workspace

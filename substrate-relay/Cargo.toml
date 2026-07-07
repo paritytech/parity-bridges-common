@@ -34,7 +34,6 @@ bp-bridge-hub-rococo = { workspace = true }
 bp-header-chain = { workspace = true }
 bp-messages = { workspace = true }
 bp-parachains = { workspace = true }
-bp-polkadot-bulletin = { workspace = true }
 bp-polkadot = { workspace = true }
 bp-polkadot-core = { workspace = true }
 bp-rococo = { workspace = true }
@@ -50,7 +49,6 @@ relay-bridge-hub-rococo-client = { workspace = true }
 relay-bridge-hub-westend-client = { workspace = true }
 relay-kusama-client = { workspace = true }
 relay-polkadot-client = { workspace = true }
-relay-polkadot-bulletin-client = { workspace = true }
 relay-rococo-client = { workspace = true }
 relay-substrate-client = { workspace = true }
 relay-utils = { workspace = true }

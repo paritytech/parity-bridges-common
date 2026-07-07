@@ -22,14 +22,6 @@ use crate::bridges::{
 		bridge_hub_kusama_messages_to_bridge_hub_polkadot::BridgeHubKusamaToBridgeHubPolkadotMessagesCliBridge,
 		bridge_hub_polkadot_messages_to_bridge_hub_kusama::BridgeHubPolkadotToBridgeHubKusamaMessagesCliBridge,
 	},
-	polkadot_bulletin::{
-		bridge_hub_polkadot_messages_to_polkadot_bulletin::BridgeHubPolkadotToPolkadotBulletinMessagesCliBridge,
-		polkadot_bulletin_messages_to_bridge_hub_polkadot::PolkadotBulletinToBridgeHubPolkadotMessagesCliBridge,
-	},
-	rococo_bulletin::{
-		bridge_hub_rococo_messages_to_rococo_bulletin::BridgeHubRococoToRococoBulletinMessagesCliBridge,
-		rococo_bulletin_messages_to_bridge_hub_rococo::RococoBulletinToBridgeHubRococoMessagesCliBridge,
-	},
 	rococo_westend::{
 		asset_hub_rococo_messages_to_asset_hub_westend::AssetHubRococoToAssetHubWestendMessagesCliBridge,
 		asset_hub_westend_messages_to_asset_hub_rococo::AssetHubWestendToAssetHubRococoMessagesCliBridge,
@@ -50,10 +42,6 @@ pub enum FullBridge {
 	BridgeHubWestendToBridgeHubRococo,
 	BridgeHubKusamaToBridgeHubPolkadot,
 	BridgeHubPolkadotToBridgeHubKusama,
-	PolkadotBulletinToBridgeHubPolkadot,
-	BridgeHubPolkadotToPolkadotBulletin,
-	RococoBulletinToBridgeHubRococo,
-	BridgeHubRococoToRococoBulletin,
 	AssetHubRococoToBridgeHubWestend,
 	AssetHubWestendToBridgeHubRococo,
 }
@@ -92,10 +80,6 @@ impl MessagesRelayer for BridgeHubRococoToBridgeHubWestendMessagesCliBridge {}
 impl MessagesRelayer for BridgeHubWestendToBridgeHubRococoMessagesCliBridge {}
 impl MessagesRelayer for BridgeHubKusamaToBridgeHubPolkadotMessagesCliBridge {}
 impl MessagesRelayer for BridgeHubPolkadotToBridgeHubKusamaMessagesCliBridge {}
-impl MessagesRelayer for PolkadotBulletinToBridgeHubPolkadotMessagesCliBridge {}
-impl MessagesRelayer for BridgeHubPolkadotToPolkadotBulletinMessagesCliBridge {}
-impl MessagesRelayer for RococoBulletinToBridgeHubRococoMessagesCliBridge {}
-impl MessagesRelayer for BridgeHubRococoToRococoBulletinMessagesCliBridge {}
 impl MessagesRelayer for AssetHubRococoToAssetHubWestendMessagesCliBridge {}
 impl MessagesRelayer for AssetHubWestendToAssetHubRococoMessagesCliBridge {}
 
@@ -111,14 +95,6 @@ impl RelayMessages {
 				BridgeHubKusamaToBridgeHubPolkadotMessagesCliBridge::relay_messages(self.params),
 			FullBridge::BridgeHubPolkadotToBridgeHubKusama =>
 				BridgeHubPolkadotToBridgeHubKusamaMessagesCliBridge::relay_messages(self.params),
-			FullBridge::PolkadotBulletinToBridgeHubPolkadot =>
-				PolkadotBulletinToBridgeHubPolkadotMessagesCliBridge::relay_messages(self.params),
-			FullBridge::BridgeHubPolkadotToPolkadotBulletin =>
-				BridgeHubPolkadotToPolkadotBulletinMessagesCliBridge::relay_messages(self.params),
-			FullBridge::RococoBulletinToBridgeHubRococo =>
-				RococoBulletinToBridgeHubRococoMessagesCliBridge::relay_messages(self.params),
-			FullBridge::BridgeHubRococoToRococoBulletin =>
-				BridgeHubRococoToRococoBulletinMessagesCliBridge::relay_messages(self.params),
 			FullBridge::AssetHubRococoToBridgeHubWestend =>
 				AssetHubRococoToAssetHubWestendMessagesCliBridge::relay_messages(self.params),
 			FullBridge::AssetHubWestendToBridgeHubRococo =>
@@ -148,18 +124,6 @@ impl RelayMessagesRange {
 				BridgeHubPolkadotToBridgeHubKusamaMessagesCliBridge::relay_messages_range(
 					self.params,
 				),
-			FullBridge::PolkadotBulletinToBridgeHubPolkadot =>
-				PolkadotBulletinToBridgeHubPolkadotMessagesCliBridge::relay_messages_range(
-					self.params,
-				),
-			FullBridge::BridgeHubPolkadotToPolkadotBulletin =>
-				BridgeHubPolkadotToPolkadotBulletinMessagesCliBridge::relay_messages_range(
-					self.params,
-				),
-			FullBridge::RococoBulletinToBridgeHubRococo =>
-				RococoBulletinToBridgeHubRococoMessagesCliBridge::relay_messages_range(self.params),
-			FullBridge::BridgeHubRococoToRococoBulletin =>
-				BridgeHubRococoToRococoBulletinMessagesCliBridge::relay_messages_range(self.params),
 			FullBridge::AssetHubRococoToBridgeHubWestend =>
 				AssetHubRococoToAssetHubWestendMessagesCliBridge::relay_messages_range(self.params),
 			FullBridge::AssetHubWestendToBridgeHubRococo =>
@@ -189,18 +153,6 @@ impl RelayMessagesDeliveryConfirmation {
 				BridgeHubPolkadotToBridgeHubKusamaMessagesCliBridge::relay_messages_delivery_confirmation(
 					self.params,
 				),
-			FullBridge::PolkadotBulletinToBridgeHubPolkadot =>
-				PolkadotBulletinToBridgeHubPolkadotMessagesCliBridge::relay_messages_delivery_confirmation(
-					self.params,
-				),
-			FullBridge::BridgeHubPolkadotToPolkadotBulletin =>
-				BridgeHubPolkadotToPolkadotBulletinMessagesCliBridge::relay_messages_delivery_confirmation(
-					self.params,
-				),
-			FullBridge::RococoBulletinToBridgeHubRococo =>
-				RococoBulletinToBridgeHubRococoMessagesCliBridge::relay_messages_delivery_confirmation(self.params),
-			FullBridge::BridgeHubRococoToRococoBulletin =>
-				BridgeHubRococoToRococoBulletinMessagesCliBridge::relay_messages_delivery_confirmation(self.params),
 			FullBridge::AssetHubRococoToBridgeHubWestend =>
 				AssetHubRococoToAssetHubWestendMessagesCliBridge::relay_messages_delivery_confirmation(self.params),
 			FullBridge::AssetHubWestendToBridgeHubRococo =>
