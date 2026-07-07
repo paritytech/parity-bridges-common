@@ -339,7 +339,6 @@ impl BridgeTestEnv {
 		let bhw = self.bridge_hub_westend_client().await?;
 
 		let alice = dev::alice();
-		let owner_acc = dev_account(&alice);
 
 		// Wait until each bridge hub finalizes its first block: proof the full
 		// collation -> backing -> inclusion -> finality pipeline is live. The asset hubs only need
@@ -361,13 +360,6 @@ impl BridgeTestEnv {
 		let bhw_on_bhr =
 			bridge_hub_rococo::remote_bridge_hub(WESTEND_GENESIS_HASH, BRIDGE_HUB_WESTEND_PARA_ID);
 		let force_bhw = bridge_hub_rococo::force_xcm_version_call(&bhr, bhw_on_bhr).await?;
-		let create_wwnd = asset_hub_rococo::force_create_foreign_asset_call(
-			&ahr,
-			WESTEND_GENESIS_HASH,
-			owner_acc.clone(),
-			10_000_000_000,
-		)
-		.await?;
 		let rococo_calls = vec![
 			relay_rococo::force_open_hrmp_channel_call(
 				ASSET_HUB_PARA_ID,
@@ -393,12 +385,6 @@ impl BridgeTestEnv {
 				200_000_000,
 				12_000,
 			),
-			relay_rococo::governance_transact_call(
-				ASSET_HUB_PARA_ID,
-				create_wwnd,
-				5_000_000_000,
-				100_000,
-			),
 		];
 
 		let ahr_on_ahw = asset_hub_westend::remote_asset_hub(ROCOCO_GENESIS_HASH);
@@ -407,13 +393,6 @@ impl BridgeTestEnv {
 		let bhr_on_bhw =
 			bridge_hub_westend::remote_bridge_hub(ROCOCO_GENESIS_HASH, BRIDGE_HUB_ROCOCO_PARA_ID);
 		let force_bhr = bridge_hub_westend::force_xcm_version_call(&bhw, bhr_on_bhw).await?;
-		let create_wroc = asset_hub_westend::force_create_foreign_asset_call(
-			&ahw,
-			ROCOCO_GENESIS_HASH,
-			owner_acc.clone(),
-			10_000_000_000,
-		)
-		.await?;
 		let westend_calls = vec![
 			relay_westend::force_open_hrmp_channel_call(
 				ASSET_HUB_PARA_ID,
@@ -439,12 +418,6 @@ impl BridgeTestEnv {
 				200_000_000,
 				12_000,
 			),
-			relay_westend::governance_transact_call(
-				ASSET_HUB_PARA_ID,
-				create_wroc,
-				5_000_000_000,
-				100_000,
-			),
 		];
 
 		tokio::try_join!(
@@ -452,9 +425,10 @@ impl BridgeTestEnv {
 			relay_westend::sudo_batch_all(&westend_relay, &alice, westend_calls),
 		)?;
 
-		// Confirm the on-parachain effects of the batches (both Asset Hubs concurrently): HRMP
-		// egress channels open, and the bridged foreign assets exist with the expected owner.
-		log::info!("Waiting for HRMP channels to open and bridged foreign assets to be created");
+		// Confirm the on-parachain effects of the batches (both Asset Hubs concurrently): the HRMP
+		// egress channels towards the Bridge Hubs are open. The bridged foreign assets are
+		// pre-registered at genesis, so there is nothing to create or confirm for them here.
+		log::info!("Waiting for HRMP channels to open");
 		tokio::try_join!(
 			retry_until(Duration::from_secs(600), || {
 				let ahr = ahr.clone();
@@ -472,38 +446,50 @@ impl BridgeTestEnv {
 						.then_some(()))
 				}
 			}),
-			retry_until(Duration::from_secs(300), || {
-				let ahr = ahr.clone();
-				let owner_acc = owner_acc.clone();
-				async move {
-					Ok(asset_hub_rococo::bridged_asset_owner_is(
-						&ahr,
-						WESTEND_GENESIS_HASH,
-						&owner_acc,
-					)
-					.await?
-					.then_some(()))
-				}
-			}),
-			retry_until(Duration::from_secs(300), || {
-				let ahw = ahw.clone();
-				let owner_acc = owner_acc.clone();
-				async move {
-					Ok(asset_hub_westend::bridged_asset_owner_is(
-						&ahw,
-						ROCOCO_GENESIS_HASH,
-						&owner_acc,
-					)
-					.await?
-					.then_some(()))
-				}
-			}),
 		)?;
-		log::info!("HRMP channels open and bridged foreign assets created on both Asset Hubs");
+		log::info!("HRMP channels open on both Asset Hubs");
 
-		// No asset-conversion pool needed: the bridged asset is `is_sufficient` (see
-		// `force_create_foreign_asset_call`) so it pays its own XCM fees. Sovereign/reward accounts
-		// are funded via genesis (see `bridge_hub_balances_override`), so nothing to fund here.
+		// The bridged foreign assets are pre-registered at genesis, owned by the bridged network's
+		// sovereign account and with `is_sufficient: false`, so they can't pay XCM fees directly: the
+		// runtime's `SwapFirstAssetTrader` swaps a non-native fee asset to the native token through an
+		// asset-conversion pool, and none exists at genesis. Seed a native<>bridged pool on each Asset
+		// Hub so the forward transfers (which pay destination fees in the arriving bridged asset)
+		// succeed. Genesis endows `//Bob` with both the bridged asset and the native token, so Bob
+		// funds both sides. Independent chains => seed both concurrently. Sovereign/reward accounts are
+		// funded via genesis (see `bridge_hub_balances_override`), so nothing else to fund here.
+		const POOL_LIQUIDITY: u128 = 100_000_000_000_000;
+		let bob = dev::bob();
+		let bob_acc = dev_account(&bob);
+		log::info!("Seeding native<>bridged asset-conversion pools on both Asset Hubs");
+		tokio::try_join!(
+			async {
+				asset_hub_rococo::create_pool(&ahr, &bob, WESTEND_GENESIS_HASH, 0).await?;
+				asset_hub_rococo::add_liquidity(
+					&ahr,
+					&bob,
+					WESTEND_GENESIS_HASH,
+					POOL_LIQUIDITY,
+					POOL_LIQUIDITY,
+					bob_acc.clone(),
+					1,
+				)
+				.await
+			},
+			async {
+				asset_hub_westend::create_pool(&ahw, &bob, ROCOCO_GENESIS_HASH, 0).await?;
+				asset_hub_westend::add_liquidity(
+					&ahw,
+					&bob,
+					ROCOCO_GENESIS_HASH,
+					POOL_LIQUIDITY,
+					POOL_LIQUIDITY,
+					bob_acc.clone(),
+					1,
+				)
+				.await
+			},
+		)?;
+		log::info!("Asset-conversion pools created on both Asset Hubs");
 
 		log::info!("Bridge initialization complete");
 		Ok(())

@@ -16,11 +16,8 @@
 
 //! Deal with CLI args of substrate-to-substrate relay.
 
-use async_std::prelude::*;
 use clap::Parser;
-use futures::{select, FutureExt};
-use signal_hook::consts::*;
-use signal_hook_async_std::Signals;
+use tokio::signal::unix::{signal, SignalKind};
 
 mod chain_schema;
 mod detect_equivocations;
@@ -127,21 +124,25 @@ impl Command {
 		self.init_logger();
 		self.init_version();
 
-		let exit_signals = match Signals::new([SIGINT, SIGTERM]) {
-			Ok(signals) => signals,
-			Err(e) => {
-				log::error!(target: LOG_TARGET, "Could not register exit signals: {}", e);
-				return
-			},
-		};
-		let run = self.do_run().fuse();
-		futures::pin_mut!(exit_signals, run);
+		let (mut sigint, mut sigterm) =
+			match (signal(SignalKind::interrupt()), signal(SignalKind::terminate())) {
+				(Ok(sigint), Ok(sigterm)) => (sigint, sigterm),
+				(Err(e), _) | (_, Err(e)) => {
+					log::error!(target: LOG_TARGET, "Could not register exit signals: {}", e);
+					return
+				},
+			};
+		let run = self.do_run();
+		tokio::pin!(run);
 
-		select! {
-			signal = exit_signals.next().fuse() => {
-				log::info!(target: LOG_TARGET, "Received exit signal {:?}", signal);
+		tokio::select! {
+			_ = sigint.recv() => {
+				log::info!(target: LOG_TARGET, "Received exit signal SIGINT");
 			},
-			result = run => {
+			_ = sigterm.recv() => {
+				log::info!(target: LOG_TARGET, "Received exit signal SIGTERM");
+			},
+			result = &mut run => {
 				if let Err(e) = result {
 					log::error!(target: LOG_TARGET, "substrate-relay: {}", e);
 				}
