@@ -76,11 +76,7 @@ Bundled Chain Versions:
 
 - Kusama Bridge Hub: `9410`;
 
-- Polkadot Bridge Hub: `9410`;
-
-- Rococo Bulletin: `None` (must be specified in CLI);
-
-- Polkadot Bulletin: `None` (must be specified in CLI).
+- Polkadot Bridge Hub: `9410`.
 ```
 
   - choose new and previous tags and hit the "Generate Release Notes" button;
@@ -93,11 +89,7 @@ The relayer from this repository supports multiple bridges:
 
 - `Rococo Bridge Hub` (aka `RBH`) <> `Westend Bridge Hub` (aka `WBH`) bridge;
 
-- `Rococo Bridge Hub` <> `Rococo Bulletin Chain` (aka `RBC`) bridge;
-
-- `Kusama Bridge Hub` (aka `KBH`) <> `Polkadot Bridge Hub` (aka `PBH`) bridge;
-
-- `Polkadot Bridge Hub` <> `Polkadot Bulletin Chain` (aka `PBC`) bridge.
+- `Kusama Bridge Hub` (aka `KBH`) <> `Polkadot Bridge Hub` (aka `PBH`) bridge.
 
 We run every relayer in two modes: one is to relay messages and associated finality
 proofs (it is usually `relay-headers-and-messages` subcommand) and the other is
@@ -111,7 +103,7 @@ properly encode this transaction. In current implementation, this information is
 hardcoded in the relayer code. This information may change from release to release,
 so we need to make a new relayer release once one of changes is upgraded.
 
-However, we are cheating here - for test bridges (`RBH` <> `WBH` and `RBH` <> `RBC`)
+However, we are cheating here - for test bridges (`RBH` <> `WBH`)
 we are running relayer in a mode, when it just uses this hardcoded information,
 ignoring actual runtime version. So normally we'll made releases only when following
 chain runtimes are changes: `Polkadot`, `Kusama`, `PBH`, `KBH`.
@@ -129,9 +121,7 @@ support it. Normally it means:
 
 - for `Kusama` [here](https://github.com/paritytech/parity-bridges-common/blob/master/relay-clients/client-kusama/src/lib.rs) and `KBH` [here](https://github.com/paritytech/parity-bridges-common/blob/master/relay-clients/client-bridge-hub-kusama/src/lib.rs);
 
-- for `Polkadot` [here](https://github.com/paritytech/parity-bridges-common/blob/master/relay-clients/client-polkadot/src/lib.rs) and `PBH` [here](https://github.com/paritytech/parity-bridges-common/blob/master/relay-clients/client-bridge-hub-polkadot/src/lib.rs);
-
-- for `PBC` [here](https://github.com/paritytech/parity-bridges-common/blob/master/relay-clients/client-polkadot-bulletin/src/lib.rs).
+- for `Polkadot` [here](https://github.com/paritytech/parity-bridges-common/blob/master/relay-clients/client-polkadot/src/lib.rs) and `PBH` [here](https://github.com/paritytech/parity-bridges-common/blob/master/relay-clients/client-bridge-hub-polkadot/src/lib.rs).
 
 2. Regenerating bundled runtime wrapper code using `runtime-codegen` binary:
 

@@ -22,14 +22,6 @@ use crate::bridges::{
 		kusama_headers_to_bridge_hub_polkadot::KusamaToBridgeHubPolkadotCliBridge,
 		polkadot_headers_to_bridge_hub_kusama::PolkadotToBridgeHubKusamaCliBridge,
 	},
-	polkadot_bulletin::{
-		polkadot_bulletin_headers_to_bridge_hub_polkadot::PolkadotBulletinToBridgeHubPolkadotCliBridge,
-		polkadot_headers_to_polkadot_bulletin::PolkadotToPolkadotBulletinCliBridge,
-	},
-	rococo_bulletin::{
-		rococo_bulletin_headers_to_bridge_hub_rococo::RococoBulletinToBridgeHubRococoCliBridge,
-		rococo_headers_to_rococo_bulletin::RococoToRococoBulletinCliBridge,
-	},
 	rococo_westend::{
 		rococo_headers_to_bridge_hub_westend::RococoToBridgeHubWestendCliBridge,
 		westend_headers_to_bridge_hub_rococo::WestendToBridgeHubRococoCliBridge,
@@ -68,20 +60,12 @@ pub enum RelayHeadersBridge {
 	WestendToBridgeHubRococo,
 	KusamaToBridgeHubPolkadot,
 	PolkadotToBridgeHubKusama,
-	PolkadotToPolkadotBulletin,
-	PolkadotBulletinToBridgeHubPolkadot,
-	RococoToRococoBulletin,
-	RococoBulletinToBridgeHubRococo,
 }
 
 impl HeadersRelayer for RococoToBridgeHubWestendCliBridge {}
 impl HeadersRelayer for WestendToBridgeHubRococoCliBridge {}
 impl HeadersRelayer for KusamaToBridgeHubPolkadotCliBridge {}
 impl HeadersRelayer for PolkadotToBridgeHubKusamaCliBridge {}
-impl HeadersRelayer for PolkadotToPolkadotBulletinCliBridge {}
-impl HeadersRelayer for PolkadotBulletinToBridgeHubPolkadotCliBridge {}
-impl HeadersRelayer for RococoToRococoBulletinCliBridge {}
-impl HeadersRelayer for RococoBulletinToBridgeHubRococoCliBridge {}
 
 impl RelayHeaders {
 	/// Run the command.
@@ -95,14 +79,6 @@ impl RelayHeaders {
 				KusamaToBridgeHubPolkadotCliBridge::relay_headers(self.params),
 			RelayHeadersBridge::PolkadotToBridgeHubKusama =>
 				PolkadotToBridgeHubKusamaCliBridge::relay_headers(self.params),
-			RelayHeadersBridge::PolkadotToPolkadotBulletin =>
-				PolkadotToPolkadotBulletinCliBridge::relay_headers(self.params),
-			RelayHeadersBridge::PolkadotBulletinToBridgeHubPolkadot =>
-				PolkadotBulletinToBridgeHubPolkadotCliBridge::relay_headers(self.params),
-			RelayHeadersBridge::RococoToRococoBulletin =>
-				RococoToRococoBulletinCliBridge::relay_headers(self.params),
-			RelayHeadersBridge::RococoBulletinToBridgeHubRococo =>
-				RococoBulletinToBridgeHubRococoCliBridge::relay_headers(self.params),
 		}
 		.await
 	}
@@ -120,14 +96,6 @@ impl RelayHeader {
 				KusamaToBridgeHubPolkadotCliBridge::relay_header(self.params),
 			RelayHeadersBridge::PolkadotToBridgeHubKusama =>
 				PolkadotToBridgeHubKusamaCliBridge::relay_header(self.params),
-			RelayHeadersBridge::PolkadotToPolkadotBulletin =>
-				PolkadotToPolkadotBulletinCliBridge::relay_header(self.params),
-			RelayHeadersBridge::PolkadotBulletinToBridgeHubPolkadot =>
-				PolkadotBulletinToBridgeHubPolkadotCliBridge::relay_header(self.params),
-			RelayHeadersBridge::RococoToRococoBulletin =>
-				RococoToRococoBulletinCliBridge::relay_header(self.params),
-			RelayHeadersBridge::RococoBulletinToBridgeHubRococo =>
-				RococoBulletinToBridgeHubRococoCliBridge::relay_header(self.params),
 		}
 		.await
 	}

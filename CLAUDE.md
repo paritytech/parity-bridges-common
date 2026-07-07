@@ -2,7 +2,7 @@
 
 Cross-chain bridge relay infrastructure for Substrate-based blockchains. The `substrate-relay` binary relays GRANDPA finality proofs, parachain heads, and messages between chains via BridgeHubs.
 
-Production bridges: Kusama-Polkadot, Polkadot-Bulletin. Testnet bridges: Rococo-Westend, Rococo-Bulletin.
+Production bridges: Kusama-Polkadot. Testnet bridges: Rococo-Westend.
 
 ## Commands
 

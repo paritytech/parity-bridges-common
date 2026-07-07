@@ -19,14 +19,6 @@ use crate::bridges::{
 		kusama_headers_to_bridge_hub_polkadot::KusamaToBridgeHubPolkadotCliBridge,
 		polkadot_headers_to_bridge_hub_kusama::PolkadotToBridgeHubKusamaCliBridge,
 	},
-	polkadot_bulletin::{
-		polkadot_bulletin_headers_to_bridge_hub_polkadot::PolkadotBulletinToBridgeHubPolkadotCliBridge,
-		polkadot_headers_to_polkadot_bulletin::PolkadotToPolkadotBulletinCliBridge,
-	},
-	rococo_bulletin::{
-		rococo_bulletin_headers_to_bridge_hub_rococo::RococoBulletinToBridgeHubRococoCliBridge,
-		rococo_headers_to_rococo_bulletin::RococoToRococoBulletinCliBridge,
-	},
 	rococo_westend::{
 		rococo_headers_to_bridge_hub_westend::RococoToBridgeHubWestendCliBridge,
 		westend_headers_to_bridge_hub_rococo::WestendToBridgeHubRococoCliBridge,
@@ -88,67 +80,6 @@ impl BridgeInitializer for PolkadotToBridgeHubKusamaCliBridge {
 	}
 }
 
-impl BridgeInitializer for PolkadotToPolkadotBulletinCliBridge {
-	type Engine = GrandpaFinalityEngine<Self::Source>;
-
-	fn encode_init_bridge(
-		init_data: <Self::Engine as Engine<Self::Source>>::InitializationData,
-	) -> <Self::Target as Chain>::Call {
-		type RuntimeCall = relay_polkadot_bulletin_client::RuntimeCall;
-		type BridgePolkadotGrandpaCall = relay_polkadot_bulletin_client::BridgePolkadotGrandpaCall;
-		type SudoCall = relay_polkadot_bulletin_client::SudoCall;
-
-		let initialize_call =
-			RuntimeCall::BridgePolkadotGrandpa(BridgePolkadotGrandpaCall::initialize { init_data });
-
-		RuntimeCall::Sudo(SudoCall::sudo { call: Box::new(initialize_call) })
-	}
-}
-
-impl BridgeInitializer for PolkadotBulletinToBridgeHubPolkadotCliBridge {
-	type Engine = GrandpaFinalityEngine<Self::Source>;
-
-	fn encode_init_bridge(
-		init_data: <Self::Engine as Engine<Self::Source>>::InitializationData,
-	) -> <Self::Target as Chain>::Call {
-		// TODO: https://github.com/paritytech/parity-bridges-common/issues/2547 - use BridgePolkadotBulletinGrandpa
-		relay_bridge_hub_polkadot_client::RuntimeCall::BridgeKusamaGrandpa(
-			relay_bridge_hub_polkadot_client::BridgePolkadotBulletinGrandpaCall::initialize {
-				init_data,
-			},
-		)
-	}
-}
-
-impl BridgeInitializer for RococoToRococoBulletinCliBridge {
-	type Engine = GrandpaFinalityEngine<Self::Source>;
-
-	fn encode_init_bridge(
-		init_data: <Self::Engine as Engine<Self::Source>>::InitializationData,
-	) -> <Self::Target as Chain>::Call {
-		type RuntimeCall = relay_polkadot_bulletin_client::RuntimeCall;
-		type BridgePolkadotGrandpaCall = relay_polkadot_bulletin_client::BridgePolkadotGrandpaCall;
-		type SudoCall = relay_polkadot_bulletin_client::SudoCall;
-
-		let initialize_call =
-			RuntimeCall::BridgePolkadotGrandpa(BridgePolkadotGrandpaCall::initialize { init_data });
-
-		RuntimeCall::Sudo(SudoCall::sudo { call: Box::new(initialize_call) })
-	}
-}
-
-impl BridgeInitializer for RococoBulletinToBridgeHubRococoCliBridge {
-	type Engine = GrandpaFinalityEngine<Self::Source>;
-
-	fn encode_init_bridge(
-		init_data: <Self::Engine as Engine<Self::Source>>::InitializationData,
-	) -> <Self::Target as Chain>::Call {
-		relay_bridge_hub_rococo_client::RuntimeCall::BridgePolkadotBulletinGrandpa(
-			relay_bridge_hub_rococo_client::BridgeBulletinGrandpaCall::initialize { init_data },
-		)
-	}
-}
-
 /// Initialize bridge pallet.
 #[derive(Parser)]
 pub struct InitBridge {
@@ -165,10 +96,6 @@ pub struct InitBridge {
 pub enum InitBridgeName {
 	KusamaToBridgeHubPolkadot,
 	PolkadotToBridgeHubKusama,
-	PolkadotToPolkadotBulletin,
-	PolkadotBulletinToBridgeHubPolkadot,
-	RococoToRococoBulletin,
-	RococoBulletinToBridgeHubRococo,
 	RococoToBridgeHubWestend,
 	WestendToBridgeHubRococo,
 }
@@ -181,14 +108,6 @@ impl InitBridge {
 				KusamaToBridgeHubPolkadotCliBridge::init_bridge(self.params),
 			InitBridgeName::PolkadotToBridgeHubKusama =>
 				PolkadotToBridgeHubKusamaCliBridge::init_bridge(self.params),
-			InitBridgeName::PolkadotToPolkadotBulletin =>
-				PolkadotToPolkadotBulletinCliBridge::init_bridge(self.params),
-			InitBridgeName::PolkadotBulletinToBridgeHubPolkadot =>
-				PolkadotBulletinToBridgeHubPolkadotCliBridge::init_bridge(self.params),
-			InitBridgeName::RococoToRococoBulletin =>
-				RococoToRococoBulletinCliBridge::init_bridge(self.params),
-			InitBridgeName::RococoBulletinToBridgeHubRococo =>
-				RococoBulletinToBridgeHubRococoCliBridge::init_bridge(self.params),
 			InitBridgeName::RococoToBridgeHubWestend =>
 				RococoToBridgeHubWestendCliBridge::init_bridge(self.params),
 			InitBridgeName::WestendToBridgeHubRococo =>

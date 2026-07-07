@@ -15,7 +15,6 @@ members = [
 	"relay-clients/client-bridge-hub-westend",
 	"relay-clients/client-kusama",
 	"relay-clients/client-polkadot",
-	"relay-clients/client-polkadot-bulletin",
 	"relay-clients/client-rococo",
 	"relay-clients/client-westend",
 	"chains/chain-bridge-hub-polkadot",
@@ -104,7 +103,6 @@ bp-westend = { git = "https://github.com/paritytech/polkadot-sdk", branch = "mas
 relay-utils = { git = "https://github.com/paritytech/polkadot-sdk", branch = "master" }
 sp-consensus-grandpa = { git = "https://github.com/paritytech/polkadot-sdk", branch = "master" }
 sp-session = { git = "https://github.com/paritytech/polkadot-sdk", branch = "master" }
-bp-polkadot-bulletin = { git = "https://github.com/paritytech/polkadot-sdk", branch = "master" }
 bp-bridge-hub-kusama = { path = "./chains/chain-bridge-hub-kusama" }
 bp-asset-hub-rococo = { git = "https://github.com/paritytech/polkadot-sdk", branch = "master" }
 bp-asset-hub-westend = { git = "https://github.com/paritytech/polkadot-sdk", branch = "master" }
@@ -138,7 +136,6 @@ relay-bridge-hub-rococo-client = { path = "./relay-clients/client-bridge-hub-roc
 relay-bridge-hub-westend-client = { path = "./relay-clients/client-bridge-hub-westend" }
 relay-kusama-client = { path = "./relay-clients/client-kusama" }
 relay-polkadot-client = { path = "./relay-clients/client-polkadot" }
-relay-polkadot-bulletin-client = { path = "./relay-clients/client-polkadot-bulletin" }
 relay-rococo-client = { path = "./relay-clients/client-rococo" }
 relay-westend-client = { path = "./relay-clients/client-westend" }
 substrate-relay-helper = { git = "https://github.com/paritytech/polkadot-sdk", branch = "master" }
