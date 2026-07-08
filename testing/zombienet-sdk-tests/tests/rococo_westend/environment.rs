@@ -73,6 +73,38 @@ fn relay_async_backing_override() -> serde_json::Value {
 	})
 }
 
+/// Genesis override registering the trusted reserve for the bridged ROC foreign asset that the
+/// Asset Hub Westend runtime pre-registers at genesis.
+///
+/// Asset Hub Westend trusts XCM reserves only via per-asset `pallet-assets` `Reserves` (no static
+/// bridging fallback), and that storage is normally populated by a runtime-upgrade migration — which
+/// a freshly-genesis'd chain never runs. So the pre-registered bridged ROC asset would have no
+/// reserve and inbound bridged reserve-transfers fail with `UntrustedReserveLocation`. Seed it here
+/// to match the migration's rule (a Rococo-ecosystem asset's reserve is Asset Hub Rococo,
+/// non-teleportable). `with_genesis_overrides` deep-merges into `foreignAssets`, so the preset's
+/// `assets`/`accounts` are preserved. (Asset Hub Rococo still uses a static reserve, so it needs no
+/// such override.)
+fn asset_hub_westend_reserves_override() -> serde_json::Value {
+	// The bridged ROC asset id `{ parents: 2, X1(GlobalConsensus(Rococo)) }` and its trusted reserve,
+	// Asset Hub Rococo `{ parents: 2, X2(GlobalConsensus(Rococo), Parachain(ASSET_HUB_PARA_ID)) }`.
+	let bridged_roc = serde_json::json!({
+		"parents": 2,
+		"interior": { "X1": [{ "GlobalConsensus": { "ByGenesis": ROCOCO_GENESIS_HASH } }] },
+	});
+	let asset_hub_rococo = serde_json::json!({
+		"parents": 2,
+		"interior": { "X2": [
+			{ "GlobalConsensus": { "ByGenesis": ROCOCO_GENESIS_HASH } },
+			{ "Parachain": ASSET_HUB_PARA_ID },
+		] },
+	});
+	serde_json::json!({
+		"foreignAssets": {
+			"reserves": [[bridged_roc, [{ "reserve": asset_hub_rococo, "teleportable": false }]]],
+		}
+	})
+}
+
 fn rococo_network_config() -> Result<NetworkConfig, anyhow::Error> {
 	let images = node_images();
 	// Bridge hubs keep the default fork-aware tx pool (re-validates pending txs across reorgs, so
@@ -197,6 +229,7 @@ fn westend_network_config() -> Result<NetworkConfig, anyhow::Error> {
 				.cumulus_based(true)
 				.with_default_command("polkadot-parachain")
 				.with_default_image(images.cumulus.as_str())
+				.with_genesis_overrides(asset_hub_westend_reserves_override())
 				// Single asset-hub collator, see `rococo_network_config`.
 				.with_collator(|n| {
 					n.with_name("asset-hub-westend-collator1").with_args(ah_args.clone())
