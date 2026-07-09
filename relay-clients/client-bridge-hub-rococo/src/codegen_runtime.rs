@@ -383,12 +383,6 @@ pub mod api {
 				BridgeWestendMessages(runtime_types::pallet_bridge_messages::pallet::Call),
 				#[codec(index = 52)]
 				XcmOverBridgeHubWestend(runtime_types::pallet_xcm_bridge_hub::pallet::Call),
-				#[codec(index = 60)]
-				BridgePolkadotBulletinGrandpa(runtime_types::pallet_bridge_grandpa::pallet::Call),
-				#[codec(index = 61)]
-				BridgePolkadotBulletinMessages(runtime_types::pallet_bridge_messages::pallet::Call),
-				#[codec(index = 62)]
-				XcmOverPolkadotBulletin(runtime_types::pallet_xcm_bridge_hub::pallet::Call),
 				#[codec(index = 63)]
 				BridgeRelayersForPermissionlessLanes(
 					runtime_types::pallet_bridge_relayers::pallet::Call,
@@ -438,14 +432,6 @@ pub mod api {
 				BridgeWestendMessages(runtime_types::pallet_bridge_messages::pallet::Error),
 				#[codec(index = 52)]
 				XcmOverBridgeHubWestend(runtime_types::pallet_xcm_bridge_hub::pallet::Error),
-				#[codec(index = 60)]
-				BridgePolkadotBulletinGrandpa(runtime_types::pallet_bridge_grandpa::pallet::Error),
-				#[codec(index = 61)]
-				BridgePolkadotBulletinMessages(
-					runtime_types::pallet_bridge_messages::pallet::Error,
-				),
-				#[codec(index = 62)]
-				XcmOverPolkadotBulletin(runtime_types::pallet_xcm_bridge_hub::pallet::Error),
 				#[codec(index = 63)]
 				BridgeRelayersForPermissionlessLanes(
 					runtime_types::pallet_bridge_relayers::pallet::Error,
@@ -499,14 +485,6 @@ pub mod api {
 				BridgeWestendMessages(runtime_types::pallet_bridge_messages::pallet::Event),
 				#[codec(index = 52)]
 				XcmOverBridgeHubWestend(runtime_types::pallet_xcm_bridge_hub::pallet::Event),
-				#[codec(index = 60)]
-				BridgePolkadotBulletinGrandpa(runtime_types::pallet_bridge_grandpa::pallet::Event),
-				#[codec(index = 61)]
-				BridgePolkadotBulletinMessages(
-					runtime_types::pallet_bridge_messages::pallet::Event,
-				),
-				#[codec(index = 62)]
-				XcmOverPolkadotBulletin(runtime_types::pallet_xcm_bridge_hub::pallet::Event),
 				#[codec(index = 63)]
 				BridgeRelayersForPermissionlessLanes(
 					runtime_types::pallet_bridge_relayers::pallet::Event,
@@ -534,8 +512,6 @@ pub mod api {
 				PolkadotXcm(runtime_types::pallet_xcm::pallet::HoldReason),
 				#[codec(index = 52)]
 				XcmOverBridgeHubWestend(runtime_types::pallet_xcm_bridge_hub::pallet::HoldReason),
-				#[codec(index = 62)]
-				XcmOverPolkadotBulletin(runtime_types::pallet_xcm_bridge_hub::pallet::HoldReason),
 			}
 			#[derive(::codec::Decode, ::codec::Encode, Clone, Debug, PartialEq)]
 			pub struct SessionKeys {

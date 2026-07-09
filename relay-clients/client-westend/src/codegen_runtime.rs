@@ -2970,7 +2970,7 @@ pub mod api {
 					#[codec(index = 0)]
 					Offence {
 						kind: [::core::primitive::u8; 16usize],
-						timeslot: ::subxt::ext::subxt_core::alloc::vec::Vec<::core::primitive::u8>,
+						slot: ::subxt::ext::subxt_core::alloc::vec::Vec<::core::primitive::u8>,
 					},
 				}
 			}

@@ -77,16 +77,17 @@ fn relay_async_backing_override() -> serde_json::Value {
 /// Asset Hub Westend runtime pre-registers at genesis.
 ///
 /// Asset Hub Westend trusts XCM reserves only via per-asset `pallet-assets` `Reserves` (no static
-/// bridging fallback), and that storage is normally populated by a runtime-upgrade migration — which
-/// a freshly-genesis'd chain never runs. So the pre-registered bridged ROC asset would have no
-/// reserve and inbound bridged reserve-transfers fail with `UntrustedReserveLocation`. Seed it here
-/// to match the migration's rule (a Rococo-ecosystem asset's reserve is Asset Hub Rococo,
+/// bridging fallback), and that storage is normally populated by a runtime-upgrade migration —
+/// which a freshly-genesis'd chain never runs. So the pre-registered bridged ROC asset would have
+/// no reserve and inbound bridged reserve-transfers fail with `UntrustedReserveLocation`. Seed it
+/// here to match the migration's rule (a Rococo-ecosystem asset's reserve is Asset Hub Rococo,
 /// non-teleportable). `with_genesis_overrides` deep-merges into `foreignAssets`, so the preset's
 /// `assets`/`accounts` are preserved. (Asset Hub Rococo still uses a static reserve, so it needs no
 /// such override.)
 fn asset_hub_westend_reserves_override() -> serde_json::Value {
-	// The bridged ROC asset id `{ parents: 2, X1(GlobalConsensus(Rococo)) }` and its trusted reserve,
-	// Asset Hub Rococo `{ parents: 2, X2(GlobalConsensus(Rococo), Parachain(ASSET_HUB_PARA_ID)) }`.
+	// The bridged ROC asset id `{ parents: 2, X1(GlobalConsensus(Rococo)) }` and its trusted
+	// reserve, Asset Hub Rococo `{ parents: 2, X2(GlobalConsensus(Rococo),
+	// Parachain(ASSET_HUB_PARA_ID)) }`.
 	let bridged_roc = serde_json::json!({
 		"parents": 2,
 		"interior": { "X1": [{ "GlobalConsensus": { "ByGenesis": ROCOCO_GENESIS_HASH } }] },
@@ -483,13 +484,14 @@ impl BridgeTestEnv {
 		log::info!("HRMP channels open on both Asset Hubs");
 
 		// The bridged foreign assets are pre-registered at genesis, owned by the bridged network's
-		// sovereign account and with `is_sufficient: false`, so they can't pay XCM fees directly: the
-		// runtime's `SwapFirstAssetTrader` swaps a non-native fee asset to the native token through an
-		// asset-conversion pool, and none exists at genesis. Seed a native<>bridged pool on each Asset
-		// Hub so the forward transfers (which pay destination fees in the arriving bridged asset)
-		// succeed. Genesis endows `//Bob` with both the bridged asset and the native token, so Bob
-		// funds both sides. Independent chains => seed both concurrently. Sovereign/reward accounts are
-		// funded via genesis (see `bridge_hub_balances_override`), so nothing else to fund here.
+		// sovereign account and with `is_sufficient: false`, so they can't pay XCM fees directly:
+		// the runtime's `SwapFirstAssetTrader` swaps a non-native fee asset to the native token
+		// through an asset-conversion pool, and none exists at genesis. Seed a native<>bridged
+		// pool on each Asset Hub so the forward transfers (which pay destination fees in the
+		// arriving bridged asset) succeed. Genesis endows `//Bob` with both the bridged asset and
+		// the native token, so Bob funds both sides. Independent chains => seed both
+		// concurrently. Sovereign/reward accounts are funded via genesis (see
+		// `bridge_hub_balances_override`), so nothing else to fund here.
 		const POOL_LIQUIDITY: u128 = 100_000_000_000_000;
 		let bob = dev::bob();
 		let bob_acc = dev_account(&bob);
