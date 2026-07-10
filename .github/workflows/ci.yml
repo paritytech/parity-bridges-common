@@ -183,6 +183,14 @@ jobs:
       - name: Checkout sources
         uses: actions/checkout@v4
 
+      # the cargo-deny bundled in the CI image is too old to parse the modern SPDX
+      # license identifiers (e.g. `GPL-3.0-only`) that polkadot-sdk crates now declare,
+      # so install the same recent one the `Deny` job uses
+      - name: Install cargo-deny
+        uses: taiki-e/install-action@16b05812d776ae1dfaabc8277e421fb6d2506419 # v2.82.7
+        with:
+          tool: cargo-deny@0.19.9
+
       - name: Deny License
         run: cargo deny check licenses --hide-inclusion-graph
 
