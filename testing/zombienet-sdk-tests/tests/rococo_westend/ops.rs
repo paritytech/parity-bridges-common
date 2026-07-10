@@ -150,10 +150,10 @@ macro_rules! asset_hub_ops {
 				}
 			}
 
-			/// `tx.assetConversion.createPool(native, bridged)`.
-			// Unused at this runtime revision (the bridged asset is `is_sufficient` and pays its own
-			// fees, so no native<>bridged pool is seeded); kept for when pools are needed again.
-			#[allow(dead_code)]
+			/// `tx.assetConversion.createPool(native, bridged)`. The bridged asset is registered at
+			/// genesis as `is_sufficient: false`, so it can only pay XCM fees by being swapped to the
+			/// native token through an asset-conversion pool (the runtime's `SwapFirstAssetTrader`);
+			/// `init_bridge` seeds one per Asset Hub.
 			pub async fn create_pool(
 				client: &OnlineClient<PolkadotConfig>,
 				signer: &Keypair,
@@ -166,8 +166,8 @@ macro_rules! asset_hub_ops {
 				sign_submit_wait_in_block_nonce(client, &tx, signer, nonce).await
 			}
 
-			/// `tx.assetConversion.addLiquidity(native, bridged, ..)`.
-			#[allow(dead_code)]
+			/// `tx.assetConversion.addLiquidity(native, bridged, ..)`. Seeds the pool created by
+			/// [`create_pool`] with liquidity so the bridged asset's XCM fees can be swapped to native.
 			pub async fn add_liquidity(
 				client: &OnlineClient<PolkadotConfig>,
 				signer: &Keypair,
@@ -253,10 +253,11 @@ macro_rules! asset_hub_ops {
 			}
 
 			/// SCALE-encoded `ForeignAssets::force_create(bridged_asset, owner, is_sufficient,
-			/// min_balance)` call, wrapped in a relay-chain governance `Transact` (root). At this runtime
-			/// revision the bridged asset is not pre-registered at genesis, so it is created here before
-			/// the bridge can mint it; reserve trust is static in the runtime's XCM config, so no
-			/// per-asset reserve registration is needed.
+			/// min_balance)` call, wrapped in a relay-chain governance `Transact` (root).
+			// Unused at this runtime revision: the bridged asset is pre-registered at genesis (owned by
+			// the bridged network's sovereign account), so `force_create` fails with `InUse`. Kept for
+			// runtime revisions that don't pre-register it.
+			#[allow(dead_code)]
 			pub async fn force_create_foreign_asset_call(
 				client: &OnlineClient<PolkadotConfig>,
 				bridged_by_genesis: [u8; 32],
@@ -294,6 +295,9 @@ macro_rules! asset_hub_ops {
 			}
 
 				/// Whether the bridged foreign asset is owned by `account` on this Asset Hub.
+				// Unused at this runtime revision: the asset is pre-registered at genesis owned by the
+				// bridged network's sovereign account, not a dev account. Kept as a probe.
+				#[allow(dead_code)]
 				pub async fn bridged_asset_owner_is(
 					client: &OnlineClient<PolkadotConfig>,
 					bridged_by_genesis: [u8; 32],

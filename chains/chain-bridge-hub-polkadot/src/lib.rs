@@ -26,10 +26,10 @@ use bp_runtime::{
 	decl_bridge_finality_runtime_apis, decl_bridge_messages_runtime_apis, Chain, ChainId, Parachain,
 };
 use frame_support::dispatch::DispatchClass;
-use sp_runtime::{RuntimeDebug, StateVersion};
+use sp_runtime::StateVersion;
 
 /// BridgeHubPolkadot parachain.
-#[derive(RuntimeDebug)]
+#[derive(Debug)]
 pub struct BridgeHubPolkadot;
 
 impl Chain for BridgeHubPolkadot {

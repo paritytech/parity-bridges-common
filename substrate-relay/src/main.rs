@@ -21,8 +21,8 @@
 mod bridges;
 mod cli;
 
-fn main() {
+#[tokio::main]
+async fn main() {
 	let command = cli::parse_args();
-	let run = command.run();
-	async_std::task::block_on(run);
+	command.run().await;
 }

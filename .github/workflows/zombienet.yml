@@ -34,7 +34,8 @@ jobs:
           # Shared with scripts/generate-codegen.sh so the node images and the committed codegen track
           # the same pinned polkadot-sdk revision.
           REV="$(scripts/polkadot-sdk-rev.sh)"
-          # The paritypr `*-debug` images are tagged with the short (8-char) commit.
+          # The paritypr `*-debug` images built from polkadot-sdk master are tagged
+          # `master-<short-8-char-commit>` (see the `master-` prefix on the image refs below).
           echo "POLKADOT_SDK_HASH=${REV:0:8}" >> "$GITHUB_OUTPUT"
           echo "Using polkadot-sdk revision: ${REV:0:8} (full: $REV)"
 
@@ -146,8 +147,8 @@ jobs:
           - rococo_westend::free_headers
     env:
       ZOMBIE_PROVIDER: ${{ needs.set-variables.outputs.ZOMBIE_PROVIDER }}
-      POLKADOT_IMAGE: ${{ needs.set-variables.outputs.IMAGE_REGISTRY }}/polkadot-debug:${{ needs.set-variables.outputs.POLKADOT_SDK_HASH }}
-      CUMULUS_IMAGE: ${{ needs.set-variables.outputs.IMAGE_REGISTRY }}/polkadot-parachain-debug:${{ needs.set-variables.outputs.POLKADOT_SDK_HASH }}
+      POLKADOT_IMAGE: ${{ needs.set-variables.outputs.IMAGE_REGISTRY }}/polkadot-debug:master-${{ needs.set-variables.outputs.POLKADOT_SDK_HASH }}
+      CUMULUS_IMAGE: ${{ needs.set-variables.outputs.IMAGE_REGISTRY }}/polkadot-parachain-debug:master-${{ needs.set-variables.outputs.POLKADOT_SDK_HASH }}
     steps:
       - name: Download substrate-relay
         uses: actions/download-artifact@v4
