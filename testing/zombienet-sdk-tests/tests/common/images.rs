@@ -4,11 +4,12 @@
 //! Default node container images for the `docker`/`podman` zombienet providers.
 
 // Default node images for the `docker` provider, overridable via `POLKADOT_IMAGE` /
-// `CUMULUS_IMAGE`. Tagged with the polkadot-sdk revision pinned in `Cargo.lock` (see `build.rs`).
+// `CUMULUS_IMAGE`. The paritypr `*-debug` images built from polkadot-sdk master are tagged
+// `master-<short-8-char-commit>`, so tag with the `Cargo.lock` revision accordingly (see `build.rs`).
 const DEFAULT_POLKADOT_IMAGE: &str =
-	concat!("docker.io/paritypr/polkadot-debug:", env!("POLKADOT_SDK_SHORT_HASH"));
+	concat!("docker.io/paritypr/polkadot-debug:master-", env!("POLKADOT_SDK_SHORT_HASH"));
 const DEFAULT_CUMULUS_IMAGE: &str =
-	concat!("docker.io/paritypr/polkadot-parachain-debug:", env!("POLKADOT_SDK_SHORT_HASH"));
+	concat!("docker.io/paritypr/polkadot-parachain-debug:master-", env!("POLKADOT_SDK_SHORT_HASH"));
 
 pub struct NodeImages {
 	pub polkadot: String,
