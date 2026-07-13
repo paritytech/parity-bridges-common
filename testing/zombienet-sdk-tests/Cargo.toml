@@ -1,7 +1,7 @@
 [package]
 name = "bridges-zombienet-sdk-tests"
 version = "0.1.0"
-description = "Bridges zombienet-sdk tests (Rococo <> Westend)."
+description = "Bridges zombienet-sdk tests (Rococo <> Westend, Kusama <> Polkadot)."
 authors.workspace = true
 edition.workspace = true
 license.workspace = true

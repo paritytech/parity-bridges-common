@@ -21,8 +21,7 @@ use super::{
 	asset_hub_rococo, asset_hub_westend, bridge_hub_rococo, bridge_hub_westend, relay_rococo,
 	relay_westend, ASSET_HUB_PARA_ID, ASSET_HUB_SOVEREIGN_AT_BRIDGE_HUB, BHR_LANE_BRIDGED_CHAIN,
 	BHR_LANE_THIS_CHAIN, BHW_LANE_BRIDGED_CHAIN, BHW_LANE_THIS_CHAIN, BRIDGE_HUB_ROCOCO_PARA_ID,
-	BRIDGE_HUB_WESTEND_PARA_ID, ROCOCO_GENESIS_HASH, SOVEREIGN_FUNDING, WESTEND_GENESIS_HASH,
-	XCM_VERSION,
+	BRIDGE_HUB_WESTEND_PARA_ID, ROCOCO_GENESIS_HASH, SOVEREIGN_FUNDING, XCM_VERSION,
 };
 use crate::common::{
 	images::node_images,
@@ -388,11 +387,10 @@ impl BridgeTestEnv {
 		// versions + bridged foreign-asset creation. Independent relays, so submit both
 		// concurrently.
 		log::info!("Submitting batched bridge-init governance to both relays");
-		let ahw_on_ahr = asset_hub_rococo::remote_asset_hub(WESTEND_GENESIS_HASH);
+		let ahw_on_ahr = asset_hub_rococo::remote_asset_hub();
 		let force_ahw =
 			asset_hub_rococo::force_xcm_version_call(&ahr, ahw_on_ahr, XCM_VERSION).await?;
-		let bhw_on_bhr =
-			bridge_hub_rococo::remote_bridge_hub(WESTEND_GENESIS_HASH, BRIDGE_HUB_WESTEND_PARA_ID);
+		let bhw_on_bhr = bridge_hub_rococo::remote_bridge_hub(BRIDGE_HUB_WESTEND_PARA_ID);
 		let force_bhw = bridge_hub_rococo::force_xcm_version_call(&bhr, bhw_on_bhr).await?;
 		let rococo_calls = vec![
 			relay_rococo::force_open_hrmp_channel_call(
@@ -421,11 +419,10 @@ impl BridgeTestEnv {
 			),
 		];
 
-		let ahr_on_ahw = asset_hub_westend::remote_asset_hub(ROCOCO_GENESIS_HASH);
+		let ahr_on_ahw = asset_hub_westend::remote_asset_hub();
 		let force_ahr =
 			asset_hub_westend::force_xcm_version_call(&ahw, ahr_on_ahw, XCM_VERSION).await?;
-		let bhr_on_bhw =
-			bridge_hub_westend::remote_bridge_hub(ROCOCO_GENESIS_HASH, BRIDGE_HUB_ROCOCO_PARA_ID);
+		let bhr_on_bhw = bridge_hub_westend::remote_bridge_hub(BRIDGE_HUB_ROCOCO_PARA_ID);
 		let force_bhr = bridge_hub_westend::force_xcm_version_call(&bhw, bhr_on_bhw).await?;
 		let westend_calls = vec![
 			relay_westend::force_open_hrmp_channel_call(
@@ -498,11 +495,10 @@ impl BridgeTestEnv {
 		log::info!("Seeding native<>bridged asset-conversion pools on both Asset Hubs");
 		tokio::try_join!(
 			async {
-				asset_hub_rococo::create_pool(&ahr, &bob, WESTEND_GENESIS_HASH, 0).await?;
+				asset_hub_rococo::create_pool(&ahr, &bob, 0).await?;
 				asset_hub_rococo::add_liquidity(
 					&ahr,
 					&bob,
-					WESTEND_GENESIS_HASH,
 					POOL_LIQUIDITY,
 					POOL_LIQUIDITY,
 					bob_acc.clone(),
@@ -511,11 +507,10 @@ impl BridgeTestEnv {
 				.await
 			},
 			async {
-				asset_hub_westend::create_pool(&ahw, &bob, ROCOCO_GENESIS_HASH, 0).await?;
+				asset_hub_westend::create_pool(&ahw, &bob, 0).await?;
 				asset_hub_westend::add_liquidity(
 					&ahw,
 					&bob,
-					ROCOCO_GENESIS_HASH,
 					POOL_LIQUIDITY,
 					POOL_LIQUIDITY,
 					bob_acc.clone(),

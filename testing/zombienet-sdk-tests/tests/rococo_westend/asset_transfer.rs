@@ -14,7 +14,7 @@
 use crate::rococo_westend::{
 	assert_relayer_balances_unchanged, asset_hub_rococo, asset_hub_westend,
 	bridge_hub_rococo_relayer_reward, bridge_hub_westend_relayer_reward, dev_account, dev_public,
-	retry_until, BridgeTestEnv, ROCOCO_GENESIS_HASH, WESTEND_GENESIS_HASH,
+	retry_until, BridgeTestEnv,
 };
 use std::time::Duration;
 use subxt::{OnlineClient, PolkadotConfig};
@@ -57,7 +57,6 @@ async fn asset_transfer_works() -> Result<(), anyhow::Error> {
 			asset_hub_rococo::transfer_assets(
 				&ahr,
 				&alice,
-				WESTEND_GENESIS_HASH,
 				alice_pub,
 				asset_hub_rococo::native_asset,
 				FIVE_UNITS,
@@ -69,7 +68,7 @@ async fn asset_transfer_works() -> Result<(), anyhow::Error> {
 				let ahw = ahw.clone();
 				let acc = alice_acc.clone();
 				async move {
-					let asset = asset_hub_westend::bridged_asset(ROCOCO_GENESIS_HASH);
+					let asset = asset_hub_westend::bridged_asset();
 					let balance =
 						asset_hub_westend::foreign_asset_balance(&ahw, asset, acc).await?;
 					Ok(balance.filter(|b| *b > MIN_WRAPPED_RECEIVED).map(|_| ()))
@@ -93,7 +92,6 @@ async fn asset_transfer_works() -> Result<(), anyhow::Error> {
 			asset_hub_westend::transfer_assets(
 				&ahw,
 				&alice,
-				ROCOCO_GENESIS_HASH,
 				alice_pub,
 				asset_hub_westend::native_asset,
 				FIVE_UNITS,
@@ -104,7 +102,7 @@ async fn asset_transfer_works() -> Result<(), anyhow::Error> {
 				let ahr = ahr.clone();
 				let acc = alice_acc.clone();
 				async move {
-					let asset = asset_hub_rococo::bridged_asset(WESTEND_GENESIS_HASH);
+					let asset = asset_hub_rococo::bridged_asset();
 					let balance = asset_hub_rococo::foreign_asset_balance(&ahr, asset, acc).await?;
 					Ok(balance.filter(|b| *b > MIN_WRAPPED_RECEIVED).map(|_| ()))
 				}
@@ -133,9 +131,8 @@ async fn asset_transfer_works() -> Result<(), anyhow::Error> {
 			asset_hub_westend::transfer_assets(
 				&ahw,
 				&alice,
-				ROCOCO_GENESIS_HASH,
 				alice_pub,
-				|| asset_hub_westend::bridged_asset(ROCOCO_GENESIS_HASH),
+				asset_hub_westend::bridged_asset,
 				THREE_UNITS,
 				asset_hub_westend::TransferType::DestinationReserve,
 			)
@@ -148,9 +145,8 @@ async fn asset_transfer_works() -> Result<(), anyhow::Error> {
 			asset_hub_rococo::transfer_assets(
 				&ahr,
 				&alice,
-				WESTEND_GENESIS_HASH,
 				alice_pub,
-				|| asset_hub_rococo::bridged_asset(WESTEND_GENESIS_HASH),
+				asset_hub_rococo::bridged_asset,
 				THREE_UNITS,
 				asset_hub_rococo::TransferType::DestinationReserve,
 			)

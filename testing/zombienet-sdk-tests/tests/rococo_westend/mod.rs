@@ -49,15 +49,30 @@ const BHW_LANE_BRIDGED_CHAIN: &str = "5EHnXaT5Tnt3VGpEvc6jSgYwVToDGxLRMuYoZ8coo6
 // The amount funded onto each sovereign/reward account.
 const SOVEREIGN_FUNDING: u128 = 100_000_000_000_000;
 
-#[macro_use]
-mod ops;
-
+// The typed-operation macros are `#[macro_use]`d from `crate::common`. Rococo/Westend identify
+// each other by genesis hash, so the remote network is `NetworkId::ByGenesis(..)`.
 relay_ops!(relay_rococo, rococo, rococo_runtime);
 relay_ops!(relay_westend, westend, westend_runtime);
-asset_hub_ops!(asset_hub_rococo, asset_hub_rococo);
-asset_hub_ops!(asset_hub_westend, asset_hub_westend);
-bridge_hub_ops!(bridge_hub_rococo, bridge_hub_rococo);
-bridge_hub_ops!(bridge_hub_westend, bridge_hub_westend);
+asset_hub_ops!(
+	asset_hub_rococo,
+	asset_hub_rococo,
+	NetworkId::ByGenesis(super::WESTEND_GENESIS_HASH)
+);
+asset_hub_ops!(
+	asset_hub_westend,
+	asset_hub_westend,
+	NetworkId::ByGenesis(super::ROCOCO_GENESIS_HASH)
+);
+bridge_hub_ops!(
+	bridge_hub_rococo,
+	bridge_hub_rococo,
+	NetworkId::ByGenesis(super::WESTEND_GENESIS_HASH)
+);
+bridge_hub_ops!(
+	bridge_hub_westend,
+	bridge_hub_westend,
+	NetworkId::ByGenesis(super::ROCOCO_GENESIS_HASH)
+);
 
 /// Reads `bridgeRelayers.relayerRewards(relayer, RewardsAccountParams)` on Bridge Hub Rococo.
 pub async fn bridge_hub_rococo_relayer_reward(
