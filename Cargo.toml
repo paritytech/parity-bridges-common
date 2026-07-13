@@ -81,7 +81,7 @@ tokio = { version = "1", features = ["macros", "process", "rt-multi-thread", "ti
 # the bridge tests are. (These `[workspace.dependencies]` lines are version *declarations* only:
 # `optional`/feature keys are not valid here, they live at the consumer.)
 zombienet-sdk = "=0.4.14"
-zombienet-orchestrator = "=0.4.14"
+zombienet-orchestrator = "=0.4.15"
 zombienet-provider = "=0.4.15"
 zombienet-configuration = "=0.4.15"
 zombienet-support = "=0.4.15"
