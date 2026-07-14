@@ -116,8 +116,8 @@ fn bridge_hub_genesis_override(
 }
 
 /// Asset Hub genesis override: pin the safe XCM version to [`XCM_VERSION`] (the sudo-free way to
-/// set the remote Asset Hub's XCM version). The bridged foreign asset and `//Bob`'s balance of it are
-/// pre-registered by the fellows Asset Hub preset, so nothing else is needed.
+/// set the remote Asset Hub's XCM version). The bridged foreign asset and `//Bob`'s balance of it
+/// are pre-registered by the fellows Asset Hub preset, so nothing else is needed.
 fn asset_hub_genesis_override() -> serde_json::Value {
 	serde_json::json!({ "polkadotXcm": { "safeXcmVersion": XCM_VERSION } })
 }
