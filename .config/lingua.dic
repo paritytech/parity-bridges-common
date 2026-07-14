@@ -110,10 +110,12 @@ auths/SM
 backoff
 benchmarking/MS
 best_substrate_header
+BH
 bitfield/MS
 blake2/MS
 blockchain/MS
 borked
+camelCased
 chain_getBlock
 choosen
 config/MS
@@ -127,6 +129,7 @@ dispatchable
 dispatchables
 doesn
 ed25519
+env
 enum/MS
 entrypoint/MS
 ethereum/MS
@@ -183,6 +186,7 @@ plancks
 polkadot/MS
 pov-block/MS
 precommit
+preopen
 preset/MS
 preset's
 promethius
@@ -208,6 +212,7 @@ sr25519
 src
 stringified
 struct/MS
+sudo
 submitters/MS
 subsystem/MS
 subsystems'
@@ -238,10 +243,13 @@ unservable/B
 unsynced
 updatable
 validator/SM
+vars
 ve
 vec
 verifier
 w3f/MS
+wDOT
+wKSM
 wakeup
 wasm/M
 websocket

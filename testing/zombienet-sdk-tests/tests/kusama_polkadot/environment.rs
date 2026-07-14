@@ -15,7 +15,7 @@
 //!     sovereign/reward accounts (Bridge Hub `balances`) — leaving only the non-`sudo`, `//Bob`-
 //!     signed asset-conversion pools to be created post-spawn.
 //!
-//! The bridged foreign asset (wKSM on Asset Hub Polkadot, wDOT on Asset Hub Kusama) and //Bob's
+//! The bridged foreign asset (wKSM on Asset Hub Polkadot, wDOT on Asset Hub Kusama) and `//Bob`'s
 //! balance of it are already pre-registered by the fellows Asset Hub genesis presets, so nothing
 //! needs to create them here.
 
@@ -116,7 +116,7 @@ fn bridge_hub_genesis_override(
 }
 
 /// Asset Hub genesis override: pin the safe XCM version to [`XCM_VERSION`] (the sudo-free way to
-/// set the remote Asset Hub's XCM version). The bridged foreign asset and //Bob's balance of it are
+/// set the remote Asset Hub's XCM version). The bridged foreign asset and `//Bob`'s balance of it are
 /// pre-registered by the fellows Asset Hub preset, so nothing else is needed.
 fn asset_hub_genesis_override() -> serde_json::Value {
 	serde_json::json!({ "polkadotXcm": { "safeXcmVersion": XCM_VERSION } })
