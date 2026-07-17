@@ -22,6 +22,7 @@ jobs:
       CI_IMAGE: ${{ steps.vars.outputs.IMAGE }}
       IMAGE_REGISTRY: ${{ steps.vars.outputs.IMAGE_REGISTRY }}
       ZOMBIE_PROVIDER: ${{ steps.vars.outputs.ZOMBIE_PROVIDER }}
+      FELLOWS_RUNTIMES_TAG: ${{ steps.vars.outputs.FELLOWS_RUNTIMES_TAG }}
       POLKADOT_SDK_HASH: ${{ steps.vars.outputs.POLKADOT_SDK_HASH }}
     steps:
       - name: Checkout sources
@@ -141,16 +142,15 @@ jobs:
     needs: [set-variables]
     container:
       image: ${{ needs.set-variables.outputs.CI_IMAGE }}
-    env:
-      # Fellows release the committed Kusama <> Polkadot codegen was generated from. Bump this (and
-      # regenerate the codegen — see testing/zombienet-sdk-tests/README.md) together.
-      FELLOWS_RUNTIMES_TAG: v2.3.1
     steps:
       - name: Checkout fellows runtimes
+        # Fellows release the committed Kusama <> Polkadot codegen was generated from (from
+        # `.github/env`). Bump it (and regenerate the codegen — see
+        # testing/zombienet-sdk-tests/README.md) together.
         uses: actions/checkout@v4
         with:
           repository: polkadot-fellows/runtimes
-          ref: ${{ env.FELLOWS_RUNTIMES_TAG }}
+          ref: ${{ needs.set-variables.outputs.FELLOWS_RUNTIMES_TAG }}
           path: fellows-runtimes
 
       - name: Rust Cache
