@@ -129,24 +129,80 @@ jobs:
           path: ./artifacts
           retention-days: 2
 
+  # Builds the fellows `chain-spec-generator` for the native-only Kusama <> Polkadot leg. The
+  # Polkadot/Kusama runtimes live in polkadot-fellows/runtimes (not polkadot-sdk), so this checks out
+  # that repo at the release whose runtimes match the committed `tests/codegen/*.rs` and builds one
+  # binary embedding all six runtimes (built with `fast-runtime` for short CI sessions). The single
+  # binary is uploaded under both `-polkadot` / `-kusama` names the `kusama_polkadot` environment
+  # expects (see `bins()` in tests/kusama_polkadot/environment.rs).
+  build-chain-spec-generator:
+    name: Build fellows chain-spec-generator
+    runs-on: parity-large
+    needs: [set-variables]
+    container:
+      image: ${{ needs.set-variables.outputs.CI_IMAGE }}
+    env:
+      # Fellows release the committed Kusama <> Polkadot codegen was generated from. Bump this (and
+      # regenerate the codegen — see testing/zombienet-sdk-tests/README.md) together.
+      FELLOWS_RUNTIMES_TAG: v2.3.1
+    steps:
+      - name: Checkout fellows runtimes
+        uses: actions/checkout@v4
+        with:
+          repository: polkadot-fellows/runtimes
+          ref: ${{ env.FELLOWS_RUNTIMES_TAG }}
+          path: fellows-runtimes
+
+      - name: Rust Cache
+        uses: Swatinem/rust-cache@82a92a6e8fbeee089604da2575dc567ae9ddeaab # v2.7.5
+        with:
+          workspaces: fellows-runtimes -> target
+          cache-on-failure: true
+          cache-all-crates: true
+
+      - name: Build chain-spec-generator
+        working-directory: fellows-runtimes
+        run: |
+          # One binary supports all the `-local` chain specs the K<>P environment spawns.
+          cargo build --release -p chain-spec-generator --no-default-features \
+            --features fast-runtime,polkadot,kusama,asset-hub-polkadot,asset-hub-kusama,bridge-hub-polkadot,bridge-hub-kusama
+          mkdir -p ../artifacts
+          cp -v target/release/chain-spec-generator ../artifacts/chain-spec-generator-polkadot
+          cp -v target/release/chain-spec-generator ../artifacts/chain-spec-generator-kusama
+
+      - name: Upload chain-spec-generator
+        uses: actions/upload-artifact@v4
+        with:
+          name: chain-spec-generator
+          path: ./artifacts
+          retention-days: 2
+
   # Runs on a Docker-capable runner (no container) so the docker provider can use the host Docker
   # daemon and reach the spawned nodes on 127.0.0.1.
   run-tests:
     name: Run zombienet tests (${{ matrix.test }})
     runs-on: parity-large
-    needs: [set-variables, build-relay, build-tests]
+    needs: [set-variables, build-relay, build-tests, build-chain-spec-generator]
     timeout-minutes: 90
     strategy:
-      # One leg per test, each on its own runner: a test spawns full Rococo+Westend networks, too
+      # One leg per test, each on its own runner: a test spawns full relay+parachain networks, too
       # heavy to run several concurrently on one runner. Legs run the prebuilt binary from
       # `build-tests`. fail-fast: false so one failure doesn't cancel the rest. Add an entry per test.
+      #
+      # `provider` selects how nodes are spawned: Rococo <> Westend runs from the polkadot-sdk
+      # `*-debug` docker images; Kusama <> Polkadot is native-only (fellows chain-spec-generator +
+      # extracted polkadot/polkadot-parachain binaries), see tests/kusama_polkadot/environment.rs.
       fail-fast: false
       matrix:
-        test:
-          - rococo_westend::asset_transfer
-          - rococo_westend::free_headers
+        include:
+          - test: rococo_westend::asset_transfer
+            provider: docker
+          - test: rococo_westend::free_headers
+            provider: docker
+          - test: kusama_polkadot::asset_transfer
+            provider: native
     env:
-      ZOMBIE_PROVIDER: ${{ needs.set-variables.outputs.ZOMBIE_PROVIDER }}
+      ZOMBIE_PROVIDER: ${{ matrix.provider }}
       POLKADOT_IMAGE: ${{ needs.set-variables.outputs.IMAGE_REGISTRY }}/polkadot-debug:master-${{ needs.set-variables.outputs.POLKADOT_SDK_HASH }}
       CUMULUS_IMAGE: ${{ needs.set-variables.outputs.IMAGE_REGISTRY }}/polkadot-parachain-debug:master-${{ needs.set-variables.outputs.POLKADOT_SDK_HASH }}
     steps:
@@ -174,6 +230,47 @@ jobs:
           echo "CUMULUS_IMAGE=$CUMULUS_IMAGE"
           docker pull "$POLKADOT_IMAGE"
           docker pull "$CUMULUS_IMAGE"
+
+      # Native-only Kusama <> Polkadot leg: the test spawns nodes with the native provider, so it
+      # needs the `polkadot` / `polkadot-parachain` binaries (+ PVF workers) on disk plus the fellows
+      # `chain-spec-generator`. We reuse the already-pulled `*-debug` images as the source of the
+      # pinned-revision node binaries (no separate polkadot-sdk build) and take the chain-spec
+      # generators from the `build-chain-spec-generator` artifact.
+      - name: Download chain-spec-generator
+        if: matrix.provider == 'native'
+        uses: actions/download-artifact@v4
+        with:
+          name: chain-spec-generator
+          path: ./native-bin
+
+      - name: Provision native binaries
+        if: matrix.provider == 'native'
+        run: |
+          set -euo pipefail
+          BIN="$GITHUB_WORKSPACE/native-bin"
+          mkdir -p "$BIN"
+          # Copy a binary out of an image (co-locating polkadot's PVF workers with it, as a validator
+          # spawns them as child processes and won't start otherwise). `command -v` locates each on
+          # the image's PATH so we don't hardcode an install prefix.
+          extract() {
+            local img="$1"; shift
+            local cid; cid="$(docker create "$img")"
+            for b in "$@"; do
+              local src; src="$(docker run --rm --entrypoint sh "$img" -c "command -v $b")"
+              docker cp "$cid:$src" "$BIN/$b"
+            done
+            docker rm -f "$cid" >/dev/null
+          }
+          extract "$POLKADOT_IMAGE" polkadot polkadot-prepare-worker polkadot-execute-worker
+          extract "$CUMULUS_IMAGE" polkadot-parachain
+          chmod +x "$BIN"/*
+          {
+            echo "POLKADOT_BINARY=$BIN/polkadot"
+            echo "POLKADOT_PARACHAIN_BINARY=$BIN/polkadot-parachain"
+            echo "CHAIN_SPEC_GEN_BINARY_FOR_POLKADOT=$BIN/chain-spec-generator-polkadot"
+            echo "CHAIN_SPEC_GEN_BINARY_FOR_KUSAMA=$BIN/chain-spec-generator-kusama"
+          } >> "$GITHUB_ENV"
+          ls -l "$BIN"
 
       # Run the prebuilt binary with the test-name filter (same args as `cargo test -- ...`).
       - name: Run zombienet test
