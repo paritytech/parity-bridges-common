@@ -60,6 +60,7 @@ LaneId
 MIN_SIZE
 MIT/M
 MMR
+MQC
 MaxUnrewardedRelayerEntriesAtInboundLane
 MaybeExtra
 MaybeOrphan
