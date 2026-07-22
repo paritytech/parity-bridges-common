@@ -277,3 +277,14 @@ jobs:
         run: |
           chmod +x "$GITHUB_WORKSPACE/bin/bridges-zombienet-tests"
           "$GITHUB_WORKSPACE/bin/bridges-zombienet-tests" ${{ matrix.test }} --nocapture --test-threads=1
+
+      # On failure, collect the zombienet per-node logs (under /tmp/zombie-*) so node panics/stalls
+      # are diagnosable from the run without a local repro. One artifact per matrix leg.
+      - name: Upload zombienet node logs
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: zombienet-logs-${{ strategy.job-index }}
+          path: /tmp/zombie-*/**/*.log
+          retention-days: 3
+          if-no-files-found: warn

@@ -9,11 +9,13 @@
 //!   * uses the **native** zombienet provider with the locally built `polkadot` /
 //!     `polkadot-parachain` binaries and the fellows `chain-spec-generator` (paths from env vars,
 //!     defaulting to `~/local_bridge_testing/bin`), and
-//!   * bootstraps the bridge **entirely from genesis** — HRMP channels (relay `hrmp` preopen), the
-//!     remote XCM version (`polkadotXcm.safeXcmVersion`), the bridge-GRANDPA pallet owner
-//!     (`//Alice`, so `init-bridge` can be owner-signed without `sudo`) and the funded
-//!     sovereign/reward accounts (Bridge Hub `balances`) — leaving only the non-`sudo`, `//Bob`-
-//!     signed asset-conversion pools to be created post-spawn.
+//!   * bootstraps as much as possible **from genesis** — the remote XCM version
+//!     (`polkadotXcm.safeXcmVersion`), the bridge-GRANDPA pallet owner (`//Alice`, so `init-bridge`
+//!     can be owner-signed without `sudo`) and the funded sovereign/reward accounts (Bridge Hub
+//!     `balances`) — leaving the HRMP channels (opened after spawn via the permissionless
+//!     `Hrmp::establish_system_channel`, since pre-opening them at genesis corrupts the Bridge
+//!     Hub's downward-message-queue head) and the `//Bob`-signed asset-conversion pools to be set
+//!     up post-spawn.
 //!
 //! The bridged foreign asset (wKSM on Asset Hub Polkadot, wDOT on Asset Hub Kusama) and `//Bob`'s
 //! balance of it are already pre-registered by the fellows Asset Hub genesis presets, so nothing
@@ -36,7 +38,10 @@ use super::{
 };
 use crate::common::{
 	relayer::{init_bridge_confirmed, spawn_relayer, Relayer},
-	utils::{best_finalized_bridged_header, dev_account, retry_until, wait_for_finalized_height},
+	utils::{
+		best_finalized_bridged_header, dev_account, retry_until, sign_submit_wait,
+		wait_for_finalized_height,
+	},
 };
 
 /// Locally built binaries used by the native provider. Paths come from env vars, defaulting to
@@ -122,19 +127,20 @@ fn asset_hub_genesis_override() -> serde_json::Value {
 	serde_json::json!({ "polkadotXcm": { "safeXcmVersion": XCM_VERSION } })
 }
 
-/// Relay-chain genesis override: pre-open the HRMP channels between the Asset Hub and Bridge Hub
-/// (the sudo-free way to open them) and set the async-backing params the Asset Hub collators need
-/// (see the Rococo <> Westend environment for the rationale).
-fn relay_genesis_override(bridge_hub_para_id: u32) -> serde_json::Value {
+/// Relay-chain genesis override: set the async-backing params the Asset Hub collators need (see the
+/// Rococo <> Westend environment for the rationale) and deepen the relay's scheduling lookahead.
+///
+/// The HRMP channels are deliberately **not** pre-opened here. Opening them via the `hrmp`
+/// `preopenHrmpChannels` genesis leaves the Bridge Hub parachain with a downward-message-queue
+/// whose MQC head it cannot reconcile on its first block, so `set_validation_data` traps
+/// (`cumulus-pallet-parachain-system: DMQ head mismatch`), the collator can never build block #1
+/// and the Bridge Hubs never finalize. They are instead opened after spawn through the live HRMP
+/// pipeline via the permissionless `Hrmp::establish_system_channel` (see `open_hrmp_channels_*`).
+fn relay_genesis_override() -> serde_json::Value {
 	serde_json::json!({
-		"hrmp": {
-			"preopenHrmpChannels": [
-				[ASSET_HUB_PARA_ID, bridge_hub_para_id, 4, 524288],
-				[bridge_hub_para_id, ASSET_HUB_PARA_ID, 4, 524288],
-			],
-		},
 		"configuration": { "config": {
 			"async_backing_params": { "max_candidate_depth": 1, "allowed_ancestry_len": 2 },
+			"scheduler_params": { "lookahead": 3 },
 		} },
 	})
 }
@@ -148,8 +154,14 @@ fn polkadot_network_config() -> Result<NetworkConfig, anyhow::Error> {
 		"--authoring".into(),
 		"slot-based".into(),
 	];
-	let ah_args: Vec<Arg> =
-		vec!["-lparachain=info,xcm=debug,runtime::bridge=trace,txpool=debug".into()];
+	// The Asset Hub runtimes must author slot-based too: under default/lookahead authoring the
+	// block lacks the expected relay-parent descendants and `set_validation_data` traps (see
+	// R<>W).
+	let ah_args: Vec<Arg> = vec![
+		"-lparachain=info,xcm=debug,runtime::bridge=trace,txpool=debug".into(),
+		"--authoring".into(),
+		"slot-based".into(),
+	];
 	NetworkConfigBuilder::new()
 		.with_relaychain(|r| {
 			r.with_chain("polkadot-local")
@@ -160,7 +172,7 @@ fn polkadot_network_config() -> Result<NetworkConfig, anyhow::Error> {
 				))
 				.chain_spec_command_is_local(true)
 				.with_default_args(vec!["-lparachain=info,xcm=debug".into()])
-				.with_genesis_overrides(relay_genesis_override(BRIDGE_HUB_POLKADOT_PARA_ID))
+				.with_genesis_overrides(relay_genesis_override())
 				.with_validator(|n| {
 					n.with_name("alice-polkadot-validator").with_initial_balance(2_000_000_000_000)
 				})
@@ -224,8 +236,14 @@ fn kusama_network_config() -> Result<NetworkConfig, anyhow::Error> {
 		"--authoring".into(),
 		"slot-based".into(),
 	];
-	let ah_args: Vec<Arg> =
-		vec!["-lparachain=info,xcm=debug,runtime::bridge=trace,txpool=debug".into()];
+	// The Asset Hub runtimes must author slot-based too: under default/lookahead authoring the
+	// block lacks the expected relay-parent descendants and `set_validation_data` traps (see
+	// R<>W).
+	let ah_args: Vec<Arg> = vec![
+		"-lparachain=info,xcm=debug,runtime::bridge=trace,txpool=debug".into(),
+		"--authoring".into(),
+		"slot-based".into(),
+	];
 	NetworkConfigBuilder::new()
 		.with_relaychain(|r| {
 			r.with_chain("kusama-local")
@@ -236,7 +254,7 @@ fn kusama_network_config() -> Result<NetworkConfig, anyhow::Error> {
 				))
 				.chain_spec_command_is_local(true)
 				.with_default_args(vec!["-lparachain=info,xcm=debug".into()])
-				.with_genesis_overrides(relay_genesis_override(BRIDGE_HUB_KUSAMA_PARA_ID))
+				.with_genesis_overrides(relay_genesis_override())
 				.with_validator(|n| {
 					n.with_name("alice-kusama-validator").with_initial_balance(2_000_000_000_000)
 				})
@@ -376,16 +394,14 @@ impl BridgeTestEnv {
 		Ok(client)
 	}
 
-	// The bridge is bootstrapped from genesis (no `sudo`), so — unlike the Rococo <> Westend
-	// environment — a typed relay-chain client is never needed; only the relay WS endpoints (read
-	// via `get_node(..).ws_uri()` in `start_relayer`). Kept as symmetric helpers.
-	#[allow(dead_code)]
+	// Typed relay-chain clients, used post-spawn to open the HRMP channels via
+	// `Hrmp::establish_system_channel` (see `open_hrmp_channels_*`). The relayer subprocesses read
+	// the relay WS endpoints directly via `get_node(..).ws_uri()` in `start_relayer`.
 	pub async fn polkadot_relay_client(
 		&self,
 	) -> Result<OnlineClient<PolkadotConfig>, anyhow::Error> {
 		Self::client_of(&self.polkadot, "alice-polkadot-validator").await
 	}
-	#[allow(dead_code)]
 	pub async fn kusama_relay_client(&self) -> Result<OnlineClient<PolkadotConfig>, anyhow::Error> {
 		Self::client_of(&self.kusama, "alice-kusama-validator").await
 	}
@@ -410,12 +426,47 @@ impl BridgeTestEnv {
 		Self::client_of(&self.kusama, "bridge-hub-kusama-collator1").await
 	}
 
-	/// Confirms the genesis-configured bridge state is live and seeds the asset-conversion pools.
+	/// Opens the Asset Hub <-> Bridge Hub HRMP channels (both directions) on the **Polkadot** relay
+	/// via the permissionless `Hrmp::establish_system_channel` — both endpoints are system
+	/// parachains, so no `sudo`/root is needed. Signed by `//Alice`; each direction waits for
+	/// finalized success before the next (shared signer nonce).
+	async fn open_hrmp_channels_polkadot(&self) -> Result<(), anyhow::Error> {
+		use crate::polkadot::runtime_types::polkadot_parachain_primitives::primitives::Id;
+		let relay = self.polkadot_relay_client().await?;
+		let alice = dev::alice();
+		for (sender, recipient) in [
+			(ASSET_HUB_PARA_ID, BRIDGE_HUB_POLKADOT_PARA_ID),
+			(BRIDGE_HUB_POLKADOT_PARA_ID, ASSET_HUB_PARA_ID),
+		] {
+			let tx =
+				crate::polkadot::tx().hrmp().establish_system_channel(Id(sender), Id(recipient));
+			sign_submit_wait(&relay, &tx, &alice).await?;
+		}
+		Ok(())
+	}
+
+	/// The Kusama-side counterpart of [`Self::open_hrmp_channels_polkadot`].
+	async fn open_hrmp_channels_kusama(&self) -> Result<(), anyhow::Error> {
+		use crate::kusama::runtime_types::polkadot_parachain_primitives::primitives::Id;
+		let relay = self.kusama_relay_client().await?;
+		let alice = dev::alice();
+		for (sender, recipient) in [
+			(ASSET_HUB_PARA_ID, BRIDGE_HUB_KUSAMA_PARA_ID),
+			(BRIDGE_HUB_KUSAMA_PARA_ID, ASSET_HUB_PARA_ID),
+		] {
+			let tx = crate::kusama::tx().hrmp().establish_system_channel(Id(sender), Id(recipient));
+			sign_submit_wait(&relay, &tx, &alice).await?;
+		}
+		Ok(())
+	}
+
+	/// Opens the HRMP channels post-spawn and seeds the asset-conversion pools.
 	///
-	/// The HRMP channels, remote XCM version, GRANDPA owner and funded sovereign/reward accounts
-	/// are all configured at genesis (no `sudo`), so here we only wait for the Bridge Hubs to
-	/// finalize, confirm the HRMP egress channels are open and create the native<>bridged pools
-	/// with `//Bob` (a regular signed extrinsic — no `sudo`).
+	/// The remote XCM version, GRANDPA owner and funded sovereign/reward accounts are configured at
+	/// genesis (no `sudo`). The HRMP channels are opened here, after the Bridge Hubs are producing
+	/// blocks, via the permissionless `Hrmp::establish_system_channel` (they cannot be pre-opened
+	/// at genesis — see `relay_genesis_override`). We then confirm the egress channels are open
+	/// and create the native<>bridged pools with `//Bob` (a regular signed extrinsic — no `sudo`).
 	async fn init_bridge(&self) -> Result<(), anyhow::Error> {
 		let ahp = self.asset_hub_polkadot_client().await?;
 		let ahk = self.asset_hub_kusama_client().await?;
@@ -430,7 +481,14 @@ impl BridgeTestEnv {
 			wait_for_finalized_height(&bhk, 1, Duration::from_secs(300)),
 		)?;
 
-		// Confirm the genesis-opened HRMP egress channels towards the Bridge Hubs are live.
+		// Open the Asset Hub <> Bridge Hub HRMP channels now that the Bridge Hubs are producing
+		// blocks (so the channel-open notifications flow through the live downward-message
+		// pipeline). Permissionless (`establish_system_channel`, both are system parachains) — no
+		// `sudo`.
+		log::info!("Opening HRMP channels between Asset Hub and Bridge Hub on both relays");
+		tokio::try_join!(self.open_hrmp_channels_polkadot(), self.open_hrmp_channels_kusama())?;
+
+		// Confirm the HRMP egress channels towards the Bridge Hubs have opened.
 		log::info!("Waiting for HRMP channels to open");
 		tokio::try_join!(
 			retry_until(Duration::from_secs(600), || {
