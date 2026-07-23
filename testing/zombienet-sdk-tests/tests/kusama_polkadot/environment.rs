@@ -44,8 +44,7 @@ use crate::common::{
 	},
 };
 
-/// Locally built binaries used by the native provider. Paths come from env vars, defaulting to
-/// `~/local_bridge_testing/bin`.
+/// Locally built binaries used by the native provider.
 struct Binaries {
 	polkadot: String,
 	polkadot_parachain: String,
@@ -87,9 +86,8 @@ pub struct BridgeTestEnv {
 /// Genesis `balances` override for a bridge hub.
 ///
 /// `with_genesis_overrides` *replaces* the `balances.balances` array (it doesn't append), so we
-/// must re-list the well-known dev accounts the network relies on — the collators and the relayer
-/// signers (`//Alice`, `//Bob`, `//Charlie`, `//Dave`, `//Eve`, `//Ferdie`) all need balance to pay
-/// fees — and then add the bridge sovereign/reward accounts.
+/// must re-list the well-known dev accounts (collators + relayer signers) that need fees, then add
+/// the sovereign/reward accounts.
 fn bridge_hub_balances_override(sovereign_accounts: &[&str]) -> serde_json::Value {
 	// `ENDOWMENT` — matched by `assert_relayer_balances_unchanged`.
 	let mut balances: Vec<serde_json::Value> =
@@ -241,8 +239,6 @@ fn polkadot_network_config() -> Result<NetworkConfig, anyhow::Error> {
 					bins.chain_spec_generator_polkadot
 				))
 				.chain_spec_command_is_local(true)
-				// Fund sovereign/reward accounts, set //Alice as GRANDPA owner and pin the XCM
-				// version — all at genesis, so no `sudo` is needed.
 				.with_genesis_overrides(bridge_hub_genesis_override(
 					&[
 						ASSET_HUB_SOVEREIGN_AT_BRIDGE_HUB_POLKADOT,
@@ -434,9 +430,8 @@ impl BridgeTestEnv {
 		Ok(client)
 	}
 
-	// Typed relay-chain clients, used post-spawn to open the HRMP channels via
-	// `Hrmp::establish_system_channel` (see `open_hrmp_channels_*`). The relayer subprocesses read
-	// the relay WS endpoints directly via `get_node(..).ws_uri()` in `start_relayer`.
+	// Typed relay-chain clients, used post-spawn to open the HRMP channels (see
+	// `open_hrmp_channels_*`).
 	pub async fn polkadot_relay_client(
 		&self,
 	) -> Result<OnlineClient<PolkadotConfig>, anyhow::Error> {
@@ -502,29 +497,25 @@ impl BridgeTestEnv {
 
 	/// Opens the HRMP channels post-spawn and seeds the asset-conversion pools.
 	///
-	/// The remote XCM version, GRANDPA owner and funded sovereign/reward accounts are configured at
-	/// genesis (no `sudo`). The HRMP channels are opened here, after the Bridge Hubs are producing
-	/// blocks, via the permissionless `Hrmp::establish_system_channel` (they cannot be pre-opened
-	/// at genesis — see `relay_genesis_override`). We then confirm the egress channels are open
-	/// and create the native<>bridged pools with `//Bob` (a regular signed extrinsic — no `sudo`).
+	/// The HRMP channels can't be pre-opened at genesis (see `relay_genesis_override`), so they're
+	/// opened here, once the Bridge Hubs produce blocks, via the permissionless
+	/// `Hrmp::establish_system_channel`; then the `//Bob`-signed pools (no `sudo`).
 	async fn init_bridge(&self) -> Result<(), anyhow::Error> {
 		let ahp = self.asset_hub_polkadot_client().await?;
 		let ahk = self.asset_hub_kusama_client().await?;
 		let bhp = self.bridge_hub_polkadot_client().await?;
 		let bhk = self.bridge_hub_kusama_client().await?;
 
-		// Wait until each bridge hub finalizes its first block: proof the full
-		// collation -> backing -> inclusion -> finality pipeline is live.
+		// Wait until each bridge hub finalizes its first block.
 		log::info!("Waiting for bridge hubs to finalize their first block");
 		tokio::try_join!(
 			wait_for_finalized_height(&bhp, 1, Duration::from_secs(300)),
 			wait_for_finalized_height(&bhk, 1, Duration::from_secs(300)),
 		)?;
 
-		// Open the Asset Hub <> Bridge Hub HRMP channels now that the Bridge Hubs are producing
-		// blocks (so the channel-open notifications flow through the live downward-message
-		// pipeline). Permissionless (`establish_system_channel`, both are system parachains) — no
-		// `sudo`.
+		// Open the HRMP channels now that the Bridge Hubs produce blocks, so the channel-open
+		// notifications flow through the live downward-message pipeline (see
+		// `relay_genesis_override`).
 		log::info!("Opening HRMP channels between Asset Hub and Bridge Hub on both relays");
 		tokio::try_join!(self.open_hrmp_channels_polkadot(), self.open_hrmp_channels_kusama())?;
 

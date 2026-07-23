@@ -139,7 +139,7 @@ jobs:
   build-chain-spec-generator:
     name: Build fellows chain-spec-generator
     runs-on: parity-large
-    needs: [set-variables]
+    needs: [set-variables, check-codegen-compat]
     container:
       image: ${{ needs.set-variables.outputs.CI_IMAGE }}
     steps:

@@ -57,8 +57,7 @@ async fn asset_transfer_works() -> Result<(), anyhow::Error> {
 	let ferdie = dev_account(&dev::ferdie());
 
 	// Phase 1: forward transfers, both directions concurrently (different chains => the shared
-	// `//Alice` signer has no nonce contention). Each leg sends 5 units, then waits for the wrapped
-	// asset to arrive on the remote AH and for its message relayer to be rewarded.
+	// `//Alice` signer has no nonce contention).
 	tokio::try_join!(
 		async {
 			// DOT is native to Polkadot AH, so Polkadot AH is the reserve.
