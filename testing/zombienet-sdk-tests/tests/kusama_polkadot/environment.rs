@@ -9,8 +9,9 @@
 //!   * uses the **native** zombienet provider with the locally built `polkadot` /
 //!     `polkadot-parachain` binaries and the fellows `chain-spec-generator` (paths from env vars,
 //!     defaulting to `~/local_bridge_testing/bin`), and
-//!   * bootstraps as much as possible **from genesis** — the remote XCM version
-//!     (`polkadotXcm.safeXcmVersion`), the bridge-GRANDPA pallet owner (`//Alice`, so `init-bridge`
+//!   * bootstraps as much as possible **from genesis** — the local + remote XCM versions
+//!     (`polkadotXcm.safeXcmVersion` / `supportedVersion`), the bridge-GRANDPA
+//!     pallet owner (`//Alice`, so `init-bridge`
 //!     can be owner-signed without `sudo`) and the funded sovereign/reward accounts (Bridge Hub
 //!     `balances`) — leaving the HRMP channels (opened after spawn via the permissionless
 //!     `Hrmp::establish_system_channel`, since pre-opening them at genesis corrupts the Bridge
@@ -103,28 +104,51 @@ fn bridge_hub_balances_override(sovereign_accounts: &[&str]) -> serde_json::Valu
 	serde_json::json!({ "balances": { "balances": balances } })
 }
 
-/// Bridge Hub genesis override: fund the sovereign/reward accounts, make `//Alice` the owner of the
-/// with-bridged-chain GRANDPA pallet (so `init-bridge` can be signed by `//Alice` without `sudo`)
-/// and pin the safe XCM version to [`XCM_VERSION`] (the sudo-free way to set the remote Bridge
-/// Hub's XCM version). `grandpa_pallet` is the camelCased genesis key of the with-bridged-chain
-/// GRANDPA pallet (`bridgeKusamaGrandpa` on Polkadot BH, `bridgePolkadotGrandpa` on Kusama BH).
+/// Bridge Hub genesis override: fund the sovereign/reward accounts, make `//Alice` the
+/// with-bridged-chain GRANDPA pallet owner (so `init-bridge` needs no `sudo`), and set the local
+/// safe + remote Bridge Hub XCM versions. `grandpa_pallet` is that pallet's camelCased genesis key
+/// (`bridgeKusamaGrandpa` on Polkadot BH, `bridgePolkadotGrandpa` on Kusama BH).
 fn bridge_hub_genesis_override(
 	sovereign_accounts: &[&str],
 	grandpa_pallet: &str,
+	remote_network: &str,
+	remote_bridge_hub_para_id: u32,
 ) -> serde_json::Value {
 	let alice = dev_account(&dev::alice()).to_string();
 	let mut value = bridge_hub_balances_override(sovereign_accounts);
 	let obj = value.as_object_mut().expect("object");
 	obj.insert(grandpa_pallet.to_string(), serde_json::json!({ "owner": alice }));
-	obj.insert("polkadotXcm".to_string(), serde_json::json!({ "safeXcmVersion": XCM_VERSION }));
+	obj.insert(
+		"polkadotXcm".to_string(),
+		serde_json::json!({
+			"safeXcmVersion": XCM_VERSION,
+			"supportedVersion": supported_remote_version(remote_network, remote_bridge_hub_para_id),
+		}),
+	);
 	value
 }
 
-/// Asset Hub genesis override: pin the safe XCM version to [`XCM_VERSION`] (the sudo-free way to
-/// set the remote Asset Hub's XCM version). The bridged foreign asset and `//Bob`'s balance of it
-/// are pre-registered by the fellows Asset Hub preset, so nothing else is needed.
-fn asset_hub_genesis_override() -> serde_json::Value {
-	serde_json::json!({ "polkadotXcm": { "safeXcmVersion": XCM_VERSION } })
+/// Genesis `supportedVersion` entry recording [`XCM_VERSION`] for the remote bridged
+/// `(parents: 2, GlobalConsensus(remote_network) / Parachain(para_id))` — the sudo-free equivalent
+/// of `force_xcm_version`, without which the bridged transfer fails with `SendFailure`.
+fn supported_remote_version(remote_network: &str, para_id: u32) -> serde_json::Value {
+	serde_json::json!([[
+		{ "parents": 2, "interior": { "X2": [
+			{ "GlobalConsensus": remote_network },
+			{ "Parachain": para_id },
+		] } },
+		XCM_VERSION,
+	]])
+}
+
+/// Asset Hub genesis override: set the local safe XCM version and the remote Asset Hub's supported
+/// version (`remote_network`: `"Kusama"` on Polkadot AH, `"Polkadot"` on Kusama AH). The bridged
+/// foreign asset and `//Bob`'s balance are pre-registered by the fellows preset.
+fn asset_hub_genesis_override(remote_network: &str) -> serde_json::Value {
+	serde_json::json!({ "polkadotXcm": {
+		"safeXcmVersion": XCM_VERSION,
+		"supportedVersion": supported_remote_version(remote_network, ASSET_HUB_PARA_ID),
+	} })
 }
 
 /// Relay-chain genesis override: set the async-backing params the Asset Hub collators need (see the
@@ -203,6 +227,8 @@ fn polkadot_network_config() -> Result<NetworkConfig, anyhow::Error> {
 						BHP_LANE_BRIDGED_CHAIN,
 					],
 					"bridgeKusamaGrandpa",
+					"Kusama",
+					BRIDGE_HUB_KUSAMA_PARA_ID,
 				))
 				// A single bridge-hub collator builds linearly (a second fork-wars, see R<>W).
 				.with_collator(|n| {
@@ -219,7 +245,7 @@ fn polkadot_network_config() -> Result<NetworkConfig, anyhow::Error> {
 					bins.chain_spec_generator_polkadot
 				))
 				.chain_spec_command_is_local(true)
-				.with_genesis_overrides(asset_hub_genesis_override())
+				.with_genesis_overrides(asset_hub_genesis_override("Kusama"))
 				.with_collator(|n| {
 					n.with_name("asset-hub-polkadot-collator1").with_args(ah_args.clone())
 				})
@@ -282,6 +308,8 @@ fn kusama_network_config() -> Result<NetworkConfig, anyhow::Error> {
 						BHK_LANE_BRIDGED_CHAIN,
 					],
 					"bridgePolkadotGrandpa",
+					"Polkadot",
+					BRIDGE_HUB_POLKADOT_PARA_ID,
 				))
 				.with_collator(|n| {
 					n.with_name("bridge-hub-kusama-collator1").with_args(bh_args.clone())
@@ -297,7 +325,7 @@ fn kusama_network_config() -> Result<NetworkConfig, anyhow::Error> {
 					bins.chain_spec_generator_kusama
 				))
 				.chain_spec_command_is_local(true)
-				.with_genesis_overrides(asset_hub_genesis_override())
+				.with_genesis_overrides(asset_hub_genesis_override("Polkadot"))
 				.with_collator(|n| {
 					n.with_name("asset-hub-kusama-collator1").with_args(ah_args.clone())
 				})
