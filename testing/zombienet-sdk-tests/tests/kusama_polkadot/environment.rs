@@ -142,13 +142,34 @@ fn supported_remote_version(remote_network: &str, para_id: u32) -> serde_json::V
 }
 
 /// Asset Hub genesis override: set the local safe XCM version and the remote Asset Hub's supported
-/// version (`remote_network`: `"Kusama"` on Polkadot AH, `"Polkadot"` on Kusama AH). The bridged
-/// foreign asset and `//Bob`'s balance are pre-registered by the fellows preset.
+/// version (`remote_network`: `"Kusama"` on Polkadot AH, `"Polkadot"` on Kusama AH), and record the
+/// remote Asset Hub as trusted reserve of the bridged asset. The executor's `IsReserve`
+/// (`NonTeleportableAssetFromTrustedReserve`) only accepts reserves stored in
+/// `ForeignAssets::Reserves`; the fellows preset registers the asset (and `//Bob`'s balance) but no
+/// reserves, so incoming transfers fail with `UntrustedReserveLocation`. Genesis is the sudo-free
+/// stand-in for the owner's `set_reserves` call.
 fn asset_hub_genesis_override(remote_network: &str) -> serde_json::Value {
-	serde_json::json!({ "polkadotXcm": {
-		"safeXcmVersion": XCM_VERSION,
-		"supportedVersion": supported_remote_version(remote_network, ASSET_HUB_PARA_ID),
-	} })
+	let bridged_asset =
+		serde_json::json!({ "parents": 2, "interior": { "X1": [
+			{ "GlobalConsensus": remote_network },
+		] } });
+	let remote_asset_hub =
+		serde_json::json!({ "parents": 2, "interior": { "X2": [
+			{ "GlobalConsensus": remote_network },
+			{ "Parachain": ASSET_HUB_PARA_ID },
+		] } });
+	serde_json::json!({
+		"polkadotXcm": {
+			"safeXcmVersion": XCM_VERSION,
+			"supportedVersion": supported_remote_version(remote_network, ASSET_HUB_PARA_ID),
+		},
+		"foreignAssets": {
+			"reserves": [[
+				bridged_asset,
+				[ { "reserve": remote_asset_hub, "teleportable": false } ],
+			]],
+		},
+	})
 }
 
 /// Relay-chain genesis override: set the async-backing params the Asset Hub collators need (see the
