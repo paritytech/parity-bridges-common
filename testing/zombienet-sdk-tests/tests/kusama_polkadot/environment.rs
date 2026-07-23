@@ -10,13 +10,12 @@
 //!     `polkadot-parachain` binaries and the fellows `chain-spec-generator` (paths from env vars,
 //!     defaulting to `~/local_bridge_testing/bin`), and
 //!   * bootstraps as much as possible **from genesis** — the local + remote XCM versions
-//!     (`polkadotXcm.safeXcmVersion` / `supportedVersion`), the bridge-GRANDPA
-//!     pallet owner (`//Alice`, so `init-bridge`
-//!     can be owner-signed without `sudo`) and the funded sovereign/reward accounts (Bridge Hub
-//!     `balances`) — leaving the HRMP channels (opened after spawn via the permissionless
-//!     `Hrmp::establish_system_channel`, since pre-opening them at genesis corrupts the Bridge
-//!     Hub's downward-message-queue head) and the `//Bob`-signed asset-conversion pools to be set
-//!     up post-spawn.
+//!     (`polkadotXcm.safeXcmVersion` / `supportedVersion`), the bridge-GRANDPA pallet owner
+//!     (`//Alice`, so `init-bridge` can be owner-signed without `sudo`) and the funded
+//!     sovereign/reward accounts (Bridge Hub `balances`) — leaving the HRMP channels (opened after
+//!     spawn via the permissionless `Hrmp::establish_system_channel`, since pre-opening them at
+//!     genesis corrupts the Bridge Hub's downward-message-queue head) and the `//Bob`-signed
+//!     asset-conversion pools to be set up post-spawn.
 //!
 //! The bridged foreign asset (wKSM on Asset Hub Polkadot, wDOT on Asset Hub Kusama) and `//Bob`'s
 //! balance of it are already pre-registered by the fellows Asset Hub genesis presets, so nothing
@@ -34,7 +33,7 @@ use super::{
 	asset_hub_kusama, asset_hub_polkadot, ASSET_HUB_PARA_ID,
 	ASSET_HUB_SOVEREIGN_AT_BRIDGE_HUB_KUSAMA, ASSET_HUB_SOVEREIGN_AT_BRIDGE_HUB_POLKADOT,
 	BHK_LANE_BRIDGED_CHAIN, BHK_LANE_THIS_CHAIN, BHP_LANE_BRIDGED_CHAIN, BHP_LANE_THIS_CHAIN,
-	BRIDGE_HUB_KUSAMA_PARA_ID, BRIDGE_HUB_POLKADOT_PARA_ID, KUSAMA_UNIT, POLKADOT_UNIT,
+	BRIDGE_HUB_KUSAMA_PARA_ID, BRIDGE_HUB_POLKADOT_PARA_ID, ENDOWMENT, KUSAMA_UNIT, POLKADOT_UNIT,
 	SOVEREIGN_FUNDING, XCM_VERSION,
 };
 use crate::common::{
@@ -92,11 +91,11 @@ pub struct BridgeTestEnv {
 /// signers (`//Alice`, `//Bob`, `//Charlie`, `//Dave`, `//Eve`, `//Ferdie`) all need balance to pay
 /// fees — and then add the bridge sovereign/reward accounts.
 fn bridge_hub_balances_override(sovereign_accounts: &[&str]) -> serde_json::Value {
-	const DEV_FUNDING: u128 = 1u128 << 60;
+	// `ENDOWMENT` — matched by `assert_relayer_balances_unchanged`.
 	let mut balances: Vec<serde_json::Value> =
 		[dev::alice(), dev::bob(), dev::charlie(), dev::dave(), dev::eve(), dev::ferdie()]
 			.iter()
-			.map(|k| serde_json::json!([dev_account(k).to_string(), DEV_FUNDING]))
+			.map(|k| serde_json::json!([dev_account(k).to_string(), ENDOWMENT]))
 			.collect();
 	for account in sovereign_accounts {
 		balances.push(serde_json::json!([*account, SOVEREIGN_FUNDING]));
@@ -149,12 +148,10 @@ fn supported_remote_version(remote_network: &str, para_id: u32) -> serde_json::V
 /// reserves, so incoming transfers fail with `UntrustedReserveLocation`. Genesis is the sudo-free
 /// stand-in for the owner's `set_reserves` call.
 fn asset_hub_genesis_override(remote_network: &str) -> serde_json::Value {
-	let bridged_asset =
-		serde_json::json!({ "parents": 2, "interior": { "X1": [
+	let bridged_asset = serde_json::json!({ "parents": 2, "interior": { "X1": [
 			{ "GlobalConsensus": remote_network },
 		] } });
-	let remote_asset_hub =
-		serde_json::json!({ "parents": 2, "interior": { "X2": [
+	let remote_asset_hub = serde_json::json!({ "parents": 2, "interior": { "X2": [
 			{ "GlobalConsensus": remote_network },
 			{ "Parachain": ASSET_HUB_PARA_ID },
 		] } });
@@ -190,23 +187,28 @@ fn relay_genesis_override() -> serde_json::Value {
 	})
 }
 
-fn polkadot_network_config() -> Result<NetworkConfig, anyhow::Error> {
-	let bins = bins();
-	// Bridge hubs author slot-based and keep the default fork-aware tx pool so the relayer's proof
-	// txs survive relay-parent reorgs (see the Rococo <> Westend environment for details).
-	let bh_args: Vec<Arg> = vec![
+/// Collator args — all parachains author slot-based (otherwise `set_validation_data` traps, see
+/// R<>W).
+fn bridge_hub_args() -> Vec<Arg> {
+	vec![
 		"-lparachain=info,runtime::bridge=trace,xcm=debug,txpool=debug".into(),
 		"--authoring".into(),
 		"slot-based".into(),
-	];
-	// The Asset Hub runtimes must author slot-based too: under default/lookahead authoring the
-	// block lacks the expected relay-parent descendants and `set_validation_data` traps (see
-	// R<>W).
-	let ah_args: Vec<Arg> = vec![
+	]
+}
+
+fn asset_hub_args() -> Vec<Arg> {
+	vec![
 		"-lparachain=info,xcm=debug,runtime::bridge=trace,txpool=debug".into(),
 		"--authoring".into(),
 		"slot-based".into(),
-	];
+	]
+}
+
+fn polkadot_network_config() -> Result<NetworkConfig, anyhow::Error> {
+	let bins = bins();
+	let bh_args = bridge_hub_args();
+	let ah_args = asset_hub_args();
 	NetworkConfigBuilder::new()
 		.with_relaychain(|r| {
 			r.with_chain("polkadot-local")
@@ -278,19 +280,8 @@ fn polkadot_network_config() -> Result<NetworkConfig, anyhow::Error> {
 
 fn kusama_network_config() -> Result<NetworkConfig, anyhow::Error> {
 	let bins = bins();
-	let bh_args: Vec<Arg> = vec![
-		"-lparachain=info,runtime::bridge=trace,xcm=debug,txpool=debug".into(),
-		"--authoring".into(),
-		"slot-based".into(),
-	];
-	// The Asset Hub runtimes must author slot-based too: under default/lookahead authoring the
-	// block lacks the expected relay-parent descendants and `set_validation_data` traps (see
-	// R<>W).
-	let ah_args: Vec<Arg> = vec![
-		"-lparachain=info,xcm=debug,runtime::bridge=trace,txpool=debug".into(),
-		"--authoring".into(),
-		"slot-based".into(),
-	];
+	let bh_args = bridge_hub_args();
+	let ah_args = asset_hub_args();
 	NetworkConfigBuilder::new()
 		.with_relaychain(|r| {
 			r.with_chain("kusama-local")
