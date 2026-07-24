@@ -26,6 +26,13 @@ runtime_codegen!(asset_hub_westend_codegen, "codegen/asset_hub_westend.rs");
 runtime_codegen!(bridge_hub_rococo_codegen, "codegen/bridge_hub_rococo.rs");
 runtime_codegen!(bridge_hub_westend_codegen, "codegen/bridge_hub_westend.rs");
 
+runtime_codegen!(polkadot_codegen, "codegen/polkadot.rs");
+runtime_codegen!(kusama_codegen, "codegen/kusama.rs");
+runtime_codegen!(asset_hub_polkadot_codegen, "codegen/asset_hub_polkadot.rs");
+runtime_codegen!(asset_hub_kusama_codegen, "codegen/asset_hub_kusama.rs");
+runtime_codegen!(bridge_hub_polkadot_codegen, "codegen/bridge_hub_polkadot.rs");
+runtime_codegen!(bridge_hub_kusama_codegen, "codegen/bridge_hub_kusama.rs");
+
 #[cfg(feature = "zombie-ci")]
 pub use {
 	asset_hub_rococo_codegen::api as asset_hub_rococo,
@@ -35,10 +42,25 @@ pub use {
 	westend_codegen::api as westend,
 };
 
-// Reusable, bridge-pair-agnostic test infrastructure.
 #[cfg(feature = "zombie-ci")]
+pub use {
+	asset_hub_kusama_codegen::api as asset_hub_kusama,
+	asset_hub_polkadot_codegen::api as asset_hub_polkadot,
+	bridge_hub_kusama_codegen::api as bridge_hub_kusama,
+	bridge_hub_polkadot_codegen::api as bridge_hub_polkadot, kusama_codegen::api as kusama,
+	polkadot_codegen::api as polkadot,
+};
+
+// Reusable, bridge-pair-agnostic test infrastructure. `#[macro_use]` so the per-runtime
+// typed-operation macros it defines are in scope for the bridge-pair modules below.
+#[cfg(feature = "zombie-ci")]
+#[macro_use]
 mod common;
 
 // The Rococo <> Westend bridge pair (constants, typed ops, environment and its tests).
 #[cfg(feature = "zombie-ci")]
 mod rococo_westend;
+
+// The Kusama <> Polkadot bridge pair.
+#[cfg(feature = "zombie-ci")]
+mod kusama_polkadot;

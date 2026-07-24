@@ -21,13 +21,15 @@ use super::{
 	asset_hub_rococo, asset_hub_westend, bridge_hub_rococo, bridge_hub_westend, relay_rococo,
 	relay_westend, ASSET_HUB_PARA_ID, ASSET_HUB_SOVEREIGN_AT_BRIDGE_HUB, BHR_LANE_BRIDGED_CHAIN,
 	BHR_LANE_THIS_CHAIN, BHW_LANE_BRIDGED_CHAIN, BHW_LANE_THIS_CHAIN, BRIDGE_HUB_ROCOCO_PARA_ID,
-	BRIDGE_HUB_WESTEND_PARA_ID, ROCOCO_GENESIS_HASH, SOVEREIGN_FUNDING, WESTEND_GENESIS_HASH,
-	XCM_VERSION,
+	BRIDGE_HUB_WESTEND_PARA_ID, ROCOCO_GENESIS_HASH, SOVEREIGN_FUNDING, XCM_VERSION,
 };
 use crate::common::{
 	images::node_images,
 	relayer::{init_bridge_confirmed, spawn_relayer, Relayer},
-	utils::{best_finalized_bridged_header, dev_account, retry_until, wait_for_finalized_height},
+	utils::{
+		best_finalized_bridged_header, bridge_hub_balances, config_errs, dev_account,
+		global_settings, retry_until, spawn_with_retry, wait_for_finalized_height,
+	},
 };
 
 /// The full Rococo <> Westend bridge environment: both networks plus any running relayer
@@ -36,26 +38,6 @@ pub struct BridgeTestEnv {
 	pub rococo: Network<LocalFileSystem>,
 	pub westend: Network<LocalFileSystem>,
 	_relayers: Vec<Relayer>,
-}
-
-/// Genesis `balances` override for a bridge hub.
-///
-/// `with_genesis_overrides` *replaces* the `balances.balances` array (it doesn't append), so we
-/// must re-list the well-known dev accounts that the network relies on — the collators (Alice/Bob)
-/// and the relayer signers (`//Bob`, `//Charlie`, `//Dave`, `//Eve`, `//Ferdie`) all need balance
-/// to pay fees — and then add the bridge sovereign/reward accounts. Account ids are derived from
-/// the dev keys (no hard-coded SS58), amounts are well within `u64` so they serialize cleanly.
-fn bridge_hub_balances_override(sovereign_accounts: &[&str]) -> serde_json::Value {
-	const DEV_FUNDING: u64 = 1 << 60;
-	let mut balances: Vec<serde_json::Value> =
-		[dev::alice(), dev::bob(), dev::charlie(), dev::dave(), dev::eve(), dev::ferdie()]
-			.iter()
-			.map(|k| serde_json::json!([dev_account(k).to_string(), DEV_FUNDING]))
-			.collect();
-	for account in sovereign_accounts {
-		balances.push(serde_json::json!([*account, SOVEREIGN_FUNDING as u64]));
-	}
-	serde_json::json!({ "balances": { "balances": balances } })
 }
 
 /// Relay-chain genesis override for the async-backing params both networks need.
@@ -145,11 +127,15 @@ fn rococo_network_config() -> Result<NetworkConfig, anyhow::Error> {
 				// Pre-fund the bridge sovereign/reward accounts at genesis rather than via
 				// post-spawn txs: a freshly launched bridge hub reorgs at the tip and would
 				// invalidate them.
-				.with_genesis_overrides(bridge_hub_balances_override(&[
-					ASSET_HUB_SOVEREIGN_AT_BRIDGE_HUB,
-					BHR_LANE_THIS_CHAIN,
-					BHR_LANE_BRIDGED_CHAIN,
-				]))
+				.with_genesis_overrides(bridge_hub_balances(
+					1u128 << 60,
+					&[
+						ASSET_HUB_SOVEREIGN_AT_BRIDGE_HUB,
+						BHR_LANE_THIS_CHAIN,
+						BHR_LANE_BRIDGED_CHAIN,
+					],
+					SOVEREIGN_FUNDING,
+				))
 				// A single bridge-hub collator: a second one fork-wars, retracting the block
 				// carrying the relayer's finality/parachain-head update before it finalizes.
 				// One builds linearly.
@@ -214,11 +200,15 @@ fn westend_network_config() -> Result<NetworkConfig, anyhow::Error> {
 				.with_default_image(images.cumulus.as_str())
 				// Pre-fund the bridge sovereign/reward accounts at genesis (see
 				// `rococo_network_config`).
-				.with_genesis_overrides(bridge_hub_balances_override(&[
-					ASSET_HUB_SOVEREIGN_AT_BRIDGE_HUB,
-					BHW_LANE_THIS_CHAIN,
-					BHW_LANE_BRIDGED_CHAIN,
-				]))
+				.with_genesis_overrides(bridge_hub_balances(
+					1u128 << 60,
+					&[
+						ASSET_HUB_SOVEREIGN_AT_BRIDGE_HUB,
+						BHW_LANE_THIS_CHAIN,
+						BHW_LANE_BRIDGED_CHAIN,
+					],
+					SOVEREIGN_FUNDING,
+				))
 				// Single bridge-hub collator, see `rococo_network_config`.
 				.with_collator(|n| {
 					n.with_name("bridge-hub-westend-collator1").with_args(bh_args.clone())
@@ -241,63 +231,6 @@ fn westend_network_config() -> Result<NetworkConfig, anyhow::Error> {
 		.map_err(config_errs)
 }
 
-/// Shared global settings for both networks. We disable `tear_down_on_failure` so the background
-/// node-monitoring task (which declares a node "crashed" if its metrics endpoint does not respond
-/// within `~5s`) does not tear the network down on a transient, load-induced timeout — the same
-/// approach the polkadot zombienet-sdk tests use on busy CI runners.
-fn global_settings(
-	settings: zombienet_sdk::GlobalSettingsBuilder,
-) -> zombienet_sdk::GlobalSettingsBuilder {
-	// `with_node_spawn_timeout` takes seconds (zombienet's own `Duration` alias, i.e. `u32`).
-	settings.with_tear_down_on_failure(false).with_node_spawn_timeout(600)
-}
-
-fn config_errs(errs: Vec<anyhow::Error>) -> anyhow::Error {
-	anyhow!(
-		"network config errors: {}",
-		errs.iter().map(|e| e.to_string()).collect::<Vec<_>>().join("; ")
-	)
-}
-
-/// Spawns one network, retrying the flaky zombienet chain-spec panic (`is_raw()` unwraps a
-/// truncated spec read and panics with `EOF while parsing ...`). Rebuilds the config each attempt
-/// for a fresh namespace; a genuine `Err` is retried too and surfaces after the last attempt.
-async fn spawn_with_retry(
-	config_fn: impl Fn() -> Result<NetworkConfig, anyhow::Error>,
-	name: &str,
-) -> Result<Network<LocalFileSystem>, anyhow::Error> {
-	const MAX_ATTEMPTS: usize = 3;
-	let spawn_fn = get_spawn_fn();
-	let mut last_err = String::new();
-	for attempt in 1..=MAX_ATTEMPTS {
-		let config = config_fn()?;
-		// Run in a task so a panic in zombienet is captured as a `JoinError`, not unwound.
-		match tokio::spawn(spawn_fn(config)).await {
-			Ok(Ok(network)) => return Ok(network),
-			Ok(Err(e)) => {
-				last_err = e.to_string();
-				log::warn!(
-					"{name} network spawn attempt {attempt}/{MAX_ATTEMPTS} failed: {last_err}"
-				);
-			},
-			Err(join_err) if join_err.is_panic() => {
-				let panic = join_err.into_panic();
-				last_err = panic
-					.downcast_ref::<&str>()
-					.map(|s| s.to_string())
-					.or_else(|| panic.downcast_ref::<String>().cloned())
-					.unwrap_or_else(|| "unknown panic".to_string());
-				log::warn!(
-					"{name} network spawn attempt {attempt}/{MAX_ATTEMPTS} panicked inside \
-					 zombienet (likely the chain-spec truncation flake); retrying: {last_err}"
-				);
-			},
-			Err(join_err) => return Err(anyhow!("{name} network spawn task cancelled: {join_err}")),
-		}
-	}
-	Err(anyhow!("{name} network spawn failed after {MAX_ATTEMPTS} attempts: {last_err}"))
-}
-
 impl BridgeTestEnv {
 	/// Spawns both networks and, depending on the flags, initializes the bridge and starts the
 	/// relayer.
@@ -309,8 +242,8 @@ impl BridgeTestEnv {
 		// Independent networks: spawn concurrently (saves ~35s vs serial).
 		log::info!("Spawning Rococo and Westend networks concurrently");
 		let (rococo, westend) = tokio::try_join!(
-			spawn_with_retry(rococo_network_config, "Rococo"),
-			spawn_with_retry(westend_network_config, "Westend"),
+			spawn_with_retry(get_spawn_fn(), rococo_network_config, "Rococo"),
+			spawn_with_retry(get_spawn_fn(), westend_network_config, "Westend"),
 		)?;
 
 		let mut env = BridgeTestEnv { rococo, westend, _relayers: Vec::new() };
@@ -388,11 +321,10 @@ impl BridgeTestEnv {
 		// versions + bridged foreign-asset creation. Independent relays, so submit both
 		// concurrently.
 		log::info!("Submitting batched bridge-init governance to both relays");
-		let ahw_on_ahr = asset_hub_rococo::remote_asset_hub(WESTEND_GENESIS_HASH);
+		let ahw_on_ahr = asset_hub_rococo::remote_asset_hub();
 		let force_ahw =
 			asset_hub_rococo::force_xcm_version_call(&ahr, ahw_on_ahr, XCM_VERSION).await?;
-		let bhw_on_bhr =
-			bridge_hub_rococo::remote_bridge_hub(WESTEND_GENESIS_HASH, BRIDGE_HUB_WESTEND_PARA_ID);
+		let bhw_on_bhr = bridge_hub_rococo::remote_bridge_hub(BRIDGE_HUB_WESTEND_PARA_ID);
 		let force_bhw = bridge_hub_rococo::force_xcm_version_call(&bhr, bhw_on_bhr).await?;
 		let rococo_calls = vec![
 			relay_rococo::force_open_hrmp_channel_call(
@@ -421,11 +353,10 @@ impl BridgeTestEnv {
 			),
 		];
 
-		let ahr_on_ahw = asset_hub_westend::remote_asset_hub(ROCOCO_GENESIS_HASH);
+		let ahr_on_ahw = asset_hub_westend::remote_asset_hub();
 		let force_ahr =
 			asset_hub_westend::force_xcm_version_call(&ahw, ahr_on_ahw, XCM_VERSION).await?;
-		let bhr_on_bhw =
-			bridge_hub_westend::remote_bridge_hub(ROCOCO_GENESIS_HASH, BRIDGE_HUB_ROCOCO_PARA_ID);
+		let bhr_on_bhw = bridge_hub_westend::remote_bridge_hub(BRIDGE_HUB_ROCOCO_PARA_ID);
 		let force_bhr = bridge_hub_westend::force_xcm_version_call(&bhw, bhr_on_bhw).await?;
 		let westend_calls = vec![
 			relay_westend::force_open_hrmp_channel_call(
@@ -491,18 +422,17 @@ impl BridgeTestEnv {
 		// arriving bridged asset) succeed. Genesis endows `//Bob` with both the bridged asset and
 		// the native token, so Bob funds both sides. Independent chains => seed both
 		// concurrently. Sovereign/reward accounts are funded via genesis (see
-		// `bridge_hub_balances_override`), so nothing else to fund here.
+		// `bridge_hub_balances`), so nothing else to fund here.
 		const POOL_LIQUIDITY: u128 = 100_000_000_000_000;
 		let bob = dev::bob();
 		let bob_acc = dev_account(&bob);
 		log::info!("Seeding native<>bridged asset-conversion pools on both Asset Hubs");
 		tokio::try_join!(
 			async {
-				asset_hub_rococo::create_pool(&ahr, &bob, WESTEND_GENESIS_HASH, 0).await?;
+				asset_hub_rococo::create_pool(&ahr, &bob, 0).await?;
 				asset_hub_rococo::add_liquidity(
 					&ahr,
 					&bob,
-					WESTEND_GENESIS_HASH,
 					POOL_LIQUIDITY,
 					POOL_LIQUIDITY,
 					bob_acc.clone(),
@@ -511,11 +441,10 @@ impl BridgeTestEnv {
 				.await
 			},
 			async {
-				asset_hub_westend::create_pool(&ahw, &bob, ROCOCO_GENESIS_HASH, 0).await?;
+				asset_hub_westend::create_pool(&ahw, &bob, 0).await?;
 				asset_hub_westend::add_liquidity(
 					&ahw,
 					&bob,
-					ROCOCO_GENESIS_HASH,
 					POOL_LIQUIDITY,
 					POOL_LIQUIDITY,
 					bob_acc.clone(),

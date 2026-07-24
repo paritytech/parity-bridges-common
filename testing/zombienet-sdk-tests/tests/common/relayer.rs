@@ -41,20 +41,6 @@ pub fn spawn_relayer(args: &[&str]) -> Result<Relayer, anyhow::Error> {
 	Ok(Relayer(child))
 }
 
-#[allow(dead_code)]
-async fn run_relayer_to_completion(args: &[&str]) -> Result<(), anyhow::Error> {
-	log::info!("Running substrate-relay {}", args.join(" "));
-	let status = Command::new(relayer_binary())
-		.args(args)
-		.env("RUST_LOG", RELAYER_RUST_LOG)
-		.status()
-		.await?;
-	if !status.success() {
-		return Err(anyhow!("substrate-relay {:?} exited with {status}", args));
-	}
-	Ok(())
-}
-
 /// Returns `true` if bridge GRANDPA pallet `grandpa_pallet` reports `operating_mode == Normal` at
 /// the latest **finalized** block. Read at finalized (not best) so a reorg-victim block can't give
 /// a false answer; `BasicOperatingMode` encodes to one byte (`0` = Normal).
