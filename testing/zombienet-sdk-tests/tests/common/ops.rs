@@ -7,108 +7,13 @@
 //! a layout the types are nominally different. The macros below emit the identical bodies once per
 //! runtime. They are `#[macro_use]`-exported from [`crate::common`], so a bridge pair invokes them
 //! from its own `mod.rs`; inside the generated module `super::` therefore resolves to that pair's
-//! module (which must define `ASSET_HUB_PARA_ID` and `XCM_VERSION`).
+//! module (which must define `ASSET_HUB_PARA_ID`).
 //!
 //! The bridged/remote consensus network differs per pair — Rococo/Westend identify each other by
 //! genesis hash (`NetworkId::ByGenesis(..)`), Polkadot/Kusama by the named `NetworkId::Polkadot` /
 //! `NetworkId::Kusama` variants. Each `asset_hub_ops!` / `bridge_hub_ops!` invocation therefore
 //! passes the remote network as an expression (`$remote_network`), evaluated inside the generated
 //! module where the per-runtime `NetworkId` is in scope.
-
-/// Relay-chain typed ops (HRMP + governance-transact + sudo batch). Only pairs whose relay chains
-/// have a `sudo` pallet (Rococo/Westend) invoke this; Polkadot/Kusama configure the equivalent
-/// state at genesis instead, so they do not.
-#[allow(unused_macros)]
-macro_rules! relay_ops {
-	($name:ident, $relay:ident, $runtime:ident) => {
-		pub mod $name {
-			use crate::{
-				common::utils::sign_submit_wait_in_block,
-				$relay::runtime_types::{
-					pallet_utility::pallet::Call as UtilityCall,
-					pallet_xcm::pallet::Call as XcmPalletCall,
-					polkadot_parachain_primitives::primitives::Id,
-					polkadot_runtime_parachains::hrmp::pallet::Call as HrmpCall,
-					sp_weights::weight_v2::Weight,
-					staging_xcm::v4::{
-						junction::Junction, junctions::Junctions, location::Location, Instruction,
-						Xcm,
-					},
-					xcm::{
-						double_encoded::DoubleEncoded,
-						v3::{OriginKind, WeightLimit},
-						VersionedLocation, VersionedXcm,
-					},
-					$runtime::RuntimeCall,
-				},
-			};
-			use subxt::{OnlineClient, PolkadotConfig};
-			use subxt_signer::sr25519::Keypair;
-
-			/// Builds (does not submit) a `Hrmp::force_open_hrmp_channel(..)` runtime call.
-			pub fn force_open_hrmp_channel_call(
-				sender: u32,
-				recipient: u32,
-				max_capacity: u32,
-				max_message_size: u32,
-			) -> RuntimeCall {
-				RuntimeCall::Hrmp(HrmpCall::force_open_hrmp_channel {
-					sender: Id(sender),
-					recipient: Id(recipient),
-					max_capacity,
-					max_message_size,
-				})
-			}
-
-			/// Builds (does not submit) a `XcmPallet::send(..)` runtime call carrying an
-			/// `UnpaidExecution` + `Transact{Superuser}` message to the given parachain — the
-			/// governance primitive used to configure the system parachains.
-			pub fn governance_transact_call(
-				para_id: u32,
-				encoded_call: Vec<u8>,
-				require_weight_ref_time: u64,
-				require_weight_proof_size: u64,
-			) -> RuntimeCall {
-				let dest = VersionedLocation::V4(Location {
-					parents: 0,
-					interior: Junctions::X1([Junction::Parachain(para_id)]),
-				});
-				let message = VersionedXcm::V4(Xcm(vec![
-					Instruction::UnpaidExecution {
-						weight_limit: WeightLimit::Unlimited,
-						check_origin: None,
-					},
-					Instruction::Transact {
-						origin_kind: OriginKind::Superuser,
-						require_weight_at_most: Weight {
-							ref_time: require_weight_ref_time,
-							proof_size: require_weight_proof_size,
-						},
-						call: DoubleEncoded { encoded: encoded_call },
-					},
-				]));
-				RuntimeCall::XcmPallet(XcmPalletCall::send {
-					dest: Box::new(dest),
-					message: Box::new(message),
-				})
-			}
-
-			/// Submits `sudo(Utility::batch_all(calls))` and waits for in-block success. Lets the
-			/// whole bridge-init governance for one relay land in a single extrinsic instead of
-			/// one finalized round-trip per call; the on-parachain effects are confirmed
-			/// separately by the `retry_until` checks in `init_bridge`.
-			pub async fn sudo_batch_all(
-				client: &OnlineClient<PolkadotConfig>,
-				sudo: &Keypair,
-				calls: Vec<RuntimeCall>,
-			) -> Result<(), anyhow::Error> {
-				let batch = RuntimeCall::Utility(UtilityCall::batch_all { calls });
-				let tx = crate::$relay::tx().sudo().sudo(batch);
-				sign_submit_wait_in_block(client, &tx, sudo).await
-			}
-		}
-	};
-}
 
 macro_rules! asset_hub_ops {
 	($name:ident, $ah:ident, $remote_network:expr) => {
@@ -252,18 +157,6 @@ macro_rules! asset_hub_ops {
 				sign_submit_wait_in_block(client, &tx, signer).await
 			}
 
-			/// SCALE-encoded `PolkadotXcm::force_xcm_version(remote, version)` call, to be wrapped
-			/// in a relay-chain governance `Transact`.
-			#[allow(dead_code)]
-			pub async fn force_xcm_version_call(
-				client: &OnlineClient<PolkadotConfig>,
-				remote: Location,
-				version: u32,
-			) -> Result<Vec<u8>, anyhow::Error> {
-				let call = crate::$ah::tx().polkadot_xcm().force_xcm_version(remote, version);
-				Ok(call.encode_call_data(&client.metadata())?)
-			}
-
 			/// SCALE-encoded `ForeignAssets::force_create(bridged_asset, owner, is_sufficient,
 			/// min_balance)` call, wrapped in a relay-chain governance `Transact` (root).
 			#[allow(dead_code)]
@@ -334,7 +227,6 @@ macro_rules! asset_hub_ops {
 macro_rules! bridge_hub_ops {
 	($name:ident, $bh:ident, $remote_network:expr) => {
 		pub mod $name {
-			use super::XCM_VERSION;
 			use crate::{
 				common::utils::{free_balance_at, sign_submit_wait},
 				$bh::runtime_types::staging_xcm::v5::{
@@ -343,7 +235,7 @@ macro_rules! bridge_hub_ops {
 					location::Location,
 				},
 			};
-			use subxt::{tx::Payload, OnlineClient, PolkadotConfig};
+			use subxt::{OnlineClient, PolkadotConfig};
 			use subxt_signer::sr25519::Keypair;
 
 			/// The bridged/remote consensus network this Bridge Hub bridges to.
@@ -376,16 +268,6 @@ macro_rules! bridge_hub_ops {
 					.balances()
 					.transfer_allow_death(subxt::utils::MultiAddress::Id(target), amount);
 				sign_submit_wait(client, &tx, signer).await
-			}
-
-			/// SCALE-encoded `PolkadotXcm::force_xcm_version(remote, XCM_VERSION)` call.
-			#[allow(dead_code)]
-			pub async fn force_xcm_version_call(
-				client: &OnlineClient<PolkadotConfig>,
-				remote: Location,
-			) -> Result<Vec<u8>, anyhow::Error> {
-				let call = crate::$bh::tx().polkadot_xcm().force_xcm_version(remote, XCM_VERSION);
-				Ok(call.encode_call_data(&client.metadata())?)
 			}
 
 			/// Free balance of `account` via `system.account`.

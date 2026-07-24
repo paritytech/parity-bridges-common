@@ -4,10 +4,16 @@
 //! Network spawning and bridge bootstrap for the Rococo <> Westend bridge.
 //!
 //! [`BridgeTestEnv`] spawns both relay-chain networks (each with a Bridge Hub and an Asset Hub
-//! parachain), initializes the bridge (HRMP channels, remote XCM versions and bridged foreign
-//! assets) and drives the `substrate-relay` binary as a set of subprocesses. The generic `subxt`
-//! helpers, relayer driver and node images come from [`crate::common`]; the per-runtime typed
-//! operations from [`super`].
+//! parachain) from the polkadot-sdk `*-debug` docker images and drives the `substrate-relay` binary
+//! as a set of subprocesses. Like the Kusama <> Polkadot environment, the bridge is bootstrapped
+//! **from genesis** rather than via `sudo`-signed governance: the local + remote XCM versions
+//! (`polkadotXcm.safeXcmVersion` / `supportedVersion`), the bridge-GRANDPA pallet owner (`//Alice`,
+//! so `init-bridge` is owner-signed), the bridged-asset reserves and the funded sovereign/reward
+//! accounts are all set at genesis (see the `*_genesis_override` helpers). Only the HRMP channels
+//! (opened post-spawn via the permissionless `Hrmp::establish_system_channel`) and the
+//! `//Bob`-signed asset-conversion pools are set up after spawn. The generic `subxt` helpers,
+//! relayer driver and node images come from [`crate::common`]; the per-runtime typed operations
+//! from [`super`].
 
 use anyhow::anyhow;
 use std::time::Duration;
@@ -18,17 +24,18 @@ use zombienet_sdk::{
 };
 
 use super::{
-	asset_hub_rococo, asset_hub_westend, bridge_hub_rococo, bridge_hub_westend, relay_rococo,
-	relay_westend, ASSET_HUB_PARA_ID, ASSET_HUB_SOVEREIGN_AT_BRIDGE_HUB, BHR_LANE_BRIDGED_CHAIN,
-	BHR_LANE_THIS_CHAIN, BHW_LANE_BRIDGED_CHAIN, BHW_LANE_THIS_CHAIN, BRIDGE_HUB_ROCOCO_PARA_ID,
-	BRIDGE_HUB_WESTEND_PARA_ID, ROCOCO_GENESIS_HASH, SOVEREIGN_FUNDING, XCM_VERSION,
+	asset_hub_rococo, asset_hub_westend, ASSET_HUB_PARA_ID, ASSET_HUB_SOVEREIGN_AT_BRIDGE_HUB,
+	BHR_LANE_BRIDGED_CHAIN, BHR_LANE_THIS_CHAIN, BHW_LANE_BRIDGED_CHAIN, BHW_LANE_THIS_CHAIN,
+	BRIDGE_HUB_ROCOCO_PARA_ID, BRIDGE_HUB_WESTEND_PARA_ID, ENDOWMENT, ROCOCO_GENESIS_HASH,
+	SOVEREIGN_FUNDING, WESTEND_GENESIS_HASH, XCM_VERSION,
 };
 use crate::common::{
 	images::node_images,
 	relayer::{init_bridge_confirmed, spawn_relayer, Relayer},
 	utils::{
 		best_finalized_bridged_header, bridge_hub_balances, config_errs, dev_account,
-		global_settings, retry_until, spawn_with_retry, wait_for_finalized_height,
+		global_settings, retry_until, sign_submit_wait, spawn_with_retry,
+		wait_for_finalized_height,
 	},
 };
 
@@ -55,8 +62,83 @@ fn relay_async_backing_override() -> serde_json::Value {
 	})
 }
 
-/// Genesis override registering the trusted reserve for the bridged ROC foreign asset that the
-/// Asset Hub Westend runtime pre-registers at genesis.
+/// `GlobalConsensus` body for a network identified by genesis hash: `{ "ByGenesis": <hash> }`.
+/// Rococo and Westend identify each other this way (not by a named `NetworkId` variant), so the
+/// genesis JSON encodes the remote network as `ByGenesis` rather than a bare string like the
+/// Kusama <> Polkadot environment.
+fn by_genesis(genesis_hash: [u8; 32]) -> serde_json::Value {
+	serde_json::json!({ "ByGenesis": genesis_hash })
+}
+
+/// Genesis `supportedVersion` entry recording [`XCM_VERSION`] for the remote bridged
+/// `(parents: 2, GlobalConsensus(remote_network) / Parachain(para_id))` — the sudo-free equivalent
+/// of `force_xcm_version`, without which the bridged transfer fails with `SendFailure`.
+fn supported_remote_version(remote_network: &serde_json::Value, para_id: u32) -> serde_json::Value {
+	serde_json::json!([[
+		{ "parents": 2, "interior": { "X2": [
+			{ "GlobalConsensus": remote_network },
+			{ "Parachain": para_id },
+		] } },
+		XCM_VERSION,
+	]])
+}
+
+/// Bridge Hub genesis override: fund the sovereign/reward accounts, make `//Alice` the
+/// with-bridged-chain GRANDPA pallet owner (so `init-bridge` is owner-signed, no `sudo`), and set
+/// the local safe + remote Bridge Hub XCM versions. `grandpa_pallet` is that pallet's camelCased
+/// genesis key (`bridgeWestendGrandpa` on Rococo BH, `bridgeRococoGrandpa` on Westend BH).
+///
+/// The sudo-free replacement for the relay-chain governance batch this environment used to submit:
+/// the BH sovereign/reward funding, the GRANDPA owner (was implicit in `//Bob`-signed
+/// `init-bridge`) and the remote Bridge Hub `force_xcm_version` are all pinned here at genesis
+/// instead.
+fn bridge_hub_genesis_override(
+	sovereign_accounts: &[&str],
+	grandpa_pallet: &str,
+	remote_network: &serde_json::Value,
+	remote_bridge_hub_para_id: u32,
+) -> serde_json::Value {
+	let alice = dev_account(&dev::alice()).to_string();
+	// `ENDOWMENT` — matched by `assert_relayer_balances_unchanged`.
+	let mut value = bridge_hub_balances(ENDOWMENT, sovereign_accounts, SOVEREIGN_FUNDING);
+	let obj = value.as_object_mut().expect("object");
+	obj.insert(grandpa_pallet.to_string(), serde_json::json!({ "owner": alice }));
+	obj.insert(
+		"polkadotXcm".to_string(),
+		serde_json::json!({
+			"safeXcmVersion": XCM_VERSION,
+			"supportedVersion": supported_remote_version(remote_network, remote_bridge_hub_para_id),
+		}),
+	);
+	value
+}
+
+/// Asset Hub genesis override: set the local safe XCM version and the remote Asset Hub's supported
+/// version, plus (optionally) the trusted reserves for the bridged foreign asset. The XCM versions
+/// are the sudo-free stand-in for the `force_xcm_version` governance transacts the environment used
+/// to submit. Asset Hub Westend also needs the reserve seeded (see [`asset_hub_westend_reserves`]);
+/// Asset Hub Rococo uses a static bridging reserve, so it passes `None`.
+fn asset_hub_genesis_override(
+	remote_network: &serde_json::Value,
+	reserves: Option<serde_json::Value>,
+) -> serde_json::Value {
+	let mut value = serde_json::json!({
+		"polkadotXcm": {
+			"safeXcmVersion": XCM_VERSION,
+			"supportedVersion": supported_remote_version(remote_network, ASSET_HUB_PARA_ID),
+		},
+	});
+	if let Some(reserves) = reserves {
+		value
+			.as_object_mut()
+			.expect("object")
+			.insert("foreignAssets".to_string(), serde_json::json!({ "reserves": reserves }));
+	}
+	value
+}
+
+/// Trusted-reserve genesis entry for the bridged ROC foreign asset that the Asset Hub Westend
+/// runtime pre-registers at genesis.
 ///
 /// Asset Hub Westend trusts XCM reserves only via per-asset `pallet-assets` `Reserves` (no static
 /// bridging fallback), and that storage is normally populated by a runtime-upgrade migration —
@@ -64,28 +146,23 @@ fn relay_async_backing_override() -> serde_json::Value {
 /// no reserve and inbound bridged reserve-transfers fail with `UntrustedReserveLocation`. Seed it
 /// here to match the migration's rule (a Rococo-ecosystem asset's reserve is Asset Hub Rococo,
 /// non-teleportable). `with_genesis_overrides` deep-merges into `foreignAssets`, so the preset's
-/// `assets`/`accounts` are preserved. (Asset Hub Rococo still uses a static reserve, so it needs no
-/// such override.)
-fn asset_hub_westend_reserves_override() -> serde_json::Value {
+/// `assets`/`accounts` are preserved.
+fn asset_hub_westend_reserves() -> serde_json::Value {
 	// The bridged ROC asset id `{ parents: 2, X1(GlobalConsensus(Rococo)) }` and its trusted
 	// reserve, Asset Hub Rococo `{ parents: 2, X2(GlobalConsensus(Rococo),
 	// Parachain(ASSET_HUB_PARA_ID)) }`.
 	let bridged_roc = serde_json::json!({
 		"parents": 2,
-		"interior": { "X1": [{ "GlobalConsensus": { "ByGenesis": ROCOCO_GENESIS_HASH } }] },
+		"interior": { "X1": [{ "GlobalConsensus": by_genesis(ROCOCO_GENESIS_HASH) }] },
 	});
 	let asset_hub_rococo = serde_json::json!({
 		"parents": 2,
 		"interior": { "X2": [
-			{ "GlobalConsensus": { "ByGenesis": ROCOCO_GENESIS_HASH } },
+			{ "GlobalConsensus": by_genesis(ROCOCO_GENESIS_HASH) },
 			{ "Parachain": ASSET_HUB_PARA_ID },
 		] },
 	});
-	serde_json::json!({
-		"foreignAssets": {
-			"reserves": [[bridged_roc, [{ "reserve": asset_hub_rococo, "teleportable": false }]]],
-		}
-	})
+	serde_json::json!([[bridged_roc, [{ "reserve": asset_hub_rococo, "teleportable": false }]]])
 }
 
 fn rococo_network_config() -> Result<NetworkConfig, anyhow::Error> {
@@ -124,17 +201,20 @@ fn rococo_network_config() -> Result<NetworkConfig, anyhow::Error> {
 				.cumulus_based(true)
 				.with_default_command("polkadot-parachain")
 				.with_default_image(images.cumulus.as_str())
-				// Pre-fund the bridge sovereign/reward accounts at genesis rather than via
-				// post-spawn txs: a freshly launched bridge hub reorgs at the tip and would
-				// invalidate them.
-				.with_genesis_overrides(bridge_hub_balances(
-					1u128 << 60,
+				// Bootstrap the bridge from genesis rather than via post-spawn governance: fund
+				// the sovereign/reward accounts (a freshly launched bridge hub reorgs at the tip
+				// and would invalidate post-spawn txs), make `//Alice` the `BridgeWestendGrandpa`
+				// owner so `init-bridge` is owner-signed, and set the local + remote Bridge Hub
+				// XCM versions.
+				.with_genesis_overrides(bridge_hub_genesis_override(
 					&[
 						ASSET_HUB_SOVEREIGN_AT_BRIDGE_HUB,
 						BHR_LANE_THIS_CHAIN,
 						BHR_LANE_BRIDGED_CHAIN,
 					],
-					SOVEREIGN_FUNDING,
+					"bridgeWestendGrandpa",
+					&by_genesis(WESTEND_GENESIS_HASH),
+					BRIDGE_HUB_WESTEND_PARA_ID,
 				))
 				// A single bridge-hub collator: a second one fork-wars, retracting the block
 				// carrying the relayer's finality/parachain-head update before it finalizes.
@@ -149,6 +229,12 @@ fn rococo_network_config() -> Result<NetworkConfig, anyhow::Error> {
 				.cumulus_based(true)
 				.with_default_command("polkadot-parachain")
 				.with_default_image(images.cumulus.as_str())
+				// Set the local + remote Asset Hub XCM versions at genesis (Asset Hub Rococo uses
+				// a static bridging reserve, so no `foreignAssets.reserves` override is needed).
+				.with_genesis_overrides(asset_hub_genesis_override(
+					&by_genesis(WESTEND_GENESIS_HASH),
+					None,
+				))
 				// Single asset-hub collator: the test only drives one collator endpoint, and one
 				// builder avoids fork competition (matching the bridge-hub choice).
 				.with_collator(|n| {
@@ -198,16 +284,18 @@ fn westend_network_config() -> Result<NetworkConfig, anyhow::Error> {
 				.cumulus_based(true)
 				.with_default_command("polkadot-parachain")
 				.with_default_image(images.cumulus.as_str())
-				// Pre-fund the bridge sovereign/reward accounts at genesis (see
-				// `rococo_network_config`).
-				.with_genesis_overrides(bridge_hub_balances(
-					1u128 << 60,
+				// Bootstrap from genesis (see `rococo_network_config`): fund the sovereign/reward
+				// accounts, make `//Alice` the `BridgeRococoGrandpa` owner, and set the local +
+				// remote Bridge Hub XCM versions.
+				.with_genesis_overrides(bridge_hub_genesis_override(
 					&[
 						ASSET_HUB_SOVEREIGN_AT_BRIDGE_HUB,
 						BHW_LANE_THIS_CHAIN,
 						BHW_LANE_BRIDGED_CHAIN,
 					],
-					SOVEREIGN_FUNDING,
+					"bridgeRococoGrandpa",
+					&by_genesis(ROCOCO_GENESIS_HASH),
+					BRIDGE_HUB_ROCOCO_PARA_ID,
 				))
 				// Single bridge-hub collator, see `rococo_network_config`.
 				.with_collator(|n| {
@@ -220,7 +308,12 @@ fn westend_network_config() -> Result<NetworkConfig, anyhow::Error> {
 				.cumulus_based(true)
 				.with_default_command("polkadot-parachain")
 				.with_default_image(images.cumulus.as_str())
-				.with_genesis_overrides(asset_hub_westend_reserves_override())
+				// Set the local + remote Asset Hub XCM versions and seed the bridged ROC reserve
+				// (Asset Hub Westend has no static bridging reserve fallback).
+				.with_genesis_overrides(asset_hub_genesis_override(
+					&by_genesis(ROCOCO_GENESIS_HASH),
+					Some(asset_hub_westend_reserves()),
+				))
 				// Single asset-hub collator, see `rococo_network_config`.
 				.with_collator(|n| {
 					n.with_name("asset-hub-westend-collator1").with_args(ah_args.clone())
@@ -295,17 +388,49 @@ impl BridgeTestEnv {
 		Self::client_of(&self.westend, "bridge-hub-westend-collator1").await
 	}
 
-	/// Initializes both sides of the bridge: waits for block production, opens HRMP channels, sets
-	/// remote XCM versions and creates the bridged foreign assets.
+	/// Opens the Asset Hub <-> Bridge Hub HRMP channels (both directions) on the **Rococo** relay
+	/// via the permissionless `Hrmp::establish_system_channel` — both endpoints are system
+	/// parachains, so no `sudo`/root is needed. Signed by `//Alice`; each direction waits for
+	/// finalized success before the next (shared signer nonce).
+	async fn open_hrmp_channels_rococo(&self) -> Result<(), anyhow::Error> {
+		use crate::rococo::runtime_types::polkadot_parachain_primitives::primitives::Id;
+		let relay = self.rococo_relay_client().await?;
+		let alice = dev::alice();
+		for (sender, recipient) in [
+			(ASSET_HUB_PARA_ID, BRIDGE_HUB_ROCOCO_PARA_ID),
+			(BRIDGE_HUB_ROCOCO_PARA_ID, ASSET_HUB_PARA_ID),
+		] {
+			let tx = crate::rococo::tx().hrmp().establish_system_channel(Id(sender), Id(recipient));
+			sign_submit_wait(&relay, &tx, &alice).await?;
+		}
+		Ok(())
+	}
+
+	/// The Westend-side counterpart of [`Self::open_hrmp_channels_rococo`].
+	async fn open_hrmp_channels_westend(&self) -> Result<(), anyhow::Error> {
+		use crate::westend::runtime_types::polkadot_parachain_primitives::primitives::Id;
+		let relay = self.westend_relay_client().await?;
+		let alice = dev::alice();
+		for (sender, recipient) in [
+			(ASSET_HUB_PARA_ID, BRIDGE_HUB_WESTEND_PARA_ID),
+			(BRIDGE_HUB_WESTEND_PARA_ID, ASSET_HUB_PARA_ID),
+		] {
+			let tx =
+				crate::westend::tx().hrmp().establish_system_channel(Id(sender), Id(recipient));
+			sign_submit_wait(&relay, &tx, &alice).await?;
+		}
+		Ok(())
+	}
+
+	/// Initializes both sides of the bridge: waits for block production, opens the HRMP channels
+	/// and seeds the asset-conversion pools. The remote XCM versions, GRANDPA pallet owner and
+	/// bridged-asset reserves are all set at genesis (see the `*_genesis_override` helpers), so —
+	/// unlike before — there is no `sudo`-signed governance to submit here.
 	async fn init_bridge(&self) -> Result<(), anyhow::Error> {
-		let rococo_relay = self.rococo_relay_client().await?;
-		let westend_relay = self.westend_relay_client().await?;
 		let ahr = self.asset_hub_rococo_client().await?;
 		let ahw = self.asset_hub_westend_client().await?;
 		let bhr = self.bridge_hub_rococo_client().await?;
 		let bhw = self.bridge_hub_westend_client().await?;
-
-		let alice = dev::alice();
 
 		// Wait until each bridge hub finalizes its first block: proof the full
 		// collation -> backing -> inclusion -> finality pipeline is live. The asset hubs only need
@@ -317,82 +442,15 @@ impl BridgeTestEnv {
 			wait_for_finalized_height(&bhw, 1, Duration::from_secs(300)),
 		)?;
 
-		// Bridge-init governance per relay as one `sudo(batch_all(..))`: HRMP opens + remote XCM
-		// versions + bridged foreign-asset creation. Independent relays, so submit both
-		// concurrently.
-		log::info!("Submitting batched bridge-init governance to both relays");
-		let ahw_on_ahr = asset_hub_rococo::remote_asset_hub();
-		let force_ahw =
-			asset_hub_rococo::force_xcm_version_call(&ahr, ahw_on_ahr, XCM_VERSION).await?;
-		let bhw_on_bhr = bridge_hub_rococo::remote_bridge_hub(BRIDGE_HUB_WESTEND_PARA_ID);
-		let force_bhw = bridge_hub_rococo::force_xcm_version_call(&bhr, bhw_on_bhr).await?;
-		let rococo_calls = vec![
-			relay_rococo::force_open_hrmp_channel_call(
-				ASSET_HUB_PARA_ID,
-				BRIDGE_HUB_ROCOCO_PARA_ID,
-				4,
-				524288,
-			),
-			relay_rococo::force_open_hrmp_channel_call(
-				BRIDGE_HUB_ROCOCO_PARA_ID,
-				ASSET_HUB_PARA_ID,
-				4,
-				524288,
-			),
-			relay_rococo::governance_transact_call(
-				ASSET_HUB_PARA_ID,
-				force_ahw,
-				200_000_000,
-				12_000,
-			),
-			relay_rococo::governance_transact_call(
-				BRIDGE_HUB_ROCOCO_PARA_ID,
-				force_bhw,
-				200_000_000,
-				12_000,
-			),
-		];
+		// Open the HRMP channels post-spawn, now that the Bridge Hubs produce blocks, via the
+		// permissionless `Hrmp::establish_system_channel` (both endpoints are system parachains, so
+		// no `sudo`/root). Independent relays, so open both concurrently.
+		log::info!("Opening HRMP channels between Asset Hub and Bridge Hub on both relays");
+		tokio::try_join!(self.open_hrmp_channels_rococo(), self.open_hrmp_channels_westend())?;
 
-		let ahr_on_ahw = asset_hub_westend::remote_asset_hub();
-		let force_ahr =
-			asset_hub_westend::force_xcm_version_call(&ahw, ahr_on_ahw, XCM_VERSION).await?;
-		let bhr_on_bhw = bridge_hub_westend::remote_bridge_hub(BRIDGE_HUB_ROCOCO_PARA_ID);
-		let force_bhr = bridge_hub_westend::force_xcm_version_call(&bhw, bhr_on_bhw).await?;
-		let westend_calls = vec![
-			relay_westend::force_open_hrmp_channel_call(
-				ASSET_HUB_PARA_ID,
-				BRIDGE_HUB_WESTEND_PARA_ID,
-				4,
-				524288,
-			),
-			relay_westend::force_open_hrmp_channel_call(
-				BRIDGE_HUB_WESTEND_PARA_ID,
-				ASSET_HUB_PARA_ID,
-				4,
-				524288,
-			),
-			relay_westend::governance_transact_call(
-				ASSET_HUB_PARA_ID,
-				force_ahr,
-				200_000_000,
-				12_000,
-			),
-			relay_westend::governance_transact_call(
-				BRIDGE_HUB_WESTEND_PARA_ID,
-				force_bhr,
-				200_000_000,
-				12_000,
-			),
-		];
-
-		tokio::try_join!(
-			relay_rococo::sudo_batch_all(&rococo_relay, &alice, rococo_calls),
-			relay_westend::sudo_batch_all(&westend_relay, &alice, westend_calls),
-		)?;
-
-		// Confirm the on-parachain effects of the batches (both Asset Hubs concurrently): the HRMP
-		// egress channels towards the Bridge Hubs are open. The bridged foreign assets are
-		// pre-registered at genesis, so there is nothing to create or confirm for them here.
+		// Confirm both HRMP egress channels towards the Bridge Hubs are open (both Asset Hubs
+		// concurrently). The bridged foreign assets are pre-registered at genesis, so there is
+		// nothing to create or confirm for them here.
 		log::info!("Waiting for HRMP channels to open");
 		tokio::try_join!(
 			retry_until(Duration::from_secs(600), || {
@@ -459,8 +517,8 @@ impl BridgeTestEnv {
 		Ok(())
 	}
 
-	/// Initializes the GRANDPA bridge pallets and starts the finality, parachains and messages
-	/// relayers.
+	/// Initializes the GRANDPA bridge pallets (owner-signed by the genesis owner `//Alice`, no
+	/// `sudo`) and starts the finality, parachains and messages relayers.
 	pub async fn start_relayer(&mut self) -> Result<(), anyhow::Error> {
 		// Resolve the actual node WS endpoints. Ports are assigned dynamically by zombienet, so we
 		// read each node's real URI and pass it to `substrate-relay`.
@@ -473,9 +531,10 @@ impl BridgeTestEnv {
 		let bhr_client = Self::client_of(&self.rococo, "bridge-hub-rococo-collator1").await?;
 		let bhw_client = Self::client_of(&self.westend, "bridge-hub-westend-collator1").await?;
 
-		// init-bridge each direction, retried until confirmed at a finalized block (see
-		// `init_bridge_confirmed`). Independent bridge hubs, so run both concurrently; args are
-		// bound to locals so they outlive the awaited futures that borrow them.
+		// init-bridge each direction, signed by the genesis GRANDPA owner `//Alice` (no `sudo`),
+		// retried until confirmed at a finalized block (see `init_bridge_confirmed`). Independent
+		// bridge hubs, so run both concurrently; args are bound to locals so they outlive the
+		// awaited futures that borrow them.
 		let init_bhr_args = [
 			"init-bridge",
 			"westend-to-bridge-hub-rococo",
@@ -488,7 +547,7 @@ impl BridgeTestEnv {
 			"--target-version-mode",
 			"Auto",
 			"--target-signer",
-			"//Bob",
+			"//Alice",
 		];
 		let init_bhw_args = [
 			"init-bridge",
@@ -502,7 +561,7 @@ impl BridgeTestEnv {
 			"--target-version-mode",
 			"Auto",
 			"--target-signer",
-			"//Bob",
+			"//Alice",
 		];
 		tokio::try_join!(
 			init_bridge_confirmed(&init_bhr_args, &bhr_client, "BridgeWestendGrandpa"),

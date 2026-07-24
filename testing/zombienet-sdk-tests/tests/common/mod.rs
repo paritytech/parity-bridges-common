@@ -5,8 +5,8 @@
 //! `subxt` helpers, the `substrate-relay` subprocess driver and the default node images. A bridge
 //! pair (e.g. `rococo_westend`) builds its environment on top of these.
 
-// The per-runtime typed-operation macros (`relay_ops!`, `asset_hub_ops!`, `bridge_hub_ops!`),
-// `#[macro_use]`d so every bridge pair can invoke them from its own module.
+// The per-runtime typed-operation macros (`asset_hub_ops!`, `bridge_hub_ops!`), `#[macro_use]`d so
+// every bridge pair can invoke them from its own module.
 #[macro_use]
 mod ops;
 
