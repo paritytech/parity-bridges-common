@@ -50,9 +50,9 @@ const BHW_LANE_BRIDGED_CHAIN: &str = "5EHnXaT5Tnt3VGpEvc6jSgYwVToDGxLRMuYoZ8coo6
 const SOVEREIGN_FUNDING: u128 = 100_000_000_000_000;
 
 // The typed-operation macros are `#[macro_use]`d from `crate::common`. Rococo/Westend identify
-// each other by genesis hash, so the remote network is `NetworkId::ByGenesis(..)`.
-relay_ops!(relay_rococo, rococo, rococo_runtime);
-relay_ops!(relay_westend, westend, westend_runtime);
+// each other by genesis hash, so the remote network is `NetworkId::ByGenesis(..)`. Like
+// Kusama/Polkadot, the bridge is now configured at genesis (see `environment`), so the relay-chain
+// `sudo`/governance ops (`relay_ops!`) are no longer used.
 asset_hub_ops!(
 	asset_hub_rococo,
 	asset_hub_rococo,
