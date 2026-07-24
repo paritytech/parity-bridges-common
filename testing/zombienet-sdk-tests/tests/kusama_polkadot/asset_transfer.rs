@@ -13,13 +13,15 @@
 //!
 //! DOT has 10 decimals, KSM has 12, so the two directions use different unit constants.
 
-use crate::kusama_polkadot::{
-	assert_relayer_balances_unchanged, asset_hub_kusama, asset_hub_polkadot,
-	bridge_hub_kusama_relayer_reward, bridge_hub_polkadot_relayer_reward, dev_account, dev_public,
-	retry_until, BridgeTestEnv,
+use crate::{
+	common::utils::wait_for_native_increase,
+	kusama_polkadot::{
+		assert_relayer_balances_unchanged, asset_hub_kusama, asset_hub_polkadot,
+		bridge_hub_kusama_relayer_reward, bridge_hub_polkadot_relayer_reward, dev_account,
+		dev_public, retry_until, BridgeTestEnv,
+	},
 };
 use std::time::Duration;
-use subxt::{OnlineClient, PolkadotConfig};
 use subxt_signer::sr25519::dev;
 
 // DOT amounts (10 decimals).
@@ -167,22 +169,4 @@ async fn asset_transfer_works() -> Result<(), anyhow::Error> {
 	assert_relayer_balances_unchanged(&bhp, &bhk, charlie, dave).await?;
 
 	Ok(())
-}
-
-/// Waits (up to 10 minutes) until the native free balance of `account` on `client` exceeds
-/// `initial + min_increase`.
-async fn wait_for_native_increase(
-	client: &OnlineClient<PolkadotConfig>,
-	account: [u8; 32],
-	initial: u128,
-	min_increase: u128,
-) -> Result<(), anyhow::Error> {
-	retry_until(Duration::from_secs(600), || {
-		let client = client.clone();
-		async move {
-			let balance = crate::kusama_polkadot::free_balance_at(&client, account).await?;
-			Ok((balance > initial + min_increase).then_some(()))
-		}
-	})
-	.await
 }

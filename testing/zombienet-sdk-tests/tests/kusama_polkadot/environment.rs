@@ -39,7 +39,8 @@ use super::{
 use crate::common::{
 	relayer::{init_bridge_confirmed, spawn_relayer, Relayer},
 	utils::{
-		best_finalized_bridged_header, dev_account, retry_until, sign_submit_wait,
+		best_finalized_bridged_header, bridge_hub_balances, config_errs, dev_account,
+		global_settings, retry_until, sign_submit_wait, spawn_with_retry,
 		wait_for_finalized_height,
 	},
 };
@@ -83,24 +84,6 @@ pub struct BridgeTestEnv {
 	_relayers: Vec<Relayer>,
 }
 
-/// Genesis `balances` override for a bridge hub.
-///
-/// `with_genesis_overrides` *replaces* the `balances.balances` array (it doesn't append), so we
-/// must re-list the well-known dev accounts (collators + relayer signers) that need fees, then add
-/// the sovereign/reward accounts.
-fn bridge_hub_balances_override(sovereign_accounts: &[&str]) -> serde_json::Value {
-	// `ENDOWMENT` — matched by `assert_relayer_balances_unchanged`.
-	let mut balances: Vec<serde_json::Value> =
-		[dev::alice(), dev::bob(), dev::charlie(), dev::dave(), dev::eve(), dev::ferdie()]
-			.iter()
-			.map(|k| serde_json::json!([dev_account(k).to_string(), ENDOWMENT]))
-			.collect();
-	for account in sovereign_accounts {
-		balances.push(serde_json::json!([*account, SOVEREIGN_FUNDING]));
-	}
-	serde_json::json!({ "balances": { "balances": balances } })
-}
-
 /// Bridge Hub genesis override: fund the sovereign/reward accounts, make `//Alice` the
 /// with-bridged-chain GRANDPA pallet owner (so `init-bridge` needs no `sudo`), and set the local
 /// safe + remote Bridge Hub XCM versions. `grandpa_pallet` is that pallet's camelCased genesis key
@@ -112,7 +95,8 @@ fn bridge_hub_genesis_override(
 	remote_bridge_hub_para_id: u32,
 ) -> serde_json::Value {
 	let alice = dev_account(&dev::alice()).to_string();
-	let mut value = bridge_hub_balances_override(sovereign_accounts);
+	// `ENDOWMENT` — matched by `assert_relayer_balances_unchanged`.
+	let mut value = bridge_hub_balances(ENDOWMENT, sovereign_accounts, SOVEREIGN_FUNDING);
 	let obj = value.as_object_mut().expect("object");
 	obj.insert(grandpa_pallet.to_string(), serde_json::json!({ "owner": alice }));
 	obj.insert(
@@ -343,59 +327,6 @@ fn kusama_network_config() -> Result<NetworkConfig, anyhow::Error> {
 		.map_err(config_errs)
 }
 
-/// Shared global settings for both networks. We disable `tear_down_on_failure` so a transient,
-/// load-induced node-monitor timeout does not tear the network down (see the R<>W environment).
-fn global_settings(
-	settings: zombienet_sdk::GlobalSettingsBuilder,
-) -> zombienet_sdk::GlobalSettingsBuilder {
-	settings.with_tear_down_on_failure(false).with_node_spawn_timeout(600)
-}
-
-fn config_errs(errs: Vec<anyhow::Error>) -> anyhow::Error {
-	anyhow!(
-		"network config errors: {}",
-		errs.iter().map(|e| e.to_string()).collect::<Vec<_>>().join("; ")
-	)
-}
-
-/// Spawns one network with the **native** provider, retrying the flaky zombienet chain-spec panic
-/// (see the R<>W environment for the details of the retry). The native provider requires the
-/// `polkadot` / `polkadot-parachain` / `chain-spec-generator` binaries resolved by [`bins`].
-async fn spawn_with_retry(
-	config_fn: impl Fn() -> Result<NetworkConfig, anyhow::Error>,
-	name: &str,
-) -> Result<Network<LocalFileSystem>, anyhow::Error> {
-	const MAX_ATTEMPTS: usize = 3;
-	let spawn_fn = Provider::Native.get_spawn_fn();
-	let mut last_err = String::new();
-	for attempt in 1..=MAX_ATTEMPTS {
-		let config = config_fn()?;
-		match tokio::spawn(spawn_fn(config)).await {
-			Ok(Ok(network)) => return Ok(network),
-			Ok(Err(e)) => {
-				last_err = e.to_string();
-				log::warn!(
-					"{name} network spawn attempt {attempt}/{MAX_ATTEMPTS} failed: {last_err}"
-				);
-			},
-			Err(join_err) if join_err.is_panic() => {
-				let panic = join_err.into_panic();
-				last_err = panic
-					.downcast_ref::<&str>()
-					.map(|s| s.to_string())
-					.or_else(|| panic.downcast_ref::<String>().cloned())
-					.unwrap_or_else(|| "unknown panic".to_string());
-				log::warn!(
-					"{name} network spawn attempt {attempt}/{MAX_ATTEMPTS} panicked inside \
-					 zombienet (likely the chain-spec truncation flake); retrying: {last_err}"
-				);
-			},
-			Err(join_err) => return Err(anyhow!("{name} network spawn task cancelled: {join_err}")),
-		}
-	}
-	Err(anyhow!("{name} network spawn failed after {MAX_ATTEMPTS} attempts: {last_err}"))
-}
-
 impl BridgeTestEnv {
 	/// Spawns both networks and, depending on the flags, initializes the bridge and starts the
 	/// relayer.
@@ -406,8 +337,8 @@ impl BridgeTestEnv {
 
 		log::info!("Spawning Polkadot and Kusama networks concurrently");
 		let (polkadot, kusama) = tokio::try_join!(
-			spawn_with_retry(polkadot_network_config, "Polkadot"),
-			spawn_with_retry(kusama_network_config, "Kusama"),
+			spawn_with_retry(Provider::Native.get_spawn_fn(), polkadot_network_config, "Polkadot"),
+			spawn_with_retry(Provider::Native.get_spawn_fn(), kusama_network_config, "Kusama"),
 		)?;
 
 		let mut env = BridgeTestEnv { polkadot, kusama, _relayers: Vec::new() };
