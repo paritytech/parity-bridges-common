@@ -283,7 +283,7 @@ pub fn dev_public(keypair: &Keypair) -> [u8; 32] {
 // ---------------------------------------------------------------------------------------------
 
 /// Shared zombienet global settings: disable `tear_down_on_failure` so a transient, load-induced
-/// node-monitor timeout doesn't tear the network down, and allow 600s per node spawn.
+/// node-monitor timeout doesn't tear the network down, and allow 600 seconds per node spawn.
 pub fn global_settings(settings: GlobalSettingsBuilder) -> GlobalSettingsBuilder {
 	settings.with_tear_down_on_failure(false).with_node_spawn_timeout(600)
 }
