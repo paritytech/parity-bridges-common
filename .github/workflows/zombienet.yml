@@ -22,7 +22,8 @@ jobs:
       CI_IMAGE: ${{ steps.vars.outputs.IMAGE }}
       IMAGE_REGISTRY: ${{ steps.vars.outputs.IMAGE_REGISTRY }}
       ZOMBIE_PROVIDER: ${{ steps.vars.outputs.ZOMBIE_PROVIDER }}
-      FELLOWS_RUNTIMES_TAG: ${{ steps.vars.outputs.FELLOWS_RUNTIMES_TAG }}
+      BHP_FELLOWS_RUNTIMES_TAG: ${{ steps.vars.outputs.BHP_FELLOWS_RUNTIMES_TAG }}
+      BHK_FELLOWS_RUNTIMES_TAG: ${{ steps.vars.outputs.BHK_FELLOWS_RUNTIMES_TAG }}
       POLKADOT_SDK_HASH: ${{ steps.vars.outputs.POLKADOT_SDK_HASH }}
     steps:
       - name: Checkout sources
@@ -143,31 +144,45 @@ jobs:
     container:
       image: ${{ needs.set-variables.outputs.CI_IMAGE }}
     steps:
-      - name: Checkout fellows runtimes
-        # Fellows release the committed Kusama <> Polkadot codegen was generated from (from
-        # `.github/env`). Bump it (and regenerate the codegen — see
-        # testing/zombienet-sdk-tests/README.md) together.
+      - name: Checkout fellows runtimes (Polkadot side)
         uses: actions/checkout@v4
         with:
           repository: polkadot-fellows/runtimes
-          ref: ${{ needs.set-variables.outputs.FELLOWS_RUNTIMES_TAG }}
-          path: fellows-runtimes
+          ref: ${{ needs.set-variables.outputs.BHP_FELLOWS_RUNTIMES_TAG }}
+          path: fellows-runtimes-polkadot
+
+      - name: Checkout fellows runtimes (Kusama side)
+        uses: actions/checkout@v4
+        with:
+          repository: polkadot-fellows/runtimes
+          ref: ${{ needs.set-variables.outputs.BHK_FELLOWS_RUNTIMES_TAG }}
+          path: fellows-runtimes-kusama
 
       - name: Rust Cache
         uses: Swatinem/rust-cache@82a92a6e8fbeee089604da2575dc567ae9ddeaab # v2.7.5
         with:
-          workspaces: fellows-runtimes -> target
+          workspaces: |
+            fellows-runtimes-polkadot -> target
+            fellows-runtimes-kusama -> target
           cache-on-failure: true
           cache-all-crates: true
 
-      - name: Build chain-spec-generator
-        working-directory: fellows-runtimes
+      - name: Build Polkadot-side chain-spec-generator
+        working-directory: fellows-runtimes-polkadot
         run: |
-          # One binary supports all the `-local` chain specs the K<>P environment spawns.
+          # Polkadot-side `-local` chain specs the K<>P environment spawns, from the BHP Fellows tag.
           cargo build --release -p chain-spec-generator --no-default-features \
-            --features fast-runtime,polkadot,kusama,asset-hub-polkadot,asset-hub-kusama,bridge-hub-polkadot,bridge-hub-kusama
+            --features fast-runtime,polkadot,asset-hub-polkadot,bridge-hub-polkadot
           mkdir -p ../artifacts
           cp -v target/release/chain-spec-generator ../artifacts/chain-spec-generator-polkadot
+
+      - name: Build Kusama-side chain-spec-generator
+        working-directory: fellows-runtimes-kusama
+        run: |
+          # Kusama-side `-local` chain specs the K<>P environment spawns, from the BHK Fellows tag.
+          cargo build --release -p chain-spec-generator --no-default-features \
+            --features fast-runtime,kusama,asset-hub-kusama,bridge-hub-kusama
+          mkdir -p ../artifacts
           cp -v target/release/chain-spec-generator ../artifacts/chain-spec-generator-kusama
 
       - name: Upload chain-spec-generator
