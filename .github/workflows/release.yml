@@ -133,6 +133,42 @@ jobs:
           scripts/generate-codegen.sh --target relay-clients --chains "$chain" \
             --wasm-file "./tools/runtime-codegen/$RUNTIME_FILE"
 
+      - name: Regenerate zombienet test codegen
+        env:
+          RUNTIME_NAME: ${{ env.RUNTIME_NAME }}
+          RUNTIME_VERSION: ${{ env.RUNTIME_VERSION }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          # Keep the `--full` zombienet codegen for the released chain's Fellows family (relay + asset
+          # hub + bridge hub) in lockstep with the relay-client codegen above, so `check-codegen-compat`
+          # stays green, and pin the released side's Fellows tag in `.github/env` so CI's zombienet
+          # suite builds/tests that runtime. See testing/zombienet-sdk-tests/README.md.
+          case "$RUNTIME_NAME" in
+            BridgeHubPolkadot)
+              tag_var="BHP_FELLOWS_RUNTIMES_TAG"
+              chains="polkadot asset-hub-polkadot bridge-hub-polkadot" ;;
+            BridgeHubKusama)
+              tag_var="BHK_FELLOWS_RUNTIMES_TAG"
+              chains="kusama asset-hub-kusama bridge-hub-kusama" ;;
+            *) echo "Unknown runtime '$RUNTIME_NAME'" >&2; exit 1 ;;
+          esac
+
+          # Download the family runtime WASM from the same Fellows release ($RUNTIME_VERSION is the
+          # Fellows tag) into a dir the codegen script matches per chain by `<chain>_runtime*.wasm`.
+          wasm_dir="$(mktemp -d)"
+          for c in $chains; do
+            gh release download "$RUNTIME_VERSION" --repo polkadot-fellows/runtimes \
+              --pattern "${c}_runtime-*.compact.compressed.wasm" --dir "$wasm_dir"
+          done
+          ls -lh "$wasm_dir"
+
+          scripts/generate-codegen.sh --target zombienet --wasm-dir "$wasm_dir" --chains "$chains"
+
+          sed -i "s/^${tag_var}=.*/${tag_var}=${RUNTIME_VERSION}/" .github/env
+          echo "Pinned ${tag_var}=${RUNTIME_VERSION}:"
+          grep FELLOWS_RUNTIMES_TAG .github/env
+
       - name: Bump minor version in Cargo.toml
         id: bump-version
         run: |
@@ -177,6 +213,7 @@ jobs:
             - Update spec version to ${{ env.SPEC_VERSION }}
             - Bump substrate-relay version to v${{ env.RELAYER_VERSION }}
             - Regenerate runtime code
+            - Regenerate zombienet codegen and pin Fellows tag
           title: "Update runtime: ${{ env.RUNTIME_NAME }} ${{ env.RUNTIME_VERSION }}"
           body: |
             Automated runtime update:
@@ -188,6 +225,7 @@ jobs:
             - Updated spec version in client files
             - Bumped substrate-relay minor version
             - Regenerated runtime code
+            - Regenerated zombienet test codegen and pinned the Fellows runtimes tag in `.github/env`
             - Applied formatting fixes
           branch: "release/${{ env.RUNTIME_NAME }}-${{ env.RUNTIME_VERSION }}"
           delete-branch: true
@@ -196,3 +234,5 @@ jobs:
             relay-clients/**/lib.rs
             substrate-relay/Cargo.toml
             Cargo.lock
+            testing/zombienet-sdk-tests/tests/codegen/*.rs
+            .github/env
