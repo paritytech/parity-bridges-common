@@ -140,5 +140,5 @@ impl ChainWithMessages for BridgeHubKusama {
 
 impl ChainWithRuntimeVersion for BridgeHubKusama {
 	const RUNTIME_VERSION: Option<SimpleRuntimeVersion> =
-		Some(SimpleRuntimeVersion { spec_version: 2_003_000, transaction_version: 5 });
+		Some(SimpleRuntimeVersion { spec_version: 2_003_002, transaction_version: 5 });
 }
