@@ -73,7 +73,7 @@ jobs:
       - name: Build substrate-relay
         run: |
           cargo fetch
-          CARGO_NET_OFFLINE=true SKIP_WASM_BUILD=1 cargo build --release -p substrate-relay --features static-ssl
+          CARGO_NET_OFFLINE=true SKIP_WASM_BUILD=1 cargo build --release -p substrate-relay
           mkdir -p ./artifacts
           mv -v ./target/release/substrate-relay ./artifacts/
 
