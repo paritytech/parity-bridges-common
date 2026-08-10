@@ -31,34 +31,6 @@ pub mod api {
 		use super::runtime_types;
 		pub mod asset_hub_westend_runtime {
 			use super::runtime_types;
-			pub mod dynamic_params {
-				use super::runtime_types;
-				pub mod pusd {
-					use super::runtime_types;
-					#[derive(::codec::Decode, ::codec::Encode, Clone, Debug, PartialEq)]
-					pub struct MaximumIssuance;
-					#[derive(::codec::Decode, ::codec::Encode, Clone, Debug, PartialEq)]
-					pub enum Parameters {
-						#[codec(index = 0)]
-                        MaximumIssuance(
-                            runtime_types::asset_hub_westend_runtime::dynamic_params::pusd::MaximumIssuance,
-                            ::core::option::Option<::core::primitive::u128>,
-                        ),
-                    }
-					#[derive(::codec::Decode, ::codec::Encode, Clone, Debug, PartialEq)]
-					pub enum ParametersKey {
-						#[codec(index = 0)]
-                        MaximumIssuance(
-                            runtime_types::asset_hub_westend_runtime::dynamic_params::pusd::MaximumIssuance,
-                        ),
-                    }
-					#[derive(::codec::Decode, ::codec::Encode, Clone, Debug, PartialEq)]
-					pub enum ParametersValue {
-						#[codec(index = 0)]
-						MaximumIssuance(::core::primitive::u128),
-					}
-				}
-			}
 			pub mod governance {
 				use super::runtime_types;
 				pub mod origins {
@@ -375,8 +347,6 @@ pub mod api {
                 Indices(runtime_types::pallet_indices::pallet::Call),
                 #[codec(index = 44)]
                 MetaTx(runtime_types::pallet_meta_tx::pallet::Call),
-                #[codec(index = 46)]
-                Parameters(runtime_types::pallet_parameters::pallet::Call),
                 #[codec(index = 47)]
                 Recovery(runtime_types::pallet_recovery::pallet::Call),
                 #[codec(index = 50)]
@@ -631,8 +601,6 @@ pub mod api {
                 Indices(runtime_types::pallet_indices::pallet::Event),
                 #[codec(index = 44)]
                 MetaTx(runtime_types::pallet_meta_tx::pallet::Event),
-                #[codec(index = 46)]
-                Parameters(runtime_types::pallet_parameters::pallet::Event),
                 #[codec(index = 47)]
                 Recovery(runtime_types::pallet_recovery::pallet::Event),
                 #[codec(index = 50)]
@@ -745,6 +713,8 @@ pub mod api {
 				Revive(runtime_types::pallet_revive::pallet::HoldReason),
 				#[codec(index = 61)]
 				AssetRewards(runtime_types::pallet_asset_rewards::pallet::HoldReason),
+				#[codec(index = 65)]
+				Psm(runtime_types::pallet_psm::pallet::HoldReason),
 				#[codec(index = 70)]
 				StateTrieMigration(runtime_types::pallet_state_trie_migration::pallet::HoldReason),
 				#[codec(index = 80)]
@@ -759,23 +729,6 @@ pub mod api {
 				),
 				#[codec(index = 96)]
 				MultiAssetBounties(runtime_types::pallet_multi_asset_bounties::pallet::HoldReason),
-			}
-			#[derive(::codec::Decode, ::codec::Encode, Clone, Debug, PartialEq)]
-			pub enum RuntimeParameters {
-				#[codec(index = 0)]
-				Pusd(runtime_types::asset_hub_westend_runtime::dynamic_params::pusd::Parameters),
-			}
-			#[derive(::codec::Decode, ::codec::Encode, Clone, Debug, PartialEq)]
-			pub enum RuntimeParametersKey {
-				#[codec(index = 0)]
-				Pusd(runtime_types::asset_hub_westend_runtime::dynamic_params::pusd::ParametersKey),
-			}
-			#[derive(::codec::Decode, ::codec::Encode, Clone, Debug, PartialEq)]
-			pub enum RuntimeParametersValue {
-				#[codec(index = 0)]
-				Pusd(
-					runtime_types::asset_hub_westend_runtime::dynamic_params::pusd::ParametersValue,
-				),
 			}
 			#[derive(::codec::Decode, ::codec::Encode, Clone, Debug, PartialEq)]
 			pub struct SessionKeys {
@@ -1755,6 +1708,25 @@ pub mod api {
 							runtime_types::staging_xcm::v5::location::Location,
 						>,
 					},
+					#[codec(index = 6)]
+					create_pool_with_fee {
+						creator: ::sp_core::crypto::AccountId32,
+						asset1: ::subxt::ext::subxt_core::alloc::boxed::Box<
+							runtime_types::staging_xcm::v5::location::Location,
+						>,
+						asset2: ::subxt::ext::subxt_core::alloc::boxed::Box<
+							runtime_types::staging_xcm::v5::location::Location,
+						>,
+						fee: runtime_types::sp_arithmetic::per_things::Permill,
+					},
+					#[codec(index = 7)]
+					set_pool_fee {
+						pool_id: (
+							runtime_types::staging_xcm::v5::location::Location,
+							runtime_types::staging_xcm::v5::location::Location,
+						),
+						fee: runtime_types::sp_arithmetic::per_things::Permill,
+					},
 				}
 				#[derive(::codec::Decode, ::codec::Encode, Clone, Debug, PartialEq)]
 				pub enum Error {
@@ -1806,6 +1778,8 @@ pub mod api {
 					BelowMinimum,
 					#[codec(index = 23)]
 					PoolEmpty,
+					#[codec(index = 24)]
+					FeeTooHigh,
 				}
 				#[derive(::codec::Decode, ::codec::Encode, Clone, Debug, PartialEq)]
 				pub enum Event {
@@ -1820,6 +1794,14 @@ pub mod api {
 						lp_token: ::core::primitive::u32,
 					},
 					#[codec(index = 1)]
+					PoolFeeSet {
+						pool_id: (
+							runtime_types::staging_xcm::v5::location::Location,
+							runtime_types::staging_xcm::v5::location::Location,
+						),
+						fee: runtime_types::sp_arithmetic::per_things::Permill,
+					},
+					#[codec(index = 2)]
 					LiquidityAdded {
 						who: ::sp_core::crypto::AccountId32,
 						mint_to: ::sp_core::crypto::AccountId32,
@@ -1832,7 +1814,7 @@ pub mod api {
 						lp_token: ::core::primitive::u32,
 						lp_token_minted: ::core::primitive::u128,
 					},
-					#[codec(index = 2)]
+					#[codec(index = 3)]
 					LiquidityRemoved {
 						who: ::sp_core::crypto::AccountId32,
 						withdraw_to: ::sp_core::crypto::AccountId32,
@@ -1846,7 +1828,7 @@ pub mod api {
 						lp_token_burned: ::core::primitive::u128,
 						withdrawal_fee: runtime_types::sp_arithmetic::per_things::Permill,
 					},
-					#[codec(index = 3)]
+					#[codec(index = 4)]
 					SwapExecuted {
 						who: ::sp_core::crypto::AccountId32,
 						send_to: ::sp_core::crypto::AccountId32,
@@ -1857,7 +1839,7 @@ pub mod api {
 							::core::primitive::u128,
 						)>,
 					},
-					#[codec(index = 4)]
+					#[codec(index = 5)]
 					SwapCreditExecuted {
 						amount_in: ::core::primitive::u128,
 						amount_out: ::core::primitive::u128,
@@ -1866,7 +1848,7 @@ pub mod api {
 							::core::primitive::u128,
 						)>,
 					},
-					#[codec(index = 5)]
+					#[codec(index = 6)]
 					Touched {
 						pool_id: (
 							runtime_types::staging_xcm::v5::location::Location,
@@ -3092,12 +3074,14 @@ pub mod api {
 					#[codec(index = 20)]
 					BadAssetId,
 					#[codec(index = 21)]
-					ContainsFreezes,
+					AssetIdAllocationFailed,
 					#[codec(index = 22)]
-					ContainsHolds,
+					ContainsFreezes,
 					#[codec(index = 23)]
-					TooManyReserves,
+					ContainsHolds,
 					#[codec(index = 24)]
+					TooManyReserves,
+					#[codec(index = 25)]
 					IncompleteDepositTransfer,
 				}
 				#[derive(::codec::Decode, ::codec::Encode, Clone, Debug, PartialEq)]
@@ -5148,6 +5132,13 @@ pub mod api {
 						parent_bounty_id: ::core::primitive::u32,
 						child_bounty_id: ::core::option::Option<::core::primitive::u32>,
 					},
+					#[codec(index = 9)]
+					increase_value {
+						#[codec(compact)]
+						parent_bounty_id: ::core::primitive::u32,
+						#[codec(compact)]
+						amount: ::core::primitive::u128,
+					},
 				}
 				#[derive(::codec::Decode, ::codec::Encode, Clone, Debug, PartialEq)]
 				pub enum Error {
@@ -5257,6 +5248,12 @@ pub mod api {
 						index: ::core::primitive::u32,
 						child_index: ::core::option::Option<::core::primitive::u32>,
 						payment_id: ::core::primitive::u64,
+					},
+					#[codec(index = 12)]
+					BountyValueIncreased {
+						index: ::core::primitive::u32,
+						old_value: ::core::primitive::u128,
+						new_value: ::core::primitive::u128,
 					},
 				}
 				#[derive(::codec::Decode, ::codec::Encode, Clone, Debug, PartialEq)]
@@ -7049,32 +7046,6 @@ pub mod api {
 				pub balance: ::core::primitive::u128,
 			}
 		}
-		pub mod pallet_parameters {
-			use super::runtime_types;
-			pub mod pallet {
-				use super::runtime_types;
-				#[derive(::codec::Decode, ::codec::Encode, Clone, Debug, PartialEq)]
-				pub enum Call {
-					#[codec(index = 0)]
-					set_parameter {
-						key_value: runtime_types::asset_hub_westend_runtime::RuntimeParameters,
-					},
-				}
-				#[derive(::codec::Decode, ::codec::Encode, Clone, Debug, PartialEq)]
-				pub enum Event {
-					#[codec(index = 0)]
-					Updated {
-						key: runtime_types::asset_hub_westend_runtime::RuntimeParametersKey,
-						old_value: ::core::option::Option<
-							runtime_types::asset_hub_westend_runtime::RuntimeParametersValue,
-						>,
-						new_value: ::core::option::Option<
-							runtime_types::asset_hub_westend_runtime::RuntimeParametersValue,
-						>,
-					},
-				}
-			}
-		}
 		pub mod pallet_pgas_allowance {
 			use super::runtime_types;
 			pub mod pallet {
@@ -7370,43 +7341,87 @@ pub mod api {
 				pub enum Call {
 					#[codec(index = 0)]
 					mint {
-						asset_id: runtime_types::staging_xcm::v5::location::Location,
+						internal_asset: runtime_types::staging_xcm::v5::location::Location,
+						external_asset: runtime_types::staging_xcm::v5::location::Location,
 						external_amount: ::core::primitive::u128,
+						max_fee: runtime_types::sp_arithmetic::per_things::Permill,
 					},
 					#[codec(index = 1)]
 					redeem {
-						asset_id: runtime_types::staging_xcm::v5::location::Location,
-						amount: ::core::primitive::u128,
+						internal_asset: runtime_types::staging_xcm::v5::location::Location,
+						external_asset: runtime_types::staging_xcm::v5::location::Location,
+						internal_amount: ::core::primitive::u128,
+						max_fee: runtime_types::sp_arithmetic::per_things::Permill,
 					},
 					#[codec(index = 2)]
-					set_minting_fee {
-						asset_id: runtime_types::staging_xcm::v5::location::Location,
-						fee: runtime_types::sp_arithmetic::per_things::Permill,
+					create_psm {
+						internal_asset: runtime_types::staging_xcm::v5::location::Location,
+						full_admin: ::subxt::ext::subxt_core::alloc::boxed::Box<
+							runtime_types::asset_hub_westend_runtime::OriginCaller,
+						>,
+						emergency_admin: ::subxt::ext::subxt_core::alloc::boxed::Box<
+							runtime_types::asset_hub_westend_runtime::OriginCaller,
+						>,
+						fee_destination: ::sp_core::crypto::AccountId32,
+						max_debt: ::core::primitive::u128,
+						min_swap_amount: ::core::primitive::u128,
 					},
 					#[codec(index = 3)]
-					set_redemption_fee {
-						asset_id: runtime_types::staging_xcm::v5::location::Location,
-						fee: runtime_types::sp_arithmetic::per_things::Permill,
+					remove_psm {
+						internal_asset: runtime_types::staging_xcm::v5::location::Location,
 					},
 					#[codec(index = 4)]
-					set_max_psm_debt { ratio: runtime_types::sp_arithmetic::per_things::Permill },
+					set_minting_fee {
+						internal_asset: runtime_types::staging_xcm::v5::location::Location,
+						external_asset: runtime_types::staging_xcm::v5::location::Location,
+						fee: runtime_types::sp_arithmetic::per_things::Permill,
+					},
 					#[codec(index = 5)]
-					set_asset_status {
-						asset_id: runtime_types::staging_xcm::v5::location::Location,
-						status: runtime_types::pallet_psm::pallet::CircuitBreakerLevel,
+					set_redemption_fee {
+						internal_asset: runtime_types::staging_xcm::v5::location::Location,
+						external_asset: runtime_types::staging_xcm::v5::location::Location,
+						fee: runtime_types::sp_arithmetic::per_things::Permill,
 					},
 					#[codec(index = 6)]
-					set_asset_ceiling_weight {
-						asset_id: runtime_types::staging_xcm::v5::location::Location,
-						weight: runtime_types::sp_arithmetic::per_things::Permill,
+					set_max_debt {
+						internal_asset: runtime_types::staging_xcm::v5::location::Location,
+						value: ::core::primitive::u128,
 					},
 					#[codec(index = 7)]
-					add_external_asset {
-						asset_id: runtime_types::staging_xcm::v5::location::Location,
+					set_asset_status {
+						internal_asset: runtime_types::staging_xcm::v5::location::Location,
+						external_asset: runtime_types::staging_xcm::v5::location::Location,
+						status: runtime_types::pallet_psm::pallet::CircuitBreakerLevel,
 					},
 					#[codec(index = 8)]
+					set_asset_ceiling_weight {
+						internal_asset: runtime_types::staging_xcm::v5::location::Location,
+						external_asset: runtime_types::staging_xcm::v5::location::Location,
+						weight: runtime_types::sp_arithmetic::per_things::Permill,
+					},
+					#[codec(index = 9)]
+					add_external_asset {
+						internal_asset: runtime_types::staging_xcm::v5::location::Location,
+						external_asset: runtime_types::staging_xcm::v5::location::Location,
+					},
+					#[codec(index = 10)]
 					remove_external_asset {
-						asset_id: runtime_types::staging_xcm::v5::location::Location,
+						internal_asset: runtime_types::staging_xcm::v5::location::Location,
+						external_asset: runtime_types::staging_xcm::v5::location::Location,
+					},
+					#[codec(index = 11)]
+					set_full_admin {
+						internal_asset: runtime_types::staging_xcm::v5::location::Location,
+						new_admin: ::subxt::ext::subxt_core::alloc::boxed::Box<
+							runtime_types::asset_hub_westend_runtime::OriginCaller,
+						>,
+					},
+					#[codec(index = 12)]
+					set_emergency_admin {
+						internal_asset: runtime_types::staging_xcm::v5::location::Location,
+						new_admin: ::subxt::ext::subxt_core::alloc::boxed::Box<
+							runtime_types::asset_hub_westend_runtime::OriginCaller,
+						>,
 					},
 				}
 				#[derive(::codec::Decode, ::codec::Encode, Clone, Debug, PartialEq)]
@@ -7427,34 +7442,44 @@ pub mod api {
 					#[codec(index = 2)]
 					BelowMinimumSwap,
 					#[codec(index = 3)]
-					MintingStopped,
+					FeeTooHigh,
 					#[codec(index = 4)]
-					AllSwapsStopped,
+					ZeroMinSwapAmount,
 					#[codec(index = 5)]
-					UnsupportedAsset,
+					MintingStopped,
 					#[codec(index = 6)]
-					ExceedsMaxIssuance,
+					AllSwapsStopped,
 					#[codec(index = 7)]
-					AssetAlreadyApproved,
+					UnsupportedAsset,
 					#[codec(index = 8)]
-					AssetDoesNotExist,
+					PsmNotFound,
 					#[codec(index = 9)]
-					AssetNotApproved,
+					AssetAlreadyApproved,
 					#[codec(index = 10)]
-					AssetHasDebt,
+					AssetDoesNotExist,
 					#[codec(index = 11)]
-					InsufficientPrivilege,
+					AssetNotApproved,
 					#[codec(index = 12)]
-					TooManyAssets,
+					AssetHasDebt,
 					#[codec(index = 13)]
-					DecimalsMismatch,
+					InsufficientPrivilege,
 					#[codec(index = 14)]
-					DecimalsRangeExceeded,
+					TooManyAssets,
 					#[codec(index = 15)]
-					ConversionOverflow,
+					DecimalsMismatch,
 					#[codec(index = 16)]
-					AmountTooSmallAfterConversion,
+					DecimalsRangeExceeded,
 					#[codec(index = 17)]
+					ConversionOverflow,
+					#[codec(index = 18)]
+					AmountTooSmallAfterConversion,
+					#[codec(index = 19)]
+					PsmAlreadyExists,
+					#[codec(index = 20)]
+					PsmHasDebt,
+					#[codec(index = 21)]
+					PsmHasApprovedExternals,
+					#[codec(index = 22)]
 					Unexpected,
 				}
 				#[derive(::codec::Decode, ::codec::Encode, Clone, Debug, PartialEq)]
@@ -7462,55 +7487,127 @@ pub mod api {
 					#[codec(index = 0)]
 					Minted {
 						who: ::sp_core::crypto::AccountId32,
-						asset_id: runtime_types::staging_xcm::v5::location::Location,
-						external_amount: ::core::primitive::u128,
-						received: ::core::primitive::u128,
-						fee: ::core::primitive::u128,
+						internal_asset: runtime_types::staging_xcm::v5::location::Location,
+						external_asset: runtime_types::staging_xcm::v5::location::Location,
+						external_consumed: ::core::primitive::u128,
+						internal_received: ::core::primitive::u128,
+						internal_fee: ::core::primitive::u128,
 					},
 					#[codec(index = 1)]
 					Redeemed {
 						who: ::sp_core::crypto::AccountId32,
-						asset_id: runtime_types::staging_xcm::v5::location::Location,
-						paid: ::core::primitive::u128,
+						internal_asset: runtime_types::staging_xcm::v5::location::Location,
+						external_asset: runtime_types::staging_xcm::v5::location::Location,
+						internal_consumed: ::core::primitive::u128,
 						external_received: ::core::primitive::u128,
-						fee: ::core::primitive::u128,
+						internal_fee: ::core::primitive::u128,
 					},
 					#[codec(index = 2)]
 					MintingFeeUpdated {
-						asset_id: runtime_types::staging_xcm::v5::location::Location,
+						internal_asset: runtime_types::staging_xcm::v5::location::Location,
+						external_asset: runtime_types::staging_xcm::v5::location::Location,
 						old_value: runtime_types::sp_arithmetic::per_things::Permill,
 						new_value: runtime_types::sp_arithmetic::per_things::Permill,
 					},
 					#[codec(index = 3)]
 					RedemptionFeeUpdated {
-						asset_id: runtime_types::staging_xcm::v5::location::Location,
+						internal_asset: runtime_types::staging_xcm::v5::location::Location,
+						external_asset: runtime_types::staging_xcm::v5::location::Location,
 						old_value: runtime_types::sp_arithmetic::per_things::Permill,
 						new_value: runtime_types::sp_arithmetic::per_things::Permill,
 					},
 					#[codec(index = 4)]
-					MaxPsmDebtOfTotalUpdated {
-						old_value: runtime_types::sp_arithmetic::per_things::Permill,
-						new_value: runtime_types::sp_arithmetic::per_things::Permill,
+					MaxDebtUpdated {
+						internal_asset: runtime_types::staging_xcm::v5::location::Location,
+						old_value: ::core::primitive::u128,
+						new_value: ::core::primitive::u128,
 					},
 					#[codec(index = 5)]
 					AssetCeilingWeightUpdated {
-						asset_id: runtime_types::staging_xcm::v5::location::Location,
+						internal_asset: runtime_types::staging_xcm::v5::location::Location,
+						external_asset: runtime_types::staging_xcm::v5::location::Location,
 						old_value: runtime_types::sp_arithmetic::per_things::Permill,
 						new_value: runtime_types::sp_arithmetic::per_things::Permill,
 					},
 					#[codec(index = 6)]
 					AssetStatusUpdated {
-						asset_id: runtime_types::staging_xcm::v5::location::Location,
+						internal_asset: runtime_types::staging_xcm::v5::location::Location,
+						external_asset: runtime_types::staging_xcm::v5::location::Location,
 						status: runtime_types::pallet_psm::pallet::CircuitBreakerLevel,
 					},
 					#[codec(index = 7)]
 					ExternalAssetAdded {
-						asset_id: runtime_types::staging_xcm::v5::location::Location,
+						internal_asset: runtime_types::staging_xcm::v5::location::Location,
+						external_asset: runtime_types::staging_xcm::v5::location::Location,
 					},
 					#[codec(index = 8)]
 					ExternalAssetRemoved {
-						asset_id: runtime_types::staging_xcm::v5::location::Location,
+						internal_asset: runtime_types::staging_xcm::v5::location::Location,
+						external_asset: runtime_types::staging_xcm::v5::location::Location,
 					},
+					#[codec(index = 9)]
+					PsmCreated {
+						internal_asset: runtime_types::staging_xcm::v5::location::Location,
+						full_admin: ::subxt::ext::subxt_core::alloc::boxed::Box<
+							runtime_types::asset_hub_westend_runtime::OriginCaller,
+						>,
+						emergency_admin: ::subxt::ext::subxt_core::alloc::boxed::Box<
+							runtime_types::asset_hub_westend_runtime::OriginCaller,
+						>,
+						fee_destination: ::sp_core::crypto::AccountId32,
+						max_debt: ::core::primitive::u128,
+					},
+					#[codec(index = 10)]
+					PsmRemoved {
+						internal_asset: runtime_types::staging_xcm::v5::location::Location,
+					},
+					#[codec(index = 11)]
+					FullAdminChanged {
+						internal_asset: runtime_types::staging_xcm::v5::location::Location,
+						old_admin: ::subxt::ext::subxt_core::alloc::boxed::Box<
+							runtime_types::asset_hub_westend_runtime::OriginCaller,
+						>,
+						new_admin: ::subxt::ext::subxt_core::alloc::boxed::Box<
+							runtime_types::asset_hub_westend_runtime::OriginCaller,
+						>,
+					},
+					#[codec(index = 12)]
+					EmergencyAdminChanged {
+						internal_asset: runtime_types::staging_xcm::v5::location::Location,
+						old_admin: ::subxt::ext::subxt_core::alloc::boxed::Box<
+							runtime_types::asset_hub_westend_runtime::OriginCaller,
+						>,
+						new_admin: ::subxt::ext::subxt_core::alloc::boxed::Box<
+							runtime_types::asset_hub_westend_runtime::OriginCaller,
+						>,
+					},
+				}
+				#[derive(::codec::Decode, ::codec::Encode, Clone, Debug, PartialEq)]
+				pub struct ExternalAssetInfo {
+					pub status: runtime_types::pallet_psm::pallet::CircuitBreakerLevel,
+					pub decimals: ::core::primitive::u8,
+				}
+				#[derive(::codec::Decode, ::codec::Encode, Clone, Debug, PartialEq)]
+				pub enum HoldReason {
+					#[codec(index = 0)]
+					CreationDeposit,
+				}
+				#[derive(::codec::Decode, ::codec::Encode, Clone, Debug, PartialEq)]
+				pub struct PsmAdminInfo {
+					pub full_admin: runtime_types::asset_hub_westend_runtime::OriginCaller,
+					pub emergency_admin: runtime_types::asset_hub_westend_runtime::OriginCaller,
+					pub deposit: ::core::option::Option<(
+						::sp_core::crypto::AccountId32,
+						runtime_types::frame_support::traits::tokens::fungible::HoldConsideration,
+					)>,
+				}
+				#[derive(::codec::Decode, ::codec::Encode, Clone, Debug, PartialEq)]
+				pub struct PsmInfo {
+					pub fee_destination: ::sp_core::crypto::AccountId32,
+					pub max_debt: ::core::primitive::u128,
+					pub min_swap_amount: ::core::primitive::u128,
+					pub internal_decimals: ::core::primitive::u8,
+					pub external_count: ::core::primitive::u32,
 				}
 			}
 		}
@@ -9255,6 +9352,7 @@ pub mod api {
 						Unbonded {
 							stash: ::sp_core::crypto::AccountId32,
 							amount: ::core::primitive::u128,
+							era: ::core::primitive::u32,
 						},
 						#[codec(index = 6)]
 						Withdrawn {
@@ -10668,6 +10766,8 @@ pub mod api {
 							runtime_types::asset_hub_westend_runtime::RuntimeCall,
 						>,
 					},
+					#[codec(index = 4)]
+					remove_deferred_dispatch { call_hash: ::subxt::ext::subxt_core::utils::H256 },
 				}
 				#[derive(::codec::Decode, ::codec::Encode, Clone, Debug, PartialEq)]
 				pub enum Error {
@@ -10681,6 +10781,14 @@ pub mod api {
 					CallIsNotWhitelisted,
 					#[codec(index = 4)]
 					CallAlreadyWhitelisted,
+					#[codec(index = 5)]
+					DeferredDispatchNotFound,
+					#[codec(index = 6)]
+					DeferredDispatchNotExpired,
+					#[codec(index = 7)]
+					AlreadyDeferred,
+					#[codec(index = 8)]
+					DeferredDispatchExpired,
 				}
 				#[derive(::codec::Decode, ::codec::Encode, Clone, Debug, PartialEq)]
 				pub enum Event {
@@ -10697,6 +10805,15 @@ pub mod api {
 								runtime_types::frame_support::dispatch::PostDispatchInfo,
 							>,
 						>,
+					},
+					#[codec(index = 3)]
+					DispatchDeferred { call_hash: ::subxt::ext::subxt_core::utils::H256 },
+					#[codec(index = 4)]
+					DeferredDispatchRemoved { call_hash: ::subxt::ext::subxt_core::utils::H256 },
+					#[codec(index = 5)]
+					DeferredDispatchExecuted {
+						call_hash: ::subxt::ext::subxt_core::utils::H256,
+						who: ::sp_core::crypto::AccountId32,
 					},
 				}
 			}
