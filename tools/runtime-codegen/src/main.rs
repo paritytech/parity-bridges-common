@@ -78,7 +78,10 @@ impl TypeSubstitute {
 }
 
 fn print_runtime(runtime_api: proc_macro2::TokenStream) {
-	let syn_tree = syn::parse_file(&runtime_api.to_string()).unwrap();
+	// `prettyplease` builds on `syn` 3, while `subxt-codegen` still exposes `syn` 2 types. Both
+	// versions are in the tree, so parse with our own `syn` (`::syn`, the 3.x one) instead of the
+	// re-export used everywhere else in this file.
+	let syn_tree = ::syn::parse_file(&runtime_api.to_string()).unwrap();
 	let pretty_runtime_api = prettyplease::unparse(&syn_tree);
 
 	indoc::printdoc!(

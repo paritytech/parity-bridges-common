@@ -2893,6 +2893,7 @@ dependencies = [
  "proc-macro2",
  "subxt-codegen",
  "subxt-utils-fetchmetadata",
+ "syn 3.0.1",
  "wasm-loader",
  "wasm-testbed",
 ]
