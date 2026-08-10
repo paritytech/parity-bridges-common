@@ -1390,37 +1390,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "bridge-runtime-common"
-version = "0.7.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=master#cde8a924504c99e768940bf6b600716725c3c438"
-dependencies = [
- "bp-header-chain",
- "bp-messages",
- "bp-parachains",
- "bp-polkadot-core",
- "bp-relayers",
- "bp-runtime",
- "frame-support",
- "frame-system",
- "pallet-bridge-grandpa",
- "pallet-bridge-messages",
- "pallet-bridge-parachains",
- "pallet-bridge-relayers",
- "pallet-transaction-payment",
- "pallet-utility",
- "parity-scale-codec",
- "scale-info",
- "sp-io 30.0.0",
- "sp-runtime 31.0.1",
- "sp-std 14.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=master)",
- "sp-trie 29.0.0",
- "sp-weights 27.0.0",
- "staging-xcm",
- "tracing",
- "tuplex",
-]
-
-[[package]]
 name = "bridges-zombienet-sdk-tests"
 version = "0.1.0"
 dependencies = [
@@ -3833,12 +3802,6 @@ name = "hex-literal"
 version = "0.4.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6fe2267d4ed49bc07b63801559be28c718ea06c4738b7a03c94df7386d2cde46"
-
-[[package]]
-name = "hex-literal"
-version = "1.1.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e712f64ec3850b98572bffac52e2c6f282b29fe6c5fa6d42334b30be438d95c1"
 
 [[package]]
 name = "hickory-proto"
@@ -6791,29 +6754,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "pallet-bridge-relayers"
-version = "0.7.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?branch=master#cde8a924504c99e768940bf6b600716725c3c438"
-dependencies = [
- "bp-header-chain",
- "bp-messages",
- "bp-relayers",
- "bp-runtime",
- "frame-benchmarking",
- "frame-support",
- "frame-system",
- "pallet-bridge-grandpa",
- "pallet-bridge-messages",
- "pallet-bridge-parachains",
- "pallet-transaction-payment",
- "parity-scale-codec",
- "scale-info",
- "sp-arithmetic 23.0.0",
- "sp-runtime 31.0.1",
- "tracing",
-]
-
-[[package]]
 name = "pallet-broker"
 version = "0.6.0"
 source = "git+https://github.com/paritytech/polkadot-sdk?branch=master#cde8a924504c99e768940bf6b600716725c3c438"
@@ -7148,7 +7088,7 @@ dependencies = [
  "frame-benchmarking",
  "frame-support",
  "frame-system",
- "hex-literal 0.4.1",
+ "hex-literal",
  "pallet-balances",
  "parity-scale-codec",
  "scale-info",
@@ -7532,7 +7472,7 @@ source = "git+https://github.com/paritytech/polkadot-sdk?branch=master#cde8a9245
 dependencies = [
  "bitvec",
  "bounded-collections",
- "hex-literal 0.4.1",
+ "hex-literal",
  "log",
  "parity-scale-codec",
  "polkadot-core-primitives",
@@ -11993,7 +11933,7 @@ dependencies = [
  "derive-where",
  "environmental",
  "frame-support",
- "hex-literal 0.4.1",
+ "hex-literal",
  "impl-trait-for-tuples",
  "parity-scale-codec",
  "scale-info",
@@ -12222,13 +12162,11 @@ dependencies = [
  "bp-polkadot-core",
  "bp-rococo",
  "bp-runtime",
- "bridge-runtime-common",
  "clap",
  "finality-grandpa",
  "frame-support",
  "futures",
  "hex",
- "hex-literal 1.1.0",
  "isahc",
  "log",
  "num-format",

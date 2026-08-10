@@ -94,7 +94,6 @@ bp-polkadot = { path = "./chains/chain-polkadot" }
 bp-polkadot-core = { git = "https://github.com/paritytech/polkadot-sdk", branch = "master" }
 bp-kusama = { path = "./chains/chain-kusama" }
 bp-runtime = { git = "https://github.com/paritytech/polkadot-sdk", branch = "master" }
-bridge-runtime-common = { git = "https://github.com/paritytech/polkadot-sdk", branch = "master" }
 relay-substrate-client = { git = "https://github.com/paritytech/polkadot-sdk", branch = "master" }
 sp-core = { git = "https://github.com/paritytech/polkadot-sdk", branch = "master" }
 sp-runtime = { git = "https://github.com/paritytech/polkadot-sdk", branch = "master" }
@@ -137,7 +136,6 @@ relay-rococo-client = { path = "./relay-clients/client-rococo" }
 relay-westend-client = { path = "./relay-clients/client-westend" }
 substrate-relay-helper = { git = "https://github.com/paritytech/polkadot-sdk", branch = "master" }
 bp-test-utils = { git = "https://github.com/paritytech/polkadot-sdk", branch = "master" }
-hex-literal = "1.1"
 sp-keyring = { git = "https://github.com/paritytech/polkadot-sdk", branch = "master" }
 tempfile = "3.27"
 finality-grandpa = { version = "0.16.2" }

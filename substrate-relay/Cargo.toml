@@ -9,6 +9,11 @@ repository.workspace = true
 [lints]
 workspace = true
 
+# `isahc` is declared for the `static-ssl` feature only and never referenced in code, so
+# `cargo udeps` reports it as unused.
+[package.metadata.cargo-udeps.ignore]
+normal = ["isahc"]
+
 [dependencies]
 anyhow = { workspace = true }
 async-trait = { workspace = true }
@@ -37,7 +42,6 @@ bp-polkadot = { workspace = true }
 bp-polkadot-core = { workspace = true }
 bp-rococo = { workspace = true }
 bp-runtime = { workspace = true }
-bridge-runtime-common = { workspace = true }
 pallet-bridge-parachains = { workspace = true }
 parachains-relay = { workspace = true }
 relay-asset-hub-rococo-client = { workspace = true }
@@ -69,6 +73,5 @@ sp-runtime = { workspace = true }
 static-ssl = ["isahc/static-ssl"]
 
 [dev-dependencies]
-hex-literal = { workspace = true }
 tempfile = { workspace = true }
 finality-grandpa = { workspace = true }
