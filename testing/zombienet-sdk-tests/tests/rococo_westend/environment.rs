@@ -15,7 +15,6 @@
 //! relayer driver and node images come from [`crate::common`]; the per-runtime typed operations
 //! from [`super`].
 
-use anyhow::anyhow;
 use std::time::Duration;
 use subxt::{OnlineClient, PolkadotConfig};
 use subxt_signer::sr25519::dev;

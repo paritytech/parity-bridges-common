@@ -143,9 +143,7 @@ mod environment;
 pub use environment::BridgeTestEnv;
 
 // Re-exported so the per-pair tests can reach the generic helpers via `crate::rococo_westend::*`.
-pub use crate::common::utils::{
-	count_synced_headers, dev_account, dev_public, free_balance_at, retry_until,
-};
+pub use crate::common::utils::{count_synced_headers, dev_account, dev_public, retry_until};
 
 mod asset_transfer;
 mod free_headers;

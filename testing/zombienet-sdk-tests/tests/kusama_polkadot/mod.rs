@@ -136,6 +136,6 @@ mod environment;
 pub use environment::BridgeTestEnv;
 
 // Re-exported so the per-pair tests can reach the generic helpers via `crate::kusama_polkadot::*`.
-pub use crate::common::utils::{dev_account, dev_public, free_balance_at, retry_until};
+pub use crate::common::utils::{dev_account, dev_public, retry_until};
 
 mod asset_transfer;
