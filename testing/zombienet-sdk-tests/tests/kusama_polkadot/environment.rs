@@ -21,7 +21,6 @@
 //! balance of it are already pre-registered by the fellows Asset Hub genesis presets, so nothing
 //! needs to create them here.
 
-use anyhow::anyhow;
 use std::{path::PathBuf, time::Duration};
 use subxt::{OnlineClient, PolkadotConfig};
 use subxt_signer::sr25519::dev;

@@ -1045,6 +1045,25 @@ pub mod api {
 							runtime_types::staging_xcm::v5::location::Location,
 						>,
 					},
+					#[codec(index = 6)]
+					create_pool_with_fee {
+						creator: ::sp_core::crypto::AccountId32,
+						asset1: ::subxt::ext::subxt_core::alloc::boxed::Box<
+							runtime_types::staging_xcm::v5::location::Location,
+						>,
+						asset2: ::subxt::ext::subxt_core::alloc::boxed::Box<
+							runtime_types::staging_xcm::v5::location::Location,
+						>,
+						fee: runtime_types::sp_arithmetic::per_things::Permill,
+					},
+					#[codec(index = 7)]
+					set_pool_fee {
+						pool_id: (
+							runtime_types::staging_xcm::v5::location::Location,
+							runtime_types::staging_xcm::v5::location::Location,
+						),
+						fee: runtime_types::sp_arithmetic::per_things::Permill,
+					},
 				}
 				#[derive(::codec::Decode, ::codec::Encode, Clone, Debug, PartialEq)]
 				pub enum Error {
@@ -1096,6 +1115,8 @@ pub mod api {
 					BelowMinimum,
 					#[codec(index = 23)]
 					PoolEmpty,
+					#[codec(index = 24)]
+					FeeTooHigh,
 				}
 				#[derive(::codec::Decode, ::codec::Encode, Clone, Debug, PartialEq)]
 				pub enum Event {
@@ -1110,6 +1131,14 @@ pub mod api {
 						lp_token: ::core::primitive::u32,
 					},
 					#[codec(index = 1)]
+					PoolFeeSet {
+						pool_id: (
+							runtime_types::staging_xcm::v5::location::Location,
+							runtime_types::staging_xcm::v5::location::Location,
+						),
+						fee: runtime_types::sp_arithmetic::per_things::Permill,
+					},
+					#[codec(index = 2)]
 					LiquidityAdded {
 						who: ::sp_core::crypto::AccountId32,
 						mint_to: ::sp_core::crypto::AccountId32,
@@ -1122,7 +1151,7 @@ pub mod api {
 						lp_token: ::core::primitive::u32,
 						lp_token_minted: ::core::primitive::u128,
 					},
-					#[codec(index = 2)]
+					#[codec(index = 3)]
 					LiquidityRemoved {
 						who: ::sp_core::crypto::AccountId32,
 						withdraw_to: ::sp_core::crypto::AccountId32,
@@ -1136,7 +1165,7 @@ pub mod api {
 						lp_token_burned: ::core::primitive::u128,
 						withdrawal_fee: runtime_types::sp_arithmetic::per_things::Permill,
 					},
-					#[codec(index = 3)]
+					#[codec(index = 4)]
 					SwapExecuted {
 						who: ::sp_core::crypto::AccountId32,
 						send_to: ::sp_core::crypto::AccountId32,
@@ -1147,7 +1176,7 @@ pub mod api {
 							::core::primitive::u128,
 						)>,
 					},
-					#[codec(index = 4)]
+					#[codec(index = 5)]
 					SwapCreditExecuted {
 						amount_in: ::core::primitive::u128,
 						amount_out: ::core::primitive::u128,
@@ -1156,7 +1185,7 @@ pub mod api {
 							::core::primitive::u128,
 						)>,
 					},
-					#[codec(index = 5)]
+					#[codec(index = 6)]
 					Touched {
 						pool_id: (
 							runtime_types::staging_xcm::v5::location::Location,
@@ -2323,12 +2352,14 @@ pub mod api {
 					#[codec(index = 20)]
 					BadAssetId,
 					#[codec(index = 21)]
-					ContainsFreezes,
+					AssetIdAllocationFailed,
 					#[codec(index = 22)]
-					ContainsHolds,
+					ContainsFreezes,
 					#[codec(index = 23)]
-					TooManyReserves,
+					ContainsHolds,
 					#[codec(index = 24)]
+					TooManyReserves,
+					#[codec(index = 25)]
 					IncompleteDepositTransfer,
 				}
 				#[derive(::codec::Decode, ::codec::Encode, Clone, Debug, PartialEq)]
