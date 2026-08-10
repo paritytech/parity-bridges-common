@@ -1036,6 +1036,11 @@ pub mod api {
 						#[codec(compact)]
 						bounty_id: ::core::primitive::u32,
 					},
+					#[codec(index = 11)]
+					reclaim_bounty_funds {
+						#[codec(compact)]
+						bounty_id: ::core::primitive::u32,
+					},
 				}
 				#[derive(::codec::Decode, ::codec::Encode, Clone, Debug, PartialEq)]
 				pub enum Error {
@@ -1063,6 +1068,8 @@ pub mod api {
 					TooManyQueued,
 					#[codec(index = 11)]
 					NotProposer,
+					#[codec(index = 12)]
+					BountyStillActive,
 				}
 				#[derive(::codec::Decode, ::codec::Encode, Clone, Debug, PartialEq)]
 				pub enum Event {
@@ -1108,6 +1115,8 @@ pub mod api {
 						old_deposit: ::core::primitive::u128,
 						new_deposit: ::core::primitive::u128,
 					},
+					#[codec(index = 12)]
+					BountyFundsReclaimed { bounty_id: ::core::primitive::u32 },
 				}
 			}
 			#[derive(::codec::Decode, ::codec::Encode, Clone, Debug, PartialEq)]
@@ -4768,6 +4777,8 @@ pub mod api {
 							runtime_types::rococo_runtime::RuntimeCall,
 						>,
 					},
+					#[codec(index = 4)]
+					remove_deferred_dispatch { call_hash: ::subxt::ext::subxt_core::utils::H256 },
 				}
 				#[derive(::codec::Decode, ::codec::Encode, Clone, Debug, PartialEq)]
 				pub enum Error {
@@ -4781,6 +4792,14 @@ pub mod api {
 					CallIsNotWhitelisted,
 					#[codec(index = 4)]
 					CallAlreadyWhitelisted,
+					#[codec(index = 5)]
+					DeferredDispatchNotFound,
+					#[codec(index = 6)]
+					DeferredDispatchNotExpired,
+					#[codec(index = 7)]
+					AlreadyDeferred,
+					#[codec(index = 8)]
+					DeferredDispatchExpired,
 				}
 				#[derive(::codec::Decode, ::codec::Encode, Clone, Debug, PartialEq)]
 				pub enum Event {
@@ -4797,6 +4816,15 @@ pub mod api {
 								runtime_types::frame_support::dispatch::PostDispatchInfo,
 							>,
 						>,
+					},
+					#[codec(index = 3)]
+					DispatchDeferred { call_hash: ::subxt::ext::subxt_core::utils::H256 },
+					#[codec(index = 4)]
+					DeferredDispatchRemoved { call_hash: ::subxt::ext::subxt_core::utils::H256 },
+					#[codec(index = 5)]
+					DeferredDispatchExecuted {
+						call_hash: ::subxt::ext::subxt_core::utils::H256,
+						who: ::sp_core::crypto::AccountId32,
 					},
 				}
 			}
@@ -6032,6 +6060,8 @@ pub mod api {
 						InvalidStatement,
 						#[codec(index = 5)]
 						VestedBalanceExists,
+						#[codec(index = 6)]
+						ClaimBelowExistentialDeposit,
 					}
 					#[derive(::codec::Decode, ::codec::Encode, Clone, Debug, PartialEq)]
 					pub enum Event {

@@ -341,9 +341,9 @@ pub mod api {
 			.hash();
 		runtime_metadata_hash ==
 			[
-				7u8, 35u8, 181u8, 166u8, 153u8, 191u8, 112u8, 0u8, 152u8, 200u8, 131u8, 122u8,
-				115u8, 220u8, 40u8, 33u8, 159u8, 100u8, 2u8, 235u8, 172u8, 40u8, 61u8, 206u8,
-				219u8, 150u8, 229u8, 64u8, 115u8, 40u8, 233u8, 16u8,
+				66u8, 24u8, 88u8, 99u8, 113u8, 182u8, 248u8, 25u8, 178u8, 167u8, 222u8, 173u8,
+				208u8, 49u8, 36u8, 190u8, 140u8, 244u8, 224u8, 108u8, 100u8, 92u8, 90u8, 82u8,
+				19u8, 192u8, 82u8, 245u8, 157u8, 124u8, 186u8, 49u8,
 			]
 	}
 	pub mod system {
@@ -1347,9 +1347,9 @@ pub mod api {
 						"Events",
 						(),
 						[
-							112u8, 202u8, 200u8, 79u8, 119u8, 56u8, 50u8, 184u8, 197u8, 16u8, 76u8,
-							224u8, 170u8, 37u8, 105u8, 231u8, 99u8, 102u8, 28u8, 199u8, 231u8,
-							208u8, 21u8, 3u8, 174u8, 47u8, 251u8, 7u8, 167u8, 96u8, 37u8, 220u8,
+							154u8, 102u8, 42u8, 172u8, 74u8, 67u8, 181u8, 95u8, 60u8, 120u8, 42u8,
+							254u8, 22u8, 219u8, 67u8, 200u8, 207u8, 91u8, 192u8, 182u8, 7u8, 150u8,
+							85u8, 120u8, 17u8, 98u8, 61u8, 239u8, 141u8, 171u8, 242u8, 14u8,
 						],
 					)
 				}
@@ -9572,9 +9572,9 @@ pub mod api {
 						"batch",
 						types::Batch { calls },
 						[
-							31u8, 253u8, 169u8, 232u8, 4u8, 80u8, 114u8, 182u8, 176u8, 179u8, 7u8,
-							31u8, 27u8, 182u8, 221u8, 151u8, 139u8, 119u8, 190u8, 25u8, 54u8, 2u8,
-							245u8, 95u8, 142u8, 235u8, 170u8, 210u8, 40u8, 75u8, 206u8, 200u8,
+							164u8, 224u8, 14u8, 143u8, 236u8, 136u8, 182u8, 106u8, 81u8, 158u8,
+							40u8, 168u8, 164u8, 4u8, 158u8, 222u8, 10u8, 60u8, 164u8, 88u8, 165u8,
+							250u8, 21u8, 167u8, 98u8, 53u8, 237u8, 122u8, 73u8, 83u8, 68u8, 244u8,
 						],
 					)
 				}
@@ -9591,9 +9591,10 @@ pub mod api {
 							call: ::subxt::ext::subxt_core::alloc::boxed::Box::new(call),
 						},
 						[
-							231u8, 166u8, 111u8, 100u8, 245u8, 235u8, 120u8, 193u8, 111u8, 109u8,
-							49u8, 151u8, 104u8, 121u8, 182u8, 21u8, 233u8, 72u8, 56u8, 69u8, 210u8,
-							235u8, 49u8, 26u8, 165u8, 84u8, 28u8, 95u8, 72u8, 179u8, 200u8, 192u8,
+							184u8, 177u8, 178u8, 134u8, 203u8, 254u8, 224u8, 227u8, 154u8, 90u8,
+							221u8, 144u8, 138u8, 101u8, 104u8, 254u8, 118u8, 63u8, 138u8, 139u8,
+							21u8, 238u8, 128u8, 200u8, 101u8, 65u8, 12u8, 5u8, 77u8, 185u8, 103u8,
+							17u8,
 						],
 					)
 				}
@@ -9606,10 +9607,10 @@ pub mod api {
 						"batch_all",
 						types::BatchAll { calls },
 						[
-							232u8, 119u8, 206u8, 242u8, 184u8, 236u8, 118u8, 124u8, 64u8, 220u8,
-							62u8, 164u8, 205u8, 103u8, 58u8, 58u8, 66u8, 128u8, 240u8, 166u8,
-							209u8, 126u8, 149u8, 99u8, 52u8, 205u8, 249u8, 60u8, 57u8, 186u8, 10u8,
-							91u8,
+							188u8, 25u8, 165u8, 2u8, 227u8, 32u8, 157u8, 174u8, 214u8, 252u8,
+							217u8, 169u8, 185u8, 83u8, 142u8, 99u8, 53u8, 149u8, 134u8, 171u8,
+							189u8, 43u8, 93u8, 239u8, 232u8, 192u8, 206u8, 67u8, 226u8, 237u8,
+							87u8, 188u8,
 						],
 					)
 				}
@@ -9626,9 +9627,10 @@ pub mod api {
 							call: ::subxt::ext::subxt_core::alloc::boxed::Box::new(call),
 						},
 						[
-							217u8, 207u8, 238u8, 161u8, 143u8, 32u8, 22u8, 9u8, 193u8, 14u8, 25u8,
-							2u8, 81u8, 98u8, 241u8, 169u8, 80u8, 167u8, 88u8, 34u8, 255u8, 55u8,
-							58u8, 59u8, 195u8, 250u8, 122u8, 100u8, 242u8, 78u8, 62u8, 246u8,
+							65u8, 173u8, 255u8, 176u8, 96u8, 125u8, 246u8, 153u8, 183u8, 111u8,
+							123u8, 222u8, 40u8, 82u8, 128u8, 136u8, 148u8, 216u8, 237u8, 241u8,
+							226u8, 153u8, 52u8, 213u8, 209u8, 70u8, 102u8, 207u8, 15u8, 251u8,
+							105u8, 225u8,
 						],
 					)
 				}
@@ -9641,9 +9643,9 @@ pub mod api {
 						"force_batch",
 						types::ForceBatch { calls },
 						[
-							120u8, 5u8, 53u8, 189u8, 219u8, 81u8, 6u8, 142u8, 24u8, 229u8, 45u8,
-							66u8, 83u8, 218u8, 232u8, 41u8, 254u8, 231u8, 135u8, 97u8, 161u8,
-							189u8, 94u8, 251u8, 245u8, 11u8, 161u8, 223u8, 139u8, 6u8, 63u8, 241u8,
+							69u8, 196u8, 152u8, 194u8, 239u8, 255u8, 154u8, 238u8, 63u8, 72u8,
+							191u8, 237u8, 32u8, 9u8, 9u8, 228u8, 245u8, 77u8, 225u8, 130u8, 207u8,
+							233u8, 42u8, 17u8, 244u8, 2u8, 191u8, 227u8, 61u8, 12u8, 82u8, 223u8,
 						],
 					)
 				}
@@ -9660,9 +9662,10 @@ pub mod api {
 							weight,
 						},
 						[
-							146u8, 228u8, 57u8, 105u8, 118u8, 87u8, 110u8, 21u8, 30u8, 202u8,
-							144u8, 92u8, 2u8, 236u8, 254u8, 12u8, 33u8, 151u8, 176u8, 200u8, 181u8,
-							116u8, 240u8, 46u8, 18u8, 89u8, 15u8, 226u8, 173u8, 129u8, 130u8, 8u8,
+							211u8, 177u8, 62u8, 132u8, 79u8, 61u8, 69u8, 162u8, 17u8, 155u8, 244u8,
+							141u8, 249u8, 184u8, 115u8, 66u8, 121u8, 111u8, 66u8, 147u8, 236u8,
+							180u8, 23u8, 224u8, 10u8, 139u8, 60u8, 142u8, 153u8, 208u8, 37u8,
+							135u8,
 						],
 					)
 				}
@@ -9679,9 +9682,10 @@ pub mod api {
 							fallback: ::subxt::ext::subxt_core::alloc::boxed::Box::new(fallback),
 						},
 						[
-							208u8, 52u8, 130u8, 187u8, 47u8, 131u8, 33u8, 67u8, 105u8, 2u8, 185u8,
-							87u8, 64u8, 40u8, 138u8, 116u8, 64u8, 208u8, 189u8, 80u8, 195u8, 248u8,
-							163u8, 125u8, 227u8, 132u8, 72u8, 101u8, 43u8, 68u8, 143u8, 195u8,
+							100u8, 134u8, 54u8, 220u8, 195u8, 59u8, 155u8, 160u8, 39u8, 120u8,
+							112u8, 172u8, 59u8, 157u8, 174u8, 167u8, 100u8, 24u8, 229u8, 58u8,
+							89u8, 164u8, 205u8, 152u8, 21u8, 41u8, 172u8, 66u8, 76u8, 38u8, 82u8,
+							5u8,
 						],
 					)
 				}
@@ -9699,10 +9703,10 @@ pub mod api {
 							call: ::subxt::ext::subxt_core::alloc::boxed::Box::new(call),
 						},
 						[
-							250u8, 151u8, 119u8, 251u8, 251u8, 60u8, 9u8, 110u8, 249u8, 225u8, 1u8,
-							220u8, 226u8, 71u8, 145u8, 235u8, 230u8, 41u8, 105u8, 137u8, 103u8,
-							104u8, 214u8, 234u8, 168u8, 45u8, 154u8, 189u8, 6u8, 223u8, 115u8,
-							185u8,
+							216u8, 88u8, 128u8, 101u8, 195u8, 8u8, 46u8, 25u8, 190u8, 243u8, 17u8,
+							137u8, 123u8, 61u8, 147u8, 47u8, 95u8, 185u8, 120u8, 255u8, 144u8,
+							47u8, 214u8, 101u8, 196u8, 243u8, 13u8, 205u8, 0u8, 114u8, 131u8,
+							192u8,
 						],
 					)
 				}
@@ -10038,9 +10042,10 @@ pub mod api {
 							call: ::subxt::ext::subxt_core::alloc::boxed::Box::new(call),
 						},
 						[
-							167u8, 35u8, 206u8, 117u8, 13u8, 93u8, 54u8, 75u8, 92u8, 195u8, 215u8,
-							179u8, 161u8, 221u8, 94u8, 162u8, 32u8, 107u8, 80u8, 199u8, 64u8,
-							129u8, 83u8, 232u8, 250u8, 195u8, 63u8, 16u8, 191u8, 50u8, 113u8, 2u8,
+							27u8, 180u8, 198u8, 254u8, 128u8, 107u8, 205u8, 158u8, 237u8, 249u8,
+							22u8, 186u8, 18u8, 226u8, 224u8, 231u8, 213u8, 237u8, 93u8, 45u8,
+							239u8, 227u8, 232u8, 122u8, 58u8, 162u8, 36u8, 173u8, 238u8, 72u8,
+							163u8, 186u8,
 						],
 					)
 				}
@@ -10063,9 +10068,10 @@ pub mod api {
 							max_weight,
 						},
 						[
-							211u8, 167u8, 90u8, 21u8, 73u8, 231u8, 208u8, 51u8, 18u8, 158u8, 101u8,
-							78u8, 211u8, 178u8, 28u8, 233u8, 170u8, 73u8, 186u8, 2u8, 175u8, 214u8,
-							209u8, 213u8, 169u8, 25u8, 151u8, 200u8, 18u8, 30u8, 229u8, 27u8,
+							39u8, 39u8, 5u8, 111u8, 90u8, 133u8, 12u8, 111u8, 141u8, 192u8, 249u8,
+							151u8, 100u8, 214u8, 239u8, 198u8, 229u8, 19u8, 208u8, 254u8, 87u8,
+							66u8, 154u8, 70u8, 148u8, 115u8, 36u8, 211u8, 158u8, 177u8, 64u8,
+							155u8,
 						],
 					)
 				}
@@ -10733,9 +10739,10 @@ pub mod api {
 							call: ::subxt::ext::subxt_core::alloc::boxed::Box::new(call),
 						},
 						[
-							34u8, 255u8, 143u8, 34u8, 179u8, 205u8, 85u8, 153u8, 95u8, 50u8, 26u8,
-							61u8, 213u8, 21u8, 238u8, 127u8, 175u8, 252u8, 160u8, 215u8, 160u8,
-							184u8, 46u8, 202u8, 131u8, 101u8, 104u8, 90u8, 92u8, 94u8, 3u8, 56u8,
+							252u8, 182u8, 118u8, 115u8, 41u8, 18u8, 169u8, 220u8, 43u8, 201u8,
+							102u8, 217u8, 231u8, 71u8, 110u8, 216u8, 246u8, 172u8, 219u8, 128u8,
+							180u8, 243u8, 138u8, 204u8, 244u8, 45u8, 205u8, 226u8, 205u8, 242u8,
+							27u8, 18u8,
 						],
 					)
 				}
@@ -10898,9 +10905,10 @@ pub mod api {
 							call: ::subxt::ext::subxt_core::alloc::boxed::Box::new(call),
 						},
 						[
-							147u8, 99u8, 215u8, 2u8, 121u8, 59u8, 25u8, 229u8, 18u8, 132u8, 34u8,
-							234u8, 217u8, 64u8, 87u8, 216u8, 129u8, 109u8, 1u8, 4u8, 213u8, 246u8,
-							181u8, 42u8, 203u8, 69u8, 231u8, 97u8, 63u8, 242u8, 88u8, 251u8,
+							97u8, 119u8, 239u8, 240u8, 233u8, 196u8, 157u8, 147u8, 181u8, 14u8,
+							22u8, 106u8, 174u8, 230u8, 42u8, 16u8, 107u8, 246u8, 113u8, 173u8,
+							132u8, 233u8, 57u8, 37u8, 181u8, 158u8, 117u8, 140u8, 123u8, 83u8,
+							202u8, 77u8,
 						],
 					)
 				}
@@ -27191,6 +27199,63 @@ pub mod api {
 					const PALLET: &'static str = "AssetConversion";
 					const CALL: &'static str = "touch";
 				}
+				#[derive(
+					::subxt::ext::subxt_core::ext::scale_decode::DecodeAsType,
+					::subxt::ext::subxt_core::ext::scale_encode::EncodeAsType,
+					Debug,
+				)]
+				#[decode_as_type(
+					crate_path = ":: subxt :: ext :: subxt_core :: ext :: scale_decode"
+				)]
+				#[encode_as_type(
+					crate_path = ":: subxt :: ext :: subxt_core :: ext :: scale_encode"
+				)]
+				pub struct CreatePoolWithFee {
+					pub creator: create_pool_with_fee::Creator,
+					pub asset1:
+						::subxt::ext::subxt_core::alloc::boxed::Box<create_pool_with_fee::Asset1>,
+					pub asset2:
+						::subxt::ext::subxt_core::alloc::boxed::Box<create_pool_with_fee::Asset2>,
+					pub fee: create_pool_with_fee::Fee,
+				}
+				pub mod create_pool_with_fee {
+					use super::runtime_types;
+					pub type Creator = ::subxt::ext::subxt_core::utils::AccountId32;
+					pub type Asset1 = runtime_types::staging_xcm::v5::location::Location;
+					pub type Asset2 = runtime_types::staging_xcm::v5::location::Location;
+					pub type Fee = runtime_types::sp_arithmetic::per_things::Permill;
+				}
+				impl ::subxt::ext::subxt_core::blocks::StaticExtrinsic for CreatePoolWithFee {
+					const PALLET: &'static str = "AssetConversion";
+					const CALL: &'static str = "create_pool_with_fee";
+				}
+				#[derive(
+					::subxt::ext::subxt_core::ext::scale_decode::DecodeAsType,
+					::subxt::ext::subxt_core::ext::scale_encode::EncodeAsType,
+					Debug,
+				)]
+				#[decode_as_type(
+					crate_path = ":: subxt :: ext :: subxt_core :: ext :: scale_decode"
+				)]
+				#[encode_as_type(
+					crate_path = ":: subxt :: ext :: subxt_core :: ext :: scale_encode"
+				)]
+				pub struct SetPoolFee {
+					pub pool_id: set_pool_fee::PoolId,
+					pub fee: set_pool_fee::Fee,
+				}
+				pub mod set_pool_fee {
+					use super::runtime_types;
+					pub type PoolId = (
+						runtime_types::staging_xcm::v5::location::Location,
+						runtime_types::staging_xcm::v5::location::Location,
+					);
+					pub type Fee = runtime_types::sp_arithmetic::per_things::Permill;
+				}
+				impl ::subxt::ext::subxt_core::blocks::StaticExtrinsic for SetPoolFee {
+					const PALLET: &'static str = "AssetConversion";
+					const CALL: &'static str = "set_pool_fee";
+				}
 			}
 			pub struct TransactionApi;
 			impl TransactionApi {
@@ -27345,6 +27410,47 @@ pub mod api {
 						],
 					)
 				}
+				pub fn create_pool_with_fee(
+					&self,
+					creator: types::create_pool_with_fee::Creator,
+					asset1: types::create_pool_with_fee::Asset1,
+					asset2: types::create_pool_with_fee::Asset2,
+					fee: types::create_pool_with_fee::Fee,
+				) -> ::subxt::ext::subxt_core::tx::payload::StaticPayload<types::CreatePoolWithFee>
+				{
+					::subxt::ext::subxt_core::tx::payload::StaticPayload::new_static(
+						"AssetConversion",
+						"create_pool_with_fee",
+						types::CreatePoolWithFee {
+							creator,
+							asset1: ::subxt::ext::subxt_core::alloc::boxed::Box::new(asset1),
+							asset2: ::subxt::ext::subxt_core::alloc::boxed::Box::new(asset2),
+							fee,
+						},
+						[
+							42u8, 89u8, 61u8, 24u8, 74u8, 93u8, 60u8, 198u8, 139u8, 203u8, 157u8,
+							3u8, 223u8, 66u8, 101u8, 17u8, 125u8, 33u8, 67u8, 223u8, 76u8, 141u8,
+							187u8, 57u8, 69u8, 61u8, 219u8, 246u8, 153u8, 168u8, 141u8, 55u8,
+						],
+					)
+				}
+				pub fn set_pool_fee(
+					&self,
+					pool_id: types::set_pool_fee::PoolId,
+					fee: types::set_pool_fee::Fee,
+				) -> ::subxt::ext::subxt_core::tx::payload::StaticPayload<types::SetPoolFee> {
+					::subxt::ext::subxt_core::tx::payload::StaticPayload::new_static(
+						"AssetConversion",
+						"set_pool_fee",
+						types::SetPoolFee { pool_id, fee },
+						[
+							79u8, 190u8, 77u8, 218u8, 113u8, 39u8, 65u8, 79u8, 43u8, 152u8, 55u8,
+							2u8, 15u8, 219u8, 221u8, 252u8, 200u8, 228u8, 150u8, 137u8, 155u8,
+							33u8, 118u8, 165u8, 99u8, 72u8, 20u8, 143u8, 243u8, 229u8, 241u8,
+							190u8,
+						],
+					)
+				}
 			}
 		}
 		pub type Event = runtime_types::pallet_asset_conversion::pallet::Event;
@@ -27376,6 +27482,29 @@ pub mod api {
 			impl ::subxt::ext::subxt_core::events::StaticEvent for PoolCreated {
 				const PALLET: &'static str = "AssetConversion";
 				const EVENT: &'static str = "PoolCreated";
+			}
+			#[derive(
+				::subxt::ext::subxt_core::ext::scale_decode::DecodeAsType,
+				::subxt::ext::subxt_core::ext::scale_encode::EncodeAsType,
+				Debug,
+			)]
+			#[decode_as_type(crate_path = ":: subxt :: ext :: subxt_core :: ext :: scale_decode")]
+			#[encode_as_type(crate_path = ":: subxt :: ext :: subxt_core :: ext :: scale_encode")]
+			pub struct PoolFeeSet {
+				pub pool_id: pool_fee_set::PoolId,
+				pub fee: pool_fee_set::Fee,
+			}
+			pub mod pool_fee_set {
+				use super::runtime_types;
+				pub type PoolId = (
+					runtime_types::staging_xcm::v5::location::Location,
+					runtime_types::staging_xcm::v5::location::Location,
+				);
+				pub type Fee = runtime_types::sp_arithmetic::per_things::Permill;
+			}
+			impl ::subxt::ext::subxt_core::events::StaticEvent for PoolFeeSet {
+				const PALLET: &'static str = "AssetConversion";
+				const EVENT: &'static str = "PoolFeeSet";
 			}
 			#[derive(
 				::subxt::ext::subxt_core::ext::scale_decode::DecodeAsType,
@@ -27541,6 +27670,14 @@ pub mod api {
 					use super::runtime_types;
 					pub type NextPoolAssetId = ::core::primitive::u32;
 				}
+				pub mod pool_fees {
+					use super::runtime_types;
+					pub type PoolFees = runtime_types::sp_arithmetic::per_things::Permill;
+					pub type Param0 = (
+						runtime_types::staging_xcm::v5::location::Location,
+						runtime_types::staging_xcm::v5::location::Location,
+					);
+				}
 			}
 			pub struct StorageApi;
 			impl StorageApi {
@@ -27609,6 +27746,49 @@ pub mod api {
 						],
 					)
 				}
+				pub fn pool_fees_iter(
+					&self,
+				) -> ::subxt::ext::subxt_core::storage::address::StaticAddress<
+					(),
+					types::pool_fees::PoolFees,
+					(),
+					(),
+					::subxt::ext::subxt_core::utils::Yes,
+				> {
+					::subxt::ext::subxt_core::storage::address::StaticAddress::new_static(
+						"AssetConversion",
+						"PoolFees",
+						(),
+						[
+							170u8, 80u8, 110u8, 23u8, 53u8, 83u8, 192u8, 235u8, 233u8, 36u8, 38u8,
+							166u8, 19u8, 64u8, 87u8, 252u8, 12u8, 94u8, 7u8, 35u8, 43u8, 162u8,
+							9u8, 149u8, 62u8, 37u8, 5u8, 20u8, 80u8, 156u8, 120u8, 88u8,
+						],
+					)
+				}
+				pub fn pool_fees(
+					&self,
+					_0: types::pool_fees::Param0,
+				) -> ::subxt::ext::subxt_core::storage::address::StaticAddress<
+					::subxt::ext::subxt_core::storage::address::StaticStorageKey<
+						types::pool_fees::Param0,
+					>,
+					types::pool_fees::PoolFees,
+					::subxt::ext::subxt_core::utils::Yes,
+					(),
+					(),
+				> {
+					::subxt::ext::subxt_core::storage::address::StaticAddress::new_static(
+						"AssetConversion",
+						"PoolFees",
+						::subxt::ext::subxt_core::storage::address::StaticStorageKey::new(_0),
+						[
+							170u8, 80u8, 110u8, 23u8, 53u8, 83u8, 192u8, 235u8, 233u8, 36u8, 38u8,
+							166u8, 19u8, 64u8, 87u8, 252u8, 12u8, 94u8, 7u8, 35u8, 43u8, 162u8,
+							9u8, 149u8, 62u8, 37u8, 5u8, 20u8, 80u8, 156u8, 120u8, 88u8,
+						],
+					)
+				}
 			}
 		}
 		pub mod constants {
@@ -27623,6 +27803,21 @@ pub mod api {
 					::subxt::ext::subxt_core::constants::address::StaticAddress::new_static(
 						"AssetConversion",
 						"LPFee",
+						[
+							65u8, 93u8, 120u8, 165u8, 204u8, 81u8, 159u8, 163u8, 93u8, 135u8,
+							114u8, 121u8, 147u8, 35u8, 215u8, 213u8, 4u8, 223u8, 83u8, 37u8, 225u8,
+							200u8, 189u8, 156u8, 140u8, 36u8, 58u8, 46u8, 42u8, 232u8, 155u8, 0u8,
+						],
+					)
+				}
+				pub fn max_swap_fee(
+					&self,
+				) -> ::subxt::ext::subxt_core::constants::address::StaticAddress<
+					runtime_types::sp_arithmetic::per_things::Permill,
+				> {
+					::subxt::ext::subxt_core::constants::address::StaticAddress::new_static(
+						"AssetConversion",
+						"MaxSwapFee",
 						[
 							65u8, 93u8, 120u8, 165u8, 204u8, 81u8, 159u8, 163u8, 93u8, 135u8,
 							114u8, 121u8, 147u8, 35u8, 215u8, 213u8, 4u8, 223u8, 83u8, 37u8, 225u8,
@@ -31024,6 +31219,25 @@ pub mod api {
 							runtime_types::staging_xcm::v5::location::Location,
 						>,
 					},
+					#[codec(index = 6)]
+					create_pool_with_fee {
+						creator: ::subxt::ext::subxt_core::utils::AccountId32,
+						asset1: ::subxt::ext::subxt_core::alloc::boxed::Box<
+							runtime_types::staging_xcm::v5::location::Location,
+						>,
+						asset2: ::subxt::ext::subxt_core::alloc::boxed::Box<
+							runtime_types::staging_xcm::v5::location::Location,
+						>,
+						fee: runtime_types::sp_arithmetic::per_things::Permill,
+					},
+					#[codec(index = 7)]
+					set_pool_fee {
+						pool_id: (
+							runtime_types::staging_xcm::v5::location::Location,
+							runtime_types::staging_xcm::v5::location::Location,
+						),
+						fee: runtime_types::sp_arithmetic::per_things::Permill,
+					},
 				}
 				#[derive(
 					::subxt::ext::subxt_core::ext::scale_decode::DecodeAsType,
@@ -31085,6 +31299,8 @@ pub mod api {
 					BelowMinimum,
 					#[codec(index = 23)]
 					PoolEmpty,
+					#[codec(index = 24)]
+					FeeTooHigh,
 				}
 				#[derive(
 					::subxt::ext::subxt_core::ext::scale_decode::DecodeAsType,
@@ -31109,6 +31325,14 @@ pub mod api {
 						lp_token: ::core::primitive::u32,
 					},
 					#[codec(index = 1)]
+					PoolFeeSet {
+						pool_id: (
+							runtime_types::staging_xcm::v5::location::Location,
+							runtime_types::staging_xcm::v5::location::Location,
+						),
+						fee: runtime_types::sp_arithmetic::per_things::Permill,
+					},
+					#[codec(index = 2)]
 					LiquidityAdded {
 						who: ::subxt::ext::subxt_core::utils::AccountId32,
 						mint_to: ::subxt::ext::subxt_core::utils::AccountId32,
@@ -31121,7 +31345,7 @@ pub mod api {
 						lp_token: ::core::primitive::u32,
 						lp_token_minted: ::core::primitive::u128,
 					},
-					#[codec(index = 2)]
+					#[codec(index = 3)]
 					LiquidityRemoved {
 						who: ::subxt::ext::subxt_core::utils::AccountId32,
 						withdraw_to: ::subxt::ext::subxt_core::utils::AccountId32,
@@ -31135,7 +31359,7 @@ pub mod api {
 						lp_token_burned: ::core::primitive::u128,
 						withdrawal_fee: runtime_types::sp_arithmetic::per_things::Permill,
 					},
-					#[codec(index = 3)]
+					#[codec(index = 4)]
 					SwapExecuted {
 						who: ::subxt::ext::subxt_core::utils::AccountId32,
 						send_to: ::subxt::ext::subxt_core::utils::AccountId32,
@@ -31146,7 +31370,7 @@ pub mod api {
 							::core::primitive::u128,
 						)>,
 					},
-					#[codec(index = 4)]
+					#[codec(index = 5)]
 					SwapCreditExecuted {
 						amount_in: ::core::primitive::u128,
 						amount_out: ::core::primitive::u128,
@@ -31155,7 +31379,7 @@ pub mod api {
 							::core::primitive::u128,
 						)>,
 					},
-					#[codec(index = 5)]
+					#[codec(index = 6)]
 					Touched {
 						pool_id: (
 							runtime_types::staging_xcm::v5::location::Location,
@@ -32482,12 +32706,14 @@ pub mod api {
 					#[codec(index = 20)]
 					BadAssetId,
 					#[codec(index = 21)]
-					ContainsFreezes,
+					AssetIdAllocationFailed,
 					#[codec(index = 22)]
-					ContainsHolds,
+					ContainsFreezes,
 					#[codec(index = 23)]
-					TooManyReserves,
+					ContainsHolds,
 					#[codec(index = 24)]
+					TooManyReserves,
+					#[codec(index = 25)]
 					IncompleteDepositTransfer,
 				}
 				#[derive(
