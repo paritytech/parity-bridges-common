@@ -19,7 +19,7 @@
 //! EXECUTED COMMAND:
 //! /home/runner/work/parity-bridges-common/parity-bridges-common/tools/runtime-codegen/target/
 //! release/runtime-codegen --from-wasm-file
-//! ./tools/runtime-codegen/wbuild/bridge-hub-polkadot_runtime-v2003002.compact.compressed.wasm
+//! ./tools/runtime-codegen/wbuild/bridge-hub-polkadot_runtime-v2004000.compact.compressed.wasm
 
 #[allow(dead_code, unused_imports, non_camel_case_types, unreachable_patterns)]
 #[allow(clippy::all)]
@@ -860,6 +860,7 @@ pub mod api {
 				pub first_index: ::core::primitive::u16,
 				pub last_index: ::core::primitive::u16,
 				pub flags: runtime_types::cumulus_pallet_xcmp_queue::OutboundChannelFlags,
+				pub queued_bytes: ::core::primitive::u32,
 			}
 			#[derive(
 				::codec::Decode,

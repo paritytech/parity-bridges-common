@@ -19,7 +19,7 @@
 //! EXECUTED COMMAND:
 //! /home/runner/work/parity-bridges-common/parity-bridges-common/tools/runtime-codegen/target/
 //! release/runtime-codegen --full --from-wasm-file
-//! /tmp/tmp.kw1Z57eWYF/asset-hub-polkadot_runtime-v2003002.compact.compressed.wasm
+//! /tmp/tmp.9jK20jL89x/asset-hub-polkadot_runtime-v2004000.compact.compressed.wasm
 
 #[allow(dead_code, unused_imports, non_camel_case_types, unreachable_patterns)]
 #[allow(clippy::all)]
@@ -29,7 +29,7 @@ pub mod api {
 	mod root_mod {
 		pub use super::*;
 	}
-	pub static PALLETS: [&str; 60usize] = [
+	pub static PALLETS: [&str; 61usize] = [
 		"System",
 		"ParachainSystem",
 		"Timestamp",
@@ -66,6 +66,7 @@ pub mod api {
 		"ForeignAssets",
 		"PoolAssets",
 		"AssetConversion",
+		"Psm",
 		"Treasury",
 		"ConvictionVoting",
 		"Referenda",
@@ -205,6 +206,9 @@ pub mod api {
 		}
 		pub fn asset_conversion(&self) -> asset_conversion::constants::ConstantsApi {
 			asset_conversion::constants::ConstantsApi
+		}
+		pub fn psm(&self) -> psm::constants::ConstantsApi {
+			psm::constants::ConstantsApi
 		}
 		pub fn treasury(&self) -> treasury::constants::ConstantsApi {
 			treasury::constants::ConstantsApi
@@ -358,6 +362,9 @@ pub mod api {
 		}
 		pub fn asset_conversion(&self) -> asset_conversion::storage::StorageApi {
 			asset_conversion::storage::StorageApi
+		}
+		pub fn psm(&self) -> psm::storage::StorageApi {
+			psm::storage::StorageApi
 		}
 		pub fn treasury(&self) -> treasury::storage::StorageApi {
 			treasury::storage::StorageApi
@@ -521,6 +528,9 @@ pub mod api {
 		pub fn asset_conversion(&self) -> asset_conversion::calls::TransactionApi {
 			asset_conversion::calls::TransactionApi
 		}
+		pub fn psm(&self) -> psm::calls::TransactionApi {
+			psm::calls::TransactionApi
+		}
 		pub fn treasury(&self) -> treasury::calls::TransactionApi {
 			treasury::calls::TransactionApi
 		}
@@ -596,9 +606,9 @@ pub mod api {
 			.hash();
 		runtime_metadata_hash ==
 			[
-				138u8, 73u8, 228u8, 145u8, 32u8, 246u8, 0u8, 54u8, 187u8, 219u8, 188u8, 51u8, 13u8,
-				97u8, 205u8, 30u8, 179u8, 186u8, 92u8, 5u8, 35u8, 237u8, 151u8, 66u8, 211u8, 202u8,
-				191u8, 134u8, 133u8, 157u8, 37u8, 190u8,
+				203u8, 194u8, 236u8, 175u8, 33u8, 71u8, 143u8, 10u8, 68u8, 30u8, 130u8, 250u8,
+				57u8, 42u8, 236u8, 0u8, 135u8, 101u8, 232u8, 17u8, 69u8, 82u8, 229u8, 52u8, 226u8,
+				2u8, 50u8, 163u8, 133u8, 126u8, 79u8, 115u8,
 			]
 	}
 	pub mod system {
@@ -1696,9 +1706,9 @@ pub mod api {
 						"Events",
 						(),
 						[
-							2u8, 173u8, 214u8, 147u8, 198u8, 99u8, 187u8, 227u8, 45u8, 2u8, 237u8,
-							183u8, 246u8, 233u8, 130u8, 61u8, 24u8, 116u8, 34u8, 127u8, 87u8, 62u8,
-							251u8, 120u8, 142u8, 46u8, 79u8, 211u8, 68u8, 248u8, 80u8, 207u8,
+							91u8, 81u8, 6u8, 191u8, 12u8, 130u8, 51u8, 6u8, 177u8, 45u8, 126u8,
+							33u8, 145u8, 31u8, 37u8, 16u8, 242u8, 32u8, 219u8, 68u8, 13u8, 2u8,
+							44u8, 176u8, 49u8, 15u8, 210u8, 6u8, 65u8, 41u8, 117u8, 182u8,
 						],
 					)
 				}
@@ -3946,10 +3956,9 @@ pub mod api {
 							call: ::subxt::ext::subxt_core::alloc::boxed::Box::new(call),
 						},
 						[
-							115u8, 220u8, 232u8, 155u8, 128u8, 249u8, 18u8, 172u8, 187u8, 120u8,
-							101u8, 214u8, 59u8, 181u8, 146u8, 42u8, 34u8, 124u8, 155u8, 218u8,
-							136u8, 234u8, 141u8, 158u8, 86u8, 57u8, 185u8, 106u8, 48u8, 126u8,
-							120u8, 197u8,
+							50u8, 181u8, 97u8, 43u8, 245u8, 230u8, 82u8, 152u8, 24u8, 247u8, 92u8,
+							3u8, 65u8, 171u8, 94u8, 162u8, 99u8, 83u8, 181u8, 128u8, 73u8, 164u8,
+							3u8, 206u8, 30u8, 196u8, 29u8, 243u8, 96u8, 194u8, 162u8, 72u8,
 						],
 					)
 				}
@@ -3990,9 +3999,9 @@ pub mod api {
 							call: ::subxt::ext::subxt_core::alloc::boxed::Box::new(call),
 						},
 						[
-							171u8, 18u8, 12u8, 245u8, 146u8, 74u8, 129u8, 215u8, 103u8, 9u8, 176u8,
-							201u8, 17u8, 168u8, 85u8, 189u8, 145u8, 183u8, 232u8, 160u8, 80u8,
-							80u8, 49u8, 66u8, 132u8, 70u8, 223u8, 223u8, 108u8, 42u8, 129u8, 133u8,
+							52u8, 11u8, 100u8, 203u8, 203u8, 61u8, 21u8, 20u8, 93u8, 234u8, 190u8,
+							110u8, 103u8, 31u8, 69u8, 130u8, 57u8, 41u8, 168u8, 138u8, 178u8,
+							108u8, 252u8, 48u8, 118u8, 7u8, 22u8, 64u8, 193u8, 210u8, 154u8, 186u8,
 						],
 					)
 				}
@@ -4029,10 +4038,9 @@ pub mod api {
 							call: ::subxt::ext::subxt_core::alloc::boxed::Box::new(call),
 						},
 						[
-							35u8, 244u8, 239u8, 152u8, 121u8, 157u8, 76u8, 237u8, 69u8, 235u8,
-							103u8, 223u8, 231u8, 154u8, 93u8, 95u8, 197u8, 62u8, 56u8, 191u8,
-							172u8, 173u8, 174u8, 241u8, 175u8, 95u8, 66u8, 182u8, 53u8, 229u8,
-							146u8, 69u8,
+							75u8, 107u8, 250u8, 134u8, 213u8, 199u8, 3u8, 13u8, 0u8, 70u8, 162u8,
+							62u8, 246u8, 205u8, 50u8, 211u8, 34u8, 156u8, 51u8, 209u8, 87u8, 75u8,
+							68u8, 89u8, 108u8, 75u8, 49u8, 33u8, 123u8, 193u8, 144u8, 161u8,
 						],
 					)
 				}
@@ -4056,10 +4064,9 @@ pub mod api {
 							call: ::subxt::ext::subxt_core::alloc::boxed::Box::new(call),
 						},
 						[
-							137u8, 183u8, 43u8, 56u8, 158u8, 247u8, 135u8, 214u8, 141u8, 57u8,
-							144u8, 138u8, 84u8, 237u8, 123u8, 70u8, 215u8, 45u8, 19u8, 13u8, 26u8,
-							164u8, 176u8, 129u8, 253u8, 86u8, 120u8, 165u8, 174u8, 164u8, 167u8,
-							232u8,
+							208u8, 134u8, 168u8, 19u8, 88u8, 203u8, 84u8, 207u8, 129u8, 102u8, 5u8,
+							195u8, 212u8, 197u8, 34u8, 166u8, 237u8, 13u8, 218u8, 38u8, 180u8,
+							91u8, 21u8, 115u8, 116u8, 23u8, 125u8, 160u8, 23u8, 176u8, 33u8, 231u8,
 						],
 					)
 				}
@@ -6445,9 +6452,10 @@ pub mod api {
 						"Holds",
 						(),
 						[
-							28u8, 88u8, 92u8, 252u8, 116u8, 60u8, 90u8, 202u8, 136u8, 85u8, 59u8,
-							249u8, 163u8, 51u8, 204u8, 182u8, 219u8, 94u8, 146u8, 39u8, 188u8,
-							231u8, 212u8, 105u8, 20u8, 119u8, 240u8, 52u8, 127u8, 76u8, 38u8, 30u8,
+							110u8, 247u8, 65u8, 73u8, 233u8, 152u8, 247u8, 55u8, 16u8, 190u8,
+							130u8, 154u8, 218u8, 107u8, 234u8, 21u8, 24u8, 151u8, 14u8, 189u8,
+							140u8, 208u8, 46u8, 158u8, 158u8, 130u8, 252u8, 186u8, 221u8, 238u8,
+							60u8, 221u8,
 						],
 					)
 				}
@@ -6468,9 +6476,10 @@ pub mod api {
 						"Holds",
 						::subxt::ext::subxt_core::storage::address::StaticStorageKey::new(_0),
 						[
-							28u8, 88u8, 92u8, 252u8, 116u8, 60u8, 90u8, 202u8, 136u8, 85u8, 59u8,
-							249u8, 163u8, 51u8, 204u8, 182u8, 219u8, 94u8, 146u8, 39u8, 188u8,
-							231u8, 212u8, 105u8, 20u8, 119u8, 240u8, 52u8, 127u8, 76u8, 38u8, 30u8,
+							110u8, 247u8, 65u8, 73u8, 233u8, 152u8, 247u8, 55u8, 16u8, 190u8,
+							130u8, 154u8, 218u8, 107u8, 234u8, 21u8, 24u8, 151u8, 14u8, 189u8,
+							140u8, 208u8, 46u8, 158u8, 158u8, 130u8, 252u8, 186u8, 221u8, 238u8,
+							60u8, 221u8,
 						],
 					)
 				}
@@ -9793,9 +9802,10 @@ pub mod api {
 						"OutboundXcmpStatus",
 						(),
 						[
-							13u8, 206u8, 22u8, 3u8, 237u8, 137u8, 239u8, 6u8, 114u8, 145u8, 66u8,
-							94u8, 105u8, 20u8, 47u8, 97u8, 240u8, 42u8, 86u8, 24u8, 164u8, 46u8,
-							253u8, 201u8, 115u8, 155u8, 96u8, 7u8, 224u8, 126u8, 150u8, 115u8,
+							252u8, 190u8, 81u8, 190u8, 249u8, 225u8, 64u8, 21u8, 195u8, 78u8,
+							218u8, 7u8, 190u8, 10u8, 240u8, 39u8, 104u8, 210u8, 34u8, 203u8, 115u8,
+							103u8, 165u8, 162u8, 234u8, 68u8, 10u8, 199u8, 200u8, 72u8, 66u8,
+							234u8,
 						],
 					)
 				}
@@ -13469,9 +13479,10 @@ pub mod api {
 						"batch",
 						types::Batch { calls },
 						[
-							214u8, 122u8, 191u8, 80u8, 20u8, 49u8, 100u8, 40u8, 65u8, 154u8, 253u8,
-							174u8, 105u8, 226u8, 251u8, 93u8, 143u8, 6u8, 109u8, 29u8, 217u8, 54u8,
-							121u8, 10u8, 140u8, 217u8, 195u8, 60u8, 116u8, 202u8, 221u8, 26u8,
+							62u8, 195u8, 124u8, 13u8, 49u8, 166u8, 219u8, 215u8, 38u8, 247u8, 30u8,
+							80u8, 244u8, 142u8, 171u8, 98u8, 184u8, 242u8, 203u8, 15u8, 232u8,
+							194u8, 156u8, 75u8, 58u8, 250u8, 145u8, 144u8, 93u8, 33u8, 191u8,
+							117u8,
 						],
 					)
 				}
@@ -13488,9 +13499,9 @@ pub mod api {
 							call: ::subxt::ext::subxt_core::alloc::boxed::Box::new(call),
 						},
 						[
-							158u8, 146u8, 30u8, 118u8, 228u8, 186u8, 74u8, 64u8, 250u8, 203u8,
-							67u8, 82u8, 98u8, 150u8, 205u8, 10u8, 109u8, 233u8, 22u8, 179u8, 209u8,
-							174u8, 3u8, 97u8, 110u8, 102u8, 88u8, 134u8, 179u8, 3u8, 36u8, 42u8,
+							159u8, 202u8, 15u8, 243u8, 14u8, 78u8, 133u8, 145u8, 22u8, 83u8, 149u8,
+							243u8, 53u8, 52u8, 8u8, 85u8, 121u8, 207u8, 127u8, 2u8, 21u8, 157u8,
+							209u8, 153u8, 35u8, 92u8, 43u8, 58u8, 26u8, 41u8, 66u8, 237u8,
 						],
 					)
 				}
@@ -13503,9 +13514,9 @@ pub mod api {
 						"batch_all",
 						types::BatchAll { calls },
 						[
-							46u8, 12u8, 184u8, 24u8, 156u8, 161u8, 22u8, 87u8, 208u8, 183u8, 190u8,
-							28u8, 248u8, 153u8, 90u8, 197u8, 200u8, 88u8, 15u8, 8u8, 76u8, 12u8,
-							56u8, 137u8, 81u8, 166u8, 99u8, 132u8, 37u8, 128u8, 7u8, 95u8,
+							52u8, 45u8, 224u8, 229u8, 180u8, 73u8, 75u8, 169u8, 78u8, 215u8, 199u8,
+							124u8, 142u8, 13u8, 204u8, 161u8, 50u8, 115u8, 153u8, 175u8, 95u8,
+							135u8, 34u8, 189u8, 50u8, 57u8, 192u8, 168u8, 86u8, 44u8, 62u8, 75u8,
 						],
 					)
 				}
@@ -13522,10 +13533,9 @@ pub mod api {
 							call: ::subxt::ext::subxt_core::alloc::boxed::Box::new(call),
 						},
 						[
-							159u8, 40u8, 240u8, 127u8, 208u8, 226u8, 170u8, 168u8, 13u8, 140u8,
-							114u8, 231u8, 213u8, 243u8, 160u8, 67u8, 180u8, 245u8, 87u8, 57u8,
-							92u8, 139u8, 15u8, 191u8, 126u8, 111u8, 214u8, 108u8, 12u8, 200u8,
-							42u8, 217u8,
+							221u8, 243u8, 184u8, 72u8, 175u8, 228u8, 76u8, 148u8, 1u8, 37u8, 181u8,
+							213u8, 30u8, 93u8, 120u8, 100u8, 117u8, 162u8, 179u8, 241u8, 128u8,
+							12u8, 117u8, 210u8, 63u8, 25u8, 254u8, 125u8, 80u8, 36u8, 65u8, 95u8,
 						],
 					)
 				}
@@ -13538,9 +13548,9 @@ pub mod api {
 						"force_batch",
 						types::ForceBatch { calls },
 						[
-							193u8, 58u8, 220u8, 133u8, 6u8, 91u8, 139u8, 91u8, 33u8, 230u8, 2u8,
-							250u8, 73u8, 191u8, 111u8, 177u8, 62u8, 98u8, 187u8, 154u8, 101u8,
-							231u8, 119u8, 39u8, 57u8, 9u8, 125u8, 223u8, 234u8, 32u8, 216u8, 107u8,
+							244u8, 253u8, 56u8, 229u8, 125u8, 53u8, 20u8, 255u8, 205u8, 206u8, 8u8,
+							168u8, 122u8, 26u8, 192u8, 43u8, 96u8, 161u8, 35u8, 248u8, 195u8,
+							162u8, 246u8, 12u8, 89u8, 21u8, 215u8, 123u8, 93u8, 125u8, 44u8, 76u8,
 						],
 					)
 				}
@@ -13557,9 +13567,9 @@ pub mod api {
 							weight,
 						},
 						[
-							55u8, 61u8, 115u8, 35u8, 167u8, 33u8, 188u8, 2u8, 146u8, 85u8, 9u8,
-							161u8, 88u8, 38u8, 200u8, 14u8, 94u8, 91u8, 47u8, 66u8, 150u8, 72u8,
-							112u8, 136u8, 131u8, 168u8, 203u8, 15u8, 253u8, 223u8, 73u8, 89u8,
+							121u8, 97u8, 240u8, 171u8, 208u8, 80u8, 247u8, 14u8, 197u8, 176u8,
+							30u8, 106u8, 140u8, 30u8, 82u8, 152u8, 188u8, 63u8, 123u8, 23u8, 152u8,
+							84u8, 241u8, 246u8, 113u8, 202u8, 231u8, 95u8, 53u8, 200u8, 3u8, 248u8,
 						],
 					)
 				}
@@ -13576,9 +13586,9 @@ pub mod api {
 							fallback: ::subxt::ext::subxt_core::alloc::boxed::Box::new(fallback),
 						},
 						[
-							243u8, 224u8, 34u8, 96u8, 183u8, 156u8, 248u8, 15u8, 215u8, 93u8, 17u8,
-							37u8, 181u8, 107u8, 49u8, 254u8, 167u8, 38u8, 171u8, 60u8, 178u8, 14u8,
-							101u8, 196u8, 123u8, 110u8, 234u8, 25u8, 84u8, 169u8, 41u8, 156u8,
+							172u8, 242u8, 108u8, 198u8, 218u8, 180u8, 0u8, 7u8, 119u8, 236u8, 19u8,
+							18u8, 24u8, 169u8, 59u8, 85u8, 227u8, 91u8, 115u8, 49u8, 41u8, 153u8,
+							191u8, 54u8, 153u8, 23u8, 25u8, 35u8, 28u8, 73u8, 136u8, 166u8,
 						],
 					)
 				}
@@ -13596,9 +13606,10 @@ pub mod api {
 							call: ::subxt::ext::subxt_core::alloc::boxed::Box::new(call),
 						},
 						[
-							229u8, 11u8, 27u8, 221u8, 177u8, 167u8, 67u8, 237u8, 67u8, 81u8, 124u8,
-							187u8, 27u8, 193u8, 185u8, 57u8, 210u8, 130u8, 203u8, 196u8, 159u8,
-							32u8, 15u8, 94u8, 142u8, 91u8, 116u8, 71u8, 11u8, 31u8, 43u8, 237u8,
+							160u8, 13u8, 201u8, 239u8, 136u8, 68u8, 102u8, 109u8, 49u8, 118u8,
+							187u8, 84u8, 104u8, 116u8, 140u8, 100u8, 3u8, 99u8, 101u8, 109u8,
+							107u8, 67u8, 162u8, 78u8, 136u8, 177u8, 11u8, 21u8, 204u8, 175u8,
+							145u8, 92u8,
 						],
 					)
 				}
@@ -13934,9 +13945,9 @@ pub mod api {
 							call: ::subxt::ext::subxt_core::alloc::boxed::Box::new(call),
 						},
 						[
-							200u8, 91u8, 18u8, 105u8, 78u8, 65u8, 27u8, 206u8, 40u8, 176u8, 74u8,
-							93u8, 3u8, 103u8, 28u8, 46u8, 174u8, 119u8, 84u8, 166u8, 208u8, 185u8,
-							145u8, 116u8, 19u8, 52u8, 227u8, 143u8, 226u8, 189u8, 58u8, 220u8,
+							209u8, 70u8, 75u8, 116u8, 154u8, 37u8, 52u8, 175u8, 158u8, 105u8, 15u8,
+							2u8, 98u8, 118u8, 24u8, 164u8, 191u8, 107u8, 1u8, 131u8, 112u8, 177u8,
+							229u8, 91u8, 46u8, 198u8, 54u8, 153u8, 152u8, 215u8, 138u8, 140u8,
 						],
 					)
 				}
@@ -13959,10 +13970,9 @@ pub mod api {
 							max_weight,
 						},
 						[
-							23u8, 193u8, 185u8, 162u8, 186u8, 237u8, 234u8, 205u8, 236u8, 221u8,
-							96u8, 186u8, 25u8, 218u8, 41u8, 225u8, 114u8, 207u8, 160u8, 210u8,
-							89u8, 154u8, 231u8, 96u8, 113u8, 201u8, 134u8, 54u8, 181u8, 65u8, 20u8,
-							122u8,
+							13u8, 118u8, 157u8, 84u8, 12u8, 63u8, 232u8, 7u8, 161u8, 77u8, 203u8,
+							68u8, 120u8, 139u8, 73u8, 103u8, 43u8, 48u8, 236u8, 227u8, 231u8, 8u8,
+							97u8, 186u8, 222u8, 9u8, 207u8, 125u8, 212u8, 85u8, 6u8, 45u8,
 						],
 					)
 				}
@@ -14632,10 +14642,10 @@ pub mod api {
 							call: ::subxt::ext::subxt_core::alloc::boxed::Box::new(call),
 						},
 						[
-							10u8, 208u8, 170u8, 100u8, 88u8, 105u8, 174u8, 191u8, 196u8, 174u8,
-							112u8, 9u8, 122u8, 105u8, 171u8, 175u8, 150u8, 254u8, 159u8, 61u8,
-							241u8, 96u8, 170u8, 20u8, 224u8, 166u8, 207u8, 249u8, 230u8, 127u8,
-							106u8, 167u8,
+							212u8, 23u8, 149u8, 46u8, 202u8, 74u8, 47u8, 218u8, 52u8, 43u8, 66u8,
+							184u8, 242u8, 131u8, 201u8, 81u8, 172u8, 221u8, 144u8, 36u8, 71u8,
+							173u8, 62u8, 139u8, 90u8, 125u8, 251u8, 140u8, 177u8, 248u8, 75u8,
+							157u8,
 						],
 					)
 				}
@@ -14796,9 +14806,10 @@ pub mod api {
 							call: ::subxt::ext::subxt_core::alloc::boxed::Box::new(call),
 						},
 						[
-							20u8, 252u8, 214u8, 79u8, 81u8, 62u8, 24u8, 61u8, 236u8, 98u8, 201u8,
-							210u8, 52u8, 81u8, 95u8, 159u8, 255u8, 42u8, 17u8, 190u8, 146u8, 188u8,
-							6u8, 135u8, 204u8, 212u8, 202u8, 139u8, 145u8, 115u8, 211u8, 55u8,
+							143u8, 68u8, 101u8, 151u8, 162u8, 192u8, 153u8, 212u8, 118u8, 223u8,
+							83u8, 93u8, 226u8, 205u8, 20u8, 225u8, 32u8, 119u8, 90u8, 76u8, 131u8,
+							47u8, 175u8, 154u8, 26u8, 206u8, 189u8, 237u8, 204u8, 228u8, 252u8,
+							243u8,
 						],
 					)
 				}
@@ -31594,6 +31605,1470 @@ pub mod api {
 			}
 		}
 	}
+	pub mod psm {
+		use super::{root_mod, runtime_types};
+		pub type Error = runtime_types::pallet_psm::pallet::Error;
+		pub type Call = runtime_types::pallet_psm::pallet::Call;
+		pub mod calls {
+			use super::{root_mod, runtime_types};
+			type DispatchError = runtime_types::sp_runtime::DispatchError;
+			pub mod types {
+				use super::runtime_types;
+				#[derive(
+					::subxt::ext::subxt_core::ext::scale_decode::DecodeAsType,
+					::subxt::ext::subxt_core::ext::scale_encode::EncodeAsType,
+					Debug,
+				)]
+				#[decode_as_type(
+					crate_path = ":: subxt :: ext :: subxt_core :: ext :: scale_decode"
+				)]
+				#[encode_as_type(
+					crate_path = ":: subxt :: ext :: subxt_core :: ext :: scale_encode"
+				)]
+				pub struct Mint {
+					pub internal_asset: mint::InternalAsset,
+					pub external_asset: mint::ExternalAsset,
+					pub external_amount: mint::ExternalAmount,
+					pub max_fee: mint::MaxFee,
+				}
+				pub mod mint {
+					use super::runtime_types;
+					pub type InternalAsset = runtime_types::staging_xcm::v5::location::Location;
+					pub type ExternalAsset = runtime_types::staging_xcm::v5::location::Location;
+					pub type ExternalAmount = ::core::primitive::u128;
+					pub type MaxFee = runtime_types::sp_arithmetic::per_things::Permill;
+				}
+				impl ::subxt::ext::subxt_core::blocks::StaticExtrinsic for Mint {
+					const PALLET: &'static str = "Psm";
+					const CALL: &'static str = "mint";
+				}
+				#[derive(
+					::subxt::ext::subxt_core::ext::scale_decode::DecodeAsType,
+					::subxt::ext::subxt_core::ext::scale_encode::EncodeAsType,
+					Debug,
+				)]
+				#[decode_as_type(
+					crate_path = ":: subxt :: ext :: subxt_core :: ext :: scale_decode"
+				)]
+				#[encode_as_type(
+					crate_path = ":: subxt :: ext :: subxt_core :: ext :: scale_encode"
+				)]
+				pub struct Redeem {
+					pub internal_asset: redeem::InternalAsset,
+					pub external_asset: redeem::ExternalAsset,
+					pub internal_amount: redeem::InternalAmount,
+					pub max_fee: redeem::MaxFee,
+				}
+				pub mod redeem {
+					use super::runtime_types;
+					pub type InternalAsset = runtime_types::staging_xcm::v5::location::Location;
+					pub type ExternalAsset = runtime_types::staging_xcm::v5::location::Location;
+					pub type InternalAmount = ::core::primitive::u128;
+					pub type MaxFee = runtime_types::sp_arithmetic::per_things::Permill;
+				}
+				impl ::subxt::ext::subxt_core::blocks::StaticExtrinsic for Redeem {
+					const PALLET: &'static str = "Psm";
+					const CALL: &'static str = "redeem";
+				}
+				#[derive(
+					::subxt::ext::subxt_core::ext::scale_decode::DecodeAsType,
+					::subxt::ext::subxt_core::ext::scale_encode::EncodeAsType,
+					Debug,
+				)]
+				#[decode_as_type(
+					crate_path = ":: subxt :: ext :: subxt_core :: ext :: scale_decode"
+				)]
+				#[encode_as_type(
+					crate_path = ":: subxt :: ext :: subxt_core :: ext :: scale_encode"
+				)]
+				pub struct CreatePsm {
+					pub internal_asset: create_psm::InternalAsset,
+					pub full_admin:
+						::subxt::ext::subxt_core::alloc::boxed::Box<create_psm::FullAdmin>,
+					pub emergency_admin:
+						::subxt::ext::subxt_core::alloc::boxed::Box<create_psm::EmergencyAdmin>,
+					pub fee_destination: create_psm::FeeDestination,
+					pub max_debt: create_psm::MaxDebt,
+					pub min_swap_amount: create_psm::MinSwapAmount,
+				}
+				pub mod create_psm {
+					use super::runtime_types;
+					pub type InternalAsset = runtime_types::staging_xcm::v5::location::Location;
+					pub type FullAdmin = runtime_types::asset_hub_polkadot_runtime::OriginCaller;
+					pub type EmergencyAdmin =
+						runtime_types::asset_hub_polkadot_runtime::OriginCaller;
+					pub type FeeDestination = ::subxt::ext::subxt_core::utils::AccountId32;
+					pub type MaxDebt = ::core::primitive::u128;
+					pub type MinSwapAmount = ::core::primitive::u128;
+				}
+				impl ::subxt::ext::subxt_core::blocks::StaticExtrinsic for CreatePsm {
+					const PALLET: &'static str = "Psm";
+					const CALL: &'static str = "create_psm";
+				}
+				#[derive(
+					::subxt::ext::subxt_core::ext::scale_decode::DecodeAsType,
+					::subxt::ext::subxt_core::ext::scale_encode::EncodeAsType,
+					Debug,
+				)]
+				#[decode_as_type(
+					crate_path = ":: subxt :: ext :: subxt_core :: ext :: scale_decode"
+				)]
+				#[encode_as_type(
+					crate_path = ":: subxt :: ext :: subxt_core :: ext :: scale_encode"
+				)]
+				pub struct RemovePsm {
+					pub internal_asset: remove_psm::InternalAsset,
+				}
+				pub mod remove_psm {
+					use super::runtime_types;
+					pub type InternalAsset = runtime_types::staging_xcm::v5::location::Location;
+				}
+				impl ::subxt::ext::subxt_core::blocks::StaticExtrinsic for RemovePsm {
+					const PALLET: &'static str = "Psm";
+					const CALL: &'static str = "remove_psm";
+				}
+				#[derive(
+					::subxt::ext::subxt_core::ext::scale_decode::DecodeAsType,
+					::subxt::ext::subxt_core::ext::scale_encode::EncodeAsType,
+					Debug,
+				)]
+				#[decode_as_type(
+					crate_path = ":: subxt :: ext :: subxt_core :: ext :: scale_decode"
+				)]
+				#[encode_as_type(
+					crate_path = ":: subxt :: ext :: subxt_core :: ext :: scale_encode"
+				)]
+				pub struct SetMintingFee {
+					pub internal_asset: set_minting_fee::InternalAsset,
+					pub external_asset: set_minting_fee::ExternalAsset,
+					pub fee: set_minting_fee::Fee,
+				}
+				pub mod set_minting_fee {
+					use super::runtime_types;
+					pub type InternalAsset = runtime_types::staging_xcm::v5::location::Location;
+					pub type ExternalAsset = runtime_types::staging_xcm::v5::location::Location;
+					pub type Fee = runtime_types::sp_arithmetic::per_things::Permill;
+				}
+				impl ::subxt::ext::subxt_core::blocks::StaticExtrinsic for SetMintingFee {
+					const PALLET: &'static str = "Psm";
+					const CALL: &'static str = "set_minting_fee";
+				}
+				#[derive(
+					::subxt::ext::subxt_core::ext::scale_decode::DecodeAsType,
+					::subxt::ext::subxt_core::ext::scale_encode::EncodeAsType,
+					Debug,
+				)]
+				#[decode_as_type(
+					crate_path = ":: subxt :: ext :: subxt_core :: ext :: scale_decode"
+				)]
+				#[encode_as_type(
+					crate_path = ":: subxt :: ext :: subxt_core :: ext :: scale_encode"
+				)]
+				pub struct SetRedemptionFee {
+					pub internal_asset: set_redemption_fee::InternalAsset,
+					pub external_asset: set_redemption_fee::ExternalAsset,
+					pub fee: set_redemption_fee::Fee,
+				}
+				pub mod set_redemption_fee {
+					use super::runtime_types;
+					pub type InternalAsset = runtime_types::staging_xcm::v5::location::Location;
+					pub type ExternalAsset = runtime_types::staging_xcm::v5::location::Location;
+					pub type Fee = runtime_types::sp_arithmetic::per_things::Permill;
+				}
+				impl ::subxt::ext::subxt_core::blocks::StaticExtrinsic for SetRedemptionFee {
+					const PALLET: &'static str = "Psm";
+					const CALL: &'static str = "set_redemption_fee";
+				}
+				#[derive(
+					::subxt::ext::subxt_core::ext::scale_decode::DecodeAsType,
+					::subxt::ext::subxt_core::ext::scale_encode::EncodeAsType,
+					Debug,
+				)]
+				#[decode_as_type(
+					crate_path = ":: subxt :: ext :: subxt_core :: ext :: scale_decode"
+				)]
+				#[encode_as_type(
+					crate_path = ":: subxt :: ext :: subxt_core :: ext :: scale_encode"
+				)]
+				pub struct SetMaxDebt {
+					pub internal_asset: set_max_debt::InternalAsset,
+					pub value: set_max_debt::Value,
+				}
+				pub mod set_max_debt {
+					use super::runtime_types;
+					pub type InternalAsset = runtime_types::staging_xcm::v5::location::Location;
+					pub type Value = ::core::primitive::u128;
+				}
+				impl ::subxt::ext::subxt_core::blocks::StaticExtrinsic for SetMaxDebt {
+					const PALLET: &'static str = "Psm";
+					const CALL: &'static str = "set_max_debt";
+				}
+				#[derive(
+					::subxt::ext::subxt_core::ext::scale_decode::DecodeAsType,
+					::subxt::ext::subxt_core::ext::scale_encode::EncodeAsType,
+					Debug,
+				)]
+				#[decode_as_type(
+					crate_path = ":: subxt :: ext :: subxt_core :: ext :: scale_decode"
+				)]
+				#[encode_as_type(
+					crate_path = ":: subxt :: ext :: subxt_core :: ext :: scale_encode"
+				)]
+				pub struct SetAssetStatus {
+					pub internal_asset: set_asset_status::InternalAsset,
+					pub external_asset: set_asset_status::ExternalAsset,
+					pub status: set_asset_status::Status,
+				}
+				pub mod set_asset_status {
+					use super::runtime_types;
+					pub type InternalAsset = runtime_types::staging_xcm::v5::location::Location;
+					pub type ExternalAsset = runtime_types::staging_xcm::v5::location::Location;
+					pub type Status = runtime_types::pallet_psm::pallet::CircuitBreakerLevel;
+				}
+				impl ::subxt::ext::subxt_core::blocks::StaticExtrinsic for SetAssetStatus {
+					const PALLET: &'static str = "Psm";
+					const CALL: &'static str = "set_asset_status";
+				}
+				#[derive(
+					::subxt::ext::subxt_core::ext::scale_decode::DecodeAsType,
+					::subxt::ext::subxt_core::ext::scale_encode::EncodeAsType,
+					Debug,
+				)]
+				#[decode_as_type(
+					crate_path = ":: subxt :: ext :: subxt_core :: ext :: scale_decode"
+				)]
+				#[encode_as_type(
+					crate_path = ":: subxt :: ext :: subxt_core :: ext :: scale_encode"
+				)]
+				pub struct SetAssetCeilingWeight {
+					pub internal_asset: set_asset_ceiling_weight::InternalAsset,
+					pub external_asset: set_asset_ceiling_weight::ExternalAsset,
+					pub weight: set_asset_ceiling_weight::Weight,
+				}
+				pub mod set_asset_ceiling_weight {
+					use super::runtime_types;
+					pub type InternalAsset = runtime_types::staging_xcm::v5::location::Location;
+					pub type ExternalAsset = runtime_types::staging_xcm::v5::location::Location;
+					pub type Weight = runtime_types::sp_arithmetic::per_things::Permill;
+				}
+				impl ::subxt::ext::subxt_core::blocks::StaticExtrinsic for SetAssetCeilingWeight {
+					const PALLET: &'static str = "Psm";
+					const CALL: &'static str = "set_asset_ceiling_weight";
+				}
+				#[derive(
+					::subxt::ext::subxt_core::ext::scale_decode::DecodeAsType,
+					::subxt::ext::subxt_core::ext::scale_encode::EncodeAsType,
+					Debug,
+				)]
+				#[decode_as_type(
+					crate_path = ":: subxt :: ext :: subxt_core :: ext :: scale_decode"
+				)]
+				#[encode_as_type(
+					crate_path = ":: subxt :: ext :: subxt_core :: ext :: scale_encode"
+				)]
+				pub struct AddExternalAsset {
+					pub internal_asset: add_external_asset::InternalAsset,
+					pub external_asset: add_external_asset::ExternalAsset,
+				}
+				pub mod add_external_asset {
+					use super::runtime_types;
+					pub type InternalAsset = runtime_types::staging_xcm::v5::location::Location;
+					pub type ExternalAsset = runtime_types::staging_xcm::v5::location::Location;
+				}
+				impl ::subxt::ext::subxt_core::blocks::StaticExtrinsic for AddExternalAsset {
+					const PALLET: &'static str = "Psm";
+					const CALL: &'static str = "add_external_asset";
+				}
+				#[derive(
+					::subxt::ext::subxt_core::ext::scale_decode::DecodeAsType,
+					::subxt::ext::subxt_core::ext::scale_encode::EncodeAsType,
+					Debug,
+				)]
+				#[decode_as_type(
+					crate_path = ":: subxt :: ext :: subxt_core :: ext :: scale_decode"
+				)]
+				#[encode_as_type(
+					crate_path = ":: subxt :: ext :: subxt_core :: ext :: scale_encode"
+				)]
+				pub struct RemoveExternalAsset {
+					pub internal_asset: remove_external_asset::InternalAsset,
+					pub external_asset: remove_external_asset::ExternalAsset,
+				}
+				pub mod remove_external_asset {
+					use super::runtime_types;
+					pub type InternalAsset = runtime_types::staging_xcm::v5::location::Location;
+					pub type ExternalAsset = runtime_types::staging_xcm::v5::location::Location;
+				}
+				impl ::subxt::ext::subxt_core::blocks::StaticExtrinsic for RemoveExternalAsset {
+					const PALLET: &'static str = "Psm";
+					const CALL: &'static str = "remove_external_asset";
+				}
+				#[derive(
+					::subxt::ext::subxt_core::ext::scale_decode::DecodeAsType,
+					::subxt::ext::subxt_core::ext::scale_encode::EncodeAsType,
+					Debug,
+				)]
+				#[decode_as_type(
+					crate_path = ":: subxt :: ext :: subxt_core :: ext :: scale_decode"
+				)]
+				#[encode_as_type(
+					crate_path = ":: subxt :: ext :: subxt_core :: ext :: scale_encode"
+				)]
+				pub struct SetFullAdmin {
+					pub internal_asset: set_full_admin::InternalAsset,
+					pub new_admin:
+						::subxt::ext::subxt_core::alloc::boxed::Box<set_full_admin::NewAdmin>,
+				}
+				pub mod set_full_admin {
+					use super::runtime_types;
+					pub type InternalAsset = runtime_types::staging_xcm::v5::location::Location;
+					pub type NewAdmin = runtime_types::asset_hub_polkadot_runtime::OriginCaller;
+				}
+				impl ::subxt::ext::subxt_core::blocks::StaticExtrinsic for SetFullAdmin {
+					const PALLET: &'static str = "Psm";
+					const CALL: &'static str = "set_full_admin";
+				}
+				#[derive(
+					::subxt::ext::subxt_core::ext::scale_decode::DecodeAsType,
+					::subxt::ext::subxt_core::ext::scale_encode::EncodeAsType,
+					Debug,
+				)]
+				#[decode_as_type(
+					crate_path = ":: subxt :: ext :: subxt_core :: ext :: scale_decode"
+				)]
+				#[encode_as_type(
+					crate_path = ":: subxt :: ext :: subxt_core :: ext :: scale_encode"
+				)]
+				pub struct SetEmergencyAdmin {
+					pub internal_asset: set_emergency_admin::InternalAsset,
+					pub new_admin:
+						::subxt::ext::subxt_core::alloc::boxed::Box<set_emergency_admin::NewAdmin>,
+				}
+				pub mod set_emergency_admin {
+					use super::runtime_types;
+					pub type InternalAsset = runtime_types::staging_xcm::v5::location::Location;
+					pub type NewAdmin = runtime_types::asset_hub_polkadot_runtime::OriginCaller;
+				}
+				impl ::subxt::ext::subxt_core::blocks::StaticExtrinsic for SetEmergencyAdmin {
+					const PALLET: &'static str = "Psm";
+					const CALL: &'static str = "set_emergency_admin";
+				}
+			}
+			pub struct TransactionApi;
+			impl TransactionApi {
+				pub fn mint(
+					&self,
+					internal_asset: types::mint::InternalAsset,
+					external_asset: types::mint::ExternalAsset,
+					external_amount: types::mint::ExternalAmount,
+					max_fee: types::mint::MaxFee,
+				) -> ::subxt::ext::subxt_core::tx::payload::StaticPayload<types::Mint> {
+					::subxt::ext::subxt_core::tx::payload::StaticPayload::new_static(
+						"Psm",
+						"mint",
+						types::Mint { internal_asset, external_asset, external_amount, max_fee },
+						[
+							14u8, 243u8, 248u8, 9u8, 112u8, 173u8, 137u8, 172u8, 223u8, 152u8,
+							150u8, 205u8, 121u8, 250u8, 88u8, 53u8, 152u8, 85u8, 115u8, 242u8,
+							193u8, 20u8, 188u8, 166u8, 63u8, 102u8, 94u8, 35u8, 155u8, 91u8, 249u8,
+							176u8,
+						],
+					)
+				}
+				pub fn redeem(
+					&self,
+					internal_asset: types::redeem::InternalAsset,
+					external_asset: types::redeem::ExternalAsset,
+					internal_amount: types::redeem::InternalAmount,
+					max_fee: types::redeem::MaxFee,
+				) -> ::subxt::ext::subxt_core::tx::payload::StaticPayload<types::Redeem> {
+					::subxt::ext::subxt_core::tx::payload::StaticPayload::new_static(
+						"Psm",
+						"redeem",
+						types::Redeem { internal_asset, external_asset, internal_amount, max_fee },
+						[
+							76u8, 127u8, 225u8, 190u8, 88u8, 169u8, 69u8, 75u8, 172u8, 25u8, 137u8,
+							204u8, 0u8, 100u8, 66u8, 146u8, 121u8, 170u8, 58u8, 172u8, 243u8, 39u8,
+							143u8, 111u8, 190u8, 131u8, 227u8, 2u8, 84u8, 248u8, 36u8, 118u8,
+						],
+					)
+				}
+				pub fn create_psm(
+					&self,
+					internal_asset: types::create_psm::InternalAsset,
+					full_admin: types::create_psm::FullAdmin,
+					emergency_admin: types::create_psm::EmergencyAdmin,
+					fee_destination: types::create_psm::FeeDestination,
+					max_debt: types::create_psm::MaxDebt,
+					min_swap_amount: types::create_psm::MinSwapAmount,
+				) -> ::subxt::ext::subxt_core::tx::payload::StaticPayload<types::CreatePsm> {
+					::subxt::ext::subxt_core::tx::payload::StaticPayload::new_static(
+						"Psm",
+						"create_psm",
+						types::CreatePsm {
+							internal_asset,
+							full_admin: ::subxt::ext::subxt_core::alloc::boxed::Box::new(
+								full_admin,
+							),
+							emergency_admin: ::subxt::ext::subxt_core::alloc::boxed::Box::new(
+								emergency_admin,
+							),
+							fee_destination,
+							max_debt,
+							min_swap_amount,
+						},
+						[
+							231u8, 143u8, 26u8, 14u8, 65u8, 30u8, 34u8, 156u8, 236u8, 94u8, 47u8,
+							247u8, 54u8, 48u8, 230u8, 205u8, 58u8, 62u8, 23u8, 133u8, 16u8, 234u8,
+							226u8, 18u8, 255u8, 82u8, 237u8, 200u8, 76u8, 30u8, 196u8, 28u8,
+						],
+					)
+				}
+				pub fn remove_psm(
+					&self,
+					internal_asset: types::remove_psm::InternalAsset,
+				) -> ::subxt::ext::subxt_core::tx::payload::StaticPayload<types::RemovePsm> {
+					::subxt::ext::subxt_core::tx::payload::StaticPayload::new_static(
+						"Psm",
+						"remove_psm",
+						types::RemovePsm { internal_asset },
+						[
+							197u8, 86u8, 147u8, 225u8, 123u8, 115u8, 57u8, 173u8, 112u8, 128u8,
+							156u8, 40u8, 220u8, 215u8, 39u8, 224u8, 43u8, 216u8, 230u8, 14u8, 47u8,
+							87u8, 140u8, 141u8, 152u8, 122u8, 165u8, 77u8, 136u8, 108u8, 162u8,
+							23u8,
+						],
+					)
+				}
+				pub fn set_minting_fee(
+					&self,
+					internal_asset: types::set_minting_fee::InternalAsset,
+					external_asset: types::set_minting_fee::ExternalAsset,
+					fee: types::set_minting_fee::Fee,
+				) -> ::subxt::ext::subxt_core::tx::payload::StaticPayload<types::SetMintingFee>
+				{
+					::subxt::ext::subxt_core::tx::payload::StaticPayload::new_static(
+						"Psm",
+						"set_minting_fee",
+						types::SetMintingFee { internal_asset, external_asset, fee },
+						[
+							3u8, 58u8, 82u8, 182u8, 68u8, 176u8, 112u8, 232u8, 189u8, 118u8, 173u8,
+							222u8, 20u8, 17u8, 134u8, 224u8, 37u8, 171u8, 74u8, 174u8, 168u8, 17u8,
+							191u8, 41u8, 247u8, 254u8, 129u8, 0u8, 175u8, 173u8, 118u8, 125u8,
+						],
+					)
+				}
+				pub fn set_redemption_fee(
+					&self,
+					internal_asset: types::set_redemption_fee::InternalAsset,
+					external_asset: types::set_redemption_fee::ExternalAsset,
+					fee: types::set_redemption_fee::Fee,
+				) -> ::subxt::ext::subxt_core::tx::payload::StaticPayload<types::SetRedemptionFee>
+				{
+					::subxt::ext::subxt_core::tx::payload::StaticPayload::new_static(
+						"Psm",
+						"set_redemption_fee",
+						types::SetRedemptionFee { internal_asset, external_asset, fee },
+						[
+							3u8, 173u8, 212u8, 146u8, 102u8, 118u8, 248u8, 186u8, 61u8, 167u8,
+							46u8, 75u8, 76u8, 185u8, 245u8, 227u8, 156u8, 4u8, 198u8, 148u8, 120u8,
+							196u8, 26u8, 90u8, 241u8, 39u8, 78u8, 62u8, 38u8, 230u8, 122u8, 27u8,
+						],
+					)
+				}
+				pub fn set_max_debt(
+					&self,
+					internal_asset: types::set_max_debt::InternalAsset,
+					value: types::set_max_debt::Value,
+				) -> ::subxt::ext::subxt_core::tx::payload::StaticPayload<types::SetMaxDebt> {
+					::subxt::ext::subxt_core::tx::payload::StaticPayload::new_static(
+						"Psm",
+						"set_max_debt",
+						types::SetMaxDebt { internal_asset, value },
+						[
+							58u8, 44u8, 249u8, 202u8, 69u8, 198u8, 95u8, 139u8, 152u8, 169u8, 63u8,
+							253u8, 112u8, 134u8, 196u8, 201u8, 253u8, 175u8, 141u8, 245u8, 46u8,
+							191u8, 94u8, 207u8, 7u8, 188u8, 161u8, 116u8, 202u8, 29u8, 234u8, 13u8,
+						],
+					)
+				}
+				pub fn set_asset_status(
+					&self,
+					internal_asset: types::set_asset_status::InternalAsset,
+					external_asset: types::set_asset_status::ExternalAsset,
+					status: types::set_asset_status::Status,
+				) -> ::subxt::ext::subxt_core::tx::payload::StaticPayload<types::SetAssetStatus>
+				{
+					::subxt::ext::subxt_core::tx::payload::StaticPayload::new_static(
+						"Psm",
+						"set_asset_status",
+						types::SetAssetStatus { internal_asset, external_asset, status },
+						[
+							22u8, 188u8, 93u8, 93u8, 3u8, 25u8, 184u8, 141u8, 11u8, 219u8, 132u8,
+							132u8, 121u8, 213u8, 146u8, 196u8, 151u8, 79u8, 191u8, 121u8, 231u8,
+							241u8, 3u8, 255u8, 81u8, 134u8, 42u8, 32u8, 241u8, 80u8, 255u8, 103u8,
+						],
+					)
+				}
+				pub fn set_asset_ceiling_weight(
+					&self,
+					internal_asset: types::set_asset_ceiling_weight::InternalAsset,
+					external_asset: types::set_asset_ceiling_weight::ExternalAsset,
+					weight: types::set_asset_ceiling_weight::Weight,
+				) -> ::subxt::ext::subxt_core::tx::payload::StaticPayload<
+					types::SetAssetCeilingWeight,
+				> {
+					::subxt::ext::subxt_core::tx::payload::StaticPayload::new_static(
+						"Psm",
+						"set_asset_ceiling_weight",
+						types::SetAssetCeilingWeight { internal_asset, external_asset, weight },
+						[
+							100u8, 180u8, 155u8, 53u8, 153u8, 188u8, 157u8, 39u8, 95u8, 196u8,
+							189u8, 172u8, 174u8, 13u8, 9u8, 204u8, 182u8, 183u8, 199u8, 229u8,
+							212u8, 145u8, 3u8, 221u8, 112u8, 87u8, 191u8, 106u8, 212u8, 217u8,
+							227u8, 240u8,
+						],
+					)
+				}
+				pub fn add_external_asset(
+					&self,
+					internal_asset: types::add_external_asset::InternalAsset,
+					external_asset: types::add_external_asset::ExternalAsset,
+				) -> ::subxt::ext::subxt_core::tx::payload::StaticPayload<types::AddExternalAsset>
+				{
+					::subxt::ext::subxt_core::tx::payload::StaticPayload::new_static(
+						"Psm",
+						"add_external_asset",
+						types::AddExternalAsset { internal_asset, external_asset },
+						[
+							73u8, 234u8, 211u8, 178u8, 115u8, 250u8, 13u8, 131u8, 7u8, 196u8,
+							252u8, 188u8, 105u8, 19u8, 128u8, 236u8, 6u8, 197u8, 19u8, 168u8, 28u8,
+							223u8, 2u8, 1u8, 115u8, 105u8, 157u8, 161u8, 193u8, 100u8, 50u8, 217u8,
+						],
+					)
+				}
+				pub fn remove_external_asset(
+					&self,
+					internal_asset: types::remove_external_asset::InternalAsset,
+					external_asset: types::remove_external_asset::ExternalAsset,
+				) -> ::subxt::ext::subxt_core::tx::payload::StaticPayload<types::RemoveExternalAsset>
+				{
+					::subxt::ext::subxt_core::tx::payload::StaticPayload::new_static(
+						"Psm",
+						"remove_external_asset",
+						types::RemoveExternalAsset { internal_asset, external_asset },
+						[
+							129u8, 250u8, 86u8, 154u8, 65u8, 114u8, 56u8, 241u8, 76u8, 234u8,
+							120u8, 216u8, 248u8, 112u8, 15u8, 96u8, 74u8, 106u8, 213u8, 151u8,
+							184u8, 53u8, 115u8, 33u8, 200u8, 142u8, 20u8, 57u8, 131u8, 198u8,
+							192u8, 135u8,
+						],
+					)
+				}
+				pub fn set_full_admin(
+					&self,
+					internal_asset: types::set_full_admin::InternalAsset,
+					new_admin: types::set_full_admin::NewAdmin,
+				) -> ::subxt::ext::subxt_core::tx::payload::StaticPayload<types::SetFullAdmin> {
+					::subxt::ext::subxt_core::tx::payload::StaticPayload::new_static(
+						"Psm",
+						"set_full_admin",
+						types::SetFullAdmin {
+							internal_asset,
+							new_admin: ::subxt::ext::subxt_core::alloc::boxed::Box::new(new_admin),
+						},
+						[
+							142u8, 62u8, 68u8, 244u8, 104u8, 151u8, 204u8, 16u8, 85u8, 231u8,
+							191u8, 135u8, 194u8, 80u8, 34u8, 61u8, 83u8, 2u8, 113u8, 103u8, 109u8,
+							33u8, 227u8, 227u8, 228u8, 115u8, 24u8, 187u8, 95u8, 239u8, 246u8,
+							34u8,
+						],
+					)
+				}
+				pub fn set_emergency_admin(
+					&self,
+					internal_asset: types::set_emergency_admin::InternalAsset,
+					new_admin: types::set_emergency_admin::NewAdmin,
+				) -> ::subxt::ext::subxt_core::tx::payload::StaticPayload<types::SetEmergencyAdmin>
+				{
+					::subxt::ext::subxt_core::tx::payload::StaticPayload::new_static(
+						"Psm",
+						"set_emergency_admin",
+						types::SetEmergencyAdmin {
+							internal_asset,
+							new_admin: ::subxt::ext::subxt_core::alloc::boxed::Box::new(new_admin),
+						},
+						[
+							140u8, 114u8, 31u8, 29u8, 169u8, 179u8, 160u8, 173u8, 132u8, 190u8,
+							238u8, 40u8, 43u8, 116u8, 221u8, 144u8, 56u8, 173u8, 36u8, 199u8, 93u8,
+							107u8, 82u8, 4u8, 90u8, 47u8, 58u8, 6u8, 149u8, 95u8, 151u8, 206u8,
+						],
+					)
+				}
+			}
+		}
+		pub type Event = runtime_types::pallet_psm::pallet::Event;
+		pub mod events {
+			use super::runtime_types;
+			#[derive(
+				::subxt::ext::subxt_core::ext::scale_decode::DecodeAsType,
+				::subxt::ext::subxt_core::ext::scale_encode::EncodeAsType,
+				Debug,
+			)]
+			#[decode_as_type(crate_path = ":: subxt :: ext :: subxt_core :: ext :: scale_decode")]
+			#[encode_as_type(crate_path = ":: subxt :: ext :: subxt_core :: ext :: scale_encode")]
+			pub struct Minted {
+				pub who: minted::Who,
+				pub internal_asset: minted::InternalAsset,
+				pub external_asset: minted::ExternalAsset,
+				pub external_consumed: minted::ExternalConsumed,
+				pub internal_received: minted::InternalReceived,
+				pub internal_fee: minted::InternalFee,
+			}
+			pub mod minted {
+				use super::runtime_types;
+				pub type Who = ::subxt::ext::subxt_core::utils::AccountId32;
+				pub type InternalAsset = runtime_types::staging_xcm::v5::location::Location;
+				pub type ExternalAsset = runtime_types::staging_xcm::v5::location::Location;
+				pub type ExternalConsumed = ::core::primitive::u128;
+				pub type InternalReceived = ::core::primitive::u128;
+				pub type InternalFee = ::core::primitive::u128;
+			}
+			impl ::subxt::ext::subxt_core::events::StaticEvent for Minted {
+				const PALLET: &'static str = "Psm";
+				const EVENT: &'static str = "Minted";
+			}
+			#[derive(
+				::subxt::ext::subxt_core::ext::scale_decode::DecodeAsType,
+				::subxt::ext::subxt_core::ext::scale_encode::EncodeAsType,
+				Debug,
+			)]
+			#[decode_as_type(crate_path = ":: subxt :: ext :: subxt_core :: ext :: scale_decode")]
+			#[encode_as_type(crate_path = ":: subxt :: ext :: subxt_core :: ext :: scale_encode")]
+			pub struct Redeemed {
+				pub who: redeemed::Who,
+				pub internal_asset: redeemed::InternalAsset,
+				pub external_asset: redeemed::ExternalAsset,
+				pub internal_consumed: redeemed::InternalConsumed,
+				pub external_received: redeemed::ExternalReceived,
+				pub internal_fee: redeemed::InternalFee,
+			}
+			pub mod redeemed {
+				use super::runtime_types;
+				pub type Who = ::subxt::ext::subxt_core::utils::AccountId32;
+				pub type InternalAsset = runtime_types::staging_xcm::v5::location::Location;
+				pub type ExternalAsset = runtime_types::staging_xcm::v5::location::Location;
+				pub type InternalConsumed = ::core::primitive::u128;
+				pub type ExternalReceived = ::core::primitive::u128;
+				pub type InternalFee = ::core::primitive::u128;
+			}
+			impl ::subxt::ext::subxt_core::events::StaticEvent for Redeemed {
+				const PALLET: &'static str = "Psm";
+				const EVENT: &'static str = "Redeemed";
+			}
+			#[derive(
+				::subxt::ext::subxt_core::ext::scale_decode::DecodeAsType,
+				::subxt::ext::subxt_core::ext::scale_encode::EncodeAsType,
+				Debug,
+			)]
+			#[decode_as_type(crate_path = ":: subxt :: ext :: subxt_core :: ext :: scale_decode")]
+			#[encode_as_type(crate_path = ":: subxt :: ext :: subxt_core :: ext :: scale_encode")]
+			pub struct MintingFeeUpdated {
+				pub internal_asset: minting_fee_updated::InternalAsset,
+				pub external_asset: minting_fee_updated::ExternalAsset,
+				pub old_value: minting_fee_updated::OldValue,
+				pub new_value: minting_fee_updated::NewValue,
+			}
+			pub mod minting_fee_updated {
+				use super::runtime_types;
+				pub type InternalAsset = runtime_types::staging_xcm::v5::location::Location;
+				pub type ExternalAsset = runtime_types::staging_xcm::v5::location::Location;
+				pub type OldValue = runtime_types::sp_arithmetic::per_things::Permill;
+				pub type NewValue = runtime_types::sp_arithmetic::per_things::Permill;
+			}
+			impl ::subxt::ext::subxt_core::events::StaticEvent for MintingFeeUpdated {
+				const PALLET: &'static str = "Psm";
+				const EVENT: &'static str = "MintingFeeUpdated";
+			}
+			#[derive(
+				::subxt::ext::subxt_core::ext::scale_decode::DecodeAsType,
+				::subxt::ext::subxt_core::ext::scale_encode::EncodeAsType,
+				Debug,
+			)]
+			#[decode_as_type(crate_path = ":: subxt :: ext :: subxt_core :: ext :: scale_decode")]
+			#[encode_as_type(crate_path = ":: subxt :: ext :: subxt_core :: ext :: scale_encode")]
+			pub struct RedemptionFeeUpdated {
+				pub internal_asset: redemption_fee_updated::InternalAsset,
+				pub external_asset: redemption_fee_updated::ExternalAsset,
+				pub old_value: redemption_fee_updated::OldValue,
+				pub new_value: redemption_fee_updated::NewValue,
+			}
+			pub mod redemption_fee_updated {
+				use super::runtime_types;
+				pub type InternalAsset = runtime_types::staging_xcm::v5::location::Location;
+				pub type ExternalAsset = runtime_types::staging_xcm::v5::location::Location;
+				pub type OldValue = runtime_types::sp_arithmetic::per_things::Permill;
+				pub type NewValue = runtime_types::sp_arithmetic::per_things::Permill;
+			}
+			impl ::subxt::ext::subxt_core::events::StaticEvent for RedemptionFeeUpdated {
+				const PALLET: &'static str = "Psm";
+				const EVENT: &'static str = "RedemptionFeeUpdated";
+			}
+			#[derive(
+				::subxt::ext::subxt_core::ext::scale_decode::DecodeAsType,
+				::subxt::ext::subxt_core::ext::scale_encode::EncodeAsType,
+				Debug,
+			)]
+			#[decode_as_type(crate_path = ":: subxt :: ext :: subxt_core :: ext :: scale_decode")]
+			#[encode_as_type(crate_path = ":: subxt :: ext :: subxt_core :: ext :: scale_encode")]
+			pub struct MaxDebtUpdated {
+				pub internal_asset: max_debt_updated::InternalAsset,
+				pub old_value: max_debt_updated::OldValue,
+				pub new_value: max_debt_updated::NewValue,
+			}
+			pub mod max_debt_updated {
+				use super::runtime_types;
+				pub type InternalAsset = runtime_types::staging_xcm::v5::location::Location;
+				pub type OldValue = ::core::primitive::u128;
+				pub type NewValue = ::core::primitive::u128;
+			}
+			impl ::subxt::ext::subxt_core::events::StaticEvent for MaxDebtUpdated {
+				const PALLET: &'static str = "Psm";
+				const EVENT: &'static str = "MaxDebtUpdated";
+			}
+			#[derive(
+				::subxt::ext::subxt_core::ext::scale_decode::DecodeAsType,
+				::subxt::ext::subxt_core::ext::scale_encode::EncodeAsType,
+				Debug,
+			)]
+			#[decode_as_type(crate_path = ":: subxt :: ext :: subxt_core :: ext :: scale_decode")]
+			#[encode_as_type(crate_path = ":: subxt :: ext :: subxt_core :: ext :: scale_encode")]
+			pub struct AssetCeilingWeightUpdated {
+				pub internal_asset: asset_ceiling_weight_updated::InternalAsset,
+				pub external_asset: asset_ceiling_weight_updated::ExternalAsset,
+				pub old_value: asset_ceiling_weight_updated::OldValue,
+				pub new_value: asset_ceiling_weight_updated::NewValue,
+			}
+			pub mod asset_ceiling_weight_updated {
+				use super::runtime_types;
+				pub type InternalAsset = runtime_types::staging_xcm::v5::location::Location;
+				pub type ExternalAsset = runtime_types::staging_xcm::v5::location::Location;
+				pub type OldValue = runtime_types::sp_arithmetic::per_things::Permill;
+				pub type NewValue = runtime_types::sp_arithmetic::per_things::Permill;
+			}
+			impl ::subxt::ext::subxt_core::events::StaticEvent for AssetCeilingWeightUpdated {
+				const PALLET: &'static str = "Psm";
+				const EVENT: &'static str = "AssetCeilingWeightUpdated";
+			}
+			#[derive(
+				::subxt::ext::subxt_core::ext::scale_decode::DecodeAsType,
+				::subxt::ext::subxt_core::ext::scale_encode::EncodeAsType,
+				Debug,
+			)]
+			#[decode_as_type(crate_path = ":: subxt :: ext :: subxt_core :: ext :: scale_decode")]
+			#[encode_as_type(crate_path = ":: subxt :: ext :: subxt_core :: ext :: scale_encode")]
+			pub struct AssetStatusUpdated {
+				pub internal_asset: asset_status_updated::InternalAsset,
+				pub external_asset: asset_status_updated::ExternalAsset,
+				pub status: asset_status_updated::Status,
+			}
+			pub mod asset_status_updated {
+				use super::runtime_types;
+				pub type InternalAsset = runtime_types::staging_xcm::v5::location::Location;
+				pub type ExternalAsset = runtime_types::staging_xcm::v5::location::Location;
+				pub type Status = runtime_types::pallet_psm::pallet::CircuitBreakerLevel;
+			}
+			impl ::subxt::ext::subxt_core::events::StaticEvent for AssetStatusUpdated {
+				const PALLET: &'static str = "Psm";
+				const EVENT: &'static str = "AssetStatusUpdated";
+			}
+			#[derive(
+				::subxt::ext::subxt_core::ext::scale_decode::DecodeAsType,
+				::subxt::ext::subxt_core::ext::scale_encode::EncodeAsType,
+				Debug,
+			)]
+			#[decode_as_type(crate_path = ":: subxt :: ext :: subxt_core :: ext :: scale_decode")]
+			#[encode_as_type(crate_path = ":: subxt :: ext :: subxt_core :: ext :: scale_encode")]
+			pub struct ExternalAssetAdded {
+				pub internal_asset: external_asset_added::InternalAsset,
+				pub external_asset: external_asset_added::ExternalAsset,
+			}
+			pub mod external_asset_added {
+				use super::runtime_types;
+				pub type InternalAsset = runtime_types::staging_xcm::v5::location::Location;
+				pub type ExternalAsset = runtime_types::staging_xcm::v5::location::Location;
+			}
+			impl ::subxt::ext::subxt_core::events::StaticEvent for ExternalAssetAdded {
+				const PALLET: &'static str = "Psm";
+				const EVENT: &'static str = "ExternalAssetAdded";
+			}
+			#[derive(
+				::subxt::ext::subxt_core::ext::scale_decode::DecodeAsType,
+				::subxt::ext::subxt_core::ext::scale_encode::EncodeAsType,
+				Debug,
+			)]
+			#[decode_as_type(crate_path = ":: subxt :: ext :: subxt_core :: ext :: scale_decode")]
+			#[encode_as_type(crate_path = ":: subxt :: ext :: subxt_core :: ext :: scale_encode")]
+			pub struct ExternalAssetRemoved {
+				pub internal_asset: external_asset_removed::InternalAsset,
+				pub external_asset: external_asset_removed::ExternalAsset,
+			}
+			pub mod external_asset_removed {
+				use super::runtime_types;
+				pub type InternalAsset = runtime_types::staging_xcm::v5::location::Location;
+				pub type ExternalAsset = runtime_types::staging_xcm::v5::location::Location;
+			}
+			impl ::subxt::ext::subxt_core::events::StaticEvent for ExternalAssetRemoved {
+				const PALLET: &'static str = "Psm";
+				const EVENT: &'static str = "ExternalAssetRemoved";
+			}
+			#[derive(
+				::subxt::ext::subxt_core::ext::scale_decode::DecodeAsType,
+				::subxt::ext::subxt_core::ext::scale_encode::EncodeAsType,
+				Debug,
+			)]
+			#[decode_as_type(crate_path = ":: subxt :: ext :: subxt_core :: ext :: scale_decode")]
+			#[encode_as_type(crate_path = ":: subxt :: ext :: subxt_core :: ext :: scale_encode")]
+			pub struct PsmCreated {
+				pub internal_asset: psm_created::InternalAsset,
+				pub full_admin: ::subxt::ext::subxt_core::alloc::boxed::Box<psm_created::FullAdmin>,
+				pub emergency_admin:
+					::subxt::ext::subxt_core::alloc::boxed::Box<psm_created::EmergencyAdmin>,
+				pub fee_destination: psm_created::FeeDestination,
+				pub max_debt: psm_created::MaxDebt,
+			}
+			pub mod psm_created {
+				use super::runtime_types;
+				pub type InternalAsset = runtime_types::staging_xcm::v5::location::Location;
+				pub type FullAdmin = runtime_types::asset_hub_polkadot_runtime::OriginCaller;
+				pub type EmergencyAdmin = runtime_types::asset_hub_polkadot_runtime::OriginCaller;
+				pub type FeeDestination = ::subxt::ext::subxt_core::utils::AccountId32;
+				pub type MaxDebt = ::core::primitive::u128;
+			}
+			impl ::subxt::ext::subxt_core::events::StaticEvent for PsmCreated {
+				const PALLET: &'static str = "Psm";
+				const EVENT: &'static str = "PsmCreated";
+			}
+			#[derive(
+				::subxt::ext::subxt_core::ext::scale_decode::DecodeAsType,
+				::subxt::ext::subxt_core::ext::scale_encode::EncodeAsType,
+				Debug,
+			)]
+			#[decode_as_type(crate_path = ":: subxt :: ext :: subxt_core :: ext :: scale_decode")]
+			#[encode_as_type(crate_path = ":: subxt :: ext :: subxt_core :: ext :: scale_encode")]
+			pub struct PsmRemoved {
+				pub internal_asset: psm_removed::InternalAsset,
+			}
+			pub mod psm_removed {
+				use super::runtime_types;
+				pub type InternalAsset = runtime_types::staging_xcm::v5::location::Location;
+			}
+			impl ::subxt::ext::subxt_core::events::StaticEvent for PsmRemoved {
+				const PALLET: &'static str = "Psm";
+				const EVENT: &'static str = "PsmRemoved";
+			}
+			#[derive(
+				::subxt::ext::subxt_core::ext::scale_decode::DecodeAsType,
+				::subxt::ext::subxt_core::ext::scale_encode::EncodeAsType,
+				Debug,
+			)]
+			#[decode_as_type(crate_path = ":: subxt :: ext :: subxt_core :: ext :: scale_decode")]
+			#[encode_as_type(crate_path = ":: subxt :: ext :: subxt_core :: ext :: scale_encode")]
+			pub struct FullAdminChanged {
+				pub internal_asset: full_admin_changed::InternalAsset,
+				pub old_admin:
+					::subxt::ext::subxt_core::alloc::boxed::Box<full_admin_changed::OldAdmin>,
+				pub new_admin:
+					::subxt::ext::subxt_core::alloc::boxed::Box<full_admin_changed::NewAdmin>,
+			}
+			pub mod full_admin_changed {
+				use super::runtime_types;
+				pub type InternalAsset = runtime_types::staging_xcm::v5::location::Location;
+				pub type OldAdmin = runtime_types::asset_hub_polkadot_runtime::OriginCaller;
+				pub type NewAdmin = runtime_types::asset_hub_polkadot_runtime::OriginCaller;
+			}
+			impl ::subxt::ext::subxt_core::events::StaticEvent for FullAdminChanged {
+				const PALLET: &'static str = "Psm";
+				const EVENT: &'static str = "FullAdminChanged";
+			}
+			#[derive(
+				::subxt::ext::subxt_core::ext::scale_decode::DecodeAsType,
+				::subxt::ext::subxt_core::ext::scale_encode::EncodeAsType,
+				Debug,
+			)]
+			#[decode_as_type(crate_path = ":: subxt :: ext :: subxt_core :: ext :: scale_decode")]
+			#[encode_as_type(crate_path = ":: subxt :: ext :: subxt_core :: ext :: scale_encode")]
+			pub struct EmergencyAdminChanged {
+				pub internal_asset: emergency_admin_changed::InternalAsset,
+				pub old_admin:
+					::subxt::ext::subxt_core::alloc::boxed::Box<emergency_admin_changed::OldAdmin>,
+				pub new_admin:
+					::subxt::ext::subxt_core::alloc::boxed::Box<emergency_admin_changed::NewAdmin>,
+			}
+			pub mod emergency_admin_changed {
+				use super::runtime_types;
+				pub type InternalAsset = runtime_types::staging_xcm::v5::location::Location;
+				pub type OldAdmin = runtime_types::asset_hub_polkadot_runtime::OriginCaller;
+				pub type NewAdmin = runtime_types::asset_hub_polkadot_runtime::OriginCaller;
+			}
+			impl ::subxt::ext::subxt_core::events::StaticEvent for EmergencyAdminChanged {
+				const PALLET: &'static str = "Psm";
+				const EVENT: &'static str = "EmergencyAdminChanged";
+			}
+		}
+		pub mod storage {
+			use super::runtime_types;
+			pub mod types {
+				use super::runtime_types;
+				pub mod psm {
+					use super::runtime_types;
+					pub type Psm = runtime_types::pallet_psm::pallet::PsmInfo;
+					pub type Param0 = runtime_types::staging_xcm::v5::location::Location;
+				}
+				pub mod psm_admin {
+					use super::runtime_types;
+					pub type PsmAdmin = runtime_types::pallet_psm::pallet::PsmAdminInfo;
+					pub type Param0 = runtime_types::staging_xcm::v5::location::Location;
+				}
+				pub mod psm_debt {
+					use super::runtime_types;
+					pub type PsmDebt = ::core::primitive::u128;
+					pub type Param0 = runtime_types::staging_xcm::v5::location::Location;
+					pub type Param1 = runtime_types::staging_xcm::v5::location::Location;
+				}
+				pub mod minting_fee {
+					use super::runtime_types;
+					pub type MintingFee = runtime_types::sp_arithmetic::per_things::Permill;
+					pub type Param0 = runtime_types::staging_xcm::v5::location::Location;
+					pub type Param1 = runtime_types::staging_xcm::v5::location::Location;
+				}
+				pub mod redemption_fee {
+					use super::runtime_types;
+					pub type RedemptionFee = runtime_types::sp_arithmetic::per_things::Permill;
+					pub type Param0 = runtime_types::staging_xcm::v5::location::Location;
+					pub type Param1 = runtime_types::staging_xcm::v5::location::Location;
+				}
+				pub mod asset_ceiling_weight {
+					use super::runtime_types;
+					pub type AssetCeilingWeight = runtime_types::sp_arithmetic::per_things::Permill;
+					pub type Param0 = runtime_types::staging_xcm::v5::location::Location;
+					pub type Param1 = runtime_types::staging_xcm::v5::location::Location;
+				}
+				pub mod external_assets {
+					use super::runtime_types;
+					pub type ExternalAssets = runtime_types::pallet_psm::pallet::ExternalAssetInfo;
+					pub type Param0 = runtime_types::staging_xcm::v5::location::Location;
+					pub type Param1 = runtime_types::staging_xcm::v5::location::Location;
+				}
+			}
+			pub struct StorageApi;
+			impl StorageApi {
+				pub fn psm_iter(
+					&self,
+				) -> ::subxt::ext::subxt_core::storage::address::StaticAddress<
+					(),
+					types::psm::Psm,
+					(),
+					(),
+					::subxt::ext::subxt_core::utils::Yes,
+				> {
+					::subxt::ext::subxt_core::storage::address::StaticAddress::new_static(
+						"Psm",
+						"Psm",
+						(),
+						[
+							155u8, 172u8, 58u8, 112u8, 71u8, 130u8, 188u8, 155u8, 145u8, 225u8,
+							35u8, 221u8, 54u8, 254u8, 192u8, 166u8, 223u8, 19u8, 39u8, 73u8, 27u8,
+							36u8, 185u8, 248u8, 116u8, 151u8, 136u8, 120u8, 43u8, 25u8, 121u8,
+							190u8,
+						],
+					)
+				}
+				pub fn psm(
+					&self,
+					_0: types::psm::Param0,
+				) -> ::subxt::ext::subxt_core::storage::address::StaticAddress<
+					::subxt::ext::subxt_core::storage::address::StaticStorageKey<
+						types::psm::Param0,
+					>,
+					types::psm::Psm,
+					::subxt::ext::subxt_core::utils::Yes,
+					(),
+					(),
+				> {
+					::subxt::ext::subxt_core::storage::address::StaticAddress::new_static(
+						"Psm",
+						"Psm",
+						::subxt::ext::subxt_core::storage::address::StaticStorageKey::new(_0),
+						[
+							155u8, 172u8, 58u8, 112u8, 71u8, 130u8, 188u8, 155u8, 145u8, 225u8,
+							35u8, 221u8, 54u8, 254u8, 192u8, 166u8, 223u8, 19u8, 39u8, 73u8, 27u8,
+							36u8, 185u8, 248u8, 116u8, 151u8, 136u8, 120u8, 43u8, 25u8, 121u8,
+							190u8,
+						],
+					)
+				}
+				pub fn psm_admin_iter(
+					&self,
+				) -> ::subxt::ext::subxt_core::storage::address::StaticAddress<
+					(),
+					types::psm_admin::PsmAdmin,
+					(),
+					(),
+					::subxt::ext::subxt_core::utils::Yes,
+				> {
+					::subxt::ext::subxt_core::storage::address::StaticAddress::new_static(
+						"Psm",
+						"PsmAdmin",
+						(),
+						[
+							1u8, 31u8, 74u8, 123u8, 165u8, 53u8, 59u8, 89u8, 76u8, 205u8, 0u8,
+							247u8, 252u8, 216u8, 208u8, 165u8, 77u8, 44u8, 30u8, 71u8, 52u8, 144u8,
+							48u8, 232u8, 99u8, 35u8, 150u8, 2u8, 86u8, 152u8, 158u8, 233u8,
+						],
+					)
+				}
+				pub fn psm_admin(
+					&self,
+					_0: types::psm_admin::Param0,
+				) -> ::subxt::ext::subxt_core::storage::address::StaticAddress<
+					::subxt::ext::subxt_core::storage::address::StaticStorageKey<
+						types::psm_admin::Param0,
+					>,
+					types::psm_admin::PsmAdmin,
+					::subxt::ext::subxt_core::utils::Yes,
+					(),
+					(),
+				> {
+					::subxt::ext::subxt_core::storage::address::StaticAddress::new_static(
+						"Psm",
+						"PsmAdmin",
+						::subxt::ext::subxt_core::storage::address::StaticStorageKey::new(_0),
+						[
+							1u8, 31u8, 74u8, 123u8, 165u8, 53u8, 59u8, 89u8, 76u8, 205u8, 0u8,
+							247u8, 252u8, 216u8, 208u8, 165u8, 77u8, 44u8, 30u8, 71u8, 52u8, 144u8,
+							48u8, 232u8, 99u8, 35u8, 150u8, 2u8, 86u8, 152u8, 158u8, 233u8,
+						],
+					)
+				}
+				pub fn psm_debt_iter(
+					&self,
+				) -> ::subxt::ext::subxt_core::storage::address::StaticAddress<
+					(),
+					types::psm_debt::PsmDebt,
+					(),
+					::subxt::ext::subxt_core::utils::Yes,
+					::subxt::ext::subxt_core::utils::Yes,
+				> {
+					::subxt::ext::subxt_core::storage::address::StaticAddress::new_static(
+						"Psm",
+						"PsmDebt",
+						(),
+						[
+							121u8, 70u8, 43u8, 158u8, 167u8, 193u8, 8u8, 96u8, 57u8, 4u8, 226u8,
+							114u8, 253u8, 102u8, 214u8, 99u8, 205u8, 249u8, 109u8, 105u8, 31u8,
+							3u8, 165u8, 198u8, 165u8, 204u8, 252u8, 192u8, 82u8, 118u8, 67u8, 44u8,
+						],
+					)
+				}
+				pub fn psm_debt_iter1(
+					&self,
+					_0: types::psm_debt::Param0,
+				) -> ::subxt::ext::subxt_core::storage::address::StaticAddress<
+					::subxt::ext::subxt_core::storage::address::StaticStorageKey<
+						types::psm_debt::Param0,
+					>,
+					types::psm_debt::PsmDebt,
+					(),
+					::subxt::ext::subxt_core::utils::Yes,
+					::subxt::ext::subxt_core::utils::Yes,
+				> {
+					::subxt::ext::subxt_core::storage::address::StaticAddress::new_static(
+						"Psm",
+						"PsmDebt",
+						::subxt::ext::subxt_core::storage::address::StaticStorageKey::new(_0),
+						[
+							121u8, 70u8, 43u8, 158u8, 167u8, 193u8, 8u8, 96u8, 57u8, 4u8, 226u8,
+							114u8, 253u8, 102u8, 214u8, 99u8, 205u8, 249u8, 109u8, 105u8, 31u8,
+							3u8, 165u8, 198u8, 165u8, 204u8, 252u8, 192u8, 82u8, 118u8, 67u8, 44u8,
+						],
+					)
+				}
+				pub fn psm_debt(
+					&self,
+					_0: types::psm_debt::Param0,
+					_1: types::psm_debt::Param1,
+				) -> ::subxt::ext::subxt_core::storage::address::StaticAddress<
+					(
+						::subxt::ext::subxt_core::storage::address::StaticStorageKey<
+							types::psm_debt::Param0,
+						>,
+						::subxt::ext::subxt_core::storage::address::StaticStorageKey<
+							types::psm_debt::Param1,
+						>,
+					),
+					types::psm_debt::PsmDebt,
+					::subxt::ext::subxt_core::utils::Yes,
+					::subxt::ext::subxt_core::utils::Yes,
+					(),
+				> {
+					::subxt::ext::subxt_core::storage::address::StaticAddress::new_static(
+						"Psm",
+						"PsmDebt",
+						(
+							::subxt::ext::subxt_core::storage::address::StaticStorageKey::new(_0),
+							::subxt::ext::subxt_core::storage::address::StaticStorageKey::new(_1),
+						),
+						[
+							121u8, 70u8, 43u8, 158u8, 167u8, 193u8, 8u8, 96u8, 57u8, 4u8, 226u8,
+							114u8, 253u8, 102u8, 214u8, 99u8, 205u8, 249u8, 109u8, 105u8, 31u8,
+							3u8, 165u8, 198u8, 165u8, 204u8, 252u8, 192u8, 82u8, 118u8, 67u8, 44u8,
+						],
+					)
+				}
+				pub fn minting_fee_iter(
+					&self,
+				) -> ::subxt::ext::subxt_core::storage::address::StaticAddress<
+					(),
+					types::minting_fee::MintingFee,
+					(),
+					::subxt::ext::subxt_core::utils::Yes,
+					::subxt::ext::subxt_core::utils::Yes,
+				> {
+					::subxt::ext::subxt_core::storage::address::StaticAddress::new_static(
+						"Psm",
+						"MintingFee",
+						(),
+						[
+							68u8, 63u8, 21u8, 112u8, 20u8, 82u8, 209u8, 65u8, 83u8, 230u8, 83u8,
+							176u8, 87u8, 141u8, 6u8, 66u8, 155u8, 168u8, 147u8, 115u8, 47u8, 183u8,
+							57u8, 218u8, 88u8, 48u8, 201u8, 123u8, 105u8, 148u8, 124u8, 64u8,
+						],
+					)
+				}
+				pub fn minting_fee_iter1(
+					&self,
+					_0: types::minting_fee::Param0,
+				) -> ::subxt::ext::subxt_core::storage::address::StaticAddress<
+					::subxt::ext::subxt_core::storage::address::StaticStorageKey<
+						types::minting_fee::Param0,
+					>,
+					types::minting_fee::MintingFee,
+					(),
+					::subxt::ext::subxt_core::utils::Yes,
+					::subxt::ext::subxt_core::utils::Yes,
+				> {
+					::subxt::ext::subxt_core::storage::address::StaticAddress::new_static(
+						"Psm",
+						"MintingFee",
+						::subxt::ext::subxt_core::storage::address::StaticStorageKey::new(_0),
+						[
+							68u8, 63u8, 21u8, 112u8, 20u8, 82u8, 209u8, 65u8, 83u8, 230u8, 83u8,
+							176u8, 87u8, 141u8, 6u8, 66u8, 155u8, 168u8, 147u8, 115u8, 47u8, 183u8,
+							57u8, 218u8, 88u8, 48u8, 201u8, 123u8, 105u8, 148u8, 124u8, 64u8,
+						],
+					)
+				}
+				pub fn minting_fee(
+					&self,
+					_0: types::minting_fee::Param0,
+					_1: types::minting_fee::Param1,
+				) -> ::subxt::ext::subxt_core::storage::address::StaticAddress<
+					(
+						::subxt::ext::subxt_core::storage::address::StaticStorageKey<
+							types::minting_fee::Param0,
+						>,
+						::subxt::ext::subxt_core::storage::address::StaticStorageKey<
+							types::minting_fee::Param1,
+						>,
+					),
+					types::minting_fee::MintingFee,
+					::subxt::ext::subxt_core::utils::Yes,
+					::subxt::ext::subxt_core::utils::Yes,
+					(),
+				> {
+					::subxt::ext::subxt_core::storage::address::StaticAddress::new_static(
+						"Psm",
+						"MintingFee",
+						(
+							::subxt::ext::subxt_core::storage::address::StaticStorageKey::new(_0),
+							::subxt::ext::subxt_core::storage::address::StaticStorageKey::new(_1),
+						),
+						[
+							68u8, 63u8, 21u8, 112u8, 20u8, 82u8, 209u8, 65u8, 83u8, 230u8, 83u8,
+							176u8, 87u8, 141u8, 6u8, 66u8, 155u8, 168u8, 147u8, 115u8, 47u8, 183u8,
+							57u8, 218u8, 88u8, 48u8, 201u8, 123u8, 105u8, 148u8, 124u8, 64u8,
+						],
+					)
+				}
+				pub fn redemption_fee_iter(
+					&self,
+				) -> ::subxt::ext::subxt_core::storage::address::StaticAddress<
+					(),
+					types::redemption_fee::RedemptionFee,
+					(),
+					::subxt::ext::subxt_core::utils::Yes,
+					::subxt::ext::subxt_core::utils::Yes,
+				> {
+					::subxt::ext::subxt_core::storage::address::StaticAddress::new_static(
+						"Psm",
+						"RedemptionFee",
+						(),
+						[
+							251u8, 102u8, 86u8, 157u8, 24u8, 31u8, 225u8, 237u8, 222u8, 82u8, 45u8,
+							220u8, 138u8, 27u8, 19u8, 207u8, 58u8, 12u8, 184u8, 75u8, 209u8, 84u8,
+							220u8, 64u8, 186u8, 134u8, 13u8, 187u8, 245u8, 182u8, 74u8, 161u8,
+						],
+					)
+				}
+				pub fn redemption_fee_iter1(
+					&self,
+					_0: types::redemption_fee::Param0,
+				) -> ::subxt::ext::subxt_core::storage::address::StaticAddress<
+					::subxt::ext::subxt_core::storage::address::StaticStorageKey<
+						types::redemption_fee::Param0,
+					>,
+					types::redemption_fee::RedemptionFee,
+					(),
+					::subxt::ext::subxt_core::utils::Yes,
+					::subxt::ext::subxt_core::utils::Yes,
+				> {
+					::subxt::ext::subxt_core::storage::address::StaticAddress::new_static(
+						"Psm",
+						"RedemptionFee",
+						::subxt::ext::subxt_core::storage::address::StaticStorageKey::new(_0),
+						[
+							251u8, 102u8, 86u8, 157u8, 24u8, 31u8, 225u8, 237u8, 222u8, 82u8, 45u8,
+							220u8, 138u8, 27u8, 19u8, 207u8, 58u8, 12u8, 184u8, 75u8, 209u8, 84u8,
+							220u8, 64u8, 186u8, 134u8, 13u8, 187u8, 245u8, 182u8, 74u8, 161u8,
+						],
+					)
+				}
+				pub fn redemption_fee(
+					&self,
+					_0: types::redemption_fee::Param0,
+					_1: types::redemption_fee::Param1,
+				) -> ::subxt::ext::subxt_core::storage::address::StaticAddress<
+					(
+						::subxt::ext::subxt_core::storage::address::StaticStorageKey<
+							types::redemption_fee::Param0,
+						>,
+						::subxt::ext::subxt_core::storage::address::StaticStorageKey<
+							types::redemption_fee::Param1,
+						>,
+					),
+					types::redemption_fee::RedemptionFee,
+					::subxt::ext::subxt_core::utils::Yes,
+					::subxt::ext::subxt_core::utils::Yes,
+					(),
+				> {
+					::subxt::ext::subxt_core::storage::address::StaticAddress::new_static(
+						"Psm",
+						"RedemptionFee",
+						(
+							::subxt::ext::subxt_core::storage::address::StaticStorageKey::new(_0),
+							::subxt::ext::subxt_core::storage::address::StaticStorageKey::new(_1),
+						),
+						[
+							251u8, 102u8, 86u8, 157u8, 24u8, 31u8, 225u8, 237u8, 222u8, 82u8, 45u8,
+							220u8, 138u8, 27u8, 19u8, 207u8, 58u8, 12u8, 184u8, 75u8, 209u8, 84u8,
+							220u8, 64u8, 186u8, 134u8, 13u8, 187u8, 245u8, 182u8, 74u8, 161u8,
+						],
+					)
+				}
+				pub fn asset_ceiling_weight_iter(
+					&self,
+				) -> ::subxt::ext::subxt_core::storage::address::StaticAddress<
+					(),
+					types::asset_ceiling_weight::AssetCeilingWeight,
+					(),
+					::subxt::ext::subxt_core::utils::Yes,
+					::subxt::ext::subxt_core::utils::Yes,
+				> {
+					::subxt::ext::subxt_core::storage::address::StaticAddress::new_static(
+						"Psm",
+						"AssetCeilingWeight",
+						(),
+						[
+							81u8, 10u8, 103u8, 82u8, 124u8, 25u8, 76u8, 51u8, 251u8, 179u8, 87u8,
+							113u8, 141u8, 20u8, 230u8, 16u8, 166u8, 128u8, 39u8, 74u8, 53u8, 134u8,
+							42u8, 83u8, 67u8, 246u8, 180u8, 212u8, 111u8, 235u8, 1u8, 78u8,
+						],
+					)
+				}
+				pub fn asset_ceiling_weight_iter1(
+					&self,
+					_0: types::asset_ceiling_weight::Param0,
+				) -> ::subxt::ext::subxt_core::storage::address::StaticAddress<
+					::subxt::ext::subxt_core::storage::address::StaticStorageKey<
+						types::asset_ceiling_weight::Param0,
+					>,
+					types::asset_ceiling_weight::AssetCeilingWeight,
+					(),
+					::subxt::ext::subxt_core::utils::Yes,
+					::subxt::ext::subxt_core::utils::Yes,
+				> {
+					::subxt::ext::subxt_core::storage::address::StaticAddress::new_static(
+						"Psm",
+						"AssetCeilingWeight",
+						::subxt::ext::subxt_core::storage::address::StaticStorageKey::new(_0),
+						[
+							81u8, 10u8, 103u8, 82u8, 124u8, 25u8, 76u8, 51u8, 251u8, 179u8, 87u8,
+							113u8, 141u8, 20u8, 230u8, 16u8, 166u8, 128u8, 39u8, 74u8, 53u8, 134u8,
+							42u8, 83u8, 67u8, 246u8, 180u8, 212u8, 111u8, 235u8, 1u8, 78u8,
+						],
+					)
+				}
+				pub fn asset_ceiling_weight(
+					&self,
+					_0: types::asset_ceiling_weight::Param0,
+					_1: types::asset_ceiling_weight::Param1,
+				) -> ::subxt::ext::subxt_core::storage::address::StaticAddress<
+					(
+						::subxt::ext::subxt_core::storage::address::StaticStorageKey<
+							types::asset_ceiling_weight::Param0,
+						>,
+						::subxt::ext::subxt_core::storage::address::StaticStorageKey<
+							types::asset_ceiling_weight::Param1,
+						>,
+					),
+					types::asset_ceiling_weight::AssetCeilingWeight,
+					::subxt::ext::subxt_core::utils::Yes,
+					::subxt::ext::subxt_core::utils::Yes,
+					(),
+				> {
+					::subxt::ext::subxt_core::storage::address::StaticAddress::new_static(
+						"Psm",
+						"AssetCeilingWeight",
+						(
+							::subxt::ext::subxt_core::storage::address::StaticStorageKey::new(_0),
+							::subxt::ext::subxt_core::storage::address::StaticStorageKey::new(_1),
+						),
+						[
+							81u8, 10u8, 103u8, 82u8, 124u8, 25u8, 76u8, 51u8, 251u8, 179u8, 87u8,
+							113u8, 141u8, 20u8, 230u8, 16u8, 166u8, 128u8, 39u8, 74u8, 53u8, 134u8,
+							42u8, 83u8, 67u8, 246u8, 180u8, 212u8, 111u8, 235u8, 1u8, 78u8,
+						],
+					)
+				}
+				pub fn external_assets_iter(
+					&self,
+				) -> ::subxt::ext::subxt_core::storage::address::StaticAddress<
+					(),
+					types::external_assets::ExternalAssets,
+					(),
+					(),
+					::subxt::ext::subxt_core::utils::Yes,
+				> {
+					::subxt::ext::subxt_core::storage::address::StaticAddress::new_static(
+						"Psm",
+						"ExternalAssets",
+						(),
+						[
+							101u8, 75u8, 200u8, 98u8, 231u8, 188u8, 225u8, 62u8, 143u8, 188u8,
+							45u8, 212u8, 101u8, 8u8, 109u8, 150u8, 210u8, 177u8, 207u8, 207u8,
+							34u8, 188u8, 59u8, 173u8, 249u8, 232u8, 158u8, 118u8, 179u8, 87u8,
+							78u8, 38u8,
+						],
+					)
+				}
+				pub fn external_assets_iter1(
+					&self,
+					_0: types::external_assets::Param0,
+				) -> ::subxt::ext::subxt_core::storage::address::StaticAddress<
+					::subxt::ext::subxt_core::storage::address::StaticStorageKey<
+						types::external_assets::Param0,
+					>,
+					types::external_assets::ExternalAssets,
+					(),
+					(),
+					::subxt::ext::subxt_core::utils::Yes,
+				> {
+					::subxt::ext::subxt_core::storage::address::StaticAddress::new_static(
+						"Psm",
+						"ExternalAssets",
+						::subxt::ext::subxt_core::storage::address::StaticStorageKey::new(_0),
+						[
+							101u8, 75u8, 200u8, 98u8, 231u8, 188u8, 225u8, 62u8, 143u8, 188u8,
+							45u8, 212u8, 101u8, 8u8, 109u8, 150u8, 210u8, 177u8, 207u8, 207u8,
+							34u8, 188u8, 59u8, 173u8, 249u8, 232u8, 158u8, 118u8, 179u8, 87u8,
+							78u8, 38u8,
+						],
+					)
+				}
+				pub fn external_assets(
+					&self,
+					_0: types::external_assets::Param0,
+					_1: types::external_assets::Param1,
+				) -> ::subxt::ext::subxt_core::storage::address::StaticAddress<
+					(
+						::subxt::ext::subxt_core::storage::address::StaticStorageKey<
+							types::external_assets::Param0,
+						>,
+						::subxt::ext::subxt_core::storage::address::StaticStorageKey<
+							types::external_assets::Param1,
+						>,
+					),
+					types::external_assets::ExternalAssets,
+					::subxt::ext::subxt_core::utils::Yes,
+					(),
+					(),
+				> {
+					::subxt::ext::subxt_core::storage::address::StaticAddress::new_static(
+						"Psm",
+						"ExternalAssets",
+						(
+							::subxt::ext::subxt_core::storage::address::StaticStorageKey::new(_0),
+							::subxt::ext::subxt_core::storage::address::StaticStorageKey::new(_1),
+						),
+						[
+							101u8, 75u8, 200u8, 98u8, 231u8, 188u8, 225u8, 62u8, 143u8, 188u8,
+							45u8, 212u8, 101u8, 8u8, 109u8, 150u8, 210u8, 177u8, 207u8, 207u8,
+							34u8, 188u8, 59u8, 173u8, 249u8, 232u8, 158u8, 118u8, 179u8, 87u8,
+							78u8, 38u8,
+						],
+					)
+				}
+			}
+		}
+		pub mod constants {
+			use super::runtime_types;
+			pub struct ConstantsApi;
+			impl ConstantsApi {
+				pub fn pallet_id(
+					&self,
+				) -> ::subxt::ext::subxt_core::constants::address::StaticAddress<
+					runtime_types::frame_support::PalletId,
+				> {
+					::subxt::ext::subxt_core::constants::address::StaticAddress::new_static(
+						"Psm",
+						"PalletId",
+						[
+							56u8, 243u8, 53u8, 83u8, 154u8, 179u8, 170u8, 80u8, 133u8, 173u8, 61u8,
+							161u8, 47u8, 225u8, 146u8, 21u8, 50u8, 229u8, 248u8, 27u8, 104u8, 58u8,
+							129u8, 197u8, 102u8, 160u8, 168u8, 205u8, 154u8, 42u8, 217u8, 53u8,
+						],
+					)
+				}
+				pub fn max_externals(
+					&self,
+				) -> ::subxt::ext::subxt_core::constants::address::StaticAddress<
+					::core::primitive::u32,
+				> {
+					::subxt::ext::subxt_core::constants::address::StaticAddress::new_static(
+						"Psm",
+						"MaxExternals",
+						[
+							98u8, 252u8, 116u8, 72u8, 26u8, 180u8, 225u8, 83u8, 200u8, 157u8,
+							125u8, 151u8, 53u8, 76u8, 168u8, 26u8, 10u8, 9u8, 98u8, 68u8, 9u8,
+							178u8, 197u8, 113u8, 31u8, 79u8, 200u8, 90u8, 203u8, 100u8, 41u8,
+							145u8,
+						],
+					)
+				}
+			}
+		}
+	}
 	pub mod treasury {
 		use super::{root_mod, runtime_types};
 		pub type Error = runtime_types::pallet_treasury::pallet::Error;
@@ -34276,10 +35751,9 @@ pub mod api {
 							call: ::subxt::ext::subxt_core::alloc::boxed::Box::new(call),
 						},
 						[
-							48u8, 150u8, 86u8, 158u8, 207u8, 121u8, 194u8, 107u8, 190u8, 101u8,
-							98u8, 250u8, 178u8, 168u8, 247u8, 165u8, 74u8, 144u8, 73u8, 59u8,
-							178u8, 115u8, 234u8, 139u8, 86u8, 26u8, 36u8, 58u8, 60u8, 236u8, 243u8,
-							252u8,
+							117u8, 234u8, 218u8, 24u8, 5u8, 205u8, 91u8, 66u8, 65u8, 172u8, 80u8,
+							189u8, 225u8, 106u8, 143u8, 55u8, 180u8, 221u8, 195u8, 0u8, 42u8, 4u8,
+							213u8, 8u8, 180u8, 163u8, 235u8, 74u8, 54u8, 129u8, 251u8, 11u8,
 						],
 					)
 				}
@@ -48721,9 +50195,10 @@ pub mod api {
 							transaction_encoded,
 						},
 						[
-							102u8, 58u8, 67u8, 184u8, 90u8, 254u8, 80u8, 51u8, 164u8, 218u8, 182u8,
-							69u8, 23u8, 154u8, 129u8, 235u8, 220u8, 99u8, 74u8, 147u8, 66u8, 128u8,
-							152u8, 105u8, 60u8, 156u8, 198u8, 80u8, 154u8, 40u8, 38u8, 106u8,
+							139u8, 52u8, 111u8, 121u8, 242u8, 63u8, 135u8, 186u8, 91u8, 65u8,
+							242u8, 226u8, 201u8, 42u8, 134u8, 234u8, 102u8, 235u8, 252u8, 129u8,
+							227u8, 40u8, 227u8, 89u8, 250u8, 80u8, 142u8, 85u8, 216u8, 245u8,
+							238u8, 150u8,
 						],
 					)
 				}
@@ -48832,9 +50307,9 @@ pub mod api {
 							call: ::subxt::ext::subxt_core::alloc::boxed::Box::new(call),
 						},
 						[
-							217u8, 62u8, 63u8, 198u8, 56u8, 29u8, 127u8, 206u8, 181u8, 171u8, 35u8,
-							61u8, 3u8, 41u8, 93u8, 43u8, 14u8, 54u8, 137u8, 136u8, 186u8, 163u8,
-							138u8, 136u8, 109u8, 68u8, 93u8, 208u8, 201u8, 175u8, 244u8, 10u8,
+							207u8, 209u8, 59u8, 137u8, 147u8, 40u8, 13u8, 121u8, 71u8, 143u8, 34u8,
+							160u8, 65u8, 14u8, 238u8, 113u8, 214u8, 50u8, 166u8, 162u8, 93u8, 16u8,
+							245u8, 57u8, 145u8, 190u8, 2u8, 48u8, 191u8, 144u8, 130u8, 100u8,
 						],
 					)
 				}
@@ -51419,6 +52894,8 @@ pub mod api {
                 PoolAssets(runtime_types::pallet_assets::pallet::Call3),
                 #[codec(index = 55)]
                 AssetConversion(runtime_types::pallet_asset_conversion::pallet::Call),
+                #[codec(index = 56)]
+                Psm(runtime_types::pallet_psm::pallet::Call),
                 #[codec(index = 60)]
                 Treasury(runtime_types::pallet_treasury::pallet::Call),
                 #[codec(index = 61)]
@@ -51532,6 +53009,8 @@ pub mod api {
 				PoolAssets(runtime_types::pallet_assets::pallet::Error),
 				#[codec(index = 55)]
 				AssetConversion(runtime_types::pallet_asset_conversion::pallet::Error),
+				#[codec(index = 56)]
+				Psm(runtime_types::pallet_psm::pallet::Error),
 				#[codec(index = 60)]
 				Treasury(runtime_types::pallet_treasury::pallet::Error),
 				#[codec(index = 61)]
@@ -51657,6 +53136,8 @@ pub mod api {
                 PoolAssets(runtime_types::pallet_assets::pallet::Event1),
                 #[codec(index = 55)]
                 AssetConversion(runtime_types::pallet_asset_conversion::pallet::Event),
+                #[codec(index = 56)]
+                Psm(runtime_types::pallet_psm::pallet::Event),
                 #[codec(index = 60)]
                 Treasury(runtime_types::pallet_treasury::pallet::Event),
                 #[codec(index = 61)]
@@ -51735,6 +53216,8 @@ pub mod api {
 				Session(runtime_types::pallet_session::pallet::HoldReason),
 				#[codec(index = 31)]
 				PolkadotXcm(runtime_types::pallet_xcm::pallet::HoldReason),
+				#[codec(index = 56)]
+				Psm(runtime_types::pallet_psm::pallet::HoldReason),
 				#[codec(index = 68)]
 				MultiAssetBounties(runtime_types::pallet_multi_asset_bounties::pallet::HoldReason),
 				#[codec(index = 70)]
@@ -52439,6 +53922,7 @@ pub mod api {
 				pub first_index: ::core::primitive::u16,
 				pub last_index: ::core::primitive::u16,
 				pub flags: runtime_types::cumulus_pallet_xcmp_queue::OutboundChannelFlags,
+				pub queued_bytes: ::core::primitive::u32,
 			}
 			#[derive(
 				::subxt::ext::subxt_core::ext::scale_decode::DecodeAsType,
@@ -60648,6 +62132,364 @@ pub mod api {
 				pub delegate: _0,
 				pub proxy_type: _1,
 				pub delay: _2,
+			}
+		}
+		pub mod pallet_psm {
+			use super::runtime_types;
+			pub mod pallet {
+				use super::runtime_types;
+				#[derive(
+					::subxt::ext::subxt_core::ext::scale_decode::DecodeAsType,
+					::subxt::ext::subxt_core::ext::scale_encode::EncodeAsType,
+					Debug,
+				)]
+				#[decode_as_type(
+					crate_path = ":: subxt :: ext :: subxt_core :: ext :: scale_decode"
+				)]
+				#[encode_as_type(
+					crate_path = ":: subxt :: ext :: subxt_core :: ext :: scale_encode"
+				)]
+				pub enum Call {
+					#[codec(index = 0)]
+					mint {
+						internal_asset: runtime_types::staging_xcm::v5::location::Location,
+						external_asset: runtime_types::staging_xcm::v5::location::Location,
+						external_amount: ::core::primitive::u128,
+						max_fee: runtime_types::sp_arithmetic::per_things::Permill,
+					},
+					#[codec(index = 1)]
+					redeem {
+						internal_asset: runtime_types::staging_xcm::v5::location::Location,
+						external_asset: runtime_types::staging_xcm::v5::location::Location,
+						internal_amount: ::core::primitive::u128,
+						max_fee: runtime_types::sp_arithmetic::per_things::Permill,
+					},
+					#[codec(index = 2)]
+					create_psm {
+						internal_asset: runtime_types::staging_xcm::v5::location::Location,
+						full_admin: ::subxt::ext::subxt_core::alloc::boxed::Box<
+							runtime_types::asset_hub_polkadot_runtime::OriginCaller,
+						>,
+						emergency_admin: ::subxt::ext::subxt_core::alloc::boxed::Box<
+							runtime_types::asset_hub_polkadot_runtime::OriginCaller,
+						>,
+						fee_destination: ::subxt::ext::subxt_core::utils::AccountId32,
+						max_debt: ::core::primitive::u128,
+						min_swap_amount: ::core::primitive::u128,
+					},
+					#[codec(index = 3)]
+					remove_psm {
+						internal_asset: runtime_types::staging_xcm::v5::location::Location,
+					},
+					#[codec(index = 4)]
+					set_minting_fee {
+						internal_asset: runtime_types::staging_xcm::v5::location::Location,
+						external_asset: runtime_types::staging_xcm::v5::location::Location,
+						fee: runtime_types::sp_arithmetic::per_things::Permill,
+					},
+					#[codec(index = 5)]
+					set_redemption_fee {
+						internal_asset: runtime_types::staging_xcm::v5::location::Location,
+						external_asset: runtime_types::staging_xcm::v5::location::Location,
+						fee: runtime_types::sp_arithmetic::per_things::Permill,
+					},
+					#[codec(index = 6)]
+					set_max_debt {
+						internal_asset: runtime_types::staging_xcm::v5::location::Location,
+						value: ::core::primitive::u128,
+					},
+					#[codec(index = 7)]
+					set_asset_status {
+						internal_asset: runtime_types::staging_xcm::v5::location::Location,
+						external_asset: runtime_types::staging_xcm::v5::location::Location,
+						status: runtime_types::pallet_psm::pallet::CircuitBreakerLevel,
+					},
+					#[codec(index = 8)]
+					set_asset_ceiling_weight {
+						internal_asset: runtime_types::staging_xcm::v5::location::Location,
+						external_asset: runtime_types::staging_xcm::v5::location::Location,
+						weight: runtime_types::sp_arithmetic::per_things::Permill,
+					},
+					#[codec(index = 9)]
+					add_external_asset {
+						internal_asset: runtime_types::staging_xcm::v5::location::Location,
+						external_asset: runtime_types::staging_xcm::v5::location::Location,
+					},
+					#[codec(index = 10)]
+					remove_external_asset {
+						internal_asset: runtime_types::staging_xcm::v5::location::Location,
+						external_asset: runtime_types::staging_xcm::v5::location::Location,
+					},
+					#[codec(index = 11)]
+					set_full_admin {
+						internal_asset: runtime_types::staging_xcm::v5::location::Location,
+						new_admin: ::subxt::ext::subxt_core::alloc::boxed::Box<
+							runtime_types::asset_hub_polkadot_runtime::OriginCaller,
+						>,
+					},
+					#[codec(index = 12)]
+					set_emergency_admin {
+						internal_asset: runtime_types::staging_xcm::v5::location::Location,
+						new_admin: ::subxt::ext::subxt_core::alloc::boxed::Box<
+							runtime_types::asset_hub_polkadot_runtime::OriginCaller,
+						>,
+					},
+				}
+				#[derive(
+					::subxt::ext::subxt_core::ext::scale_decode::DecodeAsType,
+					::subxt::ext::subxt_core::ext::scale_encode::EncodeAsType,
+					Debug,
+				)]
+				#[decode_as_type(
+					crate_path = ":: subxt :: ext :: subxt_core :: ext :: scale_decode"
+				)]
+				#[encode_as_type(
+					crate_path = ":: subxt :: ext :: subxt_core :: ext :: scale_encode"
+				)]
+				pub enum CircuitBreakerLevel {
+					#[codec(index = 0)]
+					AllEnabled,
+					#[codec(index = 1)]
+					MintingDisabled,
+					#[codec(index = 2)]
+					AllDisabled,
+				}
+				#[derive(
+					::subxt::ext::subxt_core::ext::scale_decode::DecodeAsType,
+					::subxt::ext::subxt_core::ext::scale_encode::EncodeAsType,
+					Debug,
+				)]
+				#[decode_as_type(
+					crate_path = ":: subxt :: ext :: subxt_core :: ext :: scale_decode"
+				)]
+				#[encode_as_type(
+					crate_path = ":: subxt :: ext :: subxt_core :: ext :: scale_encode"
+				)]
+				pub enum Error {
+					#[codec(index = 0)]
+					InsufficientReserve,
+					#[codec(index = 1)]
+					ExceedsMaxPsmDebt,
+					#[codec(index = 2)]
+					BelowMinimumSwap,
+					#[codec(index = 3)]
+					FeeTooHigh,
+					#[codec(index = 4)]
+					ZeroMinSwapAmount,
+					#[codec(index = 5)]
+					MintingStopped,
+					#[codec(index = 6)]
+					AllSwapsStopped,
+					#[codec(index = 7)]
+					UnsupportedAsset,
+					#[codec(index = 8)]
+					PsmNotFound,
+					#[codec(index = 9)]
+					AssetAlreadyApproved,
+					#[codec(index = 10)]
+					AssetDoesNotExist,
+					#[codec(index = 11)]
+					AssetNotApproved,
+					#[codec(index = 12)]
+					AssetHasDebt,
+					#[codec(index = 13)]
+					InsufficientPrivilege,
+					#[codec(index = 14)]
+					TooManyAssets,
+					#[codec(index = 15)]
+					DecimalsMismatch,
+					#[codec(index = 16)]
+					DecimalsRangeExceeded,
+					#[codec(index = 17)]
+					ConversionOverflow,
+					#[codec(index = 18)]
+					AmountTooSmallAfterConversion,
+					#[codec(index = 19)]
+					PsmAlreadyExists,
+					#[codec(index = 20)]
+					PsmHasDebt,
+					#[codec(index = 21)]
+					PsmHasApprovedExternals,
+					#[codec(index = 22)]
+					Unexpected,
+				}
+				#[derive(
+					::subxt::ext::subxt_core::ext::scale_decode::DecodeAsType,
+					::subxt::ext::subxt_core::ext::scale_encode::EncodeAsType,
+					Debug,
+				)]
+				#[decode_as_type(
+					crate_path = ":: subxt :: ext :: subxt_core :: ext :: scale_decode"
+				)]
+				#[encode_as_type(
+					crate_path = ":: subxt :: ext :: subxt_core :: ext :: scale_encode"
+				)]
+				pub enum Event {
+					#[codec(index = 0)]
+					Minted {
+						who: ::subxt::ext::subxt_core::utils::AccountId32,
+						internal_asset: runtime_types::staging_xcm::v5::location::Location,
+						external_asset: runtime_types::staging_xcm::v5::location::Location,
+						external_consumed: ::core::primitive::u128,
+						internal_received: ::core::primitive::u128,
+						internal_fee: ::core::primitive::u128,
+					},
+					#[codec(index = 1)]
+					Redeemed {
+						who: ::subxt::ext::subxt_core::utils::AccountId32,
+						internal_asset: runtime_types::staging_xcm::v5::location::Location,
+						external_asset: runtime_types::staging_xcm::v5::location::Location,
+						internal_consumed: ::core::primitive::u128,
+						external_received: ::core::primitive::u128,
+						internal_fee: ::core::primitive::u128,
+					},
+					#[codec(index = 2)]
+					MintingFeeUpdated {
+						internal_asset: runtime_types::staging_xcm::v5::location::Location,
+						external_asset: runtime_types::staging_xcm::v5::location::Location,
+						old_value: runtime_types::sp_arithmetic::per_things::Permill,
+						new_value: runtime_types::sp_arithmetic::per_things::Permill,
+					},
+					#[codec(index = 3)]
+					RedemptionFeeUpdated {
+						internal_asset: runtime_types::staging_xcm::v5::location::Location,
+						external_asset: runtime_types::staging_xcm::v5::location::Location,
+						old_value: runtime_types::sp_arithmetic::per_things::Permill,
+						new_value: runtime_types::sp_arithmetic::per_things::Permill,
+					},
+					#[codec(index = 4)]
+					MaxDebtUpdated {
+						internal_asset: runtime_types::staging_xcm::v5::location::Location,
+						old_value: ::core::primitive::u128,
+						new_value: ::core::primitive::u128,
+					},
+					#[codec(index = 5)]
+					AssetCeilingWeightUpdated {
+						internal_asset: runtime_types::staging_xcm::v5::location::Location,
+						external_asset: runtime_types::staging_xcm::v5::location::Location,
+						old_value: runtime_types::sp_arithmetic::per_things::Permill,
+						new_value: runtime_types::sp_arithmetic::per_things::Permill,
+					},
+					#[codec(index = 6)]
+					AssetStatusUpdated {
+						internal_asset: runtime_types::staging_xcm::v5::location::Location,
+						external_asset: runtime_types::staging_xcm::v5::location::Location,
+						status: runtime_types::pallet_psm::pallet::CircuitBreakerLevel,
+					},
+					#[codec(index = 7)]
+					ExternalAssetAdded {
+						internal_asset: runtime_types::staging_xcm::v5::location::Location,
+						external_asset: runtime_types::staging_xcm::v5::location::Location,
+					},
+					#[codec(index = 8)]
+					ExternalAssetRemoved {
+						internal_asset: runtime_types::staging_xcm::v5::location::Location,
+						external_asset: runtime_types::staging_xcm::v5::location::Location,
+					},
+					#[codec(index = 9)]
+					PsmCreated {
+						internal_asset: runtime_types::staging_xcm::v5::location::Location,
+						full_admin: ::subxt::ext::subxt_core::alloc::boxed::Box<
+							runtime_types::asset_hub_polkadot_runtime::OriginCaller,
+						>,
+						emergency_admin: ::subxt::ext::subxt_core::alloc::boxed::Box<
+							runtime_types::asset_hub_polkadot_runtime::OriginCaller,
+						>,
+						fee_destination: ::subxt::ext::subxt_core::utils::AccountId32,
+						max_debt: ::core::primitive::u128,
+					},
+					#[codec(index = 10)]
+					PsmRemoved {
+						internal_asset: runtime_types::staging_xcm::v5::location::Location,
+					},
+					#[codec(index = 11)]
+					FullAdminChanged {
+						internal_asset: runtime_types::staging_xcm::v5::location::Location,
+						old_admin: ::subxt::ext::subxt_core::alloc::boxed::Box<
+							runtime_types::asset_hub_polkadot_runtime::OriginCaller,
+						>,
+						new_admin: ::subxt::ext::subxt_core::alloc::boxed::Box<
+							runtime_types::asset_hub_polkadot_runtime::OriginCaller,
+						>,
+					},
+					#[codec(index = 12)]
+					EmergencyAdminChanged {
+						internal_asset: runtime_types::staging_xcm::v5::location::Location,
+						old_admin: ::subxt::ext::subxt_core::alloc::boxed::Box<
+							runtime_types::asset_hub_polkadot_runtime::OriginCaller,
+						>,
+						new_admin: ::subxt::ext::subxt_core::alloc::boxed::Box<
+							runtime_types::asset_hub_polkadot_runtime::OriginCaller,
+						>,
+					},
+				}
+				#[derive(
+					::subxt::ext::subxt_core::ext::scale_decode::DecodeAsType,
+					::subxt::ext::subxt_core::ext::scale_encode::EncodeAsType,
+					Debug,
+				)]
+				#[decode_as_type(
+					crate_path = ":: subxt :: ext :: subxt_core :: ext :: scale_decode"
+				)]
+				#[encode_as_type(
+					crate_path = ":: subxt :: ext :: subxt_core :: ext :: scale_encode"
+				)]
+				pub struct ExternalAssetInfo {
+					pub status: runtime_types::pallet_psm::pallet::CircuitBreakerLevel,
+					pub decimals: ::core::primitive::u8,
+				}
+				#[derive(
+					::subxt::ext::subxt_core::ext::scale_decode::DecodeAsType,
+					::subxt::ext::subxt_core::ext::scale_encode::EncodeAsType,
+					Debug,
+				)]
+				#[decode_as_type(
+					crate_path = ":: subxt :: ext :: subxt_core :: ext :: scale_decode"
+				)]
+				#[encode_as_type(
+					crate_path = ":: subxt :: ext :: subxt_core :: ext :: scale_encode"
+				)]
+				pub enum HoldReason {
+					#[codec(index = 0)]
+					CreationDeposit,
+				}
+				#[derive(
+					::subxt::ext::subxt_core::ext::scale_decode::DecodeAsType,
+					::subxt::ext::subxt_core::ext::scale_encode::EncodeAsType,
+					Debug,
+				)]
+				#[decode_as_type(
+					crate_path = ":: subxt :: ext :: subxt_core :: ext :: scale_decode"
+				)]
+				#[encode_as_type(
+					crate_path = ":: subxt :: ext :: subxt_core :: ext :: scale_encode"
+				)]
+				pub struct PsmAdminInfo {
+					pub full_admin: runtime_types::asset_hub_polkadot_runtime::OriginCaller,
+					pub emergency_admin: runtime_types::asset_hub_polkadot_runtime::OriginCaller,
+					pub deposit: ::core::option::Option<(
+						::subxt::ext::subxt_core::utils::AccountId32,
+						runtime_types::frame_support::traits::tokens::fungible::HoldConsideration,
+					)>,
+				}
+				#[derive(
+					::subxt::ext::subxt_core::ext::scale_decode::DecodeAsType,
+					::subxt::ext::subxt_core::ext::scale_encode::EncodeAsType,
+					Debug,
+				)]
+				#[decode_as_type(
+					crate_path = ":: subxt :: ext :: subxt_core :: ext :: scale_decode"
+				)]
+				#[encode_as_type(
+					crate_path = ":: subxt :: ext :: subxt_core :: ext :: scale_encode"
+				)]
+				pub struct PsmInfo {
+					pub fee_destination: ::subxt::ext::subxt_core::utils::AccountId32,
+					pub max_debt: ::core::primitive::u128,
+					pub min_swap_amount: ::core::primitive::u128,
+					pub internal_decimals: ::core::primitive::u8,
+					pub external_count: ::core::primitive::u32,
+				}
 			}
 		}
 		pub mod pallet_referenda {

@@ -19,7 +19,7 @@
 //! EXECUTED COMMAND:
 //! /home/runner/work/parity-bridges-common/parity-bridges-common/tools/runtime-codegen/target/
 //! release/runtime-codegen --full --from-wasm-file
-//! /tmp/tmp.kw1Z57eWYF/bridge-hub-polkadot_runtime-v2003002.compact.compressed.wasm
+//! /tmp/tmp.9jK20jL89x/bridge-hub-polkadot_runtime-v2004000.compact.compressed.wasm
 
 #[allow(dead_code, unused_imports, non_camel_case_types, unreachable_patterns)]
 #[allow(clippy::all)]
@@ -366,9 +366,9 @@ pub mod api {
 			.hash();
 		runtime_metadata_hash ==
 			[
-				77u8, 88u8, 129u8, 108u8, 128u8, 189u8, 125u8, 237u8, 1u8, 178u8, 209u8, 161u8,
-				76u8, 17u8, 146u8, 21u8, 73u8, 36u8, 154u8, 138u8, 160u8, 155u8, 143u8, 130u8,
-				221u8, 248u8, 152u8, 79u8, 49u8, 160u8, 241u8, 67u8,
+				182u8, 4u8, 87u8, 145u8, 193u8, 41u8, 164u8, 246u8, 46u8, 205u8, 37u8, 157u8,
+				173u8, 71u8, 156u8, 247u8, 160u8, 206u8, 31u8, 163u8, 95u8, 184u8, 245u8, 15u8,
+				58u8, 178u8, 174u8, 178u8, 238u8, 26u8, 22u8, 18u8,
 			]
 	}
 	pub mod system {
@@ -6225,9 +6225,10 @@ pub mod api {
 						"OutboundXcmpStatus",
 						(),
 						[
-							13u8, 206u8, 22u8, 3u8, 237u8, 137u8, 239u8, 6u8, 114u8, 145u8, 66u8,
-							94u8, 105u8, 20u8, 47u8, 97u8, 240u8, 42u8, 86u8, 24u8, 164u8, 46u8,
-							253u8, 201u8, 115u8, 155u8, 96u8, 7u8, 224u8, 126u8, 150u8, 115u8,
+							252u8, 190u8, 81u8, 190u8, 249u8, 225u8, 64u8, 21u8, 195u8, 78u8,
+							218u8, 7u8, 190u8, 10u8, 240u8, 39u8, 104u8, 210u8, 34u8, 203u8, 115u8,
+							103u8, 165u8, 162u8, 234u8, 68u8, 10u8, 199u8, 200u8, 72u8, 66u8,
+							234u8,
 						],
 					)
 				}
@@ -18176,6 +18177,7 @@ pub mod api {
 				pub first_index: ::core::primitive::u16,
 				pub last_index: ::core::primitive::u16,
 				pub flags: runtime_types::cumulus_pallet_xcmp_queue::OutboundChannelFlags,
+				pub queued_bytes: ::core::primitive::u32,
 			}
 			#[derive(
 				::subxt::ext::subxt_core::ext::scale_decode::DecodeAsType,
