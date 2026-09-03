@@ -31,6 +31,7 @@ use super::{
 };
 use crate::common::{
 	images::node_images,
+	light_client::{self, LightClient, RelayTransport, Target},
 	relayer::{init_bridge_confirmed, spawn_relayer, Relayer},
 	utils::{
 		best_finalized_bridged_header, bridge_hub_balances, config_errs, dev_account,
@@ -45,6 +46,9 @@ pub struct BridgeTestEnv {
 	pub rococo: Network<LocalFileSystem>,
 	pub westend: Network<LocalFileSystem>,
 	_relayers: Vec<Relayer>,
+	/// smoldot sidecars backing the relayers, when `BRIDGE_RELAY_TRANSPORT` asks for them. Held
+	/// here only to keep them alive for as long as the relayers that read from them.
+	_light_clients: Vec<LightClient>,
 }
 
 /// Relay-chain genesis override for the async-backing params both networks need.
@@ -339,7 +343,8 @@ impl BridgeTestEnv {
 			spawn_with_retry(get_spawn_fn(), westend_network_config, "Westend"),
 		)?;
 
-		let mut env = BridgeTestEnv { rococo, westend, _relayers: Vec::new() };
+		let mut env =
+			BridgeTestEnv { rococo, westend, _relayers: Vec::new(), _light_clients: Vec::new() };
 
 		if init {
 			env.init_bridge().await?;
@@ -527,6 +532,62 @@ impl BridgeTestEnv {
 		let bh_rococo = self.rococo.get_node("bridge-hub-rococo-collator1")?.ws_uri().to_string();
 		let bh_westend =
 			self.westend.get_node("bridge-hub-westend-collator1")?.ws_uri().to_string();
+
+		// Only the *relayers* move to the light clients (#3270); the assertions below keep
+		// reading through `subxt` against the nodes, so a light-client defect shows up as a
+		// bridge that stops relaying rather than as a test passing against a lying data source.
+		let transport = RelayTransport::from_env()?;
+		log::info!("Relayer transport: {transport:?}");
+
+		let (rococo_relay, westend_relay) = if transport.relays_via_light_client() {
+			let (rococo_lc, westend_lc) = tokio::try_join!(
+				light_client::spawn(
+					&self.rococo,
+					Target::Relay { bootnode: "alice-rococo-validator" },
+					"rococo",
+				),
+				light_client::spawn(
+					&self.westend,
+					Target::Relay { bootnode: "alice-westend-validator" },
+					"westend",
+				),
+			)?;
+			let uris = (rococo_lc.uri().to_string(), westend_lc.uri().to_string());
+			self._light_clients.push(rococo_lc);
+			self._light_clients.push(westend_lc);
+			uris
+		} else {
+			(rococo_relay, westend_relay)
+		};
+
+		let (bh_rococo, bh_westend) = if transport.bridge_hubs_via_light_client() {
+			let (bhr_lc, bhw_lc) = tokio::try_join!(
+				light_client::spawn(
+					&self.rococo,
+					Target::Para {
+						para_id: BRIDGE_HUB_ROCOCO_PARA_ID,
+						bootnode: "bridge-hub-rococo-collator1",
+						relay_bootnode: "alice-rococo-validator",
+					},
+					"bridge-hub-rococo",
+				),
+				light_client::spawn(
+					&self.westend,
+					Target::Para {
+						para_id: BRIDGE_HUB_WESTEND_PARA_ID,
+						bootnode: "bridge-hub-westend-collator1",
+						relay_bootnode: "alice-westend-validator",
+					},
+					"bridge-hub-westend",
+				),
+			)?;
+			let uris = (bhr_lc.uri().to_string(), bhw_lc.uri().to_string());
+			self._light_clients.push(bhr_lc);
+			self._light_clients.push(bhw_lc);
+			uris
+		} else {
+			(bh_rococo, bh_westend)
+		};
 
 		let bhr_client = Self::client_of(&self.rococo, "bridge-hub-rococo-collator1").await?;
 		let bhw_client = Self::client_of(&self.westend, "bridge-hub-westend-collator1").await?;

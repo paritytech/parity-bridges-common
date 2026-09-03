@@ -37,6 +37,7 @@ use super::{
 	SOVEREIGN_FUNDING, XCM_VERSION,
 };
 use crate::common::{
+	light_client::{self, LightClient, RelayTransport, Target},
 	relayer::{init_bridge_confirmed, spawn_relayer, Relayer},
 	utils::{
 		best_finalized_bridged_header, bridge_hub_balances, config_errs, dev_account,
@@ -82,6 +83,9 @@ pub struct BridgeTestEnv {
 	pub polkadot: Network<LocalFileSystem>,
 	pub kusama: Network<LocalFileSystem>,
 	_relayers: Vec<Relayer>,
+	/// smoldot sidecars backing the relayers, when `BRIDGE_RELAY_TRANSPORT` asks for them. Held
+	/// here only to keep them alive for as long as the relayers that read from them.
+	_light_clients: Vec<LightClient>,
 }
 
 /// Bridge Hub genesis override: fund the sovereign/reward accounts, make `//Alice` the
@@ -341,7 +345,8 @@ impl BridgeTestEnv {
 			spawn_with_retry(Provider::Native.get_spawn_fn(), kusama_network_config, "Kusama"),
 		)?;
 
-		let mut env = BridgeTestEnv { polkadot, kusama, _relayers: Vec::new() };
+		let mut env =
+			BridgeTestEnv { polkadot, kusama, _relayers: Vec::new(), _light_clients: Vec::new() };
 
 		if init {
 			env.init_bridge().await?;
@@ -521,6 +526,62 @@ impl BridgeTestEnv {
 		let bh_polkadot =
 			self.polkadot.get_node("bridge-hub-polkadot-collator1")?.ws_uri().to_string();
 		let bh_kusama = self.kusama.get_node("bridge-hub-kusama-collator1")?.ws_uri().to_string();
+
+		// Only the *relayers* move to the light clients (#3270); the assertions below keep
+		// reading through `subxt` against the nodes, so a light-client defect shows up as a
+		// bridge that stops relaying rather than as a test passing against a lying data source.
+		let transport = RelayTransport::from_env()?;
+		log::info!("Relayer transport: {transport:?}");
+
+		let (polkadot_relay, kusama_relay) = if transport.relays_via_light_client() {
+			let (polkadot_lc, kusama_lc) = tokio::try_join!(
+				light_client::spawn(
+					&self.polkadot,
+					Target::Relay { bootnode: "alice-polkadot-validator" },
+					"polkadot",
+				),
+				light_client::spawn(
+					&self.kusama,
+					Target::Relay { bootnode: "alice-kusama-validator" },
+					"kusama",
+				),
+			)?;
+			let uris = (polkadot_lc.uri().to_string(), kusama_lc.uri().to_string());
+			self._light_clients.push(polkadot_lc);
+			self._light_clients.push(kusama_lc);
+			uris
+		} else {
+			(polkadot_relay, kusama_relay)
+		};
+
+		let (bh_polkadot, bh_kusama) = if transport.bridge_hubs_via_light_client() {
+			let (bhp_lc, bhk_lc) = tokio::try_join!(
+				light_client::spawn(
+					&self.polkadot,
+					Target::Para {
+						para_id: BRIDGE_HUB_POLKADOT_PARA_ID,
+						bootnode: "bridge-hub-polkadot-collator1",
+						relay_bootnode: "alice-polkadot-validator",
+					},
+					"bridge-hub-polkadot",
+				),
+				light_client::spawn(
+					&self.kusama,
+					Target::Para {
+						para_id: BRIDGE_HUB_KUSAMA_PARA_ID,
+						bootnode: "bridge-hub-kusama-collator1",
+						relay_bootnode: "alice-kusama-validator",
+					},
+					"bridge-hub-kusama",
+				),
+			)?;
+			let uris = (bhp_lc.uri().to_string(), bhk_lc.uri().to_string());
+			self._light_clients.push(bhp_lc);
+			self._light_clients.push(bhk_lc);
+			uris
+		} else {
+			(bh_polkadot, bh_kusama)
+		};
 
 		let bhp_client = Self::client_of(&self.polkadot, "bridge-hub-polkadot-collator1").await?;
 		let bhk_client = Self::client_of(&self.kusama, "bridge-hub-kusama-collator1").await?;
