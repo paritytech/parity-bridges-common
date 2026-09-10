@@ -21,7 +21,7 @@
 //! release/runtime-codegen --from-wasm-file
 //! ./tools/runtime-codegen/wbuild/bridge-hub-polkadot_runtime-v2005000.compact.compressed.wasm
 
-#[allow(dead_code, missing_docs, unused_imports, non_camel_case_types, unreachable_patterns)]
+#[allow(dead_code, unused_imports, non_camel_case_types, unreachable_patterns)]
 #[allow(clippy::all)]
 #[allow(rustdoc::broken_intra_doc_links)]
 pub mod api {
@@ -36,24 +36,24 @@ pub mod api {
 			pub mod bounded_btree_set {
 				use super::runtime_types;
 				#[derive(::codec::Decode, ::codec::Encode, Clone, Debug, PartialEq)]
-				pub struct BoundedBTreeSet<_0>(pub ::subxt::alloc::vec::Vec<_0>);
+				pub struct BoundedBTreeSet<_0>(pub ::subxt::ext::subxt_core::alloc::vec::Vec<_0>);
 			}
 			pub mod bounded_vec {
 				use super::runtime_types;
 				#[derive(::codec::Decode, ::codec::Encode, Clone, Debug, PartialEq)]
-				pub struct BoundedVec<_0>(pub ::subxt::alloc::vec::Vec<_0>);
+				pub struct BoundedVec<_0>(pub ::subxt::ext::subxt_core::alloc::vec::Vec<_0>);
 			}
 			pub mod weak_bounded_vec {
 				use super::runtime_types;
 				#[derive(::codec::Decode, ::codec::Encode, Clone, Debug, PartialEq)]
-				pub struct WeakBoundedVec<_0>(pub ::subxt::alloc::vec::Vec<_0>);
+				pub struct WeakBoundedVec<_0>(pub ::subxt::ext::subxt_core::alloc::vec::Vec<_0>);
 			}
 		}
 		pub mod bp_header_chain {
 			use super::runtime_types;
 			#[derive(::codec::Decode, ::codec::Encode, Clone, Debug, PartialEq)]
 			pub struct AuthoritySet {
-				pub authorities: ::subxt::alloc::vec::Vec<(
+				pub authorities: ::subxt::ext::subxt_core::alloc::vec::Vec<(
 					runtime_types::sp_consensus_grandpa::app::Public,
 					::core::primitive::u64,
 				)>,
@@ -96,8 +96,9 @@ pub mod api {
 			}
 			#[derive(::codec::Decode, ::codec::Encode, Clone, Debug, PartialEq)]
 			pub struct InboundLaneData<_0> {
-				pub relayers:
-					::subxt::alloc::vec::Vec<runtime_types::bp_messages::UnrewardedRelayer<_0>>,
+				pub relayers: ::subxt::ext::subxt_core::alloc::vec::Vec<
+					runtime_types::bp_messages::UnrewardedRelayer<_0>,
+				>,
 				pub last_confirmed_nonce: ::core::primitive::u64,
 				pub state: runtime_types::bp_messages::lane::LaneState,
 			}
@@ -123,7 +124,7 @@ pub mod api {
 			#[derive(::codec::Decode, ::codec::Encode, Clone, Debug, PartialEq)]
 			pub struct ReceivedMessages<_0, _1> {
 				pub lane: _1,
-				pub receive_results: ::subxt::alloc::vec::Vec<(
+				pub receive_results: ::subxt::ext::subxt_core::alloc::vec::Vec<(
 					::core::primitive::u64,
 					runtime_types::bp_messages::ReceptionResult<_0>,
 				)>,
@@ -173,7 +174,7 @@ pub mod api {
 			#[derive(::codec::Decode, ::codec::Encode, Clone, Debug, PartialEq)]
 			pub struct BestParaHeadHash {
 				pub at_relay_block_number: ::core::primitive::u32,
-				pub head_hash: ::subxt::utils::H256,
+				pub head_hash: ::subxt::ext::subxt_core::utils::H256,
 			}
 			#[derive(::codec::Decode, ::codec::Encode, Clone, Debug, PartialEq)]
 			pub struct ParaInfo {
@@ -181,7 +182,9 @@ pub mod api {
 				pub next_imported_hash_position: ::core::primitive::u32,
 			}
 			#[derive(::codec::Decode, ::codec::Encode, Clone, Debug, PartialEq)]
-			pub struct ParaStoredHeaderData(pub ::subxt::alloc::vec::Vec<::core::primitive::u8>);
+			pub struct ParaStoredHeaderData(
+				pub ::subxt::ext::subxt_core::alloc::vec::Vec<::core::primitive::u8>,
+			);
 		}
 		pub mod bp_relayers {
 			use super::runtime_types;
@@ -262,19 +265,23 @@ pub mod api {
 			use super::runtime_types;
 			#[derive(::codec::Decode, ::codec::Encode, Clone, Debug, PartialEq)]
 			pub struct Bridge {
-				pub bridge_origin_relative_location:
-					::subxt::alloc::boxed::Box<runtime_types::xcm::VersionedLocation>,
-				pub bridge_origin_universal_location:
-					::subxt::alloc::boxed::Box<runtime_types::xcm::VersionedInteriorLocation>,
+				pub bridge_origin_relative_location: ::subxt::ext::subxt_core::alloc::boxed::Box<
+					runtime_types::xcm::VersionedLocation,
+				>,
+				pub bridge_origin_universal_location: ::subxt::ext::subxt_core::alloc::boxed::Box<
+					runtime_types::xcm::VersionedInteriorLocation,
+				>,
 				pub bridge_destination_universal_location:
-					::subxt::alloc::boxed::Box<runtime_types::xcm::VersionedInteriorLocation>,
+					::subxt::ext::subxt_core::alloc::boxed::Box<
+						runtime_types::xcm::VersionedInteriorLocation,
+					>,
 				pub state: runtime_types::bp_xcm_bridge_hub::BridgeState,
 				pub bridge_owner_account: ::sp_core::crypto::AccountId32,
 				pub deposit: ::core::primitive::u128,
 				pub lane_id: ::bp_messages::LegacyLaneId,
 			}
 			#[derive(::codec::Decode, ::codec::Encode, Clone, Debug, PartialEq)]
-			pub struct BridgeId(pub ::subxt::utils::H256);
+			pub struct BridgeId(pub ::subxt::ext::subxt_core::utils::H256);
 			#[derive(::codec::Decode, ::codec::Encode, Clone, Debug, PartialEq)]
 			pub enum BridgeLocationsError {
 				#[codec(index = 0)]
@@ -319,7 +326,7 @@ pub mod api {
 					#[codec(index = 3)]
 					Snowbridge(runtime_types::snowbridge_core::ChannelId),
 					#[codec(index = 4)]
-					SnowbridgeV2(::subxt::utils::H256),
+					SnowbridgeV2(::subxt::ext::subxt_core::utils::H256),
 				}
 			}
 		}
@@ -344,7 +351,9 @@ pub mod api {
 					LocalAccount(::sp_core::crypto::AccountId32),
 					#[codec(index = 1)]
 					AssetHubLocation(
-						::subxt::alloc::boxed::Box<runtime_types::xcm::VersionedLocation>,
+						::subxt::ext::subxt_core::alloc::boxed::Box<
+							runtime_types::xcm::VersionedLocation,
+						>,
 					),
 				}
 			}
@@ -603,7 +612,9 @@ pub mod api {
                     },
                     #[codec(index = 1)]
                     sudo_send_upward_message {
-                        message: ::subxt::alloc::vec::Vec<::core::primitive::u8>,
+                        message: ::subxt::ext::subxt_core::alloc::vec::Vec<
+                            ::core::primitive::u8,
+                        >,
                     },
                 }
 				#[derive(::codec::Decode, ::codec::Encode, Clone, Debug, PartialEq)]
@@ -634,7 +645,7 @@ pub mod api {
 					#[codec(index = 4)]
 					DownwardMessagesProcessed {
 						weight_used: ::sp_weights::Weight,
-						dmq_head: ::subxt::utils::H256,
+						dmq_head: ::subxt::ext::subxt_core::utils::H256,
 					},
 					#[codec(index = 5)]
 					UpwardMessageSent {
@@ -646,15 +657,15 @@ pub mod api {
 				use super::runtime_types;
 				#[derive(::codec::Decode, ::codec::Encode, Clone, Debug, PartialEq)]
 				pub struct AbridgedInboundMessagesCollection1<_0> {
-					pub full_messages: ::subxt::alloc::vec::Vec<_0>,
-					pub hashed_messages: ::subxt::alloc::vec::Vec<
+					pub full_messages: ::subxt::ext::subxt_core::alloc::vec::Vec<_0>,
+					pub hashed_messages: ::subxt::ext::subxt_core::alloc::vec::Vec<
 						runtime_types::cumulus_primitives_parachain_inherent::HashedMessage,
 					>,
 				}
 				#[derive(::codec::Decode, ::codec::Encode, Clone, Debug, PartialEq)]
 				pub struct AbridgedInboundMessagesCollection2<_0> {
-					pub full_messages: ::subxt::alloc::vec::Vec<_0>,
-					pub hashed_messages: ::subxt::alloc::vec::Vec<(
+					pub full_messages: ::subxt::ext::subxt_core::alloc::vec::Vec<_0>,
+					pub hashed_messages: ::subxt::ext::subxt_core::alloc::vec::Vec<(
 						runtime_types::polkadot_parachain_primitives::primitives::Id,
 						runtime_types::cumulus_primitives_parachain_inherent::HashedMessage,
 					)>,
@@ -663,11 +674,11 @@ pub mod api {
 				pub struct BasicParachainInherentData {
 					pub validation_data:
 						runtime_types::polkadot_primitives::v9::PersistedValidationData<
-							::subxt::utils::H256,
+							::subxt::ext::subxt_core::utils::H256,
 							::core::primitive::u32,
 						>,
 					pub relay_chain_state: runtime_types::sp_trie::storage_proof::StorageProof,
-					pub relay_parent_descendants: ::subxt::alloc::vec::Vec<
+					pub relay_parent_descendants: ::subxt::ext::subxt_core::alloc::vec::Vec<
 						::sp_runtime::generic::Header<
 							::core::primitive::u32,
 							::sp_runtime::traits::BlakeTwo256,
@@ -705,15 +716,15 @@ pub mod api {
 				use super::runtime_types;
 				#[derive(::codec::Decode, ::codec::Encode, Clone, Debug, PartialEq)]
 				pub struct MessagingStateSnapshot {
-                    pub dmq_mqc_head: ::subxt::utils::H256,
+                    pub dmq_mqc_head: ::subxt::ext::subxt_core::utils::H256,
                     pub relay_dispatch_queue_remaining_capacity: runtime_types::cumulus_pallet_parachain_system::relay_state_snapshot::RelayDispatchQueueRemainingCapacity,
-                    pub ingress_channels: ::subxt::alloc::vec::Vec<
+                    pub ingress_channels: ::subxt::ext::subxt_core::alloc::vec::Vec<
                         (
                             runtime_types::polkadot_parachain_primitives::primitives::Id,
                             runtime_types::polkadot_primitives::v9::AbridgedHrmpChannel,
                         ),
                     >,
-                    pub egress_channels: ::subxt::alloc::vec::Vec<
+                    pub egress_channels: ::subxt::ext::subxt_core::alloc::vec::Vec<
                         (
                             runtime_types::polkadot_parachain_primitives::primitives::Id,
                             runtime_types::polkadot_primitives::v9::AbridgedHrmpChannel,
@@ -755,7 +766,7 @@ pub mod api {
 				pub struct UsedBandwidth {
                     pub ump_msg_count: ::core::primitive::u32,
                     pub ump_total_bytes: ::core::primitive::u32,
-                    pub hrmp_outgoing: ::subxt::utils::KeyedVec<
+                    pub hrmp_outgoing: ::subxt::ext::subxt_core::utils::KeyedVec<
                         runtime_types::polkadot_parachain_primitives::primitives::Id,
                         runtime_types::cumulus_pallet_parachain_system::unincluded_segment::HrmpChannelUpdate,
                     >,
@@ -763,12 +774,12 @@ pub mod api {
 			}
 			#[derive(::codec::Decode, ::codec::Encode, Clone, Debug, PartialEq)]
 			pub struct PoVMessages {
-				pub relay_storage_root_or_hash: ::subxt::utils::H256,
+				pub relay_storage_root_or_hash: ::subxt::ext::subxt_core::utils::H256,
 				pub core_selector: ::core::primitive::u8,
 				pub bundle_index: ::core::primitive::u8,
 				pub ump_msg_count: ::core::primitive::u32,
 				pub hrmp_outbound_count: ::core::primitive::u32,
-				pub hrmp_outbound_recipients: ::subxt::alloc::vec::Vec<
+				pub hrmp_outbound_recipients: ::subxt::ext::subxt_core::alloc::vec::Vec<
 					runtime_types::polkadot_parachain_primitives::primitives::Id,
 				>,
 			}
@@ -854,7 +865,7 @@ pub mod api {
 			#[derive(
 				::codec::Decode,
 				::codec::Encode,
-				::subxt::ext::codec::CompactAs,
+				::subxt::ext::subxt_core::ext::codec::CompactAs,
 				Clone,
 				Debug,
 				PartialEq,
@@ -881,10 +892,10 @@ pub mod api {
 			#[derive(::codec::Decode, ::codec::Encode, Clone, Debug, PartialEq)]
 			pub struct HashedMessage {
 				pub sent_at: ::core::primitive::u32,
-				pub msg_hash: ::subxt::utils::H256,
+				pub msg_hash: ::subxt::ext::subxt_core::utils::H256,
 			}
 			#[derive(::codec::Decode, ::codec::Encode, Clone, Debug, PartialEq)]
-			pub struct MessageQueueChain(pub ::subxt::utils::H256);
+			pub struct MessageQueueChain(pub ::subxt::ext::subxt_core::utils::H256);
 		}
 		pub mod finality_grandpa {
 			use super::runtime_types;
@@ -892,7 +903,7 @@ pub mod api {
 			pub struct Commit<_0, _1, _2, _3> {
 				pub target_hash: _0,
 				pub target_number: _1,
-				pub precommits: ::subxt::alloc::vec::Vec<
+				pub precommits: ::subxt::ext::subxt_core::alloc::vec::Vec<
 					runtime_types::finality_grandpa::SignedPrecommit<_0, _1, _2, _3>,
 				>,
 			}
@@ -1008,7 +1019,7 @@ pub mod api {
 						#[derive(
 							::codec::Decode,
 							::codec::Encode,
-							::subxt::ext::codec::CompactAs,
+							::subxt::ext::subxt_core::ext::codec::CompactAs,
 							Clone,
 							Debug,
 							PartialEq,
@@ -1110,42 +1121,50 @@ pub mod api {
 				#[derive(::codec::Decode, ::codec::Encode, Clone, Debug, PartialEq)]
 				pub enum Call {
 					#[codec(index = 0)]
-					remark { remark: ::subxt::alloc::vec::Vec<::core::primitive::u8> },
+					remark {
+						remark: ::subxt::ext::subxt_core::alloc::vec::Vec<::core::primitive::u8>,
+					},
 					#[codec(index = 1)]
 					set_heap_pages { pages: ::core::primitive::u64 },
 					#[codec(index = 2)]
-					set_code { code: ::subxt::alloc::vec::Vec<::core::primitive::u8> },
+					set_code {
+						code: ::subxt::ext::subxt_core::alloc::vec::Vec<::core::primitive::u8>,
+					},
 					#[codec(index = 3)]
 					set_code_without_checks {
-						code: ::subxt::alloc::vec::Vec<::core::primitive::u8>,
+						code: ::subxt::ext::subxt_core::alloc::vec::Vec<::core::primitive::u8>,
 					},
 					#[codec(index = 4)]
 					set_storage {
-						items: ::subxt::alloc::vec::Vec<(
-							::subxt::alloc::vec::Vec<::core::primitive::u8>,
-							::subxt::alloc::vec::Vec<::core::primitive::u8>,
+						items: ::subxt::ext::subxt_core::alloc::vec::Vec<(
+							::subxt::ext::subxt_core::alloc::vec::Vec<::core::primitive::u8>,
+							::subxt::ext::subxt_core::alloc::vec::Vec<::core::primitive::u8>,
 						)>,
 					},
 					#[codec(index = 5)]
 					kill_storage {
-						keys: ::subxt::alloc::vec::Vec<
-							::subxt::alloc::vec::Vec<::core::primitive::u8>,
+						keys: ::subxt::ext::subxt_core::alloc::vec::Vec<
+							::subxt::ext::subxt_core::alloc::vec::Vec<::core::primitive::u8>,
 						>,
 					},
 					#[codec(index = 6)]
 					kill_prefix {
-						prefix: ::subxt::alloc::vec::Vec<::core::primitive::u8>,
+						prefix: ::subxt::ext::subxt_core::alloc::vec::Vec<::core::primitive::u8>,
 						subkeys: ::core::primitive::u32,
 					},
 					#[codec(index = 7)]
-					remark_with_event { remark: ::subxt::alloc::vec::Vec<::core::primitive::u8> },
+					remark_with_event {
+						remark: ::subxt::ext::subxt_core::alloc::vec::Vec<::core::primitive::u8>,
+					},
 					#[codec(index = 9)]
-					authorize_upgrade { code_hash: ::subxt::utils::H256 },
+					authorize_upgrade { code_hash: ::subxt::ext::subxt_core::utils::H256 },
 					#[codec(index = 10)]
-					authorize_upgrade_without_checks { code_hash: ::subxt::utils::H256 },
+					authorize_upgrade_without_checks {
+						code_hash: ::subxt::ext::subxt_core::utils::H256,
+					},
 					#[codec(index = 11)]
 					apply_authorized_upgrade {
-						code: ::subxt::alloc::vec::Vec<::core::primitive::u8>,
+						code: ::subxt::ext::subxt_core::alloc::vec::Vec<::core::primitive::u8>,
 					},
 				}
 				#[derive(::codec::Decode, ::codec::Encode, Clone, Debug, PartialEq)]
@@ -1181,21 +1200,24 @@ pub mod api {
 						dispatch_info: runtime_types::frame_system::DispatchEventInfo,
 					},
 					#[codec(index = 2)]
-					CodeUpdated { hash: ::subxt::utils::H256 },
+					CodeUpdated { hash: ::subxt::ext::subxt_core::utils::H256 },
 					#[codec(index = 3)]
 					NewAccount { account: ::sp_core::crypto::AccountId32 },
 					#[codec(index = 4)]
 					KilledAccount { account: ::sp_core::crypto::AccountId32 },
 					#[codec(index = 5)]
-					Remarked { sender: ::sp_core::crypto::AccountId32, hash: ::subxt::utils::H256 },
+					Remarked {
+						sender: ::sp_core::crypto::AccountId32,
+						hash: ::subxt::ext::subxt_core::utils::H256,
+					},
 					#[codec(index = 6)]
 					UpgradeAuthorized {
-						code_hash: ::subxt::utils::H256,
+						code_hash: ::subxt::ext::subxt_core::utils::H256,
 						check_version: ::core::primitive::bool,
 					},
 					#[codec(index = 7)]
 					RejectedInvalidAuthorizedUpgrade {
-						code_hash: ::subxt::utils::H256,
+						code_hash: ::subxt::ext::subxt_core::utils::H256,
 						error: runtime_types::sp_runtime::DispatchError,
 					},
 				}
@@ -1210,7 +1232,7 @@ pub mod api {
 			}
 			#[derive(::codec::Decode, ::codec::Encode, Clone, Debug, PartialEq)]
 			pub struct CodeUpgradeAuthorization {
-				pub code_hash: ::subxt::utils::H256,
+				pub code_hash: ::subxt::ext::subxt_core::utils::H256,
 				pub check_version: ::core::primitive::bool,
 			}
 			#[derive(::codec::Decode, ::codec::Encode, Clone, Debug, PartialEq)]
@@ -1223,13 +1245,13 @@ pub mod api {
 			pub struct EventRecord<_0, _1> {
 				pub phase: runtime_types::frame_system::Phase,
 				pub event: _0,
-				pub topics: ::subxt::alloc::vec::Vec<_1>,
+				pub topics: ::subxt::ext::subxt_core::alloc::vec::Vec<_1>,
 			}
 			#[derive(::codec::Decode, ::codec::Encode, Clone, Debug, PartialEq)]
 			pub struct LastRuntimeUpgradeInfo {
 				#[codec(compact)]
 				pub spec_version: ::core::primitive::u32,
-				pub spec_name: ::subxt::alloc::string::String,
+				pub spec_name: ::subxt::ext::subxt_core::alloc::string::String,
 			}
 			#[derive(::codec::Decode, ::codec::Encode, Clone, Debug, PartialEq)]
 			pub enum Phase {
@@ -1249,40 +1271,63 @@ pub mod api {
 				pub enum Call {
 					#[codec(index = 0)]
 					transfer_allow_death {
-						dest: ::subxt::utils::MultiAddress<::sp_core::crypto::AccountId32, ()>,
+						dest: ::subxt::ext::subxt_core::utils::MultiAddress<
+							::sp_core::crypto::AccountId32,
+							(),
+						>,
 						#[codec(compact)]
 						value: ::core::primitive::u128,
 					},
 					#[codec(index = 2)]
 					force_transfer {
-						source: ::subxt::utils::MultiAddress<::sp_core::crypto::AccountId32, ()>,
-						dest: ::subxt::utils::MultiAddress<::sp_core::crypto::AccountId32, ()>,
+						source: ::subxt::ext::subxt_core::utils::MultiAddress<
+							::sp_core::crypto::AccountId32,
+							(),
+						>,
+						dest: ::subxt::ext::subxt_core::utils::MultiAddress<
+							::sp_core::crypto::AccountId32,
+							(),
+						>,
 						#[codec(compact)]
 						value: ::core::primitive::u128,
 					},
 					#[codec(index = 3)]
 					transfer_keep_alive {
-						dest: ::subxt::utils::MultiAddress<::sp_core::crypto::AccountId32, ()>,
+						dest: ::subxt::ext::subxt_core::utils::MultiAddress<
+							::sp_core::crypto::AccountId32,
+							(),
+						>,
 						#[codec(compact)]
 						value: ::core::primitive::u128,
 					},
 					#[codec(index = 4)]
 					transfer_all {
-						dest: ::subxt::utils::MultiAddress<::sp_core::crypto::AccountId32, ()>,
+						dest: ::subxt::ext::subxt_core::utils::MultiAddress<
+							::sp_core::crypto::AccountId32,
+							(),
+						>,
 						keep_alive: ::core::primitive::bool,
 					},
 					#[codec(index = 5)]
 					force_unreserve {
-						who: ::subxt::utils::MultiAddress<::sp_core::crypto::AccountId32, ()>,
+						who: ::subxt::ext::subxt_core::utils::MultiAddress<
+							::sp_core::crypto::AccountId32,
+							(),
+						>,
 						amount: ::core::primitive::u128,
 					},
 					#[codec(index = 6)]
 					upgrade_accounts {
-						who: ::subxt::alloc::vec::Vec<::sp_core::crypto::AccountId32>,
+						who: ::subxt::ext::subxt_core::alloc::vec::Vec<
+							::sp_core::crypto::AccountId32,
+						>,
 					},
 					#[codec(index = 8)]
 					force_set_balance {
-						who: ::subxt::utils::MultiAddress<::sp_core::crypto::AccountId32, ()>,
+						who: ::subxt::ext::subxt_core::utils::MultiAddress<
+							::sp_core::crypto::AccountId32,
+							(),
+						>,
 						#[codec(compact)]
 						new_free: ::core::primitive::u128,
 					},
@@ -1484,7 +1529,7 @@ pub mod api {
 				#[derive(
 					::codec::Decode,
 					::codec::Encode,
-					::subxt::ext::codec::CompactAs,
+					::subxt::ext::subxt_core::ext::codec::CompactAs,
 					Clone,
 					Debug,
 					PartialEq,
@@ -1514,7 +1559,7 @@ pub mod api {
 				pub enum Call {
 					#[codec(index = 0)]
 					submit_finality_proof {
-						finality_target: ::subxt::alloc::boxed::Box<
+						finality_target: ::subxt::ext::subxt_core::alloc::boxed::Box<
 							::sp_runtime::generic::Header<
 								::core::primitive::u32,
 								::sp_runtime::traits::BlakeTwo256,
@@ -1544,7 +1589,7 @@ pub mod api {
 					},
 					#[codec(index = 4)]
 					submit_finality_proof_ex {
-						finality_target: ::subxt::alloc::boxed::Box<
+						finality_target: ::subxt::ext::subxt_core::alloc::boxed::Box<
 							::sp_runtime::generic::Header<
 								::core::primitive::u32,
 								::sp_runtime::traits::BlakeTwo256,
@@ -1562,11 +1607,11 @@ pub mod api {
 					#[codec(index = 5)]
 					force_set_pallet_state {
 						new_current_set_id: ::core::primitive::u64,
-						new_authorities: ::subxt::alloc::vec::Vec<(
+						new_authorities: ::subxt::ext::subxt_core::alloc::vec::Vec<(
 							runtime_types::sp_consensus_grandpa::app::Public,
 							::core::primitive::u64,
 						)>,
-						new_best_header: ::subxt::alloc::boxed::Box<
+						new_best_header: ::subxt::ext::subxt_core::alloc::boxed::Box<
 							::sp_runtime::generic::Header<
 								::core::primitive::u32,
 								::sp_runtime::traits::BlakeTwo256,
@@ -1606,7 +1651,7 @@ pub mod api {
 					#[codec(index = 0)]
 					UpdatedBestFinalizedHeader {
 						number: ::core::primitive::u32,
-						hash: ::subxt::utils::H256,
+						hash: ::subxt::ext::subxt_core::utils::H256,
 						grandpa_info: runtime_types::bp_header_chain::HeaderFinalityInfo<
 							::bp_header_chain::justification::GrandpaJustification<
 								::sp_runtime::generic::Header<
@@ -1680,9 +1725,9 @@ pub mod api {
 					#[codec(index = 2)]
 					receive_messages_proof {
 						relayer_id_at_bridged_chain: ::sp_core::crypto::AccountId32,
-						proof: ::subxt::alloc::boxed::Box<
+						proof: ::subxt::ext::subxt_core::alloc::boxed::Box<
 							::bp_messages::target_chain::FromBridgedChainMessagesProof<
-								::subxt::utils::H256,
+								::subxt::ext::subxt_core::utils::H256,
 								::bp_messages::LegacyLaneId,
 							>,
 						>,
@@ -1692,7 +1737,7 @@ pub mod api {
 					#[codec(index = 3)]
 					receive_messages_delivery_proof {
 						proof: ::bp_messages::source_chain::FromBridgedChainMessagesDeliveryProof<
-							::subxt::utils::H256,
+							::subxt::ext::subxt_core::utils::H256,
 							::bp_messages::LegacyLaneId,
 						>,
 						relayers_state: ::bp_messages::UnrewardedRelayersState,
@@ -1757,10 +1802,11 @@ pub mod api {
 				pub enum Call {
 					#[codec(index = 0)]
 					submit_parachain_heads {
-						at_relay_block: (::core::primitive::u32, ::subxt::utils::H256),
-						parachains: ::subxt::alloc::vec::Vec<(
+						at_relay_block:
+							(::core::primitive::u32, ::subxt::ext::subxt_core::utils::H256),
+						parachains: ::subxt::ext::subxt_core::alloc::vec::Vec<(
 							::bp_polkadot_core::parachains::ParaId,
-							::subxt::utils::H256,
+							::subxt::ext::subxt_core::utils::H256,
 						)>,
 						parachain_heads_proof: ::bp_polkadot_core::parachains::ParaHeadsProof,
 					},
@@ -1772,10 +1818,11 @@ pub mod api {
 					},
 					#[codec(index = 3)]
 					submit_parachain_heads_ex {
-						at_relay_block: (::core::primitive::u32, ::subxt::utils::H256),
-						parachains: ::subxt::alloc::vec::Vec<(
+						at_relay_block:
+							(::core::primitive::u32, ::subxt::ext::subxt_core::utils::H256),
+						parachains: ::subxt::ext::subxt_core::alloc::vec::Vec<(
 							::bp_polkadot_core::parachains::ParaId,
-							::subxt::utils::H256,
+							::subxt::ext::subxt_core::utils::H256,
 						)>,
 						parachain_heads_proof: ::bp_polkadot_core::parachains::ParaHeadsProof,
 						is_free_execution_expected: ::core::primitive::bool,
@@ -1801,24 +1848,24 @@ pub mod api {
 					#[codec(index = 2)]
 					IncorrectParachainHeadHash {
 						parachain: ::bp_polkadot_core::parachains::ParaId,
-						parachain_head_hash: ::subxt::utils::H256,
-						actual_parachain_head_hash: ::subxt::utils::H256,
+						parachain_head_hash: ::subxt::ext::subxt_core::utils::H256,
+						actual_parachain_head_hash: ::subxt::ext::subxt_core::utils::H256,
 					},
 					#[codec(index = 3)]
 					RejectedObsoleteParachainHead {
 						parachain: ::bp_polkadot_core::parachains::ParaId,
-						parachain_head_hash: ::subxt::utils::H256,
+						parachain_head_hash: ::subxt::ext::subxt_core::utils::H256,
 					},
 					#[codec(index = 4)]
 					RejectedLargeParachainHead {
 						parachain: ::bp_polkadot_core::parachains::ParaId,
-						parachain_head_hash: ::subxt::utils::H256,
+						parachain_head_hash: ::subxt::ext::subxt_core::utils::H256,
 						parachain_head_size: ::core::primitive::u32,
 					},
 					#[codec(index = 5)]
 					UpdatedParachainHead {
 						parachain: ::bp_polkadot_core::parachains::ParaId,
-						parachain_head_hash: ::subxt::utils::H256,
+						parachain_head_hash: ::subxt::ext::subxt_core::utils::H256,
 					},
 				}
 			}
@@ -1911,7 +1958,9 @@ pub mod api {
 				pub enum Call {
 					#[codec(index = 0)]
 					set_invulnerables {
-						new: ::subxt::alloc::vec::Vec<::sp_core::crypto::AccountId32>,
+						new: ::subxt::ext::subxt_core::alloc::vec::Vec<
+							::sp_core::crypto::AccountId32,
+						>,
 					},
 					#[codec(index = 1)]
 					set_desired_candidates { max: ::core::primitive::u32 },
@@ -1979,7 +2028,9 @@ pub mod api {
 				pub enum Event {
 					#[codec(index = 0)]
 					NewInvulnerables {
-						invulnerables: ::subxt::alloc::vec::Vec<::sp_core::crypto::AccountId32>,
+						invulnerables: ::subxt::ext::subxt_core::alloc::vec::Vec<
+							::sp_core::crypto::AccountId32,
+						>,
 					},
 					#[codec(index = 1)]
 					InvulnerableAdded { account_id: ::sp_core::crypto::AccountId32 },
@@ -2058,14 +2109,14 @@ pub mod api {
 				pub enum Event {
 					#[codec(index = 0)]
 					ProcessingFailed {
-						id: ::subxt::utils::H256,
+						id: ::subxt::ext::subxt_core::utils::H256,
 						origin:
 							runtime_types::bridge_hub_common::message_queue::AggregateMessageOrigin,
 						error: runtime_types::frame_support::traits::messages::ProcessMessageError,
 					},
 					#[codec(index = 1)]
 					Processed {
-						id: ::subxt::utils::H256,
+						id: ::subxt::ext::subxt_core::utils::H256,
 						origin:
 							runtime_types::bridge_hub_common::message_queue::AggregateMessageOrigin,
 						weight_used: ::sp_weights::Weight,
@@ -2122,19 +2173,23 @@ pub mod api {
 				pub enum Call {
 					#[codec(index = 0)]
 					as_multi_threshold_1 {
-						other_signatories: ::subxt::alloc::vec::Vec<::sp_core::crypto::AccountId32>,
-						call: ::subxt::alloc::boxed::Box<
+						other_signatories: ::subxt::ext::subxt_core::alloc::vec::Vec<
+							::sp_core::crypto::AccountId32,
+						>,
+						call: ::subxt::ext::subxt_core::alloc::boxed::Box<
 							runtime_types::bridge_hub_polkadot_runtime::RuntimeCall,
 						>,
 					},
 					#[codec(index = 1)]
 					as_multi {
 						threshold: ::core::primitive::u16,
-						other_signatories: ::subxt::alloc::vec::Vec<::sp_core::crypto::AccountId32>,
+						other_signatories: ::subxt::ext::subxt_core::alloc::vec::Vec<
+							::sp_core::crypto::AccountId32,
+						>,
 						maybe_timepoint: ::core::option::Option<
 							runtime_types::pallet_multisig::Timepoint<::core::primitive::u32>,
 						>,
-						call: ::subxt::alloc::boxed::Box<
+						call: ::subxt::ext::subxt_core::alloc::boxed::Box<
 							runtime_types::bridge_hub_polkadot_runtime::RuntimeCall,
 						>,
 						max_weight: ::sp_weights::Weight,
@@ -2142,7 +2197,9 @@ pub mod api {
 					#[codec(index = 2)]
 					approve_as_multi {
 						threshold: ::core::primitive::u16,
-						other_signatories: ::subxt::alloc::vec::Vec<::sp_core::crypto::AccountId32>,
+						other_signatories: ::subxt::ext::subxt_core::alloc::vec::Vec<
+							::sp_core::crypto::AccountId32,
+						>,
 						maybe_timepoint: ::core::option::Option<
 							runtime_types::pallet_multisig::Timepoint<::core::primitive::u32>,
 						>,
@@ -2152,7 +2209,9 @@ pub mod api {
 					#[codec(index = 3)]
 					cancel_as_multi {
 						threshold: ::core::primitive::u16,
-						other_signatories: ::subxt::alloc::vec::Vec<::sp_core::crypto::AccountId32>,
+						other_signatories: ::subxt::ext::subxt_core::alloc::vec::Vec<
+							::sp_core::crypto::AccountId32,
+						>,
 						timepoint:
 							runtime_types::pallet_multisig::Timepoint<::core::primitive::u32>,
 						call_hash: [::core::primitive::u8; 32usize],
@@ -2160,7 +2219,9 @@ pub mod api {
 					#[codec(index = 4)]
 					poke_deposit {
 						threshold: ::core::primitive::u16,
-						other_signatories: ::subxt::alloc::vec::Vec<::sp_core::crypto::AccountId32>,
+						other_signatories: ::subxt::ext::subxt_core::alloc::vec::Vec<
+							::sp_core::crypto::AccountId32,
+						>,
 						call_hash: [::core::primitive::u8; 32usize],
 					},
 				}
@@ -2259,23 +2320,32 @@ pub mod api {
 				pub enum Call {
 					#[codec(index = 0)]
 					proxy {
-						real: ::subxt::utils::MultiAddress<::sp_core::crypto::AccountId32, ()>,
+						real: ::subxt::ext::subxt_core::utils::MultiAddress<
+							::sp_core::crypto::AccountId32,
+							(),
+						>,
 						force_proxy_type: ::core::option::Option<
 							runtime_types::bridge_hub_polkadot_runtime::ProxyType,
 						>,
-						call: ::subxt::alloc::boxed::Box<
+						call: ::subxt::ext::subxt_core::alloc::boxed::Box<
 							runtime_types::bridge_hub_polkadot_runtime::RuntimeCall,
 						>,
 					},
 					#[codec(index = 1)]
 					add_proxy {
-						delegate: ::subxt::utils::MultiAddress<::sp_core::crypto::AccountId32, ()>,
+						delegate: ::subxt::ext::subxt_core::utils::MultiAddress<
+							::sp_core::crypto::AccountId32,
+							(),
+						>,
 						proxy_type: runtime_types::bridge_hub_polkadot_runtime::ProxyType,
 						delay: ::core::primitive::u32,
 					},
 					#[codec(index = 2)]
 					remove_proxy {
-						delegate: ::subxt::utils::MultiAddress<::sp_core::crypto::AccountId32, ()>,
+						delegate: ::subxt::ext::subxt_core::utils::MultiAddress<
+							::sp_core::crypto::AccountId32,
+							(),
+						>,
 						proxy_type: runtime_types::bridge_hub_polkadot_runtime::ProxyType,
 						delay: ::core::primitive::u32,
 					},
@@ -2289,7 +2359,10 @@ pub mod api {
 					},
 					#[codec(index = 5)]
 					kill_pure {
-						spawner: ::subxt::utils::MultiAddress<::sp_core::crypto::AccountId32, ()>,
+						spawner: ::subxt::ext::subxt_core::utils::MultiAddress<
+							::sp_core::crypto::AccountId32,
+							(),
+						>,
 						proxy_type: runtime_types::bridge_hub_polkadot_runtime::ProxyType,
 						index: ::core::primitive::u16,
 						#[codec(compact)]
@@ -2299,27 +2372,42 @@ pub mod api {
 					},
 					#[codec(index = 6)]
 					announce {
-						real: ::subxt::utils::MultiAddress<::sp_core::crypto::AccountId32, ()>,
-						call_hash: ::subxt::utils::H256,
+						real: ::subxt::ext::subxt_core::utils::MultiAddress<
+							::sp_core::crypto::AccountId32,
+							(),
+						>,
+						call_hash: ::subxt::ext::subxt_core::utils::H256,
 					},
 					#[codec(index = 7)]
 					remove_announcement {
-						real: ::subxt::utils::MultiAddress<::sp_core::crypto::AccountId32, ()>,
-						call_hash: ::subxt::utils::H256,
+						real: ::subxt::ext::subxt_core::utils::MultiAddress<
+							::sp_core::crypto::AccountId32,
+							(),
+						>,
+						call_hash: ::subxt::ext::subxt_core::utils::H256,
 					},
 					#[codec(index = 8)]
 					reject_announcement {
-						delegate: ::subxt::utils::MultiAddress<::sp_core::crypto::AccountId32, ()>,
-						call_hash: ::subxt::utils::H256,
+						delegate: ::subxt::ext::subxt_core::utils::MultiAddress<
+							::sp_core::crypto::AccountId32,
+							(),
+						>,
+						call_hash: ::subxt::ext::subxt_core::utils::H256,
 					},
 					#[codec(index = 9)]
 					proxy_announced {
-						delegate: ::subxt::utils::MultiAddress<::sp_core::crypto::AccountId32, ()>,
-						real: ::subxt::utils::MultiAddress<::sp_core::crypto::AccountId32, ()>,
+						delegate: ::subxt::ext::subxt_core::utils::MultiAddress<
+							::sp_core::crypto::AccountId32,
+							(),
+						>,
+						real: ::subxt::ext::subxt_core::utils::MultiAddress<
+							::sp_core::crypto::AccountId32,
+							(),
+						>,
 						force_proxy_type: ::core::option::Option<
 							runtime_types::bridge_hub_polkadot_runtime::ProxyType,
 						>,
-						call: ::subxt::alloc::boxed::Box<
+						call: ::subxt::ext::subxt_core::alloc::boxed::Box<
 							runtime_types::bridge_hub_polkadot_runtime::RuntimeCall,
 						>,
 					},
@@ -2372,7 +2460,7 @@ pub mod api {
 					Announced {
 						real: ::sp_core::crypto::AccountId32,
 						proxy: ::sp_core::crypto::AccountId32,
-						call_hash: ::subxt::utils::H256,
+						call_hash: ::subxt::ext::subxt_core::utils::H256,
 					},
 					#[codec(index = 4)]
 					ProxyAdded {
@@ -2426,7 +2514,7 @@ pub mod api {
 					#[codec(index = 0)]
 					set_keys {
 						keys: runtime_types::bridge_hub_polkadot_runtime::SessionKeys,
-						proof: ::subxt::alloc::vec::Vec<::core::primitive::u8>,
+						proof: ::subxt::ext::subxt_core::alloc::vec::Vec<::core::primitive::u8>,
 					},
 					#[codec(index = 1)]
 					purge_keys,
@@ -2508,60 +2596,60 @@ pub mod api {
 				pub enum Call {
 					#[codec(index = 0)]
 					batch {
-						calls: ::subxt::alloc::vec::Vec<
+						calls: ::subxt::ext::subxt_core::alloc::vec::Vec<
 							runtime_types::bridge_hub_polkadot_runtime::RuntimeCall,
 						>,
 					},
 					#[codec(index = 1)]
 					as_derivative {
 						index: ::core::primitive::u16,
-						call: ::subxt::alloc::boxed::Box<
+						call: ::subxt::ext::subxt_core::alloc::boxed::Box<
 							runtime_types::bridge_hub_polkadot_runtime::RuntimeCall,
 						>,
 					},
 					#[codec(index = 2)]
 					batch_all {
-						calls: ::subxt::alloc::vec::Vec<
+						calls: ::subxt::ext::subxt_core::alloc::vec::Vec<
 							runtime_types::bridge_hub_polkadot_runtime::RuntimeCall,
 						>,
 					},
 					#[codec(index = 3)]
 					dispatch_as {
-						as_origin: ::subxt::alloc::boxed::Box<
+						as_origin: ::subxt::ext::subxt_core::alloc::boxed::Box<
 							runtime_types::bridge_hub_polkadot_runtime::OriginCaller,
 						>,
-						call: ::subxt::alloc::boxed::Box<
+						call: ::subxt::ext::subxt_core::alloc::boxed::Box<
 							runtime_types::bridge_hub_polkadot_runtime::RuntimeCall,
 						>,
 					},
 					#[codec(index = 4)]
 					force_batch {
-						calls: ::subxt::alloc::vec::Vec<
+						calls: ::subxt::ext::subxt_core::alloc::vec::Vec<
 							runtime_types::bridge_hub_polkadot_runtime::RuntimeCall,
 						>,
 					},
 					#[codec(index = 5)]
 					with_weight {
-						call: ::subxt::alloc::boxed::Box<
+						call: ::subxt::ext::subxt_core::alloc::boxed::Box<
 							runtime_types::bridge_hub_polkadot_runtime::RuntimeCall,
 						>,
 						weight: ::sp_weights::Weight,
 					},
 					#[codec(index = 6)]
 					if_else {
-						main: ::subxt::alloc::boxed::Box<
+						main: ::subxt::ext::subxt_core::alloc::boxed::Box<
 							runtime_types::bridge_hub_polkadot_runtime::RuntimeCall,
 						>,
-						fallback: ::subxt::alloc::boxed::Box<
+						fallback: ::subxt::ext::subxt_core::alloc::boxed::Box<
 							runtime_types::bridge_hub_polkadot_runtime::RuntimeCall,
 						>,
 					},
 					#[codec(index = 7)]
 					dispatch_as_fallible {
-						as_origin: ::subxt::alloc::boxed::Box<
+						as_origin: ::subxt::ext::subxt_core::alloc::boxed::Box<
 							runtime_types::bridge_hub_polkadot_runtime::OriginCaller,
 						>,
-						call: ::subxt::alloc::boxed::Box<
+						call: ::subxt::ext::subxt_core::alloc::boxed::Box<
 							runtime_types::bridge_hub_polkadot_runtime::RuntimeCall,
 						>,
 					},
@@ -2694,49 +2782,49 @@ pub mod api {
 				pub enum Call {
 					#[codec(index = 0)]
                     send {
-                        dest: ::subxt::alloc::boxed::Box<
+                        dest: ::subxt::ext::subxt_core::alloc::boxed::Box<
                             runtime_types::xcm::VersionedLocation,
                         >,
-                        message: ::subxt::alloc::boxed::Box<
+                        message: ::subxt::ext::subxt_core::alloc::boxed::Box<
                             runtime_types::xcm::VersionedXcm,
                         >,
                     },
                     #[codec(index = 1)]
                     teleport_assets {
-                        dest: ::subxt::alloc::boxed::Box<
+                        dest: ::subxt::ext::subxt_core::alloc::boxed::Box<
                             runtime_types::xcm::VersionedLocation,
                         >,
-                        beneficiary: ::subxt::alloc::boxed::Box<
+                        beneficiary: ::subxt::ext::subxt_core::alloc::boxed::Box<
                             runtime_types::xcm::VersionedLocation,
                         >,
-                        assets: ::subxt::alloc::boxed::Box<
+                        assets: ::subxt::ext::subxt_core::alloc::boxed::Box<
                             runtime_types::xcm::VersionedAssets,
                         >,
                         fee_asset_item: ::core::primitive::u32,
                     },
                     #[codec(index = 2)]
                     reserve_transfer_assets {
-                        dest: ::subxt::alloc::boxed::Box<
+                        dest: ::subxt::ext::subxt_core::alloc::boxed::Box<
                             runtime_types::xcm::VersionedLocation,
                         >,
-                        beneficiary: ::subxt::alloc::boxed::Box<
+                        beneficiary: ::subxt::ext::subxt_core::alloc::boxed::Box<
                             runtime_types::xcm::VersionedLocation,
                         >,
-                        assets: ::subxt::alloc::boxed::Box<
+                        assets: ::subxt::ext::subxt_core::alloc::boxed::Box<
                             runtime_types::xcm::VersionedAssets,
                         >,
                         fee_asset_item: ::core::primitive::u32,
                     },
                     #[codec(index = 3)]
                     execute {
-                        message: ::subxt::alloc::boxed::Box<
+                        message: ::subxt::ext::subxt_core::alloc::boxed::Box<
                             runtime_types::xcm::VersionedXcm,
                         >,
                         max_weight: ::sp_weights::Weight,
                     },
                     #[codec(index = 4)]
                     force_xcm_version {
-                        location: ::subxt::alloc::boxed::Box<
+                        location: ::subxt::ext::subxt_core::alloc::boxed::Box<
                             runtime_types::staging_xcm::v5::location::Location,
                         >,
                         version: ::core::primitive::u32,
@@ -2747,25 +2835,25 @@ pub mod api {
                     },
                     #[codec(index = 6)]
                     force_subscribe_version_notify {
-                        location: ::subxt::alloc::boxed::Box<
+                        location: ::subxt::ext::subxt_core::alloc::boxed::Box<
                             runtime_types::xcm::VersionedLocation,
                         >,
                     },
                     #[codec(index = 7)]
                     force_unsubscribe_version_notify {
-                        location: ::subxt::alloc::boxed::Box<
+                        location: ::subxt::ext::subxt_core::alloc::boxed::Box<
                             runtime_types::xcm::VersionedLocation,
                         >,
                     },
                     #[codec(index = 8)]
                     limited_reserve_transfer_assets {
-                        dest: ::subxt::alloc::boxed::Box<
+                        dest: ::subxt::ext::subxt_core::alloc::boxed::Box<
                             runtime_types::xcm::VersionedLocation,
                         >,
-                        beneficiary: ::subxt::alloc::boxed::Box<
+                        beneficiary: ::subxt::ext::subxt_core::alloc::boxed::Box<
                             runtime_types::xcm::VersionedLocation,
                         >,
-                        assets: ::subxt::alloc::boxed::Box<
+                        assets: ::subxt::ext::subxt_core::alloc::boxed::Box<
                             runtime_types::xcm::VersionedAssets,
                         >,
                         fee_asset_item: ::core::primitive::u32,
@@ -2773,13 +2861,13 @@ pub mod api {
                     },
                     #[codec(index = 9)]
                     limited_teleport_assets {
-                        dest: ::subxt::alloc::boxed::Box<
+                        dest: ::subxt::ext::subxt_core::alloc::boxed::Box<
                             runtime_types::xcm::VersionedLocation,
                         >,
-                        beneficiary: ::subxt::alloc::boxed::Box<
+                        beneficiary: ::subxt::ext::subxt_core::alloc::boxed::Box<
                             runtime_types::xcm::VersionedLocation,
                         >,
-                        assets: ::subxt::alloc::boxed::Box<
+                        assets: ::subxt::ext::subxt_core::alloc::boxed::Box<
                             runtime_types::xcm::VersionedAssets,
                         >,
                         fee_asset_item: ::core::primitive::u32,
@@ -2789,13 +2877,13 @@ pub mod api {
                     force_suspension { suspended: ::core::primitive::bool },
                     #[codec(index = 11)]
                     transfer_assets {
-                        dest: ::subxt::alloc::boxed::Box<
+                        dest: ::subxt::ext::subxt_core::alloc::boxed::Box<
                             runtime_types::xcm::VersionedLocation,
                         >,
-                        beneficiary: ::subxt::alloc::boxed::Box<
+                        beneficiary: ::subxt::ext::subxt_core::alloc::boxed::Box<
                             runtime_types::xcm::VersionedLocation,
                         >,
-                        assets: ::subxt::alloc::boxed::Box<
+                        assets: ::subxt::ext::subxt_core::alloc::boxed::Box<
                             runtime_types::xcm::VersionedAssets,
                         >,
                         fee_asset_item: ::core::primitive::u32,
@@ -2803,45 +2891,45 @@ pub mod api {
                     },
                     #[codec(index = 12)]
                     claim_assets {
-                        assets: ::subxt::alloc::boxed::Box<
+                        assets: ::subxt::ext::subxt_core::alloc::boxed::Box<
                             runtime_types::xcm::VersionedAssets,
                         >,
-                        beneficiary: ::subxt::alloc::boxed::Box<
+                        beneficiary: ::subxt::ext::subxt_core::alloc::boxed::Box<
                             runtime_types::xcm::VersionedLocation,
                         >,
                     },
                     #[codec(index = 13)]
                     transfer_assets_using_type_and_then {
-                        dest: ::subxt::alloc::boxed::Box<
+                        dest: ::subxt::ext::subxt_core::alloc::boxed::Box<
                             runtime_types::xcm::VersionedLocation,
                         >,
-                        assets: ::subxt::alloc::boxed::Box<
+                        assets: ::subxt::ext::subxt_core::alloc::boxed::Box<
                             runtime_types::xcm::VersionedAssets,
                         >,
-                        assets_transfer_type: ::subxt::alloc::boxed::Box<
+                        assets_transfer_type: ::subxt::ext::subxt_core::alloc::boxed::Box<
                             runtime_types::staging_xcm_executor::traits::asset_transfer::TransferType,
                         >,
-                        remote_fees_id: ::subxt::alloc::boxed::Box<
+                        remote_fees_id: ::subxt::ext::subxt_core::alloc::boxed::Box<
                             runtime_types::xcm::VersionedAssetId,
                         >,
-                        fees_transfer_type: ::subxt::alloc::boxed::Box<
+                        fees_transfer_type: ::subxt::ext::subxt_core::alloc::boxed::Box<
                             runtime_types::staging_xcm_executor::traits::asset_transfer::TransferType,
                         >,
-                        custom_xcm_on_dest: ::subxt::alloc::boxed::Box<
+                        custom_xcm_on_dest: ::subxt::ext::subxt_core::alloc::boxed::Box<
                             runtime_types::xcm::VersionedXcm,
                         >,
                         weight_limit: runtime_types::xcm::v3::WeightLimit,
                     },
                     #[codec(index = 14)]
                     add_authorized_alias {
-                        aliaser: ::subxt::alloc::boxed::Box<
+                        aliaser: ::subxt::ext::subxt_core::alloc::boxed::Box<
                             runtime_types::xcm::VersionedLocation,
                         >,
                         expires: ::core::option::Option<::core::primitive::u64>,
                     },
                     #[codec(index = 15)]
                     remove_authorized_alias {
-                        aliaser: ::subxt::alloc::boxed::Box<
+                        aliaser: ::subxt::ext::subxt_core::alloc::boxed::Box<
                             runtime_types::xcm::VersionedLocation,
                         >,
                     },
@@ -2987,7 +3075,7 @@ pub mod api {
 					ResponseTaken { query_id: ::core::primitive::u64 },
 					#[codec(index = 13)]
 					AssetsTrapped {
-						hash: ::subxt::utils::H256,
+						hash: ::subxt::ext::subxt_core::utils::H256,
 						origin: runtime_types::staging_xcm::v5::location::Location,
 						assets: runtime_types::xcm::VersionedAssets,
 					},
@@ -3053,7 +3141,7 @@ pub mod api {
 					},
 					#[codec(index = 24)]
 					AssetsClaimed {
-						hash: ::subxt::utils::H256,
+						hash: ::subxt::ext::subxt_core::utils::H256,
 						origin: runtime_types::staging_xcm::v5::location::Location,
 						assets: runtime_types::xcm::VersionedAssets,
 					},
@@ -3126,7 +3214,9 @@ pub mod api {
 					MigrateVersionNotifiers,
 					#[codec(index = 2)]
 					NotifyCurrentTargets(
-						::core::option::Option<::subxt::alloc::vec::Vec<::core::primitive::u8>>,
+						::core::option::Option<
+							::subxt::ext::subxt_core::alloc::vec::Vec<::core::primitive::u8>,
+						>,
 					),
 					#[codec(index = 3)]
 					MigrateAndNotifyOldTargets,
@@ -3162,15 +3252,17 @@ pub mod api {
 				pub enum Call {
 					#[codec(index = 0)]
 					open_bridge {
-						bridge_destination_universal_location: ::subxt::alloc::boxed::Box<
-							runtime_types::xcm::VersionedInteriorLocation,
-						>,
+						bridge_destination_universal_location:
+							::subxt::ext::subxt_core::alloc::boxed::Box<
+								runtime_types::xcm::VersionedInteriorLocation,
+							>,
 					},
 					#[codec(index = 1)]
 					close_bridge {
-						bridge_destination_universal_location: ::subxt::alloc::boxed::Box<
-							runtime_types::xcm::VersionedInteriorLocation,
-						>,
+						bridge_destination_universal_location:
+							::subxt::ext::subxt_core::alloc::boxed::Box<
+								runtime_types::xcm::VersionedInteriorLocation,
+							>,
 						may_prune_messages: ::core::primitive::u64,
 					},
 				}
@@ -3203,10 +3295,10 @@ pub mod api {
 					BridgeOpened {
 						bridge_id: runtime_types::bp_xcm_bridge_hub::BridgeId,
 						bridge_deposit: ::core::primitive::u128,
-						local_endpoint: ::subxt::alloc::boxed::Box<
+						local_endpoint: ::subxt::ext::subxt_core::alloc::boxed::Box<
 							runtime_types::staging_xcm::v5::junctions::Junctions,
 						>,
-						remote_endpoint: ::subxt::alloc::boxed::Box<
+						remote_endpoint: ::subxt::ext::subxt_core::alloc::boxed::Box<
 							runtime_types::staging_xcm::v5::junctions::Junctions,
 						>,
 						lane_id: ::bp_messages::LegacyLaneId,
@@ -3238,17 +3330,17 @@ pub mod api {
 			#[derive(::codec::Decode, ::codec::Encode, Clone, Debug, PartialEq)]
 			pub struct InboundDownwardMessage<_0> {
 				pub sent_at: _0,
-				pub msg: ::subxt::alloc::vec::Vec<::core::primitive::u8>,
+				pub msg: ::subxt::ext::subxt_core::alloc::vec::Vec<::core::primitive::u8>,
 			}
 			#[derive(::codec::Decode, ::codec::Encode, Clone, Debug, PartialEq)]
 			pub struct InboundHrmpMessage<_0> {
 				pub sent_at: _0,
-				pub data: ::subxt::alloc::vec::Vec<::core::primitive::u8>,
+				pub data: ::subxt::ext::subxt_core::alloc::vec::Vec<::core::primitive::u8>,
 			}
 			#[derive(::codec::Decode, ::codec::Encode, Clone, Debug, PartialEq)]
 			pub struct OutboundHrmpMessage<_0> {
 				pub recipient: _0,
-				pub data: ::subxt::alloc::vec::Vec<::core::primitive::u8>,
+				pub data: ::subxt::ext::subxt_core::alloc::vec::Vec<::core::primitive::u8>,
 			}
 		}
 		pub mod polkadot_parachain_primitives {
@@ -3256,11 +3348,13 @@ pub mod api {
 			pub mod primitives {
 				use super::runtime_types;
 				#[derive(::codec::Decode, ::codec::Encode, Clone, Debug, PartialEq)]
-				pub struct HeadData(pub ::subxt::alloc::vec::Vec<::core::primitive::u8>);
+				pub struct HeadData(
+					pub ::subxt::ext::subxt_core::alloc::vec::Vec<::core::primitive::u8>,
+				);
 				#[derive(
 					::codec::Decode,
 					::codec::Encode,
-					::subxt::ext::codec::CompactAs,
+					::subxt::ext::subxt_core::ext::codec::CompactAs,
 					Clone,
 					Debug,
 					PartialEq,
@@ -3301,7 +3395,7 @@ pub mod api {
 					pub max_message_size: ::core::primitive::u32,
 					pub msg_count: ::core::primitive::u32,
 					pub total_size: ::core::primitive::u32,
-					pub mqc_head: ::core::option::Option<::subxt::utils::H256>,
+					pub mqc_head: ::core::option::Option<::subxt::ext::subxt_core::utils::H256>,
 				}
 				#[derive(::codec::Decode, ::codec::Encode, Clone, Debug, PartialEq)]
 				pub struct PersistedValidationData<_0, _1> {
@@ -3382,61 +3476,67 @@ pub mod api {
 					use super::runtime_types;
 					#[derive(::codec::Decode, ::codec::Encode, Clone, Debug, PartialEq)]
 					pub struct ExecutionPayloadHeader {
-						pub parent_hash: ::subxt::utils::H256,
-						pub fee_recipient: ::subxt::utils::H160,
-						pub state_root: ::subxt::utils::H256,
-						pub receipts_root: ::subxt::utils::H256,
-						pub logs_bloom: ::subxt::alloc::vec::Vec<::core::primitive::u8>,
-						pub prev_randao: ::subxt::utils::H256,
+						pub parent_hash: ::subxt::ext::subxt_core::utils::H256,
+						pub fee_recipient: ::subxt::ext::subxt_core::utils::H160,
+						pub state_root: ::subxt::ext::subxt_core::utils::H256,
+						pub receipts_root: ::subxt::ext::subxt_core::utils::H256,
+						pub logs_bloom:
+							::subxt::ext::subxt_core::alloc::vec::Vec<::core::primitive::u8>,
+						pub prev_randao: ::subxt::ext::subxt_core::utils::H256,
 						pub block_number: ::core::primitive::u64,
 						pub gas_limit: ::core::primitive::u64,
 						pub gas_used: ::core::primitive::u64,
 						pub timestamp: ::core::primitive::u64,
-						pub extra_data: ::subxt::alloc::vec::Vec<::core::primitive::u8>,
+						pub extra_data:
+							::subxt::ext::subxt_core::alloc::vec::Vec<::core::primitive::u8>,
 						pub base_fee_per_gas: runtime_types::primitive_types::U256,
-						pub block_hash: ::subxt::utils::H256,
-						pub transactions_root: ::subxt::utils::H256,
-						pub withdrawals_root: ::subxt::utils::H256,
+						pub block_hash: ::subxt::ext::subxt_core::utils::H256,
+						pub transactions_root: ::subxt::ext::subxt_core::utils::H256,
+						pub withdrawals_root: ::subxt::ext::subxt_core::utils::H256,
 						pub blob_gas_used: ::core::primitive::u64,
 						pub excess_blob_gas: ::core::primitive::u64,
 					}
 				}
 				#[derive(::codec::Decode, ::codec::Encode, Clone, Debug, PartialEq)]
 				pub struct AncestryProof {
-					pub header_branch: ::subxt::alloc::vec::Vec<::subxt::utils::H256>,
-					pub finalized_block_root: ::subxt::utils::H256,
+					pub header_branch: ::subxt::ext::subxt_core::alloc::vec::Vec<
+						::subxt::ext::subxt_core::utils::H256,
+					>,
+					pub finalized_block_root: ::subxt::ext::subxt_core::utils::H256,
 				}
 				#[derive(::codec::Decode, ::codec::Encode, Clone, Debug, PartialEq)]
 				pub struct BeaconHeader {
 					pub slot: ::core::primitive::u64,
 					pub proposer_index: ::core::primitive::u64,
-					pub parent_root: ::subxt::utils::H256,
-					pub state_root: ::subxt::utils::H256,
-					pub body_root: ::subxt::utils::H256,
+					pub parent_root: ::subxt::ext::subxt_core::utils::H256,
+					pub state_root: ::subxt::ext::subxt_core::utils::H256,
+					pub body_root: ::subxt::ext::subxt_core::utils::H256,
 				}
 				#[derive(::codec::Decode, ::codec::Encode, Clone, Debug, PartialEq)]
 				pub struct CompactBeaconState {
 					#[codec(compact)]
 					pub slot: ::core::primitive::u64,
-					pub block_roots_root: ::subxt::utils::H256,
+					pub block_roots_root: ::subxt::ext::subxt_core::utils::H256,
 				}
 				#[derive(::codec::Decode, ::codec::Encode, Clone, Debug, PartialEq)]
 				pub struct ExecutionPayloadHeader {
-					pub parent_hash: ::subxt::utils::H256,
-					pub fee_recipient: ::subxt::utils::H160,
-					pub state_root: ::subxt::utils::H256,
-					pub receipts_root: ::subxt::utils::H256,
-					pub logs_bloom: ::subxt::alloc::vec::Vec<::core::primitive::u8>,
-					pub prev_randao: ::subxt::utils::H256,
+					pub parent_hash: ::subxt::ext::subxt_core::utils::H256,
+					pub fee_recipient: ::subxt::ext::subxt_core::utils::H160,
+					pub state_root: ::subxt::ext::subxt_core::utils::H256,
+					pub receipts_root: ::subxt::ext::subxt_core::utils::H256,
+					pub logs_bloom:
+						::subxt::ext::subxt_core::alloc::vec::Vec<::core::primitive::u8>,
+					pub prev_randao: ::subxt::ext::subxt_core::utils::H256,
 					pub block_number: ::core::primitive::u64,
 					pub gas_limit: ::core::primitive::u64,
 					pub gas_used: ::core::primitive::u64,
 					pub timestamp: ::core::primitive::u64,
-					pub extra_data: ::subxt::alloc::vec::Vec<::core::primitive::u8>,
+					pub extra_data:
+						::subxt::ext::subxt_core::alloc::vec::Vec<::core::primitive::u8>,
 					pub base_fee_per_gas: runtime_types::primitive_types::U256,
-					pub block_hash: ::subxt::utils::H256,
-					pub transactions_root: ::subxt::utils::H256,
-					pub withdrawals_root: ::subxt::utils::H256,
+					pub block_hash: ::subxt::ext::subxt_core::utils::H256,
+					pub transactions_root: ::subxt::ext::subxt_core::utils::H256,
+					pub withdrawals_root: ::subxt::ext::subxt_core::utils::H256,
 				}
 				#[derive(::codec::Decode, ::codec::Encode, Clone, Debug, PartialEq)]
 				pub struct ExecutionProof {
@@ -3445,7 +3545,9 @@ pub mod api {
                         runtime_types::snowbridge_beacon_primitives::types::AncestryProof,
                     >,
                     pub execution_header: runtime_types::snowbridge_beacon_primitives::types::VersionedExecutionPayloadHeader,
-                    pub execution_branch: ::subxt::alloc::vec::Vec<::subxt::utils::H256>,
+                    pub execution_branch: ::subxt::ext::subxt_core::alloc::vec::Vec<
+                        ::subxt::ext::subxt_core::utils::H256,
+                    >,
                 }
 				#[derive(::codec::Decode, ::codec::Encode, Clone, Debug, PartialEq)]
 				pub struct Fork {
@@ -3481,8 +3583,8 @@ pub mod api {
 				}
 				#[derive(::codec::Decode, ::codec::Encode, Clone, Debug, PartialEq)]
 				pub struct SyncCommitteePrepared {
-					pub root: ::subxt::utils::H256,
-					pub pubkeys: ::subxt::alloc::boxed::Box<
+					pub root: ::subxt::ext::subxt_core::utils::H256,
+					pub pubkeys: ::subxt::ext::subxt_core::alloc::boxed::Box<
 						[runtime_types::snowbridge_milagro_bls::keys::PublicKey; 512usize],
 					>,
 					pub aggregate_pubkey: runtime_types::snowbridge_milagro_bls::keys::PublicKey,
@@ -3506,17 +3608,22 @@ pub mod api {
 					pub header: runtime_types::snowbridge_beacon_primitives::types::BeaconHeader,
 					pub current_sync_committee:
 						runtime_types::snowbridge_beacon_primitives::types::SyncCommittee,
-					pub current_sync_committee_branch:
-						::subxt::alloc::vec::Vec<::subxt::utils::H256>,
-					pub validators_root: ::subxt::utils::H256,
-					pub block_roots_root: ::subxt::utils::H256,
-					pub block_roots_branch: ::subxt::alloc::vec::Vec<::subxt::utils::H256>,
+					pub current_sync_committee_branch: ::subxt::ext::subxt_core::alloc::vec::Vec<
+						::subxt::ext::subxt_core::utils::H256,
+					>,
+					pub validators_root: ::subxt::ext::subxt_core::utils::H256,
+					pub block_roots_root: ::subxt::ext::subxt_core::utils::H256,
+					pub block_roots_branch: ::subxt::ext::subxt_core::alloc::vec::Vec<
+						::subxt::ext::subxt_core::utils::H256,
+					>,
 				}
 				#[derive(::codec::Decode, ::codec::Encode, Clone, Debug, PartialEq)]
 				pub struct NextSyncCommitteeUpdate {
 					pub next_sync_committee:
 						runtime_types::snowbridge_beacon_primitives::types::SyncCommittee,
-					pub next_sync_committee_branch: ::subxt::alloc::vec::Vec<::subxt::utils::H256>,
+					pub next_sync_committee_branch: ::subxt::ext::subxt_core::alloc::vec::Vec<
+						::subxt::ext::subxt_core::utils::H256,
+					>,
 				}
 				#[derive(::codec::Decode, ::codec::Encode, Clone, Debug, PartialEq)]
 				pub struct Update {
@@ -3527,10 +3634,12 @@ pub mod api {
                         runtime_types::snowbridge_beacon_primitives::updates::NextSyncCommitteeUpdate,
                     >,
                     pub finalized_header: runtime_types::snowbridge_beacon_primitives::types::BeaconHeader,
-                    pub finality_branch: ::subxt::alloc::vec::Vec<::subxt::utils::H256>,
-                    pub block_roots_root: ::subxt::utils::H256,
-                    pub block_roots_branch: ::subxt::alloc::vec::Vec<
-                        ::subxt::utils::H256,
+                    pub finality_branch: ::subxt::ext::subxt_core::alloc::vec::Vec<
+                        ::subxt::ext::subxt_core::utils::H256,
+                    >,
+                    pub block_roots_root: ::subxt::ext::subxt_core::utils::H256,
+                    pub block_roots_branch: ::subxt::ext::subxt_core::alloc::vec::Vec<
+                        ::subxt::ext::subxt_core::utils::H256,
                     >,
                 }
 			}
@@ -3584,7 +3693,7 @@ pub mod api {
 			}
 			#[derive(::codec::Decode, ::codec::Encode, Clone, Debug, PartialEq)]
 			pub struct Channel {
-				pub agent_id: ::subxt::utils::H256,
+				pub agent_id: ::subxt::ext::subxt_core::utils::H256,
 				pub para_id: runtime_types::polkadot_parachain_primitives::primitives::Id,
 			}
 			#[derive(::codec::Decode, ::codec::Encode, Clone, Debug, PartialEq)]
@@ -3627,7 +3736,8 @@ pub mod api {
 					use super::runtime_types;
 					#[derive(::codec::Decode, ::codec::Encode, Clone, Debug, PartialEq)]
 					pub struct Initializer {
-						pub params: ::subxt::alloc::vec::Vec<::core::primitive::u8>,
+						pub params:
+							::subxt::ext::subxt_core::alloc::vec::Vec<::core::primitive::u8>,
 						pub maximum_required_gas: ::core::primitive::u64,
 					}
 				}
@@ -3640,8 +3750,8 @@ pub mod api {
 					pub enum Command {
 						#[codec(index = 0)]
                         Upgrade {
-                            impl_address: ::subxt::utils::H160,
-                            impl_code_hash: ::subxt::utils::H256,
+                            impl_address: ::subxt::ext::subxt_core::utils::H160,
+                            impl_code_hash: ::subxt::ext::subxt_core::utils::H256,
                             initializer: runtime_types::snowbridge_outbound_queue_primitives::v2::message::Initializer,
                         },
                         #[codec(index = 1)]
@@ -3650,40 +3760,47 @@ pub mod api {
                         },
                         #[codec(index = 2)]
                         UnlockNativeToken {
-                            token: ::subxt::utils::H160,
-                            recipient: ::subxt::utils::H160,
+                            token: ::subxt::ext::subxt_core::utils::H160,
+                            recipient: ::subxt::ext::subxt_core::utils::H160,
                             amount: ::core::primitive::u128,
                         },
                         #[codec(index = 3)]
                         RegisterForeignToken {
-                            token_id: ::subxt::utils::H256,
-                            name: ::subxt::alloc::vec::Vec<::core::primitive::u8>,
-                            symbol: ::subxt::alloc::vec::Vec<::core::primitive::u8>,
+                            token_id: ::subxt::ext::subxt_core::utils::H256,
+                            name: ::subxt::ext::subxt_core::alloc::vec::Vec<
+                                ::core::primitive::u8,
+                            >,
+                            symbol: ::subxt::ext::subxt_core::alloc::vec::Vec<
+                                ::core::primitive::u8,
+                            >,
                             decimals: ::core::primitive::u8,
                         },
                         #[codec(index = 4)]
                         MintForeignToken {
-                            token_id: ::subxt::utils::H256,
-                            recipient: ::subxt::utils::H160,
+                            token_id: ::subxt::ext::subxt_core::utils::H256,
+                            recipient: ::subxt::ext::subxt_core::utils::H160,
                             amount: ::core::primitive::u128,
                         },
                         #[codec(index = 5)]
                         CallContract {
-                            target: ::subxt::utils::H160,
-                            calldata: ::subxt::alloc::vec::Vec<::core::primitive::u8>,
+                            target: ::subxt::ext::subxt_core::utils::H160,
+                            calldata: ::subxt::ext::subxt_core::alloc::vec::Vec<
+                                ::core::primitive::u8,
+                            >,
                             gas: ::core::primitive::u64,
                             value: ::core::primitive::u128,
                         },
                     }
 					#[derive(::codec::Decode, ::codec::Encode, Clone, Debug, PartialEq)]
 					pub struct Initializer {
-						pub params: ::subxt::alloc::vec::Vec<::core::primitive::u8>,
+						pub params:
+							::subxt::ext::subxt_core::alloc::vec::Vec<::core::primitive::u8>,
 						pub maximum_required_gas: ::core::primitive::u64,
 					}
 					#[derive(::codec::Decode, ::codec::Encode, Clone, Debug, PartialEq)]
 					pub struct Message {
-                        pub origin: ::subxt::utils::H256,
-                        pub id: ::subxt::utils::H256,
+                        pub origin: ::subxt::ext::subxt_core::utils::H256,
+                        pub id: ::subxt::ext::subxt_core::utils::H256,
                         pub fee: ::core::primitive::u128,
                         pub commands: runtime_types::bounded_collections::bounded_vec::BoundedVec<
                             runtime_types::snowbridge_outbound_queue_primitives::v2::message::Command,
@@ -3693,13 +3810,14 @@ pub mod api {
 					pub struct OutboundCommandWrapper {
 						pub kind: ::core::primitive::u8,
 						pub gas: ::core::primitive::u64,
-						pub payload: ::subxt::alloc::vec::Vec<::core::primitive::u8>,
+						pub payload:
+							::subxt::ext::subxt_core::alloc::vec::Vec<::core::primitive::u8>,
 					}
 					#[derive(::codec::Decode, ::codec::Encode, Clone, Debug, PartialEq)]
 					pub struct OutboundMessage {
-                        pub origin: ::subxt::utils::H256,
+                        pub origin: ::subxt::ext::subxt_core::utils::H256,
                         pub nonce: ::core::primitive::u64,
-                        pub topic: ::subxt::utils::H256,
+                        pub topic: ::subxt::ext::subxt_core::utils::H256,
                         pub commands: runtime_types::bounded_collections::bounded_vec::BoundedVec<
                             runtime_types::snowbridge_outbound_queue_primitives::v2::message::OutboundCommandWrapper,
                         >,
@@ -3733,13 +3851,13 @@ pub mod api {
 				pub enum Call {
 					#[codec(index = 0)]
 					force_checkpoint {
-						update: ::subxt::alloc::boxed::Box<
+						update: ::subxt::ext::subxt_core::alloc::boxed::Box<
 							runtime_types::snowbridge_beacon_primitives::updates::CheckpointUpdate,
 						>,
 					},
 					#[codec(index = 1)]
 					submit {
-						update: ::subxt::alloc::boxed::Box<
+						update: ::subxt::ext::subxt_core::alloc::boxed::Box<
 							runtime_types::snowbridge_beacon_primitives::updates::Update,
 						>,
 					},
@@ -3807,7 +3925,7 @@ pub mod api {
 				pub enum Event {
 					#[codec(index = 0)]
 					BeaconHeaderImported {
-						block_hash: ::subxt::utils::H256,
+						block_hash: ::subxt::ext::subxt_core::utils::H256,
 						slot: ::core::primitive::u64,
 					},
 					#[codec(index = 1)]
@@ -3902,7 +4020,7 @@ pub mod api {
 				pub enum Call {
 					#[codec(index = 0)]
 					submit {
-						event: ::subxt::alloc::boxed::Box<
+						event: ::subxt::ext::subxt_core::alloc::boxed::Box<
 							runtime_types::snowbridge_verification_primitives::EventProof,
 						>,
 					},
@@ -3975,11 +4093,17 @@ pub mod api {
 				#[derive(::codec::Decode, ::codec::Encode, Clone, Debug, PartialEq)]
 				pub enum Event {
 					#[codec(index = 0)]
-					MessageQueued { id: ::subxt::utils::H256 },
+					MessageQueued { id: ::subxt::ext::subxt_core::utils::H256 },
 					#[codec(index = 1)]
-					MessageAccepted { id: ::subxt::utils::H256, nonce: ::core::primitive::u64 },
+					MessageAccepted {
+						id: ::subxt::ext::subxt_core::utils::H256,
+						nonce: ::core::primitive::u64,
+					},
 					#[codec(index = 2)]
-					MessagesCommitted { root: ::subxt::utils::H256, count: ::core::primitive::u64 },
+					MessagesCommitted {
+						root: ::subxt::ext::subxt_core::utils::H256,
+						count: ::core::primitive::u64,
+					},
 					#[codec(index = 3)]
 					OperatingModeChanged {
 						mode: runtime_types::snowbridge_core::operating_mode::BasicOperatingMode,
@@ -3994,14 +4118,14 @@ pub mod api {
 					#[codec(compact)]
 					pub nonce: ::core::primitive::u64,
 					pub command: ::core::primitive::u8,
-					pub params: ::subxt::alloc::vec::Vec<::core::primitive::u8>,
+					pub params: ::subxt::ext::subxt_core::alloc::vec::Vec<::core::primitive::u8>,
 					#[codec(compact)]
 					pub max_dispatch_gas: ::core::primitive::u64,
 					#[codec(compact)]
 					pub max_fee_per_gas: ::core::primitive::u128,
 					#[codec(compact)]
 					pub reward: ::core::primitive::u128,
-					pub id: ::subxt::utils::H256,
+					pub id: ::subxt::ext::subxt_core::utils::H256,
 				}
 			}
 		}
@@ -4013,7 +4137,7 @@ pub mod api {
 				pub enum Call {
 					#[codec(index = 1)]
 					submit_delivery_receipt {
-						event: ::subxt::alloc::boxed::Box<
+						event: ::subxt::ext::subxt_core::alloc::boxed::Box<
 							runtime_types::snowbridge_verification_primitives::EventProof,
 						>,
 					},
@@ -4047,23 +4171,29 @@ pub mod api {
                     },
                     #[codec(index = 1)]
                     MessageAccepted {
-                        id: ::subxt::utils::H256,
+                        id: ::subxt::ext::subxt_core::utils::H256,
                         nonce: ::core::primitive::u64,
                     },
                     #[codec(index = 2)]
                     MessageRejected {
-                        id: ::core::option::Option<::subxt::utils::H256>,
-                        payload: ::subxt::alloc::vec::Vec<::core::primitive::u8>,
+                        id: ::core::option::Option<
+                            ::subxt::ext::subxt_core::utils::H256,
+                        >,
+                        payload: ::subxt::ext::subxt_core::alloc::vec::Vec<
+                            ::core::primitive::u8,
+                        >,
                         error: runtime_types::frame_support::traits::messages::ProcessMessageError,
                     },
                     #[codec(index = 3)]
                     MessagePostponed {
-                        payload: ::subxt::alloc::vec::Vec<::core::primitive::u8>,
+                        payload: ::subxt::ext::subxt_core::alloc::vec::Vec<
+                            ::core::primitive::u8,
+                        >,
                         reason: runtime_types::frame_support::traits::messages::ProcessMessageError,
                     },
                     #[codec(index = 4)]
                     MessagesCommitted {
-                        root: ::subxt::utils::H256,
+                        root: ::subxt::ext::subxt_core::utils::H256,
                         count: ::core::primitive::u64,
                     },
                     #[codec(index = 5)]
@@ -4093,8 +4223,8 @@ pub mod api {
 				pub enum Call {
 					#[codec(index = 0)]
                     upgrade {
-                        impl_address: ::subxt::utils::H160,
-                        impl_code_hash: ::subxt::utils::H256,
+                        impl_address: ::subxt::ext::subxt_core::utils::H160,
+                        impl_code_hash: ::subxt::ext::subxt_core::utils::H256,
                         initializer: ::core::option::Option<
                             runtime_types::snowbridge_outbound_queue_primitives::v1::message::Initializer,
                         >,
@@ -4117,7 +4247,7 @@ pub mod api {
                     },
                     #[codec(index = 10)]
                     register_token {
-                        location: ::subxt::alloc::boxed::Box<
+                        location: ::subxt::ext::subxt_core::alloc::boxed::Box<
                             runtime_types::xcm::VersionedLocation,
                         >,
                         metadata: runtime_types::snowbridge_core::AssetMetadata,
@@ -4152,21 +4282,22 @@ pub mod api {
 				pub enum Event {
 					#[codec(index = 0)]
 					Upgrade {
-						impl_address: ::subxt::utils::H160,
-						impl_code_hash: ::subxt::utils::H256,
-						initializer_params_hash: ::core::option::Option<::subxt::utils::H256>,
+						impl_address: ::subxt::ext::subxt_core::utils::H160,
+						impl_code_hash: ::subxt::ext::subxt_core::utils::H256,
+						initializer_params_hash:
+							::core::option::Option<::subxt::ext::subxt_core::utils::H256>,
 					},
 					#[codec(index = 1)]
 					CreateAgent {
-						location: ::subxt::alloc::boxed::Box<
+						location: ::subxt::ext::subxt_core::alloc::boxed::Box<
 							runtime_types::staging_xcm::v5::location::Location,
 						>,
-						agent_id: ::subxt::utils::H256,
+						agent_id: ::subxt::ext::subxt_core::utils::H256,
 					},
 					#[codec(index = 2)]
 					CreateChannel {
 						channel_id: runtime_types::snowbridge_core::ChannelId,
-						agent_id: ::subxt::utils::H256,
+						agent_id: ::subxt::ext::subxt_core::utils::H256,
 					},
 					#[codec(index = 3)]
 					UpdateChannel {
@@ -4179,8 +4310,8 @@ pub mod api {
 					},
 					#[codec(index = 5)]
 					TransferNativeFromAgent {
-						agent_id: ::subxt::utils::H256,
-						recipient: ::subxt::utils::H160,
+						agent_id: ::subxt::ext::subxt_core::utils::H256,
+						recipient: ::subxt::ext::subxt_core::utils::H160,
 						amount: ::core::primitive::u128,
 					},
 					#[codec(index = 6)]
@@ -4198,7 +4329,7 @@ pub mod api {
 					#[codec(index = 8)]
 					RegisterToken {
 						location: runtime_types::xcm::VersionedLocation,
-						foreign_token_id: ::subxt::utils::H256,
+						foreign_token_id: ::subxt::ext::subxt_core::utils::H256,
 					},
 				}
 			}
@@ -4211,8 +4342,8 @@ pub mod api {
 				pub enum Call {
 					#[codec(index = 0)]
                     upgrade {
-                        impl_address: ::subxt::utils::H160,
-                        impl_code_hash: ::subxt::utils::H256,
+                        impl_address: ::subxt::ext::subxt_core::utils::H160,
+                        impl_code_hash: ::subxt::ext::subxt_core::utils::H256,
                         initializer: runtime_types::snowbridge_outbound_queue_primitives::v2::message::Initializer,
                     },
                     #[codec(index = 1)]
@@ -4221,10 +4352,10 @@ pub mod api {
                     },
                     #[codec(index = 2)]
                     register_token {
-                        sender: ::subxt::alloc::boxed::Box<
+                        sender: ::subxt::ext::subxt_core::alloc::boxed::Box<
                             runtime_types::xcm::VersionedLocation,
                         >,
-                        asset_id: ::subxt::alloc::boxed::Box<
+                        asset_id: ::subxt::ext::subxt_core::alloc::boxed::Box<
                             runtime_types::xcm::VersionedLocation,
                         >,
                         metadata: runtime_types::snowbridge_core::AssetMetadata,
@@ -4254,9 +4385,9 @@ pub mod api {
 				pub enum Event {
 					#[codec(index = 0)]
 					Upgrade {
-						impl_address: ::subxt::utils::H160,
-						impl_code_hash: ::subxt::utils::H256,
-						initializer_params_hash: ::subxt::utils::H256,
+						impl_address: ::subxt::ext::subxt_core::utils::H160,
+						impl_code_hash: ::subxt::ext::subxt_core::utils::H256,
+						initializer_params_hash: ::subxt::ext::subxt_core::utils::H256,
 					},
 					#[codec(index = 1)]
 					SetOperatingMode {
@@ -4265,7 +4396,7 @@ pub mod api {
 					#[codec(index = 2)]
 					RegisterToken {
 						location: runtime_types::xcm::VersionedLocation,
-						foreign_token_id: ::subxt::utils::H256,
+						foreign_token_id: ::subxt::ext::subxt_core::utils::H256,
 					},
 					#[codec(index = 3)]
 					TipProcessed {
@@ -4286,15 +4417,18 @@ pub mod api {
 			}
 			#[derive(::codec::Decode, ::codec::Encode, Clone, Debug, PartialEq)]
 			pub struct Log {
-				pub address: ::subxt::utils::H160,
-				pub topics: ::subxt::alloc::vec::Vec<::subxt::utils::H256>,
-				pub data: ::subxt::alloc::vec::Vec<::core::primitive::u8>,
+				pub address: ::subxt::ext::subxt_core::utils::H160,
+				pub topics: ::subxt::ext::subxt_core::alloc::vec::Vec<
+					::subxt::ext::subxt_core::utils::H256,
+				>,
+				pub data: ::subxt::ext::subxt_core::alloc::vec::Vec<::core::primitive::u8>,
 				pub tx_index: ::core::primitive::u64,
 			}
 			#[derive(::codec::Decode, ::codec::Encode, Clone, Debug, PartialEq)]
 			pub struct Proof {
-				pub receipt_proof:
-					::subxt::alloc::vec::Vec<::subxt::alloc::vec::Vec<::core::primitive::u8>>,
+				pub receipt_proof: ::subxt::ext::subxt_core::alloc::vec::Vec<
+					::subxt::ext::subxt_core::alloc::vec::Vec<::core::primitive::u8>,
+				>,
 				pub execution_proof:
 					runtime_types::snowbridge_beacon_primitives::types::ExecutionProof,
 			}
@@ -4321,7 +4455,7 @@ pub mod api {
 				#[derive(
 					::codec::Decode,
 					::codec::Encode,
-					::subxt::ext::codec::CompactAs,
+					::subxt::ext::subxt_core::ext::codec::CompactAs,
 					Clone,
 					Debug,
 					PartialEq,
@@ -4333,7 +4467,7 @@ pub mod api {
 				#[derive(
 					::codec::Decode,
 					::codec::Encode,
-					::subxt::ext::codec::CompactAs,
+					::subxt::ext::subxt_core::ext::codec::CompactAs,
 					Clone,
 					Debug,
 					PartialEq,
@@ -4376,7 +4510,7 @@ pub mod api {
 			#[derive(
 				::codec::Decode,
 				::codec::Encode,
-				::subxt::ext::codec::CompactAs,
+				::subxt::ext::subxt_core::ext::codec::CompactAs,
 				Clone,
 				Debug,
 				PartialEq,
@@ -4402,20 +4536,20 @@ pub mod api {
 						#[codec(index = 6)]
 						PreRuntime(
 							[::core::primitive::u8; 4usize],
-							::subxt::alloc::vec::Vec<::core::primitive::u8>,
+							::subxt::ext::subxt_core::alloc::vec::Vec<::core::primitive::u8>,
 						),
 						#[codec(index = 4)]
 						Consensus(
 							[::core::primitive::u8; 4usize],
-							::subxt::alloc::vec::Vec<::core::primitive::u8>,
+							::subxt::ext::subxt_core::alloc::vec::Vec<::core::primitive::u8>,
 						),
 						#[codec(index = 5)]
 						Seal(
 							[::core::primitive::u8; 4usize],
-							::subxt::alloc::vec::Vec<::core::primitive::u8>,
+							::subxt::ext::subxt_core::alloc::vec::Vec<::core::primitive::u8>,
 						),
 						#[codec(index = 0)]
-						Other(::subxt::alloc::vec::Vec<::core::primitive::u8>),
+						Other(::subxt::ext::subxt_core::alloc::vec::Vec<::core::primitive::u8>),
 						#[codec(index = 8)]
 						RuntimeEnvironmentUpdated,
 					}
@@ -4549,8 +4683,9 @@ pub mod api {
 				use super::runtime_types;
 				#[derive(::codec::Decode, ::codec::Encode, Clone, Debug, PartialEq)]
 				pub struct StorageProof {
-					pub trie_nodes:
-						::subxt::alloc::vec::Vec<::subxt::alloc::vec::Vec<::core::primitive::u8>>,
+					pub trie_nodes: ::subxt::ext::subxt_core::alloc::vec::Vec<
+						::subxt::ext::subxt_core::alloc::vec::Vec<::core::primitive::u8>,
+					>,
 				}
 			}
 		}
@@ -4558,12 +4693,12 @@ pub mod api {
 			use super::runtime_types;
 			#[derive(::codec::Decode, ::codec::Encode, Clone, Debug, PartialEq)]
 			pub struct RuntimeVersion {
-				pub spec_name: ::subxt::alloc::string::String,
-				pub impl_name: ::subxt::alloc::string::String,
+				pub spec_name: ::subxt::ext::subxt_core::alloc::string::String,
+				pub impl_name: ::subxt::ext::subxt_core::alloc::string::String,
 				pub authoring_version: ::core::primitive::u32,
 				pub spec_version: ::core::primitive::u32,
 				pub impl_version: ::core::primitive::u32,
-				pub apis: ::subxt::alloc::vec::Vec<(
+				pub apis: ::subxt::ext::subxt_core::alloc::vec::Vec<(
 					[::core::primitive::u8; 8usize],
 					::core::primitive::u32,
 				)>,
@@ -4635,7 +4770,9 @@ pub mod api {
 					}
 					#[derive(::codec::Decode, ::codec::Encode, Clone, Debug, PartialEq)]
 					pub struct Assets(
-						pub ::subxt::alloc::vec::Vec<runtime_types::staging_xcm::v4::asset::Asset>,
+						pub  ::subxt::ext::subxt_core::alloc::vec::Vec<
+							runtime_types::staging_xcm::v4::asset::Asset,
+						>,
 					);
 					#[derive(::codec::Decode, ::codec::Encode, Clone, Debug, PartialEq)]
 					pub enum Fungibility {
@@ -4927,15 +5064,17 @@ pub mod api {
 					ExpectTransactStatus(runtime_types::xcm::v3::MaybeErrorCode),
 					#[codec(index = 33)]
 					QueryPallet {
-						module_name: ::subxt::alloc::vec::Vec<::core::primitive::u8>,
+						module_name:
+							::subxt::ext::subxt_core::alloc::vec::Vec<::core::primitive::u8>,
 						response_info: runtime_types::staging_xcm::v4::QueryResponseInfo,
 					},
 					#[codec(index = 34)]
 					ExpectPallet {
 						#[codec(compact)]
 						index: ::core::primitive::u32,
-						name: ::subxt::alloc::vec::Vec<::core::primitive::u8>,
-						module_name: ::subxt::alloc::vec::Vec<::core::primitive::u8>,
+						name: ::subxt::ext::subxt_core::alloc::vec::Vec<::core::primitive::u8>,
+						module_name:
+							::subxt::ext::subxt_core::alloc::vec::Vec<::core::primitive::u8>,
 						#[codec(compact)]
 						crate_major: ::core::primitive::u32,
 						#[codec(compact)]
@@ -5039,7 +5178,9 @@ pub mod api {
 				}
 				#[derive(::codec::Decode, ::codec::Encode, Clone, Debug, PartialEq)]
 				pub struct Xcm(
-					pub ::subxt::alloc::vec::Vec<runtime_types::staging_xcm::v4::Instruction>,
+					pub  ::subxt::ext::subxt_core::alloc::vec::Vec<
+						runtime_types::staging_xcm::v4::Instruction,
+					>,
 				);
 			}
 			pub mod v5 {
@@ -5086,7 +5227,9 @@ pub mod api {
 					}
 					#[derive(::codec::Decode, ::codec::Encode, Clone, Debug, PartialEq)]
 					pub struct Assets(
-						pub ::subxt::alloc::vec::Vec<runtime_types::staging_xcm::v5::asset::Asset>,
+						pub  ::subxt::ext::subxt_core::alloc::vec::Vec<
+							runtime_types::staging_xcm::v5::asset::Asset,
+						>,
 					);
 					#[derive(::codec::Decode, ::codec::Encode, Clone, Debug, PartialEq)]
 					pub enum Fungibility {
@@ -5397,15 +5540,17 @@ pub mod api {
 					ExpectTransactStatus(runtime_types::xcm::v3::MaybeErrorCode),
 					#[codec(index = 33)]
 					QueryPallet {
-						module_name: ::subxt::alloc::vec::Vec<::core::primitive::u8>,
+						module_name:
+							::subxt::ext::subxt_core::alloc::vec::Vec<::core::primitive::u8>,
 						response_info: runtime_types::staging_xcm::v5::QueryResponseInfo,
 					},
 					#[codec(index = 34)]
 					ExpectPallet {
 						#[codec(compact)]
 						index: ::core::primitive::u32,
-						name: ::subxt::alloc::vec::Vec<::core::primitive::u8>,
-						module_name: ::subxt::alloc::vec::Vec<::core::primitive::u8>,
+						name: ::subxt::ext::subxt_core::alloc::vec::Vec<::core::primitive::u8>,
+						module_name:
+							::subxt::ext::subxt_core::alloc::vec::Vec<::core::primitive::u8>,
 						#[codec(compact)]
 						crate_major: ::core::primitive::u32,
 						#[codec(compact)]
@@ -5536,7 +5681,9 @@ pub mod api {
 				}
 				#[derive(::codec::Decode, ::codec::Encode, Clone, Debug, PartialEq)]
 				pub struct Xcm(
-					pub ::subxt::alloc::vec::Vec<runtime_types::staging_xcm::v5::Instruction>,
+					pub  ::subxt::ext::subxt_core::alloc::vec::Vec<
+						runtime_types::staging_xcm::v5::Instruction,
+					>,
 				);
 			}
 		}
@@ -5566,7 +5713,7 @@ pub mod api {
 				use super::runtime_types;
 				#[derive(::codec::Decode, ::codec::Encode, Clone, Debug, PartialEq)]
 				pub struct DoubleEncoded {
-					pub encoded: ::subxt::alloc::vec::Vec<::core::primitive::u8>,
+					pub encoded: ::subxt::ext::subxt_core::alloc::vec::Vec<::core::primitive::u8>,
 				}
 			}
 			pub mod v3 {
@@ -5812,7 +5959,9 @@ pub mod api {
 					}
 					#[derive(::codec::Decode, ::codec::Encode, Clone, Debug, PartialEq)]
 					pub struct MultiAssets(
-						pub ::subxt::alloc::vec::Vec<runtime_types::xcm::v3::multiasset::MultiAsset>,
+						pub  ::subxt::ext::subxt_core::alloc::vec::Vec<
+							runtime_types::xcm::v3::multiasset::MultiAsset,
+						>,
 					);
 					#[derive(::codec::Decode, ::codec::Encode, Clone, Debug, PartialEq)]
 					pub enum WildFungibility {
@@ -6091,15 +6240,17 @@ pub mod api {
 					ExpectTransactStatus(runtime_types::xcm::v3::MaybeErrorCode),
 					#[codec(index = 33)]
 					QueryPallet {
-						module_name: ::subxt::alloc::vec::Vec<::core::primitive::u8>,
+						module_name:
+							::subxt::ext::subxt_core::alloc::vec::Vec<::core::primitive::u8>,
 						response_info: runtime_types::xcm::v3::QueryResponseInfo,
 					},
 					#[codec(index = 34)]
 					ExpectPallet {
 						#[codec(compact)]
 						index: ::core::primitive::u32,
-						name: ::subxt::alloc::vec::Vec<::core::primitive::u8>,
-						module_name: ::subxt::alloc::vec::Vec<::core::primitive::u8>,
+						name: ::subxt::ext::subxt_core::alloc::vec::Vec<::core::primitive::u8>,
+						module_name:
+							::subxt::ext::subxt_core::alloc::vec::Vec<::core::primitive::u8>,
 						#[codec(compact)]
 						crate_major: ::core::primitive::u32,
 						#[codec(compact)]
@@ -6237,7 +6388,11 @@ pub mod api {
 					Limited(::sp_weights::Weight),
 				}
 				#[derive(::codec::Decode, ::codec::Encode, Clone, Debug, PartialEq)]
-				pub struct Xcm(pub ::subxt::alloc::vec::Vec<runtime_types::xcm::v3::Instruction>);
+				pub struct Xcm(
+					pub  ::subxt::ext::subxt_core::alloc::vec::Vec<
+						runtime_types::xcm::v3::Instruction,
+					>,
+				);
 			}
 			pub mod v5 {
 				use super::runtime_types;
