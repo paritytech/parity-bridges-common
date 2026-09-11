@@ -1204,7 +1204,7 @@ dependencies = [
  "blake2",
  "file-guard",
  "fs-err",
- "prettyplease",
+ "prettyplease 0.2.37",
  "proc-macro2",
  "quote",
  "syn 2.0.118",
@@ -2635,6 +2635,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "prettyplease"
+version = "0.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2bfe0f4c752e450fc2faf62654f1c134747922825d5b04ca717b8874f41a40c0"
+dependencies = [
+ "proc-macro2",
+ "syn 3.0.1",
+]
+
+[[package]]
 name = "primitive-types"
 version = "0.13.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2879,10 +2889,11 @@ dependencies = [
  "color-eyre",
  "indoc",
  "parity-scale-codec",
- "prettyplease",
+ "prettyplease 0.3.0",
  "proc-macro2",
  "subxt-codegen",
  "subxt-utils-fetchmetadata",
+ "syn 3.0.1",
  "wasm-loader",
  "wasm-testbed",
 ]

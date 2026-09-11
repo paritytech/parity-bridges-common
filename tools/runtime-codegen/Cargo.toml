@@ -16,9 +16,11 @@ clap = { version = "4.5.3", features = ["derive", "cargo"] }
 codec = { package = "parity-scale-codec", version = "3.7.4", features = ["derive"] }
 color-eyre = "0.6.1"
 indoc = "2.0.5"
-prettyplease = "0.2.20"
+prettyplease = "0.3.0"
 proc-macro2 = "1.0.56"
 subxt-codegen = { version = "0.44.0" }
 subxt-utils-fetchmetadata = { version = "0.44.0", features = ["url"] }
+# Must stay on the same major as `prettyplease`'s `syn`, see `print_runtime`.
+syn = { version = "3.0.0", features = ["full", "parsing"] }
 wasm-loader = { git = "https://github.com/chevdor/subwasm", branch = "master" }
 wasm-testbed = { git = "https://github.com/chevdor/subwasm", branch = "master" }
