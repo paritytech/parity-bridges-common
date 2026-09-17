@@ -11,5 +11,6 @@
 mod ops;
 
 pub mod images;
+pub mod light_client;
 pub mod relayer;
 pub mod utils;
