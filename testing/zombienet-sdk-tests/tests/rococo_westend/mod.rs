@@ -8,7 +8,8 @@
 //! A second bridge pair (e.g. `kusama_polkadot`) would be added as a sibling module built on the
 //! same [`crate::common`] infrastructure.
 
-use subxt::{OnlineClient, PolkadotConfig};
+use crate::common::config::TestConfig;
+use subxt::OnlineClient;
 
 // `1u64 << 60` — the amount the local chain specs endow every well-known account with. The
 // finality/parachain relayers (`//Charlie` / `//Dave`) only submit free or mandatory headers, so
@@ -76,7 +77,7 @@ bridge_hub_ops!(
 
 /// Reads `bridgeRelayers.relayerRewards(relayer, RewardsAccountParams)` on Bridge Hub Rococo.
 pub async fn bridge_hub_rococo_relayer_reward(
-	client: &OnlineClient<PolkadotConfig>,
+	client: &OnlineClient<TestConfig>,
 	relayer: subxt::utils::AccountId32,
 ) -> Result<Option<u128>, anyhow::Error> {
 	use crate::bridge_hub_rococo::runtime_types::{
@@ -97,7 +98,7 @@ pub async fn bridge_hub_rococo_relayer_reward(
 /// Reads `bridgeRelayers.relayerRewards(relayer, BridgeReward::RococoWestend(..))` on Bridge Hub
 /// Westend (the reward kind is wrapped in the runtime's `BridgeReward` enum there).
 pub async fn bridge_hub_westend_relayer_reward(
-	client: &OnlineClient<PolkadotConfig>,
+	client: &OnlineClient<TestConfig>,
 	relayer: subxt::utils::AccountId32,
 ) -> Result<Option<u128>, anyhow::Error> {
 	use crate::bridge_hub_westend::runtime_types::{
@@ -120,8 +121,8 @@ pub async fn bridge_hub_westend_relayer_reward(
 /// (the finality/parachain relayers submit only free or mandatory headers, so their balance must
 /// not change across a test).
 pub async fn assert_relayer_balances_unchanged(
-	bhr: &OnlineClient<PolkadotConfig>,
-	bhw: &OnlineClient<PolkadotConfig>,
+	bhr: &OnlineClient<TestConfig>,
+	bhw: &OnlineClient<TestConfig>,
 	charlie: [u8; 32],
 	dave: [u8; 32],
 ) -> Result<(), anyhow::Error> {

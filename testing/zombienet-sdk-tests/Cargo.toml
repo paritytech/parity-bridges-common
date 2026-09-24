@@ -20,6 +20,7 @@ anyhow = { workspace = true, optional = true }
 codec = { workspace = true, optional = true }
 env_logger = { workspace = true, optional = true }
 log = { workspace = true, optional = true }
+scale-info = { workspace = true, optional = true }
 serde_json = { workspace = true, default-features = true, optional = true }
 subxt = { workspace = true, optional = true }
 subxt-signer = { workspace = true, optional = true }
@@ -43,6 +44,7 @@ zombie-ci = [
 	"dep:codec",
 	"dep:env_logger",
 	"dep:log",
+	"dep:scale-info",
 	"dep:serde_json",
 	"dep:subxt",
 	"dep:subxt-signer",

@@ -16,7 +16,7 @@
 //! from [`super`].
 
 use std::time::Duration;
-use subxt::{OnlineClient, PolkadotConfig};
+use subxt::OnlineClient;
 use subxt_signer::sr25519::dev;
 use zombienet_sdk::{
 	environment::get_spawn_fn, Arg, LocalFileSystem, Network, NetworkConfig, NetworkConfigBuilder,
@@ -29,6 +29,7 @@ use super::{
 	SOVEREIGN_FUNDING, WESTEND_GENESIS_HASH, XCM_VERSION,
 };
 use crate::common::{
+	config::TestConfig,
 	images::node_images,
 	relayer::{init_bridge_confirmed, spawn_relayer, Relayer},
 	utils::{
@@ -352,38 +353,34 @@ impl BridgeTestEnv {
 	async fn client_of(
 		network: &Network<LocalFileSystem>,
 		node: &str,
-	) -> Result<OnlineClient<PolkadotConfig>, anyhow::Error> {
+	) -> Result<OnlineClient<TestConfig>, anyhow::Error> {
 		let node = network.get_node(node)?;
-		let client: OnlineClient<PolkadotConfig> = node.wait_client().await?;
+		let client: OnlineClient<TestConfig> = node.wait_client().await?;
 		Ok(client)
 	}
 
-	pub async fn rococo_relay_client(&self) -> Result<OnlineClient<PolkadotConfig>, anyhow::Error> {
+	pub async fn rococo_relay_client(&self) -> Result<OnlineClient<TestConfig>, anyhow::Error> {
 		Self::client_of(&self.rococo, "alice-rococo-validator").await
 	}
-	pub async fn westend_relay_client(
-		&self,
-	) -> Result<OnlineClient<PolkadotConfig>, anyhow::Error> {
+	pub async fn westend_relay_client(&self) -> Result<OnlineClient<TestConfig>, anyhow::Error> {
 		Self::client_of(&self.westend, "alice-westend-validator").await
 	}
-	pub async fn asset_hub_rococo_client(
-		&self,
-	) -> Result<OnlineClient<PolkadotConfig>, anyhow::Error> {
+	pub async fn asset_hub_rococo_client(&self) -> Result<OnlineClient<TestConfig>, anyhow::Error> {
 		Self::client_of(&self.rococo, "asset-hub-rococo-collator1").await
 	}
 	pub async fn asset_hub_westend_client(
 		&self,
-	) -> Result<OnlineClient<PolkadotConfig>, anyhow::Error> {
+	) -> Result<OnlineClient<TestConfig>, anyhow::Error> {
 		Self::client_of(&self.westend, "asset-hub-westend-collator1").await
 	}
 	pub async fn bridge_hub_rococo_client(
 		&self,
-	) -> Result<OnlineClient<PolkadotConfig>, anyhow::Error> {
+	) -> Result<OnlineClient<TestConfig>, anyhow::Error> {
 		Self::client_of(&self.rococo, "bridge-hub-rococo-collator1").await
 	}
 	pub async fn bridge_hub_westend_client(
 		&self,
-	) -> Result<OnlineClient<PolkadotConfig>, anyhow::Error> {
+	) -> Result<OnlineClient<TestConfig>, anyhow::Error> {
 		Self::client_of(&self.westend, "bridge-hub-westend-collator1").await
 	}
 

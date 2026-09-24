@@ -5,10 +5,11 @@
 //! submission, balance/header queries, a polling retry combinator, and the zombienet
 //! network-spawn / genesis-override helpers their `environment` modules build on.
 
+use crate::common::config::TestConfig;
 use anyhow::anyhow;
 use codec::Decode;
 use std::{future::Future, time::Duration};
-use subxt::{config::DefaultExtrinsicParamsBuilder, tx::Payload, OnlineClient, PolkadotConfig};
+use subxt::{config::DefaultExtrinsicParamsBuilder, tx::Payload, OnlineClient};
 use subxt_signer::sr25519::{dev, Keypair};
 use tokio::time::{sleep, timeout_at, Instant};
 use zombienet_sdk::{GlobalSettingsBuilder, LocalFileSystem, Network, NetworkConfig};
@@ -30,7 +31,7 @@ fn is_transient_reorg_error(e: &subxt::Error) -> bool {
 /// the only racy step is building the tx (subxt reads state at the best block, which the fast hubs
 /// can prune before it returns) — nothing is submitted then, so we just rebuild and retry.
 pub async fn sign_submit_wait<C: Payload>(
-	client: &OnlineClient<PolkadotConfig>,
+	client: &OnlineClient<TestConfig>,
 	call: &C,
 	signer: &Keypair,
 ) -> Result<(), anyhow::Error> {
@@ -61,7 +62,7 @@ pub async fn sign_submit_wait<C: Payload>(
 /// is retried, a retracted in-block report is re-watched, and a tx re-validated `Invalid`/`Dropped`
 /// by a reorg is rebuilt and resubmitted.
 pub async fn sign_submit_wait_in_block<C: Payload>(
-	client: &OnlineClient<PolkadotConfig>,
+	client: &OnlineClient<TestConfig>,
 	call: &C,
 	signer: &Keypair,
 ) -> Result<(), anyhow::Error> {
@@ -130,7 +131,7 @@ pub async fn sign_submit_wait_in_block<C: Payload>(
 /// hubs: explicit sequential nonces queue as `Future` instead of racing the auto-queried nonce.
 #[allow(dead_code)]
 pub async fn sign_submit_wait_in_block_nonce<C: Payload>(
-	client: &OnlineClient<PolkadotConfig>,
+	client: &OnlineClient<TestConfig>,
 	call: &C,
 	signer: &Keypair,
 	nonce: u64,
@@ -172,7 +173,7 @@ pub async fn sign_submit_wait_in_block_nonce<C: Payload>(
 }
 /// Free balance of `account` via dynamic `System::Account` storage (works for any runtime).
 pub async fn free_balance_at(
-	client: &OnlineClient<PolkadotConfig>,
+	client: &OnlineClient<TestConfig>,
 	account: [u8; 32],
 ) -> Result<u128, anyhow::Error> {
 	use subxt::ext::scale_value::{At, Value};
@@ -191,7 +192,7 @@ pub async fn free_balance_at(
 /// Calls the `<Chain>FinalityApi_best_finalized` runtime API and returns the best finalized
 /// bridged header number.
 pub async fn best_finalized_bridged_header(
-	client: &OnlineClient<PolkadotConfig>,
+	client: &OnlineClient<TestConfig>,
 	finality_api: &str,
 ) -> Result<Option<u32>, anyhow::Error> {
 	let method = format!("{finality_api}_best_finalized");
@@ -206,7 +207,7 @@ pub async fn best_finalized_bridged_header(
 /// Gates `init-bridge`: a freshly-started bridge hub reorgs heavily at the tip, so init waits for
 /// steady finalization first, otherwise the init tx can be orphaned and never re-included.
 pub async fn wait_for_finalized_height(
-	client: &OnlineClient<PolkadotConfig>,
+	client: &OnlineClient<TestConfig>,
 	height: u32,
 	timeout: Duration,
 ) -> Result<(), anyhow::Error> {
@@ -224,7 +225,7 @@ pub async fn wait_for_finalized_height(
 /// (`UpdatedBestFinalizedHeader`) and parachain (`UpdatedParachainHead`) header-import events
 /// emitted by the given bridge pallets.
 pub async fn count_synced_headers(
-	client: &OnlineClient<PolkadotConfig>,
+	client: &OnlineClient<TestConfig>,
 	grandpa_pallet: &str,
 	parachains_pallet: &str,
 	duration: Duration,
@@ -364,7 +365,7 @@ pub fn bridge_hub_balances(
 /// Waits (up to 10 minutes) until the native free balance of `account` on `client` exceeds
 /// `initial + min_increase`.
 pub async fn wait_for_native_increase(
-	client: &OnlineClient<PolkadotConfig>,
+	client: &OnlineClient<TestConfig>,
 	account: [u8; 32],
 	initial: u128,
 	min_increase: u128,

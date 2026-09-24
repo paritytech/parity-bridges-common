@@ -18,8 +18,9 @@
 macro_rules! asset_hub_ops {
 	($name:ident, $ah:ident, $remote_network:expr) => {
 		pub mod $name {
-			use crate::common::utils::{
-				free_balance_at, sign_submit_wait_in_block, sign_submit_wait_in_block_nonce,
+			use crate::common::{
+				config::TestConfig,
+				utils::{free_balance_at, sign_submit_wait_in_block, sign_submit_wait_in_block_nonce},
 			};
 			use crate::$ah::runtime_types::{
 				staging_xcm::v5::{
@@ -36,7 +37,7 @@ macro_rules! asset_hub_ops {
 			};
 			// Re-exported so call sites can name the (per-runtime) transfer type.
 			pub use crate::$ah::runtime_types::staging_xcm_executor::traits::asset_transfer::TransferType;
-			use subxt::{tx::Payload, OnlineClient, PolkadotConfig};
+			use subxt::{tx::Payload, OnlineClient};
 			use subxt_signer::sr25519::Keypair;
 
 			/// The bridged/remote consensus network this Asset Hub bridges to.
@@ -74,7 +75,7 @@ macro_rules! asset_hub_ops {
 			/// token through an asset-conversion pool (the runtime's `SwapFirstAssetTrader`);
 			/// `init_bridge` seeds one per Asset Hub. This is a regular signed call (no sudo).
 			pub async fn create_pool(
-				client: &OnlineClient<PolkadotConfig>,
+				client: &OnlineClient<TestConfig>,
 				signer: &Keypair,
 				nonce: u64,
 			) -> Result<(), anyhow::Error> {
@@ -87,7 +88,7 @@ macro_rules! asset_hub_ops {
 			/// [`create_pool`] with liquidity so the bridged asset's XCM fees can be swapped to
 			/// native.
 			pub async fn add_liquidity(
-				client: &OnlineClient<PolkadotConfig>,
+				client: &OnlineClient<TestConfig>,
 				signer: &Keypair,
 				native_amount: u128,
 				bridged_amount: u128,
@@ -112,7 +113,7 @@ macro_rules! asset_hub_ops {
 			/// (`LocalReserve` to send this Asset Hub's native token out, `DestinationReserve` to
 			/// send a bridged token back to its origin).
 			pub async fn transfer_assets(
-				client: &OnlineClient<PolkadotConfig>,
+				client: &OnlineClient<TestConfig>,
 				signer: &Keypair,
 				beneficiary: [u8; 32],
 				asset: impl Fn() -> Location,
@@ -161,7 +162,7 @@ macro_rules! asset_hub_ops {
 			/// min_balance)` call, wrapped in a relay-chain governance `Transact` (root).
 			#[allow(dead_code)]
 			pub async fn force_create_foreign_asset_call(
-				client: &OnlineClient<PolkadotConfig>,
+				client: &OnlineClient<TestConfig>,
 				owner: subxt::utils::AccountId32,
 				min_balance: u128,
 			) -> Result<Vec<u8>, anyhow::Error> {
@@ -178,7 +179,7 @@ macro_rules! asset_hub_ops {
 			/// Free balance of `account` (native asset) via `system.account`.
 			#[allow(dead_code)]
 			pub async fn free_balance(
-				client: &OnlineClient<PolkadotConfig>,
+				client: &OnlineClient<TestConfig>,
 				account: [u8; 32],
 			) -> Result<u128, anyhow::Error> {
 				free_balance_at(client, account).await
@@ -187,7 +188,7 @@ macro_rules! asset_hub_ops {
 			/// Balance of a bridged (foreign) asset held by `account`, or `None` if the account
 			/// has no entry for that asset yet.
 			pub async fn foreign_asset_balance(
-				client: &OnlineClient<PolkadotConfig>,
+				client: &OnlineClient<TestConfig>,
 				asset: Location,
 				account: subxt::utils::AccountId32,
 			) -> Result<Option<u128>, anyhow::Error> {
@@ -199,7 +200,7 @@ macro_rules! asset_hub_ops {
 			/// Whether the bridged foreign asset is owned by `account` on this Asset Hub.
 			#[allow(dead_code)]
 			pub async fn bridged_asset_owner_is(
-				client: &OnlineClient<PolkadotConfig>,
+				client: &OnlineClient<TestConfig>,
 				account: &subxt::utils::AccountId32,
 			) -> Result<bool, anyhow::Error> {
 				let addr = crate::$ah::storage().foreign_assets().asset(bridged_asset());
@@ -211,7 +212,7 @@ macro_rules! asset_hub_ops {
 
 			/// Whether the HRMP egress channel towards `sibling` is open.
 			pub async fn hrmp_egress_open(
-				client: &OnlineClient<PolkadotConfig>,
+				client: &OnlineClient<TestConfig>,
 				sibling: u32,
 			) -> Result<bool, anyhow::Error> {
 				let addr = crate::$ah::storage().parachain_system().relevant_messaging_state();
@@ -228,14 +229,17 @@ macro_rules! bridge_hub_ops {
 	($name:ident, $bh:ident, $remote_network:expr) => {
 		pub mod $name {
 			use crate::{
-				common::utils::{free_balance_at, sign_submit_wait},
+				common::{
+					config::TestConfig,
+					utils::{free_balance_at, sign_submit_wait},
+				},
 				$bh::runtime_types::staging_xcm::v5::{
 					junction::{Junction, NetworkId},
 					junctions::Junctions,
 					location::Location,
 				},
 			};
-			use subxt::{OnlineClient, PolkadotConfig};
+			use subxt::OnlineClient;
 			use subxt_signer::sr25519::Keypair;
 
 			/// The bridged/remote consensus network this Bridge Hub bridges to.
@@ -259,7 +263,7 @@ macro_rules! bridge_hub_ops {
 			/// `tx.balances.transferAllowDeath(target, amount)`.
 			#[allow(dead_code)]
 			pub async fn transfer_balance(
-				client: &OnlineClient<PolkadotConfig>,
+				client: &OnlineClient<TestConfig>,
 				signer: &Keypair,
 				target: subxt::utils::AccountId32,
 				amount: u128,
@@ -272,7 +276,7 @@ macro_rules! bridge_hub_ops {
 
 			/// Free balance of `account` via `system.account`.
 			pub async fn free_balance(
-				client: &OnlineClient<PolkadotConfig>,
+				client: &OnlineClient<TestConfig>,
 				account: [u8; 32],
 			) -> Result<u128, anyhow::Error> {
 				free_balance_at(client, account).await

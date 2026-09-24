@@ -4,9 +4,10 @@
 //! `substrate-relay` subprocess driver: locating the binary, spawning long-running relayer
 //! processes (killed on drop) and the idempotent, finality-confirmed bridge initialization.
 
+use crate::common::config::TestConfig;
 use anyhow::anyhow;
 use std::{path::PathBuf, time::Duration};
-use subxt::{OnlineClient, PolkadotConfig};
+use subxt::OnlineClient;
 use tokio::{
 	process::{Child, Command},
 	time::{sleep, Instant},
@@ -45,7 +46,7 @@ pub fn spawn_relayer(args: &[&str]) -> Result<Relayer, anyhow::Error> {
 /// the latest **finalized** block. Read at finalized (not best) so a reorg-victim block can't give
 /// a false answer; `BasicOperatingMode` encodes to one byte (`0` = Normal).
 async fn bridge_operating_mode_normal_at_finalized(
-	client: &OnlineClient<PolkadotConfig>,
+	client: &OnlineClient<TestConfig>,
 	grandpa_pallet: &str,
 ) -> Result<bool, anyhow::Error> {
 	use subxt::ext::scale_value::Value;
@@ -67,7 +68,7 @@ async fn bridge_operating_mode_normal_at_finalized(
 /// until `operating_mode == Normal` holds at finalized (each re-submit no-ops fast once done).
 pub async fn init_bridge_confirmed(
 	args: &[&str],
-	target_client: &OnlineClient<PolkadotConfig>,
+	target_client: &OnlineClient<TestConfig>,
 	grandpa_pallet: &str,
 ) -> Result<(), anyhow::Error> {
 	const OVERALL_TIMEOUT: Duration = Duration::from_secs(300);

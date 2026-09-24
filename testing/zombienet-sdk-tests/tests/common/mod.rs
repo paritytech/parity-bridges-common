@@ -10,6 +10,7 @@
 #[macro_use]
 mod ops;
 
+pub mod config;
 pub mod images;
 pub mod relayer;
 pub mod utils;

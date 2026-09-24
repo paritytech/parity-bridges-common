@@ -11,7 +11,8 @@
 //! [`environment`]. The two runtimes also identify each other by the named `NetworkId::Polkadot` /
 //! `NetworkId::Kusama` variants (not `ByGenesis`), and DOT/KSM use 10/12 decimals respectively.
 
-use subxt::{OnlineClient, PolkadotConfig};
+use crate::common::config::TestConfig;
+use subxt::OnlineClient;
 
 // `1u64 << 60` — the amount the genesis override endows every well-known account with on the Bridge
 // Hubs. The finality/parachain relayers (`//Charlie` / `//Dave`) only submit free or mandatory
@@ -68,7 +69,7 @@ bridge_hub_ops!(bridge_hub_kusama, bridge_hub_kusama, NetworkId::Polkadot);
 /// reward kind is a plain `RewardsAccountParams` there), keyed by the source Bridge Hub Polkadot
 /// (`bhpd`).
 pub async fn bridge_hub_kusama_relayer_reward(
-	client: &OnlineClient<PolkadotConfig>,
+	client: &OnlineClient<TestConfig>,
 	relayer: subxt::utils::AccountId32,
 ) -> Result<Option<u128>, anyhow::Error> {
 	use crate::bridge_hub_kusama::runtime_types::{
@@ -90,7 +91,7 @@ pub async fn bridge_hub_kusama_relayer_reward(
 /// Hub Polkadot (the reward kind is wrapped in the runtime's `BridgeReward` enum there), keyed by
 /// the source Bridge Hub Kusama (`bhks`).
 pub async fn bridge_hub_polkadot_relayer_reward(
-	client: &OnlineClient<PolkadotConfig>,
+	client: &OnlineClient<TestConfig>,
 	relayer: subxt::utils::AccountId32,
 ) -> Result<Option<u128>, anyhow::Error> {
 	use crate::bridge_hub_polkadot::runtime_types::{
@@ -113,8 +114,8 @@ pub async fn bridge_hub_polkadot_relayer_reward(
 /// (the finality/parachain relayers submit only free or mandatory headers, so their balance must
 /// not change across a test).
 pub async fn assert_relayer_balances_unchanged(
-	bhp: &OnlineClient<PolkadotConfig>,
-	bhk: &OnlineClient<PolkadotConfig>,
+	bhp: &OnlineClient<TestConfig>,
+	bhk: &OnlineClient<TestConfig>,
 	charlie: [u8; 32],
 	dave: [u8; 32],
 ) -> Result<(), anyhow::Error> {

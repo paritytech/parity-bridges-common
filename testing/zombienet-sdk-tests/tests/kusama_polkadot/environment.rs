@@ -22,7 +22,7 @@
 //! needs to create them here.
 
 use std::{path::PathBuf, time::Duration};
-use subxt::{OnlineClient, PolkadotConfig};
+use subxt::OnlineClient;
 use subxt_signer::sr25519::dev;
 use zombienet_sdk::{
 	environment::Provider, Arg, LocalFileSystem, Network, NetworkConfig, NetworkConfigBuilder,
@@ -36,6 +36,7 @@ use super::{
 	SOVEREIGN_FUNDING, XCM_VERSION,
 };
 use crate::common::{
+	config::TestConfig,
 	relayer::{init_bridge_confirmed, spawn_relayer, Relayer},
 	utils::{
 		best_finalized_bridged_header, bridge_hub_balances, config_errs, dev_account,
@@ -354,40 +355,36 @@ impl BridgeTestEnv {
 	async fn client_of(
 		network: &Network<LocalFileSystem>,
 		node: &str,
-	) -> Result<OnlineClient<PolkadotConfig>, anyhow::Error> {
+	) -> Result<OnlineClient<TestConfig>, anyhow::Error> {
 		let node = network.get_node(node)?;
-		let client: OnlineClient<PolkadotConfig> = node.wait_client().await?;
+		let client: OnlineClient<TestConfig> = node.wait_client().await?;
 		Ok(client)
 	}
 
 	// Typed relay-chain clients, used post-spawn to open the HRMP channels (see
 	// `open_hrmp_channels_*`).
-	pub async fn polkadot_relay_client(
-		&self,
-	) -> Result<OnlineClient<PolkadotConfig>, anyhow::Error> {
+	pub async fn polkadot_relay_client(&self) -> Result<OnlineClient<TestConfig>, anyhow::Error> {
 		Self::client_of(&self.polkadot, "alice-polkadot-validator").await
 	}
-	pub async fn kusama_relay_client(&self) -> Result<OnlineClient<PolkadotConfig>, anyhow::Error> {
+	pub async fn kusama_relay_client(&self) -> Result<OnlineClient<TestConfig>, anyhow::Error> {
 		Self::client_of(&self.kusama, "alice-kusama-validator").await
 	}
 	pub async fn asset_hub_polkadot_client(
 		&self,
-	) -> Result<OnlineClient<PolkadotConfig>, anyhow::Error> {
+	) -> Result<OnlineClient<TestConfig>, anyhow::Error> {
 		Self::client_of(&self.polkadot, "asset-hub-polkadot-collator1").await
 	}
-	pub async fn asset_hub_kusama_client(
-		&self,
-	) -> Result<OnlineClient<PolkadotConfig>, anyhow::Error> {
+	pub async fn asset_hub_kusama_client(&self) -> Result<OnlineClient<TestConfig>, anyhow::Error> {
 		Self::client_of(&self.kusama, "asset-hub-kusama-collator1").await
 	}
 	pub async fn bridge_hub_polkadot_client(
 		&self,
-	) -> Result<OnlineClient<PolkadotConfig>, anyhow::Error> {
+	) -> Result<OnlineClient<TestConfig>, anyhow::Error> {
 		Self::client_of(&self.polkadot, "bridge-hub-polkadot-collator1").await
 	}
 	pub async fn bridge_hub_kusama_client(
 		&self,
-	) -> Result<OnlineClient<PolkadotConfig>, anyhow::Error> {
+	) -> Result<OnlineClient<TestConfig>, anyhow::Error> {
 		Self::client_of(&self.kusama, "bridge-hub-kusama-collator1").await
 	}
 
