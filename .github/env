@@ -1,4 +1,4 @@
-IMAGE=docker.io/paritytech/ci-unified:bullseye-1.88.0-2025-06-27-v202507112050
+IMAGE=docker.io/paritytech/ci-unified:bullseye-1.93.0-2026-01-27-v202609081126
 IMAGE_REGISTRY=docker.io/paritypr
 ZOMBIE_PROVIDER=docker
 BHP_FELLOWS_RUNTIMES_TAG=v2.5.0
