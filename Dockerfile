@@ -8,7 +8,7 @@
 #
 # See the `deployments/README.md` for all the available `PROJECT` values.
 
-FROM docker.io/paritytech/ci-unified:bullseye-1.88.0-2025-06-27-v202507112050 as builder
+FROM docker.io/paritytech/ci-unified:bullseye-1.93.0-2026-01-27-v202609081126 as builder
 USER root
 WORKDIR /parity-bridges-common
 
@@ -20,7 +20,7 @@ RUN cargo build --release --verbose -p ${PROJECT} && \
 
 # In this final stage we copy over the final binary and do some checks
 # to make sure that everything looks good.
-FROM docker.io/library/ubuntu:20.04 as runtime
+FROM docker.io/library/ubuntu:24.04 as runtime
 
 # show backtraces
 ENV RUST_BACKTRACE 1
