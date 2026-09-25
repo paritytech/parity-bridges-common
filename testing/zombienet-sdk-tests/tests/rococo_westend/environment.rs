@@ -32,8 +32,8 @@ use crate::common::{
 	images::node_images,
 	relayer::{init_bridge_confirmed, spawn_relayer, Relayer},
 	utils::{
-		best_finalized_bridged_header, bridge_hub_balances, config_errs, dev_account,
-		global_settings, retry_until, sign_submit_wait, spawn_with_retry,
+		best_finalized_bridged_header, bridge_hub_balances, config_errs, connect_with_retry,
+		dev_account, global_settings, retry_until, sign_submit_wait, spawn_with_retry,
 		wait_for_finalized_height,
 	},
 };
@@ -354,8 +354,7 @@ impl BridgeTestEnv {
 		node: &str,
 	) -> Result<OnlineClient<PolkadotConfig>, anyhow::Error> {
 		let node = network.get_node(node)?;
-		let client: OnlineClient<PolkadotConfig> = node.wait_client().await?;
-		Ok(client)
+		connect_with_retry(node.ws_uri()).await
 	}
 
 	pub async fn rococo_relay_client(&self) -> Result<OnlineClient<PolkadotConfig>, anyhow::Error> {
@@ -492,7 +491,7 @@ impl BridgeTestEnv {
 					&bob,
 					POOL_LIQUIDITY,
 					POOL_LIQUIDITY,
-					bob_acc.clone(),
+					bob_acc,
 					1,
 				)
 				.await
@@ -504,7 +503,7 @@ impl BridgeTestEnv {
 					&bob,
 					POOL_LIQUIDITY,
 					POOL_LIQUIDITY,
-					bob_acc.clone(),
+					bob_acc,
 					1,
 				)
 				.await

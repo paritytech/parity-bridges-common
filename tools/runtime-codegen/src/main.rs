@@ -112,7 +112,7 @@ fn print_runtime(runtime_api: proc_macro2::TokenStream) {
 fn fetch_metadata(source: RuntimeMetadataSource) -> color_eyre::Result<Vec<u8>> {
 	match source {
 		RuntimeMetadataSource::NodeUrl(node_url) =>
-			from_url_blocking(node_url, MetadataVersion::Latest)
+			from_url_blocking(node_url, MetadataVersion::Latest, None)
 				.map_err(|e| eyre::eyre!("Error fetching metadata from node url: {:?}", e)),
 		RuntimeMetadataSource::WasmFile(source) => {
 			let testbed = WasmTestBed::new(&source)

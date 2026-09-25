@@ -18,8 +18,8 @@
 macro_rules! asset_hub_ops {
 	($name:ident, $ah:ident, $remote_network:expr) => {
 		pub mod $name {
-			use crate::common::utils::{
-				free_balance_at, sign_submit_wait_in_block, sign_submit_wait_in_block_nonce,
+			use crate::common::{
+				utils::{free_balance_at, sign_submit_wait_in_block, sign_submit_wait_in_block_nonce},
 			};
 			use crate::$ah::runtime_types::{
 				staging_xcm::v5::{
@@ -36,7 +36,7 @@ macro_rules! asset_hub_ops {
 			};
 			// Re-exported so call sites can name the (per-runtime) transfer type.
 			pub use crate::$ah::runtime_types::staging_xcm_executor::traits::asset_transfer::TransferType;
-			use subxt::{tx::Payload, OnlineClient, PolkadotConfig};
+			use subxt::{OnlineClient, PolkadotConfig};
 			use subxt_signer::sr25519::Keypair;
 
 			/// The bridged/remote consensus network this Asset Hub bridges to.
@@ -172,7 +172,7 @@ macro_rules! asset_hub_ops {
 					true,
 					min_balance,
 				);
-				Ok(call.encode_call_data(&client.metadata())?)
+				Ok(client.tx().await?.call_data(&call)?)
 			}
 
 			/// Free balance of `account` (native asset) via `system.account`.
@@ -191,9 +191,10 @@ macro_rules! asset_hub_ops {
 				asset: Location,
 				account: subxt::utils::AccountId32,
 			) -> Result<Option<u128>, anyhow::Error> {
-				let addr = crate::$ah::storage().foreign_assets().account(asset, account);
-				let maybe = client.storage().at_latest().await?.fetch(&addr).await?;
-				Ok(maybe.map(|a| a.balance))
+				let addr = crate::$ah::storage().foreign_assets().account();
+				let at = client.at_current_block().await?;
+				let maybe = at.storage().try_fetch(addr, (asset, account)).await?;
+				Ok(maybe.map(|a| a.decode()).transpose()?.map(|a| a.balance))
 			}
 
 			/// Whether the bridged foreign asset is owned by `account` on this Asset Hub.
@@ -202,9 +203,10 @@ macro_rules! asset_hub_ops {
 				client: &OnlineClient<PolkadotConfig>,
 				account: &subxt::utils::AccountId32,
 			) -> Result<bool, anyhow::Error> {
-				let addr = crate::$ah::storage().foreign_assets().asset(bridged_asset());
-				match client.storage().at_latest().await?.fetch(&addr).await? {
-					Some(details) => Ok(&details.owner == account),
+				let addr = crate::$ah::storage().foreign_assets().asset();
+				let at = client.at_current_block().await?;
+				match at.storage().try_fetch(addr, (bridged_asset(),)).await? {
+					Some(details) => Ok(&details.decode()?.owner == account),
 					None => Ok(false),
 				}
 			}
@@ -215,10 +217,11 @@ macro_rules! asset_hub_ops {
 				sibling: u32,
 			) -> Result<bool, anyhow::Error> {
 				let addr = crate::$ah::storage().parachain_system().relevant_messaging_state();
-				let Some(state) = client.storage().at_latest().await?.fetch(&addr).await? else {
+				let at = client.at_current_block().await?;
+				let Some(state) = at.storage().try_fetch(addr, ()).await? else {
 					return Ok(false);
 				};
-				Ok(state.egress_channels.iter().any(|(id, _)| id.0 == sibling))
+				Ok(state.decode()?.egress_channels.iter().any(|(id, _)| id.0 == sibling))
 			}
 		}
 	};
