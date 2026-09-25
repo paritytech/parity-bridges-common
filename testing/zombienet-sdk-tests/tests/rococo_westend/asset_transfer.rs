@@ -68,7 +68,7 @@ async fn asset_transfer_works() -> Result<(), anyhow::Error> {
 			// //Alice receives at least 4.8 wrapped ROC on Westend AH.
 			retry_until(Duration::from_secs(600), || {
 				let ahw = ahw.clone();
-				let acc = alice_acc.clone();
+				let acc = alice_acc;
 				async move {
 					let asset = asset_hub_westend::bridged_asset();
 					let balance =
@@ -80,7 +80,6 @@ async fn asset_transfer_works() -> Result<(), anyhow::Error> {
 			// //Eve is rewarded on Westend BH for delivering messages from Rococo BH.
 			retry_until(Duration::from_secs(300), || {
 				let bhw = bhw.clone();
-				let eve = eve.clone();
 				async move {
 					let reward = bridge_hub_westend_relayer_reward(&bhw, eve).await?;
 					Ok(reward.filter(|r| *r > MIN_RELAYER_REWARD).map(|_| ()))
@@ -102,7 +101,7 @@ async fn asset_transfer_works() -> Result<(), anyhow::Error> {
 			.await?;
 			retry_until(Duration::from_secs(600), || {
 				let ahr = ahr.clone();
-				let acc = alice_acc.clone();
+				let acc = alice_acc;
 				async move {
 					let asset = asset_hub_rococo::bridged_asset();
 					let balance = asset_hub_rococo::foreign_asset_balance(&ahr, asset, acc).await?;
@@ -113,7 +112,6 @@ async fn asset_transfer_works() -> Result<(), anyhow::Error> {
 			// //Ferdie is rewarded on Rococo BH for delivering messages from Westend BH.
 			retry_until(Duration::from_secs(300), || {
 				let bhr = bhr.clone();
-				let ferdie = ferdie.clone();
 				async move {
 					let reward = bridge_hub_rococo_relayer_reward(&bhr, ferdie).await?;
 					Ok(reward.filter(|r| *r > MIN_RELAYER_REWARD).map(|_| ()))

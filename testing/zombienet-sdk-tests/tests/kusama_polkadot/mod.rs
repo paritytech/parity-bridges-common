@@ -80,10 +80,10 @@ pub async fn bridge_hub_kusama_relayer_reward(
 		bridged_chain_id: BRIDGED_CHAIN_ID_BHPD,
 		lane_id: LegacyLaneId(LANE_ID),
 	};
-	let addr = crate::bridge_hub_kusama::storage()
-		.bridge_relayers()
-		.relayer_rewards(relayer, reward);
-	Ok(client.storage().at_latest().await?.fetch(&addr).await?)
+	let addr = crate::bridge_hub_kusama::storage().bridge_relayers().relayer_rewards();
+	let at = client.at_current_block().await?;
+	let reward = at.storage().try_fetch(addr, (relayer, reward)).await?;
+	Ok(reward.map(|r| r.decode()).transpose()?)
 }
 
 /// Reads `bridgeRelayers.relayerRewards(relayer, BridgeReward::PolkadotKusamaBridge(..))` on Bridge
@@ -103,10 +103,10 @@ pub async fn bridge_hub_polkadot_relayer_reward(
 		bridged_chain_id: BRIDGED_CHAIN_ID_BHKS,
 		lane_id: LegacyLaneId(LANE_ID),
 	});
-	let addr = crate::bridge_hub_polkadot::storage()
-		.bridge_relayers()
-		.relayer_rewards(relayer, reward);
-	Ok(client.storage().at_latest().await?.fetch(&addr).await?)
+	let addr = crate::bridge_hub_polkadot::storage().bridge_relayers().relayer_rewards();
+	let at = client.at_current_block().await?;
+	let reward = at.storage().try_fetch(addr, (relayer, reward)).await?;
+	Ok(reward.map(|r| r.decode()).transpose()?)
 }
 
 /// Asserts that `//Charlie` and `//Dave` keep exactly the genesis endowment on both Bridge Hubs

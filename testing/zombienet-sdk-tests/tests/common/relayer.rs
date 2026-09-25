@@ -49,14 +49,14 @@ async fn bridge_operating_mode_normal_at_finalized(
 	grandpa_pallet: &str,
 ) -> Result<bool, anyhow::Error> {
 	use subxt::ext::scale_value::Value;
-	let addr = subxt::dynamic::storage(grandpa_pallet, "PalletOperatingMode", Vec::<Value>::new());
-	let mut sub = client.blocks().subscribe_finalized().await?;
+	let addr = subxt::dynamic::storage::<(), Value>(grandpa_pallet, "PalletOperatingMode");
+	let mut sub = client.stream_blocks().await?;
 	let block = match sub.next().await {
 		Some(block) => block?,
 		None => return Ok(false),
 	};
-	match block.storage().fetch(&addr).await? {
-		Some(v) => Ok(v.encoded().first() == Some(&0u8)),
+	match block.at().await?.storage().try_fetch(addr, ()).await? {
+		Some(value) => Ok(value.bytes().first() == Some(&0u8)),
 		None => Ok(false),
 	}
 }
