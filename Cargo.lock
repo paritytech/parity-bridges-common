@@ -1388,7 +1388,7 @@ dependencies = [
  "zombienet-prom-metrics-parser",
  "zombienet-provider",
  "zombienet-sdk",
- "zombienet-support",
+ "zombienet-support 0.5.1",
 ]
 
 [[package]]
@@ -15000,7 +15000,7 @@ dependencies = [
  "toml",
  "tracing",
  "url",
- "zombienet-support",
+ "zombienet-support 0.4.18",
 ]
 
 [[package]]
@@ -15038,7 +15038,7 @@ dependencies = [
  "zombienet-configuration",
  "zombienet-prom-metrics-parser",
  "zombienet-provider",
- "zombienet-support",
+ "zombienet-support 0.4.18",
 ]
 
 [[package]]
@@ -15081,7 +15081,7 @@ dependencies = [
  "url",
  "uuid",
  "zombienet-configuration",
- "zombienet-support",
+ "zombienet-support 0.4.18",
 ]
 
 [[package]]
@@ -15107,7 +15107,7 @@ dependencies = [
  "zombienet-configuration",
  "zombienet-orchestrator",
  "zombienet-provider",
- "zombienet-support",
+ "zombienet-support 0.4.18",
 ]
 
 [[package]]
@@ -15115,6 +15115,28 @@ name = "zombienet-support"
 version = "0.4.18"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9dcfb933d826b3348f264808e65dccd232330066679c33a03826a005e71dd7c2"
+dependencies = [
+ "anyhow",
+ "async-trait",
+ "futures",
+ "lazy_static",
+ "nix 0.29.0",
+ "rand 0.8.7",
+ "regex",
+ "reqwest",
+ "serde_json",
+ "sp-core 41.0.0",
+ "thiserror 1.0.65",
+ "tokio",
+ "tracing",
+ "uuid",
+]
+
+[[package]]
+name = "zombienet-support"
+version = "0.5.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "328cabfb6b3dae48a9f8a7a0c467897738c948a59da12c59bd500f894a0a7d88"
 dependencies = [
  "anyhow",
  "async-trait",
