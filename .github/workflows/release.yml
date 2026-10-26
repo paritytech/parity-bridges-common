@@ -196,10 +196,10 @@ jobs:
 
       - name: Format code
         run: |
-          ci_image=$(grep -oP '^\s*CI_IMAGE:\s*"\K[^"]+' .github/workflows/ci.yml)
-          echo "Formatting with $ci_image"
+          . .github/env
+          echo "Formatting with $IMAGE"
           docker run --rm --user "$(id -u):$(id -g)" -e HOME=/tmp -v "$PWD:/w" -w /w \
-            "$ci_image" cargo +nightly fmt --all
+            "$IMAGE" cargo +nightly fmt --all
 
       - name: Create Pull Request
         env:
