@@ -596,7 +596,7 @@ pub mod api {
 				use super::runtime_types;
 				#[derive(::codec::Decode, ::codec::Encode, Clone, Debug, PartialEq)]
 				pub enum Call {
-                    #[codec(index = 0)]
+					#[codec(index = 0)]
                     set_validation_data {
                         data: runtime_types::cumulus_pallet_parachain_system::parachain_inherent::BasicParachainInherentData,
                         inbound_messages_data: runtime_types::cumulus_pallet_parachain_system::parachain_inherent::InboundMessagesData,
@@ -1700,7 +1700,7 @@ pub mod api {
 				}
 				#[derive(::codec::Decode, ::codec::Encode, Clone, Debug, PartialEq)]
 				pub enum Error {
-                    #[codec(index = 0)]
+					#[codec(index = 0)]
                     NotOperatingNormally,
                     #[codec(index = 1)]
                     LanesManager(
@@ -1729,7 +1729,7 @@ pub mod api {
                 }
 				#[derive(::codec::Decode, ::codec::Encode, Clone, Debug, PartialEq)]
 				pub enum Event {
-                    #[codec(index = 0)]
+					#[codec(index = 0)]
                     MessageAccepted {
                         lane_id: ::bp_messages::LegacyLaneId,
                         nonce: ::core::primitive::u64,
@@ -1834,7 +1834,7 @@ pub mod api {
 				use super::runtime_types;
 				#[derive(::codec::Decode, ::codec::Encode, Clone, Debug, PartialEq)]
 				pub enum Call {
-                    #[codec(index = 0)]
+					#[codec(index = 0)]
                     claim_rewards {
                         reward_kind: runtime_types::bridge_hub_polkadot_runtime::bridge_common_config::BridgeReward,
                     },
@@ -1869,7 +1869,7 @@ pub mod api {
 				}
 				#[derive(::codec::Decode, ::codec::Encode, Clone, Debug, PartialEq)]
 				pub enum Event {
-                    #[codec(index = 0)]
+					#[codec(index = 0)]
                     RewardRegistered {
                         relayer: ::sp_core::crypto::AccountId32,
                         reward_kind: runtime_types::bridge_hub_polkadot_runtime::bridge_common_config::BridgeReward,
@@ -2692,7 +2692,7 @@ pub mod api {
 				use super::runtime_types;
 				#[derive(::codec::Decode, ::codec::Encode, Clone, Debug, PartialEq)]
 				pub enum Call {
-                    #[codec(index = 0)]
+					#[codec(index = 0)]
                     send {
                         dest: ::subxt::alloc::boxed::Box<
                             runtime_types::xcm::VersionedLocation,
@@ -3489,7 +3489,7 @@ pub mod api {
 				}
 				#[derive(::codec::Decode, ::codec::Encode, Clone, Debug, PartialEq)]
 				pub enum VersionedExecutionPayloadHeader {
-                    #[codec(index = 0)]
+					#[codec(index = 0)]
                     Capella(
                         runtime_types::snowbridge_beacon_primitives::types::ExecutionPayloadHeader,
                     ),
@@ -3638,7 +3638,7 @@ pub mod api {
 					use super::runtime_types;
 					#[derive(::codec::Decode, ::codec::Encode, Clone, Debug, PartialEq)]
 					pub enum Command {
-                        #[codec(index = 0)]
+						#[codec(index = 0)]
                         Upgrade {
                             impl_address: ::subxt::utils::H160,
                             impl_code_hash: ::subxt::utils::H256,
@@ -4041,7 +4041,7 @@ pub mod api {
 				}
 				#[derive(::codec::Decode, ::codec::Encode, Clone, Debug, PartialEq)]
 				pub enum Event {
-                    #[codec(index = 0)]
+					#[codec(index = 0)]
                     MessageQueued {
                         message: runtime_types::snowbridge_outbound_queue_primitives::v2::message::Message,
                     },
@@ -4091,7 +4091,7 @@ pub mod api {
 				use super::runtime_types;
 				#[derive(::codec::Decode, ::codec::Encode, Clone, Debug, PartialEq)]
 				pub enum Call {
-                    #[codec(index = 0)]
+					#[codec(index = 0)]
                     upgrade {
                         impl_address: ::subxt::utils::H160,
                         impl_code_hash: ::subxt::utils::H256,
@@ -4209,7 +4209,7 @@ pub mod api {
 				use super::runtime_types;
 				#[derive(::codec::Decode, ::codec::Encode, Clone, Debug, PartialEq)]
 				pub enum Call {
-                    #[codec(index = 0)]
+					#[codec(index = 0)]
                     upgrade {
                         impl_address: ::subxt::utils::H160,
                         impl_code_hash: ::subxt::utils::H256,
