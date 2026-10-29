@@ -19,7 +19,7 @@
 //! EXECUTED COMMAND:
 //! /home/runner/work/parity-bridges-common/parity-bridges-common/tools/runtime-codegen/target/
 //! release/runtime-codegen --full --from-wasm-file
-//! /tmp/tmp.IJqS3hfaGc/asset-hub-kusama_runtime-v2003002.compact.compressed.wasm
+//! /tmp/tmp.KuNlxV29tR/asset-hub-kusama_runtime-v2005001.compact.compressed.wasm
 
 #[allow(dead_code, missing_docs, unused_imports, non_camel_case_types, unreachable_patterns)]
 #[allow(clippy::all)]
@@ -29,7 +29,7 @@ pub mod api {
 	mod root_mod {
 		pub use super::*;
 	}
-	pub static PALLETS: [&str; 62usize] = [
+	pub static PALLETS: [&str; 61usize] = [
 		"System",
 		"ParachainSystem",
 		"Timestamp",
@@ -72,7 +72,6 @@ pub mod api {
 		"AssetsPrecompiles",
 		"AssetsPrecompilesPermit",
 		"VestingPrecompiles",
-		"StateTrieMigration",
 		"NominationPools",
 		"VoterList",
 		"DelegatedStaking",
@@ -225,9 +224,6 @@ pub mod api {
 			&self,
 		) -> assets_precompiles_permit::constants::ConstantsApi {
 			assets_precompiles_permit::constants::ConstantsApi
-		}
-		pub fn state_trie_migration(&self) -> state_trie_migration::constants::ConstantsApi {
-			state_trie_migration::constants::ConstantsApi
 		}
 		pub fn nomination_pools(&self) -> nomination_pools::constants::ConstantsApi {
 			nomination_pools::constants::ConstantsApi
@@ -383,9 +379,6 @@ pub mod api {
 		}
 		pub fn assets_precompiles_permit(&self) -> assets_precompiles_permit::storage::StorageApi {
 			assets_precompiles_permit::storage::StorageApi
-		}
-		pub fn state_trie_migration(&self) -> state_trie_migration::storage::StorageApi {
-			state_trie_migration::storage::StorageApi
 		}
 		pub fn nomination_pools(&self) -> nomination_pools::storage::StorageApi {
 			nomination_pools::storage::StorageApi
@@ -546,9 +539,6 @@ pub mod api {
 		pub fn revive(&self) -> revive::calls::api::TransactionApi {
 			revive::calls::api::TransactionApi
 		}
-		pub fn state_trie_migration(&self) -> state_trie_migration::calls::api::TransactionApi {
-			state_trie_migration::calls::api::TransactionApi
-		}
 		pub fn nomination_pools(&self) -> nomination_pools::calls::api::TransactionApi {
 			nomination_pools::calls::api::TransactionApi
 		}
@@ -618,9 +608,9 @@ pub mod api {
 			.hash();
 		runtime_metadata_hash ==
 			[
-				192u8, 27u8, 32u8, 88u8, 134u8, 161u8, 232u8, 0u8, 223u8, 18u8, 26u8, 54u8, 185u8,
-				30u8, 17u8, 202u8, 249u8, 175u8, 172u8, 133u8, 67u8, 38u8, 116u8, 210u8, 37u8,
-				38u8, 249u8, 198u8, 52u8, 120u8, 126u8, 17u8,
+				159u8, 192u8, 46u8, 213u8, 31u8, 205u8, 163u8, 171u8, 243u8, 211u8, 192u8, 70u8,
+				115u8, 25u8, 46u8, 13u8, 63u8, 163u8, 196u8, 97u8, 66u8, 178u8, 165u8, 47u8, 192u8,
+				198u8, 56u8, 247u8, 68u8, 43u8, 245u8, 246u8,
 			]
 	}
 	pub mod system {
@@ -933,7 +923,8 @@ pub mod api {
 					pub fn set_heap_pages(
 						&self,
 						pages: super::set_heap_pages::Pages,
-					) -> ::subxt::transactions::StaticPayload<super::SetHeapPages> {
+					) -> ::subxt::transactions::StaticPayload<super::SetHeapPages>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"System",
 							"set_heap_pages",
@@ -965,7 +956,8 @@ pub mod api {
 					pub fn set_code_without_checks(
 						&self,
 						code: super::set_code_without_checks::Code,
-					) -> ::subxt::transactions::StaticPayload<super::SetCodeWithoutChecks> {
+					) -> ::subxt::transactions::StaticPayload<super::SetCodeWithoutChecks>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"System",
 							"set_code_without_checks",
@@ -981,7 +973,8 @@ pub mod api {
 					pub fn set_storage(
 						&self,
 						items: super::set_storage::Items,
-					) -> ::subxt::transactions::StaticPayload<super::SetStorage> {
+					) -> ::subxt::transactions::StaticPayload<super::SetStorage>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"System",
 							"set_storage",
@@ -997,7 +990,8 @@ pub mod api {
 					pub fn kill_storage(
 						&self,
 						keys: super::kill_storage::Keys,
-					) -> ::subxt::transactions::StaticPayload<super::KillStorage> {
+					) -> ::subxt::transactions::StaticPayload<super::KillStorage>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"System",
 							"kill_storage",
@@ -1014,7 +1008,8 @@ pub mod api {
 						&self,
 						prefix: super::kill_prefix::Prefix,
 						subkeys: super::kill_prefix::Subkeys,
-					) -> ::subxt::transactions::StaticPayload<super::KillPrefix> {
+					) -> ::subxt::transactions::StaticPayload<super::KillPrefix>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"System",
 							"kill_prefix",
@@ -1030,7 +1025,8 @@ pub mod api {
 					pub fn remark_with_event(
 						&self,
 						remark: super::remark_with_event::Remark,
-					) -> ::subxt::transactions::StaticPayload<super::RemarkWithEvent> {
+					) -> ::subxt::transactions::StaticPayload<super::RemarkWithEvent>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"System",
 							"remark_with_event",
@@ -1062,7 +1058,8 @@ pub mod api {
 					pub fn authorize_upgrade(
 						&self,
 						code_hash: super::authorize_upgrade::CodeHash,
-					) -> ::subxt::transactions::StaticPayload<super::AuthorizeUpgrade> {
+					) -> ::subxt::transactions::StaticPayload<super::AuthorizeUpgrade>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"System",
 							"authorize_upgrade",
@@ -1095,7 +1092,8 @@ pub mod api {
 					pub fn apply_authorized_upgrade(
 						&self,
 						code: super::apply_authorized_upgrade::Code,
-					) -> ::subxt::transactions::StaticPayload<super::ApplyAuthorizedUpgrade> {
+					) -> ::subxt::transactions::StaticPayload<super::ApplyAuthorizedUpgrade>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"System",
 							"apply_authorized_upgrade",
@@ -1497,7 +1495,8 @@ pub mod api {
 				}
 				pub fn number(
 					&self,
-				) -> ::subxt::storage::StaticAddress<(), number::Output, ::subxt::utils::Yes> {
+				) -> ::subxt::storage::StaticAddress<(), number::Output, ::subxt::utils::Yes>
+				{
 					::subxt::storage::StaticAddress::new_static(
 						"System",
 						"Number",
@@ -1524,7 +1523,8 @@ pub mod api {
 				}
 				pub fn digest(
 					&self,
-				) -> ::subxt::storage::StaticAddress<(), digest::Output, ::subxt::utils::Yes> {
+				) -> ::subxt::storage::StaticAddress<(), digest::Output, ::subxt::utils::Yes>
+				{
 					::subxt::storage::StaticAddress::new_static(
 						"System",
 						"Digest",
@@ -1538,14 +1538,16 @@ pub mod api {
 				}
 				pub fn events(
 					&self,
-				) -> ::subxt::storage::StaticAddress<(), events::Output, ::subxt::utils::Yes> {
+				) -> ::subxt::storage::StaticAddress<(), events::Output, ::subxt::utils::Yes>
+				{
 					::subxt::storage::StaticAddress::new_static(
 						"System",
 						"Events",
 						[
-							10u8, 213u8, 88u8, 241u8, 82u8, 124u8, 162u8, 247u8, 5u8, 103u8, 131u8,
-							28u8, 153u8, 1u8, 101u8, 7u8, 44u8, 154u8, 197u8, 24u8, 177u8, 229u8,
-							71u8, 57u8, 30u8, 249u8, 195u8, 220u8, 124u8, 106u8, 78u8, 34u8,
+							48u8, 224u8, 167u8, 90u8, 237u8, 99u8, 26u8, 121u8, 170u8, 103u8,
+							225u8, 19u8, 90u8, 126u8, 58u8, 94u8, 241u8, 92u8, 224u8, 55u8, 119u8,
+							53u8, 132u8, 120u8, 69u8, 211u8, 232u8, 143u8, 217u8, 193u8, 2u8,
+							116u8,
 						],
 					)
 				}
@@ -2010,7 +2012,8 @@ pub mod api {
 						&self,
 						data: super::set_validation_data::Data,
 						inbound_messages_data: super::set_validation_data::InboundMessagesData,
-					) -> ::subxt::transactions::StaticPayload<super::SetValidationData> {
+					) -> ::subxt::transactions::StaticPayload<super::SetValidationData>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"ParachainSystem",
 							"set_validation_data",
@@ -2026,7 +2029,8 @@ pub mod api {
 					pub fn sudo_send_upward_message(
 						&self,
 						message: super::sudo_send_upward_message::Message,
-					) -> ::subxt::transactions::StaticPayload<super::SudoSendUpwardMessage> {
+					) -> ::subxt::transactions::StaticPayload<super::SudoSendUpwardMessage>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"ParachainSystem",
 							"sudo_send_upward_message",
@@ -3033,7 +3037,8 @@ pub mod api {
 			impl StorageApi {
 				pub fn now(
 					&self,
-				) -> ::subxt::storage::StaticAddress<(), now::Output, ::subxt::utils::Yes> {
+				) -> ::subxt::storage::StaticAddress<(), now::Output, ::subxt::utils::Yes>
+				{
 					::subxt::storage::StaticAddress::new_static(
 						"Timestamp",
 						"Now",
@@ -3251,7 +3256,8 @@ pub mod api {
 					pub fn force_set_cursor(
 						&self,
 						cursor: super::force_set_cursor::Cursor,
-					) -> ::subxt::transactions::StaticPayload<super::ForceSetCursor> {
+					) -> ::subxt::transactions::StaticPayload<super::ForceSetCursor>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"MultiBlockMigrations",
 							"force_set_cursor",
@@ -3269,7 +3275,8 @@ pub mod api {
 						index: super::force_set_active_cursor::Index,
 						inner_cursor: super::force_set_active_cursor::InnerCursor,
 						started_at: super::force_set_active_cursor::StartedAt,
-					) -> ::subxt::transactions::StaticPayload<super::ForceSetActiveCursor> {
+					) -> ::subxt::transactions::StaticPayload<super::ForceSetActiveCursor>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"MultiBlockMigrations",
 							"force_set_active_cursor",
@@ -3284,7 +3291,8 @@ pub mod api {
 					}
 					pub fn force_onboard_mbms(
 						&self,
-					) -> ::subxt::transactions::StaticPayload<super::ForceOnboardMbms> {
+					) -> ::subxt::transactions::StaticPayload<super::ForceOnboardMbms>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"MultiBlockMigrations",
 							"force_onboard_mbms",
@@ -3300,7 +3308,8 @@ pub mod api {
 					pub fn clear_historic(
 						&self,
 						selector: super::clear_historic::Selector,
-					) -> ::subxt::transactions::StaticPayload<super::ClearHistoric> {
+					) -> ::subxt::transactions::StaticPayload<super::ClearHistoric>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"MultiBlockMigrations",
 							"clear_historic",
@@ -3505,7 +3514,8 @@ pub mod api {
 			impl StorageApi {
 				pub fn cursor(
 					&self,
-				) -> ::subxt::storage::StaticAddress<(), cursor::Output, ::subxt::utils::Yes> {
+				) -> ::subxt::storage::StaticAddress<(), cursor::Output, ::subxt::utils::Yes>
+				{
 					::subxt::storage::StaticAddress::new_static(
 						"MultiBlockMigrations",
 						"Cursor",
@@ -3719,7 +3729,8 @@ pub mod api {
 					pub fn note_preimage(
 						&self,
 						bytes: super::note_preimage::Bytes,
-					) -> ::subxt::transactions::StaticPayload<super::NotePreimage> {
+					) -> ::subxt::transactions::StaticPayload<super::NotePreimage>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"Preimage",
 							"note_preimage",
@@ -3735,7 +3746,8 @@ pub mod api {
 					pub fn unnote_preimage(
 						&self,
 						hash: super::unnote_preimage::Hash,
-					) -> ::subxt::transactions::StaticPayload<super::UnnotePreimage> {
+					) -> ::subxt::transactions::StaticPayload<super::UnnotePreimage>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"Preimage",
 							"unnote_preimage",
@@ -3751,7 +3763,8 @@ pub mod api {
 					pub fn request_preimage(
 						&self,
 						hash: super::request_preimage::Hash,
-					) -> ::subxt::transactions::StaticPayload<super::RequestPreimage> {
+					) -> ::subxt::transactions::StaticPayload<super::RequestPreimage>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"Preimage",
 							"request_preimage",
@@ -3767,7 +3780,8 @@ pub mod api {
 					pub fn unrequest_preimage(
 						&self,
 						hash: super::unrequest_preimage::Hash,
-					) -> ::subxt::transactions::StaticPayload<super::UnrequestPreimage> {
+					) -> ::subxt::transactions::StaticPayload<super::UnrequestPreimage>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"Preimage",
 							"unrequest_preimage",
@@ -3783,7 +3797,8 @@ pub mod api {
 					pub fn ensure_updated(
 						&self,
 						hashes: super::ensure_updated::Hashes,
-					) -> ::subxt::transactions::StaticPayload<super::EnsureUpdated> {
+					) -> ::subxt::transactions::StaticPayload<super::EnsureUpdated>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"Preimage",
 							"ensure_updated",
@@ -4262,10 +4277,10 @@ pub mod api {
 								call: ::subxt::alloc::boxed::Box::new(call),
 							},
 							[
-								106u8, 238u8, 83u8, 218u8, 181u8, 156u8, 74u8, 59u8, 201u8, 74u8,
-								48u8, 152u8, 147u8, 253u8, 78u8, 63u8, 56u8, 188u8, 72u8, 160u8,
-								37u8, 193u8, 180u8, 151u8, 165u8, 66u8, 26u8, 78u8, 223u8, 172u8,
-								37u8, 190u8,
+								173u8, 246u8, 220u8, 176u8, 36u8, 23u8, 157u8, 217u8, 189u8, 254u8,
+								148u8, 214u8, 74u8, 57u8, 87u8, 129u8, 44u8, 122u8, 248u8, 102u8,
+								173u8, 103u8, 253u8, 234u8, 236u8, 118u8, 75u8, 204u8, 39u8, 31u8,
+								3u8, 247u8,
 							],
 						)
 					}
@@ -4293,7 +4308,8 @@ pub mod api {
 						maybe_periodic: super::schedule_named::MaybePeriodic,
 						priority: super::schedule_named::Priority,
 						call: super::schedule_named::Call,
-					) -> ::subxt::transactions::StaticPayload<super::ScheduleNamed> {
+					) -> ::subxt::transactions::StaticPayload<super::ScheduleNamed>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"Scheduler",
 							"schedule_named",
@@ -4305,17 +4321,18 @@ pub mod api {
 								call: ::subxt::alloc::boxed::Box::new(call),
 							},
 							[
-								223u8, 231u8, 124u8, 154u8, 197u8, 83u8, 247u8, 55u8, 241u8, 157u8,
-								98u8, 46u8, 200u8, 188u8, 59u8, 209u8, 186u8, 189u8, 123u8, 175u8,
-								51u8, 63u8, 75u8, 30u8, 177u8, 161u8, 204u8, 14u8, 166u8, 214u8,
-								82u8, 38u8,
+								24u8, 138u8, 80u8, 208u8, 247u8, 182u8, 120u8, 110u8, 58u8, 173u8,
+								16u8, 57u8, 154u8, 68u8, 89u8, 211u8, 138u8, 30u8, 211u8, 39u8,
+								97u8, 156u8, 203u8, 24u8, 84u8, 82u8, 15u8, 37u8, 3u8, 102u8,
+								179u8, 127u8,
 							],
 						)
 					}
 					pub fn cancel_named(
 						&self,
 						id: super::cancel_named::Id,
-					) -> ::subxt::transactions::StaticPayload<super::CancelNamed> {
+					) -> ::subxt::transactions::StaticPayload<super::CancelNamed>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"Scheduler",
 							"cancel_named",
@@ -4334,7 +4351,8 @@ pub mod api {
 						maybe_periodic: super::schedule_after::MaybePeriodic,
 						priority: super::schedule_after::Priority,
 						call: super::schedule_after::Call,
-					) -> ::subxt::transactions::StaticPayload<super::ScheduleAfter> {
+					) -> ::subxt::transactions::StaticPayload<super::ScheduleAfter>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"Scheduler",
 							"schedule_after",
@@ -4345,10 +4363,10 @@ pub mod api {
 								call: ::subxt::alloc::boxed::Box::new(call),
 							},
 							[
-								96u8, 121u8, 250u8, 33u8, 134u8, 162u8, 211u8, 8u8, 229u8, 203u8,
-								156u8, 2u8, 157u8, 215u8, 22u8, 116u8, 112u8, 146u8, 195u8, 173u8,
-								152u8, 135u8, 75u8, 53u8, 195u8, 203u8, 104u8, 184u8, 255u8, 5u8,
-								176u8, 201u8,
+								207u8, 129u8, 153u8, 36u8, 24u8, 155u8, 142u8, 16u8, 233u8, 29u8,
+								102u8, 128u8, 77u8, 243u8, 41u8, 116u8, 92u8, 170u8, 180u8, 32u8,
+								186u8, 54u8, 241u8, 203u8, 13u8, 93u8, 145u8, 78u8, 186u8, 252u8,
+								233u8, 230u8,
 							],
 						)
 					}
@@ -4359,7 +4377,8 @@ pub mod api {
 						maybe_periodic: super::schedule_named_after::MaybePeriodic,
 						priority: super::schedule_named_after::Priority,
 						call: super::schedule_named_after::Call,
-					) -> ::subxt::transactions::StaticPayload<super::ScheduleNamedAfter> {
+					) -> ::subxt::transactions::StaticPayload<super::ScheduleNamedAfter>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"Scheduler",
 							"schedule_named_after",
@@ -4371,10 +4390,10 @@ pub mod api {
 								call: ::subxt::alloc::boxed::Box::new(call),
 							},
 							[
-								142u8, 16u8, 104u8, 210u8, 53u8, 121u8, 248u8, 61u8, 18u8, 184u8,
-								19u8, 71u8, 210u8, 144u8, 127u8, 249u8, 105u8, 215u8, 79u8, 173u8,
-								211u8, 224u8, 224u8, 251u8, 231u8, 142u8, 119u8, 96u8, 49u8, 240u8,
-								174u8, 136u8,
+								201u8, 130u8, 87u8, 5u8, 122u8, 205u8, 82u8, 248u8, 238u8, 223u8,
+								160u8, 81u8, 220u8, 191u8, 11u8, 2u8, 202u8, 157u8, 118u8, 132u8,
+								216u8, 75u8, 99u8, 198u8, 171u8, 122u8, 210u8, 206u8, 129u8, 176u8,
+								48u8, 207u8,
 							],
 						)
 					}
@@ -4401,7 +4420,8 @@ pub mod api {
 						id: super::set_retry_named::Id,
 						retries: super::set_retry_named::Retries,
 						period: super::set_retry_named::Period,
-					) -> ::subxt::transactions::StaticPayload<super::SetRetryNamed> {
+					) -> ::subxt::transactions::StaticPayload<super::SetRetryNamed>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"Scheduler",
 							"set_retry_named",
@@ -4417,7 +4437,8 @@ pub mod api {
 					pub fn cancel_retry(
 						&self,
 						task: super::cancel_retry::Task,
-					) -> ::subxt::transactions::StaticPayload<super::CancelRetry> {
+					) -> ::subxt::transactions::StaticPayload<super::CancelRetry>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"Scheduler",
 							"cancel_retry",
@@ -4433,7 +4454,8 @@ pub mod api {
 					pub fn cancel_retry_named(
 						&self,
 						id: super::cancel_retry_named::Id,
-					) -> ::subxt::transactions::StaticPayload<super::CancelRetryNamed> {
+					) -> ::subxt::transactions::StaticPayload<super::CancelRetryNamed>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"Scheduler",
 							"cancel_retry_named",
@@ -4898,7 +4920,8 @@ pub mod api {
 					pub fn set_parameter(
 						&self,
 						key_value: super::set_parameter::KeyValue,
-					) -> ::subxt::transactions::StaticPayload<super::SetParameter> {
+					) -> ::subxt::transactions::StaticPayload<super::SetParameter>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"Parameters",
 							"set_parameter",
@@ -5229,7 +5252,8 @@ pub mod api {
 						&self,
 						dest: super::transfer_allow_death::Dest,
 						value: super::transfer_allow_death::Value,
-					) -> ::subxt::transactions::StaticPayload<super::TransferAllowDeath> {
+					) -> ::subxt::transactions::StaticPayload<super::TransferAllowDeath>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"Balances",
 							"transfer_allow_death",
@@ -5247,7 +5271,8 @@ pub mod api {
 						source: super::force_transfer::Source,
 						dest: super::force_transfer::Dest,
 						value: super::force_transfer::Value,
-					) -> ::subxt::transactions::StaticPayload<super::ForceTransfer> {
+					) -> ::subxt::transactions::StaticPayload<super::ForceTransfer>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"Balances",
 							"force_transfer",
@@ -5264,7 +5289,8 @@ pub mod api {
 						&self,
 						dest: super::transfer_keep_alive::Dest,
 						value: super::transfer_keep_alive::Value,
-					) -> ::subxt::transactions::StaticPayload<super::TransferKeepAlive> {
+					) -> ::subxt::transactions::StaticPayload<super::TransferKeepAlive>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"Balances",
 							"transfer_keep_alive",
@@ -5281,7 +5307,8 @@ pub mod api {
 						&self,
 						dest: super::transfer_all::Dest,
 						keep_alive: super::transfer_all::KeepAlive,
-					) -> ::subxt::transactions::StaticPayload<super::TransferAll> {
+					) -> ::subxt::transactions::StaticPayload<super::TransferAll>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"Balances",
 							"transfer_all",
@@ -5298,7 +5325,8 @@ pub mod api {
 						&self,
 						who: super::force_unreserve::Who,
 						amount: super::force_unreserve::Amount,
-					) -> ::subxt::transactions::StaticPayload<super::ForceUnreserve> {
+					) -> ::subxt::transactions::StaticPayload<super::ForceUnreserve>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"Balances",
 							"force_unreserve",
@@ -5314,7 +5342,8 @@ pub mod api {
 					pub fn upgrade_accounts(
 						&self,
 						who: super::upgrade_accounts::Who,
-					) -> ::subxt::transactions::StaticPayload<super::UpgradeAccounts> {
+					) -> ::subxt::transactions::StaticPayload<super::UpgradeAccounts>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"Balances",
 							"upgrade_accounts",
@@ -5331,7 +5360,8 @@ pub mod api {
 						&self,
 						who: super::force_set_balance::Who,
 						new_free: super::force_set_balance::NewFree,
-					) -> ::subxt::transactions::StaticPayload<super::ForceSetBalance> {
+					) -> ::subxt::transactions::StaticPayload<super::ForceSetBalance>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"Balances",
 							"force_set_balance",
@@ -6243,10 +6273,9 @@ pub mod api {
 						"Balances",
 						"Holds",
 						[
-							206u8, 114u8, 237u8, 202u8, 239u8, 183u8, 82u8, 44u8, 22u8, 175u8,
-							183u8, 244u8, 186u8, 144u8, 23u8, 191u8, 204u8, 183u8, 34u8, 176u8,
-							134u8, 24u8, 170u8, 187u8, 211u8, 182u8, 240u8, 135u8, 15u8, 77u8,
-							204u8, 135u8,
+							226u8, 226u8, 220u8, 192u8, 96u8, 217u8, 1u8, 221u8, 75u8, 229u8,
+							137u8, 215u8, 172u8, 17u8, 75u8, 65u8, 253u8, 165u8, 78u8, 14u8, 92u8,
+							52u8, 80u8, 51u8, 76u8, 252u8, 26u8, 9u8, 128u8, 218u8, 8u8, 84u8,
 						],
 					)
 				}
@@ -6771,7 +6800,8 @@ pub mod api {
 					pub fn vest_other(
 						&self,
 						target: super::vest_other::Target,
-					) -> ::subxt::transactions::StaticPayload<super::VestOther> {
+					) -> ::subxt::transactions::StaticPayload<super::VestOther>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"Vesting",
 							"vest_other",
@@ -6788,7 +6818,8 @@ pub mod api {
 						&self,
 						target: super::vested_transfer::Target,
 						schedule: super::vested_transfer::Schedule,
-					) -> ::subxt::transactions::StaticPayload<super::VestedTransfer> {
+					) -> ::subxt::transactions::StaticPayload<super::VestedTransfer>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"Vesting",
 							"vested_transfer",
@@ -6806,7 +6837,8 @@ pub mod api {
 						source: super::force_vested_transfer::Source,
 						target: super::force_vested_transfer::Target,
 						schedule: super::force_vested_transfer::Schedule,
-					) -> ::subxt::transactions::StaticPayload<super::ForceVestedTransfer> {
+					) -> ::subxt::transactions::StaticPayload<super::ForceVestedTransfer>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"Vesting",
 							"force_vested_transfer",
@@ -6823,7 +6855,8 @@ pub mod api {
 						&self,
 						schedule1_index: super::merge_schedules::Schedule1Index,
 						schedule2_index: super::merge_schedules::Schedule2Index,
-					) -> ::subxt::transactions::StaticPayload<super::MergeSchedules> {
+					) -> ::subxt::transactions::StaticPayload<super::MergeSchedules>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"Vesting",
 							"merge_schedules",
@@ -7198,7 +7231,8 @@ pub mod api {
 						value: super::mint_claim::Value,
 						vesting_schedule: super::mint_claim::VestingSchedule,
 						statement: super::mint_claim::Statement,
-					) -> ::subxt::transactions::StaticPayload<super::MintClaim> {
+					) -> ::subxt::transactions::StaticPayload<super::MintClaim>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"Claims",
 							"mint_claim",
@@ -7216,7 +7250,8 @@ pub mod api {
 						dest: super::claim_attest::Dest,
 						ethereum_signature: super::claim_attest::EthereumSignature,
 						statement: super::claim_attest::Statement,
-					) -> ::subxt::transactions::StaticPayload<super::ClaimAttest> {
+					) -> ::subxt::transactions::StaticPayload<super::ClaimAttest>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"Claims",
 							"claim_attest",
@@ -7250,7 +7285,8 @@ pub mod api {
 						old: super::move_claim::Old,
 						new: super::move_claim::New,
 						maybe_preclaim: super::move_claim::MaybePreclaim,
-					) -> ::subxt::transactions::StaticPayload<super::MoveClaim> {
+					) -> ::subxt::transactions::StaticPayload<super::MoveClaim>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"Claims",
 							"move_claim",
@@ -7322,7 +7358,8 @@ pub mod api {
 				}
 				pub fn total(
 					&self,
-				) -> ::subxt::storage::StaticAddress<(), total::Output, ::subxt::utils::Yes> {
+				) -> ::subxt::storage::StaticAddress<(), total::Output, ::subxt::utils::Yes>
+				{
 					::subxt::storage::StaticAddress::new_static(
 						"Claims",
 						"Total",
@@ -7462,7 +7499,8 @@ pub mod api {
 			impl StorageApi {
 				pub fn author(
 					&self,
-				) -> ::subxt::storage::StaticAddress<(), author::Output, ::subxt::utils::Yes> {
+				) -> ::subxt::storage::StaticAddress<(), author::Output, ::subxt::utils::Yes>
+				{
 					::subxt::storage::StaticAddress::new_static(
 						"Authorship",
 						"Author",
@@ -7693,7 +7731,8 @@ pub mod api {
 					pub fn set_invulnerables(
 						&self,
 						new: super::set_invulnerables::New,
-					) -> ::subxt::transactions::StaticPayload<super::SetInvulnerables> {
+					) -> ::subxt::transactions::StaticPayload<super::SetInvulnerables>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"CollatorSelection",
 							"set_invulnerables",
@@ -7709,7 +7748,8 @@ pub mod api {
 					pub fn set_desired_candidates(
 						&self,
 						max: super::set_desired_candidates::Max,
-					) -> ::subxt::transactions::StaticPayload<super::SetDesiredCandidates> {
+					) -> ::subxt::transactions::StaticPayload<super::SetDesiredCandidates>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"CollatorSelection",
 							"set_desired_candidates",
@@ -7725,7 +7765,8 @@ pub mod api {
 					pub fn set_candidacy_bond(
 						&self,
 						bond: super::set_candidacy_bond::Bond,
-					) -> ::subxt::transactions::StaticPayload<super::SetCandidacyBond> {
+					) -> ::subxt::transactions::StaticPayload<super::SetCandidacyBond>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"CollatorSelection",
 							"set_candidacy_bond",
@@ -7740,7 +7781,8 @@ pub mod api {
 					}
 					pub fn register_as_candidate(
 						&self,
-					) -> ::subxt::transactions::StaticPayload<super::RegisterAsCandidate> {
+					) -> ::subxt::transactions::StaticPayload<super::RegisterAsCandidate>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"CollatorSelection",
 							"register_as_candidate",
@@ -7755,7 +7797,8 @@ pub mod api {
 					}
 					pub fn leave_intent(
 						&self,
-					) -> ::subxt::transactions::StaticPayload<super::LeaveIntent> {
+					) -> ::subxt::transactions::StaticPayload<super::LeaveIntent>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"CollatorSelection",
 							"leave_intent",
@@ -7771,7 +7814,8 @@ pub mod api {
 					pub fn add_invulnerable(
 						&self,
 						who: super::add_invulnerable::Who,
-					) -> ::subxt::transactions::StaticPayload<super::AddInvulnerable> {
+					) -> ::subxt::transactions::StaticPayload<super::AddInvulnerable>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"CollatorSelection",
 							"add_invulnerable",
@@ -7787,7 +7831,8 @@ pub mod api {
 					pub fn remove_invulnerable(
 						&self,
 						who: super::remove_invulnerable::Who,
-					) -> ::subxt::transactions::StaticPayload<super::RemoveInvulnerable> {
+					) -> ::subxt::transactions::StaticPayload<super::RemoveInvulnerable>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"CollatorSelection",
 							"remove_invulnerable",
@@ -7803,7 +7848,8 @@ pub mod api {
 					pub fn update_bond(
 						&self,
 						new_deposit: super::update_bond::NewDeposit,
-					) -> ::subxt::transactions::StaticPayload<super::UpdateBond> {
+					) -> ::subxt::transactions::StaticPayload<super::UpdateBond>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"CollatorSelection",
 							"update_bond",
@@ -7820,7 +7866,8 @@ pub mod api {
 						&self,
 						deposit: super::take_candidate_slot::Deposit,
 						target: super::take_candidate_slot::Target,
-					) -> ::subxt::transactions::StaticPayload<super::TakeCandidateSlot> {
+					) -> ::subxt::transactions::StaticPayload<super::TakeCandidateSlot>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"CollatorSelection",
 							"take_candidate_slot",
@@ -8212,7 +8259,8 @@ pub mod api {
 			impl ConstantsApi {
 				pub fn pot_id(
 					&self,
-				) -> ::subxt::constants::StaticAddress<runtime_types::frame_support::PalletId> {
+				) -> ::subxt::constants::StaticAddress<runtime_types::frame_support::PalletId>
+				{
 					::subxt::constants::StaticAddress::new_static(
 						"CollatorSelection",
 						"PotId",
@@ -8281,7 +8329,8 @@ pub mod api {
 				}
 				pub fn pot_account(
 					&self,
-				) -> ::subxt::constants::StaticAddress<::subxt::utils::AccountId32> {
+				) -> ::subxt::constants::StaticAddress<::subxt::utils::AccountId32>
+				{
 					::subxt::constants::StaticAddress::new_static(
 						"CollatorSelection",
 						"pot_account",
@@ -8366,7 +8415,8 @@ pub mod api {
 					}
 					pub fn purge_keys(
 						&self,
-					) -> ::subxt::transactions::StaticPayload<super::PurgeKeys> {
+					) -> ::subxt::transactions::StaticPayload<super::PurgeKeys>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"Session",
 							"purge_keys",
@@ -8939,7 +8989,8 @@ pub mod api {
 				impl TransactionApi {
 					pub fn suspend_xcm_execution(
 						&self,
-					) -> ::subxt::transactions::StaticPayload<super::SuspendXcmExecution> {
+					) -> ::subxt::transactions::StaticPayload<super::SuspendXcmExecution>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"XcmpQueue",
 							"suspend_xcm_execution",
@@ -8954,7 +9005,8 @@ pub mod api {
 					}
 					pub fn resume_xcm_execution(
 						&self,
-					) -> ::subxt::transactions::StaticPayload<super::ResumeXcmExecution> {
+					) -> ::subxt::transactions::StaticPayload<super::ResumeXcmExecution>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"XcmpQueue",
 							"resume_xcm_execution",
@@ -8970,7 +9022,8 @@ pub mod api {
 					pub fn update_suspend_threshold(
 						&self,
 						new: super::update_suspend_threshold::New,
-					) -> ::subxt::transactions::StaticPayload<super::UpdateSuspendThreshold> {
+					) -> ::subxt::transactions::StaticPayload<super::UpdateSuspendThreshold>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"XcmpQueue",
 							"update_suspend_threshold",
@@ -8986,7 +9039,8 @@ pub mod api {
 					pub fn update_drop_threshold(
 						&self,
 						new: super::update_drop_threshold::New,
-					) -> ::subxt::transactions::StaticPayload<super::UpdateDropThreshold> {
+					) -> ::subxt::transactions::StaticPayload<super::UpdateDropThreshold>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"XcmpQueue",
 							"update_drop_threshold",
@@ -9002,7 +9056,8 @@ pub mod api {
 					pub fn update_resume_threshold(
 						&self,
 						new: super::update_resume_threshold::New,
-					) -> ::subxt::transactions::StaticPayload<super::UpdateResumeThreshold> {
+					) -> ::subxt::transactions::StaticPayload<super::UpdateResumeThreshold>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"XcmpQueue",
 							"update_resume_threshold",
@@ -9077,10 +9132,10 @@ pub mod api {
 						"XcmpQueue",
 						"OutboundXcmpStatus",
 						[
-							194u8, 238u8, 16u8, 108u8, 61u8, 118u8, 213u8, 179u8, 67u8, 116u8,
-							100u8, 175u8, 211u8, 182u8, 5u8, 46u8, 91u8, 160u8, 94u8, 46u8, 131u8,
-							214u8, 10u8, 169u8, 110u8, 60u8, 32u8, 42u8, 126u8, 231u8, 165u8,
-							103u8,
+							65u8, 141u8, 184u8, 245u8, 238u8, 212u8, 51u8, 168u8, 205u8, 141u8,
+							80u8, 223u8, 225u8, 129u8, 200u8, 147u8, 211u8, 121u8, 196u8, 201u8,
+							25u8, 119u8, 28u8, 202u8, 13u8, 147u8, 205u8, 73u8, 8u8, 16u8, 139u8,
+							76u8,
 						],
 					)
 				}
@@ -9769,7 +9824,8 @@ pub mod api {
 						beneficiary: super::teleport_assets::Beneficiary,
 						assets: super::teleport_assets::Assets,
 						fee_asset_item: super::teleport_assets::FeeAssetItem,
-					) -> ::subxt::transactions::StaticPayload<super::TeleportAssets> {
+					) -> ::subxt::transactions::StaticPayload<super::TeleportAssets>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"PolkadotXcm",
 							"teleport_assets",
@@ -9793,7 +9849,8 @@ pub mod api {
 						beneficiary: super::reserve_transfer_assets::Beneficiary,
 						assets: super::reserve_transfer_assets::Assets,
 						fee_asset_item: super::reserve_transfer_assets::FeeAssetItem,
-					) -> ::subxt::transactions::StaticPayload<super::ReserveTransferAssets> {
+					) -> ::subxt::transactions::StaticPayload<super::ReserveTransferAssets>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"PolkadotXcm",
 							"reserve_transfer_assets",
@@ -9835,7 +9892,8 @@ pub mod api {
 						&self,
 						location: super::force_xcm_version::Location,
 						version: super::force_xcm_version::Version,
-					) -> ::subxt::transactions::StaticPayload<super::ForceXcmVersion> {
+					) -> ::subxt::transactions::StaticPayload<super::ForceXcmVersion>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"PolkadotXcm",
 							"force_xcm_version",
@@ -9854,7 +9912,8 @@ pub mod api {
 					pub fn force_default_xcm_version(
 						&self,
 						maybe_xcm_version: super::force_default_xcm_version::MaybeXcmVersion,
-					) -> ::subxt::transactions::StaticPayload<super::ForceDefaultXcmVersion> {
+					) -> ::subxt::transactions::StaticPayload<super::ForceDefaultXcmVersion>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"PolkadotXcm",
 							"force_default_xcm_version",
@@ -9939,7 +9998,8 @@ pub mod api {
 						assets: super::limited_teleport_assets::Assets,
 						fee_asset_item: super::limited_teleport_assets::FeeAssetItem,
 						weight_limit: super::limited_teleport_assets::WeightLimit,
-					) -> ::subxt::transactions::StaticPayload<super::LimitedTeleportAssets> {
+					) -> ::subxt::transactions::StaticPayload<super::LimitedTeleportAssets>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"PolkadotXcm",
 							"limited_teleport_assets",
@@ -9961,7 +10021,8 @@ pub mod api {
 					pub fn force_suspension(
 						&self,
 						suspended: super::force_suspension::Suspended,
-					) -> ::subxt::transactions::StaticPayload<super::ForceSuspension> {
+					) -> ::subxt::transactions::StaticPayload<super::ForceSuspension>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"PolkadotXcm",
 							"force_suspension",
@@ -9981,7 +10042,8 @@ pub mod api {
 						assets: super::transfer_assets::Assets,
 						fee_asset_item: super::transfer_assets::FeeAssetItem,
 						weight_limit: super::transfer_assets::WeightLimit,
-					) -> ::subxt::transactions::StaticPayload<super::TransferAssets> {
+					) -> ::subxt::transactions::StaticPayload<super::TransferAssets>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"PolkadotXcm",
 							"transfer_assets",
@@ -10004,7 +10066,8 @@ pub mod api {
 						&self,
 						assets: super::claim_assets::Assets,
 						beneficiary: super::claim_assets::Beneficiary,
-					) -> ::subxt::transactions::StaticPayload<super::ClaimAssets> {
+					) -> ::subxt::transactions::StaticPayload<super::ClaimAssets>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"PolkadotXcm",
 							"claim_assets",
@@ -10061,7 +10124,8 @@ pub mod api {
 						&self,
 						aliaser: super::add_authorized_alias::Aliaser,
 						expires: super::add_authorized_alias::Expires,
-					) -> ::subxt::transactions::StaticPayload<super::AddAuthorizedAlias> {
+					) -> ::subxt::transactions::StaticPayload<super::AddAuthorizedAlias>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"PolkadotXcm",
 							"add_authorized_alias",
@@ -10080,7 +10144,8 @@ pub mod api {
 					pub fn remove_authorized_alias(
 						&self,
 						aliaser: super::remove_authorized_alias::Aliaser,
-					) -> ::subxt::transactions::StaticPayload<super::RemoveAuthorizedAlias> {
+					) -> ::subxt::transactions::StaticPayload<super::RemoveAuthorizedAlias>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"PolkadotXcm",
 							"remove_authorized_alias",
@@ -11464,7 +11529,8 @@ pub mod api {
 						&self,
 						bridge_id: super::report_bridge_status::BridgeId,
 						is_congested: super::report_bridge_status::IsCongested,
-					) -> ::subxt::transactions::StaticPayload<super::ReportBridgeStatus> {
+					) -> ::subxt::transactions::StaticPayload<super::ReportBridgeStatus>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"ToPolkadotXcmRouter",
 							"report_bridge_status",
@@ -11536,7 +11602,8 @@ pub mod api {
 			impl StorageApi {
 				pub fn bridge(
 					&self,
-				) -> ::subxt::storage::StaticAddress<(), bridge::Output, ::subxt::utils::Yes> {
+				) -> ::subxt::storage::StaticAddress<(), bridge::Output, ::subxt::utils::Yes>
+				{
 					::subxt::storage::StaticAddress::new_static(
 						"ToPolkadotXcmRouter",
 						"Bridge",
@@ -11645,7 +11712,8 @@ pub mod api {
 						page: super::execute_overweight::Page,
 						index: super::execute_overweight::Index,
 						weight_limit: super::execute_overweight::WeightLimit,
-					) -> ::subxt::transactions::StaticPayload<super::ExecuteOverweight> {
+					) -> ::subxt::transactions::StaticPayload<super::ExecuteOverweight>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"MessageQueue",
 							"execute_overweight",
@@ -12138,10 +12206,10 @@ pub mod api {
 							"batch",
 							super::Batch { calls },
 							[
-								246u8, 91u8, 246u8, 123u8, 239u8, 129u8, 237u8, 189u8, 9u8, 48u8,
-								144u8, 82u8, 112u8, 106u8, 252u8, 120u8, 115u8, 210u8, 68u8, 156u8,
-								23u8, 152u8, 30u8, 165u8, 220u8, 43u8, 23u8, 215u8, 17u8, 191u8,
-								112u8, 130u8,
+								34u8, 87u8, 143u8, 191u8, 255u8, 102u8, 121u8, 66u8, 93u8, 23u8,
+								208u8, 0u8, 151u8, 71u8, 64u8, 57u8, 104u8, 124u8, 42u8, 122u8,
+								110u8, 202u8, 115u8, 62u8, 69u8, 172u8, 226u8, 246u8, 67u8, 249u8,
+								111u8, 10u8,
 							],
 						)
 					}
@@ -12149,7 +12217,8 @@ pub mod api {
 						&self,
 						index: super::as_derivative::Index,
 						call: super::as_derivative::Call,
-					) -> ::subxt::transactions::StaticPayload<super::AsDerivative> {
+					) -> ::subxt::transactions::StaticPayload<super::AsDerivative>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"Utility",
 							"as_derivative",
@@ -12158,10 +12227,10 @@ pub mod api {
 								call: ::subxt::alloc::boxed::Box::new(call),
 							},
 							[
-								84u8, 100u8, 106u8, 45u8, 103u8, 247u8, 177u8, 151u8, 26u8, 74u8,
-								168u8, 202u8, 77u8, 152u8, 123u8, 24u8, 8u8, 54u8, 24u8, 118u8,
-								32u8, 114u8, 16u8, 22u8, 9u8, 128u8, 27u8, 158u8, 239u8, 41u8,
-								124u8, 187u8,
+								50u8, 155u8, 192u8, 254u8, 225u8, 101u8, 27u8, 71u8, 144u8, 97u8,
+								252u8, 173u8, 187u8, 239u8, 168u8, 29u8, 246u8, 179u8, 85u8, 128u8,
+								221u8, 175u8, 33u8, 140u8, 6u8, 173u8, 115u8, 97u8, 211u8, 65u8,
+								241u8, 198u8,
 							],
 						)
 					}
@@ -12174,10 +12243,10 @@ pub mod api {
 							"batch_all",
 							super::BatchAll { calls },
 							[
-								33u8, 78u8, 170u8, 3u8, 119u8, 40u8, 249u8, 206u8, 144u8, 192u8,
-								166u8, 230u8, 227u8, 100u8, 154u8, 187u8, 203u8, 140u8, 58u8,
-								230u8, 130u8, 246u8, 226u8, 248u8, 58u8, 124u8, 203u8, 75u8, 238u8,
-								76u8, 16u8, 238u8,
+								172u8, 41u8, 68u8, 45u8, 131u8, 44u8, 88u8, 205u8, 92u8, 167u8,
+								36u8, 218u8, 214u8, 242u8, 77u8, 102u8, 127u8, 197u8, 220u8, 196u8,
+								81u8, 11u8, 246u8, 133u8, 149u8, 163u8, 21u8, 51u8, 8u8, 171u8,
+								190u8, 124u8,
 							],
 						)
 					}
@@ -12185,7 +12254,8 @@ pub mod api {
 						&self,
 						as_origin: super::dispatch_as::AsOrigin,
 						call: super::dispatch_as::Call,
-					) -> ::subxt::transactions::StaticPayload<super::DispatchAs> {
+					) -> ::subxt::transactions::StaticPayload<super::DispatchAs>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"Utility",
 							"dispatch_as",
@@ -12194,26 +12264,27 @@ pub mod api {
 								call: ::subxt::alloc::boxed::Box::new(call),
 							},
 							[
-								71u8, 166u8, 129u8, 174u8, 175u8, 225u8, 244u8, 89u8, 215u8, 16u8,
-								61u8, 123u8, 207u8, 169u8, 79u8, 68u8, 103u8, 147u8, 247u8, 16u8,
-								46u8, 175u8, 206u8, 45u8, 143u8, 71u8, 5u8, 31u8, 114u8, 184u8,
-								16u8, 43u8,
+								57u8, 62u8, 163u8, 9u8, 7u8, 163u8, 109u8, 184u8, 200u8, 140u8,
+								137u8, 29u8, 122u8, 80u8, 103u8, 187u8, 58u8, 244u8, 109u8, 95u8,
+								116u8, 206u8, 167u8, 149u8, 208u8, 120u8, 242u8, 222u8, 245u8,
+								28u8, 61u8, 169u8,
 							],
 						)
 					}
 					pub fn force_batch(
 						&self,
 						calls: super::force_batch::Calls,
-					) -> ::subxt::transactions::StaticPayload<super::ForceBatch> {
+					) -> ::subxt::transactions::StaticPayload<super::ForceBatch>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"Utility",
 							"force_batch",
 							super::ForceBatch { calls },
 							[
-								121u8, 29u8, 120u8, 46u8, 179u8, 247u8, 165u8, 114u8, 62u8, 146u8,
-								208u8, 100u8, 15u8, 105u8, 64u8, 119u8, 227u8, 86u8, 125u8, 20u8,
-								237u8, 125u8, 172u8, 74u8, 3u8, 35u8, 168u8, 191u8, 117u8, 196u8,
-								97u8, 201u8,
+								71u8, 181u8, 133u8, 131u8, 56u8, 1u8, 37u8, 157u8, 28u8, 105u8,
+								158u8, 238u8, 146u8, 255u8, 144u8, 132u8, 164u8, 233u8, 147u8,
+								110u8, 238u8, 1u8, 97u8, 50u8, 139u8, 216u8, 183u8, 236u8, 102u8,
+								136u8, 137u8, 32u8,
 							],
 						)
 					}
@@ -12221,7 +12292,8 @@ pub mod api {
 						&self,
 						call: super::with_weight::Call,
 						weight: super::with_weight::Weight,
-					) -> ::subxt::transactions::StaticPayload<super::WithWeight> {
+					) -> ::subxt::transactions::StaticPayload<super::WithWeight>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"Utility",
 							"with_weight",
@@ -12230,10 +12302,10 @@ pub mod api {
 								weight,
 							},
 							[
-								102u8, 204u8, 35u8, 98u8, 246u8, 37u8, 232u8, 51u8, 125u8, 80u8,
-								2u8, 38u8, 89u8, 160u8, 93u8, 167u8, 53u8, 206u8, 50u8, 33u8, 17u8,
-								199u8, 247u8, 63u8, 222u8, 65u8, 217u8, 122u8, 79u8, 132u8, 72u8,
-								153u8,
+								127u8, 144u8, 232u8, 244u8, 3u8, 158u8, 99u8, 131u8, 134u8, 85u8,
+								164u8, 67u8, 176u8, 107u8, 69u8, 101u8, 232u8, 130u8, 158u8, 237u8,
+								95u8, 235u8, 223u8, 149u8, 67u8, 250u8, 106u8, 212u8, 98u8, 255u8,
+								142u8, 243u8,
 							],
 						)
 					}
@@ -12250,10 +12322,10 @@ pub mod api {
 								fallback: ::subxt::alloc::boxed::Box::new(fallback),
 							},
 							[
-								182u8, 40u8, 103u8, 247u8, 32u8, 162u8, 202u8, 149u8, 39u8, 94u8,
-								78u8, 133u8, 244u8, 7u8, 226u8, 33u8, 177u8, 164u8, 187u8, 67u8,
-								55u8, 134u8, 149u8, 117u8, 67u8, 30u8, 243u8, 23u8, 124u8, 221u8,
-								15u8, 144u8,
+								19u8, 78u8, 166u8, 200u8, 177u8, 14u8, 121u8, 247u8, 129u8, 39u8,
+								11u8, 154u8, 77u8, 187u8, 186u8, 25u8, 170u8, 72u8, 88u8, 249u8,
+								154u8, 64u8, 154u8, 168u8, 12u8, 213u8, 34u8, 226u8, 165u8, 174u8,
+								88u8, 18u8,
 							],
 						)
 					}
@@ -12261,7 +12333,8 @@ pub mod api {
 						&self,
 						as_origin: super::dispatch_as_fallible::AsOrigin,
 						call: super::dispatch_as_fallible::Call,
-					) -> ::subxt::transactions::StaticPayload<super::DispatchAsFallible> {
+					) -> ::subxt::transactions::StaticPayload<super::DispatchAsFallible>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"Utility",
 							"dispatch_as_fallible",
@@ -12270,10 +12343,10 @@ pub mod api {
 								call: ::subxt::alloc::boxed::Box::new(call),
 							},
 							[
-								173u8, 156u8, 223u8, 178u8, 237u8, 200u8, 141u8, 145u8, 153u8, 0u8,
-								255u8, 198u8, 145u8, 68u8, 21u8, 96u8, 20u8, 136u8, 18u8, 24u8,
-								122u8, 66u8, 157u8, 185u8, 42u8, 1u8, 20u8, 79u8, 37u8, 229u8,
-								46u8, 108u8,
+								71u8, 166u8, 244u8, 23u8, 67u8, 176u8, 117u8, 91u8, 6u8, 175u8,
+								151u8, 114u8, 117u8, 95u8, 244u8, 175u8, 127u8, 86u8, 136u8, 78u8,
+								224u8, 210u8, 38u8, 225u8, 132u8, 169u8, 21u8, 33u8, 158u8, 94u8,
+								156u8, 49u8,
 							],
 						)
 					}
@@ -12629,7 +12702,8 @@ pub mod api {
 						&self,
 						other_signatories: super::as_multi_threshold1::OtherSignatories,
 						call: super::as_multi_threshold1::Call,
-					) -> ::subxt::transactions::StaticPayload<super::AsMultiThreshold1> {
+					) -> ::subxt::transactions::StaticPayload<super::AsMultiThreshold1>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"Multisig",
 							"as_multi_threshold_1",
@@ -12638,10 +12712,10 @@ pub mod api {
 								call: ::subxt::alloc::boxed::Box::new(call),
 							},
 							[
-								180u8, 9u8, 131u8, 238u8, 216u8, 233u8, 130u8, 153u8, 112u8, 30u8,
-								132u8, 76u8, 215u8, 205u8, 213u8, 163u8, 132u8, 223u8, 214u8,
-								240u8, 65u8, 39u8, 195u8, 154u8, 66u8, 39u8, 246u8, 146u8, 249u8,
-								159u8, 240u8, 205u8,
+								60u8, 26u8, 117u8, 221u8, 35u8, 109u8, 2u8, 23u8, 122u8, 205u8,
+								209u8, 45u8, 219u8, 40u8, 91u8, 179u8, 62u8, 169u8, 236u8, 236u8,
+								101u8, 120u8, 174u8, 120u8, 235u8, 51u8, 58u8, 182u8, 12u8, 153u8,
+								219u8, 198u8,
 							],
 						)
 					}
@@ -12664,10 +12738,10 @@ pub mod api {
 								max_weight,
 							},
 							[
-								30u8, 214u8, 236u8, 224u8, 75u8, 43u8, 77u8, 176u8, 228u8, 17u8,
-								26u8, 64u8, 149u8, 186u8, 207u8, 129u8, 11u8, 29u8, 69u8, 192u8,
-								127u8, 104u8, 170u8, 83u8, 3u8, 169u8, 89u8, 143u8, 71u8, 179u8,
-								164u8, 124u8,
+								249u8, 27u8, 233u8, 150u8, 147u8, 199u8, 160u8, 156u8, 48u8, 254u8,
+								126u8, 111u8, 46u8, 147u8, 184u8, 155u8, 27u8, 64u8, 205u8, 121u8,
+								96u8, 63u8, 75u8, 132u8, 86u8, 115u8, 184u8, 186u8, 251u8, 245u8,
+								104u8, 253u8,
 							],
 						)
 					}
@@ -12678,7 +12752,8 @@ pub mod api {
 						maybe_timepoint: super::approve_as_multi::MaybeTimepoint,
 						call_hash: super::approve_as_multi::CallHash,
 						max_weight: super::approve_as_multi::MaxWeight,
-					) -> ::subxt::transactions::StaticPayload<super::ApproveAsMulti> {
+					) -> ::subxt::transactions::StaticPayload<super::ApproveAsMulti>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"Multisig",
 							"approve_as_multi",
@@ -12703,7 +12778,8 @@ pub mod api {
 						other_signatories: super::cancel_as_multi::OtherSignatories,
 						timepoint: super::cancel_as_multi::Timepoint,
 						call_hash: super::cancel_as_multi::CallHash,
-					) -> ::subxt::transactions::StaticPayload<super::CancelAsMulti> {
+					) -> ::subxt::transactions::StaticPayload<super::CancelAsMulti>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"Multisig",
 							"cancel_as_multi",
@@ -12726,7 +12802,8 @@ pub mod api {
 						threshold: super::poke_deposit::Threshold,
 						other_signatories: super::poke_deposit::OtherSignatories,
 						call_hash: super::poke_deposit::CallHash,
-					) -> ::subxt::transactions::StaticPayload<super::PokeDeposit> {
+					) -> ::subxt::transactions::StaticPayload<super::PokeDeposit>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"Multisig",
 							"poke_deposit",
@@ -13284,10 +13361,10 @@ pub mod api {
 								call: ::subxt::alloc::boxed::Box::new(call),
 							},
 							[
-								131u8, 237u8, 134u8, 116u8, 60u8, 78u8, 222u8, 72u8, 209u8, 0u8,
-								49u8, 17u8, 50u8, 59u8, 199u8, 39u8, 48u8, 77u8, 74u8, 152u8, 43u8,
-								231u8, 91u8, 61u8, 86u8, 190u8, 207u8, 66u8, 222u8, 25u8, 237u8,
-								56u8,
+								154u8, 237u8, 172u8, 66u8, 252u8, 49u8, 154u8, 87u8, 238u8, 43u8,
+								27u8, 172u8, 181u8, 22u8, 180u8, 168u8, 194u8, 142u8, 98u8, 112u8,
+								36u8, 173u8, 114u8, 243u8, 18u8, 173u8, 150u8, 52u8, 94u8, 190u8,
+								236u8, 7u8,
 							],
 						)
 					}
@@ -13314,7 +13391,8 @@ pub mod api {
 						delegate: super::remove_proxy::Delegate,
 						proxy_type: super::remove_proxy::ProxyType,
 						delay: super::remove_proxy::Delay,
-					) -> ::subxt::transactions::StaticPayload<super::RemoveProxy> {
+					) -> ::subxt::transactions::StaticPayload<super::RemoveProxy>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"Proxy",
 							"remove_proxy",
@@ -13329,7 +13407,8 @@ pub mod api {
 					}
 					pub fn remove_proxies(
 						&self,
-					) -> ::subxt::transactions::StaticPayload<super::RemoveProxies> {
+					) -> ::subxt::transactions::StaticPayload<super::RemoveProxies>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"Proxy",
 							"remove_proxies",
@@ -13347,7 +13426,8 @@ pub mod api {
 						proxy_type: super::create_pure::ProxyType,
 						delay: super::create_pure::Delay,
 						index: super::create_pure::Index,
-					) -> ::subxt::transactions::StaticPayload<super::CreatePure> {
+					) -> ::subxt::transactions::StaticPayload<super::CreatePure>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"Proxy",
 							"create_pure",
@@ -13401,7 +13481,8 @@ pub mod api {
 						&self,
 						real: super::remove_announcement::Real,
 						call_hash: super::remove_announcement::CallHash,
-					) -> ::subxt::transactions::StaticPayload<super::RemoveAnnouncement> {
+					) -> ::subxt::transactions::StaticPayload<super::RemoveAnnouncement>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"Proxy",
 							"remove_announcement",
@@ -13418,7 +13499,8 @@ pub mod api {
 						&self,
 						delegate: super::reject_announcement::Delegate,
 						call_hash: super::reject_announcement::CallHash,
-					) -> ::subxt::transactions::StaticPayload<super::RejectAnnouncement> {
+					) -> ::subxt::transactions::StaticPayload<super::RejectAnnouncement>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"Proxy",
 							"reject_announcement",
@@ -13437,7 +13519,8 @@ pub mod api {
 						real: super::proxy_announced::Real,
 						force_proxy_type: super::proxy_announced::ForceProxyType,
 						call: super::proxy_announced::Call,
-					) -> ::subxt::transactions::StaticPayload<super::ProxyAnnounced> {
+					) -> ::subxt::transactions::StaticPayload<super::ProxyAnnounced>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"Proxy",
 							"proxy_announced",
@@ -13448,16 +13531,17 @@ pub mod api {
 								call: ::subxt::alloc::boxed::Box::new(call),
 							},
 							[
-								31u8, 223u8, 46u8, 35u8, 142u8, 89u8, 229u8, 79u8, 89u8, 195u8,
-								189u8, 220u8, 4u8, 166u8, 237u8, 191u8, 88u8, 143u8, 170u8, 58u8,
-								218u8, 188u8, 51u8, 153u8, 136u8, 130u8, 81u8, 11u8, 37u8, 67u8,
-								168u8, 187u8,
+								131u8, 171u8, 58u8, 186u8, 145u8, 31u8, 237u8, 248u8, 219u8, 212u8,
+								80u8, 212u8, 1u8, 154u8, 146u8, 232u8, 232u8, 218u8, 217u8, 166u8,
+								236u8, 9u8, 13u8, 242u8, 19u8, 158u8, 117u8, 250u8, 71u8, 235u8,
+								53u8, 224u8,
 							],
 						)
 					}
 					pub fn poke_deposit(
 						&self,
-					) -> ::subxt::transactions::StaticPayload<super::PokeDeposit> {
+					) -> ::subxt::transactions::StaticPayload<super::PokeDeposit>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"Proxy",
 							"poke_deposit",
@@ -13938,7 +14022,8 @@ pub mod api {
 						force_proxy_type: super::remote_proxy::ForceProxyType,
 						call: super::remote_proxy::Call,
 						proof: super::remote_proxy::Proof,
-					) -> ::subxt::transactions::StaticPayload<super::RemoteProxy> {
+					) -> ::subxt::transactions::StaticPayload<super::RemoteProxy>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"RemoteProxyRelayChain",
 							"remote_proxy",
@@ -13949,10 +14034,10 @@ pub mod api {
 								proof,
 							},
 							[
-								13u8, 227u8, 32u8, 188u8, 15u8, 112u8, 56u8, 20u8, 233u8, 249u8,
-								63u8, 110u8, 236u8, 73u8, 144u8, 1u8, 163u8, 141u8, 166u8, 61u8,
-								147u8, 151u8, 229u8, 16u8, 58u8, 177u8, 156u8, 235u8, 132u8, 116u8,
-								22u8, 182u8,
+								172u8, 142u8, 197u8, 15u8, 162u8, 229u8, 180u8, 142u8, 78u8, 199u8,
+								197u8, 143u8, 86u8, 102u8, 106u8, 21u8, 172u8, 8u8, 115u8, 146u8,
+								22u8, 16u8, 248u8, 10u8, 215u8, 138u8, 29u8, 178u8, 13u8, 12u8,
+								0u8, 167u8,
 							],
 						)
 					}
@@ -13989,10 +14074,10 @@ pub mod api {
 								call: ::subxt::alloc::boxed::Box::new(call),
 							},
 							[
-								171u8, 1u8, 34u8, 137u8, 193u8, 141u8, 145u8, 158u8, 173u8, 42u8,
-								242u8, 77u8, 46u8, 241u8, 214u8, 188u8, 247u8, 145u8, 3u8, 120u8,
-								238u8, 77u8, 133u8, 188u8, 24u8, 229u8, 143u8, 177u8, 9u8, 107u8,
-								154u8, 38u8,
+								91u8, 65u8, 201u8, 92u8, 100u8, 52u8, 116u8, 84u8, 91u8, 40u8,
+								84u8, 116u8, 38u8, 121u8, 2u8, 120u8, 139u8, 211u8, 20u8, 160u8,
+								12u8, 81u8, 19u8, 60u8, 74u8, 53u8, 237u8, 93u8, 61u8, 197u8, 99u8,
+								219u8,
 							],
 						)
 					}
@@ -14238,7 +14323,8 @@ pub mod api {
 						new: super::force_transfer::New,
 						index: super::force_transfer::Index,
 						freeze: super::force_transfer::Freeze,
-					) -> ::subxt::transactions::StaticPayload<super::ForceTransfer> {
+					) -> ::subxt::transactions::StaticPayload<super::ForceTransfer>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"Indices",
 							"force_transfer",
@@ -14270,7 +14356,8 @@ pub mod api {
 					pub fn poke_deposit(
 						&self,
 						index: super::poke_deposit::Index,
-					) -> ::subxt::transactions::StaticPayload<super::PokeDeposit> {
+					) -> ::subxt::transactions::StaticPayload<super::PokeDeposit>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"Indices",
 							"poke_deposit",
@@ -15409,7 +15496,8 @@ pub mod api {
 						owner: super::force_create::Owner,
 						is_sufficient: super::force_create::IsSufficient,
 						min_balance: super::force_create::MinBalance,
-					) -> ::subxt::transactions::StaticPayload<super::ForceCreate> {
+					) -> ::subxt::transactions::StaticPayload<super::ForceCreate>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"Assets",
 							"force_create",
@@ -15425,7 +15513,8 @@ pub mod api {
 					pub fn start_destroy(
 						&self,
 						id: super::start_destroy::Id,
-					) -> ::subxt::transactions::StaticPayload<super::StartDestroy> {
+					) -> ::subxt::transactions::StaticPayload<super::StartDestroy>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"Assets",
 							"start_destroy",
@@ -15441,7 +15530,8 @@ pub mod api {
 					pub fn destroy_accounts(
 						&self,
 						id: super::destroy_accounts::Id,
-					) -> ::subxt::transactions::StaticPayload<super::DestroyAccounts> {
+					) -> ::subxt::transactions::StaticPayload<super::DestroyAccounts>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"Assets",
 							"destroy_accounts",
@@ -15457,7 +15547,8 @@ pub mod api {
 					pub fn destroy_approvals(
 						&self,
 						id: super::destroy_approvals::Id,
-					) -> ::subxt::transactions::StaticPayload<super::DestroyApprovals> {
+					) -> ::subxt::transactions::StaticPayload<super::DestroyApprovals>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"Assets",
 							"destroy_approvals",
@@ -15473,7 +15564,8 @@ pub mod api {
 					pub fn finish_destroy(
 						&self,
 						id: super::finish_destroy::Id,
-					) -> ::subxt::transactions::StaticPayload<super::FinishDestroy> {
+					) -> ::subxt::transactions::StaticPayload<super::FinishDestroy>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"Assets",
 							"finish_destroy",
@@ -15545,7 +15637,8 @@ pub mod api {
 						id: super::transfer_keep_alive::Id,
 						target: super::transfer_keep_alive::Target,
 						amount: super::transfer_keep_alive::Amount,
-					) -> ::subxt::transactions::StaticPayload<super::TransferKeepAlive> {
+					) -> ::subxt::transactions::StaticPayload<super::TransferKeepAlive>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"Assets",
 							"transfer_keep_alive",
@@ -15564,7 +15657,8 @@ pub mod api {
 						source: super::force_transfer::Source,
 						dest: super::force_transfer::Dest,
 						amount: super::force_transfer::Amount,
-					) -> ::subxt::transactions::StaticPayload<super::ForceTransfer> {
+					) -> ::subxt::transactions::StaticPayload<super::ForceTransfer>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"Assets",
 							"force_transfer",
@@ -15614,7 +15708,8 @@ pub mod api {
 					pub fn freeze_asset(
 						&self,
 						id: super::freeze_asset::Id,
-					) -> ::subxt::transactions::StaticPayload<super::FreezeAsset> {
+					) -> ::subxt::transactions::StaticPayload<super::FreezeAsset>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"Assets",
 							"freeze_asset",
@@ -15630,7 +15725,8 @@ pub mod api {
 					pub fn thaw_asset(
 						&self,
 						id: super::thaw_asset::Id,
-					) -> ::subxt::transactions::StaticPayload<super::ThawAsset> {
+					) -> ::subxt::transactions::StaticPayload<super::ThawAsset>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"Assets",
 							"thaw_asset",
@@ -15647,7 +15743,8 @@ pub mod api {
 						&self,
 						id: super::transfer_ownership::Id,
 						owner: super::transfer_ownership::Owner,
-					) -> ::subxt::transactions::StaticPayload<super::TransferOwnership> {
+					) -> ::subxt::transactions::StaticPayload<super::TransferOwnership>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"Assets",
 							"transfer_ownership",
@@ -15685,7 +15782,8 @@ pub mod api {
 						name: super::set_metadata::Name,
 						symbol: super::set_metadata::Symbol,
 						decimals: super::set_metadata::Decimals,
-					) -> ::subxt::transactions::StaticPayload<super::SetMetadata> {
+					) -> ::subxt::transactions::StaticPayload<super::SetMetadata>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"Assets",
 							"set_metadata",
@@ -15701,7 +15799,8 @@ pub mod api {
 					pub fn clear_metadata(
 						&self,
 						id: super::clear_metadata::Id,
-					) -> ::subxt::transactions::StaticPayload<super::ClearMetadata> {
+					) -> ::subxt::transactions::StaticPayload<super::ClearMetadata>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"Assets",
 							"clear_metadata",
@@ -15721,7 +15820,8 @@ pub mod api {
 						symbol: super::force_set_metadata::Symbol,
 						decimals: super::force_set_metadata::Decimals,
 						is_frozen: super::force_set_metadata::IsFrozen,
-					) -> ::subxt::transactions::StaticPayload<super::ForceSetMetadata> {
+					) -> ::subxt::transactions::StaticPayload<super::ForceSetMetadata>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"Assets",
 							"force_set_metadata",
@@ -15737,7 +15837,8 @@ pub mod api {
 					pub fn force_clear_metadata(
 						&self,
 						id: super::force_clear_metadata::Id,
-					) -> ::subxt::transactions::StaticPayload<super::ForceClearMetadata> {
+					) -> ::subxt::transactions::StaticPayload<super::ForceClearMetadata>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"Assets",
 							"force_clear_metadata",
@@ -15760,7 +15861,8 @@ pub mod api {
 						min_balance: super::force_asset_status::MinBalance,
 						is_sufficient: super::force_asset_status::IsSufficient,
 						is_frozen: super::force_asset_status::IsFrozen,
-					) -> ::subxt::transactions::StaticPayload<super::ForceAssetStatus> {
+					) -> ::subxt::transactions::StaticPayload<super::ForceAssetStatus>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"Assets",
 							"force_asset_status",
@@ -15787,7 +15889,8 @@ pub mod api {
 						id: super::approve_transfer::Id,
 						delegate: super::approve_transfer::Delegate,
 						amount: super::approve_transfer::Amount,
-					) -> ::subxt::transactions::StaticPayload<super::ApproveTransfer> {
+					) -> ::subxt::transactions::StaticPayload<super::ApproveTransfer>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"Assets",
 							"approve_transfer",
@@ -15804,7 +15907,8 @@ pub mod api {
 						&self,
 						id: super::cancel_approval::Id,
 						delegate: super::cancel_approval::Delegate,
-					) -> ::subxt::transactions::StaticPayload<super::CancelApproval> {
+					) -> ::subxt::transactions::StaticPayload<super::CancelApproval>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"Assets",
 							"cancel_approval",
@@ -15822,7 +15926,8 @@ pub mod api {
 						id: super::force_cancel_approval::Id,
 						owner: super::force_cancel_approval::Owner,
 						delegate: super::force_cancel_approval::Delegate,
-					) -> ::subxt::transactions::StaticPayload<super::ForceCancelApproval> {
+					) -> ::subxt::transactions::StaticPayload<super::ForceCancelApproval>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"Assets",
 							"force_cancel_approval",
@@ -15841,7 +15946,8 @@ pub mod api {
 						owner: super::transfer_approved::Owner,
 						destination: super::transfer_approved::Destination,
 						amount: super::transfer_approved::Amount,
-					) -> ::subxt::transactions::StaticPayload<super::TransferApproved> {
+					) -> ::subxt::transactions::StaticPayload<super::TransferApproved>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"Assets",
 							"transfer_approved",
@@ -15891,7 +15997,8 @@ pub mod api {
 						&self,
 						id: super::set_min_balance::Id,
 						min_balance: super::set_min_balance::MinBalance,
-					) -> ::subxt::transactions::StaticPayload<super::SetMinBalance> {
+					) -> ::subxt::transactions::StaticPayload<super::SetMinBalance>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"Assets",
 							"set_min_balance",
@@ -15908,7 +16015,8 @@ pub mod api {
 						&self,
 						id: super::touch_other::Id,
 						who: super::touch_other::Who,
-					) -> ::subxt::transactions::StaticPayload<super::TouchOther> {
+					) -> ::subxt::transactions::StaticPayload<super::TouchOther>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"Assets",
 							"touch_other",
@@ -15925,7 +16033,8 @@ pub mod api {
 						&self,
 						id: super::refund_other::Id,
 						who: super::refund_other::Who,
-					) -> ::subxt::transactions::StaticPayload<super::RefundOther> {
+					) -> ::subxt::transactions::StaticPayload<super::RefundOther>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"Assets",
 							"refund_other",
@@ -15960,7 +16069,8 @@ pub mod api {
 						id: super::transfer_all::Id,
 						dest: super::transfer_all::Dest,
 						keep_alive: super::transfer_all::KeepAlive,
-					) -> ::subxt::transactions::StaticPayload<super::TransferAll> {
+					) -> ::subxt::transactions::StaticPayload<super::TransferAll>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"Assets",
 							"transfer_all",
@@ -15977,7 +16087,8 @@ pub mod api {
 						&self,
 						id: super::set_reserves::Id,
 						reserves: super::set_reserves::Reserves,
-					) -> ::subxt::transactions::StaticPayload<super::SetReserves> {
+					) -> ::subxt::transactions::StaticPayload<super::SetReserves>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"Assets",
 							"set_reserves",
@@ -17833,7 +17944,8 @@ pub mod api {
 						collection: super::force_create::Collection,
 						owner: super::force_create::Owner,
 						free_holding: super::force_create::FreeHolding,
-					) -> ::subxt::transactions::StaticPayload<super::ForceCreate> {
+					) -> ::subxt::transactions::StaticPayload<super::ForceCreate>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"Uniques",
 							"force_create",
@@ -17921,7 +18033,8 @@ pub mod api {
 						&self,
 						collection: super::redeposit::Collection,
 						items: super::redeposit::Items,
-					) -> ::subxt::transactions::StaticPayload<super::Redeposit> {
+					) -> ::subxt::transactions::StaticPayload<super::Redeposit>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"Uniques",
 							"redeposit",
@@ -17971,7 +18084,8 @@ pub mod api {
 					pub fn freeze_collection(
 						&self,
 						collection: super::freeze_collection::Collection,
-					) -> ::subxt::transactions::StaticPayload<super::FreezeCollection> {
+					) -> ::subxt::transactions::StaticPayload<super::FreezeCollection>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"Uniques",
 							"freeze_collection",
@@ -17987,7 +18101,8 @@ pub mod api {
 					pub fn thaw_collection(
 						&self,
 						collection: super::thaw_collection::Collection,
-					) -> ::subxt::transactions::StaticPayload<super::ThawCollection> {
+					) -> ::subxt::transactions::StaticPayload<super::ThawCollection>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"Uniques",
 							"thaw_collection",
@@ -18004,7 +18119,8 @@ pub mod api {
 						&self,
 						collection: super::transfer_ownership::Collection,
 						new_owner: super::transfer_ownership::NewOwner,
-					) -> ::subxt::transactions::StaticPayload<super::TransferOwnership> {
+					) -> ::subxt::transactions::StaticPayload<super::TransferOwnership>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"Uniques",
 							"transfer_ownership",
@@ -18041,7 +18157,8 @@ pub mod api {
 						collection: super::approve_transfer::Collection,
 						item: super::approve_transfer::Item,
 						delegate: super::approve_transfer::Delegate,
-					) -> ::subxt::transactions::StaticPayload<super::ApproveTransfer> {
+					) -> ::subxt::transactions::StaticPayload<super::ApproveTransfer>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"Uniques",
 							"approve_transfer",
@@ -18059,7 +18176,8 @@ pub mod api {
 						collection: super::cancel_approval::Collection,
 						item: super::cancel_approval::Item,
 						maybe_check_delegate: super::cancel_approval::MaybeCheckDelegate,
-					) -> ::subxt::transactions::StaticPayload<super::CancelApproval> {
+					) -> ::subxt::transactions::StaticPayload<super::CancelApproval>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"Uniques",
 							"cancel_approval",
@@ -18081,7 +18199,8 @@ pub mod api {
 						freezer: super::force_item_status::Freezer,
 						free_holding: super::force_item_status::FreeHolding,
 						is_frozen: super::force_item_status::IsFrozen,
-					) -> ::subxt::transactions::StaticPayload<super::ForceItemStatus> {
+					) -> ::subxt::transactions::StaticPayload<super::ForceItemStatus>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"Uniques",
 							"force_item_status",
@@ -18108,7 +18227,8 @@ pub mod api {
 						maybe_item: super::set_attribute::MaybeItem,
 						key: super::set_attribute::Key,
 						value: super::set_attribute::Value,
-					) -> ::subxt::transactions::StaticPayload<super::SetAttribute> {
+					) -> ::subxt::transactions::StaticPayload<super::SetAttribute>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"Uniques",
 							"set_attribute",
@@ -18126,7 +18246,8 @@ pub mod api {
 						collection: super::clear_attribute::Collection,
 						maybe_item: super::clear_attribute::MaybeItem,
 						key: super::clear_attribute::Key,
-					) -> ::subxt::transactions::StaticPayload<super::ClearAttribute> {
+					) -> ::subxt::transactions::StaticPayload<super::ClearAttribute>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"Uniques",
 							"clear_attribute",
@@ -18145,7 +18266,8 @@ pub mod api {
 						item: super::set_metadata::Item,
 						data: super::set_metadata::Data,
 						is_frozen: super::set_metadata::IsFrozen,
-					) -> ::subxt::transactions::StaticPayload<super::SetMetadata> {
+					) -> ::subxt::transactions::StaticPayload<super::SetMetadata>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"Uniques",
 							"set_metadata",
@@ -18162,7 +18284,8 @@ pub mod api {
 						&self,
 						collection: super::clear_metadata::Collection,
 						item: super::clear_metadata::Item,
-					) -> ::subxt::transactions::StaticPayload<super::ClearMetadata> {
+					) -> ::subxt::transactions::StaticPayload<super::ClearMetadata>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"Uniques",
 							"clear_metadata",
@@ -18180,7 +18303,8 @@ pub mod api {
 						collection: super::set_collection_metadata::Collection,
 						data: super::set_collection_metadata::Data,
 						is_frozen: super::set_collection_metadata::IsFrozen,
-					) -> ::subxt::transactions::StaticPayload<super::SetCollectionMetadata> {
+					) -> ::subxt::transactions::StaticPayload<super::SetCollectionMetadata>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"Uniques",
 							"set_collection_metadata",
@@ -18196,7 +18320,8 @@ pub mod api {
 					pub fn clear_collection_metadata(
 						&self,
 						collection: super::clear_collection_metadata::Collection,
-					) -> ::subxt::transactions::StaticPayload<super::ClearCollectionMetadata> {
+					) -> ::subxt::transactions::StaticPayload<super::ClearCollectionMetadata>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"Uniques",
 							"clear_collection_metadata",
@@ -18212,7 +18337,8 @@ pub mod api {
 					pub fn set_accept_ownership(
 						&self,
 						maybe_collection: super::set_accept_ownership::MaybeCollection,
-					) -> ::subxt::transactions::StaticPayload<super::SetAcceptOwnership> {
+					) -> ::subxt::transactions::StaticPayload<super::SetAcceptOwnership>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"Uniques",
 							"set_accept_ownership",
@@ -18229,7 +18355,8 @@ pub mod api {
 						&self,
 						collection: super::set_collection_max_supply::Collection,
 						max_supply: super::set_collection_max_supply::MaxSupply,
-					) -> ::subxt::transactions::StaticPayload<super::SetCollectionMaxSupply> {
+					) -> ::subxt::transactions::StaticPayload<super::SetCollectionMaxSupply>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"Uniques",
 							"set_collection_max_supply",
@@ -20553,7 +20680,8 @@ pub mod api {
 						&self,
 						owner: super::force_create::Owner,
 						config: super::force_create::Config,
-					) -> ::subxt::transactions::StaticPayload<super::ForceCreate> {
+					) -> ::subxt::transactions::StaticPayload<super::ForceCreate>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"Nfts",
 							"force_create",
@@ -20608,7 +20736,8 @@ pub mod api {
 						item: super::force_mint::Item,
 						mint_to: super::force_mint::MintTo,
 						item_config: super::force_mint::ItemConfig,
-					) -> ::subxt::transactions::StaticPayload<super::ForceMint> {
+					) -> ::subxt::transactions::StaticPayload<super::ForceMint>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"Nfts",
 							"force_mint",
@@ -20660,7 +20789,8 @@ pub mod api {
 						&self,
 						collection: super::redeposit::Collection,
 						items: super::redeposit::Items,
-					) -> ::subxt::transactions::StaticPayload<super::Redeposit> {
+					) -> ::subxt::transactions::StaticPayload<super::Redeposit>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"Nfts",
 							"redeposit",
@@ -20677,7 +20807,8 @@ pub mod api {
 						&self,
 						collection: super::lock_item_transfer::Collection,
 						item: super::lock_item_transfer::Item,
-					) -> ::subxt::transactions::StaticPayload<super::LockItemTransfer> {
+					) -> ::subxt::transactions::StaticPayload<super::LockItemTransfer>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"Nfts",
 							"lock_item_transfer",
@@ -20694,7 +20825,8 @@ pub mod api {
 						&self,
 						collection: super::unlock_item_transfer::Collection,
 						item: super::unlock_item_transfer::Item,
-					) -> ::subxt::transactions::StaticPayload<super::UnlockItemTransfer> {
+					) -> ::subxt::transactions::StaticPayload<super::UnlockItemTransfer>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"Nfts",
 							"unlock_item_transfer",
@@ -20711,7 +20843,8 @@ pub mod api {
 						&self,
 						collection: super::lock_collection::Collection,
 						lock_settings: super::lock_collection::LockSettings,
-					) -> ::subxt::transactions::StaticPayload<super::LockCollection> {
+					) -> ::subxt::transactions::StaticPayload<super::LockCollection>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"Nfts",
 							"lock_collection",
@@ -20728,7 +20861,8 @@ pub mod api {
 						&self,
 						collection: super::transfer_ownership::Collection,
 						new_owner: super::transfer_ownership::NewOwner,
-					) -> ::subxt::transactions::StaticPayload<super::TransferOwnership> {
+					) -> ::subxt::transactions::StaticPayload<super::TransferOwnership>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"Nfts",
 							"transfer_ownership",
@@ -20764,7 +20898,8 @@ pub mod api {
 						&self,
 						collection: super::force_collection_owner::Collection,
 						owner: super::force_collection_owner::Owner,
-					) -> ::subxt::transactions::StaticPayload<super::ForceCollectionOwner> {
+					) -> ::subxt::transactions::StaticPayload<super::ForceCollectionOwner>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"Nfts",
 							"force_collection_owner",
@@ -20781,7 +20916,8 @@ pub mod api {
 						&self,
 						collection: super::force_collection_config::Collection,
 						config: super::force_collection_config::Config,
-					) -> ::subxt::transactions::StaticPayload<super::ForceCollectionConfig> {
+					) -> ::subxt::transactions::StaticPayload<super::ForceCollectionConfig>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"Nfts",
 							"force_collection_config",
@@ -20800,7 +20936,8 @@ pub mod api {
 						item: super::approve_transfer::Item,
 						delegate: super::approve_transfer::Delegate,
 						maybe_deadline: super::approve_transfer::MaybeDeadline,
-					) -> ::subxt::transactions::StaticPayload<super::ApproveTransfer> {
+					) -> ::subxt::transactions::StaticPayload<super::ApproveTransfer>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"Nfts",
 							"approve_transfer",
@@ -20818,7 +20955,8 @@ pub mod api {
 						collection: super::cancel_approval::Collection,
 						item: super::cancel_approval::Item,
 						delegate: super::cancel_approval::Delegate,
-					) -> ::subxt::transactions::StaticPayload<super::CancelApproval> {
+					) -> ::subxt::transactions::StaticPayload<super::CancelApproval>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"Nfts",
 							"cancel_approval",
@@ -20855,7 +20993,8 @@ pub mod api {
 						item: super::lock_item_properties::Item,
 						lock_metadata: super::lock_item_properties::LockMetadata,
 						lock_attributes: super::lock_item_properties::LockAttributes,
-					) -> ::subxt::transactions::StaticPayload<super::LockItemProperties> {
+					) -> ::subxt::transactions::StaticPayload<super::LockItemProperties>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"Nfts",
 							"lock_item_properties",
@@ -20880,7 +21019,8 @@ pub mod api {
 						namespace: super::set_attribute::Namespace,
 						key: super::set_attribute::Key,
 						value: super::set_attribute::Value,
-					) -> ::subxt::transactions::StaticPayload<super::SetAttribute> {
+					) -> ::subxt::transactions::StaticPayload<super::SetAttribute>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"Nfts",
 							"set_attribute",
@@ -20901,7 +21041,8 @@ pub mod api {
 						namespace: super::force_set_attribute::Namespace,
 						key: super::force_set_attribute::Key,
 						value: super::force_set_attribute::Value,
-					) -> ::subxt::transactions::StaticPayload<super::ForceSetAttribute> {
+					) -> ::subxt::transactions::StaticPayload<super::ForceSetAttribute>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"Nfts",
 							"force_set_attribute",
@@ -20927,7 +21068,8 @@ pub mod api {
 						maybe_item: super::clear_attribute::MaybeItem,
 						namespace: super::clear_attribute::Namespace,
 						key: super::clear_attribute::Key,
-					) -> ::subxt::transactions::StaticPayload<super::ClearAttribute> {
+					) -> ::subxt::transactions::StaticPayload<super::ClearAttribute>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"Nfts",
 							"clear_attribute",
@@ -20945,7 +21087,8 @@ pub mod api {
 						collection: super::approve_item_attributes::Collection,
 						item: super::approve_item_attributes::Item,
 						delegate: super::approve_item_attributes::Delegate,
-					) -> ::subxt::transactions::StaticPayload<super::ApproveItemAttributes> {
+					) -> ::subxt::transactions::StaticPayload<super::ApproveItemAttributes>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"Nfts",
 							"approve_item_attributes",
@@ -20988,7 +21131,8 @@ pub mod api {
 						collection: super::set_metadata::Collection,
 						item: super::set_metadata::Item,
 						data: super::set_metadata::Data,
-					) -> ::subxt::transactions::StaticPayload<super::SetMetadata> {
+					) -> ::subxt::transactions::StaticPayload<super::SetMetadata>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"Nfts",
 							"set_metadata",
@@ -21005,7 +21149,8 @@ pub mod api {
 						&self,
 						collection: super::clear_metadata::Collection,
 						item: super::clear_metadata::Item,
-					) -> ::subxt::transactions::StaticPayload<super::ClearMetadata> {
+					) -> ::subxt::transactions::StaticPayload<super::ClearMetadata>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"Nfts",
 							"clear_metadata",
@@ -21022,7 +21167,8 @@ pub mod api {
 						&self,
 						collection: super::set_collection_metadata::Collection,
 						data: super::set_collection_metadata::Data,
-					) -> ::subxt::transactions::StaticPayload<super::SetCollectionMetadata> {
+					) -> ::subxt::transactions::StaticPayload<super::SetCollectionMetadata>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"Nfts",
 							"set_collection_metadata",
@@ -21038,7 +21184,8 @@ pub mod api {
 					pub fn clear_collection_metadata(
 						&self,
 						collection: super::clear_collection_metadata::Collection,
-					) -> ::subxt::transactions::StaticPayload<super::ClearCollectionMetadata> {
+					) -> ::subxt::transactions::StaticPayload<super::ClearCollectionMetadata>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"Nfts",
 							"clear_collection_metadata",
@@ -21054,7 +21201,8 @@ pub mod api {
 					pub fn set_accept_ownership(
 						&self,
 						maybe_collection: super::set_accept_ownership::MaybeCollection,
-					) -> ::subxt::transactions::StaticPayload<super::SetAcceptOwnership> {
+					) -> ::subxt::transactions::StaticPayload<super::SetAcceptOwnership>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"Nfts",
 							"set_accept_ownership",
@@ -21071,7 +21219,8 @@ pub mod api {
 						&self,
 						collection: super::set_collection_max_supply::Collection,
 						max_supply: super::set_collection_max_supply::MaxSupply,
-					) -> ::subxt::transactions::StaticPayload<super::SetCollectionMaxSupply> {
+					) -> ::subxt::transactions::StaticPayload<super::SetCollectionMaxSupply>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"Nfts",
 							"set_collection_max_supply",
@@ -21088,7 +21237,8 @@ pub mod api {
 						&self,
 						collection: super::update_mint_settings::Collection,
 						mint_settings: super::update_mint_settings::MintSettings,
-					) -> ::subxt::transactions::StaticPayload<super::UpdateMintSettings> {
+					) -> ::subxt::transactions::StaticPayload<super::UpdateMintSettings>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"Nfts",
 							"update_mint_settings",
@@ -21162,7 +21312,8 @@ pub mod api {
 						maybe_desired_item: super::create_swap::MaybeDesiredItem,
 						maybe_price: super::create_swap::MaybePrice,
 						duration: super::create_swap::Duration,
-					) -> ::subxt::transactions::StaticPayload<super::CreateSwap> {
+					) -> ::subxt::transactions::StaticPayload<super::CreateSwap>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"Nfts",
 							"create_swap",
@@ -21186,7 +21337,8 @@ pub mod api {
 						&self,
 						offered_collection: super::cancel_swap::OfferedCollection,
 						offered_item: super::cancel_swap::OfferedItem,
-					) -> ::subxt::transactions::StaticPayload<super::CancelSwap> {
+					) -> ::subxt::transactions::StaticPayload<super::CancelSwap>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"Nfts",
 							"cancel_swap",
@@ -21206,7 +21358,8 @@ pub mod api {
 						receive_collection: super::claim_swap::ReceiveCollection,
 						receive_item: super::claim_swap::ReceiveItem,
 						witness_price: super::claim_swap::WitnessPrice,
-					) -> ::subxt::transactions::StaticPayload<super::ClaimSwap> {
+					) -> ::subxt::transactions::StaticPayload<super::ClaimSwap>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"Nfts",
 							"claim_swap",
@@ -21230,7 +21383,8 @@ pub mod api {
 						mint_data: super::mint_pre_signed::MintData,
 						signature: super::mint_pre_signed::Signature,
 						signer: super::mint_pre_signed::Signer,
-					) -> ::subxt::transactions::StaticPayload<super::MintPreSigned> {
+					) -> ::subxt::transactions::StaticPayload<super::MintPreSigned>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"Nfts",
 							"mint_pre_signed",
@@ -21252,7 +21406,8 @@ pub mod api {
 						data: super::set_attributes_pre_signed::Data,
 						signature: super::set_attributes_pre_signed::Signature,
 						signer: super::set_attributes_pre_signed::Signer,
-					) -> ::subxt::transactions::StaticPayload<super::SetAttributesPreSigned> {
+					) -> ::subxt::transactions::StaticPayload<super::SetAttributesPreSigned>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"Nfts",
 							"set_attributes_pre_signed",
@@ -23919,7 +24074,8 @@ pub mod api {
 						owner: super::force_create::Owner,
 						is_sufficient: super::force_create::IsSufficient,
 						min_balance: super::force_create::MinBalance,
-					) -> ::subxt::transactions::StaticPayload<super::ForceCreate> {
+					) -> ::subxt::transactions::StaticPayload<super::ForceCreate>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"ForeignAssets",
 							"force_create",
@@ -23935,7 +24091,8 @@ pub mod api {
 					pub fn start_destroy(
 						&self,
 						id: super::start_destroy::Id,
-					) -> ::subxt::transactions::StaticPayload<super::StartDestroy> {
+					) -> ::subxt::transactions::StaticPayload<super::StartDestroy>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"ForeignAssets",
 							"start_destroy",
@@ -23951,7 +24108,8 @@ pub mod api {
 					pub fn destroy_accounts(
 						&self,
 						id: super::destroy_accounts::Id,
-					) -> ::subxt::transactions::StaticPayload<super::DestroyAccounts> {
+					) -> ::subxt::transactions::StaticPayload<super::DestroyAccounts>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"ForeignAssets",
 							"destroy_accounts",
@@ -23967,7 +24125,8 @@ pub mod api {
 					pub fn destroy_approvals(
 						&self,
 						id: super::destroy_approvals::Id,
-					) -> ::subxt::transactions::StaticPayload<super::DestroyApprovals> {
+					) -> ::subxt::transactions::StaticPayload<super::DestroyApprovals>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"ForeignAssets",
 							"destroy_approvals",
@@ -23983,7 +24142,8 @@ pub mod api {
 					pub fn finish_destroy(
 						&self,
 						id: super::finish_destroy::Id,
-					) -> ::subxt::transactions::StaticPayload<super::FinishDestroy> {
+					) -> ::subxt::transactions::StaticPayload<super::FinishDestroy>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"ForeignAssets",
 							"finish_destroy",
@@ -24055,7 +24215,8 @@ pub mod api {
 						id: super::transfer_keep_alive::Id,
 						target: super::transfer_keep_alive::Target,
 						amount: super::transfer_keep_alive::Amount,
-					) -> ::subxt::transactions::StaticPayload<super::TransferKeepAlive> {
+					) -> ::subxt::transactions::StaticPayload<super::TransferKeepAlive>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"ForeignAssets",
 							"transfer_keep_alive",
@@ -24074,7 +24235,8 @@ pub mod api {
 						source: super::force_transfer::Source,
 						dest: super::force_transfer::Dest,
 						amount: super::force_transfer::Amount,
-					) -> ::subxt::transactions::StaticPayload<super::ForceTransfer> {
+					) -> ::subxt::transactions::StaticPayload<super::ForceTransfer>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"ForeignAssets",
 							"force_transfer",
@@ -24124,7 +24286,8 @@ pub mod api {
 					pub fn freeze_asset(
 						&self,
 						id: super::freeze_asset::Id,
-					) -> ::subxt::transactions::StaticPayload<super::FreezeAsset> {
+					) -> ::subxt::transactions::StaticPayload<super::FreezeAsset>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"ForeignAssets",
 							"freeze_asset",
@@ -24140,7 +24303,8 @@ pub mod api {
 					pub fn thaw_asset(
 						&self,
 						id: super::thaw_asset::Id,
-					) -> ::subxt::transactions::StaticPayload<super::ThawAsset> {
+					) -> ::subxt::transactions::StaticPayload<super::ThawAsset>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"ForeignAssets",
 							"thaw_asset",
@@ -24157,7 +24321,8 @@ pub mod api {
 						&self,
 						id: super::transfer_ownership::Id,
 						owner: super::transfer_ownership::Owner,
-					) -> ::subxt::transactions::StaticPayload<super::TransferOwnership> {
+					) -> ::subxt::transactions::StaticPayload<super::TransferOwnership>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"ForeignAssets",
 							"transfer_ownership",
@@ -24195,7 +24360,8 @@ pub mod api {
 						name: super::set_metadata::Name,
 						symbol: super::set_metadata::Symbol,
 						decimals: super::set_metadata::Decimals,
-					) -> ::subxt::transactions::StaticPayload<super::SetMetadata> {
+					) -> ::subxt::transactions::StaticPayload<super::SetMetadata>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"ForeignAssets",
 							"set_metadata",
@@ -24211,7 +24377,8 @@ pub mod api {
 					pub fn clear_metadata(
 						&self,
 						id: super::clear_metadata::Id,
-					) -> ::subxt::transactions::StaticPayload<super::ClearMetadata> {
+					) -> ::subxt::transactions::StaticPayload<super::ClearMetadata>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"ForeignAssets",
 							"clear_metadata",
@@ -24231,7 +24398,8 @@ pub mod api {
 						symbol: super::force_set_metadata::Symbol,
 						decimals: super::force_set_metadata::Decimals,
 						is_frozen: super::force_set_metadata::IsFrozen,
-					) -> ::subxt::transactions::StaticPayload<super::ForceSetMetadata> {
+					) -> ::subxt::transactions::StaticPayload<super::ForceSetMetadata>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"ForeignAssets",
 							"force_set_metadata",
@@ -24247,7 +24415,8 @@ pub mod api {
 					pub fn force_clear_metadata(
 						&self,
 						id: super::force_clear_metadata::Id,
-					) -> ::subxt::transactions::StaticPayload<super::ForceClearMetadata> {
+					) -> ::subxt::transactions::StaticPayload<super::ForceClearMetadata>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"ForeignAssets",
 							"force_clear_metadata",
@@ -24270,7 +24439,8 @@ pub mod api {
 						min_balance: super::force_asset_status::MinBalance,
 						is_sufficient: super::force_asset_status::IsSufficient,
 						is_frozen: super::force_asset_status::IsFrozen,
-					) -> ::subxt::transactions::StaticPayload<super::ForceAssetStatus> {
+					) -> ::subxt::transactions::StaticPayload<super::ForceAssetStatus>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"ForeignAssets",
 							"force_asset_status",
@@ -24297,7 +24467,8 @@ pub mod api {
 						id: super::approve_transfer::Id,
 						delegate: super::approve_transfer::Delegate,
 						amount: super::approve_transfer::Amount,
-					) -> ::subxt::transactions::StaticPayload<super::ApproveTransfer> {
+					) -> ::subxt::transactions::StaticPayload<super::ApproveTransfer>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"ForeignAssets",
 							"approve_transfer",
@@ -24314,7 +24485,8 @@ pub mod api {
 						&self,
 						id: super::cancel_approval::Id,
 						delegate: super::cancel_approval::Delegate,
-					) -> ::subxt::transactions::StaticPayload<super::CancelApproval> {
+					) -> ::subxt::transactions::StaticPayload<super::CancelApproval>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"ForeignAssets",
 							"cancel_approval",
@@ -24332,7 +24504,8 @@ pub mod api {
 						id: super::force_cancel_approval::Id,
 						owner: super::force_cancel_approval::Owner,
 						delegate: super::force_cancel_approval::Delegate,
-					) -> ::subxt::transactions::StaticPayload<super::ForceCancelApproval> {
+					) -> ::subxt::transactions::StaticPayload<super::ForceCancelApproval>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"ForeignAssets",
 							"force_cancel_approval",
@@ -24351,7 +24524,8 @@ pub mod api {
 						owner: super::transfer_approved::Owner,
 						destination: super::transfer_approved::Destination,
 						amount: super::transfer_approved::Amount,
-					) -> ::subxt::transactions::StaticPayload<super::TransferApproved> {
+					) -> ::subxt::transactions::StaticPayload<super::TransferApproved>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"ForeignAssets",
 							"transfer_approved",
@@ -24401,7 +24575,8 @@ pub mod api {
 						&self,
 						id: super::set_min_balance::Id,
 						min_balance: super::set_min_balance::MinBalance,
-					) -> ::subxt::transactions::StaticPayload<super::SetMinBalance> {
+					) -> ::subxt::transactions::StaticPayload<super::SetMinBalance>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"ForeignAssets",
 							"set_min_balance",
@@ -24418,7 +24593,8 @@ pub mod api {
 						&self,
 						id: super::touch_other::Id,
 						who: super::touch_other::Who,
-					) -> ::subxt::transactions::StaticPayload<super::TouchOther> {
+					) -> ::subxt::transactions::StaticPayload<super::TouchOther>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"ForeignAssets",
 							"touch_other",
@@ -24435,7 +24611,8 @@ pub mod api {
 						&self,
 						id: super::refund_other::Id,
 						who: super::refund_other::Who,
-					) -> ::subxt::transactions::StaticPayload<super::RefundOther> {
+					) -> ::subxt::transactions::StaticPayload<super::RefundOther>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"ForeignAssets",
 							"refund_other",
@@ -24470,7 +24647,8 @@ pub mod api {
 						id: super::transfer_all::Id,
 						dest: super::transfer_all::Dest,
 						keep_alive: super::transfer_all::KeepAlive,
-					) -> ::subxt::transactions::StaticPayload<super::TransferAll> {
+					) -> ::subxt::transactions::StaticPayload<super::TransferAll>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"ForeignAssets",
 							"transfer_all",
@@ -24487,7 +24665,8 @@ pub mod api {
 						&self,
 						id: super::set_reserves::Id,
 						reserves: super::set_reserves::Reserves,
-					) -> ::subxt::transactions::StaticPayload<super::SetReserves> {
+					) -> ::subxt::transactions::StaticPayload<super::SetReserves>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"ForeignAssets",
 							"set_reserves",
@@ -25693,7 +25872,8 @@ pub mod api {
 						asset_id: super::fractionalize::AssetId,
 						beneficiary: super::fractionalize::Beneficiary,
 						fractions: super::fractionalize::Fractions,
-					) -> ::subxt::transactions::StaticPayload<super::Fractionalize> {
+					) -> ::subxt::transactions::StaticPayload<super::Fractionalize>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"NftFractionalization",
 							"fractionalize",
@@ -25853,7 +26033,8 @@ pub mod api {
 				}
 				pub fn pallet_id(
 					&self,
-				) -> ::subxt::constants::StaticAddress<runtime_types::frame_support::PalletId> {
+				) -> ::subxt::constants::StaticAddress<runtime_types::frame_support::PalletId>
+				{
 					::subxt::constants::StaticAddress::new_static(
 						"NftFractionalization",
 						"PalletId",
@@ -26845,7 +27026,8 @@ pub mod api {
 						owner: super::force_create::Owner,
 						is_sufficient: super::force_create::IsSufficient,
 						min_balance: super::force_create::MinBalance,
-					) -> ::subxt::transactions::StaticPayload<super::ForceCreate> {
+					) -> ::subxt::transactions::StaticPayload<super::ForceCreate>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"PoolAssets",
 							"force_create",
@@ -26861,7 +27043,8 @@ pub mod api {
 					pub fn start_destroy(
 						&self,
 						id: super::start_destroy::Id,
-					) -> ::subxt::transactions::StaticPayload<super::StartDestroy> {
+					) -> ::subxt::transactions::StaticPayload<super::StartDestroy>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"PoolAssets",
 							"start_destroy",
@@ -26877,7 +27060,8 @@ pub mod api {
 					pub fn destroy_accounts(
 						&self,
 						id: super::destroy_accounts::Id,
-					) -> ::subxt::transactions::StaticPayload<super::DestroyAccounts> {
+					) -> ::subxt::transactions::StaticPayload<super::DestroyAccounts>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"PoolAssets",
 							"destroy_accounts",
@@ -26893,7 +27077,8 @@ pub mod api {
 					pub fn destroy_approvals(
 						&self,
 						id: super::destroy_approvals::Id,
-					) -> ::subxt::transactions::StaticPayload<super::DestroyApprovals> {
+					) -> ::subxt::transactions::StaticPayload<super::DestroyApprovals>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"PoolAssets",
 							"destroy_approvals",
@@ -26909,7 +27094,8 @@ pub mod api {
 					pub fn finish_destroy(
 						&self,
 						id: super::finish_destroy::Id,
-					) -> ::subxt::transactions::StaticPayload<super::FinishDestroy> {
+					) -> ::subxt::transactions::StaticPayload<super::FinishDestroy>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"PoolAssets",
 							"finish_destroy",
@@ -26981,7 +27167,8 @@ pub mod api {
 						id: super::transfer_keep_alive::Id,
 						target: super::transfer_keep_alive::Target,
 						amount: super::transfer_keep_alive::Amount,
-					) -> ::subxt::transactions::StaticPayload<super::TransferKeepAlive> {
+					) -> ::subxt::transactions::StaticPayload<super::TransferKeepAlive>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"PoolAssets",
 							"transfer_keep_alive",
@@ -27000,7 +27187,8 @@ pub mod api {
 						source: super::force_transfer::Source,
 						dest: super::force_transfer::Dest,
 						amount: super::force_transfer::Amount,
-					) -> ::subxt::transactions::StaticPayload<super::ForceTransfer> {
+					) -> ::subxt::transactions::StaticPayload<super::ForceTransfer>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"PoolAssets",
 							"force_transfer",
@@ -27050,7 +27238,8 @@ pub mod api {
 					pub fn freeze_asset(
 						&self,
 						id: super::freeze_asset::Id,
-					) -> ::subxt::transactions::StaticPayload<super::FreezeAsset> {
+					) -> ::subxt::transactions::StaticPayload<super::FreezeAsset>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"PoolAssets",
 							"freeze_asset",
@@ -27066,7 +27255,8 @@ pub mod api {
 					pub fn thaw_asset(
 						&self,
 						id: super::thaw_asset::Id,
-					) -> ::subxt::transactions::StaticPayload<super::ThawAsset> {
+					) -> ::subxt::transactions::StaticPayload<super::ThawAsset>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"PoolAssets",
 							"thaw_asset",
@@ -27083,7 +27273,8 @@ pub mod api {
 						&self,
 						id: super::transfer_ownership::Id,
 						owner: super::transfer_ownership::Owner,
-					) -> ::subxt::transactions::StaticPayload<super::TransferOwnership> {
+					) -> ::subxt::transactions::StaticPayload<super::TransferOwnership>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"PoolAssets",
 							"transfer_ownership",
@@ -27121,7 +27312,8 @@ pub mod api {
 						name: super::set_metadata::Name,
 						symbol: super::set_metadata::Symbol,
 						decimals: super::set_metadata::Decimals,
-					) -> ::subxt::transactions::StaticPayload<super::SetMetadata> {
+					) -> ::subxt::transactions::StaticPayload<super::SetMetadata>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"PoolAssets",
 							"set_metadata",
@@ -27137,7 +27329,8 @@ pub mod api {
 					pub fn clear_metadata(
 						&self,
 						id: super::clear_metadata::Id,
-					) -> ::subxt::transactions::StaticPayload<super::ClearMetadata> {
+					) -> ::subxt::transactions::StaticPayload<super::ClearMetadata>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"PoolAssets",
 							"clear_metadata",
@@ -27157,7 +27350,8 @@ pub mod api {
 						symbol: super::force_set_metadata::Symbol,
 						decimals: super::force_set_metadata::Decimals,
 						is_frozen: super::force_set_metadata::IsFrozen,
-					) -> ::subxt::transactions::StaticPayload<super::ForceSetMetadata> {
+					) -> ::subxt::transactions::StaticPayload<super::ForceSetMetadata>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"PoolAssets",
 							"force_set_metadata",
@@ -27173,7 +27367,8 @@ pub mod api {
 					pub fn force_clear_metadata(
 						&self,
 						id: super::force_clear_metadata::Id,
-					) -> ::subxt::transactions::StaticPayload<super::ForceClearMetadata> {
+					) -> ::subxt::transactions::StaticPayload<super::ForceClearMetadata>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"PoolAssets",
 							"force_clear_metadata",
@@ -27196,7 +27391,8 @@ pub mod api {
 						min_balance: super::force_asset_status::MinBalance,
 						is_sufficient: super::force_asset_status::IsSufficient,
 						is_frozen: super::force_asset_status::IsFrozen,
-					) -> ::subxt::transactions::StaticPayload<super::ForceAssetStatus> {
+					) -> ::subxt::transactions::StaticPayload<super::ForceAssetStatus>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"PoolAssets",
 							"force_asset_status",
@@ -27223,7 +27419,8 @@ pub mod api {
 						id: super::approve_transfer::Id,
 						delegate: super::approve_transfer::Delegate,
 						amount: super::approve_transfer::Amount,
-					) -> ::subxt::transactions::StaticPayload<super::ApproveTransfer> {
+					) -> ::subxt::transactions::StaticPayload<super::ApproveTransfer>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"PoolAssets",
 							"approve_transfer",
@@ -27240,7 +27437,8 @@ pub mod api {
 						&self,
 						id: super::cancel_approval::Id,
 						delegate: super::cancel_approval::Delegate,
-					) -> ::subxt::transactions::StaticPayload<super::CancelApproval> {
+					) -> ::subxt::transactions::StaticPayload<super::CancelApproval>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"PoolAssets",
 							"cancel_approval",
@@ -27258,7 +27456,8 @@ pub mod api {
 						id: super::force_cancel_approval::Id,
 						owner: super::force_cancel_approval::Owner,
 						delegate: super::force_cancel_approval::Delegate,
-					) -> ::subxt::transactions::StaticPayload<super::ForceCancelApproval> {
+					) -> ::subxt::transactions::StaticPayload<super::ForceCancelApproval>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"PoolAssets",
 							"force_cancel_approval",
@@ -27277,7 +27476,8 @@ pub mod api {
 						owner: super::transfer_approved::Owner,
 						destination: super::transfer_approved::Destination,
 						amount: super::transfer_approved::Amount,
-					) -> ::subxt::transactions::StaticPayload<super::TransferApproved> {
+					) -> ::subxt::transactions::StaticPayload<super::TransferApproved>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"PoolAssets",
 							"transfer_approved",
@@ -27327,7 +27527,8 @@ pub mod api {
 						&self,
 						id: super::set_min_balance::Id,
 						min_balance: super::set_min_balance::MinBalance,
-					) -> ::subxt::transactions::StaticPayload<super::SetMinBalance> {
+					) -> ::subxt::transactions::StaticPayload<super::SetMinBalance>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"PoolAssets",
 							"set_min_balance",
@@ -27344,7 +27545,8 @@ pub mod api {
 						&self,
 						id: super::touch_other::Id,
 						who: super::touch_other::Who,
-					) -> ::subxt::transactions::StaticPayload<super::TouchOther> {
+					) -> ::subxt::transactions::StaticPayload<super::TouchOther>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"PoolAssets",
 							"touch_other",
@@ -27361,7 +27563,8 @@ pub mod api {
 						&self,
 						id: super::refund_other::Id,
 						who: super::refund_other::Who,
-					) -> ::subxt::transactions::StaticPayload<super::RefundOther> {
+					) -> ::subxt::transactions::StaticPayload<super::RefundOther>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"PoolAssets",
 							"refund_other",
@@ -27396,7 +27599,8 @@ pub mod api {
 						id: super::transfer_all::Id,
 						dest: super::transfer_all::Dest,
 						keep_alive: super::transfer_all::KeepAlive,
-					) -> ::subxt::transactions::StaticPayload<super::TransferAll> {
+					) -> ::subxt::transactions::StaticPayload<super::TransferAll>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"PoolAssets",
 							"transfer_all",
@@ -27413,7 +27617,8 @@ pub mod api {
 						&self,
 						id: super::set_reserves::Id,
 						reserves: super::set_reserves::Reserves,
-					) -> ::subxt::transactions::StaticPayload<super::SetReserves> {
+					) -> ::subxt::transactions::StaticPayload<super::SetReserves>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"PoolAssets",
 							"set_reserves",
@@ -28731,7 +28936,8 @@ pub mod api {
 						&self,
 						asset1: super::create_pool::Asset1,
 						asset2: super::create_pool::Asset2,
-					) -> ::subxt::transactions::StaticPayload<super::CreatePool> {
+					) -> ::subxt::transactions::StaticPayload<super::CreatePool>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"AssetConversion",
 							"create_pool",
@@ -28756,7 +28962,8 @@ pub mod api {
 						amount1_min: super::add_liquidity::Amount1Min,
 						amount2_min: super::add_liquidity::Amount2Min,
 						mint_to: super::add_liquidity::MintTo,
-					) -> ::subxt::transactions::StaticPayload<super::AddLiquidity> {
+					) -> ::subxt::transactions::StaticPayload<super::AddLiquidity>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"AssetConversion",
 							"add_liquidity",
@@ -28785,7 +28992,8 @@ pub mod api {
 						amount1_min_receive: super::remove_liquidity::Amount1MinReceive,
 						amount2_min_receive: super::remove_liquidity::Amount2MinReceive,
 						withdraw_to: super::remove_liquidity::WithdrawTo,
-					) -> ::subxt::transactions::StaticPayload<super::RemoveLiquidity> {
+					) -> ::subxt::transactions::StaticPayload<super::RemoveLiquidity>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"AssetConversion",
 							"remove_liquidity",
@@ -29241,7 +29449,8 @@ pub mod api {
 				}
 				pub fn pallet_id(
 					&self,
-				) -> ::subxt::constants::StaticAddress<runtime_types::frame_support::PalletId> {
+				) -> ::subxt::constants::StaticAddress<runtime_types::frame_support::PalletId>
+				{
 					::subxt::constants::StaticAddress::new_static(
 						"AssetConversion",
 						"PalletId",
@@ -29464,7 +29673,8 @@ pub mod api {
 						&self,
 						recovered: super::control_inherited_account::Recovered,
 						call: super::control_inherited_account::Call,
-					) -> ::subxt::transactions::StaticPayload<super::ControlInheritedAccount> {
+					) -> ::subxt::transactions::StaticPayload<super::ControlInheritedAccount>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"Recovery",
 							"control_inherited_account",
@@ -29473,16 +29683,17 @@ pub mod api {
 								call: ::subxt::alloc::boxed::Box::new(call),
 							},
 							[
-								145u8, 235u8, 247u8, 200u8, 22u8, 15u8, 30u8, 38u8, 5u8, 236u8,
-								44u8, 217u8, 39u8, 128u8, 60u8, 110u8, 14u8, 56u8, 6u8, 171u8,
-								62u8, 71u8, 16u8, 235u8, 90u8, 114u8, 236u8, 206u8, 251u8, 194u8,
-								242u8, 213u8,
+								107u8, 13u8, 48u8, 18u8, 93u8, 230u8, 212u8, 102u8, 91u8, 126u8,
+								22u8, 73u8, 122u8, 124u8, 57u8, 204u8, 105u8, 246u8, 12u8, 96u8,
+								87u8, 54u8, 31u8, 215u8, 0u8, 43u8, 25u8, 202u8, 100u8, 95u8, 59u8,
+								56u8,
 							],
 						)
 					}
 					pub fn revoke_inheritor(
 						&self,
-					) -> ::subxt::transactions::StaticPayload<super::RevokeInheritor> {
+					) -> ::subxt::transactions::StaticPayload<super::RevokeInheritor>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"Recovery",
 							"revoke_inheritor",
@@ -29498,7 +29709,8 @@ pub mod api {
 					pub fn set_friend_groups(
 						&self,
 						friend_groups: super::set_friend_groups::FriendGroups,
-					) -> ::subxt::transactions::StaticPayload<super::SetFriendGroups> {
+					) -> ::subxt::transactions::StaticPayload<super::SetFriendGroups>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"Recovery",
 							"set_friend_groups",
@@ -29515,7 +29727,8 @@ pub mod api {
 						&self,
 						lost: super::initiate_attempt::Lost,
 						friend_group_index: super::initiate_attempt::FriendGroupIndex,
-					) -> ::subxt::transactions::StaticPayload<super::InitiateAttempt> {
+					) -> ::subxt::transactions::StaticPayload<super::InitiateAttempt>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"Recovery",
 							"initiate_attempt",
@@ -29532,7 +29745,8 @@ pub mod api {
 						&self,
 						lost: super::approve_attempt::Lost,
 						friend_group_index: super::approve_attempt::FriendGroupIndex,
-					) -> ::subxt::transactions::StaticPayload<super::ApproveAttempt> {
+					) -> ::subxt::transactions::StaticPayload<super::ApproveAttempt>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"Recovery",
 							"approve_attempt",
@@ -29549,7 +29763,8 @@ pub mod api {
 						&self,
 						lost: super::finish_attempt::Lost,
 						friend_group_index: super::finish_attempt::FriendGroupIndex,
-					) -> ::subxt::transactions::StaticPayload<super::FinishAttempt> {
+					) -> ::subxt::transactions::StaticPayload<super::FinishAttempt>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"Recovery",
 							"finish_attempt",
@@ -29566,7 +29781,8 @@ pub mod api {
 						&self,
 						lost: super::cancel_attempt::Lost,
 						friend_group_index: super::cancel_attempt::FriendGroupIndex,
-					) -> ::subxt::transactions::StaticPayload<super::CancelAttempt> {
+					) -> ::subxt::transactions::StaticPayload<super::CancelAttempt>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"Recovery",
 							"cancel_attempt",
@@ -29582,7 +29798,8 @@ pub mod api {
 					pub fn slash_attempt(
 						&self,
 						friend_group_index: super::slash_attempt::FriendGroupIndex,
-					) -> ::subxt::transactions::StaticPayload<super::SlashAttempt> {
+					) -> ::subxt::transactions::StaticPayload<super::SlashAttempt>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"Recovery",
 							"slash_attempt",
@@ -30563,7 +30780,8 @@ pub mod api {
 					pub fn defender_vote(
 						&self,
 						approve: super::defender_vote::Approve,
-					) -> ::subxt::transactions::StaticPayload<super::DefenderVote> {
+					) -> ::subxt::transactions::StaticPayload<super::DefenderVote>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"Society",
 							"defender_vote",
@@ -30592,7 +30810,8 @@ pub mod api {
 					pub fn waive_repay(
 						&self,
 						amount: super::waive_repay::Amount,
-					) -> ::subxt::transactions::StaticPayload<super::WaiveRepay> {
+					) -> ::subxt::transactions::StaticPayload<super::WaiveRepay>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"Society",
 							"waive_repay",
@@ -30613,7 +30832,8 @@ pub mod api {
 						max_strikes: super::found_society::MaxStrikes,
 						candidate_deposit: super::found_society::CandidateDeposit,
 						rules: super::found_society::Rules,
-					) -> ::subxt::transactions::StaticPayload<super::FoundSociety> {
+					) -> ::subxt::transactions::StaticPayload<super::FoundSociety>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"Society",
 							"found_society",
@@ -30652,7 +30872,8 @@ pub mod api {
 						&self,
 						who: super::judge_suspended_member::Who,
 						forgive: super::judge_suspended_member::Forgive,
-					) -> ::subxt::transactions::StaticPayload<super::JudgeSuspendedMember> {
+					) -> ::subxt::transactions::StaticPayload<super::JudgeSuspendedMember>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"Society",
 							"judge_suspended_member",
@@ -30671,7 +30892,8 @@ pub mod api {
 						max_intake: super::set_parameters::MaxIntake,
 						max_strikes: super::set_parameters::MaxStrikes,
 						candidate_deposit: super::set_parameters::CandidateDeposit,
-					) -> ::subxt::transactions::StaticPayload<super::SetParameters> {
+					) -> ::subxt::transactions::StaticPayload<super::SetParameters>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"Society",
 							"set_parameters",
@@ -30691,7 +30913,8 @@ pub mod api {
 					}
 					pub fn punish_skeptic(
 						&self,
-					) -> ::subxt::transactions::StaticPayload<super::PunishSkeptic> {
+					) -> ::subxt::transactions::StaticPayload<super::PunishSkeptic>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"Society",
 							"punish_skeptic",
@@ -30706,7 +30929,8 @@ pub mod api {
 					}
 					pub fn claim_membership(
 						&self,
-					) -> ::subxt::transactions::StaticPayload<super::ClaimMembership> {
+					) -> ::subxt::transactions::StaticPayload<super::ClaimMembership>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"Society",
 							"claim_membership",
@@ -30722,7 +30946,8 @@ pub mod api {
 					pub fn bestow_membership(
 						&self,
 						candidate: super::bestow_membership::Candidate,
-					) -> ::subxt::transactions::StaticPayload<super::BestowMembership> {
+					) -> ::subxt::transactions::StaticPayload<super::BestowMembership>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"Society",
 							"bestow_membership",
@@ -30738,7 +30963,8 @@ pub mod api {
 					pub fn kick_candidate(
 						&self,
 						candidate: super::kick_candidate::Candidate,
-					) -> ::subxt::transactions::StaticPayload<super::KickCandidate> {
+					) -> ::subxt::transactions::StaticPayload<super::KickCandidate>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"Society",
 							"kick_candidate",
@@ -30753,7 +30979,8 @@ pub mod api {
 					}
 					pub fn resign_candidacy(
 						&self,
-					) -> ::subxt::transactions::StaticPayload<super::ResignCandidacy> {
+					) -> ::subxt::transactions::StaticPayload<super::ResignCandidacy>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"Society",
 							"resign_candidacy",
@@ -30769,7 +30996,8 @@ pub mod api {
 					pub fn drop_candidate(
 						&self,
 						candidate: super::drop_candidate::Candidate,
-					) -> ::subxt::transactions::StaticPayload<super::DropCandidate> {
+					) -> ::subxt::transactions::StaticPayload<super::DropCandidate>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"Society",
 							"drop_candidate",
@@ -30786,7 +31014,8 @@ pub mod api {
 						&self,
 						candidate: super::cleanup_candidacy::Candidate,
 						max: super::cleanup_candidacy::Max,
-					) -> ::subxt::transactions::StaticPayload<super::CleanupCandidacy> {
+					) -> ::subxt::transactions::StaticPayload<super::CleanupCandidacy>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"Society",
 							"cleanup_candidacy",
@@ -30803,7 +31032,8 @@ pub mod api {
 						&self,
 						challenge_round: super::cleanup_challenge::ChallengeRound,
 						max: super::cleanup_challenge::Max,
-					) -> ::subxt::transactions::StaticPayload<super::CleanupChallenge> {
+					) -> ::subxt::transactions::StaticPayload<super::CleanupChallenge>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"Society",
 							"cleanup_challenge",
@@ -30818,7 +31048,8 @@ pub mod api {
 					}
 					pub fn poke_deposit(
 						&self,
-					) -> ::subxt::transactions::StaticPayload<super::PokeDeposit> {
+					) -> ::subxt::transactions::StaticPayload<super::PokeDeposit>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"Society",
 							"poke_deposit",
@@ -30834,7 +31065,8 @@ pub mod api {
 					pub fn kick_member(
 						&self,
 						who: super::kick_member::Who,
-					) -> ::subxt::transactions::StaticPayload<super::KickMember> {
+					) -> ::subxt::transactions::StaticPayload<super::KickMember>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"Society",
 							"kick_member",
@@ -31335,7 +31567,8 @@ pub mod api {
 				}
 				pub fn pot(
 					&self,
-				) -> ::subxt::storage::StaticAddress<(), pot::Output, ::subxt::utils::Yes> {
+				) -> ::subxt::storage::StaticAddress<(), pot::Output, ::subxt::utils::Yes>
+				{
 					::subxt::storage::StaticAddress::new_static(
 						"Society",
 						"Pot",
@@ -31348,7 +31581,8 @@ pub mod api {
 				}
 				pub fn founder(
 					&self,
-				) -> ::subxt::storage::StaticAddress<(), founder::Output, ::subxt::utils::Yes> {
+				) -> ::subxt::storage::StaticAddress<(), founder::Output, ::subxt::utils::Yes>
+				{
 					::subxt::storage::StaticAddress::new_static(
 						"Society",
 						"Founder",
@@ -31362,7 +31596,8 @@ pub mod api {
 				}
 				pub fn head(
 					&self,
-				) -> ::subxt::storage::StaticAddress<(), head::Output, ::subxt::utils::Yes> {
+				) -> ::subxt::storage::StaticAddress<(), head::Output, ::subxt::utils::Yes>
+				{
 					::subxt::storage::StaticAddress::new_static(
 						"Society",
 						"Head",
@@ -31375,7 +31610,8 @@ pub mod api {
 				}
 				pub fn rules(
 					&self,
-				) -> ::subxt::storage::StaticAddress<(), rules::Output, ::subxt::utils::Yes> {
+				) -> ::subxt::storage::StaticAddress<(), rules::Output, ::subxt::utils::Yes>
+				{
 					::subxt::storage::StaticAddress::new_static(
 						"Society",
 						"Rules",
@@ -31487,7 +31723,8 @@ pub mod api {
 				}
 				pub fn bids(
 					&self,
-				) -> ::subxt::storage::StaticAddress<(), bids::Output, ::subxt::utils::Yes> {
+				) -> ::subxt::storage::StaticAddress<(), bids::Output, ::subxt::utils::Yes>
+				{
 					::subxt::storage::StaticAddress::new_static(
 						"Society",
 						"Bids",
@@ -31519,7 +31756,8 @@ pub mod api {
 				}
 				pub fn skeptic(
 					&self,
-				) -> ::subxt::storage::StaticAddress<(), skeptic::Output, ::subxt::utils::Yes> {
+				) -> ::subxt::storage::StaticAddress<(), skeptic::Output, ::subxt::utils::Yes>
+				{
 					::subxt::storage::StaticAddress::new_static(
 						"Society",
 						"Skeptic",
@@ -31856,7 +32094,8 @@ pub mod api {
 			impl ConstantsApi {
 				pub fn pallet_id(
 					&self,
-				) -> ::subxt::constants::StaticAddress<runtime_types::frame_support::PalletId> {
+				) -> ::subxt::constants::StaticAddress<runtime_types::frame_support::PalletId>
+				{
 					::subxt::constants::StaticAddress::new_static(
 						"Society",
 						"PalletId",
@@ -32372,7 +32611,8 @@ pub mod api {
 					pub fn eth_transact(
 						&self,
 						payload: super::eth_transact::Payload,
-					) -> ::subxt::transactions::StaticPayload<super::EthTransact> {
+					) -> ::subxt::transactions::StaticPayload<super::EthTransact>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"Revive",
 							"eth_transact",
@@ -32413,7 +32653,8 @@ pub mod api {
 						code_hash: super::instantiate::CodeHash,
 						data: super::instantiate::Data,
 						salt: super::instantiate::Salt,
-					) -> ::subxt::transactions::StaticPayload<super::Instantiate> {
+					) -> ::subxt::transactions::StaticPayload<super::Instantiate>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"Revive",
 							"instantiate",
@@ -32441,7 +32682,8 @@ pub mod api {
 						code: super::instantiate_with_code::Code,
 						data: super::instantiate_with_code::Data,
 						salt: super::instantiate_with_code::Salt,
-					) -> ::subxt::transactions::StaticPayload<super::InstantiateWithCode> {
+					) -> ::subxt::transactions::StaticPayload<super::InstantiateWithCode>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"Revive",
 							"instantiate_with_code",
@@ -32471,7 +32713,8 @@ pub mod api {
 						transaction_encoded: super::eth_instantiate_with_code::TransactionEncoded,
 						effective_gas_price: super::eth_instantiate_with_code::EffectiveGasPrice,
 						encoded_len: super::eth_instantiate_with_code::EncodedLen,
-					) -> ::subxt::transactions::StaticPayload<super::EthInstantiateWithCode> {
+					) -> ::subxt::transactions::StaticPayload<super::EthInstantiateWithCode>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"Revive",
 							"eth_instantiate_with_code",
@@ -32529,7 +32772,8 @@ pub mod api {
 						&self,
 						call: super::eth_substrate_call::Call,
 						transaction_encoded: super::eth_substrate_call::TransactionEncoded,
-					) -> ::subxt::transactions::StaticPayload<super::EthSubstrateCall> {
+					) -> ::subxt::transactions::StaticPayload<super::EthSubstrateCall>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"Revive",
 							"eth_substrate_call",
@@ -32538,10 +32782,10 @@ pub mod api {
 								transaction_encoded,
 							},
 							[
-								88u8, 69u8, 230u8, 177u8, 230u8, 0u8, 211u8, 46u8, 124u8, 126u8,
-								52u8, 216u8, 62u8, 44u8, 4u8, 111u8, 201u8, 230u8, 237u8, 198u8,
-								53u8, 95u8, 36u8, 45u8, 212u8, 228u8, 49u8, 38u8, 74u8, 142u8,
-								213u8, 7u8,
+								178u8, 216u8, 46u8, 238u8, 209u8, 173u8, 26u8, 182u8, 28u8, 19u8,
+								43u8, 65u8, 182u8, 245u8, 70u8, 0u8, 208u8, 16u8, 44u8, 205u8,
+								131u8, 54u8, 0u8, 121u8, 123u8, 22u8, 101u8, 120u8, 185u8, 109u8,
+								237u8, 89u8,
 							],
 						)
 					}
@@ -32549,7 +32793,8 @@ pub mod api {
 						&self,
 						code: super::upload_code::Code,
 						storage_deposit_limit: super::upload_code::StorageDepositLimit,
-					) -> ::subxt::transactions::StaticPayload<super::UploadCode> {
+					) -> ::subxt::transactions::StaticPayload<super::UploadCode>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"Revive",
 							"upload_code",
@@ -32565,7 +32810,8 @@ pub mod api {
 					pub fn remove_code(
 						&self,
 						code_hash: super::remove_code::CodeHash,
-					) -> ::subxt::transactions::StaticPayload<super::RemoveCode> {
+					) -> ::subxt::transactions::StaticPayload<super::RemoveCode>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"Revive",
 							"remove_code",
@@ -32597,7 +32843,8 @@ pub mod api {
 					}
 					pub fn map_account(
 						&self,
-					) -> ::subxt::transactions::StaticPayload<super::MapAccount> {
+					) -> ::subxt::transactions::StaticPayload<super::MapAccount>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"Revive",
 							"map_account",
@@ -32613,7 +32860,8 @@ pub mod api {
 					pub fn batch_map_accounts(
 						&self,
 						accounts: super::batch_map_accounts::Accounts,
-					) -> ::subxt::transactions::StaticPayload<super::BatchMapAccounts> {
+					) -> ::subxt::transactions::StaticPayload<super::BatchMapAccounts>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"Revive",
 							"batch_map_accounts",
@@ -32628,7 +32876,8 @@ pub mod api {
 					}
 					pub fn unmap_account(
 						&self,
-					) -> ::subxt::transactions::StaticPayload<super::UnmapAccount> {
+					) -> ::subxt::transactions::StaticPayload<super::UnmapAccount>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"Revive",
 							"unmap_account",
@@ -32653,10 +32902,10 @@ pub mod api {
 								call: ::subxt::alloc::boxed::Box::new(call),
 							},
 							[
-								197u8, 236u8, 248u8, 187u8, 169u8, 37u8, 44u8, 58u8, 225u8, 50u8,
-								209u8, 208u8, 222u8, 138u8, 121u8, 184u8, 32u8, 209u8, 67u8, 169u8,
-								136u8, 153u8, 49u8, 140u8, 245u8, 30u8, 227u8, 248u8, 167u8, 81u8,
-								149u8, 191u8,
+								68u8, 167u8, 144u8, 233u8, 162u8, 89u8, 17u8, 186u8, 27u8, 40u8,
+								133u8, 2u8, 27u8, 102u8, 62u8, 139u8, 131u8, 60u8, 199u8, 91u8,
+								66u8, 131u8, 161u8, 214u8, 132u8, 218u8, 95u8, 66u8, 157u8, 194u8,
+								26u8, 113u8,
 							],
 						)
 					}
@@ -33408,476 +33657,6 @@ pub mod api {
 	pub mod vesting_precompiles {
 		use super::{root_mod, runtime_types};
 	}
-	pub mod state_trie_migration {
-		use super::{root_mod, runtime_types};
-		pub type Error = runtime_types::pallet_state_trie_migration::pallet::Error;
-		pub type Call = runtime_types::pallet_state_trie_migration::pallet::Call;
-		pub mod calls {
-			use super::{root_mod, runtime_types};
-			#[derive(
-				::subxt::ext::scale_decode::DecodeAsType,
-				::subxt::ext::scale_encode::EncodeAsType,
-				Debug,
-			)]
-			#[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
-			#[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
-			pub struct ControlAutoMigration {
-				pub maybe_config: control_auto_migration::MaybeConfig,
-			}
-			pub mod control_auto_migration {
-				use super::runtime_types;
-				pub type MaybeConfig = ::core::option::Option<
-					runtime_types::pallet_state_trie_migration::pallet::MigrationLimits,
-				>;
-			}
-			impl ControlAutoMigration {
-				const PALLET_NAME: &'static str = "StateTrieMigration";
-				const CALL_NAME: &'static str = "control_auto_migration";
-			}
-			impl ::subxt::extrinsics::DecodeAsExtrinsic for ControlAutoMigration {
-				fn is_extrinsic(pallet_name: &str, call_name: &str) -> bool {
-					pallet_name == Self::PALLET_NAME && call_name == Self::CALL_NAME
-				}
-			}
-			#[derive(
-				::subxt::ext::scale_decode::DecodeAsType,
-				::subxt::ext::scale_encode::EncodeAsType,
-				Debug,
-			)]
-			#[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
-			#[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
-			pub struct ContinueMigrate {
-				pub limits: continue_migrate::Limits,
-				pub real_size_upper: continue_migrate::RealSizeUpper,
-				pub witness_task: continue_migrate::WitnessTask,
-			}
-			pub mod continue_migrate {
-				use super::runtime_types;
-				pub type Limits =
-					runtime_types::pallet_state_trie_migration::pallet::MigrationLimits;
-				pub type RealSizeUpper = ::core::primitive::u32;
-				pub type WitnessTask =
-					runtime_types::pallet_state_trie_migration::pallet::MigrationTask;
-			}
-			impl ContinueMigrate {
-				const PALLET_NAME: &'static str = "StateTrieMigration";
-				const CALL_NAME: &'static str = "continue_migrate";
-			}
-			impl ::subxt::extrinsics::DecodeAsExtrinsic for ContinueMigrate {
-				fn is_extrinsic(pallet_name: &str, call_name: &str) -> bool {
-					pallet_name == Self::PALLET_NAME && call_name == Self::CALL_NAME
-				}
-			}
-			#[derive(
-				::subxt::ext::scale_decode::DecodeAsType,
-				::subxt::ext::scale_encode::EncodeAsType,
-				Debug,
-			)]
-			#[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
-			#[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
-			pub struct MigrateCustomTop {
-				pub keys: migrate_custom_top::Keys,
-				pub witness_size: migrate_custom_top::WitnessSize,
-			}
-			pub mod migrate_custom_top {
-				use super::runtime_types;
-				pub type Keys =
-					::subxt::alloc::vec::Vec<::subxt::alloc::vec::Vec<::core::primitive::u8>>;
-				pub type WitnessSize = ::core::primitive::u32;
-			}
-			impl MigrateCustomTop {
-				const PALLET_NAME: &'static str = "StateTrieMigration";
-				const CALL_NAME: &'static str = "migrate_custom_top";
-			}
-			impl ::subxt::extrinsics::DecodeAsExtrinsic for MigrateCustomTop {
-				fn is_extrinsic(pallet_name: &str, call_name: &str) -> bool {
-					pallet_name == Self::PALLET_NAME && call_name == Self::CALL_NAME
-				}
-			}
-			#[derive(
-				::subxt::ext::scale_decode::DecodeAsType,
-				::subxt::ext::scale_encode::EncodeAsType,
-				Debug,
-			)]
-			#[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
-			#[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
-			pub struct MigrateCustomChild {
-				pub root: migrate_custom_child::Root,
-				pub child_keys: migrate_custom_child::ChildKeys,
-				pub total_size: migrate_custom_child::TotalSize,
-			}
-			pub mod migrate_custom_child {
-				use super::runtime_types;
-				pub type Root = ::subxt::alloc::vec::Vec<::core::primitive::u8>;
-				pub type ChildKeys =
-					::subxt::alloc::vec::Vec<::subxt::alloc::vec::Vec<::core::primitive::u8>>;
-				pub type TotalSize = ::core::primitive::u32;
-			}
-			impl MigrateCustomChild {
-				const PALLET_NAME: &'static str = "StateTrieMigration";
-				const CALL_NAME: &'static str = "migrate_custom_child";
-			}
-			impl ::subxt::extrinsics::DecodeAsExtrinsic for MigrateCustomChild {
-				fn is_extrinsic(pallet_name: &str, call_name: &str) -> bool {
-					pallet_name == Self::PALLET_NAME && call_name == Self::CALL_NAME
-				}
-			}
-			#[derive(
-				::subxt::ext::scale_decode::DecodeAsType,
-				::subxt::ext::scale_encode::EncodeAsType,
-				Debug,
-			)]
-			#[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
-			#[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
-			pub struct SetSignedMaxLimits {
-				pub limits: set_signed_max_limits::Limits,
-			}
-			pub mod set_signed_max_limits {
-				use super::runtime_types;
-				pub type Limits =
-					runtime_types::pallet_state_trie_migration::pallet::MigrationLimits;
-			}
-			impl SetSignedMaxLimits {
-				const PALLET_NAME: &'static str = "StateTrieMigration";
-				const CALL_NAME: &'static str = "set_signed_max_limits";
-			}
-			impl ::subxt::extrinsics::DecodeAsExtrinsic for SetSignedMaxLimits {
-				fn is_extrinsic(pallet_name: &str, call_name: &str) -> bool {
-					pallet_name == Self::PALLET_NAME && call_name == Self::CALL_NAME
-				}
-			}
-			#[derive(
-				::subxt::ext::scale_decode::DecodeAsType,
-				::subxt::ext::scale_encode::EncodeAsType,
-				Debug,
-			)]
-			#[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
-			#[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
-			pub struct ForceSetProgress {
-				pub progress_top: force_set_progress::ProgressTop,
-				pub progress_child: force_set_progress::ProgressChild,
-			}
-			pub mod force_set_progress {
-				use super::runtime_types;
-				pub type ProgressTop = runtime_types::pallet_state_trie_migration::pallet::Progress;
-				pub type ProgressChild =
-					runtime_types::pallet_state_trie_migration::pallet::Progress;
-			}
-			impl ForceSetProgress {
-				const PALLET_NAME: &'static str = "StateTrieMigration";
-				const CALL_NAME: &'static str = "force_set_progress";
-			}
-			impl ::subxt::extrinsics::DecodeAsExtrinsic for ForceSetProgress {
-				fn is_extrinsic(pallet_name: &str, call_name: &str) -> bool {
-					pallet_name == Self::PALLET_NAME && call_name == Self::CALL_NAME
-				}
-			}
-			pub mod api {
-				pub struct TransactionApi;
-				impl TransactionApi {
-					pub fn control_auto_migration(
-						&self,
-						maybe_config: super::control_auto_migration::MaybeConfig,
-					) -> ::subxt::transactions::StaticPayload<super::ControlAutoMigration> {
-						::subxt::transactions::StaticPayload::new_static(
-							"StateTrieMigration",
-							"control_auto_migration",
-							super::ControlAutoMigration { maybe_config },
-							[
-								41u8, 252u8, 1u8, 4u8, 170u8, 164u8, 45u8, 147u8, 203u8, 58u8,
-								64u8, 26u8, 53u8, 231u8, 170u8, 72u8, 23u8, 87u8, 32u8, 93u8,
-								130u8, 210u8, 65u8, 200u8, 147u8, 232u8, 32u8, 105u8, 182u8, 213u8,
-								101u8, 85u8,
-							],
-						)
-					}
-					pub fn continue_migrate(
-						&self,
-						limits: super::continue_migrate::Limits,
-						real_size_upper: super::continue_migrate::RealSizeUpper,
-						witness_task: super::continue_migrate::WitnessTask,
-					) -> ::subxt::transactions::StaticPayload<super::ContinueMigrate> {
-						::subxt::transactions::StaticPayload::new_static(
-							"StateTrieMigration",
-							"continue_migrate",
-							super::ContinueMigrate { limits, real_size_upper, witness_task },
-							[
-								244u8, 113u8, 101u8, 72u8, 234u8, 245u8, 21u8, 134u8, 132u8, 53u8,
-								179u8, 247u8, 210u8, 42u8, 87u8, 131u8, 157u8, 133u8, 108u8, 97u8,
-								12u8, 252u8, 69u8, 100u8, 236u8, 171u8, 134u8, 241u8, 68u8, 15u8,
-								227u8, 23u8,
-							],
-						)
-					}
-					pub fn migrate_custom_top(
-						&self,
-						keys: super::migrate_custom_top::Keys,
-						witness_size: super::migrate_custom_top::WitnessSize,
-					) -> ::subxt::transactions::StaticPayload<super::MigrateCustomTop> {
-						::subxt::transactions::StaticPayload::new_static(
-							"StateTrieMigration",
-							"migrate_custom_top",
-							super::MigrateCustomTop { keys, witness_size },
-							[
-								167u8, 185u8, 103u8, 14u8, 52u8, 177u8, 104u8, 139u8, 95u8, 195u8,
-								1u8, 30u8, 111u8, 205u8, 10u8, 53u8, 116u8, 31u8, 104u8, 135u8,
-								34u8, 80u8, 214u8, 3u8, 80u8, 101u8, 21u8, 3u8, 244u8, 62u8, 115u8,
-								50u8,
-							],
-						)
-					}
-					pub fn migrate_custom_child(
-						&self,
-						root: super::migrate_custom_child::Root,
-						child_keys: super::migrate_custom_child::ChildKeys,
-						total_size: super::migrate_custom_child::TotalSize,
-					) -> ::subxt::transactions::StaticPayload<super::MigrateCustomChild> {
-						::subxt::transactions::StaticPayload::new_static(
-							"StateTrieMigration",
-							"migrate_custom_child",
-							super::MigrateCustomChild { root, child_keys, total_size },
-							[
-								160u8, 99u8, 211u8, 111u8, 120u8, 53u8, 188u8, 31u8, 102u8, 86u8,
-								94u8, 86u8, 218u8, 181u8, 14u8, 154u8, 243u8, 49u8, 23u8, 65u8,
-								218u8, 160u8, 200u8, 97u8, 208u8, 159u8, 40u8, 10u8, 110u8, 134u8,
-								86u8, 33u8,
-							],
-						)
-					}
-					pub fn set_signed_max_limits(
-						&self,
-						limits: super::set_signed_max_limits::Limits,
-					) -> ::subxt::transactions::StaticPayload<super::SetSignedMaxLimits> {
-						::subxt::transactions::StaticPayload::new_static(
-							"StateTrieMigration",
-							"set_signed_max_limits",
-							super::SetSignedMaxLimits { limits },
-							[
-								106u8, 43u8, 66u8, 154u8, 114u8, 172u8, 120u8, 79u8, 212u8, 196u8,
-								220u8, 112u8, 17u8, 42u8, 131u8, 249u8, 56u8, 91u8, 11u8, 152u8,
-								80u8, 120u8, 36u8, 113u8, 51u8, 34u8, 10u8, 35u8, 135u8, 228u8,
-								216u8, 38u8,
-							],
-						)
-					}
-					pub fn force_set_progress(
-						&self,
-						progress_top: super::force_set_progress::ProgressTop,
-						progress_child: super::force_set_progress::ProgressChild,
-					) -> ::subxt::transactions::StaticPayload<super::ForceSetProgress> {
-						::subxt::transactions::StaticPayload::new_static(
-							"StateTrieMigration",
-							"force_set_progress",
-							super::ForceSetProgress { progress_top, progress_child },
-							[
-								103u8, 70u8, 170u8, 72u8, 136u8, 4u8, 169u8, 245u8, 254u8, 93u8,
-								17u8, 104u8, 19u8, 53u8, 182u8, 35u8, 205u8, 99u8, 116u8, 101u8,
-								102u8, 124u8, 253u8, 206u8, 111u8, 140u8, 212u8, 12u8, 218u8, 19u8,
-								39u8, 229u8,
-							],
-						)
-					}
-				}
-			}
-		}
-		pub type Event = runtime_types::pallet_state_trie_migration::pallet::Event;
-		pub mod events {
-			use super::runtime_types;
-			#[derive(
-				::subxt::ext::scale_decode::DecodeAsType,
-				::subxt::ext::scale_encode::EncodeAsType,
-				Debug,
-			)]
-			#[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
-			#[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
-			pub struct Migrated {
-				pub top: migrated::Top,
-				pub child: migrated::Child,
-				pub compute: migrated::Compute,
-			}
-			pub mod migrated {
-				use super::runtime_types;
-				pub type Top = ::core::primitive::u32;
-				pub type Child = ::core::primitive::u32;
-				pub type Compute =
-					runtime_types::pallet_state_trie_migration::pallet::MigrationCompute;
-			}
-			impl Migrated {
-				const PALLET_NAME: &'static str = "StateTrieMigration";
-				const EVENT_NAME: &'static str = "Migrated";
-			}
-			impl ::subxt::events::DecodeAsEvent for Migrated {
-				fn is_event(pallet_name: &str, event_name: &str) -> bool {
-					pallet_name == Self::PALLET_NAME && event_name == Self::EVENT_NAME
-				}
-			}
-			#[derive(
-				::subxt::ext::scale_decode::DecodeAsType,
-				::subxt::ext::scale_encode::EncodeAsType,
-				Debug,
-			)]
-			#[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
-			#[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
-			pub struct Slashed {
-				pub who: slashed::Who,
-				pub amount: slashed::Amount,
-			}
-			pub mod slashed {
-				use super::runtime_types;
-				pub type Who = ::subxt::utils::AccountId32;
-				pub type Amount = ::core::primitive::u128;
-			}
-			impl Slashed {
-				const PALLET_NAME: &'static str = "StateTrieMigration";
-				const EVENT_NAME: &'static str = "Slashed";
-			}
-			impl ::subxt::events::DecodeAsEvent for Slashed {
-				fn is_event(pallet_name: &str, event_name: &str) -> bool {
-					pallet_name == Self::PALLET_NAME && event_name == Self::EVENT_NAME
-				}
-			}
-			#[derive(
-				::subxt::ext::scale_decode::DecodeAsType,
-				::subxt::ext::scale_encode::EncodeAsType,
-				Debug,
-			)]
-			#[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
-			#[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
-			pub struct AutoMigrationFinished;
-			impl AutoMigrationFinished {
-				const PALLET_NAME: &'static str = "StateTrieMigration";
-				const EVENT_NAME: &'static str = "AutoMigrationFinished";
-			}
-			impl ::subxt::events::DecodeAsEvent for AutoMigrationFinished {
-				fn is_event(pallet_name: &str, event_name: &str) -> bool {
-					pallet_name == Self::PALLET_NAME && event_name == Self::EVENT_NAME
-				}
-			}
-			#[derive(
-				::subxt::ext::scale_decode::DecodeAsType,
-				::subxt::ext::scale_encode::EncodeAsType,
-				Debug,
-			)]
-			#[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
-			#[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
-			pub struct Halted {
-				pub error: halted::Error,
-			}
-			pub mod halted {
-				use super::runtime_types;
-				pub type Error = runtime_types::pallet_state_trie_migration::pallet::Error;
-			}
-			impl Halted {
-				const PALLET_NAME: &'static str = "StateTrieMigration";
-				const EVENT_NAME: &'static str = "Halted";
-			}
-			impl ::subxt::events::DecodeAsEvent for Halted {
-				fn is_event(pallet_name: &str, event_name: &str) -> bool {
-					pallet_name == Self::PALLET_NAME && event_name == Self::EVENT_NAME
-				}
-			}
-		}
-		pub mod storage {
-			use super::{root_mod, runtime_types};
-			pub struct StorageApi;
-			impl StorageApi {
-				pub fn migration_process(
-					&self,
-				) -> ::subxt::storage::StaticAddress<
-					(),
-					migration_process::Output,
-					::subxt::utils::Yes,
-				> {
-					::subxt::storage::StaticAddress::new_static(
-						"StateTrieMigration",
-						"MigrationProcess",
-						[
-							51u8, 167u8, 58u8, 73u8, 58u8, 224u8, 152u8, 28u8, 139u8, 175u8, 149u8,
-							90u8, 21u8, 93u8, 165u8, 203u8, 140u8, 168u8, 192u8, 21u8, 142u8,
-							132u8, 41u8, 89u8, 52u8, 159u8, 253u8, 159u8, 115u8, 40u8, 207u8, 82u8,
-						],
-					)
-				}
-				pub fn auto_limits(
-					&self,
-				) -> ::subxt::storage::StaticAddress<(), auto_limits::Output, ::subxt::utils::Yes>
-				{
-					::subxt::storage::StaticAddress::new_static(
-						"StateTrieMigration",
-						"AutoLimits",
-						[
-							51u8, 37u8, 12u8, 255u8, 179u8, 210u8, 206u8, 206u8, 130u8, 127u8,
-							85u8, 44u8, 154u8, 187u8, 123u8, 85u8, 160u8, 227u8, 144u8, 170u8,
-							79u8, 147u8, 217u8, 224u8, 55u8, 234u8, 160u8, 3u8, 210u8, 233u8,
-							133u8, 237u8,
-						],
-					)
-				}
-				pub fn signed_migration_max_limits(
-					&self,
-				) -> ::subxt::storage::StaticAddress<
-					(),
-					signed_migration_max_limits::Output,
-					::subxt::utils::Yes,
-				> {
-					::subxt::storage::StaticAddress::new_static(
-						"StateTrieMigration",
-						"SignedMigrationMaxLimits",
-						[
-							107u8, 156u8, 193u8, 54u8, 144u8, 67u8, 33u8, 160u8, 234u8, 28u8, 87u8,
-							96u8, 113u8, 54u8, 150u8, 118u8, 191u8, 10u8, 242u8, 140u8, 112u8,
-							24u8, 84u8, 94u8, 243u8, 247u8, 30u8, 179u8, 231u8, 108u8, 186u8,
-							157u8,
-						],
-					)
-				}
-			}
-			pub mod migration_process {
-				use super::{root_mod, runtime_types};
-				pub mod input {
-					use super::runtime_types;
-				}
-				pub type Output = runtime_types::pallet_state_trie_migration::pallet::MigrationTask;
-			}
-			pub mod auto_limits {
-				use super::{root_mod, runtime_types};
-				pub mod input {
-					use super::runtime_types;
-				}
-				pub type Output = ::core::option::Option<
-					runtime_types::pallet_state_trie_migration::pallet::MigrationLimits,
-				>;
-			}
-			pub mod signed_migration_max_limits {
-				use super::{root_mod, runtime_types};
-				pub mod input {
-					use super::runtime_types;
-				}
-				pub type Output =
-					runtime_types::pallet_state_trie_migration::pallet::MigrationLimits;
-			}
-		}
-		pub mod constants {
-			use super::runtime_types;
-			pub struct ConstantsApi;
-			impl ConstantsApi {
-				pub fn max_key_len(
-					&self,
-				) -> ::subxt::constants::StaticAddress<::core::primitive::u32> {
-					::subxt::constants::StaticAddress::new_static(
-						"StateTrieMigration",
-						"MaxKeyLen",
-						[
-							98u8, 252u8, 116u8, 72u8, 26u8, 180u8, 225u8, 83u8, 200u8, 157u8,
-							125u8, 151u8, 53u8, 76u8, 168u8, 26u8, 10u8, 9u8, 98u8, 68u8, 9u8,
-							178u8, 197u8, 113u8, 31u8, 79u8, 200u8, 90u8, 203u8, 100u8, 41u8,
-							145u8,
-						],
-					)
-				}
-			}
-		}
-	}
 	pub mod nomination_pools {
 		use super::{root_mod, runtime_types};
 		pub type Error = runtime_types::pallet_nomination_pools::pallet::Error;
@@ -34582,7 +34361,8 @@ pub mod api {
 					pub fn bond_extra(
 						&self,
 						extra: super::bond_extra::Extra,
-					) -> ::subxt::transactions::StaticPayload<super::BondExtra> {
+					) -> ::subxt::transactions::StaticPayload<super::BondExtra>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"NominationPools",
 							"bond_extra",
@@ -34597,7 +34377,8 @@ pub mod api {
 					}
 					pub fn claim_payout(
 						&self,
-					) -> ::subxt::transactions::StaticPayload<super::ClaimPayout> {
+					) -> ::subxt::transactions::StaticPayload<super::ClaimPayout>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"NominationPools",
 							"claim_payout",
@@ -34631,7 +34412,8 @@ pub mod api {
 						&self,
 						pool_id: super::pool_withdraw_unbonded::PoolId,
 						num_slashing_spans: super::pool_withdraw_unbonded::NumSlashingSpans,
-					) -> ::subxt::transactions::StaticPayload<super::PoolWithdrawUnbonded> {
+					) -> ::subxt::transactions::StaticPayload<super::PoolWithdrawUnbonded>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"NominationPools",
 							"pool_withdraw_unbonded",
@@ -34648,7 +34430,8 @@ pub mod api {
 						&self,
 						member_account: super::withdraw_unbonded::MemberAccount,
 						num_slashing_spans: super::withdraw_unbonded::NumSlashingSpans,
-					) -> ::subxt::transactions::StaticPayload<super::WithdrawUnbonded> {
+					) -> ::subxt::transactions::StaticPayload<super::WithdrawUnbonded>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"NominationPools",
 							"withdraw_unbonded",
@@ -34687,7 +34470,8 @@ pub mod api {
 						nominator: super::create_with_pool_id::Nominator,
 						bouncer: super::create_with_pool_id::Bouncer,
 						pool_id: super::create_with_pool_id::PoolId,
-					) -> ::subxt::transactions::StaticPayload<super::CreateWithPoolId> {
+					) -> ::subxt::transactions::StaticPayload<super::CreateWithPoolId>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"NominationPools",
 							"create_with_pool_id",
@@ -34738,7 +34522,8 @@ pub mod api {
 						&self,
 						pool_id: super::set_metadata::PoolId,
 						metadata: super::set_metadata::Metadata,
-					) -> ::subxt::transactions::StaticPayload<super::SetMetadata> {
+					) -> ::subxt::transactions::StaticPayload<super::SetMetadata>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"NominationPools",
 							"set_metadata",
@@ -34759,7 +34544,8 @@ pub mod api {
 						max_members: super::set_configs::MaxMembers,
 						max_members_per_pool: super::set_configs::MaxMembersPerPool,
 						global_max_commission: super::set_configs::GlobalMaxCommission,
-					) -> ::subxt::transactions::StaticPayload<super::SetConfigs> {
+					) -> ::subxt::transactions::StaticPayload<super::SetConfigs>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"NominationPools",
 							"set_configs",
@@ -34785,7 +34571,8 @@ pub mod api {
 						new_root: super::update_roles::NewRoot,
 						new_nominator: super::update_roles::NewNominator,
 						new_bouncer: super::update_roles::NewBouncer,
-					) -> ::subxt::transactions::StaticPayload<super::UpdateRoles> {
+					) -> ::subxt::transactions::StaticPayload<super::UpdateRoles>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"NominationPools",
 							"update_roles",
@@ -34818,7 +34605,8 @@ pub mod api {
 						&self,
 						member: super::bond_extra_other::Member,
 						extra: super::bond_extra_other::Extra,
-					) -> ::subxt::transactions::StaticPayload<super::BondExtraOther> {
+					) -> ::subxt::transactions::StaticPayload<super::BondExtraOther>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"NominationPools",
 							"bond_extra_other",
@@ -34834,7 +34622,8 @@ pub mod api {
 					pub fn set_claim_permission(
 						&self,
 						permission: super::set_claim_permission::Permission,
-					) -> ::subxt::transactions::StaticPayload<super::SetClaimPermission> {
+					) -> ::subxt::transactions::StaticPayload<super::SetClaimPermission>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"NominationPools",
 							"set_claim_permission",
@@ -34850,7 +34639,8 @@ pub mod api {
 					pub fn claim_payout_other(
 						&self,
 						other: super::claim_payout_other::Other,
-					) -> ::subxt::transactions::StaticPayload<super::ClaimPayoutOther> {
+					) -> ::subxt::transactions::StaticPayload<super::ClaimPayoutOther>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"NominationPools",
 							"claim_payout_other",
@@ -34867,7 +34657,8 @@ pub mod api {
 						&self,
 						pool_id: super::set_commission::PoolId,
 						new_commission: super::set_commission::NewCommission,
-					) -> ::subxt::transactions::StaticPayload<super::SetCommission> {
+					) -> ::subxt::transactions::StaticPayload<super::SetCommission>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"NominationPools",
 							"set_commission",
@@ -34884,7 +34675,8 @@ pub mod api {
 						&self,
 						pool_id: super::set_commission_max::PoolId,
 						max_commission: super::set_commission_max::MaxCommission,
-					) -> ::subxt::transactions::StaticPayload<super::SetCommissionMax> {
+					) -> ::subxt::transactions::StaticPayload<super::SetCommissionMax>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"NominationPools",
 							"set_commission_max",
@@ -34901,7 +34693,8 @@ pub mod api {
 						&self,
 						pool_id: super::set_commission_change_rate::PoolId,
 						change_rate: super::set_commission_change_rate::ChangeRate,
-					) -> ::subxt::transactions::StaticPayload<super::SetCommissionChangeRate> {
+					) -> ::subxt::transactions::StaticPayload<super::SetCommissionChangeRate>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"NominationPools",
 							"set_commission_change_rate",
@@ -34917,7 +34710,8 @@ pub mod api {
 					pub fn claim_commission(
 						&self,
 						pool_id: super::claim_commission::PoolId,
-					) -> ::subxt::transactions::StaticPayload<super::ClaimCommission> {
+					) -> ::subxt::transactions::StaticPayload<super::ClaimCommission>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"NominationPools",
 							"claim_commission",
@@ -34933,7 +34727,8 @@ pub mod api {
 					pub fn adjust_pool_deposit(
 						&self,
 						pool_id: super::adjust_pool_deposit::PoolId,
-					) -> ::subxt::transactions::StaticPayload<super::AdjustPoolDeposit> {
+					) -> ::subxt::transactions::StaticPayload<super::AdjustPoolDeposit>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"NominationPools",
 							"adjust_pool_deposit",
@@ -34967,7 +34762,8 @@ pub mod api {
 					pub fn apply_slash(
 						&self,
 						member_account: super::apply_slash::MemberAccount,
-					) -> ::subxt::transactions::StaticPayload<super::ApplySlash> {
+					) -> ::subxt::transactions::StaticPayload<super::ApplySlash>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"NominationPools",
 							"apply_slash",
@@ -34983,7 +34779,8 @@ pub mod api {
 					pub fn migrate_delegation(
 						&self,
 						member_account: super::migrate_delegation::MemberAccount,
-					) -> ::subxt::transactions::StaticPayload<super::MigrateDelegation> {
+					) -> ::subxt::transactions::StaticPayload<super::MigrateDelegation>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"NominationPools",
 							"migrate_delegation",
@@ -36157,7 +35954,8 @@ pub mod api {
 			impl ConstantsApi {
 				pub fn pallet_id(
 					&self,
-				) -> ::subxt::constants::StaticAddress<runtime_types::frame_support::PalletId> {
+				) -> ::subxt::constants::StaticAddress<runtime_types::frame_support::PalletId>
+				{
 					::subxt::constants::StaticAddress::new_static(
 						"NominationPools",
 						"PalletId",
@@ -36297,7 +36095,8 @@ pub mod api {
 					pub fn put_in_front_of(
 						&self,
 						lighter: super::put_in_front_of::Lighter,
-					) -> ::subxt::transactions::StaticPayload<super::PutInFrontOf> {
+					) -> ::subxt::transactions::StaticPayload<super::PutInFrontOf>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"VoterList",
 							"put_in_front_of",
@@ -36314,7 +36113,8 @@ pub mod api {
 						&self,
 						heavier: super::put_in_front_of_other::Heavier,
 						lighter: super::put_in_front_of_other::Lighter,
-					) -> ::subxt::transactions::StaticPayload<super::PutInFrontOfOther> {
+					) -> ::subxt::transactions::StaticPayload<super::PutInFrontOfOther>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"VoterList",
 							"put_in_front_of_other",
@@ -36460,7 +36260,8 @@ pub mod api {
 				}
 				pub fn lock(
 					&self,
-				) -> ::subxt::storage::StaticAddress<(), lock::Output, ::subxt::utils::Yes> {
+				) -> ::subxt::storage::StaticAddress<(), lock::Output, ::subxt::utils::Yes>
+				{
 					::subxt::storage::StaticAddress::new_static(
 						"VoterList",
 						"Lock",
@@ -36824,7 +36625,8 @@ pub mod api {
 			impl ConstantsApi {
 				pub fn pallet_id(
 					&self,
-				) -> ::subxt::constants::StaticAddress<runtime_types::frame_support::PalletId> {
+				) -> ::subxt::constants::StaticAddress<runtime_types::frame_support::PalletId>
+				{
 					::subxt::constants::StaticAddress::new_static(
 						"DelegatedStaking",
 						"PalletId",
@@ -36972,7 +36774,8 @@ pub mod api {
 					pub fn relay_session_report(
 						&self,
 						report: super::relay_session_report::Report,
-					) -> ::subxt::transactions::StaticPayload<super::RelaySessionReport> {
+					) -> ::subxt::transactions::StaticPayload<super::RelaySessionReport>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"StakingRcClient",
 							"relay_session_report",
@@ -36988,7 +36791,8 @@ pub mod api {
 					pub fn relay_new_offence_paged(
 						&self,
 						offences: super::relay_new_offence_paged::Offences,
-					) -> ::subxt::transactions::StaticPayload<super::RelayNewOffencePaged> {
+					) -> ::subxt::transactions::StaticPayload<super::RelayNewOffencePaged>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"StakingRcClient",
 							"relay_new_offence_paged",
@@ -37022,7 +36826,8 @@ pub mod api {
 					pub fn purge_keys(
 						&self,
 						max_delivery_and_remote_execution_fee: super::purge_keys::MaxDeliveryAndRemoteExecutionFee,
-					) -> ::subxt::transactions::StaticPayload<super::PurgeKeys> {
+					) -> ::subxt::transactions::StaticPayload<super::PurgeKeys>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"StakingRcClient",
 							"purge_keys",
@@ -37463,7 +37268,8 @@ pub mod api {
 			impl StorageApi {
 				pub fn round(
 					&self,
-				) -> ::subxt::storage::StaticAddress<(), round::Output, ::subxt::utils::Yes> {
+				) -> ::subxt::storage::StaticAddress<(), round::Output, ::subxt::utils::Yes>
+				{
 					::subxt::storage::StaticAddress::new_static(
 						"MultiBlockElection",
 						"Round",
@@ -38102,7 +37908,8 @@ pub mod api {
 					pub fn submit_unsigned(
 						&self,
 						paged_solution: super::submit_unsigned::PagedSolution,
-					) -> ::subxt::transactions::StaticPayload<super::SubmitUnsigned> {
+					) -> ::subxt::transactions::StaticPayload<super::SubmitUnsigned>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"MultiBlockElectionUnsigned",
 							"submit_unsigned",
@@ -38265,7 +38072,8 @@ pub mod api {
 						&self,
 						page: super::submit_page::Page,
 						maybe_solution: super::submit_page::MaybeSolution,
-					) -> ::subxt::transactions::StaticPayload<super::SubmitPage> {
+					) -> ::subxt::transactions::StaticPayload<super::SubmitPage>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"MultiBlockElectionSigned",
 							"submit_page",
@@ -38298,7 +38106,8 @@ pub mod api {
 						&self,
 						round: super::clear_old_round_data::Round,
 						witness_pages: super::clear_old_round_data::WitnessPages,
-					) -> ::subxt::transactions::StaticPayload<super::ClearOldRoundData> {
+					) -> ::subxt::transactions::StaticPayload<super::ClearOldRoundData>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"MultiBlockElectionSigned",
 							"clear_old_round_data",
@@ -38314,7 +38123,8 @@ pub mod api {
 					pub fn set_invulnerables(
 						&self,
 						inv: super::set_invulnerables::Inv,
-					) -> ::subxt::transactions::StaticPayload<super::SetInvulnerables> {
+					) -> ::subxt::transactions::StaticPayload<super::SetInvulnerables>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"MultiBlockElectionSigned",
 							"set_invulnerables",
@@ -39501,7 +39311,8 @@ pub mod api {
 					pub fn bond_extra(
 						&self,
 						max_additional: super::bond_extra::MaxAdditional,
-					) -> ::subxt::transactions::StaticPayload<super::BondExtra> {
+					) -> ::subxt::transactions::StaticPayload<super::BondExtra>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"Staking",
 							"bond_extra",
@@ -39533,7 +39344,8 @@ pub mod api {
 					pub fn withdraw_unbonded(
 						&self,
 						num_slashing_spans: super::withdraw_unbonded::NumSlashingSpans,
-					) -> ::subxt::transactions::StaticPayload<super::WithdrawUnbonded> {
+					) -> ::subxt::transactions::StaticPayload<super::WithdrawUnbonded>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"Staking",
 							"withdraw_unbonded",
@@ -39608,7 +39420,8 @@ pub mod api {
 					}
 					pub fn set_controller(
 						&self,
-					) -> ::subxt::transactions::StaticPayload<super::SetController> {
+					) -> ::subxt::transactions::StaticPayload<super::SetController>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"Staking",
 							"set_controller",
@@ -39624,7 +39437,8 @@ pub mod api {
 					pub fn set_validator_count(
 						&self,
 						new: super::set_validator_count::New,
-					) -> ::subxt::transactions::StaticPayload<super::SetValidatorCount> {
+					) -> ::subxt::transactions::StaticPayload<super::SetValidatorCount>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"Staking",
 							"set_validator_count",
@@ -39640,7 +39454,8 @@ pub mod api {
 					pub fn increase_validator_count(
 						&self,
 						additional: super::increase_validator_count::Additional,
-					) -> ::subxt::transactions::StaticPayload<super::IncreaseValidatorCount> {
+					) -> ::subxt::transactions::StaticPayload<super::IncreaseValidatorCount>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"Staking",
 							"increase_validator_count",
@@ -39656,7 +39471,8 @@ pub mod api {
 					pub fn scale_validator_count(
 						&self,
 						factor: super::scale_validator_count::Factor,
-					) -> ::subxt::transactions::StaticPayload<super::ScaleValidatorCount> {
+					) -> ::subxt::transactions::StaticPayload<super::ScaleValidatorCount>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"Staking",
 							"scale_validator_count",
@@ -39671,7 +39487,8 @@ pub mod api {
 					}
 					pub fn force_no_eras(
 						&self,
-					) -> ::subxt::transactions::StaticPayload<super::ForceNoEras> {
+					) -> ::subxt::transactions::StaticPayload<super::ForceNoEras>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"Staking",
 							"force_no_eras",
@@ -39686,7 +39503,8 @@ pub mod api {
 					}
 					pub fn force_new_era(
 						&self,
-					) -> ::subxt::transactions::StaticPayload<super::ForceNewEra> {
+					) -> ::subxt::transactions::StaticPayload<super::ForceNewEra>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"Staking",
 							"force_new_era",
@@ -39703,7 +39521,8 @@ pub mod api {
 						&self,
 						stash: super::force_unstake::Stash,
 						num_slashing_spans: super::force_unstake::NumSlashingSpans,
-					) -> ::subxt::transactions::StaticPayload<super::ForceUnstake> {
+					) -> ::subxt::transactions::StaticPayload<super::ForceUnstake>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"Staking",
 							"force_unstake",
@@ -39718,7 +39537,8 @@ pub mod api {
 					}
 					pub fn force_new_era_always(
 						&self,
-					) -> ::subxt::transactions::StaticPayload<super::ForceNewEraAlways> {
+					) -> ::subxt::transactions::StaticPayload<super::ForceNewEraAlways>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"Staking",
 							"force_new_era_always",
@@ -39735,7 +39555,8 @@ pub mod api {
 						&self,
 						era: super::cancel_deferred_slash::Era,
 						validator_slashes: super::cancel_deferred_slash::ValidatorSlashes,
-					) -> ::subxt::transactions::StaticPayload<super::CancelDeferredSlash> {
+					) -> ::subxt::transactions::StaticPayload<super::CancelDeferredSlash>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"Staking",
 							"cancel_deferred_slash",
@@ -39752,7 +39573,8 @@ pub mod api {
 						&self,
 						validator_stash: super::payout_stakers::ValidatorStash,
 						era: super::payout_stakers::Era,
-					) -> ::subxt::transactions::StaticPayload<super::PayoutStakers> {
+					) -> ::subxt::transactions::StaticPayload<super::PayoutStakers>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"Staking",
 							"payout_stakers",
@@ -39785,7 +39607,8 @@ pub mod api {
 						&self,
 						stash: super::reap_stash::Stash,
 						num_slashing_spans: super::reap_stash::NumSlashingSpans,
-					) -> ::subxt::transactions::StaticPayload<super::ReapStash> {
+					) -> ::subxt::transactions::StaticPayload<super::ReapStash>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"Staking",
 							"reap_stash",
@@ -39824,7 +39647,8 @@ pub mod api {
 						min_commission: super::set_staking_configs::MinCommission,
 						max_staked_rewards: super::set_staking_configs::MaxStakedRewards,
 						are_nominators_slashable: super::set_staking_configs::AreNominatorsSlashable,
-					) -> ::subxt::transactions::StaticPayload<super::SetStakingConfigs> {
+					) -> ::subxt::transactions::StaticPayload<super::SetStakingConfigs>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"Staking",
 							"set_staking_configs",
@@ -39849,7 +39673,8 @@ pub mod api {
 					pub fn chill_other(
 						&self,
 						stash: super::chill_other::Stash,
-					) -> ::subxt::transactions::StaticPayload<super::ChillOther> {
+					) -> ::subxt::transactions::StaticPayload<super::ChillOther>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"Staking",
 							"chill_other",
@@ -39865,7 +39690,8 @@ pub mod api {
 					pub fn force_apply_min_commission(
 						&self,
 						validator_stash: super::force_apply_min_commission::ValidatorStash,
-					) -> ::subxt::transactions::StaticPayload<super::ForceApplyMinCommission> {
+					) -> ::subxt::transactions::StaticPayload<super::ForceApplyMinCommission>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"Staking",
 							"force_apply_min_commission",
@@ -39881,7 +39707,8 @@ pub mod api {
 					pub fn set_min_commission(
 						&self,
 						new: super::set_min_commission::New,
-					) -> ::subxt::transactions::StaticPayload<super::SetMinCommission> {
+					) -> ::subxt::transactions::StaticPayload<super::SetMinCommission>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"Staking",
 							"set_min_commission",
@@ -39899,7 +39726,8 @@ pub mod api {
 						validator_stash: super::payout_stakers_by_page::ValidatorStash,
 						era: super::payout_stakers_by_page::Era,
 						page: super::payout_stakers_by_page::Page,
-					) -> ::subxt::transactions::StaticPayload<super::PayoutStakersByPage> {
+					) -> ::subxt::transactions::StaticPayload<super::PayoutStakersByPage>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"Staking",
 							"payout_stakers_by_page",
@@ -39915,7 +39743,8 @@ pub mod api {
 					pub fn update_payee(
 						&self,
 						controller: super::update_payee::Controller,
-					) -> ::subxt::transactions::StaticPayload<super::UpdatePayee> {
+					) -> ::subxt::transactions::StaticPayload<super::UpdatePayee>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"Staking",
 							"update_payee",
@@ -39951,7 +39780,8 @@ pub mod api {
 						maybe_controller: super::restore_ledger::MaybeController,
 						maybe_total: super::restore_ledger::MaybeTotal,
 						maybe_unlocking: super::restore_ledger::MaybeUnlocking,
-					) -> ::subxt::transactions::StaticPayload<super::RestoreLedger> {
+					) -> ::subxt::transactions::StaticPayload<super::RestoreLedger>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"Staking",
 							"restore_ledger",
@@ -39972,7 +39802,8 @@ pub mod api {
 					pub fn migrate_currency(
 						&self,
 						stash: super::migrate_currency::Stash,
-					) -> ::subxt::transactions::StaticPayload<super::MigrateCurrency> {
+					) -> ::subxt::transactions::StaticPayload<super::MigrateCurrency>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"Staking",
 							"migrate_currency",
@@ -39989,7 +39820,8 @@ pub mod api {
 						&self,
 						slash_era: super::apply_slash::SlashEra,
 						slash_key: super::apply_slash::SlashKey,
-					) -> ::subxt::transactions::StaticPayload<super::ApplySlash> {
+					) -> ::subxt::transactions::StaticPayload<super::ApplySlash>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"Staking",
 							"apply_slash",
@@ -40005,7 +39837,8 @@ pub mod api {
 					pub fn prune_era_step(
 						&self,
 						era: super::prune_era_step::Era,
-					) -> ::subxt::transactions::StaticPayload<super::PruneEraStep> {
+					) -> ::subxt::transactions::StaticPayload<super::PruneEraStep>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"Staking",
 							"prune_era_step",
@@ -40021,7 +39854,8 @@ pub mod api {
 					pub fn set_max_commission(
 						&self,
 						new: super::set_max_commission::New,
-					) -> ::subxt::transactions::StaticPayload<super::SetMaxCommission> {
+					) -> ::subxt::transactions::StaticPayload<super::SetMaxCommission>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"Staking",
 							"set_max_commission",
@@ -40996,6 +40830,40 @@ pub mod api {
 						],
 					)
 				}
+				pub fn eras_sum_weighted_points(
+					&self,
+				) -> ::subxt::storage::StaticAddress<
+					(eras_sum_weighted_points::input::Param0,),
+					eras_sum_weighted_points::Output,
+					::subxt::utils::Maybe,
+				> {
+					::subxt::storage::StaticAddress::new_static(
+						"Staking",
+						"ErasSumWeightedPoints",
+						[
+							151u8, 109u8, 127u8, 39u8, 170u8, 18u8, 243u8, 249u8, 137u8, 101u8,
+							182u8, 59u8, 223u8, 115u8, 232u8, 70u8, 153u8, 180u8, 5u8, 15u8, 178u8,
+							53u8, 224u8, 202u8, 5u8, 0u8, 212u8, 162u8, 56u8, 168u8, 110u8, 102u8,
+						],
+					)
+				}
+				pub fn weighted_points_formula_start_era(
+					&self,
+				) -> ::subxt::storage::StaticAddress<
+					(),
+					weighted_points_formula_start_era::Output,
+					::subxt::utils::Yes,
+				> {
+					::subxt::storage::StaticAddress::new_static(
+						"Staking",
+						"WeightedPointsFormulaStartEra",
+						[
+							83u8, 29u8, 19u8, 12u8, 26u8, 61u8, 255u8, 24u8, 85u8, 64u8, 33u8,
+							126u8, 93u8, 210u8, 88u8, 164u8, 47u8, 22u8, 48u8, 182u8, 222u8, 201u8,
+							79u8, 236u8, 223u8, 143u8, 70u8, 245u8, 237u8, 125u8, 52u8, 126u8,
+						],
+					)
+				}
 				pub fn are_nominators_slashable(
 					&self,
 				) -> ::subxt::storage::StaticAddress<
@@ -41749,6 +41617,21 @@ pub mod api {
 				}
 				pub type Output = ::core::primitive::u128;
 			}
+			pub mod eras_sum_weighted_points {
+				use super::{root_mod, runtime_types};
+				pub mod input {
+					use super::runtime_types;
+					pub type Param0 = ::core::primitive::u32;
+				}
+				pub type Output = ::core::primitive::u128;
+			}
+			pub mod weighted_points_formula_start_era {
+				use super::{root_mod, runtime_types};
+				pub mod input {
+					use super::runtime_types;
+				}
+				pub type Output = ::core::primitive::u32;
+			}
 			pub mod are_nominators_slashable {
 				use super::{root_mod, runtime_types};
 				pub mod input {
@@ -42416,7 +42299,8 @@ pub mod api {
 						&self,
 						amount: super::spend_local::Amount,
 						beneficiary: super::spend_local::Beneficiary,
-					) -> ::subxt::transactions::StaticPayload<super::SpendLocal> {
+					) -> ::subxt::transactions::StaticPayload<super::SpendLocal>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"Treasury",
 							"spend_local",
@@ -42432,7 +42316,8 @@ pub mod api {
 					pub fn remove_approval(
 						&self,
 						proposal_id: super::remove_approval::ProposalId,
-					) -> ::subxt::transactions::StaticPayload<super::RemoveApproval> {
+					) -> ::subxt::transactions::StaticPayload<super::RemoveApproval>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"Treasury",
 							"remove_approval",
@@ -42488,7 +42373,8 @@ pub mod api {
 					pub fn check_status(
 						&self,
 						index: super::check_status::Index,
-					) -> ::subxt::transactions::StaticPayload<super::CheckStatus> {
+					) -> ::subxt::transactions::StaticPayload<super::CheckStatus>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"Treasury",
 							"check_status",
@@ -42504,7 +42390,8 @@ pub mod api {
 					pub fn void_spend(
 						&self,
 						index: super::void_spend::Index,
-					) -> ::subxt::transactions::StaticPayload<super::VoidSpend> {
+					) -> ::subxt::transactions::StaticPayload<super::VoidSpend>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"Treasury",
 							"void_spend",
@@ -43040,7 +42927,8 @@ pub mod api {
 				}
 				pub fn pallet_id(
 					&self,
-				) -> ::subxt::constants::StaticAddress<runtime_types::frame_support::PalletId> {
+				) -> ::subxt::constants::StaticAddress<runtime_types::frame_support::PalletId>
+				{
 					::subxt::constants::StaticAddress::new_static(
 						"Treasury",
 						"PalletId",
@@ -43081,7 +42969,8 @@ pub mod api {
 				}
 				pub fn pot_account(
 					&self,
-				) -> ::subxt::constants::StaticAddress<::subxt::utils::AccountId32> {
+				) -> ::subxt::constants::StaticAddress<::subxt::utils::AccountId32>
+				{
 					::subxt::constants::StaticAddress::new_static(
 						"Treasury",
 						"pot_account",
@@ -43302,7 +43191,8 @@ pub mod api {
 					pub fn undelegate(
 						&self,
 						class: super::undelegate::Class,
-					) -> ::subxt::transactions::StaticPayload<super::Undelegate> {
+					) -> ::subxt::transactions::StaticPayload<super::Undelegate>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"ConvictionVoting",
 							"undelegate",
@@ -43336,7 +43226,8 @@ pub mod api {
 						&self,
 						class: super::remove_vote::Class,
 						index: super::remove_vote::Index,
-					) -> ::subxt::transactions::StaticPayload<super::RemoveVote> {
+					) -> ::subxt::transactions::StaticPayload<super::RemoveVote>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"ConvictionVoting",
 							"remove_vote",
@@ -43354,7 +43245,8 @@ pub mod api {
 						target: super::remove_other_vote::Target,
 						class: super::remove_other_vote::Class,
 						index: super::remove_other_vote::Index,
-					) -> ::subxt::transactions::StaticPayload<super::RemoveOtherVote> {
+					) -> ::subxt::transactions::StaticPayload<super::RemoveOtherVote>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"ConvictionVoting",
 							"remove_other_vote",
@@ -43860,7 +43752,8 @@ pub mod api {
 					pub fn place_decision_deposit(
 						&self,
 						index: super::place_decision_deposit::Index,
-					) -> ::subxt::transactions::StaticPayload<super::PlaceDecisionDeposit> {
+					) -> ::subxt::transactions::StaticPayload<super::PlaceDecisionDeposit>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"Referenda",
 							"place_decision_deposit",
@@ -43876,7 +43769,8 @@ pub mod api {
 					pub fn refund_decision_deposit(
 						&self,
 						index: super::refund_decision_deposit::Index,
-					) -> ::subxt::transactions::StaticPayload<super::RefundDecisionDeposit> {
+					) -> ::subxt::transactions::StaticPayload<super::RefundDecisionDeposit>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"Referenda",
 							"refund_decision_deposit",
@@ -43924,7 +43818,8 @@ pub mod api {
 					pub fn nudge_referendum(
 						&self,
 						index: super::nudge_referendum::Index,
-					) -> ::subxt::transactions::StaticPayload<super::NudgeReferendum> {
+					) -> ::subxt::transactions::StaticPayload<super::NudgeReferendum>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"Referenda",
 							"nudge_referendum",
@@ -43940,7 +43835,8 @@ pub mod api {
 					pub fn one_fewer_deciding(
 						&self,
 						track: super::one_fewer_deciding::Track,
-					) -> ::subxt::transactions::StaticPayload<super::OneFewerDeciding> {
+					) -> ::subxt::transactions::StaticPayload<super::OneFewerDeciding>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"Referenda",
 							"one_fewer_deciding",
@@ -43956,7 +43852,8 @@ pub mod api {
 					pub fn refund_submission_deposit(
 						&self,
 						index: super::refund_submission_deposit::Index,
-					) -> ::subxt::transactions::StaticPayload<super::RefundSubmissionDeposit> {
+					) -> ::subxt::transactions::StaticPayload<super::RefundSubmissionDeposit>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"Referenda",
 							"refund_submission_deposit",
@@ -43973,7 +43870,8 @@ pub mod api {
 						&self,
 						index: super::set_metadata::Index,
 						maybe_hash: super::set_metadata::MaybeHash,
-					) -> ::subxt::transactions::StaticPayload<super::SetMetadata> {
+					) -> ::subxt::transactions::StaticPayload<super::SetMetadata>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"Referenda",
 							"set_metadata",
@@ -44753,7 +44651,8 @@ pub mod api {
 					pub fn whitelist_call(
 						&self,
 						call_hash: super::whitelist_call::CallHash,
-					) -> ::subxt::transactions::StaticPayload<super::WhitelistCall> {
+					) -> ::subxt::transactions::StaticPayload<super::WhitelistCall>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"Whitelist",
 							"whitelist_call",
@@ -44769,7 +44668,8 @@ pub mod api {
 					pub fn remove_whitelisted_call(
 						&self,
 						call_hash: super::remove_whitelisted_call::CallHash,
-					) -> ::subxt::transactions::StaticPayload<super::RemoveWhitelistedCall> {
+					) -> ::subxt::transactions::StaticPayload<super::RemoveWhitelistedCall>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"Whitelist",
 							"remove_whitelisted_call",
@@ -44787,7 +44687,8 @@ pub mod api {
 						call_hash: super::dispatch_whitelisted_call::CallHash,
 						call_encoded_len: super::dispatch_whitelisted_call::CallEncodedLen,
 						call_weight_witness: super::dispatch_whitelisted_call::CallWeightWitness,
-					) -> ::subxt::transactions::StaticPayload<super::DispatchWhitelistedCall> {
+					) -> ::subxt::transactions::StaticPayload<super::DispatchWhitelistedCall>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"Whitelist",
 							"dispatch_whitelisted_call",
@@ -44817,10 +44718,10 @@ pub mod api {
 								call: ::subxt::alloc::boxed::Box::new(call),
 							},
 							[
-								99u8, 41u8, 23u8, 82u8, 156u8, 186u8, 202u8, 82u8, 38u8, 8u8, 92u8,
-								82u8, 66u8, 6u8, 150u8, 28u8, 224u8, 181u8, 197u8, 185u8, 86u8,
-								228u8, 208u8, 254u8, 26u8, 97u8, 113u8, 252u8, 90u8, 34u8, 2u8,
-								210u8,
+								198u8, 147u8, 148u8, 171u8, 218u8, 112u8, 254u8, 13u8, 189u8, 40u8,
+								36u8, 64u8, 202u8, 162u8, 171u8, 96u8, 63u8, 179u8, 102u8, 120u8,
+								221u8, 90u8, 187u8, 201u8, 183u8, 170u8, 88u8, 89u8, 198u8, 32u8,
+								69u8, 119u8,
 							],
 						)
 					}
@@ -45233,7 +45134,8 @@ pub mod api {
 						&self,
 						value: super::propose_bounty::Value,
 						description: super::propose_bounty::Description,
-					) -> ::subxt::transactions::StaticPayload<super::ProposeBounty> {
+					) -> ::subxt::transactions::StaticPayload<super::ProposeBounty>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"Bounties",
 							"propose_bounty",
@@ -45249,7 +45151,8 @@ pub mod api {
 					pub fn approve_bounty(
 						&self,
 						bounty_id: super::approve_bounty::BountyId,
-					) -> ::subxt::transactions::StaticPayload<super::ApproveBounty> {
+					) -> ::subxt::transactions::StaticPayload<super::ApproveBounty>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"Bounties",
 							"approve_bounty",
@@ -45267,7 +45170,8 @@ pub mod api {
 						bounty_id: super::propose_curator::BountyId,
 						curator: super::propose_curator::Curator,
 						fee: super::propose_curator::Fee,
-					) -> ::subxt::transactions::StaticPayload<super::ProposeCurator> {
+					) -> ::subxt::transactions::StaticPayload<super::ProposeCurator>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"Bounties",
 							"propose_curator",
@@ -45283,7 +45187,8 @@ pub mod api {
 					pub fn unassign_curator(
 						&self,
 						bounty_id: super::unassign_curator::BountyId,
-					) -> ::subxt::transactions::StaticPayload<super::UnassignCurator> {
+					) -> ::subxt::transactions::StaticPayload<super::UnassignCurator>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"Bounties",
 							"unassign_curator",
@@ -45299,7 +45204,8 @@ pub mod api {
 					pub fn accept_curator(
 						&self,
 						bounty_id: super::accept_curator::BountyId,
-					) -> ::subxt::transactions::StaticPayload<super::AcceptCurator> {
+					) -> ::subxt::transactions::StaticPayload<super::AcceptCurator>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"Bounties",
 							"accept_curator",
@@ -45316,7 +45222,8 @@ pub mod api {
 						&self,
 						bounty_id: super::award_bounty::BountyId,
 						beneficiary: super::award_bounty::Beneficiary,
-					) -> ::subxt::transactions::StaticPayload<super::AwardBounty> {
+					) -> ::subxt::transactions::StaticPayload<super::AwardBounty>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"Bounties",
 							"award_bounty",
@@ -45332,7 +45239,8 @@ pub mod api {
 					pub fn claim_bounty(
 						&self,
 						bounty_id: super::claim_bounty::BountyId,
-					) -> ::subxt::transactions::StaticPayload<super::ClaimBounty> {
+					) -> ::subxt::transactions::StaticPayload<super::ClaimBounty>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"Bounties",
 							"claim_bounty",
@@ -45348,7 +45256,8 @@ pub mod api {
 					pub fn close_bounty(
 						&self,
 						bounty_id: super::close_bounty::BountyId,
-					) -> ::subxt::transactions::StaticPayload<super::CloseBounty> {
+					) -> ::subxt::transactions::StaticPayload<super::CloseBounty>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"Bounties",
 							"close_bounty",
@@ -45365,7 +45274,8 @@ pub mod api {
 						&self,
 						bounty_id: super::extend_bounty_expiry::BountyId,
 						remark: super::extend_bounty_expiry::Remark,
-					) -> ::subxt::transactions::StaticPayload<super::ExtendBountyExpiry> {
+					) -> ::subxt::transactions::StaticPayload<super::ExtendBountyExpiry>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"Bounties",
 							"extend_bounty_expiry",
@@ -45400,7 +45310,8 @@ pub mod api {
 					pub fn poke_deposit(
 						&self,
 						bounty_id: super::poke_deposit::BountyId,
-					) -> ::subxt::transactions::StaticPayload<super::PokeDeposit> {
+					) -> ::subxt::transactions::StaticPayload<super::PokeDeposit>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"Bounties",
 							"poke_deposit",
@@ -46173,7 +46084,8 @@ pub mod api {
 						parent_bounty_id: super::add_child_bounty::ParentBountyId,
 						value: super::add_child_bounty::Value,
 						description: super::add_child_bounty::Description,
-					) -> ::subxt::transactions::StaticPayload<super::AddChildBounty> {
+					) -> ::subxt::transactions::StaticPayload<super::AddChildBounty>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"ChildBounties",
 							"add_child_bounty",
@@ -46192,7 +46104,8 @@ pub mod api {
 						child_bounty_id: super::propose_curator::ChildBountyId,
 						curator: super::propose_curator::Curator,
 						fee: super::propose_curator::Fee,
-					) -> ::subxt::transactions::StaticPayload<super::ProposeCurator> {
+					) -> ::subxt::transactions::StaticPayload<super::ProposeCurator>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"ChildBounties",
 							"propose_curator",
@@ -46214,7 +46127,8 @@ pub mod api {
 						&self,
 						parent_bounty_id: super::accept_curator::ParentBountyId,
 						child_bounty_id: super::accept_curator::ChildBountyId,
-					) -> ::subxt::transactions::StaticPayload<super::AcceptCurator> {
+					) -> ::subxt::transactions::StaticPayload<super::AcceptCurator>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"ChildBounties",
 							"accept_curator",
@@ -46231,7 +46145,8 @@ pub mod api {
 						&self,
 						parent_bounty_id: super::unassign_curator::ParentBountyId,
 						child_bounty_id: super::unassign_curator::ChildBountyId,
-					) -> ::subxt::transactions::StaticPayload<super::UnassignCurator> {
+					) -> ::subxt::transactions::StaticPayload<super::UnassignCurator>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"ChildBounties",
 							"unassign_curator",
@@ -46249,7 +46164,8 @@ pub mod api {
 						parent_bounty_id: super::award_child_bounty::ParentBountyId,
 						child_bounty_id: super::award_child_bounty::ChildBountyId,
 						beneficiary: super::award_child_bounty::Beneficiary,
-					) -> ::subxt::transactions::StaticPayload<super::AwardChildBounty> {
+					) -> ::subxt::transactions::StaticPayload<super::AwardChildBounty>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"ChildBounties",
 							"award_child_bounty",
@@ -46270,7 +46186,8 @@ pub mod api {
 						&self,
 						parent_bounty_id: super::claim_child_bounty::ParentBountyId,
 						child_bounty_id: super::claim_child_bounty::ChildBountyId,
-					) -> ::subxt::transactions::StaticPayload<super::ClaimChildBounty> {
+					) -> ::subxt::transactions::StaticPayload<super::ClaimChildBounty>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"ChildBounties",
 							"claim_child_bounty",
@@ -46287,7 +46204,8 @@ pub mod api {
 						&self,
 						parent_bounty_id: super::close_child_bounty::ParentBountyId,
 						child_bounty_id: super::close_child_bounty::ChildBountyId,
-					) -> ::subxt::transactions::StaticPayload<super::CloseChildBounty> {
+					) -> ::subxt::transactions::StaticPayload<super::CloseChildBounty>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"ChildBounties",
 							"close_child_bounty",
@@ -47195,7 +47113,8 @@ pub mod api {
 						value: super::fund_bounty::Value,
 						curator: super::fund_bounty::Curator,
 						metadata: super::fund_bounty::Metadata,
-					) -> ::subxt::transactions::StaticPayload<super::FundBounty> {
+					) -> ::subxt::transactions::StaticPayload<super::FundBounty>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"MultiAssetBounties",
 							"fund_bounty",
@@ -47219,7 +47138,8 @@ pub mod api {
 						value: super::fund_child_bounty::Value,
 						metadata: super::fund_child_bounty::Metadata,
 						curator: super::fund_child_bounty::Curator,
-					) -> ::subxt::transactions::StaticPayload<super::FundChildBounty> {
+					) -> ::subxt::transactions::StaticPayload<super::FundChildBounty>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"MultiAssetBounties",
 							"fund_child_bounty",
@@ -47237,7 +47157,8 @@ pub mod api {
 						parent_bounty_id: super::propose_curator::ParentBountyId,
 						child_bounty_id: super::propose_curator::ChildBountyId,
 						curator: super::propose_curator::Curator,
-					) -> ::subxt::transactions::StaticPayload<super::ProposeCurator> {
+					) -> ::subxt::transactions::StaticPayload<super::ProposeCurator>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"MultiAssetBounties",
 							"propose_curator",
@@ -47254,7 +47175,8 @@ pub mod api {
 						&self,
 						parent_bounty_id: super::accept_curator::ParentBountyId,
 						child_bounty_id: super::accept_curator::ChildBountyId,
-					) -> ::subxt::transactions::StaticPayload<super::AcceptCurator> {
+					) -> ::subxt::transactions::StaticPayload<super::AcceptCurator>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"MultiAssetBounties",
 							"accept_curator",
@@ -47271,7 +47193,8 @@ pub mod api {
 						&self,
 						parent_bounty_id: super::unassign_curator::ParentBountyId,
 						child_bounty_id: super::unassign_curator::ChildBountyId,
-					) -> ::subxt::transactions::StaticPayload<super::UnassignCurator> {
+					) -> ::subxt::transactions::StaticPayload<super::UnassignCurator>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"MultiAssetBounties",
 							"unassign_curator",
@@ -47289,7 +47212,8 @@ pub mod api {
 						parent_bounty_id: super::award_bounty::ParentBountyId,
 						child_bounty_id: super::award_bounty::ChildBountyId,
 						beneficiary: super::award_bounty::Beneficiary,
-					) -> ::subxt::transactions::StaticPayload<super::AwardBounty> {
+					) -> ::subxt::transactions::StaticPayload<super::AwardBounty>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"MultiAssetBounties",
 							"award_bounty",
@@ -47306,7 +47230,8 @@ pub mod api {
 						&self,
 						parent_bounty_id: super::close_bounty::ParentBountyId,
 						child_bounty_id: super::close_bounty::ChildBountyId,
-					) -> ::subxt::transactions::StaticPayload<super::CloseBounty> {
+					) -> ::subxt::transactions::StaticPayload<super::CloseBounty>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"MultiAssetBounties",
 							"close_bounty",
@@ -47323,7 +47248,8 @@ pub mod api {
 						&self,
 						parent_bounty_id: super::check_status::ParentBountyId,
 						child_bounty_id: super::check_status::ChildBountyId,
-					) -> ::subxt::transactions::StaticPayload<super::CheckStatus> {
+					) -> ::subxt::transactions::StaticPayload<super::CheckStatus>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"MultiAssetBounties",
 							"check_status",
@@ -47340,7 +47266,8 @@ pub mod api {
 						&self,
 						parent_bounty_id: super::retry_payment::ParentBountyId,
 						child_bounty_id: super::retry_payment::ChildBountyId,
-					) -> ::subxt::transactions::StaticPayload<super::RetryPayment> {
+					) -> ::subxt::transactions::StaticPayload<super::RetryPayment>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"MultiAssetBounties",
 							"retry_payment",
@@ -47357,7 +47284,8 @@ pub mod api {
 						&self,
 						parent_bounty_id: super::increase_value::ParentBountyId,
 						amount: super::increase_value::Amount,
-					) -> ::subxt::transactions::StaticPayload<super::IncreaseValue> {
+					) -> ::subxt::transactions::StaticPayload<super::IncreaseValue>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"MultiAssetBounties",
 							"increase_value",
@@ -48112,7 +48040,8 @@ pub mod api {
 						block: super::unreserve_lease_deposit::Block,
 						depositor: super::unreserve_lease_deposit::Depositor,
 						para_id: super::unreserve_lease_deposit::ParaId,
-					) -> ::subxt::transactions::StaticPayload<super::UnreserveLeaseDeposit> {
+					) -> ::subxt::transactions::StaticPayload<super::UnreserveLeaseDeposit>
+					{
 						::subxt::transactions::StaticPayload::new_static(
 							"AhOps",
 							"unreserve_lease_deposit",
@@ -48473,7 +48402,7 @@ pub mod api {
 					#[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
 					#[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
 					pub enum Parameters {
-						#[codec(index = 0)]
+                        #[codec(index = 0)]
                         MinInflation(
                             runtime_types::asset_hub_kusama_runtime::dynamic_params::issuance::MinInflation,
                             ::core::option::Option<
@@ -48510,7 +48439,7 @@ pub mod api {
 					#[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
 					#[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
 					pub enum ParametersKey {
-						#[codec(index = 0)]
+                        #[codec(index = 0)]
                         MinInflation(
                             runtime_types::asset_hub_kusama_runtime::dynamic_params::issuance::MinInflation,
                         ),
@@ -48571,7 +48500,7 @@ pub mod api {
 					#[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
 					#[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
 					pub enum Parameters {
-						#[codec(index = 0)]
+                        #[codec(index = 0)]
                         MaxOnInitWeight(
                             runtime_types::asset_hub_kusama_runtime::dynamic_params::message_queue::MaxOnInitWeight,
                             ::core::option::Option<
@@ -48598,7 +48527,7 @@ pub mod api {
 					#[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
 					#[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
 					pub enum ParametersKey {
-						#[codec(index = 0)]
+                        #[codec(index = 0)]
                         MaxOnInitWeight(
                             runtime_types::asset_hub_kusama_runtime::dynamic_params::message_queue::MaxOnInitWeight,
                         ),
@@ -48651,7 +48580,7 @@ pub mod api {
 					#[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
 					#[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
 					pub enum Parameters {
-						#[codec(index = 0)]
+                        #[codec(index = 0)]
                         MaxScheduledPerBlock(
                             runtime_types::asset_hub_kusama_runtime::dynamic_params::scheduler::MaxScheduledPerBlock,
                             ::core::option::Option<::core::primitive::u32>,
@@ -48672,7 +48601,7 @@ pub mod api {
 					#[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
 					#[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
 					pub enum ParametersKey {
-						#[codec(index = 0)]
+                        #[codec(index = 0)]
                         MaxScheduledPerBlock(
                             runtime_types::asset_hub_kusama_runtime::dynamic_params::scheduler::MaxScheduledPerBlock,
                         ),
@@ -48737,7 +48666,7 @@ pub mod api {
 					#[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
 					#[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
 					pub enum Parameters {
-						#[codec(index = 0)]
+                        #[codec(index = 0)]
                         SignedPhase(
                             runtime_types::asset_hub_kusama_runtime::dynamic_params::staking_election::SignedPhase,
                             ::core::option::Option<::core::primitive::u32>,
@@ -48781,7 +48710,7 @@ pub mod api {
 					#[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
 					#[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
 					pub enum ParametersKey {
-						#[codec(index = 0)]
+                        #[codec(index = 0)]
                         SignedPhase(
                             runtime_types::asset_hub_kusama_runtime::dynamic_params::staking_election::SignedPhase,
                         ),
@@ -48884,7 +48813,7 @@ pub mod api {
 					#[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
 					#[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
 					pub enum Parameters {
-						#[codec(index = 0)]
+                        #[codec(index = 0)]
                         BurnPortion(
                             runtime_types::asset_hub_kusama_runtime::dynamic_params::treasury::BurnPortion,
                             ::core::option::Option<
@@ -48907,7 +48836,7 @@ pub mod api {
 					#[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
 					#[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
 					pub enum ParametersKey {
-						#[codec(index = 0)]
+                        #[codec(index = 0)]
                         BurnPortion(
                             runtime_types::asset_hub_kusama_runtime::dynamic_params::treasury::BurnPortion,
                         ),
@@ -48924,7 +48853,7 @@ pub mod api {
 					#[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
 					#[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
 					pub enum ParametersValue {
-						#[codec(index = 0)]
+                        #[codec(index = 0)]
                         BurnPortion(runtime_types::sp_arithmetic::per_things::Permill),
                         #[codec(index = 1)]
                         BurnDestination(
@@ -49274,7 +49203,7 @@ pub mod api {
 			#[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
 			#[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
 			pub enum OriginCaller {
-				#[codec(index = 0)]
+                #[codec(index = 0)]
                 system(
                     runtime_types::frame_support::dispatch::RawOrigin<
                         ::subxt::utils::AccountId32,
@@ -49350,7 +49279,7 @@ pub mod api {
 			#[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
 			#[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
 			pub enum RuntimeCall {
-				#[codec(index = 0)]
+                #[codec(index = 0)]
                 System(runtime_types::frame_system::pallet::Call),
                 #[codec(index = 1)]
                 ParachainSystem(
@@ -49424,10 +49353,6 @@ pub mod api {
                 Society(runtime_types::pallet_society::pallet::Call),
                 #[codec(index = 60)]
                 Revive(runtime_types::pallet_revive::pallet::Call),
-                #[codec(index = 70)]
-                StateTrieMigration(
-                    runtime_types::pallet_state_trie_migration::pallet::Call,
-                ),
                 #[codec(index = 80)]
                 NominationPools(runtime_types::pallet_nomination_pools::pallet::Call),
                 #[codec(index = 82)]
@@ -49543,8 +49468,6 @@ pub mod api {
 				AssetsPrecompilesPermit(
 					runtime_types::pallet_assets_precompiles::permit::pallet::Error,
 				),
-				#[codec(index = 70)]
-				StateTrieMigration(runtime_types::pallet_state_trie_migration::pallet::Error),
 				#[codec(index = 80)]
 				NominationPools(runtime_types::pallet_nomination_pools::pallet::Error),
 				#[codec(index = 82)]
@@ -49590,7 +49513,7 @@ pub mod api {
 			#[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
 			#[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
 			pub enum RuntimeEvent {
-				#[codec(index = 0)]
+                #[codec(index = 0)]
                 System(runtime_types::frame_system::pallet::Event),
                 #[codec(index = 1)]
                 ParachainSystem(
@@ -49666,10 +49589,6 @@ pub mod api {
                 Society(runtime_types::pallet_society::pallet::Event),
                 #[codec(index = 60)]
                 Revive(runtime_types::pallet_revive::pallet::Event),
-                #[codec(index = 70)]
-                StateTrieMigration(
-                    runtime_types::pallet_state_trie_migration::pallet::Event,
-                ),
                 #[codec(index = 80)]
                 NominationPools(runtime_types::pallet_nomination_pools::pallet::Event),
                 #[codec(index = 82)]
@@ -49750,8 +49669,6 @@ pub mod api {
 				Recovery(runtime_types::pallet_recovery::pallet::HoldReason),
 				#[codec(index = 60)]
 				Revive(runtime_types::pallet_revive::pallet::HoldReason),
-				#[codec(index = 70)]
-				StateTrieMigration(runtime_types::pallet_state_trie_migration::pallet::HoldReason),
 				#[codec(index = 83)]
 				DelegatedStaking(runtime_types::pallet_delegated_staking::pallet::HoldReason),
 				#[codec(index = 84)]
@@ -49773,7 +49690,7 @@ pub mod api {
 			#[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
 			#[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
 			pub enum RuntimeParameters {
-				#[codec(index = 0)]
+                #[codec(index = 0)]
                 Issuance(
                     runtime_types::asset_hub_kusama_runtime::dynamic_params::issuance::Parameters,
                 ),
@@ -49802,7 +49719,7 @@ pub mod api {
 			#[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
 			#[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
 			pub enum RuntimeParametersKey {
-				#[codec(index = 0)]
+                #[codec(index = 0)]
                 Issuance(
                     runtime_types::asset_hub_kusama_runtime::dynamic_params::issuance::ParametersKey,
                 ),
@@ -49831,7 +49748,7 @@ pub mod api {
 			#[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
 			#[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
 			pub enum RuntimeParametersValue {
-				#[codec(index = 0)]
+                #[codec(index = 0)]
                 Issuance(
                     runtime_types::asset_hub_kusama_runtime::dynamic_params::issuance::ParametersValue,
                 ),
@@ -49986,7 +49903,7 @@ pub mod api {
 				#[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
 				#[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
 				pub enum Call {
-					#[codec(index = 0)]
+                    #[codec(index = 0)]
                     set_validation_data {
                         data: runtime_types::cumulus_pallet_parachain_system::parachain_inherent::BasicParachainInherentData,
                         inbound_messages_data: runtime_types::cumulus_pallet_parachain_system::parachain_inherent::InboundMessagesData,
@@ -50368,6 +50285,7 @@ pub mod api {
 				pub first_index: ::core::primitive::u16,
 				pub last_index: ::core::primitive::u16,
 				pub flags: runtime_types::cumulus_pallet_xcmp_queue::OutboundChannelFlags,
+				pub queued_bytes: ::core::primitive::u32,
 			}
 			#[derive(
 				::subxt::ext::scale_decode::DecodeAsType,
@@ -51787,7 +51705,7 @@ pub mod api {
 				#[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
 				#[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
 				pub enum Call2 {
-					#[codec(index = 0)]
+                    #[codec(index = 0)]
                     create {
                         id: runtime_types::staging_xcm::v5::location::Location,
                         admin: ::subxt::utils::MultiAddress<
@@ -52305,10 +52223,12 @@ pub mod api {
 					#[codec(index = 20)]
 					BadAssetId,
 					#[codec(index = 21)]
-					ContainsFreezes,
+					AssetIdAllocationFailed,
 					#[codec(index = 22)]
-					ContainsHolds,
+					ContainsFreezes,
 					#[codec(index = 23)]
+					ContainsHolds,
+					#[codec(index = 24)]
 					TooManyReserves,
 				}
 				#[derive(
@@ -52473,7 +52393,7 @@ pub mod api {
 				#[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
 				#[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
 				pub enum Event2 {
-					#[codec(index = 0)]
+                    #[codec(index = 0)]
                     Created {
                         asset_id: runtime_types::staging_xcm::v5::location::Location,
                         creator: ::subxt::utils::AccountId32,
@@ -54121,7 +54041,7 @@ pub mod api {
 					#[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
 					#[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
 					pub enum Call {
-						#[codec(index = 0)]
+                        #[codec(index = 0)]
                         register {
                             claimed_score: runtime_types::sp_npos_elections::ElectionScore,
                         },
@@ -54295,7 +54215,7 @@ pub mod api {
 					#[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
 					#[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
 					pub enum Call {
-						#[codec(index = 0)]
+                        #[codec(index = 0)]
                         submit_unsigned {
                             paged_solution: ::subxt::alloc::boxed::Box<
                                 runtime_types::pallet_election_provider_multi_block::types::PagedRawSolution,
@@ -54326,7 +54246,7 @@ pub mod api {
 						#[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
 						#[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
 						pub enum Event {
-							#[codec(index = 0)]
+                            #[codec(index = 0)]
                             VerificationFailed(
                                 ::core::primitive::u32,
                                 runtime_types::pallet_election_provider_multi_block::verifier::FeasibilityError,
@@ -58214,7 +58134,7 @@ pub mod api {
 						#[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
 						#[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
 						pub enum HashesOrTransactionInfos {
-							#[codec(index = 0)]
+                            #[codec(index = 0)]
                             Hashes(::subxt::alloc::vec::Vec<::subxt::utils::H256>),
                             #[codec(index = 1)]
                             TransactionInfos(
@@ -58429,7 +58349,7 @@ pub mod api {
 						#[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
 						#[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
 						pub enum TransactionSigned {
-							#[codec(index = 0)]
+                            #[codec(index = 0)]
                             Transaction7702Signed(
                                 runtime_types::pallet_revive::evm::api::rpc_types_gen::Transaction7702Signed,
                             ),
@@ -60403,171 +60323,6 @@ pub mod api {
 				pub leftover: ::core::primitive::bool,
 			}
 		}
-		pub mod pallet_state_trie_migration {
-			use super::runtime_types;
-			pub mod pallet {
-				use super::runtime_types;
-				#[derive(
-					::subxt::ext::scale_decode::DecodeAsType,
-					::subxt::ext::scale_encode::EncodeAsType,
-					Debug,
-				)]
-				#[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
-				#[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
-				pub enum Call {
-					#[codec(index = 0)]
-					control_auto_migration {
-						maybe_config: ::core::option::Option<
-							runtime_types::pallet_state_trie_migration::pallet::MigrationLimits,
-						>,
-					},
-					#[codec(index = 1)]
-					continue_migrate {
-						limits: runtime_types::pallet_state_trie_migration::pallet::MigrationLimits,
-						real_size_upper: ::core::primitive::u32,
-						witness_task:
-							runtime_types::pallet_state_trie_migration::pallet::MigrationTask,
-					},
-					#[codec(index = 2)]
-					migrate_custom_top {
-						keys: ::subxt::alloc::vec::Vec<
-							::subxt::alloc::vec::Vec<::core::primitive::u8>,
-						>,
-						witness_size: ::core::primitive::u32,
-					},
-					#[codec(index = 3)]
-					migrate_custom_child {
-						root: ::subxt::alloc::vec::Vec<::core::primitive::u8>,
-						child_keys: ::subxt::alloc::vec::Vec<
-							::subxt::alloc::vec::Vec<::core::primitive::u8>,
-						>,
-						total_size: ::core::primitive::u32,
-					},
-					#[codec(index = 4)]
-					set_signed_max_limits {
-						limits: runtime_types::pallet_state_trie_migration::pallet::MigrationLimits,
-					},
-					#[codec(index = 5)]
-					force_set_progress {
-						progress_top: runtime_types::pallet_state_trie_migration::pallet::Progress,
-						progress_child:
-							runtime_types::pallet_state_trie_migration::pallet::Progress,
-					},
-				}
-				#[derive(
-					::subxt::ext::scale_decode::DecodeAsType,
-					::subxt::ext::scale_encode::EncodeAsType,
-					Debug,
-				)]
-				#[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
-				#[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
-				pub enum Error {
-					#[codec(index = 0)]
-					MaxSignedLimits,
-					#[codec(index = 1)]
-					KeyTooLong,
-					#[codec(index = 2)]
-					NotEnoughFunds,
-					#[codec(index = 3)]
-					BadWitness,
-					#[codec(index = 4)]
-					SignedMigrationNotAllowed,
-					#[codec(index = 5)]
-					BadChildRoot,
-				}
-				#[derive(
-					::subxt::ext::scale_decode::DecodeAsType,
-					::subxt::ext::scale_encode::EncodeAsType,
-					Debug,
-				)]
-				#[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
-				#[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
-				pub enum Event {
-					#[codec(index = 0)]
-					Migrated {
-						top: ::core::primitive::u32,
-						child: ::core::primitive::u32,
-						compute:
-							runtime_types::pallet_state_trie_migration::pallet::MigrationCompute,
-					},
-					#[codec(index = 1)]
-					Slashed { who: ::subxt::utils::AccountId32, amount: ::core::primitive::u128 },
-					#[codec(index = 2)]
-					AutoMigrationFinished,
-					#[codec(index = 3)]
-					Halted { error: runtime_types::pallet_state_trie_migration::pallet::Error },
-				}
-				#[derive(
-					::subxt::ext::scale_decode::DecodeAsType,
-					::subxt::ext::scale_encode::EncodeAsType,
-					Debug,
-				)]
-				#[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
-				#[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
-				pub enum HoldReason {
-					#[codec(index = 0)]
-					SlashForMigrate,
-				}
-				#[derive(
-					::subxt::ext::scale_decode::DecodeAsType,
-					::subxt::ext::scale_encode::EncodeAsType,
-					Debug,
-				)]
-				#[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
-				#[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
-				pub enum MigrationCompute {
-					#[codec(index = 0)]
-					Signed,
-					#[codec(index = 1)]
-					Auto,
-				}
-				#[derive(
-					::subxt::ext::scale_decode::DecodeAsType,
-					::subxt::ext::scale_encode::EncodeAsType,
-					Debug,
-				)]
-				#[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
-				#[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
-				pub struct MigrationLimits {
-					pub size: ::core::primitive::u32,
-					pub item: ::core::primitive::u32,
-				}
-				#[derive(
-					::subxt::ext::scale_decode::DecodeAsType,
-					::subxt::ext::scale_encode::EncodeAsType,
-					Debug,
-				)]
-				#[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
-				#[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
-				pub struct MigrationTask {
-					pub progress_top: runtime_types::pallet_state_trie_migration::pallet::Progress,
-					pub progress_child:
-						runtime_types::pallet_state_trie_migration::pallet::Progress,
-					pub size: ::core::primitive::u32,
-					pub top_items: ::core::primitive::u32,
-					pub child_items: ::core::primitive::u32,
-				}
-				#[derive(
-					::subxt::ext::scale_decode::DecodeAsType,
-					::subxt::ext::scale_encode::EncodeAsType,
-					Debug,
-				)]
-				#[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
-				#[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
-				pub enum Progress {
-					#[codec(index = 0)]
-					ToStart,
-					#[codec(index = 1)]
-					LastKey(
-						runtime_types::bounded_collections::bounded_vec::BoundedVec<
-							::core::primitive::u8,
-						>,
-					),
-					#[codec(index = 2)]
-					Complete,
-				}
-			}
-		}
 		pub mod pallet_timestamp {
 			use super::runtime_types;
 			pub mod pallet {
@@ -61660,7 +61415,7 @@ pub mod api {
 				#[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
 				#[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
 				pub enum Call {
-					#[codec(index = 0)]
+                    #[codec(index = 0)]
                     send {
                         dest: ::subxt::alloc::boxed::Box<
                             runtime_types::xcm::VersionedLocation,
