@@ -19,7 +19,7 @@
 //! EXECUTED COMMAND:
 //! /home/runner/work/parity-bridges-common/parity-bridges-common/tools/runtime-codegen/target/
 //! release/runtime-codegen --from-wasm-file
-//! ./tools/runtime-codegen/wbuild/bridge-hub-kusama_runtime-v2003002.compact.compressed.wasm
+//! ./tools/runtime-codegen/wbuild/bridge-hub-kusama_runtime-v2005001.compact.compressed.wasm
 
 #[allow(dead_code, missing_docs, unused_imports, non_camel_case_types, unreachable_patterns)]
 #[allow(clippy::all)]
@@ -439,6 +439,8 @@ pub mod api {
 				Balances(runtime_types::pallet_balances::pallet::Event),
 				#[codec(index = 11)]
 				TransactionPayment(runtime_types::pallet_transaction_payment::pallet::Event),
+				#[codec(index = 12)]
+				AccumulateForward(runtime_types::pallet_accumulate_and_forward::pallet::Event),
 				#[codec(index = 21)]
 				CollatorSelection(runtime_types::pallet_collator_selection::pallet::Event),
 				#[codec(index = 22)]
@@ -760,6 +762,7 @@ pub mod api {
 				pub first_index: ::core::primitive::u16,
 				pub last_index: ::core::primitive::u16,
 				pub flags: runtime_types::cumulus_pallet_xcmp_queue::OutboundChannelFlags,
+				pub queued_bytes: ::core::primitive::u32,
 			}
 			#[derive(
 				::codec::Decode,
@@ -1149,6 +1152,19 @@ pub mod api {
 				Finalization,
 				#[codec(index = 2)]
 				Initialization,
+			}
+		}
+		pub mod pallet_accumulate_and_forward {
+			use super::runtime_types;
+			pub mod pallet {
+				use super::runtime_types;
+				#[derive(::codec::Decode, ::codec::Encode, Clone, Debug, PartialEq)]
+				pub enum Event {
+					#[codec(index = 0)]
+					ForwardSucceeded { amount: ::core::primitive::u128 },
+					#[codec(index = 1)]
+					ForwardFailed { amount: ::core::primitive::u128 },
+				}
 			}
 		}
 		pub mod pallet_balances {
