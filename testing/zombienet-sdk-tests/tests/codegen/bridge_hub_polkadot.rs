@@ -19,7 +19,7 @@
 //! EXECUTED COMMAND:
 //! /home/runner/work/parity-bridges-common/parity-bridges-common/tools/runtime-codegen/target/
 //! release/runtime-codegen --full --from-wasm-file
-//! /tmp/tmp.hdrq9EJmyl/bridge-hub-polkadot_runtime-v2005001.compact.compressed.wasm
+//! /tmp/tmp.NfvsPfqcL0/bridge-hub-polkadot_runtime-v2005002.compact.compressed.wasm
 
 #[allow(dead_code, missing_docs, unused_imports, non_camel_case_types, unreachable_patterns)]
 #[allow(clippy::all)]
