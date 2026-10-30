@@ -195,7 +195,11 @@ jobs:
           cargo update -p substrate-relay --offline
 
       - name: Format code
-        run: cargo +nightly fmt --all
+        run: |
+          . .github/env
+          echo "Formatting with $IMAGE"
+          docker run --rm --user "$(id -u):$(id -g)" -e HOME=/tmp -v "$PWD:/w" -w /w \
+            "$IMAGE" cargo +nightly fmt --all
 
       - name: Create Pull Request
         env:

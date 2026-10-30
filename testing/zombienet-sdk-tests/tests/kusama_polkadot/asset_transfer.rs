@@ -75,7 +75,7 @@ async fn asset_transfer_works() -> Result<(), anyhow::Error> {
 			// //Alice receives at least 4.8 wrapped DOT on Kusama AH.
 			retry_until(Duration::from_secs(600), || {
 				let ahk = ahk.clone();
-				let acc = alice_acc.clone();
+				let acc = alice_acc;
 				async move {
 					let asset = asset_hub_kusama::bridged_asset();
 					let balance = asset_hub_kusama::foreign_asset_balance(&ahk, asset, acc).await?;
@@ -86,7 +86,6 @@ async fn asset_transfer_works() -> Result<(), anyhow::Error> {
 			// //Eve is rewarded on Kusama BH for delivering messages from Polkadot BH.
 			retry_until(Duration::from_secs(300), || {
 				let bhk = bhk.clone();
-				let eve = eve.clone();
 				async move {
 					let reward = bridge_hub_kusama_relayer_reward(&bhk, eve).await?;
 					Ok(reward.filter(|r| *r > MIN_RELAYER_REWARD).map(|_| ()))
@@ -108,7 +107,7 @@ async fn asset_transfer_works() -> Result<(), anyhow::Error> {
 			.await?;
 			retry_until(Duration::from_secs(600), || {
 				let ahp = ahp.clone();
-				let acc = alice_acc.clone();
+				let acc = alice_acc;
 				async move {
 					let asset = asset_hub_polkadot::bridged_asset();
 					let balance =
@@ -120,7 +119,6 @@ async fn asset_transfer_works() -> Result<(), anyhow::Error> {
 			// //Ferdie is rewarded on Polkadot BH for delivering messages from Kusama BH.
 			retry_until(Duration::from_secs(300), || {
 				let bhp = bhp.clone();
-				let ferdie = ferdie.clone();
 				async move {
 					let reward = bridge_hub_polkadot_relayer_reward(&bhp, ferdie).await?;
 					Ok(reward.filter(|r| *r > MIN_RELAYER_REWARD).map(|_| ()))

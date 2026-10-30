@@ -8,7 +8,12 @@
 use anyhow::anyhow;
 use codec::Decode;
 use std::{future::Future, time::Duration};
-use subxt::{config::DefaultExtrinsicParamsBuilder, tx::Payload, OnlineClient, PolkadotConfig};
+use subxt::{
+	client::OnlineClientAtBlockImpl,
+	config::{DefaultExtrinsicParamsBuilder, ParamsFor},
+	transactions::{Payload, TransactionProgress, TransactionStatus},
+	OnlineClient, PolkadotConfig,
+};
 use subxt_signer::sr25519::{dev, Keypair};
 use tokio::time::{sleep, timeout_at, Instant};
 use zombienet_sdk::{GlobalSettingsBuilder, LocalFileSystem, Network, NetworkConfig};
@@ -17,13 +22,27 @@ use zombienet_sdk::{GlobalSettingsBuilder, LocalFileSystem, Network, NetworkConf
 /// durable was committed). subxt only exposes these as `Display` text, so we match on it: a
 /// pruned/reorged block (`discarded`, `unknown Block`, `no longer be found`, `non-finalized fork`)
 /// or a nonce not yet reflecting a just-submitted predecessor (`Invalid Transaction`).
-fn is_transient_reorg_error(e: &subxt::Error) -> bool {
+fn is_transient_reorg_error<E: core::fmt::Display>(e: &E) -> bool {
 	let s = e.to_string();
 	s.contains("discarded") ||
 		s.contains("unknown Block") ||
 		s.contains("no longer be found") ||
 		s.contains("non-finalized fork") ||
 		s.contains("Invalid Transaction")
+}
+
+/// Signs `call` and submits it, returning the status stream.
+async fn submit_signed<C: Payload>(
+	client: &OnlineClient<PolkadotConfig>,
+	call: &C,
+	signer: &Keypair,
+	params: ParamsFor<PolkadotConfig>,
+) -> Result<
+	TransactionProgress<PolkadotConfig, OnlineClientAtBlockImpl<PolkadotConfig>>,
+	anyhow::Error,
+> {
+	let progress = client.tx().await?.sign_and_submit_then_watch(call, signer, params).await?;
+	Ok(progress)
 }
 
 /// Signs, submits and waits for finalized success. The finalized-success wait is reorg-tolerant;
@@ -40,8 +59,12 @@ pub async fn sign_submit_wait<C: Payload>(
 		// Both the submit and the finalized-success wait can fail transiently on the reorgy hubs
 		// (pre-pool rejection while building, or the finalized-success block reorged away). Neither
 		// commits anything durable, so a transient error is retried with a fresh build.
-		let result = match client.tx().sign_and_submit_then_watch(call, signer, params).await {
-			Ok(progress) => progress.wait_for_finalized_success().await.map(|_| ()),
+		let result = match submit_signed(client, call, signer, params).await {
+			Ok(progress) => progress
+				.wait_for_finalized_success()
+				.await
+				.map(|_| ())
+				.map_err(anyhow::Error::from),
 			Err(e) => Err(e),
 		};
 		match result {
@@ -50,7 +73,7 @@ pub async fn sign_submit_wait<C: Payload>(
 				sleep(Duration::from_secs(3)).await;
 				continue;
 			},
-			Err(e) => return Err(e.into()),
+			Err(e) => return Err(e),
 		}
 	}
 	unreachable!("loop returns or errors on the final attempt")
@@ -65,12 +88,10 @@ pub async fn sign_submit_wait_in_block<C: Payload>(
 	call: &C,
 	signer: &Keypair,
 ) -> Result<(), anyhow::Error> {
-	use subxt::tx::TxStatus;
 	const ATTEMPTS: usize = 12;
 	'attempts: for attempt in 1..=ATTEMPTS {
 		let params = DefaultExtrinsicParamsBuilder::new().immortal().build();
-		let mut progress = match client.tx().sign_and_submit_then_watch(call, signer, params).await
-		{
+		let mut progress = match submit_signed(client, call, signer, params).await {
 			Ok(p) => p,
 			// Pre-pool failure (nothing submitted): pruned best block, or a nonce not yet
 			// reflecting a just-submitted predecessor. Retry with a fresh build/nonce.
@@ -78,7 +99,7 @@ pub async fn sign_submit_wait_in_block<C: Payload>(
 				sleep(Duration::from_secs(3)).await;
 				continue 'attempts;
 			},
-			Err(e) => return Err(e.into()),
+			Err(e) => return Err(e),
 		};
 		loop {
 			let status = match progress.next().await {
@@ -93,7 +114,8 @@ pub async fn sign_submit_wait_in_block<C: Payload>(
 				None => break,
 			};
 			match status {
-				TxStatus::InBestBlock(in_block) | TxStatus::InFinalizedBlock(in_block) => {
+				TransactionStatus::InBestBlock(in_block) |
+				TransactionStatus::InFinalizedBlock(in_block) => {
 					match in_block.wait_for_success().await {
 						Ok(_) => return Ok(()),
 						// In-block report retracted by a reorg; keep watching for re-inclusion.
@@ -103,7 +125,9 @@ pub async fn sign_submit_wait_in_block<C: Payload>(
 				},
 				// A reorg re-validated the tx as Invalid/Dropped/Error, so it never reached the
 				// canonical chain and its nonce is unconsumed: rebuild and resubmit.
-				TxStatus::Error { .. } | TxStatus::Invalid { .. } | TxStatus::Dropped { .. } => {
+				TransactionStatus::Error { .. } |
+				TransactionStatus::Invalid { .. } |
+				TransactionStatus::Dropped { .. } => {
 					if attempt < ATTEMPTS {
 						sleep(Duration::from_secs(3)).await;
 						continue 'attempts;
@@ -135,12 +159,11 @@ pub async fn sign_submit_wait_in_block_nonce<C: Payload>(
 	signer: &Keypair,
 	nonce: u64,
 ) -> Result<(), anyhow::Error> {
-	use subxt::tx::TxStatus;
 	const ATTEMPTS: usize = 12;
 	let mut progress = None;
 	for attempt in 1..=ATTEMPTS {
 		let params = DefaultExtrinsicParamsBuilder::new().nonce(nonce).build();
-		match client.tx().sign_and_submit_then_watch(call, signer, params).await {
+		match submit_signed(client, call, signer, params).await {
 			Ok(p) => {
 				progress = Some(p);
 				break;
@@ -149,38 +172,62 @@ pub async fn sign_submit_wait_in_block_nonce<C: Payload>(
 				sleep(Duration::from_secs(3)).await;
 				continue;
 			},
-			Err(e) => return Err(e.into()),
+			Err(e) => return Err(e),
 		}
 	}
 	let mut progress = progress.ok_or_else(|| anyhow!("could not submit transaction"))?;
 	while let Some(status) = progress.next().await.transpose()? {
 		match status {
-			TxStatus::InBestBlock(in_block) | TxStatus::InFinalizedBlock(in_block) =>
-				match in_block.wait_for_success().await {
-					Ok(_) => return Ok(()),
-					Err(e) if is_transient_reorg_error(&e) => continue,
-					Err(e) => return Err(e.into()),
-				},
-			TxStatus::Error { message } |
-			TxStatus::Invalid { message } |
-			TxStatus::Dropped { message } =>
+			TransactionStatus::InBestBlock(in_block) |
+			TransactionStatus::InFinalizedBlock(in_block) => match in_block.wait_for_success().await {
+				Ok(_) => return Ok(()),
+				Err(e) if is_transient_reorg_error(&e) => continue,
+				Err(e) => return Err(e.into()),
+			},
+			TransactionStatus::Error { message } |
+			TransactionStatus::Invalid { message } |
+			TransactionStatus::Dropped { message } =>
 				return Err(anyhow!("transaction failed before inclusion: {message}")),
 			_ => continue,
 		}
 	}
 	Err(anyhow!("transaction status stream ended before inclusion"))
 }
+/// Connects a `subxt` client to `ws_uri`, retrying until the node's RPC answers or `RPC_TIMEOUT`
+/// elapses.
+///
+/// Replaces `zombienet_sdk`'s `Node::wait_client()`, which returns a client typed against the
+/// `subxt` version `zombienet-sdk` itself depends on rather than ours.
+pub async fn connect_with_retry(
+	ws_uri: &str,
+) -> Result<OnlineClient<PolkadotConfig>, anyhow::Error> {
+	const RPC_TIMEOUT: Duration = Duration::from_secs(120);
+	let deadline = Instant::now() + RPC_TIMEOUT;
+	let mut last_err = None;
+	while Instant::now() < deadline {
+		match OnlineClient::<PolkadotConfig>::from_url(ws_uri).await {
+			Ok(client) => return Ok(client),
+			Err(e) => {
+				last_err = Some(e);
+				sleep(Duration::from_secs(2)).await;
+			},
+		}
+	}
+	Err(anyhow!("node at {ws_uri} did not accept an RPC connection in time: {last_err:?}"))
+}
+
 /// Free balance of `account` via dynamic `System::Account` storage (works for any runtime).
 pub async fn free_balance_at(
 	client: &OnlineClient<PolkadotConfig>,
 	account: [u8; 32],
 ) -> Result<u128, anyhow::Error> {
 	use subxt::ext::scale_value::{At, Value};
-	let addr = subxt::dynamic::storage("System", "Account", vec![Value::from_bytes(account)]);
-	let Some(value) = client.storage().at_latest().await?.fetch(&addr).await? else {
+	let addr = subxt::dynamic::storage::<Vec<Value>, Value>("System", "Account");
+	let at = client.at_current_block().await?;
+	let Some(value) = at.storage().try_fetch(addr, vec![Value::from_bytes(account)]).await? else {
 		return Ok(0);
 	};
-	let value = value.to_value()?;
+	let value = value.decode()?;
 	value
 		.at("data")
 		.and_then(|data| data.at("free"))
@@ -195,7 +242,12 @@ pub async fn best_finalized_bridged_header(
 	finality_api: &str,
 ) -> Result<Option<u32>, anyhow::Error> {
 	let method = format!("{finality_api}_best_finalized");
-	let encoded = client.runtime_api().at_latest().await?.call_raw(method.as_str(), None).await?;
+	let encoded = client
+		.at_current_block()
+		.await?
+		.runtime_apis()
+		.call_raw(method.as_str(), None)
+		.await?;
 	// `Option<HeaderId<Hash, Number>>` where `HeaderId(Number, Hash)` — we only need the number.
 	let decoded: Option<(u32, [u8; 32])> = Decode::decode(&mut &encoded[..])?;
 	Ok(decoded.map(|(number, _hash)| number))
@@ -210,10 +262,10 @@ pub async fn wait_for_finalized_height(
 	height: u32,
 	timeout: Duration,
 ) -> Result<(), anyhow::Error> {
-	let mut sub = client.blocks().subscribe_finalized().await?;
+	let mut sub = client.stream_blocks().await?;
 	let deadline = Instant::now() + timeout;
 	while let Ok(Some(block)) = timeout_at(deadline, sub.next()).await {
-		if block?.number() >= height {
+		if block?.number() >= u64::from(height) {
 			return Ok(());
 		}
 	}
@@ -229,14 +281,14 @@ pub async fn count_synced_headers(
 	parachains_pallet: &str,
 	duration: Duration,
 ) -> Result<(u32, u32), anyhow::Error> {
-	let mut sub = client.blocks().subscribe_best().await?;
+	let mut sub = client.stream_best_blocks().await?;
 	let deadline = Instant::now() + duration;
 	let (mut grandpa_headers, mut parachain_headers) = (0u32, 0u32);
 	while let Ok(Some(block)) = timeout_at(deadline, sub.next()).await {
 		let block = block?;
-		for event in block.events().await?.iter() {
+		for event in block.at().await?.events().fetch().await?.iter() {
 			let event = event?;
-			match (event.pallet_name(), event.variant_name()) {
+			match (event.pallet_name(), event.event_name()) {
 				(p, "UpdatedBestFinalizedHeader") if p == grandpa_pallet => grandpa_headers += 1,
 				(p, "UpdatedParachainHead") if p == parachains_pallet => parachain_headers += 1,
 				_ => {},

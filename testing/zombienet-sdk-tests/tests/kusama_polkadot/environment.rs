@@ -21,7 +21,6 @@
 //! balance of it are already pre-registered by the fellows Asset Hub genesis presets, so nothing
 //! needs to create them here.
 
-use anyhow::anyhow;
 use std::{path::PathBuf, time::Duration};
 use subxt::{OnlineClient, PolkadotConfig};
 use subxt_signer::sr25519::dev;
@@ -40,8 +39,8 @@ use crate::common::{
 	light_client::{self, LightClient, RelayTransport, Target},
 	relayer::{init_bridge_confirmed, spawn_relayer, Relayer},
 	utils::{
-		best_finalized_bridged_header, bridge_hub_balances, config_errs, dev_account,
-		global_settings, retry_until, sign_submit_wait, spawn_with_retry,
+		best_finalized_bridged_header, bridge_hub_balances, config_errs, connect_with_retry,
+		dev_account, global_settings, retry_until, sign_submit_wait, spawn_with_retry,
 		wait_for_finalized_height,
 	},
 };
@@ -362,8 +361,7 @@ impl BridgeTestEnv {
 		node: &str,
 	) -> Result<OnlineClient<PolkadotConfig>, anyhow::Error> {
 		let node = network.get_node(node)?;
-		let client: OnlineClient<PolkadotConfig> = node.wait_client().await?;
-		Ok(client)
+		connect_with_retry(node.ws_uri()).await
 	}
 
 	// Typed relay-chain clients, used post-spawn to open the HRMP channels (see
@@ -492,7 +490,7 @@ impl BridgeTestEnv {
 					&bob,
 					10 * POLKADOT_UNIT,
 					4 * KUSAMA_UNIT,
-					bob_acc.clone(),
+					bob_acc,
 					1,
 				)
 				.await
@@ -504,7 +502,7 @@ impl BridgeTestEnv {
 					&bob,
 					KUSAMA_UNIT,
 					2 * POLKADOT_UNIT + POLKADOT_UNIT / 2,
-					bob_acc.clone(),
+					bob_acc,
 					1,
 				)
 				.await

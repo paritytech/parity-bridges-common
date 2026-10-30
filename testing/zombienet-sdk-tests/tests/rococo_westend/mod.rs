@@ -88,10 +88,10 @@ pub async fn bridge_hub_rococo_relayer_reward(
 		bridged_chain_id: BRIDGED_CHAIN_ID_BHWD,
 		lane_id: LegacyLaneId(LANE_ID),
 	};
-	let addr = crate::bridge_hub_rococo::storage()
-		.bridge_relayers()
-		.relayer_rewards(relayer, reward);
-	Ok(client.storage().at_latest().await?.fetch(&addr).await?)
+	let addr = crate::bridge_hub_rococo::storage().bridge_relayers().relayer_rewards();
+	let at = client.at_current_block().await?;
+	let reward = at.storage().try_fetch(addr, (relayer, reward)).await?;
+	Ok(reward.map(|r| r.decode()).transpose()?)
 }
 
 /// Reads `bridgeRelayers.relayerRewards(relayer, BridgeReward::RococoWestend(..))` on Bridge Hub
@@ -110,10 +110,10 @@ pub async fn bridge_hub_westend_relayer_reward(
 		bridged_chain_id: BRIDGED_CHAIN_ID_BHRO,
 		lane_id: LegacyLaneId(LANE_ID),
 	});
-	let addr = crate::bridge_hub_westend::storage()
-		.bridge_relayers()
-		.relayer_rewards(relayer, reward);
-	Ok(client.storage().at_latest().await?.fetch(&addr).await?)
+	let addr = crate::bridge_hub_westend::storage().bridge_relayers().relayer_rewards();
+	let at = client.at_current_block().await?;
+	let reward = at.storage().try_fetch(addr, (relayer, reward)).await?;
+	Ok(reward.map(|r| r.decode()).transpose()?)
 }
 
 /// Asserts that `//Charlie` and `//Dave` keep exactly the genesis endowment on both Bridge Hubs
@@ -143,9 +143,7 @@ mod environment;
 pub use environment::BridgeTestEnv;
 
 // Re-exported so the per-pair tests can reach the generic helpers via `crate::rococo_westend::*`.
-pub use crate::common::utils::{
-	count_synced_headers, dev_account, dev_public, free_balance_at, retry_until,
-};
+pub use crate::common::utils::{count_synced_headers, dev_account, dev_public, retry_until};
 
 mod asset_transfer;
 mod free_headers;

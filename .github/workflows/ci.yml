@@ -11,11 +11,6 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
-# common variable is defined in the workflow
-# repo env variable doesn't work for PR from forks
-env:
-  CI_IMAGE: "paritytech/ci-unified:bullseye-1.88.0-2025-06-27-v202507112050"
-
 jobs:
   set-variables:
     # This workaround sets the container image for each job using 'set-variables' job output.
@@ -25,9 +20,11 @@ jobs:
       CI_IMAGE: ${{ steps.set_image.outputs.CI_IMAGE }}
       VERSION: ${{ steps.version.outputs.VERSION }}
     steps:
+      - name: Checkout sources
+        uses: actions/checkout@v4
       - name: Set image
         id: set_image
-        run: echo "CI_IMAGE=${{ env.CI_IMAGE }}" >> $GITHUB_OUTPUT
+        run: echo "CI_IMAGE=$(sed -n 's/^IMAGE=//p' .github/env)" >> $GITHUB_OUTPUT
       - name: Define version
         id: version
         run: |
