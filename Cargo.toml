@@ -84,7 +84,7 @@ zombienet-sdk = "=0.4.15"
 zombienet-orchestrator = "=0.4.15"
 zombienet-provider = "=0.4.15"
 zombienet-configuration = "=0.4.15"
-zombienet-support = "=0.4.18"
+zombienet-support = "=0.5.2"
 zombienet-prom-metrics-parser = "=0.4.18"
 bp-bridge-hub-polkadot = { path = "./chains/chain-bridge-hub-polkadot" }
 bp-header-chain = { git = "https://github.com/paritytech/polkadot-sdk", branch = "master" }
