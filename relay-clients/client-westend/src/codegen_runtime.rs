@@ -4323,6 +4323,8 @@ pub mod api {
 						InvalidCode,
 						#[codec(index = 13)]
 						CannotSwap,
+						#[codec(index = 14)]
+						NotImplemented,
 					}
 					#[derive(::codec::Decode, ::codec::Encode, Clone, Debug, PartialEq)]
 					pub enum Event {
@@ -4683,6 +4685,15 @@ pub mod api {
                             >,
                             end_hint: ::core::option::Option<::core::primitive::u32>,
                         },
+                        #[codec(index = 5)]
+                        queue_on_demand_batch {
+                            batch: ::subxt::alloc::vec::Vec<
+                                (
+                                    runtime_types::polkadot_parachain_primitives::primitives::Id,
+                                    ::core::primitive::u32,
+                                ),
+                            >,
+                        },
                     }
 					#[derive(::codec::Decode, ::codec::Encode, Clone, Debug, PartialEq)]
 					pub enum Error {
@@ -4809,6 +4820,16 @@ pub mod api {
 			}
 			pub mod hrmp {
 				use super::runtime_types;
+				pub mod deposits {
+					use super::runtime_types;
+					#[derive(::codec::Decode, ::codec::Encode, Clone, Debug, PartialEq)]
+					pub enum DepositError {
+						#[codec(index = 0)]
+						InsufficientFunds,
+						#[codec(index = 1)]
+						Other,
+					}
+				}
 				pub mod pallet {
 					use super::runtime_types;
 					#[derive(::codec::Decode, ::codec::Encode, Clone, Debug, PartialEq)]
@@ -4906,6 +4927,14 @@ pub mod api {
 						WrongWitness,
 						#[codec(index = 19)]
 						ChannelCreationNotAuthorized,
+						#[codec(index = 20)]
+						OpenHrmpChannelInvalidSender,
+						#[codec(index = 21)]
+						AcceptHrmpChannelDepositChanged,
+						#[codec(index = 22)]
+						AcceptHrmpChannelRequestChanged,
+						#[codec(index = 23)]
+						ChannelDepositsChanged,
 					}
 					#[derive(::codec::Decode, ::codec::Encode, Clone, Debug, PartialEq)]
 					pub enum Event {
@@ -4949,6 +4978,16 @@ pub mod api {
                         OpenChannelDepositsUpdated {
                             sender: runtime_types::polkadot_parachain_primitives::primitives::Id,
                             recipient: runtime_types::polkadot_parachain_primitives::primitives::Id,
+                        },
+                        #[codec(index = 7)]
+                        DepositRefused {
+                            channel_id: runtime_types::polkadot_parachain_primitives::primitives::HrmpChannelId,
+                            error: runtime_types::polkadot_runtime_parachains::hrmp::deposits::DepositError,
+                        },
+                        #[codec(index = 8)]
+                        DepositReturned {
+                            channel_id: runtime_types::polkadot_parachain_primitives::primitives::HrmpChannelId,
+                            error: runtime_types::sp_runtime::DispatchError,
                         },
                     }
 				}
@@ -5150,6 +5189,15 @@ pub mod api {
 						AccountCredited {
 							who: ::sp_core::crypto::AccountId32,
 							amount: ::core::primitive::u128,
+						},
+						#[codec(index = 3)]
+						UnexpectedQueueFull { dropped: ::core::primitive::u32 },
+						#[codec(index = 4)]
+						BatchQueued {
+							batch: ::subxt::alloc::vec::Vec<(
+								runtime_types::polkadot_parachain_primitives::primitives::Id,
+								::core::primitive::u32,
+							)>,
 						},
 					}
 				}

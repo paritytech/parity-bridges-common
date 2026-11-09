@@ -394,6 +394,19 @@ pub mod api {
 					>,
 				}
 				#[derive(::codec::Decode, ::codec::Encode, Clone, Debug, PartialEq)]
+				pub enum InboundHrmpMessageId {
+					#[codec(index = 0)]
+                    Generic(
+                        runtime_types::cumulus_pallet_parachain_system::parachain_inherent::InboundMessageId,
+                    ),
+                    #[codec(index = 1)]
+                    Specific {
+                        sent_at: ::core::primitive::u32,
+                        sender: runtime_types::polkadot_parachain_primitives::primitives::Id,
+                        reverse_idx: ::core::primitive::u32,
+                    },
+                }
+				#[derive(::codec::Decode, ::codec::Encode, Clone, Debug, PartialEq)]
 				pub struct InboundMessageId {
 					pub sent_at: ::core::primitive::u32,
 					pub reverse_idx: ::core::primitive::u32,
@@ -548,6 +561,8 @@ pub mod api {
 					TooManyActiveOutboundChannels,
 					#[codec(index = 4)]
 					TooBig,
+					#[codec(index = 5)]
+					RetryPage,
 				}
 				#[derive(::codec::Decode, ::codec::Encode, Clone, Debug, PartialEq)]
 				pub enum Event {
@@ -1102,6 +1117,8 @@ pub mod api {
 					PoolEmpty,
 					#[codec(index = 24)]
 					FeeTooHigh,
+					#[codec(index = 25)]
+					PoolUnavailable,
 				}
 				#[derive(::codec::Decode, ::codec::Encode, Clone, Debug, PartialEq)]
 				pub enum Event {
@@ -3700,6 +3717,8 @@ pub mod api {
 					CollectionNotEmpty,
 					#[codec(index = 44)]
 					WitnessRequired,
+					#[codec(index = 45)]
+					IncompleteDepositTransfer,
 				}
 				#[derive(::codec::Decode, ::codec::Encode, Clone, Debug, PartialEq)]
 				pub enum Event {
@@ -4657,6 +4676,8 @@ pub mod api {
 					AttributeNotFound,
 					#[codec(index = 21)]
 					WrongAttribute,
+					#[codec(index = 22)]
+					IncompleteDepositTransfer,
 				}
 				#[derive(::codec::Decode, ::codec::Encode, Clone, Debug, PartialEq)]
 				pub enum Event {
