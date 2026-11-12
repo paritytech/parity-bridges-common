@@ -19,7 +19,7 @@
 //! EXECUTED COMMAND:
 //! /home/runner/work/parity-bridges-common/parity-bridges-common/tools/runtime-codegen/target/
 //! release/runtime-codegen --full --from-wasm-file
-//! /tmp/tmp.NfvsPfqcL0/asset-hub-polkadot_runtime-v2005002.compact.compressed.wasm
+//! /tmp/tmp.udZovDeziH/asset-hub-polkadot_runtime-v2005003.compact.compressed.wasm
 
 #[allow(dead_code, missing_docs, unused_imports, non_camel_case_types, unreachable_patterns)]
 #[allow(clippy::all)]
@@ -664,9 +664,9 @@ pub mod api {
 			.hash();
 		runtime_metadata_hash ==
 			[
-				225u8, 149u8, 129u8, 4u8, 210u8, 91u8, 50u8, 215u8, 151u8, 61u8, 17u8, 196u8, 61u8,
-				238u8, 130u8, 23u8, 32u8, 213u8, 145u8, 3u8, 43u8, 22u8, 126u8, 131u8, 137u8, 6u8,
-				5u8, 144u8, 134u8, 143u8, 233u8, 2u8,
+				142u8, 96u8, 254u8, 222u8, 142u8, 128u8, 103u8, 127u8, 85u8, 32u8, 247u8, 26u8,
+				169u8, 88u8, 116u8, 253u8, 66u8, 172u8, 149u8, 192u8, 203u8, 64u8, 127u8, 9u8,
+				174u8, 220u8, 182u8, 56u8, 175u8, 22u8, 162u8, 249u8,
 			]
 	}
 	pub mod system {
@@ -46239,6 +46239,24 @@ pub mod api {
 						],
 					)
 				}
+				pub fn receipt_logs_committed(
+					&self,
+				) -> ::subxt::storage::StaticAddress<
+					(),
+					receipt_logs_committed::Output,
+					::subxt::utils::Yes,
+				> {
+					::subxt::storage::StaticAddress::new_static(
+						"Revive",
+						"ReceiptLogsCommitted",
+						[
+							193u8, 202u8, 198u8, 192u8, 72u8, 109u8, 171u8, 36u8, 78u8, 67u8,
+							131u8, 24u8, 93u8, 201u8, 126u8, 185u8, 249u8, 121u8, 230u8, 201u8,
+							211u8, 215u8, 91u8, 158u8, 131u8, 35u8, 60u8, 159u8, 12u8, 131u8, 80u8,
+							191u8,
+						],
+					)
+				}
 				pub fn eth_block_builder_ir(
 					&self,
 				) -> ::subxt::storage::StaticAddress<
@@ -46382,6 +46400,14 @@ pub mod api {
 				pub type Output = ::subxt::alloc::vec::Vec<
 					runtime_types::pallet_revive::evm::block_hash::ReceiptGasInfo,
 				>;
+			}
+			pub mod receipt_logs_committed {
+				use super::{root_mod, runtime_types};
+				pub mod input {
+					use super::runtime_types;
+				}
+				pub type Output =
+					runtime_types::pallet_revive::evm::block_hash::receipt::CommittedReceiptLogs;
 			}
 			pub mod eth_block_builder_ir {
 				use super::{root_mod, runtime_types};
@@ -60007,6 +60033,10 @@ pub mod api {
 					PsmHasApprovedExternals,
 					#[codec(index = 22)]
 					Unexpected,
+					#[codec(index = 23)]
+					InvalidAdminOrigin,
+					#[codec(index = 24)]
+					ReserveCannotReceive,
 				}
 				#[derive(
 					::subxt::ext::scale_decode::DecodeAsType,
@@ -60939,6 +60969,21 @@ pub mod api {
 							pub index: ::core::primitive::u64,
 						}
 					}
+					pub mod receipt {
+						use super::runtime_types;
+						#[derive(
+							::subxt::ext::scale_decode::DecodeAsType,
+							::subxt::ext::scale_encode::EncodeAsType,
+							Debug,
+						)]
+						#[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
+						#[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
+						pub struct CommittedReceiptLogs {
+							pub encoded_len: ::core::primitive::u32,
+							pub bloom: [::core::primitive::u8; 256usize],
+							pub exceeded: ::core::primitive::bool,
+						}
+					}
 					#[derive(
 						::subxt::ext::scale_decode::DecodeAsType,
 						::subxt::ext::scale_encode::EncodeAsType,
@@ -61185,6 +61230,8 @@ pub mod api {
 					AutoMappingEnabled,
 					#[codec(index = 67)]
 					PendingDepositCleanup,
+					#[codec(index = 69)]
+					ReceiptTooLarge,
 				}
 				#[derive(
 					::subxt::ext::scale_decode::DecodeAsType,
