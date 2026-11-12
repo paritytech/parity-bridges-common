@@ -122,5 +122,5 @@ impl ChainWithMessages for AssetHubWestend {
 
 impl ChainWithRuntimeVersion for AssetHubWestend {
 	const RUNTIME_VERSION: Option<SimpleRuntimeVersion> =
-		Some(SimpleRuntimeVersion { spec_version: 1_024_001, transaction_version: 16 });
+		Some(SimpleRuntimeVersion { spec_version: 1_025_004, transaction_version: 16 });
 }

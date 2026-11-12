@@ -25,10 +25,9 @@ subxt = { workspace = true, optional = true }
 subxt-signer = { workspace = true, optional = true }
 tokio = { workspace = true, optional = true }
 # `zombienet-{orchestrator,provider,configuration,support,prom-metrics-parser}` aren't referenced
-# directly; they pin the whole `zombienet-*` family to one `=0.4.14` line (an umbrella-only pin lets
-# the sub-crates drift). This crate must also stay a workspace member, not `exclude`d: the 0.4.x graph
-# needs `core2 0.4.0` (yanked), which Cargo only accepts because the workspace's polkadot-sdk deps
-# already lock it.
+# directly; they pin the whole `zombienet-*` family to one version line (an umbrella-only pin lets
+# the sub-crates drift). Keep the line in step with polkadot-sdk's own zombienet-sdk version: the
+# node binaries must support the chain-spec CLI it drives (0.5.x uses `export-chain-spec`).
 zombienet-sdk = { workspace = true, optional = true }
 zombienet-orchestrator = { workspace = true, optional = true }
 zombienet-provider = { workspace = true, optional = true }
