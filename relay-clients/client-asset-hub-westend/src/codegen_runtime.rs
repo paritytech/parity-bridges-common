@@ -232,6 +232,11 @@ pub mod api {
 						::subxt::ext::codec::Compact<::core::primitive::u16>,
 					)>,
 				}
+				#[derive(::codec::Decode, ::codec::Encode, Clone, Debug, PartialEq)]
+				pub enum ValidatorSetDestination {
+					#[codec(index = 0)]
+					People,
+				}
 			}
 			#[derive(::codec::Decode, ::codec::Encode, Clone, Debug, PartialEq)]
 			pub enum OriginCaller {
@@ -321,6 +326,14 @@ pub mod api {
                 ),
                 #[codec(index = 22)]
                 Session(runtime_types::pallet_session::pallet::Call),
+                #[codec(index = 25)]
+                ValidatorCollators(
+                    runtime_types::pallet_validator_collators::pallet::Call,
+                ),
+                #[codec(index = 28)]
+                StakingPointsConverter(
+                    runtime_types::pallet_staking_async_points_converter::pallet::Call,
+                ),
                 #[codec(index = 30)]
                 XcmpQueue(runtime_types::cumulus_pallet_xcmp_queue::pallet::Call),
                 #[codec(index = 31)]
@@ -446,6 +459,12 @@ pub mod api {
 				CollatorSelection(runtime_types::pallet_collator_selection::pallet::Error),
 				#[codec(index = 22)]
 				Session(runtime_types::pallet_session::pallet::Error),
+				#[codec(index = 25)]
+				ValidatorCollators(runtime_types::pallet_validator_collators::pallet::Error),
+				#[codec(index = 28)]
+				StakingPointsConverter(
+					runtime_types::pallet_staking_async_points_converter::pallet::Error,
+				),
 				#[codec(index = 30)]
 				XcmpQueue(runtime_types::cumulus_pallet_xcmp_queue::pallet::Error),
 				#[codec(index = 31)]
@@ -575,6 +594,18 @@ pub mod api {
                 ),
                 #[codec(index = 22)]
                 Session(runtime_types::pallet_session::pallet::Event),
+                #[codec(index = 25)]
+                ValidatorCollators(
+                    runtime_types::pallet_validator_collators::pallet::Event,
+                ),
+                #[codec(index = 26)]
+                ValidatorSetAnnouncer(
+                    runtime_types::pallet_validator_set_announcer::pallet::Event,
+                ),
+                #[codec(index = 28)]
+                StakingPointsConverter(
+                    runtime_types::pallet_staking_async_points_converter::pallet::Event,
+                ),
                 #[codec(index = 30)]
                 XcmpQueue(runtime_types::cumulus_pallet_xcmp_queue::pallet::Event),
                 #[codec(index = 31)]
@@ -733,6 +764,7 @@ pub mod api {
 			#[derive(::codec::Decode, ::codec::Encode, Clone, Debug, PartialEq)]
 			pub struct SessionKeys {
 				pub aura: runtime_types::sp_consensus_aura::sr25519::app_sr25519::Public,
+				pub authority_discovery: runtime_types::sp_authority_discovery::app::Public,
 			}
 		}
 		pub mod assets_common {
@@ -885,6 +917,19 @@ pub mod api {
 						>,
 					>,
 				}
+				#[derive(::codec::Decode, ::codec::Encode, Clone, Debug, PartialEq)]
+				pub enum InboundHrmpMessageId {
+					#[codec(index = 0)]
+                    Generic(
+                        runtime_types::cumulus_pallet_parachain_system::parachain_inherent::InboundMessageId,
+                    ),
+                    #[codec(index = 1)]
+                    Specific {
+                        sent_at: ::core::primitive::u32,
+                        sender: runtime_types::polkadot_parachain_primitives::primitives::Id,
+                        reverse_idx: ::core::primitive::u32,
+                    },
+                }
 				#[derive(::codec::Decode, ::codec::Encode, Clone, Debug, PartialEq)]
 				pub struct InboundMessageId {
 					pub sent_at: ::core::primitive::u32,
@@ -1040,6 +1085,8 @@ pub mod api {
 					TooManyActiveOutboundChannels,
 					#[codec(index = 4)]
 					TooBig,
+					#[codec(index = 5)]
+					RetryPage,
 				}
 				#[derive(::codec::Decode, ::codec::Encode, Clone, Debug, PartialEq)]
 				pub enum Event {
@@ -1765,6 +1812,8 @@ pub mod api {
 					PoolEmpty,
 					#[codec(index = 24)]
 					FeeTooHigh,
+					#[codec(index = 25)]
+					PoolUnavailable,
 				}
 				#[derive(::codec::Decode, ::codec::Encode, Clone, Debug, PartialEq)]
 				pub enum Event {
@@ -4263,6 +4312,8 @@ pub mod api {
                         set_invulnerables {
                             inv: ::subxt::alloc::vec::Vec<::sp_core::crypto::AccountId32>,
                         },
+                        #[codec(index = 5)]
+                        claim_unpaid_reward { round: ::core::primitive::u32 },
                     }
 					#[derive(::codec::Decode, ::codec::Encode, Clone, Debug, PartialEq)]
 					pub enum Error {
@@ -4284,6 +4335,10 @@ pub mod api {
 						BadWitnessData,
 						#[codec(index = 8)]
 						TooManyInvulnerables,
+						#[codec(index = 9)]
+						NoUnpaidReward,
+						#[codec(index = 10)]
+						PotStillDepleted,
 					}
 					#[derive(::codec::Decode, ::codec::Encode, Clone, Debug, PartialEq)]
 					pub enum Event {
@@ -4306,16 +4361,34 @@ pub mod api {
 							::core::primitive::u128,
 						),
 						#[codec(index = 3)]
-						Slashed(
+						RewardPaymentDeferred(
 							::core::primitive::u32,
 							::sp_core::crypto::AccountId32,
 							::core::primitive::u128,
 						),
 						#[codec(index = 4)]
-						Ejected(::core::primitive::u32, ::sp_core::crypto::AccountId32),
+						UnpaidRewardEvicted(
+							::core::primitive::u32,
+							::sp_core::crypto::AccountId32,
+							::core::primitive::u128,
+						),
 						#[codec(index = 5)]
-						Discarded(::core::primitive::u32, ::sp_core::crypto::AccountId32),
+						FeeRefundFailed(
+							::core::primitive::u32,
+							::sp_core::crypto::AccountId32,
+							::core::primitive::u128,
+						),
 						#[codec(index = 6)]
+						Slashed(
+							::core::primitive::u32,
+							::sp_core::crypto::AccountId32,
+							::core::primitive::u128,
+						),
+						#[codec(index = 7)]
+						Ejected(::core::primitive::u32, ::sp_core::crypto::AccountId32),
+						#[codec(index = 8)]
+						Discarded(::core::primitive::u32, ::sp_core::crypto::AccountId32),
+						#[codec(index = 9)]
 						Bailed(::core::primitive::u32, ::sp_core::crypto::AccountId32),
 					}
 					#[derive(::codec::Decode, ::codec::Encode, Clone, Debug, PartialEq)]
@@ -4333,6 +4406,13 @@ pub mod api {
 					pub pages: runtime_types::bounded_collections::bounded_vec::BoundedVec<
 						::core::primitive::bool,
 					>,
+					pub base: ::core::primitive::u128,
+				}
+				#[derive(::codec::Decode, ::codec::Encode, Clone, Debug, PartialEq)]
+				pub struct UnpaidReward {
+					pub round: ::core::primitive::u32,
+					pub who: ::sp_core::crypto::AccountId32,
+					pub amount: ::core::primitive::u128,
 				}
 			}
 			pub mod types {
@@ -5665,6 +5745,8 @@ pub mod api {
 					CollectionNotEmpty,
 					#[codec(index = 44)]
 					WitnessRequired,
+					#[codec(index = 45)]
+					IncompleteDepositTransfer,
 				}
 				#[derive(::codec::Decode, ::codec::Encode, Clone, Debug, PartialEq)]
 				pub enum Event {
@@ -7100,6 +7182,10 @@ pub mod api {
 					PsmHasApprovedExternals,
 					#[codec(index = 22)]
 					Unexpected,
+					#[codec(index = 23)]
+					InvalidAdminOrigin,
+					#[codec(index = 24)]
+					ReserveCannotReceive,
 				}
 				#[derive(::codec::Decode, ::codec::Encode, Clone, Debug, PartialEq)]
 				pub enum Event {
@@ -7460,6 +7546,8 @@ pub mod api {
 					one_fewer_deciding { track: ::core::primitive::u16 },
 					#[codec(index = 7)]
 					refund_submission_deposit { index: ::core::primitive::u32 },
+					#[codec(index = 9)]
+					slash_submission_deposit { index: ::core::primitive::u32 },
 					#[codec(index = 8)]
 					set_metadata {
 						index: ::core::primitive::u32,
@@ -8000,10 +8088,31 @@ pub mod api {
 							pub index: ::core::primitive::u64,
 						}
 					}
+					pub mod receipt {
+						use super::runtime_types;
+						#[derive(::codec::Decode, ::codec::Encode, Clone, Debug, PartialEq)]
+						pub struct CommittedReceiptLogs {
+							pub encoded_len: ::core::primitive::u32,
+							pub bloom: [::core::primitive::u8; 256usize],
+							pub exceeded: ::core::primitive::bool,
+						}
+					}
+					#[derive(::codec::Decode, ::codec::Encode, Clone, Debug, PartialEq)]
+					pub struct OutsideFrameLog {
+						pub event_index: ::core::primitive::u32,
+						pub contract: ::subxt::utils::H160,
+						pub topics: ::subxt::alloc::vec::Vec<::subxt::utils::H256>,
+						pub data: ::subxt::alloc::vec::Vec<::core::primitive::u8>,
+					}
 					#[derive(::codec::Decode, ::codec::Encode, Clone, Debug, PartialEq)]
 					pub struct ReceiptGasInfo {
 						pub gas_used: runtime_types::primitive_types::U256,
 						pub effective_gas_price: runtime_types::primitive_types::U256,
+					}
+					#[derive(::codec::Decode, ::codec::Encode, Clone, Debug, PartialEq)]
+					pub struct SyntheticTransactionInfo {
+						pub gas_info: runtime_types::pallet_revive::evm::block_hash::ReceiptGasInfo,
+						pub log_event_indices: ::subxt::alloc::vec::Vec<::core::primitive::u32>,
 					}
 				}
 				pub mod tx_extension {
@@ -8017,93 +8126,109 @@ pub mod api {
 				#[derive(::codec::Decode, ::codec::Encode, Clone, Debug, PartialEq)]
 				pub enum Call {
 					#[codec(index = 0)]
-					eth_transact { payload: ::subxt::alloc::vec::Vec<::core::primitive::u8> },
-					#[codec(index = 1)]
-					call {
-						dest: ::subxt::utils::H160,
-						#[codec(compact)]
-						value: ::core::primitive::u128,
-						weight_limit: ::sp_weights::Weight,
-						#[codec(compact)]
-						storage_deposit_limit: ::core::primitive::u128,
-						data: ::subxt::alloc::vec::Vec<::core::primitive::u8>,
-					},
-					#[codec(index = 2)]
-					instantiate {
-						#[codec(compact)]
-						value: ::core::primitive::u128,
-						weight_limit: ::sp_weights::Weight,
-						#[codec(compact)]
-						storage_deposit_limit: ::core::primitive::u128,
-						code_hash: ::subxt::utils::H256,
-						data: ::subxt::alloc::vec::Vec<::core::primitive::u8>,
-						salt: ::core::option::Option<[::core::primitive::u8; 32usize]>,
-					},
-					#[codec(index = 3)]
-					instantiate_with_code {
-						#[codec(compact)]
-						value: ::core::primitive::u128,
-						weight_limit: ::sp_weights::Weight,
-						#[codec(compact)]
-						storage_deposit_limit: ::core::primitive::u128,
-						code: ::subxt::alloc::vec::Vec<::core::primitive::u8>,
-						data: ::subxt::alloc::vec::Vec<::core::primitive::u8>,
-						salt: ::core::option::Option<[::core::primitive::u8; 32usize]>,
-					},
-					#[codec(index = 10)]
-					eth_instantiate_with_code {
-						value: runtime_types::primitive_types::U256,
-						weight_limit: ::sp_weights::Weight,
-						eth_gas_limit: runtime_types::primitive_types::U256,
-						code: ::subxt::alloc::vec::Vec<::core::primitive::u8>,
-						data: ::subxt::alloc::vec::Vec<::core::primitive::u8>,
-						transaction_encoded: ::subxt::alloc::vec::Vec<::core::primitive::u8>,
-						effective_gas_price: runtime_types::primitive_types::U256,
-						encoded_len: ::core::primitive::u32,
-					},
-					#[codec(index = 11)]
-					eth_call {
-						dest: ::subxt::utils::H160,
-						value: runtime_types::primitive_types::U256,
-						weight_limit: ::sp_weights::Weight,
-						eth_gas_limit: runtime_types::primitive_types::U256,
-						data: ::subxt::alloc::vec::Vec<::core::primitive::u8>,
-						transaction_encoded: ::subxt::alloc::vec::Vec<::core::primitive::u8>,
-						effective_gas_price: runtime_types::primitive_types::U256,
-						encoded_len: ::core::primitive::u32,
-					},
-					#[codec(index = 12)]
-					eth_substrate_call {
-						call: ::subxt::alloc::boxed::Box<
-							runtime_types::asset_hub_westend_runtime::RuntimeCall,
-						>,
-						transaction_encoded: ::subxt::alloc::vec::Vec<::core::primitive::u8>,
-					},
-					#[codec(index = 4)]
-					upload_code {
-						code: ::subxt::alloc::vec::Vec<::core::primitive::u8>,
-						#[codec(compact)]
-						storage_deposit_limit: ::core::primitive::u128,
-					},
-					#[codec(index = 5)]
-					remove_code { code_hash: ::subxt::utils::H256 },
-					#[codec(index = 6)]
-					set_code { dest: ::subxt::utils::H160, code_hash: ::subxt::utils::H256 },
-					#[codec(index = 7)]
-					map_account,
-					#[codec(index = 13)]
-					batch_map_accounts {
-						accounts: ::subxt::alloc::vec::Vec<::sp_core::crypto::AccountId32>,
-					},
-					#[codec(index = 8)]
-					unmap_account,
-					#[codec(index = 9)]
-					dispatch_as_fallback_account {
-						call: ::subxt::alloc::boxed::Box<
-							runtime_types::asset_hub_westend_runtime::RuntimeCall,
-						>,
-					},
-				}
+                    eth_transact {
+                        payload: ::subxt::alloc::vec::Vec<::core::primitive::u8>,
+                    },
+                    #[codec(index = 1)]
+                    call {
+                        dest: ::subxt::utils::H160,
+                        #[codec(compact)]
+                        value: ::core::primitive::u128,
+                        weight_limit: ::sp_weights::Weight,
+                        #[codec(compact)]
+                        storage_deposit_limit: ::core::primitive::u128,
+                        data: ::subxt::alloc::vec::Vec<::core::primitive::u8>,
+                    },
+                    #[codec(index = 2)]
+                    instantiate {
+                        #[codec(compact)]
+                        value: ::core::primitive::u128,
+                        weight_limit: ::sp_weights::Weight,
+                        #[codec(compact)]
+                        storage_deposit_limit: ::core::primitive::u128,
+                        code_hash: ::subxt::utils::H256,
+                        data: ::subxt::alloc::vec::Vec<::core::primitive::u8>,
+                        salt: ::core::option::Option<[::core::primitive::u8; 32usize]>,
+                    },
+                    #[codec(index = 3)]
+                    instantiate_with_code {
+                        #[codec(compact)]
+                        value: ::core::primitive::u128,
+                        weight_limit: ::sp_weights::Weight,
+                        #[codec(compact)]
+                        storage_deposit_limit: ::core::primitive::u128,
+                        code: ::subxt::alloc::vec::Vec<::core::primitive::u8>,
+                        data: ::subxt::alloc::vec::Vec<::core::primitive::u8>,
+                        salt: ::core::option::Option<[::core::primitive::u8; 32usize]>,
+                    },
+                    #[codec(index = 10)]
+                    eth_instantiate_with_code {
+                        value: runtime_types::primitive_types::U256,
+                        weight_limit: ::sp_weights::Weight,
+                        eth_gas_limit: runtime_types::primitive_types::U256,
+                        code: ::subxt::alloc::vec::Vec<::core::primitive::u8>,
+                        data: ::subxt::alloc::vec::Vec<::core::primitive::u8>,
+                        transaction_encoded: ::subxt::alloc::vec::Vec<
+                            ::core::primitive::u8,
+                        >,
+                        effective_gas_price: runtime_types::primitive_types::U256,
+                        encoded_len: ::core::primitive::u32,
+                    },
+                    #[codec(index = 11)]
+                    eth_call {
+                        dest: ::subxt::utils::H160,
+                        value: runtime_types::primitive_types::U256,
+                        weight_limit: ::sp_weights::Weight,
+                        eth_gas_limit: runtime_types::primitive_types::U256,
+                        data: ::subxt::alloc::vec::Vec<::core::primitive::u8>,
+                        transaction_encoded: ::subxt::alloc::vec::Vec<
+                            ::core::primitive::u8,
+                        >,
+                        effective_gas_price: runtime_types::primitive_types::U256,
+                        encoded_len: ::core::primitive::u32,
+                        authorization_list: ::subxt::alloc::vec::Vec<
+                            runtime_types::pallet_revive::evm::api::transaction::AuthorizationListEntry,
+                        >,
+                    },
+                    #[codec(index = 12)]
+                    eth_substrate_call {
+                        call: ::subxt::alloc::boxed::Box<
+                            runtime_types::asset_hub_westend_runtime::RuntimeCall,
+                        >,
+                        transaction_encoded: ::subxt::alloc::vec::Vec<
+                            ::core::primitive::u8,
+                        >,
+                    },
+                    #[codec(index = 4)]
+                    upload_code {
+                        code: ::subxt::alloc::vec::Vec<::core::primitive::u8>,
+                        #[codec(compact)]
+                        storage_deposit_limit: ::core::primitive::u128,
+                    },
+                    #[codec(index = 5)]
+                    remove_code { code_hash: ::subxt::utils::H256 },
+                    #[codec(index = 6)]
+                    set_code {
+                        dest: ::subxt::utils::H160,
+                        code_hash: ::subxt::utils::H256,
+                    },
+                    #[codec(index = 7)]
+                    map_account,
+                    #[codec(index = 13)]
+                    batch_map_accounts {
+                        accounts: ::subxt::alloc::vec::Vec<
+                            ::sp_core::crypto::AccountId32,
+                        >,
+                    },
+                    #[codec(index = 8)]
+                    unmap_account,
+                    #[codec(index = 9)]
+                    dispatch_as_fallback_account {
+                        call: ::subxt::alloc::boxed::Box<
+                            runtime_types::asset_hub_westend_runtime::RuntimeCall,
+                        >,
+                    },
+                }
 				#[derive(::codec::Decode, ::codec::Encode, Clone, Debug, PartialEq)]
 				pub enum Error {
 					#[codec(index = 1)]
@@ -8222,6 +8347,10 @@ pub mod api {
 					AutoMappingEnabled,
 					#[codec(index = 67)]
 					PendingDepositCleanup,
+					#[codec(index = 68)]
+					CannotTerminateDelegatedAccount,
+					#[codec(index = 69)]
+					ReceiptTooLarge,
 				}
 				#[derive(::codec::Decode, ::codec::Encode, Clone, Debug, PartialEq)]
 				pub enum Event {
@@ -8270,6 +8399,12 @@ pub mod api {
 					Contract(runtime_types::pallet_revive::storage::ContractInfo),
 					#[codec(index = 1)]
 					EOA,
+					#[codec(index = 2)]
+					DelegatedEOA {
+						delegate_target: ::core::option::Option<::subxt::utils::H160>,
+						contract_info: runtime_types::pallet_revive::storage::ContractInfo,
+						payer: ::core::option::Option<::sp_core::crypto::AccountId32>,
+					},
 				}
 				#[derive(::codec::Decode, ::codec::Encode, Clone, Debug, PartialEq)]
 				pub struct ContractInfo {
@@ -8876,6 +9011,8 @@ pub mod api {
                         ),
                         #[codec(index = 39)]
                         InvalidChillInactiveThreshold,
+                        #[codec(index = 40)]
+                        ChillInactiveDisabled,
                     }
 					#[derive(::codec::Decode, ::codec::Encode, Clone, Debug, PartialEq)]
 					pub enum Event {
@@ -9008,6 +9145,13 @@ pub mod api {
 							optimum_self_stake: ::core::primitive::u128,
 							hard_cap_self_stake: ::core::primitive::u128,
 							slope_factor: runtime_types::sp_arithmetic::per_things::Perbill,
+						},
+						#[codec(index = 27)]
+						ServicePointsCredited {
+							service: runtime_types::sp_staking::ServiceKind,
+							era: ::core::primitive::u32,
+							credited: ::core::primitive::u32,
+							dropped: ::core::primitive::u32,
 						},
 					}
 					#[derive(::codec::Decode, ::codec::Encode, Clone, Debug, PartialEq)]
@@ -9155,6 +9299,54 @@ pub mod api {
 				#[codec(compact)]
 				pub commission: runtime_types::sp_arithmetic::per_things::Perbill,
 				pub blocked: ::core::primitive::bool,
+			}
+		}
+		pub mod pallet_staking_async_points_converter {
+			use super::runtime_types;
+			pub mod pallet {
+				use super::runtime_types;
+				#[derive(::codec::Decode, ::codec::Encode, Clone, Debug, PartialEq)]
+				pub enum Call {
+					#[codec(index = 0)]
+					set_points_per_service {
+						source: runtime_types::polkadot_parachain_primitives::primitives::Id,
+						service: runtime_types::sp_staking::ServiceKind,
+						points: ::core::primitive::u32,
+					},
+					#[codec(index = 1)]
+					report_authored_blocks {
+						blocks: ::subxt::alloc::vec::Vec<(
+							::sp_core::crypto::AccountId32,
+							::core::primitive::u32,
+						)>,
+					},
+				}
+				#[derive(::codec::Decode, ::codec::Encode, Clone, Debug, PartialEq)]
+				pub enum Error {
+					#[codec(index = 0)]
+					PointsPerServiceTooHigh,
+					#[codec(index = 1)]
+					RelayConsensusNotWeighted,
+				}
+				#[derive(::codec::Decode, ::codec::Encode, Clone, Debug, PartialEq)]
+				pub enum Event {
+					#[codec(index = 0)]
+					PointsPerServiceSet {
+						source: runtime_types::polkadot_parachain_primitives::primitives::Id,
+						service: runtime_types::sp_staking::ServiceKind,
+						points: ::core::primitive::u32,
+					},
+					#[codec(index = 1)]
+					BlocksCredited {
+						source: runtime_types::polkadot_parachain_primitives::primitives::Id,
+						blocks: ::core::primitive::u32,
+					},
+					#[codec(index = 2)]
+					BlocksIgnored {
+						source: runtime_types::polkadot_parachain_primitives::primitives::Id,
+						blocks: ::core::primitive::u32,
+					},
+				}
 			}
 		}
 		pub mod pallet_staking_async_rc_client {
@@ -9828,6 +10020,8 @@ pub mod api {
 					AttributeNotFound,
 					#[codec(index = 21)]
 					WrongAttribute,
+					#[codec(index = 22)]
+					IncompleteDepositTransfer,
 				}
 				#[derive(::codec::Decode, ::codec::Encode, Clone, Debug, PartialEq)]
 				pub enum Event {
@@ -10124,6 +10318,151 @@ pub mod api {
 					#[codec(index = 7)]
 					IfElseFallbackCalled { main_error: runtime_types::sp_runtime::DispatchError },
 				}
+			}
+		}
+		pub mod pallet_validator_collators {
+			use super::runtime_types;
+			pub mod pallet {
+				use super::runtime_types;
+				#[derive(::codec::Decode, ::codec::Encode, Clone, Debug, PartialEq)]
+				pub enum Call {
+					#[codec(index = 0)]
+					set_validators {
+						era: ::core::primitive::u32,
+						validators:
+							runtime_types::bounded_collections::bounded_btree_set::BoundedBTreeSet<
+								::sp_core::crypto::AccountId32,
+							>,
+					},
+					#[codec(index = 1)]
+					set_max_collators {
+						max: runtime_types::pallet_validator_collators::pallet::CollatorDraw,
+					},
+					#[codec(index = 2)]
+					set_report_period { period: ::core::primitive::u32 },
+					#[codec(index = 3)]
+					set_expected_era_duration { duration: ::core::primitive::u64 },
+					#[codec(index = 4)]
+					set_report_margin { margin: ::core::primitive::u64 },
+				}
+				#[derive(::codec::Decode, ::codec::Encode, Clone, Debug, PartialEq)]
+				pub enum CollatorDraw {
+					#[codec(index = 0)]
+					All,
+					#[codec(index = 1)]
+					UpTo(::core::primitive::u32),
+					#[codec(index = 2)]
+					None,
+				}
+				#[derive(::codec::Decode, ::codec::Encode, Clone, Debug, PartialEq)]
+				pub struct EraCollators {
+					pub era: ::core::primitive::u32,
+					pub collators: runtime_types::bounded_collections::bounded_vec::BoundedVec<
+						::sp_core::crypto::AccountId32,
+					>,
+				}
+				#[derive(::codec::Decode, ::codec::Encode, Clone, Debug, PartialEq)]
+				pub struct EraValidatorSet {
+					pub era: ::core::primitive::u32,
+					pub validators:
+						runtime_types::bounded_collections::bounded_btree_set::BoundedBTreeSet<
+							::sp_core::crypto::AccountId32,
+						>,
+				}
+				#[derive(::codec::Decode, ::codec::Encode, Clone, Debug, PartialEq)]
+				pub enum Error {
+					#[codec(index = 0)]
+					StaleEra,
+					#[codec(index = 1)]
+					TooManyValidators,
+					#[codec(index = 2)]
+					ZeroReportPeriod,
+					#[codec(index = 3)]
+					ZeroExpectedEraDuration,
+					#[codec(index = 4)]
+					ZeroReportMargin,
+					#[codec(index = 5)]
+					ReportMarginTooHigh,
+				}
+				#[derive(::codec::Decode, ::codec::Encode, Clone, Debug, PartialEq)]
+				pub enum Event {
+					#[codec(index = 0)]
+					ValidatorSetReceived {
+						era: ::core::primitive::u32,
+						count: ::core::primitive::u32,
+					},
+					#[codec(index = 1)]
+					MaxCollatorsSet {
+						max: runtime_types::pallet_validator_collators::pallet::CollatorDraw,
+					},
+					#[codec(index = 2)]
+					NothingToDraw,
+					#[codec(index = 3)]
+					CollatorsDrawn {
+						era: ::core::primitive::u32,
+						external_len: ::core::primitive::u32,
+						drawn_len: ::core::primitive::u32,
+						new_external: ::core::primitive::bool,
+					},
+					#[codec(index = 4)]
+					ReportPeriodSet { period: ::core::primitive::u32 },
+					#[codec(index = 5)]
+					BlocksReported {
+						authors: ::core::primitive::u32,
+						reported: ::core::primitive::u32,
+					},
+					#[codec(index = 6)]
+					BlocksReportFailed {
+						kept: ::core::primitive::u32,
+						dropped: ::core::primitive::u32,
+					},
+					#[codec(index = 7)]
+					ExpectedEraDurationSet { duration: ::core::primitive::u64 },
+					#[codec(index = 8)]
+					ReportMarginSet { margin: ::core::primitive::u64 },
+					#[codec(index = 9)]
+					Unexpected(runtime_types::pallet_validator_collators::pallet::UnexpectedKind),
+				}
+				#[derive(::codec::Decode, ::codec::Encode, Clone, Debug, PartialEq)]
+				pub enum RotationState {
+					#[codec(index = 0)]
+					Idle,
+					#[codec(index = 1)]
+					AwaitingQueue,
+					#[codec(index = 2)]
+					AwaitingEnactment,
+				}
+				#[derive(::codec::Decode, ::codec::Encode, Clone, Debug, PartialEq)]
+				pub enum UnexpectedKind {
+					#[codec(index = 0)]
+					NoPreviousDrawSet,
+					#[codec(index = 1)]
+					StoredSetUndecodable,
+				}
+			}
+		}
+		pub mod pallet_validator_set_announcer {
+			use super::runtime_types;
+			pub mod pallet {
+				use super::runtime_types;
+				#[derive(::codec::Decode, ::codec::Encode, Clone, Debug, PartialEq)]
+				pub enum Event {
+					#[codec(index = 0)]
+                    AnnouncementSent {
+                        destination: runtime_types::asset_hub_westend_runtime::staking::ValidatorSetDestination,
+                        era: ::core::primitive::u32,
+                    },
+                    #[codec(index = 1)]
+                    AnnouncementFailed {
+                        destination: runtime_types::asset_hub_westend_runtime::staking::ValidatorSetDestination,
+                        era: ::core::primitive::u32,
+                    },
+                    #[codec(index = 2)]
+                    AnnouncementRejected {
+                        era: ::core::primitive::u32,
+                        error: runtime_types::sp_runtime::DispatchError,
+                    },
+                }
 			}
 		}
 		pub mod pallet_verify_signature {
@@ -11176,6 +11515,14 @@ pub mod api {
 				DivisionByZero,
 			}
 		}
+		pub mod sp_authority_discovery {
+			use super::runtime_types;
+			pub mod app {
+				use super::runtime_types;
+				#[derive(::codec::Decode, ::codec::Encode, Clone, Debug, PartialEq)]
+				pub struct Public(pub [::core::primitive::u8; 32usize]);
+			}
+		}
 		pub mod sp_consensus_aura {
 			use super::runtime_types;
 			pub mod sr25519 {
@@ -11416,6 +11763,13 @@ pub mod api {
 				pub own: _0,
 				pub nominator_count: ::core::primitive::u32,
 				pub page_count: ::core::primitive::u32,
+			}
+			#[derive(::codec::Decode, ::codec::Encode, Clone, Debug, PartialEq)]
+			pub enum ServiceKind {
+				#[codec(index = 0)]
+				RelayConsensus,
+				#[codec(index = 1)]
+				Collation,
 			}
 		}
 		pub mod sp_trie {

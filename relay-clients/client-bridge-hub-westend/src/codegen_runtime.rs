@@ -539,6 +539,8 @@ pub mod api {
 				MessageQueue(runtime_types::pallet_message_queue::pallet::Event),
 			}
 			#[derive(::codec::Decode, ::codec::Encode, Clone, Debug, PartialEq)]
+			pub enum RuntimeFreezeReason {}
+			#[derive(::codec::Decode, ::codec::Encode, Clone, Debug, PartialEq)]
 			pub enum RuntimeHoldReason {
 				#[codec(index = 22)]
 				Session(runtime_types::pallet_session::pallet::HoldReason),
@@ -660,6 +662,19 @@ pub mod api {
 						>,
 					>,
 				}
+				#[derive(::codec::Decode, ::codec::Encode, Clone, Debug, PartialEq)]
+				pub enum InboundHrmpMessageId {
+					#[codec(index = 0)]
+                    Generic(
+                        runtime_types::cumulus_pallet_parachain_system::parachain_inherent::InboundMessageId,
+                    ),
+                    #[codec(index = 1)]
+                    Specific {
+                        sent_at: ::core::primitive::u32,
+                        sender: runtime_types::polkadot_parachain_primitives::primitives::Id,
+                        reverse_idx: ::core::primitive::u32,
+                    },
+                }
 				#[derive(::codec::Decode, ::codec::Encode, Clone, Debug, PartialEq)]
 				pub struct InboundMessageId {
 					pub sent_at: ::core::primitive::u32,
@@ -815,6 +830,8 @@ pub mod api {
 					TooManyActiveOutboundChannels,
 					#[codec(index = 4)]
 					TooBig,
+					#[codec(index = 5)]
+					RetryPage,
 				}
 				#[derive(::codec::Decode, ::codec::Encode, Clone, Debug, PartialEq)]
 				pub enum Event {
@@ -3249,24 +3266,6 @@ pub mod api {
 					pub block_roots_root: ::subxt::utils::H256,
 				}
 				#[derive(::codec::Decode, ::codec::Encode, Clone, Debug, PartialEq)]
-				pub struct ExecutionPayloadHeader {
-					pub parent_hash: ::subxt::utils::H256,
-					pub fee_recipient: ::subxt::utils::H160,
-					pub state_root: ::subxt::utils::H256,
-					pub receipts_root: ::subxt::utils::H256,
-					pub logs_bloom: ::subxt::alloc::vec::Vec<::core::primitive::u8>,
-					pub prev_randao: ::subxt::utils::H256,
-					pub block_number: ::core::primitive::u64,
-					pub gas_limit: ::core::primitive::u64,
-					pub gas_used: ::core::primitive::u64,
-					pub timestamp: ::core::primitive::u64,
-					pub extra_data: ::subxt::alloc::vec::Vec<::core::primitive::u8>,
-					pub base_fee_per_gas: runtime_types::primitive_types::U256,
-					pub block_hash: ::subxt::utils::H256,
-					pub transactions_root: ::subxt::utils::H256,
-					pub withdrawals_root: ::subxt::utils::H256,
-				}
-				#[derive(::codec::Decode, ::codec::Encode, Clone, Debug, PartialEq)]
 				pub struct ExecutionProof {
                     pub header: runtime_types::snowbridge_beacon_primitives::types::BeaconHeader,
                     pub ancestry_proof: ::core::option::Option<
@@ -3289,6 +3288,7 @@ pub mod api {
 					pub deneb: runtime_types::snowbridge_beacon_primitives::types::Fork,
 					pub electra: runtime_types::snowbridge_beacon_primitives::types::Fork,
 					pub fulu: runtime_types::snowbridge_beacon_primitives::types::Fork,
+					pub gloas: runtime_types::snowbridge_beacon_primitives::types::Fork,
 				}
 				#[derive(::codec::Decode, ::codec::Encode, Clone, Debug, PartialEq)]
 				pub struct PublicKey(pub [::core::primitive::u8; 48usize]);
@@ -3317,13 +3317,15 @@ pub mod api {
 				}
 				#[derive(::codec::Decode, ::codec::Encode, Clone, Debug, PartialEq)]
 				pub enum VersionedExecutionPayloadHeader {
-					#[codec(index = 0)]
-                    Capella(
-                        runtime_types::snowbridge_beacon_primitives::types::ExecutionPayloadHeader,
-                    ),
-                    #[codec(index = 1)]
+					#[codec(index = 1)]
                     Deneb(
                         runtime_types::snowbridge_beacon_primitives::types::deneb::ExecutionPayloadHeader,
+                    ),
+                    #[codec(index = 2)]
+                    Gloas(
+                        runtime_types::bounded_collections::bounded_vec::BoundedVec<
+                            ::core::primitive::u8,
+                        >,
                     ),
                 }
 			}
@@ -3630,6 +3632,10 @@ pub mod api {
 					ExecutionHeaderSkippedBlock,
 					#[codec(index = 24)]
 					Halted,
+					#[codec(index = 25)]
+					MalformedExecutionHeader,
+					#[codec(index = 26)]
+					ExecutionHeaderEraMismatch,
 				}
 				#[derive(::codec::Decode, ::codec::Encode, Clone, Debug, PartialEq)]
 				pub enum Event {

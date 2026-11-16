@@ -345,9 +345,9 @@ pub mod api {
 			.hash();
 		runtime_metadata_hash ==
 			[
-				83u8, 88u8, 156u8, 52u8, 110u8, 57u8, 228u8, 254u8, 204u8, 43u8, 246u8, 156u8,
-				112u8, 25u8, 246u8, 100u8, 41u8, 154u8, 232u8, 5u8, 35u8, 124u8, 116u8, 112u8,
-				251u8, 58u8, 39u8, 140u8, 222u8, 30u8, 116u8, 83u8,
+				64u8, 188u8, 191u8, 51u8, 225u8, 166u8, 154u8, 71u8, 127u8, 64u8, 71u8, 8u8, 101u8,
+				102u8, 106u8, 47u8, 25u8, 115u8, 74u8, 5u8, 216u8, 64u8, 64u8, 98u8, 70u8, 63u8,
+				47u8, 75u8, 252u8, 66u8, 168u8, 151u8,
 			]
 	}
 	pub mod system {
@@ -2131,9 +2131,10 @@ pub mod api {
 						"ParachainSystem",
 						"LastProcessedHrmpMessage",
 						[
-							170u8, 114u8, 249u8, 92u8, 203u8, 248u8, 248u8, 182u8, 128u8, 220u8,
-							133u8, 0u8, 248u8, 85u8, 110u8, 239u8, 18u8, 212u8, 16u8, 37u8, 178u8,
-							80u8, 36u8, 4u8, 212u8, 164u8, 138u8, 172u8, 29u8, 3u8, 114u8, 248u8,
+							79u8, 102u8, 145u8, 96u8, 177u8, 178u8, 156u8, 254u8, 127u8, 156u8,
+							147u8, 161u8, 105u8, 239u8, 110u8, 164u8, 163u8, 232u8, 66u8, 98u8,
+							127u8, 100u8, 236u8, 157u8, 6u8, 183u8, 103u8, 124u8, 64u8, 213u8,
+							216u8, 59u8,
 						],
 					)
 				}
@@ -2482,7 +2483,7 @@ pub mod api {
 				pub mod input {
 					use super::runtime_types;
 				}
-				pub type Output = runtime_types::cumulus_pallet_parachain_system::parachain_inherent::InboundMessageId;
+				pub type Output = runtime_types::cumulus_pallet_parachain_system::parachain_inherent::InboundHrmpMessageId;
 			}
 			pub mod hrmp_outbound_messages {
 				use super::{root_mod, runtime_types};
@@ -4148,20 +4149,6 @@ pub mod api {
 					::subxt::constants::StaticAddress::new_static(
 						"Balances",
 						"MaxReserves",
-						[
-							98u8, 252u8, 116u8, 72u8, 26u8, 180u8, 225u8, 83u8, 200u8, 157u8,
-							125u8, 151u8, 53u8, 76u8, 168u8, 26u8, 10u8, 9u8, 98u8, 68u8, 9u8,
-							178u8, 197u8, 113u8, 31u8, 79u8, 200u8, 90u8, 203u8, 100u8, 41u8,
-							145u8,
-						],
-					)
-				}
-				pub fn max_freezes(
-					&self,
-				) -> ::subxt::constants::StaticAddress<::core::primitive::u32> {
-					::subxt::constants::StaticAddress::new_static(
-						"Balances",
-						"MaxFreezes",
 						[
 							98u8, 252u8, 116u8, 72u8, 26u8, 180u8, 225u8, 83u8, 200u8, 157u8,
 							125u8, 151u8, 53u8, 76u8, 168u8, 26u8, 10u8, 9u8, 98u8, 68u8, 9u8,
@@ -27469,6 +27456,25 @@ pub mod api {
 				)]
 				#[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
 				#[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
+				pub enum InboundHrmpMessageId {
+					#[codec(index = 0)]
+                    Generic(
+                        runtime_types::cumulus_pallet_parachain_system::parachain_inherent::InboundMessageId,
+                    ),
+                    #[codec(index = 1)]
+                    Specific {
+                        sent_at: ::core::primitive::u32,
+                        sender: runtime_types::polkadot_parachain_primitives::primitives::Id,
+                        reverse_idx: ::core::primitive::u32,
+                    },
+                }
+				#[derive(
+					::subxt::ext::scale_decode::DecodeAsType,
+					::subxt::ext::scale_encode::EncodeAsType,
+					Debug,
+				)]
+				#[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
+				#[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
 				pub struct InboundMessageId {
 					pub sent_at: ::core::primitive::u32,
 					pub reverse_idx: ::core::primitive::u32,
@@ -27707,6 +27713,8 @@ pub mod api {
 					TooManyActiveOutboundChannels,
 					#[codec(index = 4)]
 					TooBig,
+					#[codec(index = 5)]
+					RetryPage,
 				}
 				#[derive(
 					::subxt::ext::scale_decode::DecodeAsType,
@@ -28505,6 +28513,8 @@ pub mod api {
 					PoolEmpty,
 					#[codec(index = 24)]
 					FeeTooHigh,
+					#[codec(index = 25)]
+					PoolUnavailable,
 				}
 				#[derive(
 					::subxt::ext::scale_decode::DecodeAsType,
@@ -31434,6 +31444,8 @@ pub mod api {
 					CollectionNotEmpty,
 					#[codec(index = 44)]
 					WitnessRequired,
+					#[codec(index = 45)]
+					IncompleteDepositTransfer,
 				}
 				#[derive(
 					::subxt::ext::scale_decode::DecodeAsType,
@@ -32634,6 +32646,8 @@ pub mod api {
 					AttributeNotFound,
 					#[codec(index = 21)]
 					WrongAttribute,
+					#[codec(index = 22)]
+					IncompleteDepositTransfer,
 				}
 				#[derive(
 					::subxt::ext::scale_decode::DecodeAsType,
