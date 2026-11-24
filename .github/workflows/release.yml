@@ -21,8 +21,25 @@ permissions:
   pull-requests: write
 
 jobs:
+  set-variables:
+    # Sets the container image for the 'release' job (same workaround as in ci.yml).
+    runs-on: ubuntu-latest
+    outputs:
+      CI_IMAGE: ${{ steps.set_image.outputs.CI_IMAGE }}
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v6
+        with:
+          ref: master
+      - name: Set image
+        id: set_image
+        run: echo "CI_IMAGE=$(sed -n 's/^IMAGE=//p' .github/env)" >> $GITHUB_OUTPUT
+
   release:
     runs-on: ubuntu-latest
+    needs: [set-variables]
+    container:
+      image: ${{ needs.set-variables.outputs.CI_IMAGE }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v6
@@ -32,22 +49,15 @@ jobs:
       - name: Create wbuild directory
         run: mkdir -p ./tools/runtime-codegen/wbuild
 
-      - name: Install prerequisites
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y protobuf-compiler
-          rustup component add --toolchain nightly-x86_64-unknown-linux-gnu rustfmt
-
       - name: Parse versions
         id: parse-versions
         env:
           RUNTIME_VERSION: ${{ github.event.inputs.runtime_version }}
         run: |
           runtime_num="${RUNTIME_VERSION#v}"
-          IFS='.' read -ra VERSION_PARTS <<< "$runtime_num"
-          major="${VERSION_PARTS[0]}"
-          minor="${VERSION_PARTS[1]}"
-          patch="${VERSION_PARTS[2]}"
+          major=$(echo "$runtime_num" | cut -d. -f1)
+          minor=$(echo "$runtime_num" | cut -d. -f2)
+          patch=$(echo "$runtime_num" | cut -d. -f3)
           # Add leading zeros
           minor=$(printf "%03d" "$minor")
           patch=$(printf "%03d" "$patch")
@@ -97,7 +107,7 @@ jobs:
           wget -O "./tools/runtime-codegen/$runtime_file" "$runtime_uri"
 
           # Check if file was downloaded successfully
-          if [[ ! -f "./tools/runtime-codegen/$runtime_file" ]]; then
+          if [ ! -f "./tools/runtime-codegen/$runtime_file" ]; then
             echo "Error: Failed to download runtime file: $runtime_file"
             echo "Aborting workflow."
             exit 1
@@ -139,7 +149,7 @@ jobs:
           RUNTIME_VERSION: ${{ env.RUNTIME_VERSION }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          set -euo pipefail
+          set -eu
           # Keep the `--full` zombienet codegen for the released chain's Fellows family (relay + asset
           # hub + bridge hub) in lockstep with the relay-client codegen above, so `check-codegen-compat`
           # stays green, and pin the released side's Fellows tag in `.github/env` so CI's zombienet
@@ -195,11 +205,7 @@ jobs:
           cargo update -p substrate-relay --offline
 
       - name: Format code
-        run: |
-          . .github/env
-          echo "Formatting with $IMAGE"
-          docker run --rm --user "$(id -u):$(id -g)" -e HOME=/tmp -v "$PWD:/w" -w /w \
-            "$IMAGE" cargo +nightly fmt --all
+        run: cargo +nightly fmt --all
 
       - name: Create Pull Request
         env:
