@@ -25,6 +25,11 @@ jobs:
       - name: Set image
         id: set_image
         run: echo "CI_IMAGE=$(sed -n 's/^IMAGE=//p' .github/env)" >> $GITHUB_OUTPUT
+      - name: Check Dockerfile and README use the same image
+        run: |
+          image="$(sed -n 's/^IMAGE=//p' .github/env)"
+          grep -qF "FROM $image" Dockerfile
+          grep -qF "${image#docker.io/}" README.md
       - name: Define version
         id: version
         run: |
